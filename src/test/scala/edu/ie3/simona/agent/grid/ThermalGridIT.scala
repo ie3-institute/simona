@@ -11,16 +11,30 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.config.SimonaConfig.{EmRuntimeConfig, HpRuntimeConfig, PvRuntimeConfig}
+import edu.ie3.simona.config.SimonaConfig.{
+  EmRuntimeConfig,
+  HpRuntimeConfig,
+  PvRuntimeConfig,
+}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent._
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{ProvideWeatherMessage, RegisterForWeatherMessage, WeatherData}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
+  ProvideWeatherMessage,
+  RegisterForWeatherMessage,
+  WeatherData,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.test.common.input.EmInputTestData
@@ -31,7 +45,10 @@ import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.apache.pekko.actor.typed.scaladsl.adapter.{TypedActorRefOps, _}
 import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.matchers.should
@@ -820,7 +837,7 @@ class ThermalGridIT
 
   "A Thermal Grid with thermal house, thermal storage and heat pump that is controlled by an energy management" should {
     "be initialized correctly and run through some activations" in {
-      //FIXME Remove this in the end
+      // FIXME Remove this in the end
       val timeout: FiniteDuration = FiniteDuration(30, SECONDS)
       implicit val simulationStartWithPv: ZonedDateTime =
         TimeUtil.withDefaults.toZonedDateTime("2020-06-01T10:00:00Z")
@@ -1192,6 +1209,7 @@ class ThermalGridIT
 
       /* TICK 5400
       New weather data, sun is gone again, thus we should now heat the house by storage and only till targetTemperature
+      // FIXME Test this also with empty storage!
       House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 8.41 kWh
       House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
@@ -1225,7 +1243,6 @@ class ThermalGridIT
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
                 hpResult._1 shouldBe 5400.toDateTime
-                // FIXME this is not the correct behaviour we can a) continue heating with heat pump or b) use the storage to heat until targetTemp
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
 
@@ -1245,8 +1262,7 @@ class ThermalGridIT
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 5400.toDateTime
-                // FIXME Where does the heat comes from!?
-                qDot should equalWithTolerance(0.011.asMegaWatt)
+                qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.5769000397666.asDegreeCelsius
                 )
@@ -1259,7 +1275,7 @@ class ThermalGridIT
                   ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 5400.toDateTime
-                qDot should equalWithTolerance(0.0.asMegaWatt)
+                qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
