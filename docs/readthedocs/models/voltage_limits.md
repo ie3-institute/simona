@@ -44,6 +44,10 @@ levels and their parameterization. They are primarily used for the optional cong
   - 1.05 p.u.
 ```
 
+**References:**
+
+* {cite:cts}`EN_50160`
+* {cite:cts}`EU_2017/1485`
 
 ## Configuration of the voltage limits
 
