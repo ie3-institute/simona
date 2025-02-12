@@ -7,22 +7,9 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigRenderOptions}
-import pureconfig.error.{
-  CannotParse,
-  CannotRead,
-  ConfigReaderFailures,
-  ConvertFailure,
-  ThrowableFailure,
-}
-import pureconfig.{
-  CamelCase,
-  ConfigConvert,
-  ConfigFieldMapping,
-  ConfigObjectSource,
-  ConfigReader,
-  ConfigSource,
-  ConfigWriter,
-}
+
+import pureconfig._
+import pureconfig.error._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
 import pureconfig.generic.semiauto.{deriveReader, deriveWriter}
@@ -53,14 +40,64 @@ object SimonaConfig {
   // necessary to prevent StackOverFlowErrors during compilation
   implicit val baseRuntimeReader: ConfigReader[BaseRuntimeConfig] =
     deriveReader[BaseRuntimeConfig]
+  implicit val baseRuntimeWriter: ConfigWriter[BaseRuntimeConfig] =
+    deriveWriter[BaseRuntimeConfig]
   implicit val loadRuntimeReader: ConfigReader[LoadRuntimeConfig] =
     deriveReader[LoadRuntimeConfig]
+  implicit val loadRuntimeWriter: ConfigWriter[LoadRuntimeConfig] =
+    deriveWriter[LoadRuntimeConfig]
+  implicit val ffiRuntimeReader: ConfigReader[FixedFeedInRuntimeConfig] =
+    deriveReader[FixedFeedInRuntimeConfig]
+  implicit val ffiRuntimeWriter: ConfigWriter[FixedFeedInRuntimeConfig] =
+    deriveWriter[FixedFeedInRuntimeConfig]
+  implicit val pvRuntimeReader: ConfigReader[PvRuntimeConfig] =
+    deriveReader[PvRuntimeConfig]
+  implicit val pvRuntimeWriter: ConfigWriter[PvRuntimeConfig] =
+    deriveWriter[PvRuntimeConfig]
+  implicit val wecRuntimeReader: ConfigReader[WecRuntimeConfig] =
+    deriveReader[WecRuntimeConfig]
+  implicit val wecRuntimeWriter: ConfigWriter[WecRuntimeConfig] =
+    deriveWriter[WecRuntimeConfig]
   implicit val evcsRuntimeReader: ConfigReader[EvcsRuntimeConfig] =
     deriveReader[EvcsRuntimeConfig]
+  implicit val evcsRuntimeWriter: ConfigWriter[EvcsRuntimeConfig] =
+    deriveWriter[EvcsRuntimeConfig]
   implicit val emRuntimeReader: ConfigReader[EmRuntimeConfig] =
     deriveReader[EmRuntimeConfig]
+  implicit val emRuntimeWriter: ConfigWriter[EmRuntimeConfig] =
+    deriveWriter[EmRuntimeConfig]
   implicit val storageRuntimeReader: ConfigReader[StorageRuntimeConfig] =
     deriveReader[StorageRuntimeConfig]
+  implicit val storageRuntimeWriter: ConfigWriter[StorageRuntimeConfig] =
+    deriveWriter[StorageRuntimeConfig]
+  implicit val hpRuntimeReader: ConfigReader[HpRuntimeConfig] =
+    deriveReader[HpRuntimeConfig]
+  implicit val hpRuntimeWriter: ConfigWriter[HpRuntimeConfig] =
+    deriveWriter[HpRuntimeConfig]
+  implicit val baseCsvReader: ConfigReader[BaseCsvParams] =
+    deriveReader[BaseCsvParams]
+  implicit val baseCsvWriter: ConfigWriter[BaseCsvParams] =
+    deriveWriter[BaseCsvParams]
+  implicit val partBaseOutputReader: ConfigReader[ParticipantBaseOutputConfig] =
+    deriveReader[ParticipantBaseOutputConfig]
+  implicit val partBaseOutputWriter: ConfigWriter[ParticipantBaseOutputConfig] =
+    deriveWriter[ParticipantBaseOutputConfig]
+  implicit val primaryDataCsvReader: ConfigReader[PrimaryDataCsvParams] =
+    deriveReader[PrimaryDataCsvParams]
+  implicit val primaryDataCsvWriter: ConfigWriter[PrimaryDataCsvParams] =
+    deriveWriter[PrimaryDataCsvParams]
+  implicit val resultKafkaReader: ConfigReader[ResultKafkaParams] =
+    deriveReader[ResultKafkaParams]
+  implicit val resultKafkaWriter: ConfigWriter[ResultKafkaParams] =
+    deriveWriter[ResultKafkaParams]
+  implicit val runtimeKafkaReader: ConfigReader[RuntimeKafkaParams] =
+    deriveReader[RuntimeKafkaParams]
+  implicit val runtimeKafkaWriter: ConfigWriter[RuntimeKafkaParams] =
+    deriveWriter[RuntimeKafkaParams]
+  implicit val simpleOutputReader: ConfigReader[SimpleOutputConfig] =
+    deriveReader[SimpleOutputConfig]
+  implicit val simpleOutputWriter: ConfigWriter[SimpleOutputConfig] =
+    deriveWriter[SimpleOutputConfig]
 
   /** Method to extract a config from a [[pureconfig.ConfigReader.Result]]
     * @param either
@@ -109,9 +146,9 @@ object SimonaConfig {
   // pure config end
 
   final case class BaseCsvParams(
-      override val csvSep: java.lang.String,
-      override val directoryPath: java.lang.String,
-      override val isHierarchic: scala.Boolean,
+      override val csvSep: String,
+      override val directoryPath: String,
+      override val isHierarchic: Boolean,
   ) extends CsvParams(csvSep, directoryPath, isHierarchic)
   object BaseCsvParams {
     def apply(
@@ -161,20 +198,20 @@ object SimonaConfig {
   }
 
   sealed abstract class BaseOutputConfig(
-      val notifier: java.lang.String,
-      val simulationResult: scala.Boolean,
+      val notifier: String,
+      val simulationResult: Boolean,
   )
 
   sealed abstract class BaseRuntimeConfig(
-      val calculateMissingReactivePowerWithModel: scala.Boolean,
-      val scaling: scala.Double,
-      val uuids: scala.List[java.lang.String],
-  ) extends java.io.Serializable
+      val calculateMissingReactivePowerWithModel: Boolean,
+      val scaling: Double,
+      val uuids: List[String],
+  ) extends Serializable
 
   sealed abstract class CsvParams(
-      val csvSep: java.lang.String,
-      val directoryPath: java.lang.String,
-      val isHierarchic: scala.Boolean,
+      val csvSep: String,
+      val directoryPath: String,
+      val isHierarchic: Boolean,
   )
 
   final case class EmRuntimeConfig(
@@ -316,9 +353,9 @@ object SimonaConfig {
   }
 
   final case class FixedFeedInRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -419,9 +456,9 @@ object SimonaConfig {
   }
 
   final case class HpRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -486,11 +523,11 @@ object SimonaConfig {
   )
 
   final case class LoadRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
-      modelBehaviour: java.lang.String,
-      reference: java.lang.String,
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
+      modelBehaviour: String,
+      reference: String,
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -679,9 +716,9 @@ object SimonaConfig {
   }
 
   final case class PvRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -739,10 +776,10 @@ object SimonaConfig {
   }
 
   final case class RefSystemConfig(
-      gridIds: scala.Option[scala.List[java.lang.String]],
-      sNom: java.lang.String,
-      vNom: java.lang.String,
-      voltLvls: scala.Option[scala.List[SimonaConfig.VoltLvlConfig]],
+      gridIds: Option[List[String]],
+      sNom: String,
+      vNom: String,
+      voltLvls: Option[List[VoltLvlConfig]],
   )
   object RefSystemConfig {
     def apply(
@@ -806,11 +843,11 @@ object SimonaConfig {
   }
 
   final case class ResultKafkaParams(
-      override val bootstrapServers: java.lang.String,
-      override val linger: scala.Int,
-      override val runId: java.lang.String,
-      override val schemaRegistryUrl: java.lang.String,
-      topicNodeRes: java.lang.String,
+      override val bootstrapServers: String,
+      override val linger: Int,
+      override val runId: String,
+      override val schemaRegistryUrl: String,
+      topicNodeRes: String,
   ) extends KafkaParams(bootstrapServers, linger, runId, schemaRegistryUrl)
   object ResultKafkaParams {
     def apply(
@@ -863,11 +900,11 @@ object SimonaConfig {
   }
 
   final case class RuntimeKafkaParams(
-      override val bootstrapServers: java.lang.String,
-      override val linger: scala.Int,
-      override val runId: java.lang.String,
-      override val schemaRegistryUrl: java.lang.String,
-      topic: java.lang.String,
+      override val bootstrapServers: String,
+      override val linger: Int,
+      override val runId: String,
+      override val schemaRegistryUrl: String,
+      topic: String,
   ) extends KafkaParams(bootstrapServers, linger, runId, schemaRegistryUrl)
   object RuntimeKafkaParams {
     def apply(
@@ -920,8 +957,8 @@ object SimonaConfig {
   }
 
   final case class SimpleOutputConfig(
-      override val notifier: java.lang.String,
-      override val simulationResult: scala.Boolean,
+      override val notifier: String,
+      override val simulationResult: Boolean,
   ) extends BaseOutputConfig(notifier, simulationResult)
   object SimpleOutputConfig {
     def apply(
@@ -1037,10 +1074,10 @@ object SimonaConfig {
   }
 
   final case class TransformerControlGroup(
-      measurements: scala.List[java.lang.String],
-      transformers: scala.List[java.lang.String],
-      vMax: scala.Double,
-      vMin: scala.Double,
+      measurements: List[String],
+      transformers: List[String],
+      vMax: Double,
+      vMin: Double,
   )
   object TransformerControlGroup {
     def apply(
@@ -1076,8 +1113,8 @@ object SimonaConfig {
   }
 
   final case class VoltLvlConfig(
-      id: java.lang.String,
-      vNom: java.lang.String,
+      id: String,
+      vNom: String,
   )
   object VoltLvlConfig {
     def apply(
@@ -1109,9 +1146,9 @@ object SimonaConfig {
   }
 
   final case class WecRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -1170,14 +1207,14 @@ object SimonaConfig {
 
   final case class Simona(
       control: scala.Option[SimonaConfig.Simona.Control],
-      event: SimonaConfig.Simona.Event,
+      event: SimonaConfig.Simona.Event = Simona.Event(),
       gridConfig: SimonaConfig.Simona.GridConfig,
       input: SimonaConfig.Simona.Input,
       output: SimonaConfig.Simona.Output,
       powerflow: SimonaConfig.Simona.Powerflow,
       runtime: SimonaConfig.Simona.Runtime,
       simulationName: java.lang.String,
-      time: SimonaConfig.Simona.Time,
+      time: SimonaConfig.Simona.Time = Simona.Time(),
   )
   object Simona {
     final case class Control(
@@ -1218,7 +1255,7 @@ object SimonaConfig {
     final case class Event(
         listener: scala.Option[
           scala.List[SimonaConfig.Simona.Event.Listener$Elm]
-        ]
+        ] = None
     )
     object Event {
       final case class Listener$Elm(
@@ -1342,8 +1379,8 @@ object SimonaConfig {
 
     final case class Input(
         grid: SimonaConfig.Simona.Input.Grid,
-        primary: SimonaConfig.Simona.Input.Primary,
-        weather: SimonaConfig.Simona.Input.Weather,
+        primary: SimonaConfig.Simona.Input.Primary = Input.Primary(),
+        weather: SimonaConfig.Simona.Input.Weather = Input.Weather(),
     )
     object Input {
       final case class Grid(
@@ -1412,12 +1449,13 @@ object SimonaConfig {
       final case class Primary(
           couchbaseParams: scala.Option[
             SimonaConfig.Simona.Input.Primary.CouchbaseParams
-          ],
-          csvParams: scala.Option[SimonaConfig.PrimaryDataCsvParams],
+          ] = None,
+          csvParams: scala.Option[SimonaConfig.PrimaryDataCsvParams] = None,
           influxDb1xParams: scala.Option[
             SimonaConfig.Simona.Input.Primary.InfluxDb1xParams
-          ],
-          sqlParams: scala.Option[SimonaConfig.Simona.Input.Primary.SqlParams],
+          ] = None,
+          sqlParams: scala.Option[SimonaConfig.Simona.Input.Primary.SqlParams] =
+            None,
       )
       object Primary {
         final case class CouchbaseParams(
@@ -1620,39 +1658,41 @@ object SimonaConfig {
       }
 
       final case class Weather(
-          datasource: SimonaConfig.Simona.Input.Weather.Datasource
+          datasource: SimonaConfig.Simona.Input.Weather.Datasource =
+            Weather.Datasource()
       )
       object Weather {
         final case class Datasource(
-            coordinateSource: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource,
+            coordinateSource: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource =
+              Datasource.CoordinateSource(),
             couchbaseParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams
-            ],
-            csvParams: scala.Option[SimonaConfig.BaseCsvParams],
+            ] = None,
+            csvParams: scala.Option[SimonaConfig.BaseCsvParams] = None,
             influxDb1xParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.InfluxDb1xParams
-            ],
+            ] = None,
             maxCoordinateDistance: Double = 50000,
-            resolution: scala.Option[scala.Long],
+            resolution: scala.Option[scala.Long] = None,
             sampleParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.SampleParams
-            ],
+            ] = None,
             scheme: String = "icon",
             sqlParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
-            ],
-            timestampPattern: scala.Option[java.lang.String],
+            ] = None,
+            timestampPattern: scala.Option[java.lang.String] = None,
         )
         object Datasource {
           final case class CoordinateSource(
-              csvParams: scala.Option[SimonaConfig.BaseCsvParams],
+              csvParams: scala.Option[SimonaConfig.BaseCsvParams] = None,
               gridModel: String = "icon",
               sampleParams: scala.Option[
                 SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
-              ],
+              ] = None,
               sqlParams: scala.Option[
                 SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SqlParams
-              ],
+              ] = None,
           )
           object CoordinateSource {
             final case class SampleParams(
@@ -1672,11 +1712,11 @@ object SimonaConfig {
             }
 
             final case class SqlParams(
-                jdbcUrl: java.lang.String,
-                password: java.lang.String,
+                jdbcUrl: String,
+                password: String,
                 schemaName: String = "public",
-                tableName: java.lang.String,
-                userName: java.lang.String,
+                tableName: String,
+                userName: String,
             )
             object SqlParams {
               def apply(
@@ -1764,12 +1804,12 @@ object SimonaConfig {
           }
 
           final case class CouchbaseParams(
-              bucketName: java.lang.String,
-              coordinateColumnName: java.lang.String,
-              keyPrefix: java.lang.String,
-              password: java.lang.String,
-              url: java.lang.String,
-              userName: java.lang.String,
+              bucketName: String,
+              coordinateColumnName: String,
+              keyPrefix: String,
+              password: String,
+              url: String,
+              userName: String,
           )
           object CouchbaseParams {
             def apply(
@@ -1812,9 +1852,9 @@ object SimonaConfig {
           }
 
           final case class InfluxDb1xParams(
-              database: java.lang.String,
-              port: scala.Int,
-              url: java.lang.String,
+              database: String,
+              port: Int,
+              url: String,
           )
           object InfluxDb1xParams {
             def apply(
@@ -1878,11 +1918,11 @@ object SimonaConfig {
           }
 
           final case class SqlParams(
-              jdbcUrl: java.lang.String,
-              password: java.lang.String,
+              jdbcUrl: String,
+              password: String,
               schemaName: String = "public",
-              tableName: java.lang.String,
-              userName: java.lang.String,
+              tableName: String,
+              userName: String,
           )
           object SqlParams {
             def apply(
@@ -2055,15 +2095,15 @@ object SimonaConfig {
         base: SimonaConfig.Simona.Output.Base,
         flex: Boolean = false,
         grid: SimonaConfig.GridOutputConfig,
-        log: SimonaConfig.Simona.Output.Log,
+        log: SimonaConfig.Simona.Output.Log = Output.Log(),
         participant: SimonaConfig.Simona.Output.Participant,
-        sink: SimonaConfig.Simona.Output.Sink,
+        sink: SimonaConfig.Simona.Output.Sink = Output.Sink(),
         thermal: SimonaConfig.Simona.Output.Thermal,
     )
     object Output {
       final case class Base(
           addTimestampToOutputDir: Boolean = true,
-          dir: java.lang.String,
+          dir: String,
       )
       object Base {
         def apply(
@@ -2159,9 +2199,10 @@ object SimonaConfig {
       }
 
       final case class Sink(
-          csv: scala.Option[SimonaConfig.Simona.Output.Sink.Csv],
-          influxDb1x: scala.Option[SimonaConfig.Simona.Output.Sink.InfluxDb1x],
-          kafka: scala.Option[SimonaConfig.ResultKafkaParams],
+          csv: scala.Option[SimonaConfig.Simona.Output.Sink.Csv] = None,
+          influxDb1x: scala.Option[SimonaConfig.Simona.Output.Sink.InfluxDb1x] =
+            None,
+          kafka: scala.Option[SimonaConfig.ResultKafkaParams] = None,
       )
       object Sink {
         final case class Csv(
@@ -2198,9 +2239,9 @@ object SimonaConfig {
         }
 
         final case class InfluxDb1x(
-            database: java.lang.String,
-            port: scala.Int,
-            url: java.lang.String,
+            database: String,
+            port: Int,
+            url: String,
         )
         object InfluxDb1x {
           def apply(
@@ -2388,8 +2429,8 @@ object SimonaConfig {
     )
     object Powerflow {
       final case class Newtonraphson(
-          epsilon: scala.List[scala.Double],
-          iterations: scala.Int,
+          epsilon: List[Double],
+          iterations: Int,
       )
       object Newtonraphson {
         def apply(
@@ -3001,9 +3042,9 @@ object SimonaConfig {
     }
 
     final case class Time(
-        endDateTime: java.lang.String,
-        schedulerReadyCheckWindow: scala.Option[scala.Int],
-        startDateTime: java.lang.String,
+        endDateTime: String = "2011-05-01T01:00:00Z",
+        schedulerReadyCheckWindow: Option[Int] = None,
+        startDateTime: String = "2011-05-01T00:00:00Z",
     )
     object Time {
       def apply(
