@@ -38,42 +38,6 @@ object SimonaConfig {
     )
 
   // necessary to prevent StackOverFlowErrors during compilation
-  implicit val baseRuntimeReader: ConfigReader[BaseRuntimeConfig] =
-    deriveReader[BaseRuntimeConfig]
-  implicit val baseRuntimeWriter: ConfigWriter[BaseRuntimeConfig] =
-    deriveWriter[BaseRuntimeConfig]
-  implicit val loadRuntimeReader: ConfigReader[LoadRuntimeConfig] =
-    deriveReader[LoadRuntimeConfig]
-  implicit val loadRuntimeWriter: ConfigWriter[LoadRuntimeConfig] =
-    deriveWriter[LoadRuntimeConfig]
-  implicit val ffiRuntimeReader: ConfigReader[FixedFeedInRuntimeConfig] =
-    deriveReader[FixedFeedInRuntimeConfig]
-  implicit val ffiRuntimeWriter: ConfigWriter[FixedFeedInRuntimeConfig] =
-    deriveWriter[FixedFeedInRuntimeConfig]
-  implicit val pvRuntimeReader: ConfigReader[PvRuntimeConfig] =
-    deriveReader[PvRuntimeConfig]
-  implicit val pvRuntimeWriter: ConfigWriter[PvRuntimeConfig] =
-    deriveWriter[PvRuntimeConfig]
-  implicit val wecRuntimeReader: ConfigReader[WecRuntimeConfig] =
-    deriveReader[WecRuntimeConfig]
-  implicit val wecRuntimeWriter: ConfigWriter[WecRuntimeConfig] =
-    deriveWriter[WecRuntimeConfig]
-  implicit val evcsRuntimeReader: ConfigReader[EvcsRuntimeConfig] =
-    deriveReader[EvcsRuntimeConfig]
-  implicit val evcsRuntimeWriter: ConfigWriter[EvcsRuntimeConfig] =
-    deriveWriter[EvcsRuntimeConfig]
-  implicit val emRuntimeReader: ConfigReader[EmRuntimeConfig] =
-    deriveReader[EmRuntimeConfig]
-  implicit val emRuntimeWriter: ConfigWriter[EmRuntimeConfig] =
-    deriveWriter[EmRuntimeConfig]
-  implicit val storageRuntimeReader: ConfigReader[StorageRuntimeConfig] =
-    deriveReader[StorageRuntimeConfig]
-  implicit val storageRuntimeWriter: ConfigWriter[StorageRuntimeConfig] =
-    deriveWriter[StorageRuntimeConfig]
-  implicit val hpRuntimeReader: ConfigReader[HpRuntimeConfig] =
-    deriveReader[HpRuntimeConfig]
-  implicit val hpRuntimeWriter: ConfigWriter[HpRuntimeConfig] =
-    deriveWriter[HpRuntimeConfig]
   implicit val baseCsvReader: ConfigReader[BaseCsvParams] =
     deriveReader[BaseCsvParams]
   implicit val baseCsvWriter: ConfigWriter[BaseCsvParams] =
@@ -98,6 +62,10 @@ object SimonaConfig {
     deriveReader[SimpleOutputConfig]
   implicit val simpleOutputWriter: ConfigWriter[SimpleOutputConfig] =
     deriveWriter[SimpleOutputConfig]
+  implicit val runtimeReader: ConfigReader[RuntimeConfig] =
+    deriveReader[RuntimeConfig]
+  implicit val runtimeWriter: ConfigWriter[RuntimeConfig] =
+    deriveWriter[RuntimeConfig]
 
   /** Method to extract a config from a [[pureconfig.ConfigReader.Result]]
     * @param either
@@ -155,52 +123,11 @@ object SimonaConfig {
       val notifier: String,
       val simulationResult: Boolean,
   )
-
-  sealed abstract class BaseRuntimeConfig(
-      val calculateMissingReactivePowerWithModel: Boolean = false,
-      val scaling: Double = 1.0,
-      val uuids: List[String] = List(),
-  ) extends Serializable
-
   sealed abstract class CsvParams(
       val csvSep: String,
       val directoryPath: String,
       val isHierarchic: Boolean,
   )
-
-  final case class EmRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
-      aggregateFlex: String = "SELF_OPT_EXCL_REG",
-      curtailRegenerative: Boolean = false,
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
-
-  final case class EvcsRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
-      chargingStrategy: String = "maxPower",
-      lowestEvSoc: Double = 0.2,
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
-
-  final case class FixedFeedInRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
 
   final case class GridOutputConfig(
       lines: Boolean = false,
@@ -211,34 +138,12 @@ object SimonaConfig {
       transformers3w: Boolean = false,
   )
 
-  final case class HpRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
-
   sealed abstract class KafkaParams(
       val bootstrapServers: String,
       val linger: Int,
       val runId: String,
       val schemaRegistryUrl: String,
   )
-
-  final case class LoadRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
-      modelBehaviour: String,
-      reference: String,
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
 
   final case class ParticipantBaseOutputConfig(
       override val notifier: String,
@@ -253,16 +158,6 @@ object SimonaConfig {
       override val isHierarchic: Boolean,
       timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
   ) extends CsvParams(csvSep, directoryPath, isHierarchic)
-
-  final case class PvRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
 
   final case class RefSystemConfig(
       gridIds: Option[List[String]] = None,
@@ -292,18 +187,6 @@ object SimonaConfig {
       override val simulationResult: Boolean,
   ) extends BaseOutputConfig(notifier, simulationResult)
 
-  final case class StorageRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
-      initialSoc: Double = 0d,
-      targetSoc: Option[Double],
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
-
   final case class TransformerControlGroup(
       measurements: List[String] = List(),
       transformers: List[String] = List(),
@@ -316,16 +199,6 @@ object SimonaConfig {
       vNom: String,
   )
 
-  final case class WecRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
-
   final case class Simona(
       control: Option[Simona.Control] = None,
       event: Simona.Event = Simona.Event(),
@@ -333,7 +206,7 @@ object SimonaConfig {
       input: Simona.Input,
       output: Simona.Output,
       powerflow: Simona.Powerflow,
-      runtime: Simona.Runtime,
+      runtime: RuntimeConfig,
       simulationName: String,
       time: Simona.Time = Simona.Time(),
   )
@@ -536,72 +409,6 @@ object SimonaConfig {
           epsilon: List[Double] = List(),
           iterations: Int,
       )
-    }
-
-    final case class Runtime(
-        listener: Runtime.Listener = Runtime.Listener(),
-        participant: Runtime.Participant,
-        selected_subgrids: Option[List[Int]] = None,
-        selected_volt_lvls: Option[List[VoltLvlConfig]] = None,
-    )
-    object Runtime {
-      final case class Listener(
-          eventsToProcess: Option[List[String]] = None,
-          kafka: Option[RuntimeKafkaParams] = None,
-      )
-
-      final case class Participant(
-          em: Participant.Em,
-          evcs: Participant.Evcs,
-          fixedFeedIn: Participant.FixedFeedIn,
-          hp: Participant.Hp,
-          load: Participant.Load,
-          pv: Participant.Pv,
-          requestVoltageDeviationThreshold: Double = 1e-14,
-          storage: Participant.Storage,
-          wec: Participant.Wec,
-      )
-      object Participant {
-        final case class Em(
-            defaultConfig: EmRuntimeConfig,
-            individualConfigs: List[EmRuntimeConfig] = List(),
-        )
-
-        final case class Evcs(
-            defaultConfig: EvcsRuntimeConfig,
-            individualConfigs: List[EvcsRuntimeConfig] = List(),
-        )
-
-        final case class FixedFeedIn(
-            defaultConfig: FixedFeedInRuntimeConfig,
-            individualConfigs: List[FixedFeedInRuntimeConfig] = List(),
-        )
-
-        final case class Hp(
-            defaultConfig: HpRuntimeConfig,
-            individualConfigs: List[HpRuntimeConfig] = List(),
-        )
-
-        final case class Load(
-            defaultConfig: LoadRuntimeConfig,
-            individualConfigs: List[LoadRuntimeConfig] = List(),
-        )
-
-        final case class Pv(
-            defaultConfig: PvRuntimeConfig,
-            individualConfigs: List[PvRuntimeConfig] = List(),
-        )
-
-        final case class Storage(
-            defaultConfig: StorageRuntimeConfig,
-            individualConfigs: List[StorageRuntimeConfig] = List(),
-        )
-
-        final case class Wec(
-            defaultConfig: WecRuntimeConfig,
-            individualConfigs: List[WecRuntimeConfig] = List(),
-        )
-      }
     }
 
     final case class Time(

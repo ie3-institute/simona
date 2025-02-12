@@ -7,6 +7,7 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
+import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CoordinateSource,
@@ -1197,16 +1198,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
       "throw exception if default initial SOC is negative" in {
 
-        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
-          SimonaConfig.StorageRuntimeConfig(
+        val defaultConfig: StorageRuntimeConfig =
+          StorageRuntimeConfig(
             calculateMissingReactivePowerWithModel = false,
             1.0,
             List(java.util.UUID.randomUUID().toString),
             -0.5,
             Some(0.8),
           )
-        val storageConfig = SimonaConfig.Simona.Runtime.Participant
-          .Storage(defaultConfig, List.empty)
+        val storageConfig =
+          RuntimeConfig.ParticipantRuntimeConfig(defaultConfig, List.empty)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1214,16 +1215,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       }
 
       "throw exception if default target SOC is negative" in {
-        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
-          SimonaConfig.StorageRuntimeConfig(
+        val defaultConfig: StorageRuntimeConfig =
+          StorageRuntimeConfig(
             calculateMissingReactivePowerWithModel = false,
             1.0,
             List(java.util.UUID.randomUUID().toString),
             0.5,
             Some(-0.8),
           )
-        val storageConfig = SimonaConfig.Simona.Runtime.Participant
-          .Storage(defaultConfig, List.empty)
+        val storageConfig =
+          RuntimeConfig.ParticipantRuntimeConfig(defaultConfig, List.empty)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1232,16 +1233,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
       "throw exception if individual initial SOC is negative" in {
         val uuid = java.util.UUID.randomUUID().toString
-        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
-          SimonaConfig.StorageRuntimeConfig(
+        val defaultConfig: StorageRuntimeConfig =
+          StorageRuntimeConfig(
             calculateMissingReactivePowerWithModel = false,
             1.0,
             List(java.util.UUID.randomUUID().toString),
             0.5,
             Some(0.8),
           )
-        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
-          SimonaConfig.StorageRuntimeConfig(
+        val individualConfig: List[StorageRuntimeConfig] = List(
+          StorageRuntimeConfig(
             calculateMissingReactivePowerWithModel = false,
             1.0,
             List(uuid),
@@ -1249,8 +1250,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(0.8),
           )
         )
-        val storageConfig = SimonaConfig.Simona.Runtime.Participant
-          .Storage(defaultConfig, individualConfig)
+        val storageConfig = RuntimeConfig.ParticipantRuntimeConfig(
+          defaultConfig,
+          individualConfig,
+        )
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1259,16 +1262,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
       "throw exception if individual target SOC is negative" in {
         val uuid = java.util.UUID.randomUUID().toString
-        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
-          SimonaConfig.StorageRuntimeConfig(
+        val defaultConfig: StorageRuntimeConfig =
+          StorageRuntimeConfig(
             calculateMissingReactivePowerWithModel = false,
             1.0,
             List(java.util.UUID.randomUUID().toString),
             0.5,
             Some(0.8),
           )
-        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
-          SimonaConfig.StorageRuntimeConfig(
+        val individualConfig: List[StorageRuntimeConfig] = List(
+          StorageRuntimeConfig(
             calculateMissingReactivePowerWithModel = false,
             1.0,
             List(uuid),
@@ -1276,8 +1279,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(-0.8),
           )
         )
-        val storageConfig = SimonaConfig.Simona.Runtime.Participant
-          .Storage(defaultConfig, individualConfig)
+        val storageConfig = RuntimeConfig.ParticipantRuntimeConfig(
+          defaultConfig,
+          individualConfig,
+        )
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1285,16 +1290,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       }
 
       "not throw exception if all parameters are in parameter range" in {
-        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
-          SimonaConfig.StorageRuntimeConfig(
+        val defaultConfig: StorageRuntimeConfig =
+          StorageRuntimeConfig(
             calculateMissingReactivePowerWithModel = false,
             1.0,
             List(java.util.UUID.randomUUID().toString),
             0.5,
             Some(0.8),
           )
-        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
-          SimonaConfig.StorageRuntimeConfig(
+        val individualConfig: List[StorageRuntimeConfig] = List(
+          StorageRuntimeConfig(
             calculateMissingReactivePowerWithModel = false,
             1.0,
             List(java.util.UUID.randomUUID().toString),
@@ -1302,8 +1307,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(0.8),
           )
         )
-        val storageConfig = SimonaConfig.Simona.Runtime.Participant
-          .Storage(defaultConfig, individualConfig)
+        val storageConfig = RuntimeConfig.ParticipantRuntimeConfig(
+          defaultConfig,
+          individualConfig,
+        )
 
         noException should be thrownBy {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
