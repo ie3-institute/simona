@@ -7,12 +7,11 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigRenderOptions}
-
+import edu.ie3.simona.exceptions.CriticalFailureException
 import pureconfig._
 import pureconfig.error._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
-import pureconfig.generic.semiauto.{deriveReader, deriveWriter}
 
 import java.time.Duration
 import scala.language.implicitConversions
@@ -36,68 +35,6 @@ object SimonaConfig {
       str => Try(Duration.parse(("PT" + str).toUpperCase)),
       x => x.toString,
     )
-
-  // necessary to prevent StackOverFlowErrors during compilation
-  implicit val baseRuntimeReader: ConfigReader[BaseRuntimeConfig] =
-    deriveReader[BaseRuntimeConfig]
-  implicit val baseRuntimeWriter: ConfigWriter[BaseRuntimeConfig] =
-    deriveWriter[BaseRuntimeConfig]
-  implicit val loadRuntimeReader: ConfigReader[LoadRuntimeConfig] =
-    deriveReader[LoadRuntimeConfig]
-  implicit val loadRuntimeWriter: ConfigWriter[LoadRuntimeConfig] =
-    deriveWriter[LoadRuntimeConfig]
-  implicit val ffiRuntimeReader: ConfigReader[FixedFeedInRuntimeConfig] =
-    deriveReader[FixedFeedInRuntimeConfig]
-  implicit val ffiRuntimeWriter: ConfigWriter[FixedFeedInRuntimeConfig] =
-    deriveWriter[FixedFeedInRuntimeConfig]
-  implicit val pvRuntimeReader: ConfigReader[PvRuntimeConfig] =
-    deriveReader[PvRuntimeConfig]
-  implicit val pvRuntimeWriter: ConfigWriter[PvRuntimeConfig] =
-    deriveWriter[PvRuntimeConfig]
-  implicit val wecRuntimeReader: ConfigReader[WecRuntimeConfig] =
-    deriveReader[WecRuntimeConfig]
-  implicit val wecRuntimeWriter: ConfigWriter[WecRuntimeConfig] =
-    deriveWriter[WecRuntimeConfig]
-  implicit val evcsRuntimeReader: ConfigReader[EvcsRuntimeConfig] =
-    deriveReader[EvcsRuntimeConfig]
-  implicit val evcsRuntimeWriter: ConfigWriter[EvcsRuntimeConfig] =
-    deriveWriter[EvcsRuntimeConfig]
-  implicit val emRuntimeReader: ConfigReader[EmRuntimeConfig] =
-    deriveReader[EmRuntimeConfig]
-  implicit val emRuntimeWriter: ConfigWriter[EmRuntimeConfig] =
-    deriveWriter[EmRuntimeConfig]
-  implicit val storageRuntimeReader: ConfigReader[StorageRuntimeConfig] =
-    deriveReader[StorageRuntimeConfig]
-  implicit val storageRuntimeWriter: ConfigWriter[StorageRuntimeConfig] =
-    deriveWriter[StorageRuntimeConfig]
-  implicit val hpRuntimeReader: ConfigReader[HpRuntimeConfig] =
-    deriveReader[HpRuntimeConfig]
-  implicit val hpRuntimeWriter: ConfigWriter[HpRuntimeConfig] =
-    deriveWriter[HpRuntimeConfig]
-  implicit val baseCsvReader: ConfigReader[BaseCsvParams] =
-    deriveReader[BaseCsvParams]
-  implicit val baseCsvWriter: ConfigWriter[BaseCsvParams] =
-    deriveWriter[BaseCsvParams]
-  implicit val partBaseOutputReader: ConfigReader[ParticipantBaseOutputConfig] =
-    deriveReader[ParticipantBaseOutputConfig]
-  implicit val partBaseOutputWriter: ConfigWriter[ParticipantBaseOutputConfig] =
-    deriveWriter[ParticipantBaseOutputConfig]
-  implicit val primaryDataCsvReader: ConfigReader[PrimaryDataCsvParams] =
-    deriveReader[PrimaryDataCsvParams]
-  implicit val primaryDataCsvWriter: ConfigWriter[PrimaryDataCsvParams] =
-    deriveWriter[PrimaryDataCsvParams]
-  implicit val resultKafkaReader: ConfigReader[ResultKafkaParams] =
-    deriveReader[ResultKafkaParams]
-  implicit val resultKafkaWriter: ConfigWriter[ResultKafkaParams] =
-    deriveWriter[ResultKafkaParams]
-  implicit val runtimeKafkaReader: ConfigReader[RuntimeKafkaParams] =
-    deriveReader[RuntimeKafkaParams]
-  implicit val runtimeKafkaWriter: ConfigWriter[RuntimeKafkaParams] =
-    deriveWriter[RuntimeKafkaParams]
-  implicit val simpleOutputReader: ConfigReader[SimpleOutputConfig] =
-    deriveReader[SimpleOutputConfig]
-  implicit val simpleOutputWriter: ConfigWriter[SimpleOutputConfig] =
-    deriveWriter[SimpleOutputConfig]
 
   /** Method to extract a config from a [[pureconfig.ConfigReader.Result]]
     * @param either
@@ -126,7 +63,7 @@ object SimonaConfig {
               f"Unknown failure type => ${failure.toString} \n"
           }
           .mkString("\n")
-        throw new RuntimeException(
+        throw new CriticalFailureException(
           s"Unable to load config due to following failures:\n$detailedErrors"
         )
       case Right(conf) => conf
