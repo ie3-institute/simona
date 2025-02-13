@@ -14,9 +14,9 @@ There are different operating modes, depending on whether the heat source is em-
 
 ### Behaviour without EM control
 
-If the heat source of this building is not under {ref}`em` control, the internal temperature of the house should remain between the upper and lower temperature limits. If the temperature falls below the lower temperature limit, the available heat from the storage is used first. If the storage 
-is empty, the heat pump will first heat the house up to the upper temperature limit and then refill the storage.
-As the storage is initialised as empty, the heat source will start charging the storage first. Whenever the heat source is in operation (e.g. to charge the storage), it will continue to operate until the house has reached the upper temperature limit again.
+If the heat source of this building is not under {ref}`em` control, the internal temperature of the house should remain between the target temperature and lower temperature boundary. If the temperature falls below the lower temperature limit, the available heat from the storage is used first. If the storage 
+is empty, the heat pump will first heat the house up to the target temperature and then refill the storage.
+As the storage is initialised as empty, the heat source will start charging the storage first. Whenever the heat source is in operation (e.g. to charge the storage), it will continue to operate until the house has reached the target temperature again.
 
 ### Behaviour under EM control
 
