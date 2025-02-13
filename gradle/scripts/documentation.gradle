@@ -25,3 +25,17 @@ javadoc() {
   destinationDir = file("${project.projectDir}/docs/javadoc")
   classpath = project.sourceSets.main.compileClasspath
 }
+
+/**
+ * Task to generate the ScalaDoc
+ */
+scaladoc() {
+  description 'Generates scala API doc at the correct place.'
+  group 'Documentation'
+
+  source = sourceSets.main.allSource
+  destinationDir = file("${project.projectDir}/docs/scaladoc")
+  classpath = project.sourceSets.main.compileClasspath
+
+  exclude("edu/ie3/simona/config/SimonaConfig.scala")
+}
