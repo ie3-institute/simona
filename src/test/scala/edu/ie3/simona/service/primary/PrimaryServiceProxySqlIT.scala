@@ -14,8 +14,8 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.{
 import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
+import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
+import edu.ie3.simona.config.InputConfig.Primary
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -83,7 +83,7 @@ class PrimaryServiceProxySqlIT
   private val scheduler = TestProbe("Scheduler")
 
   // function definition because postgres parameters are only available after initialization
-  private def sqlParams: SqlParams = SqlParams(
+  private def sqlParams: TimeStampedSqlParams = TimeStampedSqlParams(
     jdbcUrl = container.jdbcUrl,
     userName = container.username,
     password = container.password,
@@ -93,7 +93,7 @@ class PrimaryServiceProxySqlIT
 
   private def createProxy(): TestActorRef[PrimaryServiceProxy] = {
     val initData = InitPrimaryServiceProxyStateData(
-      SimonaConfig.Simona.Input.Primary(
+      Primary(
         None,
         None,
         None,

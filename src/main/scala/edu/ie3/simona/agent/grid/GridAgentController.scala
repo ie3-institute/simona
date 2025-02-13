@@ -26,7 +26,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.Participa
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.RuntimeConfig._
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.OutputConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -76,7 +76,7 @@ class GridAgentController(
     simulationStartDate: ZonedDateTime,
     simulationEndDate: ZonedDateTime,
     participantsConfig: Participant,
-    outputConfig: SimonaConfig.Simona.Output.Participant,
+    outputConfig: OutputConfig.Participant,
     resolution: Long,
     listener: Iterable[ActorRef[ResultEvent]],
     log: Logger,
@@ -175,7 +175,7 @@ class GridAgentController(
     */
   private def buildParticipantToActorRef(
       participantsConfig: Participant,
-      outputConfig: SimonaConfig.Simona.Output.Participant,
+      outputConfig: OutputConfig.Participant,
       participants: Vector[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,

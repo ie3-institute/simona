@@ -17,7 +17,7 @@ import edu.ie3.datamodel.io.source.sql.SqlTimeSeriesSource
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
+import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
@@ -97,7 +97,7 @@ final case class PrimaryServiceWorker[V <: Value](
       case PrimaryServiceWorker.SqlInitPrimaryServiceStateData(
             timeSeriesUuid: UUID,
             simulationStart: ZonedDateTime,
-            sqlParams: SqlParams,
+            sqlParams: TimeStampedSqlParams,
             namingStrategy: DatabaseNamingStrategy,
           ) =>
         Try {
@@ -409,7 +409,7 @@ object PrimaryServiceWorker {
   final case class SqlInitPrimaryServiceStateData(
       override val timeSeriesUuid: UUID,
       override val simulationStart: ZonedDateTime,
-      sqlParams: SqlParams,
+      sqlParams: TimeStampedSqlParams,
       databaseNamingStrategy: DatabaseNamingStrategy,
   ) extends InitPrimaryServiceStateData
 

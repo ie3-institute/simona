@@ -15,7 +15,7 @@ import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.RefSystemParser.ConfigRefSystems
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.{SimonaConfig, OutputConfig}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -246,7 +246,7 @@ object SetupHelper {
     *   Set of [[ResultEntity]] classes
     */
   private def allResultEntitiesToWrite(
-      outputConfig: SimonaConfig.Simona.Output
+      outputConfig: OutputConfig
   ): Set[Class[_ <: ResultEntity]] =
     GridOutputConfigUtil(
       outputConfig.grid

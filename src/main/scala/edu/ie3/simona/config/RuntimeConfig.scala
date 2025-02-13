@@ -6,8 +6,9 @@
 
 package edu.ie3.simona.config
 
+import edu.ie3.simona.config.ConfigParams.RuntimeKafkaParams
 import edu.ie3.simona.config.RuntimeConfig._
-import edu.ie3.simona.config.SimonaConfig.{RuntimeKafkaParams, VoltLvlConfig}
+import edu.ie3.simona.config.SimonaConfig.VoltLvlConfig
 import pureconfig.generic.ProductHint
 import pureconfig.{CamelCase, ConfigFieldMapping}
 

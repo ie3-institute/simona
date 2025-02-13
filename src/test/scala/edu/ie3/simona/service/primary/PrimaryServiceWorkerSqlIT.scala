@@ -17,7 +17,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
   ComplexPowerAndHeat,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
+import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -141,7 +141,7 @@ class PrimaryServiceWorkerSqlIT
           val initData = SqlInitPrimaryServiceStateData(
             uuid,
             simulationStart,
-            SqlParams(
+            TimeStampedSqlParams(
               jdbcUrl = container.jdbcUrl,
               userName = container.username,
               password = container.password,

@@ -8,7 +8,7 @@ package edu.ie3.simona.service.weather
 
 import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.simona.exceptions.InitializationException
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -83,7 +83,7 @@ object WeatherService {
     *   the definition of the source to use
     */
   final case class InitWeatherServiceStateData(
-      sourceDefinition: SimonaConfig.Simona.Input.Weather.Datasource
+      sourceDefinition: InputConfig.Weather.Datasource
   ) extends InitializeServiceStateData
 
   val FALLBACK_WEATHER_STEM_DISTANCE = 3600L
