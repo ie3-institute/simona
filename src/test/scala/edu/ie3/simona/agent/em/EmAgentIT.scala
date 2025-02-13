@@ -549,8 +549,8 @@ class EmAgentIT
 
         weatherService.expectMessage(
           RegisterForWeatherMessage(
-            hpInputModel.getNode.getGeoPosition.getY,
-            hpInputModel.getNode.getGeoPosition.getX,
+            adaptedHpInputModel.getNode.getGeoPosition.getY,
+            adaptedHpInputModel.getNode.getGeoPosition.getX,
           )
         )
 
