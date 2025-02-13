@@ -37,7 +37,8 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         (17d, false, true),
         (17.98d, false, true),
         (18d, false, true),
-        (20d, false, false),
+        (19.98d, false, false),
+        (20d, true, false),
         (22d, true, false),
         (22.02d, true, false),
         (23d, true, false),
@@ -46,7 +47,10 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       forAll(testCases) {
         (innerTemperature: Double, isTooHigh: Boolean, isTooLow: Boolean) =>
           val innerTemp = Temperature(innerTemperature, Celsius)
-          val isHigher = thermalHouseTest.isInnerTemperatureTooHigh(innerTemp)
+          val isHigher = thermalHouseTest.isInnerTemperatureTooHigh(
+            innerTemp,
+            thermalHouseTest.targetTemperature,
+          )
           val isLower = thermalHouseTest.isInnerTemperatureTooLow(innerTemp)
 
           isHigher shouldBe isTooHigh
@@ -83,6 +87,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         initialHousestate,
         lastAmbientTemperature,
         zeroKW,
+        house.targetTemperature,
       )
 
       thermalHouseState match {

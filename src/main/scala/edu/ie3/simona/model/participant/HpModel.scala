@@ -136,6 +136,7 @@ final case class HpModel(
       thermalGrid.energyDemandAndUpdatedState(
         relevantData,
         lastHpState,
+        false,
       )
 
     // Determining the operation point and limitations at this tick
@@ -149,7 +150,7 @@ final case class HpModel(
 
     // Updating the HpState
     val updatedHpState =
-      calcState(lastHpState, relevantData, turnOn, thermalDemandWrapper)
+      calcState(lastHpState, relevantData, turnOn, false, thermalDemandWrapper)
     (canOperate, canBeOutOfOperation, updatedHpState)
   }
 
@@ -212,6 +213,9 @@ final case class HpModel(
     *   data of heat pump including state of the heat pump
     * @param isRunning
     *   determines whether the heat pump is running or not
+    * @param useUpperTempBoundaryForFlexibility
+    *   determines whether the upper temperature boundary of the house will be
+    *   applied or not
     * @param demandWrapper
     *   holds the thermal demands of the thermal units (house, storage)
     * @return
@@ -221,6 +225,7 @@ final case class HpModel(
       lastState: HpState,
       relevantData: HpRelevantData,
       isRunning: Boolean,
+      useUpperTempBoundaryForFlexibility: Boolean,
       demandWrapper: ThermalDemandWrapper,
   ): HpState = {
     val lastStateStorageQDot = lastState.thermalGridState.storageState
@@ -250,6 +255,7 @@ final case class HpModel(
         lastState.thermalGridState,
         lastState.ambientTemperature.getOrElse(relevantData.ambientTemperature),
         isRunning,
+        useUpperTempBoundaryForFlexibility,
         qDotIntoGrid,
         demandWrapper,
       )
@@ -317,6 +323,10 @@ final case class HpModel(
     /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
     val turnOn = setPower > (sRated.toActivePower(cosPhiRated) * 0.5)
 
+    val useUpperTempBoundaryForFlexibility =
+      (lastState.tick == relevantData.currentTick &&
+        lastState.isRunning != turnOn)
+
     val (
       thermalDemandWrapper,
       _,
@@ -324,12 +334,14 @@ final case class HpModel(
       thermalGrid.energyDemandAndUpdatedState(
         relevantData,
         lastState,
+        useUpperTempBoundaryForFlexibility,
       )
 
     val updatedHpState = calcState(
       lastState,
       relevantData,
       turnOn,
+      useUpperTempBoundaryForFlexibility,
       thermalDemandWrapper,
     )
 
