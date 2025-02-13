@@ -18,8 +18,7 @@ import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
 }
 import edu.ie3.simona.model.participant.load.{DayType, profile}
 import org.apache.commons.csv.CSVFormat
-import squants.Power
-import squants.energy.{KilowattHours, Watts}
+import squants.energy.{Energy, KilowattHours, Power, Watts}
 
 import java.io.{InputStreamReader, Reader}
 import java.time.{Duration, ZonedDateTime}
@@ -58,7 +57,7 @@ class LoadProfileStore private (val reader: Reader) {
   def entry(
       time: ZonedDateTime,
       loadProfile: StandardLoadProfile,
-  ): squants.Power = {
+  ): Power = {
     val key = LoadProfileKey(loadProfile, time)
     profileMap.get(key) match {
       case Some(typeDayValues) =>
@@ -112,7 +111,7 @@ object LoadProfileStore extends LazyLogging {
 
   /** Default standard load profile energy scaling
     */
-  val defaultLoadProfileEnergyScaling: squants.Energy = KilowattHours(1000d)
+  val profileReferenceEnergy: Energy = KilowattHours(1000d)
 
   /** Default entry point to get the default implementation with the provided
     * default standard load profiles
@@ -200,35 +199,31 @@ object LoadProfileStore extends LazyLogging {
     val knownLoadProfiles: Set[StandardLoadProfile] =
       profileMap.keySet.map(key => key.standardLoadProfile)
 
-    knownLoadProfiles
-      .flatMap(loadProfile => {
-        (loadProfile match {
-          case BdewStandardLoadProfile.H0 =>
-            // max load for h0 is expected to be exclusively found in winter,
-            // thus we only search there.
-            DayType.values
-              .map(dayType => {
-                val key =
-                  profile.LoadProfileKey(loadProfile, Season.winter, dayType)
-                // maximum dynamization factor is on day 366 (leap year) or day 365 (regular year).
-                // The difference between day 365 and day 366 is negligible, thus pick 366
-                profileMap
-                  .get(key)
-                  .map(typeDay => dynamization(typeDay.getMaxValue, 366))
-                  .getOrElse(0d)
-              })
-              .maxOption
-          case _ =>
-            (for (season <- Season.values; dayType <- DayType.values) yield {
-              val key = profile.LoadProfileKey(loadProfile, season, dayType)
-              profileMap.get(key) match {
-                case Some(value) => Option(value.getMaxValue)
-                case None        => None
-              }
-            }).flatten.maxOption
-        }).map(maxConsumption => loadProfile -> maxConsumption)
-      })
-      .toMap
+    knownLoadProfiles.flatMap { loadProfile =>
+      val dyn = loadProfile match {
+        case BdewStandardLoadProfile.H0 =>
+          // Pick the maximum dynamization factor per season, including leap years and non-leap years
+          (season: Season.Value, value: Double) => {
+            val day = season match {
+              case Season.winter     => 366 // leap year
+              case Season.transition => 80 // non-leap year
+              case Season.summer     => 135 // non-leap year
+            }
+            dynamization(value, day)
+          }
+
+        case _ =>
+          (_: Season.Value, value: Double) => value
+      }
+
+      (for (season <- Season.values; dayType <- DayType.values) yield {
+        val key =
+          profile.LoadProfileKey(loadProfile, season, dayType)
+        profileMap
+          .get(key)
+          .map(typeDay => dyn(season, typeDay.getMaxValue))
+      }).flatten.maxOption.map(maxConsumption => loadProfile -> maxConsumption)
+    }.toMap
   }
 
   /** @return

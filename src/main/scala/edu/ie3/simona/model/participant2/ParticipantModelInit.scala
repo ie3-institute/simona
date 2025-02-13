@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.participant.data.Data.{
   PrimaryData,
   PrimaryDataExtra,
 }
-import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
+import edu.ie3.simona.config.SimonaConfig.{BaseRuntimeConfig, LoadRuntimeConfig}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
@@ -56,8 +56,8 @@ object ParticipantModelInit {
       }).build()
 
     (scaledParticipantInput, modelConfig) match {
-      case (input: LoadInput, _) =>
-        LoadModel(input)
+      case (input: LoadInput, config: LoadRuntimeConfig) =>
+        LoadModel(input, config)
       case (input: PvInput, _) =>
         PvModel(input)
       case (input, config) =>
