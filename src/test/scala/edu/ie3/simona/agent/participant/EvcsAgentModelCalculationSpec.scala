@@ -1116,11 +1116,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
-          evcsInputModelQv.getUuid,
-          evcsAgent.toTyped,
-          evcsInputModelQv,
-        )
+        RegisterControlledAsset(evcsAgent.toTyped, evcsInputModelQv)
       )
       // only receive registration message. ScheduleFlexRequest after secondary service initialized
       emAgent.expectNoMessage()
@@ -1132,7 +1128,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        ScheduleFlexRequest(evcsInputModelQv.getUuid, 0)
+        ScheduleFlexActivation(evcsInputModelQv.getUuid, 0)
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped))
@@ -1258,11 +1254,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
-          evcsInputModelQv.getUuid,
-          evcsAgent.toTyped,
-          evcsInputModelQv,
-        )
+        RegisterControlledAsset(evcsAgent.toTyped, evcsInputModelQv)
       )
       emAgent.expectNoMessage()
 
@@ -1273,7 +1265,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        ScheduleFlexRequest(evcsInputModelQv.getUuid, 900)
+        ScheduleFlexActivation(evcsInputModelQv.getUuid, 900)
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped))
@@ -1363,9 +1355,9 @@ class EvcsAgentModelCalculationSpec
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe evcsInputModelQv.getUuid
         flexResult.getTime shouldBe 900.toDateTime
-        flexResult.getpRef should beEquivalentTo(ev900.unwrap().getSRatedAC)
-        flexResult.getpMin should beEquivalentTo(ev900.unwrap().getSRatedAC)
-        flexResult.getpMax should beEquivalentTo(ev900.unwrap().getSRatedAC)
+        flexResult.getpRef should beEquivalentTo(ev900.unwrap().getPRatedAC)
+        flexResult.getpMin should beEquivalentTo(ev900.unwrap().getPRatedAC)
+        flexResult.getpMax should beEquivalentTo(ev900.unwrap().getPRatedAC)
       }
 
       emAgent.send(evcsAgent, IssueNoControl(900))
@@ -1377,7 +1369,7 @@ class EvcsAgentModelCalculationSpec
           Kilowatts(
             ev900
               .unwrap()
-              .getSRatedAC
+              .getPRatedAC
               .to(PowerSystemUnits.KILOWATT)
               .getValue
               .doubleValue
@@ -1431,7 +1423,7 @@ class EvcsAgentModelCalculationSpec
           case ParticipantResultEvent(result: EvResult)
               if result.getTime.equals(900.toDateTime) =>
             result.getInputModel shouldBe ev900.uuid
-            result.getP should beEquivalentTo(ev900.unwrap().getSRatedAC)
+            result.getP should beEquivalentTo(ev900.unwrap().getPRatedAC)
             result.getQ should beEquivalentTo(0d.asMegaVar)
             result.getSoc should beEquivalentTo(0d.asPercent)
           case ParticipantResultEvent(result: EvResult)
@@ -1446,7 +1438,7 @@ class EvcsAgentModelCalculationSpec
         case ParticipantResultEvent(result: EvcsResult) =>
           result.getInputModel shouldBe evcsInputModelQv.getUuid
           result.getTime shouldBe 900.toDateTime
-          result.getP should beEquivalentTo(ev900.unwrap().getSRatedAC)
+          result.getP should beEquivalentTo(ev900.unwrap().getPRatedAC)
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
@@ -1480,9 +1472,9 @@ class EvcsAgentModelCalculationSpec
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe evcsInputModelQv.getUuid
         flexResult.getTime shouldBe 4500.toDateTime
-        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getSRatedAC)
-        flexResult.getpMin should beEquivalentTo(ev4500.unwrap().getSRatedAC)
-        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getSRatedAC)
+        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getPRatedAC)
+        flexResult.getpMin should beEquivalentTo(ev4500.unwrap().getPRatedAC)
+        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getPRatedAC)
       }
 
       emAgent.send(evcsAgent, IssueNoControl(4500))
@@ -1530,9 +1522,9 @@ class EvcsAgentModelCalculationSpec
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe evcsInputModelQv.getUuid
         flexResult.getTime shouldBe 9736.toDateTime
-        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getSRatedAC)
+        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getPRatedAC)
         flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
-        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getSRatedAC)
+        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getPRatedAC)
       }
 
       emAgent.send(evcsAgent, IssuePowerControl(9736, Kilowatts(10.0)))
@@ -1595,7 +1587,7 @@ class EvcsAgentModelCalculationSpec
       emAgent.send(evcsAgent, FlexActivation(11700))
 
       val combinedChargingPower =
-        ev11700.unwrap().getSRatedAC.add(ev4500.unwrap().getSRatedAC)
+        ev11700.unwrap().getPRatedAC.add(ev4500.unwrap().getPRatedAC)
       val combinedChargingPowerSq = Kilowatts(
         combinedChargingPower.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
       )
@@ -1620,7 +1612,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getTime shouldBe 11700.toDateTime
         flexResult.getpRef should beEquivalentTo(combinedChargingPower)
         flexResult.getpMin should beEquivalentTo(
-          ev4500.unwrap().getSRatedAC.multiply(-1)
+          ev4500.unwrap().getPRatedAC.multiply(-1)
         )
         flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
@@ -1772,7 +1764,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMin should beEquivalentTo(
           ev4500
             .unwrap()
-            .getSRatedAC
+            .getPRatedAC
             .multiply(
               -1
             )
@@ -1965,9 +1957,9 @@ class EvcsAgentModelCalculationSpec
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe evcsInputModelQv.getUuid
         flexResult.getTime shouldBe 36000.toDateTime
-        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getSRatedAC)
+        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getPRatedAC)
         flexResult.getpMin should beEquivalentTo(0.asKiloWatt)
-        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getSRatedAC)
+        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getPRatedAC)
       }
 
       emAgent.send(evcsAgent, IssuePowerControl(36000, Kilowatts(4.0)))

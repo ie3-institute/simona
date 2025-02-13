@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
+import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.test.common.UnitSpec
 import squants.energy.{KilowattHours, MegawattHours, WattHours, Watts}
@@ -26,14 +27,13 @@ class ThermalGridSpec
 
   "Testing the thermal energy demand" when {
     "instantiating it from given values" should {
-      "correct non-sensible input" in {
+      "throw exception for non-sensible input (positive)" in {
         val possible = MegawattHours(40d)
         val required = MegawattHours(42d)
 
-        val energyDemand = ThermalEnergyDemand(required, possible)
-
-        energyDemand.required should approximate(possible)
-        energyDemand.possible should approximate(possible)
+        intercept[InvalidParameterException] {
+          ThermalEnergyDemand(required, possible)
+        }.getMessage shouldBe s"The possible amount of energy $possible is smaller than the required amount of energy $required. This is not supported."
       }
 
       "set the correct values, if they are sensible" in {
@@ -57,6 +57,15 @@ class ThermalGridSpec
     }
 
     "checking for required and additional demand" should {
+      "return proper information, if no required and no additional demand is apparent" in {
+        val required = MegawattHours(0d)
+        val possible = MegawattHours(0d)
+
+        val energyDemand = ThermalEnergyDemand(required, possible)
+        energyDemand.hasRequiredDemand shouldBe false
+        energyDemand.hasAdditionalDemand shouldBe false
+      }
+
       "return proper information, if no required but additional demand is apparent" in {
         val required = MegawattHours(0d)
         val possible = MegawattHours(45d)
@@ -66,13 +75,36 @@ class ThermalGridSpec
         energyDemand.hasAdditionalDemand shouldBe true
       }
 
-      "return proper information, if required but no additional demand is apparent" in {
-        val required = MegawattHours(45d)
-        val possible = MegawattHours(45d)
+      "throw exception, if required demand is higher than possible demand" in {
+        val required = MegawattHours(1d)
+        val possible = MegawattHours(0d)
+        intercept[InvalidParameterException] {
+          ThermalEnergyDemand(required, possible)
+        }.getMessage shouldBe s"The possible amount of energy $possible is smaller than the required amount of energy $required. This is not supported."
+      }
 
-        val energyDemand = ThermalEnergyDemand(required, possible)
-        energyDemand.hasRequiredDemand shouldBe true
-        energyDemand.hasAdditionalDemand shouldBe false
+      "throw exception, if required demand is smaller than zero" in {
+        val required = MegawattHours(-2d)
+        val possible = MegawattHours(5d)
+        intercept[InvalidParameterException] {
+          ThermalEnergyDemand(required, possible)
+        }.getMessage shouldBe s"The possible $possible or required $required amount of energy cannot be negative. This is not supported."
+      }
+
+      "throw exception, if possible demand is smaller than zero" in {
+        val required = MegawattHours(2d)
+        val possible = MegawattHours(-5d)
+        intercept[InvalidParameterException] {
+          ThermalEnergyDemand(required, possible)
+        }.getMessage shouldBe s"The possible $possible or required $required amount of energy cannot be negative. This is not supported."
+      }
+
+      "throw exception, if possible and required demand are smaller than zero" in {
+        val required = MegawattHours(-2d)
+        val possible = MegawattHours(-5d)
+        intercept[InvalidParameterException] {
+          ThermalEnergyDemand(required, possible)
+        }.getMessage shouldBe s"The possible $possible or required $required amount of energy cannot be negative. This is not supported."
       }
 
       "return proper information, if required and additional demand is apparent" in {

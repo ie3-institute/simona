@@ -43,6 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create `CITATION.cff` [#1035](https://github.com/ie3-institute/simona/issues/1035)
 - Introduce ThermalDemandWrapper [#1049](https://github.com/ie3-institute/simona/issues/1049)
 - Added Marius Staudt to list of reviewers [#1057](https://github.com/ie3-institute/simona/issues/1057)
+- Throw exception if the slack node is not directly conected to a transformer. [#525](https://github.com/ie3-institute/simona/issues/525)
+- Added support for topologies without transformers and slack grids with multiple nodes [#1099](https://github.com/ie3-institute/simona/issues/1099)
+- Checking the number of slack nodes [#1122](https://github.com/ie3-institute/simona/issues/1122)
+- Enhance exception message in case of InvalidGridException [#1124](https://github.com/ie3-institute/simona/issues/1124)
+- Integration test for thermal grids [#1145](https://github.com/ie3-institute/simona/issues/1145)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -113,6 +118,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed Deployment stage from Jenkinsfile [#1063](https://github.com/ie3-institute/simona/issues/1063)
 - Prepare 'ChpModelSpec' and 'CylindricalThermalStorageSpec' for Storage without storageVolumeLvlMin [#1012](https://github.com/ie3-institute/simona/issues/1012)
 - Fixed SonarQube quality gate using the correct parameter '-Dsonar.qualitygate.wait=true' [#1072](https://github.com/ie3-institute/simona/issues/1072)
+- Updated `simonaAPI` to version `0.6.0` [#1080](https://github.com/ie3-institute/simona/issues/1080)
+- Enhanced title in `CITATION.cff` [#1088](https://github.com/ie3-institute/simona/issues/1088)
+- Refactor ThermalEnergyDemand definitions [#917](https://github.com/ie3-institute/simona/issues/917)
+- Rewrote PvModelIT from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Fix negative required energy demand for thermalHouse [#1127](https://github.com/ie3-institute/simona/issues/1127)
+- Refactored EM messages [#1138](https://github.com/ie3-institute/simona/issues/1138)
+- `OperationInterval` should extend `RightOpenInterval` [#1142](https://github.com/ie3-institute/simona/issues/1142)
+- Enhance EmAggregate of SelfOpt to cope with other targetLimits [#1131](https://github.com/ie3-institute/simona/issues/1131)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -155,6 +168,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Correct wrong use of term "wall clock time" [#727](https://github.com/ie3-institute/simona/issues/727)
 - Fixed Deployment of `simona` to `Maven Central` in new GHA Pipeline [#1029](https://github.com/ie3-institute/simona/issues/1029)
 - Fixed SonarQube quality gate using the right link for PRs or Branches [#1061](https://github.com/ie3-institute/simona/issues/1061)
+- Fixed ignored EM strategy [#1091](https://github.com/ie3-institute/simona/issues/1091)
+- EM should output flex option results even if it has no parent [#1112](https://github.com/ie3-institute/simona/issues/1112)
+- Rename `PrimaryDataWithApparentPower` to `PrimaryDataWithComplexPower` [#1140](https://github.com/ie3-institute/simona/issues/1140)
+- Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
+- Move `ScheduleServiceActivation` out of `RegistrationResponseMessage` [#1143](https://github.com/ie3-institute/simona/issues/1143)
 
 ## [3.0.0] - 2023-08-07
 

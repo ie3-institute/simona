@@ -239,7 +239,9 @@ class ThermalGridWithHouseAndStorageSpec
 
         updatedGridState match {
           case ThermalGridState(
-                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalHouseState(houseTick, innerTemperature, qDotHouse)
+                ),
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),
@@ -530,12 +532,16 @@ class ThermalGridWithHouseAndStorageSpec
             relevantData,
             testGridAmbientTemperature,
             initialGridState,
+            isRunning,
             externalQDot,
+            onlyThermalDemandOfHouse,
           )
 
         updatedGridState match {
           case ThermalGridState(
-                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalHouseState(houseTick, innerTemperature, qDotHouse)
+                ),
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),
@@ -544,7 +550,7 @@ class ThermalGridWithHouseAndStorageSpec
             innerTemperature should approximate(Celsius(18.9999d))
             qDotHouse should approximate(externalQDot)
 
-            storageTick shouldBe -1L
+            storageTick shouldBe 0L
             storedEnergy should approximate(
               initialGridState.storageState
                 .map(_.storedEnergy)
@@ -578,12 +584,16 @@ class ThermalGridWithHouseAndStorageSpec
             relevantData,
             testGridAmbientTemperature,
             gridState,
+            isRunning,
             externalQDot,
+            onlyThermalDemandOfHeatStorage,
           )
 
         updatedGridState match {
           case ThermalGridState(
-                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalHouseState(houseTick, innerTemperature, qDotHouse)
+                ),
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),

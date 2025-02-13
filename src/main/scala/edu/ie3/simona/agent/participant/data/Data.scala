@@ -15,7 +15,6 @@ import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
 
-import java.time.ZonedDateTime
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -41,14 +40,14 @@ object Data {
 
   object PrimaryData {
 
-    sealed trait EnrichableData[E <: PrimaryDataWithApparentPower[E]] {
+    sealed trait EnrichableData[E <: PrimaryDataWithComplexPower[E]] {
       def add(q: ReactivePower): E
     }
 
-    /** Denoting all primary data, that carry apparent power
+    /** Denoting all primary data, that carry complex power
       */
-    sealed trait PrimaryDataWithApparentPower[
-        +T <: PrimaryDataWithApparentPower[T]
+    sealed trait PrimaryDataWithComplexPower[
+        +T <: PrimaryDataWithComplexPower[T]
     ] extends PrimaryData {
       val q: ReactivePower
 
@@ -91,7 +90,7 @@ object Data {
     final case class ComplexPower(
         override val p: Power,
         override val q: ReactivePower,
-    ) extends PrimaryDataWithApparentPower[ComplexPower] {
+    ) extends PrimaryDataWithComplexPower[ComplexPower] {
       override def toComplexPower: ComplexPower = this
 
       override def withReactivePower(q: ReactivePower): ComplexPower =
@@ -134,7 +133,7 @@ object Data {
         override val p: Power,
         override val q: ReactivePower,
         override val qDot: Power,
-    ) extends PrimaryDataWithApparentPower[ComplexPowerAndHeat]
+    ) extends PrimaryDataWithComplexPower[ComplexPowerAndHeat]
         with Heat {
       override def toComplexPower: ComplexPower =
         ComplexPower(p, q)
@@ -241,7 +240,6 @@ object Data {
     */
   trait SecondaryData extends Data
   object SecondaryData {
-    final case class DateTime(dateTime: ZonedDateTime) extends SecondaryData
     final case class WholesalePrice(price: ComparableQuantity[EnergyPrice])
         extends SecondaryData
   }

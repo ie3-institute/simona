@@ -7,6 +7,7 @@
 package edu.ie3.simona.io.grid
 
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.csv.{
   CsvJointGridContainerSource,
@@ -22,7 +23,6 @@ import edu.ie3.simona.config.SimonaConfig
 
 import java.nio.file.Path
 import scala.jdk.CollectionConverters._
-import scala.util.{Failure, Success, Try}
 
 /** Takes [[edu.ie3.simona.config.SimonaConfig.Simona.Input.Grid.Datasource]] as
   * input and provides a [[JointGridContainer]] based on the configuration incl.
@@ -50,6 +50,22 @@ object GridProvider extends LazyLogging {
 
             // checks the grid container and throws exception if there is an error
             ValidationUtils.check(jointGridContainer)
+
+            // check number of slack nodes
+            val numberOfSlack =
+              jointGridContainer.getRawGrid.getNodes.asScala.filter(_.isSlack)
+
+            numberOfSlack.size match {
+              case 0 =>
+                throw new InvalidGridException(
+                  "The grid does not contain any slack node!"
+                )
+              case n if n > 1 =>
+                throw new InvalidGridException(
+                  s"The grid has $n slack nodes. This is currently not supported!"
+                )
+              case 1 =>
+            }
 
             jointGridContainer
           case None =>
