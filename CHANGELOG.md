@@ -127,6 +127,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored EM messages [#1138](https://github.com/ie3-institute/simona/issues/1138)
 - `OperationInterval` should extend `RightOpenInterval` [#1142](https://github.com/ie3-institute/simona/issues/1142)
 - Enhance EmAggregate of SelfOpt to cope with other targetLimits [#1131](https://github.com/ie3-institute/simona/issues/1131)
+- Switched to `pureconfig` [#608](https://github.com/ie3-institute/simona/issues/608)
+- Removing generated methods and cleaning up in config [#1170](https://github.com/ie3-institute/simona/issues/1170)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
