@@ -7,12 +7,10 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigRenderOptions}
-
 import pureconfig._
 import pureconfig.error._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
-import pureconfig.generic.semiauto.{deriveReader, deriveWriter}
 
 import java.time.Duration
 import scala.language.implicitConversions
@@ -36,36 +34,6 @@ object SimonaConfig {
       str => Try(Duration.parse(("PT" + str).toUpperCase)),
       x => x.toString,
     )
-
-  // necessary to prevent StackOverFlowErrors during compilation
-  implicit val baseCsvReader: ConfigReader[BaseCsvParams] =
-    deriveReader[BaseCsvParams]
-  implicit val baseCsvWriter: ConfigWriter[BaseCsvParams] =
-    deriveWriter[BaseCsvParams]
-  implicit val partBaseOutputReader: ConfigReader[ParticipantBaseOutputConfig] =
-    deriveReader[ParticipantBaseOutputConfig]
-  implicit val partBaseOutputWriter: ConfigWriter[ParticipantBaseOutputConfig] =
-    deriveWriter[ParticipantBaseOutputConfig]
-  implicit val primaryDataCsvReader: ConfigReader[PrimaryDataCsvParams] =
-    deriveReader[PrimaryDataCsvParams]
-  implicit val primaryDataCsvWriter: ConfigWriter[PrimaryDataCsvParams] =
-    deriveWriter[PrimaryDataCsvParams]
-  implicit val resultKafkaReader: ConfigReader[ResultKafkaParams] =
-    deriveReader[ResultKafkaParams]
-  implicit val resultKafkaWriter: ConfigWriter[ResultKafkaParams] =
-    deriveWriter[ResultKafkaParams]
-  implicit val runtimeKafkaReader: ConfigReader[RuntimeKafkaParams] =
-    deriveReader[RuntimeKafkaParams]
-  implicit val runtimeKafkaWriter: ConfigWriter[RuntimeKafkaParams] =
-    deriveWriter[RuntimeKafkaParams]
-  implicit val simpleOutputReader: ConfigReader[SimpleOutputConfig] =
-    deriveReader[SimpleOutputConfig]
-  implicit val simpleOutputWriter: ConfigWriter[SimpleOutputConfig] =
-    deriveWriter[SimpleOutputConfig]
-  implicit val runtimeReader: ConfigReader[RuntimeConfig] =
-    deriveReader[RuntimeConfig]
-  implicit val runtimeWriter: ConfigWriter[RuntimeConfig] =
-    deriveWriter[RuntimeConfig]
 
   /** Method to extract a config from a [[pureconfig.ConfigReader.Result]]
     * @param either

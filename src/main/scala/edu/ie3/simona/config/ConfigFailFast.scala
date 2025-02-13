@@ -11,7 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   LoadRuntimeConfig,
-  ParticipantRuntimeConfig,
+  ParticipantRuntimeConfigs,
   StorageRuntimeConfig,
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
@@ -821,7 +821,7 @@ object ConfigFailFast extends LazyLogging {
     *   RuntimeConfig of Storages
     */
   private def checkStoragesConfig(
-      storageRuntimeConfig: ParticipantRuntimeConfig[StorageRuntimeConfig]
+      storageRuntimeConfig: ParticipantRuntimeConfigs[StorageRuntimeConfig]
   ): Unit = {
     if (
       storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0

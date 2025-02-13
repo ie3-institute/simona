@@ -200,6 +200,12 @@ tasks.withType(ScalaCompile) {
     "-P:scapegoat:disabledInspections:VariableShadowing",
     "-P:scapegoat:ignoredFiles:.*/SimonaConfig.scala" // see scapegoat-sbt page for this param
   ]
+  // increasing stack size required for our pureconfig configuration
+  // see: https://github.com/pureconfig/pureconfig/issues/481#issuecomment-647760554
+  scalaCompileOptions.forkOptions.jvmArgs = [
+    '-Xss2m',
+    '-XX:-UseGCOverheadLimit'
+  ]
 }
 
 // separate scapegoat report for test classes

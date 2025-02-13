@@ -39,7 +39,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "let valid input pass" in {
           noException shouldBe thrownBy {
             ConfigFailFast invokePrivate checkTimeConfig(
-              new Time(
+              Time(
                 "2020-06-18T13:41:00Z",
                 None,
                 "2020-05-18T13:41:00Z",
@@ -51,7 +51,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "identify invalid date or time configuration" in {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkTimeConfig(
-              new Time(
+              Time(
                 "2020-06-18T13:41:00Z",
                 None,
                 "2020-07-18T13:41:00Z",
@@ -95,7 +95,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkPowerFlowResolutionConfiguration(
               new Powerflow(
                 10,
-                new Newtonraphson(
+                Newtonraphson(
                   List(10, 30),
                   100,
                 ),
@@ -112,7 +112,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkPowerFlowResolutionConfiguration(
               new Powerflow(
                 10,
-                new Newtonraphson(
+                Newtonraphson(
                   List(10, 30),
                   100,
                 ),
@@ -1207,7 +1207,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(0.8),
           )
         val storageConfig =
-          RuntimeConfig.ParticipantRuntimeConfig(defaultConfig, List.empty)
+          RuntimeConfig.ParticipantRuntimeConfigs(defaultConfig, List.empty)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1224,7 +1224,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(-0.8),
           )
         val storageConfig =
-          RuntimeConfig.ParticipantRuntimeConfig(defaultConfig, List.empty)
+          RuntimeConfig.ParticipantRuntimeConfigs(defaultConfig, List.empty)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1250,7 +1250,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(0.8),
           )
         )
-        val storageConfig = RuntimeConfig.ParticipantRuntimeConfig(
+        val storageConfig = RuntimeConfig.ParticipantRuntimeConfigs(
           defaultConfig,
           individualConfig,
         )
@@ -1279,7 +1279,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(-0.8),
           )
         )
-        val storageConfig = RuntimeConfig.ParticipantRuntimeConfig(
+        val storageConfig = RuntimeConfig.ParticipantRuntimeConfigs(
           defaultConfig,
           individualConfig,
         )
@@ -1307,7 +1307,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(0.8),
           )
         )
-        val storageConfig = RuntimeConfig.ParticipantRuntimeConfig(
+        val storageConfig = RuntimeConfig.ParticipantRuntimeConfigs(
           defaultConfig,
           individualConfig,
         )
