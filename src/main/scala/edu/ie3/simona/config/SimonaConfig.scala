@@ -7,12 +7,10 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigRenderOptions}
-
 import pureconfig._
 import pureconfig.error._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
-import pureconfig.generic.semiauto.{deriveReader, deriveWriter}
 
 import java.time.Duration
 import scala.language.implicitConversions
@@ -36,31 +34,6 @@ object SimonaConfig {
       str => Try(Duration.parse(("PT" + str).toUpperCase)),
       x => x.toString,
     )
-
-  // necessary to prevent StackOverFlowErrors during compilation
-  private type RW[T] = (ConfigReader[T], ConfigWriter[T])
-
-  implicit val baseRuntime: RW[BaseRuntimeConfig] = (deriveReader, deriveWriter)
-  implicit val loadRuntime: RW[LoadRuntimeConfig] = (deriveReader, deriveWriter)
-  implicit val ffiRuntime: RW[FixedFeedInRuntimeConfig] =
-    (deriveReader, deriveWriter)
-  implicit val pvRuntime: RW[PvRuntimeConfig] = (deriveReader, deriveWriter)
-  implicit val wecRuntime: RW[WecRuntimeConfig] = (deriveReader, deriveWriter)
-  implicit val evcsRuntime: RW[EvcsRuntimeConfig] = (deriveReader, deriveWriter)
-  implicit val emRuntime: RW[EmRuntimeConfig] = (deriveReader, deriveWriter)
-  implicit val storageRuntime: RW[StorageRuntimeConfig] =
-    (deriveReader, deriveWriter)
-  implicit val hpRuntime: RW[HpRuntimeConfig] = (deriveReader, deriveWriter)
-  implicit val baseCsv: RW[BaseCsvParams] = (deriveReader, deriveWriter)
-  implicit val partBaseOutput: RW[ParticipantBaseOutputConfig] =
-    (deriveReader, deriveWriter)
-  implicit val primaryDataCsv: RW[PrimaryDataCsvParams] =
-    (deriveReader, deriveWriter)
-  implicit val resultKafka: RW[ResultKafkaParams] = (deriveReader, deriveWriter)
-  implicit val runtimeKafka: RW[RuntimeKafkaParams] =
-    (deriveReader, deriveWriter)
-  implicit val simpleOutput: RW[SimpleOutputConfig] =
-    (deriveReader, deriveWriter)
 
   /** Method to extract a config from a [[pureconfig.ConfigReader.Result]]
     * @param either
