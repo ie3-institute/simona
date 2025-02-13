@@ -96,7 +96,7 @@ object SimonaConfig {
   sealed abstract class BaseRuntimeConfig(
       val calculateMissingReactivePowerWithModel: Boolean = false,
       val scaling: Double = 1.0,
-      val uuids: List[String] = List(),
+      val uuids: List[String] = List.empty,
   ) extends Serializable
 
   sealed abstract class CsvParams(
@@ -108,7 +108,7 @@ object SimonaConfig {
   final case class EmRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
       aggregateFlex: String = "SELF_OPT_EXCL_REG",
       curtailRegenerative: Boolean = false,
   ) extends BaseRuntimeConfig(
@@ -120,7 +120,7 @@ object SimonaConfig {
   final case class EvcsRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
       chargingStrategy: String = "maxPower",
       lowestEvSoc: Double = 0.2,
   ) extends BaseRuntimeConfig(
@@ -132,7 +132,7 @@ object SimonaConfig {
   final case class FixedFeedInRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -151,7 +151,7 @@ object SimonaConfig {
   final case class HpRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -168,7 +168,7 @@ object SimonaConfig {
   final case class LoadRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
       modelBehaviour: String,
       reference: String,
   ) extends BaseRuntimeConfig(
@@ -194,7 +194,7 @@ object SimonaConfig {
   final case class PvRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -232,7 +232,7 @@ object SimonaConfig {
   final case class StorageRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
       initialSoc: Double = 0d,
       targetSoc: Option[Double],
   ) extends BaseRuntimeConfig(
@@ -242,8 +242,8 @@ object SimonaConfig {
       )
 
   final case class TransformerControlGroup(
-      measurements: List[String] = List(),
-      transformers: List[String] = List(),
+      measurements: List[String] = List.empty,
+      transformers: List[String] = List.empty,
       vMax: Double,
       vMin: Double,
   )
@@ -256,7 +256,7 @@ object SimonaConfig {
   final case class WecRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -276,7 +276,7 @@ object SimonaConfig {
   )
   object Simona {
     final case class Control(
-        transformer: List[TransformerControlGroup] = List()
+        transformer: List[TransformerControlGroup] = List.empty
     )
 
     final case class Event(
@@ -431,7 +431,7 @@ object SimonaConfig {
 
       final case class Participant(
           defaultConfig: ParticipantBaseOutputConfig,
-          individualConfigs: List[ParticipantBaseOutputConfig] = List(),
+          individualConfigs: List[ParticipantBaseOutputConfig] = List.empty,
       )
 
       final case class Sink(
@@ -457,7 +457,7 @@ object SimonaConfig {
 
       final case class Thermal(
           defaultConfig: SimpleOutputConfig,
-          individualConfigs: List[SimpleOutputConfig] = List(),
+          individualConfigs: List[SimpleOutputConfig] = List.empty,
       )
     }
 
@@ -470,7 +470,7 @@ object SimonaConfig {
     )
     object Powerflow {
       final case class Newtonraphson(
-          epsilon: List[Double] = List(),
+          epsilon: List[Double] = List.empty,
           iterations: Int,
       )
     }
@@ -501,42 +501,42 @@ object SimonaConfig {
       object Participant {
         final case class Em(
             defaultConfig: EmRuntimeConfig,
-            individualConfigs: List[EmRuntimeConfig] = List(),
+            individualConfigs: List[EmRuntimeConfig] = List.empty,
         )
 
         final case class Evcs(
             defaultConfig: EvcsRuntimeConfig,
-            individualConfigs: List[EvcsRuntimeConfig] = List(),
+            individualConfigs: List[EvcsRuntimeConfig] = List.empty,
         )
 
         final case class FixedFeedIn(
             defaultConfig: FixedFeedInRuntimeConfig,
-            individualConfigs: List[FixedFeedInRuntimeConfig] = List(),
+            individualConfigs: List[FixedFeedInRuntimeConfig] = List.empty,
         )
 
         final case class Hp(
             defaultConfig: HpRuntimeConfig,
-            individualConfigs: List[HpRuntimeConfig] = List(),
+            individualConfigs: List[HpRuntimeConfig] = List.empty,
         )
 
         final case class Load(
             defaultConfig: LoadRuntimeConfig,
-            individualConfigs: List[LoadRuntimeConfig] = List(),
+            individualConfigs: List[LoadRuntimeConfig] = List.empty,
         )
 
         final case class Pv(
             defaultConfig: PvRuntimeConfig,
-            individualConfigs: List[PvRuntimeConfig] = List(),
+            individualConfigs: List[PvRuntimeConfig] = List.empty,
         )
 
         final case class Storage(
             defaultConfig: StorageRuntimeConfig,
-            individualConfigs: List[StorageRuntimeConfig] = List(),
+            individualConfigs: List[StorageRuntimeConfig] = List.empty,
         )
 
         final case class Wec(
             defaultConfig: WecRuntimeConfig,
-            individualConfigs: List[WecRuntimeConfig] = List(),
+            individualConfigs: List[WecRuntimeConfig] = List.empty,
         )
       }
     }
