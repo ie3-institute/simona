@@ -202,7 +202,10 @@ tasks.withType(ScalaCompile) {
   ]
   // increasing stack size required for our pureconfig configuration
   // see: https://github.com/pureconfig/pureconfig/issues/481#issuecomment-647760554
-  scalaCompileOptions.forkOptions.jvmArgs = ['-Xss2m', '-XX:-UseGCOverheadLimit']
+  scalaCompileOptions.forkOptions.jvmArgs = [
+    '-Xss2m',
+    '-XX:-UseGCOverheadLimit'
+  ]
 }
 
 // separate scapegoat report for test classes
