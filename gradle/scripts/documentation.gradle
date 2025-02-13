@@ -25,3 +25,19 @@ javadoc() {
   destinationDir = file("${project.projectDir}/docs/javadoc")
   classpath = project.sourceSets.main.compileClasspath
 }
+
+/**
+ * Task to generate the ScalaDoc
+ */
+scaladoc() {
+  description 'Generates scala API doc at the correct place.'
+  group 'Documentation'
+
+  source = sourceSets.main.allSource
+  destinationDir = file("${project.projectDir}/docs/scaladoc")
+  classpath = project.sourceSets.main.compileClasspath
+
+  // Exclude SimonaConfig because implicits used by pureconfig's
+  // ConfigSource.load and ConfigWriter.apply lead to failure of scaladoc
+  exclude("edu/ie3/simona/config/SimonaConfig.scala")
+}

@@ -396,13 +396,14 @@ object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
 
   def apply(
       typeSafeConfig: Config,
+      simonaConfig: SimonaConfig,
       resultFileHierarchy: ResultFileHierarchy,
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
       mainArgs: Array[String] = Array.empty[String],
   ): SimonaStandaloneSetup =
     new SimonaStandaloneSetup(
       typeSafeConfig,
-      SimonaConfig(typeSafeConfig),
+      simonaConfig,
       resultFileHierarchy,
       runtimeEventQueue,
       mainArgs,
