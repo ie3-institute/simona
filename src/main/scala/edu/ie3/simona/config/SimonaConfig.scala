@@ -38,66 +38,29 @@ object SimonaConfig {
     )
 
   // necessary to prevent StackOverFlowErrors during compilation
-  implicit val baseRuntimeReader: ConfigReader[BaseRuntimeConfig] =
-    deriveReader[BaseRuntimeConfig]
-  implicit val baseRuntimeWriter: ConfigWriter[BaseRuntimeConfig] =
-    deriveWriter[BaseRuntimeConfig]
-  implicit val loadRuntimeReader: ConfigReader[LoadRuntimeConfig] =
-    deriveReader[LoadRuntimeConfig]
-  implicit val loadRuntimeWriter: ConfigWriter[LoadRuntimeConfig] =
-    deriveWriter[LoadRuntimeConfig]
-  implicit val ffiRuntimeReader: ConfigReader[FixedFeedInRuntimeConfig] =
-    deriveReader[FixedFeedInRuntimeConfig]
-  implicit val ffiRuntimeWriter: ConfigWriter[FixedFeedInRuntimeConfig] =
-    deriveWriter[FixedFeedInRuntimeConfig]
-  implicit val pvRuntimeReader: ConfigReader[PvRuntimeConfig] =
-    deriveReader[PvRuntimeConfig]
-  implicit val pvRuntimeWriter: ConfigWriter[PvRuntimeConfig] =
-    deriveWriter[PvRuntimeConfig]
-  implicit val wecRuntimeReader: ConfigReader[WecRuntimeConfig] =
-    deriveReader[WecRuntimeConfig]
-  implicit val wecRuntimeWriter: ConfigWriter[WecRuntimeConfig] =
-    deriveWriter[WecRuntimeConfig]
-  implicit val evcsRuntimeReader: ConfigReader[EvcsRuntimeConfig] =
-    deriveReader[EvcsRuntimeConfig]
-  implicit val evcsRuntimeWriter: ConfigWriter[EvcsRuntimeConfig] =
-    deriveWriter[EvcsRuntimeConfig]
-  implicit val emRuntimeReader: ConfigReader[EmRuntimeConfig] =
-    deriveReader[EmRuntimeConfig]
-  implicit val emRuntimeWriter: ConfigWriter[EmRuntimeConfig] =
-    deriveWriter[EmRuntimeConfig]
-  implicit val storageRuntimeReader: ConfigReader[StorageRuntimeConfig] =
-    deriveReader[StorageRuntimeConfig]
-  implicit val storageRuntimeWriter: ConfigWriter[StorageRuntimeConfig] =
-    deriveWriter[StorageRuntimeConfig]
-  implicit val hpRuntimeReader: ConfigReader[HpRuntimeConfig] =
-    deriveReader[HpRuntimeConfig]
-  implicit val hpRuntimeWriter: ConfigWriter[HpRuntimeConfig] =
-    deriveWriter[HpRuntimeConfig]
-  implicit val baseCsvReader: ConfigReader[BaseCsvParams] =
-    deriveReader[BaseCsvParams]
-  implicit val baseCsvWriter: ConfigWriter[BaseCsvParams] =
-    deriveWriter[BaseCsvParams]
-  implicit val partBaseOutputReader: ConfigReader[ParticipantBaseOutputConfig] =
-    deriveReader[ParticipantBaseOutputConfig]
-  implicit val partBaseOutputWriter: ConfigWriter[ParticipantBaseOutputConfig] =
-    deriveWriter[ParticipantBaseOutputConfig]
-  implicit val primaryDataCsvReader: ConfigReader[PrimaryDataCsvParams] =
-    deriveReader[PrimaryDataCsvParams]
-  implicit val primaryDataCsvWriter: ConfigWriter[PrimaryDataCsvParams] =
-    deriveWriter[PrimaryDataCsvParams]
-  implicit val resultKafkaReader: ConfigReader[ResultKafkaParams] =
-    deriveReader[ResultKafkaParams]
-  implicit val resultKafkaWriter: ConfigWriter[ResultKafkaParams] =
-    deriveWriter[ResultKafkaParams]
-  implicit val runtimeKafkaReader: ConfigReader[RuntimeKafkaParams] =
-    deriveReader[RuntimeKafkaParams]
-  implicit val runtimeKafkaWriter: ConfigWriter[RuntimeKafkaParams] =
-    deriveWriter[RuntimeKafkaParams]
-  implicit val simpleOutputReader: ConfigReader[SimpleOutputConfig] =
-    deriveReader[SimpleOutputConfig]
-  implicit val simpleOutputWriter: ConfigWriter[SimpleOutputConfig] =
-    deriveWriter[SimpleOutputConfig]
+  private type RW[T] = (ConfigReader[T], ConfigWriter[T])
+
+  implicit val baseRuntime: RW[BaseRuntimeConfig] = (deriveReader, deriveWriter)
+  implicit val loadRuntime: RW[LoadRuntimeConfig] = (deriveReader, deriveWriter)
+  implicit val ffiRuntime: RW[FixedFeedInRuntimeConfig] =
+    (deriveReader, deriveWriter)
+  implicit val pvRuntime: RW[PvRuntimeConfig] = (deriveReader, deriveWriter)
+  implicit val wecRuntime: RW[WecRuntimeConfig] = (deriveReader, deriveWriter)
+  implicit val evcsRuntime: RW[EvcsRuntimeConfig] = (deriveReader, deriveWriter)
+  implicit val emRuntime: RW[EmRuntimeConfig] = (deriveReader, deriveWriter)
+  implicit val storageRuntime: RW[StorageRuntimeConfig] =
+    (deriveReader, deriveWriter)
+  implicit val hpRuntime: RW[HpRuntimeConfig] = (deriveReader, deriveWriter)
+  implicit val baseCsv: RW[BaseCsvParams] = (deriveReader, deriveWriter)
+  implicit val partBaseOutput: RW[ParticipantBaseOutputConfig] =
+    (deriveReader, deriveWriter)
+  implicit val primaryDataCsv: RW[PrimaryDataCsvParams] =
+    (deriveReader, deriveWriter)
+  implicit val resultKafka: RW[ResultKafkaParams] = (deriveReader, deriveWriter)
+  implicit val runtimeKafka: RW[RuntimeKafkaParams] =
+    (deriveReader, deriveWriter)
+  implicit val simpleOutput: RW[SimpleOutputConfig] =
+    (deriveReader, deriveWriter)
 
   /** Method to extract a config from a [[pureconfig.ConfigReader.Result]]
     * @param either
