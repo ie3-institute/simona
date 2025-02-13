@@ -150,7 +150,7 @@ class EmAgentIT
               pvInput,
               PvRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
-                scaling = 2d,
+                scaling = 1d,
                 uuids = List.empty,
               ),
               primaryServiceProxy.ref.toClassic,
@@ -260,10 +260,10 @@ class EmAgentIT
 
         /* TICK 0
          LOAD: 0.269 kW
-         PV:  -5.617 kW
+         PV:  -5.842 kW
          STORAGE: SOC 0 %
          -> charge with 5 kW
-         -> remaining -0.348 kW
+         -> remaining -0.723 kW
          */
 
         emAgentActivation ! Activation(0)
@@ -272,8 +272,8 @@ class EmAgentIT
           0,
           weatherService.ref.toClassic,
           WeatherData(
-            WattsPerSquareMeter(540d),
             WattsPerSquareMeter(200d),
+            WattsPerSquareMeter(100d),
             Celsius(0d),
             MetersPerSecond(0d),
           ),
@@ -285,10 +285,10 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0L.toDateTime
             emResult.getP should equalWithTolerance(
-              -0.03283549601246891.asMegaWatt
+              -0.00057340027059.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0000882855367033582.asMegaVar
+              0.0000882855367033.asMegaVar
             )
         }
 
