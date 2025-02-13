@@ -7,6 +7,7 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigRenderOptions}
+import edu.ie3.simona.exceptions.CriticalFailureException
 import pureconfig._
 import pureconfig.error._
 import pureconfig.generic.ProductHint
@@ -62,7 +63,7 @@ object SimonaConfig {
               f"Unknown failure type => ${failure.toString} \n"
           }
           .mkString("\n")
-        throw new RuntimeException(
+        throw new CriticalFailureException(
           s"Unable to load config due to following failures:\n$detailedErrors"
         )
       case Right(conf) => conf
