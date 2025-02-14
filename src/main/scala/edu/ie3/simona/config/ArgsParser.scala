@@ -30,7 +30,7 @@ object ArgsParser extends LazyLogging {
       nodePort: Option[String] = None,
       seedAddress: Option[String] = None,
       useLocalWorker: Option[Boolean] = None,
-      tArgs: Map[String, String] = Map.empty, // TODO: can be removed?
+      tArgs: Map[String, String] = Map.empty,
   ) {
     val useCluster: Boolean = clusterType.isDefined
   }
@@ -177,7 +177,6 @@ object ArgsParser extends LazyLogging {
           ReflectionTools
             .resolveClassNameToCompanion(listenerElem.fullClassPath) match {
             case Some(listener: SimonaListenerCompanion) =>
-              // TODO: Double check if we should have an Optional here by design
               listenerMap + (listener -> listenerElem.eventsToProcess)
             case nonListenerCompanion =>
               logger.warn(
