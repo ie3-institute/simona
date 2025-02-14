@@ -201,12 +201,17 @@ object SimonaConfig {
         uuids,
       )
 
+  sealed trait GridConfigParams {
+    val gridIds: Option[List[String]]
+    val voltLvls: Option[List[VoltLvlConfig]]
+  }
+
   final case class RefSystemConfig(
-      gridIds: Option[List[String]] = None,
+      override val gridIds: Option[List[String]] = None,
       sNom: String,
       vNom: String,
-      voltLvls: Option[List[VoltLvlConfig]] = None,
-  )
+      override val voltLvls: Option[List[VoltLvlConfig]] = None,
+  ) extends GridConfigParams
 
   final case class ResultKafkaParams(
       override val bootstrapServers: String,
@@ -254,11 +259,11 @@ object SimonaConfig {
   )
 
   final case class VoltageLimitsConfig(
-      gridIds: Option[List[String]] = None,
+      override val gridIds: Option[List[String]] = None,
       vMax: Double,
       vMin: Double,
-      voltLvls: Option[List[VoltLvlConfig]] = None,
-  )
+      override val voltLvls: Option[List[VoltLvlConfig]] = None,
+  ) extends GridConfigParams
 
   final case class WecRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,

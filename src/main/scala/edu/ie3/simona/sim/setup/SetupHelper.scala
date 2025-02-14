@@ -14,9 +14,11 @@ import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.config.RefSystemParser.ConfigRefSystems
+import edu.ie3.simona.config.GridConfigParser.{
+  ConfigRefSystems,
+  ConfigVoltageLimits,
+}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.VoltageLimitsParser.ConfigVoltageLimits
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType

@@ -116,9 +116,7 @@ object ConfigFailFast extends LazyLogging {
     checkTimeConfig(simonaConfig.simona.time)
 
     // check if the provided combinations of refSystems provided are valid
-    val refSystems = simonaConfig.simona.gridConfig.refSystems
-    if (refSystems.isDefined)
-      refSystems.foreach(refsys => checkRefSystem(refsys))
+    simonaConfig.simona.gridConfig.refSystems.foreach(checkRefSystem)
 
     // check if the provided combinations of voltageLimits provided are valid
     simonaConfig.simona.gridConfig.voltageLimits.foreach(checkVoltageLimits)
@@ -461,12 +459,7 @@ object ConfigFailFast extends LazyLogging {
       refSystems: List[RefSystemConfig]
   ): Unit = {
     refSystems.foreach { refSystem =>
-      checkVoltageLvlsAndGridIds(
-        refSystem.voltLvls,
-        refSystem.gridIds,
-        refSystem,
-        "refSystem",
-      )
+      checkGridConfig(refSystem, "refSystem")
 
       refSystem.sNom match {
         case ConfigConventions.refSystemQuantRegex(_) =>
@@ -495,12 +488,7 @@ object ConfigFailFast extends LazyLogging {
       voltageLimits: List[VoltageLimitsConfig]
   ): Unit = {
     voltageLimits.foreach { limit =>
-      checkVoltageLvlsAndGridIds(
-        limit.voltLvls,
-        limit.gridIds,
-        limit,
-        "voltage limit",
-      )
+      checkGridConfig(limit, "voltage limit")
 
       if (limit.vMin >= limit.vMax) {
         throw new InvalidConfigParameterException(
@@ -512,31 +500,23 @@ object ConfigFailFast extends LazyLogging {
 
   /** Method to check the common elements of a
     * [[SimonaConfig.Simona.GridConfig]].
-    * @param voltLvlOption
-    *   option for [[VoltLvlConfig]]
-    * @param gridIdOption
-    *   option for grid ids
-    * @param config
+    * @param gridConfig
     *   the individual config
     * @param configType
     *   the type of config (e.g. refSystem)
-    * @tparam C
-    *   type fo
     */
-  private def checkVoltageLvlsAndGridIds[C](
-      voltLvlOption: Option[List[VoltLvlConfig]],
-      gridIdOption: Option[List[String]],
-      config: C,
+  private def checkGridConfig(
+      gridConfig: GridConfigParams,
       configType: String,
   ): Unit = {
-    val voltLvls = voltLvlOption.getOrElse(List.empty)
-    val gridIds = gridIdOption.getOrElse(List.empty)
+    val voltLvls = gridConfig.voltLvls.getOrElse(List.empty)
+    val gridIds = gridConfig.gridIds.getOrElse(List.empty)
 
     if (voltLvls.isEmpty && gridIds.isEmpty)
       throw new InvalidConfigParameterException(
         "The provided values for voltLvls and gridIds are empty! " +
           s"At least one of these optional parameters has to be provided for a valid $configType! " +
-          s"Provided $configType is: $config."
+          s"Provided $configType is: $gridConfig."
       )
 
     voltLvls.foreach { voltLvl =>
