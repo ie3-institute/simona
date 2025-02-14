@@ -7,6 +7,7 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigRenderOptions}
+import edu.ie3.simona.exceptions.CriticalFailureException
 import pureconfig._
 import pureconfig.error._
 import pureconfig.generic.ProductHint
@@ -62,7 +63,7 @@ object SimonaConfig {
               f"Unknown failure type => ${failure.toString} \n"
           }
           .mkString("\n")
-        throw new RuntimeException(
+        throw new CriticalFailureException(
           s"Unable to load config due to following failures:\n$detailedErrors"
         )
       case Right(conf) => conf
@@ -89,8 +90,8 @@ object SimonaConfig {
   )
 
   final case class TransformerControlGroup(
-      measurements: List[String] = List(),
-      transformers: List[String] = List(),
+      measurements: List[String] = List.empty,
+      transformers: List[String] = List.empty,
       vMax: Double,
       vMin: Double,
   )
@@ -113,7 +114,7 @@ object SimonaConfig {
   )
   object Simona {
     final case class Control(
-        transformer: List[TransformerControlGroup] = List()
+        transformer: List[TransformerControlGroup] = List.empty
     )
 
     final case class Event(
@@ -139,7 +140,7 @@ object SimonaConfig {
     )
     object Powerflow {
       final case class Newtonraphson(
-          epsilon: List[Double] = List(),
+          epsilon: List[Double] = List.empty,
           iterations: Int,
       )
     }

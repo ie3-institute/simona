@@ -37,5 +37,7 @@ scaladoc() {
   destinationDir = file("${project.projectDir}/docs/scaladoc")
   classpath = project.sourceSets.main.compileClasspath
 
+  // Exclude SimonaConfig because implicits used by pureconfig's
+  // ConfigSource.load and ConfigWriter.apply lead to failure of scaladoc
   exclude("edu/ie3/simona/config/SimonaConfig.scala")
 }
