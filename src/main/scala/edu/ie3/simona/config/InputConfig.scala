@@ -17,7 +17,7 @@ import edu.ie3.simona.config.ConfigParams._
   * @param weather
   *   source for weather data (default: empty)
   */
-case class InputConfig(
+final case class InputConfig(
     grid: Grid,
     primary: Primary = Primary.empty,
     weather: Weather = Weather.empty,

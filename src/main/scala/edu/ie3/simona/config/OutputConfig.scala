@@ -30,7 +30,7 @@ import edu.ie3.simona.config.SimonaConfig.AssetConfigs
   * @param thermal
   *   output configuration
   */
-case class OutputConfig(
+final case class OutputConfig(
     base: Base,
     flex: Boolean = false,
     grid: GridOutputConfig,

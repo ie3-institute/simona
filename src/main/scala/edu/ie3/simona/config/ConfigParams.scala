@@ -10,6 +10,10 @@ package edu.ie3.simona.config
   */
 object ConfigParams {
 
+  /** Default time pattern: `yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X`
+    */
+  private val defaultTimePattern = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X"
+
   /** Sample parameters.
     * @param use
     *   if sample parameters should be used (default: true)
@@ -20,7 +24,7 @@ object ConfigParams {
 
   /** Basic trait for all csv parameters.
     */
-  trait CsvParams {
+  sealed trait CsvParams {
     val directoryPath: String
     val csvSep: String
     val isHierarchic: Boolean
@@ -34,7 +38,7 @@ object ConfigParams {
     * @param isHierarchic
     *   true, if a hierarchical structure is used
     */
-  case class BaseCsvParams(
+  final case class BaseCsvParams(
       override val csvSep: String,
       override val directoryPath: String,
       override val isHierarchic: Boolean,
@@ -48,13 +52,13 @@ object ConfigParams {
     * @param isHierarchic
     *   true, if a hierarchical structure is used
     * @param timePattern
-    *   used for the data (default: `yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X`)
+    *   used for the data (default: [[ConfigParams.defaultTimePattern]])
     */
-  case class TimeStampedCsvParams(
+  final case class TimeStampedCsvParams(
       override val csvSep: String,
       override val directoryPath: String,
       override val isHierarchic: Boolean,
-      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
+      timePattern: String = defaultTimePattern,
   ) extends CsvParams
 
   /** Csv parameters used by the [[edu.ie3.datamodel.io.sink.CsvFileSink]].
@@ -69,7 +73,7 @@ object ConfigParams {
     * @param isHierarchic
     *   true, if a hierarchical structure should be used
     */
-  case class PsdmSinkCsvParams(
+  final case class PsdmSinkCsvParams(
       compressOutputs: Boolean = false,
       fileFormat: String = ".csv",
       filePrefix: String = "",
@@ -79,7 +83,7 @@ object ConfigParams {
 
   /** Basic trait for all influxDb1x parameters.
     */
-  trait InfluxDb1xParams {
+  sealed trait InfluxDb1xParams {
     val database: String
     val port: Int
     val url: String
@@ -93,7 +97,7 @@ object ConfigParams {
     * @param url
     *   of the database
     */
-  case class BaseInfluxDb1xParams(
+  final case class BaseInfluxDb1xParams(
       override val database: String,
       override val port: Int,
       override val url: String,
@@ -105,21 +109,20 @@ object ConfigParams {
     * @param port
     *   of the database
     * @param timePattern
-    *   used for the data (default: `yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X`)
+    *   used for the data (default: [[ConfigParams.defaultTimePattern]])
     * @param url
     *   of the database
     */
-  case class TimeStampedInfluxDb1xParams(
+  final case class TimeStampedInfluxDb1xParams(
       override val database: String,
       override val port: Int,
-      // TODO: time pattern needed?
-      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
+      timePattern: String = defaultTimePattern,
       override val url: String,
   ) extends InfluxDb1xParams
 
   /** Basic trait for all sql parameters.
     */
-  trait SqlParams {
+  sealed trait SqlParams {
     val jdbcUrl: String
     val userName: String
     val password: String
@@ -139,7 +142,7 @@ object ConfigParams {
     * @param userName
     *   for login
     */
-  case class BaseSqlParams(
+  final case class BaseSqlParams(
       override val jdbcUrl: String,
       override val password: String,
       override val schemaName: String = "public",
@@ -155,15 +158,15 @@ object ConfigParams {
     * @param schemaName
     *   name of the schema (default: public)
     * @param timePattern
-    *   used for the data (default: `yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X`)
+    *   used for the data (default: [[ConfigParams.defaultTimePattern]])
     * @param userName
     *   for login
     */
-  case class TimeStampedSqlParams(
+  final case class TimeStampedSqlParams(
       override val jdbcUrl: String,
       override val password: String,
       override val schemaName: String = "public",
-      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
+      timePattern: String = defaultTimePattern,
       override val userName: String,
   ) extends SqlParams
 
@@ -177,25 +180,25 @@ object ConfigParams {
     * @param password
     *   for login
     * @param timePattern
-    *   used for the data (default: `yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X`)
+    *   used for the data (default: [[ConfigParams.defaultTimePattern]])
     * @param url
     *   to the database
     * @param userName
     *   for login
     */
-  case class CouchbaseParams(
+  final case class CouchbaseParams(
       bucketName: String,
       coordinateColumnName: String,
       keyPrefix: String,
       password: String,
-      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
+      timePattern: String = defaultTimePattern,
       url: String,
       userName: String,
   )
 
   /** Basic trait for all kafka parameters.
     */
-  trait KafkaParams {
+  sealed trait KafkaParams {
     val runId: String
     val bootstrapServers: String
     val schemaRegistryUrl: String
