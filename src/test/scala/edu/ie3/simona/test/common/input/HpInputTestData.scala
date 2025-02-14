@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.thermal.{
+  CylindricalStorageInput,
   ThermalHouseInput,
   ThermalStorageInput,
 }
@@ -23,6 +24,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal._
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.Kilovoltamperes
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.Celsius
 import squants.{Power, Temperature}
@@ -30,7 +32,7 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.jdk.CollectionConverters._
 
 trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
 
@@ -61,7 +63,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     "HpModel",
     OperationInterval.apply(0L, 86400L),
     QControl.CosPhiFixed(0.95),
-    Kilowatts(100d),
+    Kilovoltamperes(100d),
     0.95,
     Kilowatts(15d),
     thermalGrid,
@@ -81,6 +83,58 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     thermalBusInput,
     Seq(defaultThermalHouse).asJava,
     Seq.empty[ThermalStorageInput].asJava,
+  )
+
+  protected val typicalThermalHouse = new ThermalHouseInput(
+    UUID.fromString("74ac67b4-4743-416a-b731-1b5fe4a0a4e7"),
+    "thermal house",
+    thermalBusInput,
+    Quantities.getQuantity(0.1, StandardUnits.THERMAL_TRANSMISSION),
+    Quantities.getQuantity(7.5, StandardUnits.HEAT_CAPACITY),
+    Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE),
+    Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
+    Quantities.getQuantity(18.0, StandardUnits.TEMPERATURE),
+  )
+
+  protected val typicalThermalStorage: CylindricalStorageInput =
+    new CylindricalStorageInput(
+      UUID.fromString("4b8933dc-aeb6-4573-b8aa-59d577214150"),
+      "thermal storage",
+      thermalBusInput,
+      Quantities.getQuantity(300.0, Units.LITRE),
+      Quantities.getQuantity(0.0, Units.LITRE),
+      Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
+      Quantities.getQuantity(30.0, StandardUnits.TEMPERATURE),
+      Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+    )
+
+  protected val typicalThermalGrid = new container.ThermalGrid(
+    thermalBusInput,
+    Seq(typicalThermalHouse).asJava,
+    Set[ThermalStorageInput](typicalThermalStorage).asJava,
+    // Set.empty[ThermalStorageInput].asJava,
+  )
+
+  protected val typicalHpTypeInput = new HpTypeInput(
+    UUID.fromString("2829d5eb-352b-40df-a07f-735b65a0a7bd"),
+    "TypicalHpTypeInput",
+    Quantities.getQuantity(7500d, PowerSystemUnits.EURO),
+    Quantities.getQuantity(200d, PowerSystemUnits.EURO_PER_MEGAWATTHOUR),
+    Quantities.getQuantity(4, PowerSystemUnits.KILOVOLTAMPERE),
+    0.95,
+    Quantities.getQuantity(11, PowerSystemUnits.KILOWATT),
+  )
+
+  protected val typicalHpInputModel = new HpInput(
+    UUID.fromString("1b5e928e-65a3-444c-b7f2-6a48af092224"),
+    "TypicalHpInput",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    nodeInputNoSlackNs04KvA,
+    thermalBusInput,
+    new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+    null,
+    typicalHpTypeInput,
   )
 
   protected def thermalGrid(

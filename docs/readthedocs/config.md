@@ -12,15 +12,13 @@ To create the output directory name, the name of the simulation is used as a str
   `simona.simulationName = "vn_simona"`
 
 ### Time parameters
-Starting date and time of the simulation
-  - Format: "YYYY-MM-DD HH:MM:SS"
+Starting date and time of the simulation in ISO-8601 date and time format with offset
 
-  `simona.time.startDateTime = "2011-01-01 00:00:00"`
+  `simona.time.startDateTime = "2011-01-01T00:00:00Z"`
 
-Ending date and time of the simulation
-  - Format: "YYYY-MM-DD HH:MM:SS"
+Ending date and time of the simulation in ISO-8601 date and time format with offset
 
-  `simona.time.endDateTime = "2011-01-01 02:00:00"`
+  `simona.time.endDateTime = "2011-01-01T02:00:00Z"`
 
 The preset ReadyCheckWindow should be maintained 
 
@@ -39,7 +37,9 @@ Setting of the data source
 
   `simona.input.grid.datasource.id = "csv"`
 
-Specify the folder path containing the csv data of the grid components and the csv separator (e.g. "," or ";")
+Specify the folder path containing the csv data of the grid components and the csv separator (e.g. "," or ";").
+The directory structure is determined by the boolean `isHierarchic`. 
+If files are placed within [a specific set of subdirectories](https://powersystemdatamodel.readthedocs.io/en/latest/io/csvfiles.html#default-directory-hierarchy), `isHierarchic: true` needs to be set.
 
 ```
 simona.input.primary.csvParams = {  
@@ -94,11 +94,11 @@ simona.output.sink.csv {
   fileFormat = ".csv"
   filePrefix = ""
   fileSuffix = ""
-  zipFiles = false
+  compressOutputs = false
 }
 ```
 
-While using a csv sink, the raw data output files can be zipped directly when `zipFiles = true` is used.
+While using a csv sink, the raw data output files can be zipped directly when `compressOutputs = true` is used.
 
 
 #### Output configuration of the grid

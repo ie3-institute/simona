@@ -21,8 +21,8 @@ import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
 import org.scalatest.prop.TableDrivenPropertyChecks
-import squants.Power
 import squants.energy.{KilowattHours, Watts}
 import tech.units.indriya.quantity.Quantities
 
@@ -30,7 +30,7 @@ import java.util.UUID
 
 class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
-  private implicit val tolerance: Power = Watts(1d)
+  private implicit val tolerance: ApparentPower = Voltamperes(1d)
 
   "Having a profile load model" when {
     val loadInput =
@@ -78,38 +78,38 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             (
               BdewStandardLoadProfile.H0,
               ActivePower(Watts(268.6)),
-              Watts(282.74d),
+              Voltamperes(282.74d),
             ),
             (
               BdewStandardLoadProfile.H0,
               EnergyConsumption(
                 KilowattHours(3000d)
               ),
-              Watts(848.22d),
+              Voltamperes(848.22d),
             ),
             (
               BdewStandardLoadProfile.L0,
               ActivePower(Watts(268.6)),
-              Watts(282.74d),
+              Voltamperes(282.74d),
             ),
             (
               BdewStandardLoadProfile.L0,
               EnergyConsumption(
                 KilowattHours(3000d)
               ),
-              Watts(759.158d),
+              Voltamperes(759.158d),
             ),
             (
               BdewStandardLoadProfile.G0,
               ActivePower(Watts(268.6)),
-              Watts(282.74d),
+              Voltamperes(282.74d),
             ),
             (
               BdewStandardLoadProfile.G0,
               EnergyConsumption(
                 KilowattHours(3000d)
               ),
-              Watts(759.158d),
+              Voltamperes(759.158d),
             ),
           )
         ) { (profile, reference, expectedSRated) =>

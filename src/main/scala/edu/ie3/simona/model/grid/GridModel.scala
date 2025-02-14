@@ -194,7 +194,7 @@ object GridModel {
 
     /*
     Nodes that are connected via a [closed] switch map to the same idx as we fuse them during the power flow.
-    Therefore the admittance matrix has to be of the size of the distinct node idxs.
+    Therefore, the admittance matrix has to be of the size of the distinct node idxs.
      */
     val linesAdmittanceMatrix = buildAssetAdmittanceMatrix(
       nodeUuidToIndexMap,
@@ -332,7 +332,7 @@ object GridModel {
   }
 
   /** This checks whether the provided grid model graph is connected, that means
-    * if every node can be reached from every other node trough a sequence of
+    * if every node can be reached from every other node through a sequence of
     * edges. Also checks for referenced nodes that are missing. This check
     * considers the state (enabled/disabled) of the elements.
     *
@@ -407,7 +407,7 @@ object GridModel {
       noLines && noTransformers2w && noTransformers3w && (noOfNodes > noOfSlackNodes)
     )
       throw new InvalidGridException(
-        "The grid contains no basic branch elements (lines or transformers)."
+        f"The grid with subnet number ${gridModel.subnetNo} contains additional nodes beside the slack nodes and no basic branch elements (lines or transformers). This is invalid."
       )
 
     // slack
@@ -605,7 +605,7 @@ object GridModel {
 
     /** Check and validates the grid. Especially the consistency of the grid
       * model the connectivity of the grid model if there is InitData for
-      * superior or inferior GridGates if there exits voltage measurements for
+      * superior or inferior GridGates if there exists voltage measurements for
       * transformerControlGroups
       */
 

@@ -10,17 +10,12 @@ import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.main.RunSimona._
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
-import edu.ie3.util.io.FileIOUtils
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
 import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.Timeout
 
-import java.nio.file.Path
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{Duration, DurationInt}
-import scala.jdk.FutureConverters.CompletionStageOps
-import scala.util.{Failure, Success}
+import scala.concurrent.duration.DurationInt
 
 /** Run a standalone simulation of simona
   *
@@ -29,7 +24,6 @@ import scala.util.{Failure, Success}
 object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
   override implicit val timeout: Timeout = Timeout(12.hours)
-  implicit val compressTimeoutDuration: Duration = 15.minutes
 
   override def setup(args: Array[String]): SimonaStandaloneSetup = {
     // get the config and prepare it with the provided args
@@ -41,7 +35,8 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
     SimonaStandaloneSetup(
       parsedConfig,
-      SimonaStandaloneSetup.buildResultFileHierarchy(parsedConfig),
+      simonaConfig,
+      SimonaStandaloneSetup.buildResultFileHierarchy(simonaConfig),
       mainArgs = arguments.mainArgs,
     )
   }
@@ -61,36 +56,6 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
     Await.result(terminated, timeout.duration) match {
       case SimonaEnded(successful) =>
         simonaSim.terminate()
-
-        val config = SimonaConfig(simonaSetup.typeSafeConfig).simona.output
-
-        config.sink.csv.map(_.zipFiles).foreach { zipFiles =>
-          if (zipFiles) {
-            val rawOutputPath =
-              Path.of(simonaSetup.resultFileHierarchy.rawOutputDataDir)
-
-            rawOutputPath.toFile.listFiles().foreach { file =>
-              val fileName = file.getName
-              val archiveName = fileName.replace(".csv", "")
-              val filePath = rawOutputPath.resolve(fileName)
-
-              val compressFuture =
-                FileIOUtils
-                  .compressFile(filePath, rawOutputPath.resolve(archiveName))
-                  .asScala
-              compressFuture.onComplete {
-                case Success(_) =>
-                  FileIOUtils.deleteRecursively(filePath)
-                case Failure(exception) =>
-                  logger.error(
-                    s"Compression of output file to '$archiveName' has failed. Keep raw data.",
-                    exception,
-                  )
-              }
-              Await.ready(compressFuture, compressTimeoutDuration)
-            }
-          }
-        }
 
         successful
     }

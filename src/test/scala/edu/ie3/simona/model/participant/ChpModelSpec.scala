@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant
 
+import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.datamodel.models.input.system.`type`.ChpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
@@ -49,23 +50,19 @@ class ChpModelSpec
   val chpStateNotRunning: ChpState =
     ChpState(isRunning = false, 0, Kilowatts(0), KilowattHours(0))
   val chpStateRunning: ChpState =
-    ChpState(isRunning = true, 0, Kilowatts(0), KilowattHours(0))
-  var storageInput: CylindricalStorageInput = _
-  var chpInput: ChpInput = _
+    ChpState(isRunning = true, 0, Kilowatts(42), KilowattHours(42))
 
-  override def beforeAll(): Unit = {
-    setupSpec()
-  }
+  val (storageInput, chpInput) = setupSpec()
 
-  def setupSpec(): Unit = {
+  def setupSpec(): (CylindricalStorageInput, ChpInput) = {
     val thermalBus = new ThermalBusInput(UUID.randomUUID(), "thermal bus")
 
-    storageInput = new CylindricalStorageInput(
+    val storageInput = new CylindricalStorageInput(
       UUID.randomUUID(),
       "ThermalStorage",
       thermalBus,
       getQuantity(100, StandardUnits.VOLUME),
-      getQuantity(20, StandardUnits.VOLUME),
+      getQuantity(0, StandardUnits.VOLUME),
       getQuantity(30, StandardUnits.TEMPERATURE),
       getQuantity(40, StandardUnits.TEMPERATURE),
       getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY),
@@ -84,10 +81,10 @@ class ChpModelSpec
       getQuantity(0, KILOWATT),
     )
 
-    chpInput = new ChpInput(
+    val chpInput = new ChpInput(
       UUID.randomUUID(),
       "ChpInput",
-      null,
+      OperatorInput.NO_OPERATOR_ASSIGNED,
       OperationTime.notLimited(),
       TestObjectFactory
         .buildNodeInput(false, GermanVoltageLevelUtils.MV_10KV, 0),
@@ -98,6 +95,8 @@ class ChpModelSpec
       null,
       false,
     )
+
+    (storageInput, chpInput)
   }
 
   def buildChpModel(thermalStorage: CylindricalThermalStorage): ChpModel = {
@@ -106,7 +105,7 @@ class ChpModelSpec
       "ChpModel",
       null,
       null,
-      Kilowatts(100),
+      Kilovoltamperes(100),
       0.95,
       Kilowatts(50),
       thermalStorage,
@@ -146,26 +145,26 @@ class ChpModelSpec
     "Check active power after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
       val testCases = Table(
         ("chpState", "storageLvl", "heatDemand", "expectedActivePower"),
-        (chpStateNotRunning, 90, 0, 0), // tests case (false, false, true)
+        (chpStateNotRunning, 70, 0, 0), // tests case (false, false, true)
         (
           chpStateNotRunning,
-          90,
+          70,
           8 * 115,
           95,
         ), // tests case (false, true, false)
-        (chpStateNotRunning, 90, 10, 0), // tests case (false, true, true)
-        (chpStateRunning, 90, 0, 95), // tests case (true, false, true)
-        (chpStateRunning, 90, 8 * 115, 95), // tests case (true, true, false)
-        (chpStateRunning, 90, 10, 95), // tests case (true, true, true)
+        (chpStateNotRunning, 70, 10, 0), // tests case (false, true, true)
+        (chpStateRunning, 70, 0, 95), // tests case (true, false, true)
+        (chpStateRunning, 70, 8 * 115, 95), // tests case (true, true, false)
+        (chpStateRunning, 70, 10, 95), // tests case (true, true, true)
         (
           chpStateRunning,
-          90,
+          70,
           7 * 115 + 1,
           95,
         ), // test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
-          90,
+          70,
           9 * 115,
           95,
         ), // test case (_, true, false) and demand not covered together with chp
@@ -191,26 +190,26 @@ class ChpModelSpec
     "Check total energy after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
       val testCases = Table(
         ("chpState", "storageLvl", "heatDemand", "expectedTotalEnergy"),
-        (chpStateNotRunning, 90, 0, 0), // tests case (false, false, true)
+        (chpStateNotRunning, 70, 0, 0), // tests case (false, false, true)
         (
           chpStateNotRunning,
-          90,
+          70,
           8 * 115,
           100,
         ), // tests case (false, true, false)
-        (chpStateNotRunning, 90, 10, 0), // tests case (false, true, true)
-        (chpStateRunning, 90, 0, 100), // tests case (true, false, true)
-        (chpStateRunning, 90, 8 * 115, 100), // tests case (true, true, false)
-        (chpStateRunning, 90, 10, 100), // tests case (true, true, true)
+        (chpStateNotRunning, 70, 10, 0), // tests case (false, true, true)
+        (chpStateRunning, 70, 0, 100), // tests case (true, false, true)
+        (chpStateRunning, 70, 8 * 115, 100), // tests case (true, true, false)
+        (chpStateRunning, 70, 10, 100), // tests case (true, true, true)
         (
           chpStateRunning,
-          90,
+          70,
           7 * 115 + 1,
           100,
         ), // test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
-          90,
+          70,
           9 * 115,
           100,
         ), // test case (_, true, false) and demand not covered together with chp
@@ -237,35 +236,35 @@ class ChpModelSpec
     "Check storage level after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
       val testCases = Table(
         ("chpState", "storageLvl", "heatDemand", "expectedStoredEnergy"),
-        (chpStateNotRunning, 90, 0, 1035), // tests case (false, false, true)
+        (chpStateNotRunning, 70, 0, 805), // tests case (false, false, true)
         (
           chpStateNotRunning,
-          90,
+          70,
           8 * 115,
-          230,
+          0,
         ), // tests case (false, true, false)
-        (chpStateNotRunning, 90, 10, 1025), // tests case (false, true, true)
-        (chpStateRunning, 90, 0, 1135), // tests case (true, false, true)
-        (chpStateRunning, 90, 8 * 115, 230), // tests case (true, true, false)
-        (chpStateRunning, 90, 10, 1125), // tests case (true, true, true)
+        (chpStateNotRunning, 70, 10, 795), // tests case (false, true, true)
+        (chpStateRunning, 70, 0, 905), // tests case (true, false, true)
+        (chpStateRunning, 70, 8 * 115, 0), // tests case (true, true, false)
+        (chpStateRunning, 70, 10, 895), // tests case (true, true, true)
         (
           chpStateRunning,
-          90,
+          70,
           806,
-          329,
+          99,
         ), // test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
-          90,
+          70,
           9 * 115,
-          230,
+          0,
         ), // test case (_, true, false) and demand not covered together with chp
         (
           chpStateRunning,
           92,
           1,
           1150,
-        ), // test case (true, true, true) and storage volume exceeds maximum
+        ), // test case (true, true, true) CHP running, storage at lvl 92 (1058 kWh) + 100 kWh from CHP exceeds max capacity (1150 kWh).
       )
 
       forAll(testCases) {
@@ -282,48 +281,54 @@ class ChpModelSpec
     }
 
     "Check time tick and running status after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
-      val testCases = Seq(
-        // (ChpState, Storage Level, Heat Demand, Expected Time Tick, Expected Running Status)
+      val testCases = Table(
+        (
+          "chpState",
+          "storageLvl",
+          "heatDemand",
+          "expectedTick",
+          "expectedRunningStatus",
+        ),
         (
           chpStateNotRunning,
-          90,
+          70,
           0,
           7200,
           false,
         ), // Test case (false, false, true)
         (
           chpStateNotRunning,
-          90,
+          70,
           8 * 115,
           7200,
           true,
         ), // Test case (false, true, false)
         (
           chpStateNotRunning,
-          90,
+          70,
           10,
           7200,
           false,
         ), // Test case (false, true, true)
-        (chpStateRunning, 90, 0, 7200, true), // Test case (true, false, true)
+        (chpStateRunning, 70, 0, 7200, true), // Test case (true, false, true)
         (
           chpStateRunning,
-          90,
+          70,
           8 * 115,
           7200,
           true,
         ), // Test case (true, true, false)
-        (chpStateRunning, 90, 10, 7200, true), // Test case (true, true, true)
+        (chpStateRunning, 70, 10, 7200, true), // Test case (true, true, true)
         (
           chpStateRunning,
-          90,
+          70,
           806,
           7200,
           true,
         ), // Test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
-          90,
+          70,
           9 * 115,
           7200,
           true,
@@ -337,23 +342,22 @@ class ChpModelSpec
         ), // Test case (true, true, true) and storage volume exceeds maximum
       )
 
-      for (
+      forAll(testCases) {
         (
-          chpState,
-          storageLvl,
-          heatDemand,
-          expectedTimeTick,
-          expectedRunningStatus,
-        ) <- testCases
-      ) {
-        val chpData = buildChpRelevantData(chpState, heatDemand)
-        val thermalStorage = buildThermalStorage(storageInput, storageLvl)
-        val chpModel = buildChpModel(thermalStorage)
+            chpState,
+            storageLvl,
+            heatDemand,
+            expectedTick,
+            expectedRunningStatus,
+        ) =>
+          val chpData = buildChpRelevantData(chpState, heatDemand)
+          val thermalStorage = buildThermalStorage(storageInput, storageLvl)
+          val chpModel = buildChpModel(thermalStorage)
 
-        val nextState = chpModel.calculateNextState(chpData)
+          val nextState = chpModel.calculateNextState(chpData)
 
-        nextState.lastTimeTick shouldEqual expectedTimeTick
-        nextState.isRunning shouldEqual expectedRunningStatus
+          nextState.lastTimeTick shouldEqual expectedTick
+          nextState.isRunning shouldEqual expectedRunningStatus
       }
     }
 

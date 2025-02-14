@@ -19,7 +19,7 @@ import java.util.UUID
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operatorInput
   *   Operator input
   * @param operationTime
@@ -73,6 +73,17 @@ abstract class ThermalStorage(
 }
 
 object ThermalStorage {
+
+  /** State of a thermal storage
+    *
+    * @param tick
+    *   Last tick of storage state change
+    * @param storedEnergy
+    *   Energy stored in the storage at this tick
+    * @param qDot
+    *   Infeed to the heat storage (positive: Storage is charging, negative:
+    *   Storage is discharging)
+    */
   final case class ThermalStorageState(
       tick: Long,
       storedEnergy: Energy,

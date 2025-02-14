@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant.statedata
 
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithComplexPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -33,17 +33,17 @@ import scala.collection.SortedSet
   * agents
   *
   * @tparam PD
-  *   Type of [[PrimaryDataWithApparentPower]], that the represented Participant
+  *   Type of [[PrimaryDataWithComplexPower]], that the represented Participant
   *   produces
   */
-trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
+trait BaseStateData[+PD <: PrimaryDataWithComplexPower[PD]]
     extends ParticipantStateData[PD] {
 
   /** The date, that fits the tick 0
     */
   val startDate: ZonedDateTime
 
-  /** The wall clock date, at which the simulation ends
+  /** The simulation time at which the simulation ends
     */
   val endDate: ZonedDateTime
 
@@ -51,7 +51,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
     */
   val modelUuid: UUID
 
-  /** By default the agent should be triggered in the same tick, where data is
+  /** By default, the agent should be triggered in the same tick, where data is
     * incoming from primary or secondary sources. However, if there is no other
     * information needed, we might have the need to schedule ourselves for
     * activation triggers
@@ -68,8 +68,9 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
   val resultValueStore: ValueStore[PD]
 
   /** A store, holding information of the lastly requested and provided results.
-    * The request from the grid always targets at [[ApparentPower]], but for the
-    * sake of traceability, the whole averaged result ist stored
+    * The request from the grid always targets at
+    * [[edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower]],
+    * but for the sake of traceability, the whole averaged result ist stored
     */
   val requestValueStore: ValueStore[PD]
 
@@ -89,7 +90,7 @@ object BaseStateData {
   /** The agent is supposed to carry out model calculations
     *
     * @tparam PD
-    *   Type of [[PrimaryDataWithApparentPower]], that the represented
+    *   Type of [[PrimaryDataWithComplexPower]], that the represented
     *   Participant produces
     * @tparam CD
     *   Type of [[CalcRelevantData]], that is required by the included model
@@ -97,7 +98,7 @@ object BaseStateData {
     *   Restricting the model to a certain class
     */
   trait ModelBaseStateData[
-      +PD <: PrimaryDataWithApparentPower[PD],
+      +PD <: PrimaryDataWithComplexPower[PD],
       CD <: CalcRelevantData,
       MS <: ModelState,
       +M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
@@ -131,7 +132,7 @@ object BaseStateData {
     * @param startDate
     *   The date, that fits the tick 0
     * @param endDate
-    *   The wall clock date, at which the simulation ends
+    *   The simulation time at which the simulation ends
     * @param outputConfig
     *   Determines the output behaviour of this model
     * @param additionalActivationTicks
@@ -155,7 +156,7 @@ object BaseStateData {
     _ <: CalcRelevantData,
     P,
     _,
-  ], +P <: PrimaryDataWithApparentPower[P]](
+  ], +P <: PrimaryDataWithComplexPower[P]](
       model: M,
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
@@ -178,7 +179,7 @@ object BaseStateData {
     * @param startDate
     *   The date, that fits the tick 0
     * @param endDate
-    *   The wall clock date, at which the simulation ends
+    *   The simulation time at which the simulation ends
     * @param model
     *   Physical model of the load
     * @param services
@@ -206,7 +207,7 @@ object BaseStateData {
     *   Type of model, the base state data is attached to
     */
   final case class ParticipantModelBaseStateData[
-      +PD <: PrimaryDataWithApparentPower[PD],
+      +PD <: PrimaryDataWithComplexPower[PD],
       CD <: CalcRelevantData,
       MS <: ModelState,
       M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
@@ -271,7 +272,7 @@ object BaseStateData {
     * @return
     *   A copy of the base data with updated value stores
     */
-  def updateBaseStateData[PD <: PrimaryDataWithApparentPower[PD]](
+  def updateBaseStateData[PD <: PrimaryDataWithComplexPower[PD]](
       baseStateData: BaseStateData[PD],
       updatedResultValueStore: ValueStore[PD],
       updatedRequestValueStore: ValueStore[PD],

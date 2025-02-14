@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant.statedata
 
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithComplexPower
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
@@ -29,7 +29,7 @@ object ParticipantStateData {
   /** Data for the state, in which the agent is not initialized, yet.
     * <p>IMPORTANT: Needs to be an empty case class due to typing</p>
     */
-  final class ParticipantUninitializedStateData[+PD <: PrimaryData]()
+  final class ParticipantUninitializedStateData[+PD <: PrimaryData]
       extends UninitializedStateData[PD]
 
   object ParticipantUninitializedStateData {
@@ -261,11 +261,11 @@ object ParticipantStateData {
     *   Mapping from service provider to foreseen next tick, it will send new
     *   data
     * @tparam PD
-    *   Type of [[PrimaryDataWithApparentPower]], that is covered by given
+    *   Type of [[PrimaryDataWithComplexPower]], that is covered by given
     *   [[BaseStateData]]
     */
   final case class CollectRegistrationConfirmMessages[
-      +PD <: PrimaryDataWithApparentPower[PD]
+      +PD <: PrimaryDataWithComplexPower[PD]
   ](
       baseStateData: BaseStateData[PD],
       pendingResponses: Iterable[ClassicActorRef],

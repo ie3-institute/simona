@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexControlledData
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
@@ -108,8 +108,7 @@ object EmAgent {
         .map { parentEm =>
           val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
 
-          parentEm ! RegisterParticipant(
-            inputModel.getUuid,
+          parentEm ! RegisterControlledAsset(
             flexAdapter,
             inputModel,
           )
@@ -151,12 +150,12 @@ object EmAgent {
       core: EmDataCore.Inactive,
   ): Behavior[Request] = Behaviors.receivePartial {
 
-    case (_, RegisterParticipant(model, actor, spi)) =>
-      val updatedModelShell = modelShell.addParticipant(model, spi)
-      val updatedCore = core.addParticipant(actor, model)
+    case (_, RegisterControlledAsset(actor, spi)) =>
+      val updatedModelShell = modelShell.addParticipant(spi.getUuid, spi)
+      val updatedCore = core.addParticipant(actor, spi.getUuid)
       inactive(emData, updatedModelShell, updatedCore)
 
-    case (_, ScheduleFlexRequest(participant, newTick, scheduleKey)) =>
+    case (_, ScheduleFlexActivation(participant, newTick, scheduleKey)) =>
       val (maybeSchedule, newCore) = core
         .handleSchedule(participant, newTick)
 
@@ -172,7 +171,7 @@ object EmAgent {
                 scheduleTick,
                 scheduleKey,
               ),
-            _.emAgent ! ScheduleFlexRequest(
+            _.emAgent ! ScheduleFlexActivation(
               modelShell.uuid,
               scheduleTick,
               scheduleKey,
@@ -231,33 +230,33 @@ object EmAgent {
 
         val allFlexOptions = updatedCore.getFlexOptions
 
+        val (emRef, emMin, emMax) =
+          modelShell.aggregateFlexOptions(allFlexOptions)
+
+        if (emData.outputConfig.flexResult) {
+          val flexResult = new FlexOptionsResult(
+            flexOptionsCore.activeTick.toDateTime(
+              emData.simulationStartDate
+            ),
+            modelShell.uuid,
+            emRef.toMegawatts.asMegaWatt,
+            emMin.toMegawatts.asMegaWatt,
+            emMax.toMegawatts.asMegaWatt,
+          )
+
+          emData.listener.foreach {
+            _ ! FlexOptionsResultEvent(flexResult)
+          }
+        }
+
         emData.parentData match {
           case Right(flexStateData) =>
-            // aggregate flex options and provide to parent
-            val (ref, min, max) =
-              modelShell.aggregateFlexOptions(allFlexOptions)
-
-            if (emData.outputConfig.flexResult) {
-              val flexResult = new FlexOptionsResult(
-                flexOptionsCore.activeTick.toDateTime(
-                  emData.simulationStartDate
-                ),
-                modelShell.uuid,
-                ref.toMegawatts.asMegaWatt,
-                min.toMegawatts.asMegaWatt,
-                max.toMegawatts.asMegaWatt,
-              )
-
-              emData.listener.foreach {
-                _ ! FlexOptionsResultEvent(flexResult)
-              }
-            }
-
+            // provide aggregate flex options to parent
             val flexMessage = ProvideMinMaxFlexOptions(
               modelShell.uuid,
-              ref,
-              min,
-              max,
+              emRef,
+              emMin,
+              emMax,
             )
 
             flexStateData.emAgent ! flexMessage
@@ -302,7 +301,7 @@ object EmAgent {
       }
 
     /* We do not need to handle ScheduleFlexRequests here, since active agents
-       can schedule themselves with there completions and inactive agents should
+       can schedule themselves with their completions and inactive agents should
        be sleeping right now
      */
   }
@@ -409,7 +408,7 @@ object EmAgent {
     // After initialization, there are no results yet.
     val maybeResult = inactiveCore.getResults
       .reduceOption { (power1, power2) =>
-        ApparentPower(power1.p + power2.p, power1.q + power2.q)
+        ComplexPower(power1.p + power2.p, power1.q + power2.q)
       }
 
     maybeResult.foreach { result =>

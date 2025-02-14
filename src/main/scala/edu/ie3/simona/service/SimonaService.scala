@@ -6,16 +6,16 @@
 
 package edu.ie3.simona.service
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ScheduleServiceActivation,
+  ServiceRegistrationMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -23,6 +23,8 @@ import edu.ie3.simona.service.ServiceStateData.{
 }
 import edu.ie3.simona.service.SimonaService.Create
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
 
 import scala.util.{Failure, Success, Try}
 
@@ -30,7 +32,7 @@ object SimonaService {
 
   /** Service initialization data can sometimes only be constructed once the
     * service actor is created (e.g.
-    * [[edu.ie3.simona.service.ev.ExtEvDataService]]. Thus, we need an extra
+    * [[edu.ie3.simona.service.ev.ExtEvDataService]]). Thus, we need an extra
     * initialization message.
     */
   final case class Create[+I <: InitializeServiceStateData](
@@ -182,9 +184,9 @@ abstract class SimonaService[
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
-    * the initialized service and b) optional triggers that should be send to
+    * the initialized service and b) optional triggers that should be sent to
     * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
-    * message that is send in response to the trigger that is send to start the
+    * message that is sent in response to the trigger that is sent to start the
     * initialization process
     *
     * @param initServiceData
@@ -221,7 +223,7 @@ abstract class SimonaService[
     *   the current state data of this service
     * @return
     *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is send
+    *   with updated values) together with the completion message that is sent
     *   in response to the trigger that was sent to start this announcement
     */
   protected def announceInformation(tick: Long)(implicit

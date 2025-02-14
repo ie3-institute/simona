@@ -71,12 +71,13 @@ class RunSimonaStandaloneIT
       ConfigFailFast.check(simonaConfig)
 
       val resultFileHierarchy =
-        SimonaStandaloneSetup.buildResultFileHierarchy(parsedConfig)
+        SimonaStandaloneSetup.buildResultFileHierarchy(simonaConfig)
 
       val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
 
       val simonaStandaloneSetup = SimonaStandaloneSetup(
         parsedConfig,
+        simonaConfig,
         resultFileHierarchy,
         Some(runtimeEventQueue),
       )
@@ -90,7 +91,7 @@ class RunSimonaStandaloneIT
 
       /* check the results */
       // check configs
-      val configOutputDir = new File(resultFileHierarchy.configOutputDir)
+      val configOutputDir = resultFileHierarchy.configOutputDir.toFile
 
       configOutputDir.isDirectory shouldBe true
       configOutputDir.listFiles.toVector.size shouldBe 1
@@ -118,10 +119,12 @@ class RunSimonaStandaloneIT
       entityClass: Class[_ <: ResultEntity],
   ): BufferedSource = {
     Source.fromFile(
-      resultFileHierarchy.rawOutputDataFilePaths.getOrElse(
-        entityClass,
-        fail(s"Unable to get output path for result entity: $entityClass"),
-      )
+      resultFileHierarchy.rawOutputDataFilePaths
+        .getOrElse(
+          entityClass,
+          fail(s"Unable to get output path for result entity: $entityClass"),
+        )
+        .toFile
     )
   }
 

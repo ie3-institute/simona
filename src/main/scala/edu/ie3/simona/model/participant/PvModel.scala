@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
@@ -18,14 +18,12 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities._
 import squants._
-import squants.energy.Kilowatts
 import squants.space.{Degrees, SquareMeters}
 import squants.time.Minutes
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import java.util.stream.IntStream
 import scala.math._
 
 final case class PvModel private (
@@ -33,7 +31,7 @@ final case class PvModel private (
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     private val lat: Angle,
     private val lon: Angle,
@@ -42,7 +40,7 @@ final case class PvModel private (
     private val alphaE: Angle,
     private val gammaE: Angle,
     private val moduleSurface: Area = SquareMeters(1d),
-) extends SystemParticipant[PvRelevantData, ApparentPower, ConstantState.type](
+) extends SystemParticipant[PvRelevantData, ComplexPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -55,15 +53,16 @@ final case class PvModel private (
   /** Override sMax as the power output of a pv unit could become easily up to
     * 10% higher than the sRated value found in the technical sheets
     */
-  override val sMax: Power = sRated * 1.1
+  override val sMax: ApparentPower = sRated * 1.1
 
   /** Permissible maximum active power feed in (therefore negative) */
-  protected val pMax: Power = sMax * cosPhiRated * -1d
+  protected val pMax: Power = sMax.toActivePower(cosPhiRated) * -1d
 
   /** Reference yield at standard testing conditions (STC) */
   private val yieldSTC = WattsPerSquareMeter(1000d)
 
-  private val activationThreshold = sRated * cosPhiRated * 0.001 * -1d
+  private val activationThreshold =
+    sRated.toActivePower(cosPhiRated) * 0.001 * -1d
 
   /** Calculate the active power behaviour of the model
     *
@@ -241,7 +240,7 @@ final case class PvModel private (
   /** Calculates the sunrise hour angle omegaSR given omegaSS.
     */
   private val calcSunriseAngleOmegaSR =
-    (omegaSS: Angle) => omegaSS * (-1)
+    (omegaSS: Angle) => omegaSS * -1
 
   /** Calculates the solar altitude angle alphaS which represents the angle
     * between the horizontal and the line to the sun, that is, the complement of
@@ -545,20 +544,21 @@ final case class PvModel private (
     val gammaEInRad = gammaE.toRadians
 
     // == brightness index beta  ==//
-    val beta = eDifH * airMass / extraterrestrialRadiationI0
+    val delta = eDifH * airMass / extraterrestrialRadiationI0
 
     // == cloud index epsilon  ==//
-    // if we have no clouds,  the epsilon bin is 8, as epsilon bin for an epsilon in [6.2, inf.[ = 8
-    var x = 8
+    val x = if (eDifH.value.doubleValue > 0) {
+      // if we have diffuse radiation on horizontal surface we have to consider
+      // the clearness parameter epsilon, which then gives us an epsilon bin x
 
-    if (eDifH.value.doubleValue > 0) {
-      // if we have diffuse radiation on horizontal surface we have to check if we have another epsilon due to clouds get the epsilon
-      var epsilon = ((eDifH + eBeamH) / eDifH +
+      // Beam radiation is required on a plane normal to the beam direction (normal incidence),
+      // thus dividing by cos theta_z
+      var epsilon = ((eDifH + eBeamH / cos(thetaZInRad)) / eDifH +
         (5.535d * 1.0e-6) * pow(
-          thetaZInRad,
+          thetaZ.toDegrees,
           3,
         )) / (1d + (5.535d * 1.0e-6) * pow(
-        thetaZInRad,
+        thetaZ.toDegrees,
         3,
       ))
 
@@ -579,18 +579,23 @@ final case class PvModel private (
         // get the corresponding bin
         val finalEpsilon = epsilon
 
-        x = IntStream
-          .range(0, discreteSkyClearnessCategories.length)
-          .filter((i: Int) =>
-            (finalEpsilon - discreteSkyClearnessCategories(i)(
-              0
-            ) >= 0) && (finalEpsilon - discreteSkyClearnessCategories(
-              i
-            )(1) < 0)
-          )
-          .findFirst
-          .getAsInt + 1
+        discreteSkyClearnessCategories.indices
+          .find { i =>
+            (finalEpsilon -
+              discreteSkyClearnessCategories(i)(0) >= 0) &&
+            (finalEpsilon -
+              discreteSkyClearnessCategories(i)(1) < 0)
+          }
+          .map(_ + 1)
+          .getOrElse(8)
+      } else {
+        // epsilon in [6.2, inf.[
+        8
       }
+    } else {
+      // if we have no clouds, the epsilon bin is 8,
+      // as the epsilon bin for an epsilon in [6.2, inf.[ is 8
+      8
     }
 
     // calculate the f_ij components based on the epsilon bin
@@ -604,19 +609,17 @@ final case class PvModel private (
     val f22 = 0.0012 * pow(x, 3) - 0.0067 * pow(x, 2) + 0.0091 * x - 0.0269
     val f23 = 0.0052 * pow(x, 3) - 0.0971 * pow(x, 2) + 0.2856 * x - 0.1389
 
-    // calculate circuumsolar brightness coefficient f1 and horizon brightness coefficient f2
-    val f1 = max(0, f11 + f12 * beta + f13 * thetaZInRad)
-    val f2 = f21 + f22 * beta + f23 * thetaZInRad
+    // calculate circumsolar brightness coefficient f1 and horizon brightness coefficient f2
+    val f1 = max(0, f11 + f12 * delta + f13 * thetaZInRad)
+    val f2 = f21 + f22 * delta + f23 * thetaZInRad
     val aPerez = max(0, cos(thetaGInRad))
     val bPerez = max(cos(1.4835298641951802), cos(thetaZInRad))
 
     // finally calculate the diffuse radiation on an inclined surface
     eDifH * (
-      ((1 + cos(
-        gammaEInRad
-      )) / 2) * (1 - f1) + (f1 * (aPerez / bPerez)) + (f2 * sin(
-        gammaEInRad
-      ))
+      ((1 + cos(gammaEInRad)) / 2) * (1 - f1) +
+        (f1 * (aPerez / bPerez)) +
+        (f2 * sin(gammaEInRad))
     )
   }
 
@@ -691,9 +694,8 @@ final case class PvModel private (
       eTotalInWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
-    val proposal = sRated * (-1) * (
-      actYield / irradiationSTC
-    ) * cosPhiRated
+    val proposal =
+      sRated.toActivePower(cosPhiRated) * -1 * (actYield / irradiationSTC)
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
     if (proposal < pMax)
@@ -771,9 +773,9 @@ object PvModel {
       scaledInput.getId,
       operationInterval,
       QControl(scaledInput.getqCharacteristics),
-      Kilowatts(
+      Kilovoltamperes(
         scaledInput.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),

@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.result.system.StorageResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.grid.GridAgentMessages.AssetPowerChangedMessage
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
@@ -110,7 +110,7 @@ class StorageAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       StorageInput,
       StorageRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = storageInputQv,
       modelConfig = modelConfig,
@@ -174,14 +174,10 @@ class StorageAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
-          storageInputQv.getUuid,
-          storageAgent.toTyped,
-          storageInputQv,
-        )
+        RegisterControlledAsset(storageAgent.toTyped, storageInputQv)
       )
       emAgent.expectMsg(
-        ScheduleFlexRequest(storageInputQv.getUuid, 0)
+        ScheduleFlexActivation(storageInputQv.getUuid, 0)
       )
 
       scheduler.expectMsg(Completion(storageAgent.toTyped))
@@ -219,7 +215,7 @@ class StorageAgentModelCalculationSpec
           resultValueStore shouldBe ValueStore(
             resolution
           )
-          requestValueStore shouldBe ValueStore[ApparentPower](
+          requestValueStore shouldBe ValueStore[ComplexPower](
             resolution
           )
         case unrecognized =>
@@ -247,8 +243,8 @@ class StorageAgentModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      emAgent.expectMsgType[RegisterParticipant]
-      emAgent.expectMsg(ScheduleFlexRequest(storageInputQv.getUuid, 0))
+      emAgent.expectMsgType[RegisterControlledAsset]
+      emAgent.expectMsg(ScheduleFlexActivation(storageInputQv.getUuid, 0))
 
       /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
@@ -271,11 +267,11 @@ class StorageAgentModelCalculationSpec
       inside(storageAgent.stateData) {
         case modelBaseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPower
+            ComplexPower
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPower(
+              0L -> ComplexPower(
                 Megawatts(0d),
                 Megavars(0d),
               )
@@ -308,8 +304,8 @@ class StorageAgentModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      emAgent.expectMsgType[RegisterParticipant]
-      emAgent.expectMsg(ScheduleFlexRequest(storageInputQv.getUuid, 0))
+      emAgent.expectMsgType[RegisterControlledAsset]
+      emAgent.expectMsg(ScheduleFlexActivation(storageInputQv.getUuid, 0))
 
       /* I am not interested in the Completion */
       scheduler.expectMsgType[Completion]
@@ -570,7 +566,7 @@ class StorageAgentModelCalculationSpec
         case ParticipantResultEvent(result: StorageResult) =>
           result.getInputModel shouldBe storageInputQv.getUuid
           result.getTime shouldBe 81099.toDateTime(simulationStartDate)
-          result.getP should beEquivalentTo((-12d).asKiloWatt)
+          result.getP should beEquivalentTo(-12d.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
           result.getSoc should beEquivalentTo(100d.asPercent)
       }

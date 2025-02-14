@@ -153,7 +153,7 @@ final case class RefSystem private (
   /** Converts a provided voltage value from physical SI value into p.u. value
     *
     * @param vInSi
-    *   real or imaginary part of a unreferenced physical SI value
+    *   real or imaginary part of an unreferenced physical SI value
     * @return
     *   referenced voltage value in p.u.
     */

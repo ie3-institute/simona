@@ -16,8 +16,8 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ExtData
-import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
+import edu.ie3.simona.api.data.ExtDataConnection
+import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
@@ -50,6 +50,7 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.{
 }
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -63,12 +64,12 @@ import scala.jdk.CollectionConverters._
 class SimonaStandaloneSetup(
     val typeSafeConfig: Config,
     simonaConfig: SimonaConfig,
-    val resultFileHierarchy: ResultFileHierarchy,
+    resultFileHierarchy: ResultFileHierarchy,
     runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
     override val args: Array[String],
 ) extends SimonaSetup {
 
-  override def logOutputDir: String = resultFileHierarchy.logOutputDir
+  override def logOutputDir: Path = resultFileHierarchy.logOutputDir
 
   override def gridAgents(
       context: ActorContext[_],
@@ -107,9 +108,13 @@ class SimonaStandaloneSetup(
     )
 
     /* build the initialization data */
-    subGridTopologyGraph
+    val subGrids = subGridTopologyGraph
       .vertexSet()
       .asScala
+
+    val onlyOneSubGrid = subGrids.size == 1
+
+    subGrids
       .zip(keys)
       .map { case (subGridContainer, key) =>
         /* Get all connections to superior and inferior sub grids */
@@ -139,7 +144,11 @@ class SimonaStandaloneSetup(
           thermalGrids,
         )
 
-        currentActorRef ! CreateGridAgent(gridAgentInitData, key)
+        currentActorRef ! CreateGridAgent(
+          gridAgentInitData,
+          key,
+          onlyOneSubGrid,
+        )
 
         currentActorRef
       }
@@ -218,20 +227,21 @@ class SimonaStandaloneSetup(
           )
 
           // setup data services that belong to this external simulation
-          val (extData, extDataInit): (
-              Iterable[ExtData],
-              Iterable[(Class[_ <: SimonaService[_]], ClassicRef)],
-          ) =
-            extLink.getExtDataSimulations.asScala.zipWithIndex.map {
-              case (_: ExtEvSimulation, dIndex) =>
+          extLink.setup(extSimAdapterData)
+          val extSim = extLink.getExtSimulation
+
+          val extDataInit
+              : Iterable[(Class[_ <: SimonaService[_]], ClassicRef)] =
+            extSim.getDataConnections.asScala.zipWithIndex.map {
+              case (evConnection: ExtEvDataConnection, dIndex) =>
                 val extEvDataService = context.toClassic.simonaActorOf(
                   ExtEvDataService.props(scheduler.toClassic),
                   s"$index-$dIndex",
                 )
-                val extEvData = new ExtEvData(extEvDataService, extSimAdapter)
+                evConnection.setActorRefs(extEvDataService, extSimAdapter)
 
                 extEvDataService ! SimonaService.Create(
-                  InitExtEvData(extEvData),
+                  InitExtEvData(evConnection),
                   ScheduleLock.singleKey(
                     context,
                     scheduler,
@@ -239,13 +249,8 @@ class SimonaStandaloneSetup(
                   ),
                 )
 
-                (extEvData, (classOf[ExtEvDataService], extEvDataService))
-            }.unzip
-
-          extLink.getExtSimulation.setup(
-            extSimAdapterData,
-            extData.toList.asJava,
-          )
+                (classOf[ExtEvDataService], extEvDataService)
+            }
 
           // starting external simulation
           new Thread(extLink.getExtSimulation, s"External simulation $index")
@@ -383,13 +388,14 @@ object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
 
   def apply(
       typeSafeConfig: Config,
+      simonaConfig: SimonaConfig,
       resultFileHierarchy: ResultFileHierarchy,
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
       mainArgs: Array[String] = Array.empty[String],
   ): SimonaStandaloneSetup =
     new SimonaStandaloneSetup(
       typeSafeConfig,
-      SimonaConfig(typeSafeConfig),
+      simonaConfig,
       resultFileHierarchy,
       runtimeEventQueue,
       mainArgs,
