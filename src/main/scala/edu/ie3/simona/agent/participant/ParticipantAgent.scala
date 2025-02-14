@@ -8,8 +8,6 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  FinishParticipantSimulation,
-  RequestAssetPowerMessage,
   StartCalculationTrigger,
   getAndCheckNodalVoltage,
 }
@@ -26,6 +24,10 @@ import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   DataCollectionStateData,
   ParticipantStateData,
+}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  GridSimulationFinished,
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
@@ -47,9 +49,9 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexActivation,
   FlexResponse,
   IssueFlexControl,
-  FlexActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -214,7 +216,7 @@ abstract class ParticipantAgent[
       )
 
     case Event(
-          FinishParticipantSimulation(tick),
+          GridSimulationFinished(tick, _),
           baseStateData: BaseStateData[PD],
         ) =>
       // clean up agent result value store
@@ -852,27 +854,6 @@ abstract class ParticipantAgent[
 }
 
 object ParticipantAgent {
-
-  trait ParticipantMessage
-
-  /** Request the power values for the requested tick from an AssetAgent and
-    * provide the latest nodal voltage
-    *
-    * @param currentTick
-    *   The tick that power values are requested for
-    * @param eInPu
-    *   Real part of the complex, dimensionless nodal voltage
-    * @param fInPu
-    *   Imaginary part of the complex, dimensionless nodal voltage
-    */
-  final case class RequestAssetPowerMessage(
-      currentTick: Long,
-      eInPu: Dimensionless,
-      fInPu: Dimensionless,
-  ) extends ParticipantMessage
-
-  final case class FinishParticipantSimulation(tick: Long)
-      extends ParticipantMessage
 
   final case class StartCalculationTrigger(tick: Long)
 

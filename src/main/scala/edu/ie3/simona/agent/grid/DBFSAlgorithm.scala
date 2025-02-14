@@ -23,9 +23,9 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.agent.grid.GridAgentMessages._
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  FinishParticipantSimulation,
-  ParticipantMessage,
+import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  GridSimulationFinished,
   RequestAssetPowerMessage,
 }
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
@@ -444,6 +444,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               FinishGridSimulationTrigger(currentTick),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
+          val nextTick = currentTick + constantData.resolution
+
           // inform my child grids about the end of this grid simulation
           gridAgentBaseData.inferiorGridGates
             .map {
@@ -458,7 +460,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach {
             case (_, actors) =>
               actors.foreach { actor =>
-                actor ! FinishParticipantSimulation(currentTick)
+                actor ! GridSimulationFinished(currentTick, nextTick)
               }
           }
 
@@ -484,7 +486,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
           constantData.environmentRefs.scheduler ! Completion(
             constantData.activationAdapter,
-            Some(currentTick + constantData.resolution),
+            Some(nextTick),
           )
 
           // return to Idle
@@ -1120,7 +1122,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   private def askForAssetPowers(
       currentTick: Long,
       sweepValueStore: Option[SweepValueStore],
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
       refSystem: RefSystem,
       askTimeout: Duration,
   )(implicit
