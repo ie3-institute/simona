@@ -18,16 +18,16 @@ import scala.language.implicitConversions
   *   runtime listener configuration
   * @param participant
   *   runtime configuration
-  * @param selected_subgrids
+  * @param selectedSubgrids
   *   option for selected sub grids (default: None)
-  * @param selected_volt_lvls
+  * @param selectedVoltLvls
   *   option for selected voltage levels (default: None)
   */
-case class RuntimeConfig(
+final case class RuntimeConfig(
     listener: Listener = Listener(),
     participant: Participant = Participant.empty(),
-    selected_subgrids: Option[List[Int]] = None,
-    selected_volt_lvls: Option[List[VoltLvlConfig]] = None,
+    selectedSubgrids: Option[List[Int]] = None,
+    selectedVoltLvls: Option[List[VoltLvlConfig]] = None,
 )
 
 object RuntimeConfig {
@@ -74,7 +74,6 @@ object RuntimeConfig {
     *   runtime configs for wind energy converters
     */
   final case class Participant(
-      // TODO: move em, since ems aren't participants
       em: ParticipantRuntimeConfigs[EmRuntimeConfig],
       evcs: ParticipantRuntimeConfigs[EvcsRuntimeConfig],
       fixedFeedIn: ParticipantRuntimeConfigs[FixedFeedInRuntimeConfig],
