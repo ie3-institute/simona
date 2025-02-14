@@ -98,8 +98,8 @@ trait EmInputTestData
       ),
     )
 
-  private val configUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+  private val configUtil = ConfigUtil.EmConfigUtil(
+    simonaConfig.simona.runtime.em
   )
 
   protected val defaultOutputConfig: NotifierConfig =
@@ -110,9 +110,7 @@ trait EmInputTestData
     )
 
   protected val modelConfig: EmRuntimeConfig =
-    configUtil.getOrDefault[EmRuntimeConfig](
-      emInput.getUuid
-    )
+    configUtil.getOrDefault(emInput.getUuid)
 
   protected val adaptedTypeInput = new HpTypeInput(
     UUID.fromString("9802bf35-2a4e-4ff5-be9b-cd9e6a78dcd6"),

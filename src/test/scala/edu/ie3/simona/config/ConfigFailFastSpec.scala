@@ -868,7 +868,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             "one sink is configured!"
         }
 
-        "throw an exception if an influxDb1x is configured, but not accessible" ignore {
+        "throw an exception if an influxDb1x is configured, but not accessible" in {
           intercept[java.lang.IllegalArgumentException] {
             ConfigFailFast invokePrivate checkDataSink(
               Sink(None, Some(InfluxDb1x("", 0, "")), None)

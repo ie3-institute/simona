@@ -26,8 +26,8 @@ import edu.ie3.simona.util.ConfigUtil.{
   EmConfigUtil,
   GridOutputConfigUtil,
   NotifierIdentifier,
-  OutputConfigUtil,
   ParticipantConfigUtil,
+  OutputConfigUtil,
 }
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
