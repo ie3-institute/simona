@@ -250,7 +250,7 @@ trait WeatherSource {
 object WeatherSource {
 
   def apply(
-      weatherDataSourceCfg: InputConfig.Weather.Datasource
+      weatherDataSourceCfg: InputConfig.WeatherDatasource
   )(implicit simulationStart: ZonedDateTime): WeatherSource = {
     // get coordinate source
     implicit val coordinateSourceFunction: IdCoordinateSource =
@@ -271,7 +271,7 @@ object WeatherSource {
       )
     }
 
-    implicit val resolution: Option[Long] = weatherDataSourceCfg.resolution
+    implicit val resolution: Long = weatherDataSourceCfg.resolution
     implicit val distance: ComparableQuantity[Length] =
       Quantities.getQuantity(
         weatherDataSourceCfg.maxCoordinateDistance,
@@ -295,7 +295,7 @@ object WeatherSource {
     *   id data source
     */
   private def buildCoordinateSource(
-      coordinateSourceConfig: InputConfig.Weather.Datasource.CoordinateSource
+      coordinateSourceConfig: InputConfig.CoordinateSource
   ): IdCoordinateSource = {
     val definedCoordSources = Vector(
       coordinateSourceConfig.sampleParams,

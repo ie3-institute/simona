@@ -205,19 +205,19 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
   )(implicit
       simulationStart: ZonedDateTime,
       idCoordinateSource: IdCoordinateSource,
-      resolution: Option[Long],
+      resolution: Long,
       distance: ComparableQuantity[Length],
   ): WeatherSourceWrapper = {
     WeatherSourceWrapper(
       source,
       idCoordinateSource,
-      resolution.getOrElse(DEFAULT_RESOLUTION),
+      resolution,
       distance,
     )
   }
 
   private[weather] def buildPSDMSource(
-      cfgParams: InputConfig.Weather.Datasource,
+      cfgParams: InputConfig.WeatherDatasource,
       definedWeatherSources: Option[Serializable],
   )(implicit
       idCoordinateSource: IdCoordinateSource

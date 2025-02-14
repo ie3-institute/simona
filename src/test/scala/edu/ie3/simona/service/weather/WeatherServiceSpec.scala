@@ -74,7 +74,6 @@ class WeatherServiceSpec
             simona.input.weather.datasource.scheme = "icon"
             simona.input.weather.datasource.sampleParams.use = true
             simona.input.weather.datasource.coordinateSource.sampleParams.use = true
-            simona.input.grid.datatarget.id = "csv"
             simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
             simona.powerflow.newtonraphson.epsilon = [1E-12]
             simona.powerflow.newtonraphson.iterations = 50

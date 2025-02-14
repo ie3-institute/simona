@@ -26,7 +26,8 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.Participa
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.RuntimeConfig._
-import edu.ie3.simona.config.OutputConfig
+import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
+import edu.ie3.simona.config.SimonaConfig.AssetConfigs
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -76,7 +77,7 @@ class GridAgentController(
     simulationStartDate: ZonedDateTime,
     simulationEndDate: ZonedDateTime,
     participantsConfig: Participant,
-    outputConfig: OutputConfig.Participant,
+    outputConfig: AssetConfigs[ParticipantOutputConfig],
     resolution: Long,
     listener: Iterable[ActorRef[ResultEvent]],
     log: Logger,
@@ -175,7 +176,7 @@ class GridAgentController(
     */
   private def buildParticipantToActorRef(
       participantsConfig: Participant,
-      outputConfig: OutputConfig.Participant,
+      outputConfig: AssetConfigs[ParticipantOutputConfig],
       participants: Vector[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
@@ -184,7 +185,8 @@ class GridAgentController(
      * phase */
     val participantConfigUtil =
       ConfigUtil.ParticipantConfigUtil(participantsConfig)
-    val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
+    val outputConfigUtil =
+      ConfigUtil.OutputConfigUtil.participants(outputConfig)
 
     // ems that control at least one participant directly
     val firstLevelEms = participants.flatMap {

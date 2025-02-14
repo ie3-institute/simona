@@ -11,7 +11,6 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   LoadRuntimeConfig,
-  ParticipantRuntimeConfigs,
   StorageRuntimeConfig,
 }
 import edu.ie3.simona.config.ConfigParams._
@@ -523,7 +522,7 @@ object ConfigFailFast extends LazyLogging {
   }
 
   private def checkGridDataSource(
-      gridDataSource: InputConfig.Grid.Datasource
+      gridDataSource: InputConfig.GridDatasource
   ): Unit = {
 
     // grid source information provided?
@@ -559,7 +558,7 @@ object ConfigFailFast extends LazyLogging {
     PrimaryServiceProxy.checkConfig(primary)
 
   private def checkWeatherDataSource(
-      weatherDataSourceCfg: InputConfig.Weather.Datasource
+      weatherDataSourceCfg: InputConfig.WeatherDatasource
   ): Unit = {
     // check coordinate source
     val definedCoordinateSource: String = checkCoordinateSource(
@@ -629,7 +628,7 @@ object ConfigFailFast extends LazyLogging {
     *   [[edu.ie3.datamodel.io.source.IdCoordinateSource]]
     */
   private def checkCoordinateSource(
-      coordinateSourceConfig: InputConfig.Weather.Datasource.CoordinateSource
+      coordinateSourceConfig: InputConfig.CoordinateSource
   ): String = {
     val supportedCoordinateSources = Set("csv", "sql", "sample")
     val definedCoordSources = Vector(
@@ -678,7 +677,7 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkParticipantsOutputConfig(
-      subConfig: OutputConfig.Participant
+      subConfig: AssetConfigs[OutputConfig.ParticipantOutputConfig]
   ): Unit = {
 
     (subConfig.defaultConfig :: subConfig.individualConfigs).foreach(c =>
@@ -700,7 +699,7 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkThermalOutputConfig(
-      subConfig: OutputConfig.Thermal
+      subConfig: AssetConfigs[OutputConfig.SimpleOutputConfig]
   ): Unit = {
     implicit val elementType: String = "thermal"
     checkDefaultBaseOutputConfig(subConfig.defaultConfig)
@@ -813,7 +812,7 @@ object ConfigFailFast extends LazyLogging {
     *   RuntimeConfig of Storages
     */
   private def checkStoragesConfig(
-      storageRuntimeConfig: ParticipantRuntimeConfigs[StorageRuntimeConfig]
+      storageRuntimeConfig: AssetConfigs[StorageRuntimeConfig]
   ): Unit = {
     if (
       storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0

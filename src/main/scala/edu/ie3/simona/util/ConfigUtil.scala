@@ -27,11 +27,12 @@ import edu.ie3.simona.config.ConfigParams.{
 }
 import edu.ie3.simona.config.OutputConfig.{
   GridOutputConfig,
-  ParticipantBaseOutputConfig,
+  ParticipantOutputConfig,
   SimpleOutputConfig,
 }
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
-import edu.ie3.simona.config.{OutputConfig, RuntimeConfig}
+import edu.ie3.simona.config.SimonaConfig.AssetConfigs
+import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
@@ -193,11 +194,11 @@ object ConfigUtil {
   }
 
   object OutputConfigUtil {
-    def apply(
-        subConfig: OutputConfig.Participant
+    def participants(
+        subConfig: AssetConfigs[ParticipantOutputConfig]
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
-        case ParticipantBaseOutputConfig(
+        case ParticipantOutputConfig(
               _,
               simulationResult,
               flexResult,
@@ -206,7 +207,7 @@ object ConfigUtil {
           NotifierConfig(simulationResult, powerRequestReply, flexResult)
       }
       val configMap = subConfig.individualConfigs.map {
-        case ParticipantBaseOutputConfig(
+        case ParticipantOutputConfig(
               notifier,
               simulationResult,
               flexResult,
@@ -230,8 +231,8 @@ object ConfigUtil {
       new OutputConfigUtil(defaultConfig, configMap)
     }
 
-    def apply(
-        subConfig: OutputConfig.Thermal
+    def thermal(
+        subConfig: AssetConfigs[SimpleOutputConfig]
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case SimpleOutputConfig(_, simulationResult) =>

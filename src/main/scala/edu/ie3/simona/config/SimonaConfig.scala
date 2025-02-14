@@ -36,18 +36,11 @@ object SimonaConfig {
       x => x.toString,
     )
 
-  /** Method to extract a config from a [[pureconfig.ConfigReader.Result]]
-    * @param either
-    *   that may contain a config
-    * @tparam T
-    *   type of config
-    * @return
-    *   the config, or throws an exception
-    */
-  protected implicit def extract[T](
-      either: Either[ConfigReaderFailures, T]
-  ): T =
-    either match {
+  def apply(typeSafeConfig: Config): SimonaConfig =
+    apply(ConfigSource.fromConfig(typeSafeConfig))
+
+  def apply(confSrc: ConfigObjectSource): SimonaConfig =
+    confSrc.load[SimonaConfig] match {
       case Left(readerFailures) =>
         val detailedErrors = readerFailures.toList
           .map {
@@ -69,18 +62,25 @@ object SimonaConfig {
       case Right(conf) => conf
     }
 
-  def apply(typeSafeConfig: Config): SimonaConfig =
-    apply(ConfigSource.fromConfig(typeSafeConfig))
-
-  def apply(confSrc: ConfigObjectSource): SimonaConfig =
-    confSrc.load[SimonaConfig]
-
   def render(
       simonaConfig: SimonaConfig,
       options: ConfigRenderOptions,
   ): String = ConfigWriter[SimonaConfig].to(simonaConfig).render(options)
 
   // pure config end
+
+  /** Case class contains default and individual configs for assets.
+    * @param defaultConfig
+    *   to use
+    * @param individualConfigs
+    *   specific configs, that are used instead of the [[defaultConfig]]
+    * @tparam T
+    *   type of asset config
+    */
+  final case class AssetConfigs[T](
+      defaultConfig: T,
+      individualConfigs: List[T] = List.empty,
+  )
 
   final case class RefSystemConfig(
       gridIds: Option[List[String]] = None,

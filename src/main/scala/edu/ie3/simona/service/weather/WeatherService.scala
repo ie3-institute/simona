@@ -83,7 +83,7 @@ object WeatherService {
     *   the definition of the source to use
     */
   final case class InitWeatherServiceStateData(
-      sourceDefinition: InputConfig.Weather.Datasource
+      sourceDefinition: InputConfig.WeatherDatasource
   ) extends InitializeServiceStateData
 
   val FALLBACK_WEATHER_STEM_DISTANCE = 3600L
