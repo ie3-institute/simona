@@ -112,7 +112,7 @@ object RuntimeConfig {
     */
   final case class ParticipantRuntimeConfigs[+T <: BaseRuntimeConfig](
       defaultConfig: T,
-      individualConfigs: List[T] = List(),
+      individualConfigs: List[T] = List.empty,
   )
 
   /** Basic trait for all runtime configs.
@@ -140,7 +140,7 @@ object RuntimeConfig {
   final case class EvcsRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
       chargingStrategy: String = "maxPower",
       lowestEvSoc: Double = 0.2,
   ) extends BaseRuntimeConfig
@@ -162,7 +162,7 @@ object RuntimeConfig {
   final case class EmRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
       aggregateFlex: String = "SELF_OPT_EXCL_REG",
       curtailRegenerative: Boolean = false,
   ) extends BaseRuntimeConfig
@@ -180,7 +180,7 @@ object RuntimeConfig {
   final case class FixedFeedInRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
 
   /** Runtime configuration for heat pumps.
@@ -196,7 +196,7 @@ object RuntimeConfig {
   final case class HpRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
 
   /** Runtime configuration for loads.
@@ -217,7 +217,7 @@ object RuntimeConfig {
   final case class LoadRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
       modelBehaviour: String = "fix",
       reference: String = "power",
   ) extends BaseRuntimeConfig
@@ -235,7 +235,7 @@ object RuntimeConfig {
   final case class PvRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
 
   /** Runtime configuration for electrical storages.
@@ -255,7 +255,7 @@ object RuntimeConfig {
   final case class StorageRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
       initialSoc: Double = 0d,
       targetSoc: Option[Double] = None,
   ) extends BaseRuntimeConfig
@@ -273,6 +273,6 @@ object RuntimeConfig {
   final case class WecRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      override val uuids: List[String] = List(),
+      override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
 }
