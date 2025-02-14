@@ -15,15 +15,17 @@ import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
 import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
+  ActivePowerExtra,
   ComplexPowerAndHeat,
+  ComplexPowerAndHeatExtra,
 }
+import edu.ie3.simona.agent.participant2.ParticipantAgent.PrimaryRegistrationSuccessfulMessage
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.SimonaService
@@ -98,6 +100,7 @@ class PrimaryServiceWorkerSqlIT
           "uuid",
           "firstTick",
           "firstData",
+          "primaryDataExtra",
           "maybeNextTick",
         ),
         (
@@ -112,6 +115,7 @@ class PrimaryServiceWorkerSqlIT
             Kilovars(329.0),
             Kilowatts(8000.0),
           ),
+          ComplexPowerAndHeatExtra,
           Some(900L),
         ),
         (
@@ -124,6 +128,7 @@ class PrimaryServiceWorkerSqlIT
           ActivePower(
             Kilowatts(1000.0)
           ),
+          ActivePowerExtra,
           Some(900L),
         ),
       )
@@ -134,6 +139,7 @@ class PrimaryServiceWorkerSqlIT
             uuid,
             firstTick,
             firstData,
+            primaryDataExtra,
             maybeNextTick,
         ) =>
           val serviceRef = TestActorRef(service)
@@ -170,7 +176,11 @@ class PrimaryServiceWorkerSqlIT
             WorkerRegistrationMessage(participant.ref),
           )
           participant.expectMsg(
-            RegistrationSuccessfulMessage(serviceRef, Some(firstTick))
+            PrimaryRegistrationSuccessfulMessage(
+              serviceRef,
+              firstTick,
+              primaryDataExtra,
+            )
           )
 
           scheduler.send(serviceRef, Activation(firstTick))

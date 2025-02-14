@@ -15,13 +15,16 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.{HeatDemandValue, PValue}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ActivePower,
+  ActivePowerExtra,
+}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.PrimaryRegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -210,7 +213,7 @@ class PrimaryServiceWorkerSpec
 
       /* Wait for request approval */
       systemParticipant.expectMsg(
-        RegistrationSuccessfulMessage(serviceRef, Some(0L))
+        PrimaryRegistrationSuccessfulMessage(serviceRef, 0L, ActivePowerExtra)
       )
 
       /* We cannot directly check, if the requesting actor is among the subscribers, therefore we ask the actor to

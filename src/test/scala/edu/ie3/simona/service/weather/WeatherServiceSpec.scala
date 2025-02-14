@@ -8,15 +8,15 @@ package edu.ie3.simona.service.weather
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -154,7 +154,7 @@ class WeatherServiceSpec
         validCoordinate.longitude,
       )
 
-      expectMsg(RegistrationSuccessfulMessage(weatherActor.ref, Some(0L)))
+      expectMsg(RegistrationSuccessfulMessage(weatherActor.ref, 0L))
     }
 
     "recognize, that a valid coordinate yet is registered" in {

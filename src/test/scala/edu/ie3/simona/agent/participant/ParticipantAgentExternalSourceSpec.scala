@@ -19,12 +19,13 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
   ActivePowerAndHeat,
+  ActivePowerExtra,
   ComplexPower,
   ComplexPowerAndHeat,
+  ComplexPowerExtra,
 }
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FromOutsideBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
@@ -33,6 +34,10 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializingStateData,
   ParticipantUninitializedStateData,
   SimpleInputContainer,
+}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  PrimaryRegistrationSuccessfulMessage,
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
@@ -46,7 +51,6 @@ import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
@@ -206,7 +210,11 @@ class ParticipantAgentExternalSourceSpec
       /* Reply, that registration was successful */
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(4711L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          4711L,
+          ActivePowerExtra,
+        ),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped, Some(4711L)))
@@ -244,7 +252,11 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          900L,
+          ActivePowerExtra,
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -309,7 +321,11 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          900L,
+          ComplexPowerExtra,
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -410,7 +426,11 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          900L,
+          ComplexPowerExtra,
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -505,7 +525,11 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          900L,
+          ComplexPowerExtra,
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -621,7 +645,11 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          900L,
+          ComplexPowerExtra,
+        ),
       )
 
       /* I'm not interested in the content of the Completion */

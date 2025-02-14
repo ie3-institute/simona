@@ -43,6 +43,12 @@ import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData,
 }
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationResponseMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.{
@@ -75,10 +81,6 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ProvisionMessage,
-  RegistrationResponseMessage,
-}
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -429,7 +431,7 @@ protected trait ParticipantAgentFundamentals[
       stateData: CollectRegistrationConfirmMessages[PD],
   ): FSM.State[AgentState, ParticipantStateData[PD]] =
     registrationResponse match {
-      case RegistrationResponseMessage.RegistrationSuccessfulMessage(
+      case RegistrationSuccessfulMessage(
             serviceRef,
             maybeNextTick,
           ) =>
@@ -438,7 +440,9 @@ protected trait ParticipantAgentFundamentals[
 
         /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
         val foreseenDataTicks =
-          stateData.baseStateData.foreseenDataTicks + (serviceRef -> maybeNextTick)
+          stateData.baseStateData.foreseenDataTicks + (serviceRef -> Some(
+            maybeNextTick
+          ))
 
         if (remainingResponses.isEmpty) {
           /* All agent have responded. Determine the next to be used state data and reply completion to scheduler. */
@@ -466,7 +470,7 @@ protected trait ParticipantAgentFundamentals[
             foreseenNextDataTicks = foreseenDataTicksFlattened,
           )
         }
-      case RegistrationResponseMessage.RegistrationFailedMessage(serviceRef) =>
+      case RegistrationFailedMessage(serviceRef) =>
         self ! PoisonPill
         throw new ActorNotRegisteredException(
           s"Registration of actor $actorName for $serviceRef failed."
@@ -487,7 +491,7 @@ protected trait ParticipantAgentFundamentals[
     *   state change to [[HandleInformation]] with updated base state data
     */
   override def handleDataProvisionAndGoToHandleInformation(
-      msg: ProvisionMessage[Data],
+      msg: DataProvision[Data],
       baseStateData: BaseStateData[PD],
       scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {

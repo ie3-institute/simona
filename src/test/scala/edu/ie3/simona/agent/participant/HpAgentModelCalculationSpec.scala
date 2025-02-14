@@ -13,13 +13,17 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+  RequestAssetPowerMessage,
+}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
@@ -31,10 +35,6 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   ProvideWeatherMessage,
   RegisterForWeatherMessage,
@@ -334,7 +334,7 @@ class HpAgentModelCalculationSpec
       /* Reply, that registration was successful */
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 4711L),
       )
 
       /* Expect a completion message */
@@ -379,7 +379,7 @@ class HpAgentModelCalculationSpec
       )
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 900L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -443,7 +443,7 @@ class HpAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 0L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -574,7 +574,7 @@ class HpAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 0L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -703,7 +703,7 @@ class HpAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 3600L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -774,7 +774,7 @@ class HpAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 0L),
       )
 
       /* I'm not interested in the content of the Completion */

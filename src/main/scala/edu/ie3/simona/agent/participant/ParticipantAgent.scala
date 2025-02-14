@@ -26,7 +26,11 @@ import edu.ie3.simona.agent.participant.statedata.{
   ParticipantStateData,
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
   GridSimulationFinished,
+  PrimaryRegistrationSuccessfulMessage,
+  RegistrationFailedMessage,
+  RegistrationResponseMessage,
   RequestAssetPowerMessage,
 }
 import edu.ie3.simona.agent.state.AgentState
@@ -53,11 +57,9 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   IssueFlexControl,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   ProvisionMessage,
-  RegistrationResponseMessage,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
@@ -195,7 +197,7 @@ abstract class ParticipantAgent[
       )
 
     case Event(
-          msg: ProvisionMessage[Data],
+          msg: DataProvision[Data],
           baseStateData: BaseStateData[PD],
         ) =>
       /* Somebody has sent new primary or secondary data. Collect, what is expected for this tick. Go over to data
@@ -261,7 +263,7 @@ abstract class ParticipantAgent[
   when(HandleInformation) {
     /* Receive registration confirm from primary data service -> Set up actor for replay of data */
     case Event(
-          RegistrationSuccessfulMessage(serviceRef, maybeNextDataTick),
+          PrimaryRegistrationSuccessfulMessage(serviceRef, nextTick, _),
           ParticipantInitializingStateData(
             inputModel: InputModelContainer[I],
             modelConfig: MC,
@@ -283,13 +285,13 @@ abstract class ParticipantAgent[
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        serviceRef -> maybeNextDataTick,
+        serviceRef -> Some(nextTick),
         scheduler,
       )
 
     /* Receive registration refuse from primary data service -> Set up actor for model calculation */
     case Event(
-          RegistrationResponseMessage.RegistrationFailedMessage(_),
+          RegistrationFailedMessage(_),
           ParticipantInitializingStateData(
             inputModel: InputModelContainer[I],
             modelConfig: MC,
@@ -647,7 +649,7 @@ abstract class ParticipantAgent[
     *   state change to [[HandleInformation]] with updated base state data
     */
   def handleDataProvisionAndGoToHandleInformation(
-      msg: ProvisionMessage[Data],
+      msg: DataProvision[Data],
       baseStateData: BaseStateData[PD],
       scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[PD]]

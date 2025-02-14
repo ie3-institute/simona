@@ -13,6 +13,10 @@ import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
@@ -23,10 +27,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   ProvideWeatherMessage,
   RegisterForWeatherMessage,
@@ -85,11 +85,8 @@ class EmAgentIT
   )
 
   override protected val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
-    calculateMissingReactivePowerWithModel = false,
-    scaling = 1d,
     uuids = List("default"),
     aggregateFlex = "SELF_OPT",
-    curtailRegenerative = false,
   )
 
   private implicit val quantityTolerance: Double = 1e-10d
@@ -125,7 +122,6 @@ class EmAgentIT
               loadInput,
               LoadRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
-                scaling = 1d,
                 modelBehaviour = "fix",
                 reference = "power",
                 uuids = List.empty,
@@ -173,9 +169,7 @@ class EmAgentIT
               householdStorageInput,
               StorageRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
-                scaling = 1d,
                 uuids = List.empty,
-                initialSoc = 0d,
                 targetSoc = None,
               ),
               primaryServiceProxy.ref.toClassic,
@@ -241,7 +235,7 @@ class EmAgentIT
 
         pvAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L),
+          0L,
         )
 
         scheduler.expectMessage(Completion(pvAgent))
@@ -411,7 +405,6 @@ class EmAgentIT
               loadInput,
               LoadRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
-                scaling = 1d,
                 modelBehaviour = "fix",
                 reference = "power",
                 uuids = List.empty,
@@ -526,7 +519,7 @@ class EmAgentIT
 
         pvAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L),
+          0L,
         )
 
         scheduler.expectMessage(Completion(pvAgent))
@@ -550,7 +543,7 @@ class EmAgentIT
 
         heatPumpAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L),
+          0L,
         )
 
         scheduler.expectMessage(Completion(heatPumpAgent))
