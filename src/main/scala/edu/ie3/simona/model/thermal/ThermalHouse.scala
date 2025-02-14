@@ -114,7 +114,7 @@ final case class ThermalHouse(
         zeroKWh
 
     val possibleEnergy =
-      if (!isInnerTemperatureTooHigh(currentInnerTemp, targetTemperature)) {
+      if (!isInnerTemperatureTooHigh(currentInnerTemp, actualTargetTemperature)) {
         energy(actualTargetTemperature, currentInnerTemp)
       } else zeroKWh
 

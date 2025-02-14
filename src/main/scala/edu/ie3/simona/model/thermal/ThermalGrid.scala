@@ -535,7 +535,7 @@ final case class ThermalGrid(
         if (
           thermalHouse.isInnerTemperatureTooHigh(
             newState.innerTemperature,
-            thermalHouse.targetTemperature,
+            actualTargetTemperature
           )
         ) {
           val (fullHouseState, maybeFullHouseThreshold) =
