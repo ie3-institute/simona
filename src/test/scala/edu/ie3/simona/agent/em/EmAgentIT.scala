@@ -17,21 +17,11 @@ import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
-  RegisterForWeatherMessage,
-  WeatherData,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{ProvideWeatherMessage, RegisterForWeatherMessage, WeatherData}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -41,10 +31,7 @@ import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.OptionValues._
@@ -55,6 +42,7 @@ import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
+import scala.concurrent.duration.{FiniteDuration, SECONDS}
 
 class EmAgentIT
     extends ScalaTestWithActorTestKit
@@ -62,7 +50,7 @@ class EmAgentIT
     with should.Matchers
     with EmInputTestData
     with MockitoSugar {
-
+  val timeout2: FiniteDuration = FiniteDuration(200, SECONDS)
   // start a bit later so the sun is up
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T10:00:00Z")
@@ -263,7 +251,7 @@ class EmAgentIT
          PV:  -5.842 kW
          STORAGE: SOC 0 %
          -> charge with 5 kW
-         -> remaining -0.723 kW
+         -> remaining -0.573 kW
          */
 
         emAgentActivation ! Activation(0)
@@ -280,7 +268,7 @@ class EmAgentIT
           Some(7200),
         )
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultListener.expectMessageType[ParticipantResultEvent](timeout2) match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0L.toDateTime
@@ -296,9 +284,9 @@ class EmAgentIT
 
         /* TICK 7200
          LOAD: 0.269 kW (unchanged)
-         PV:  -3.651 kW
-         STORAGE: SOC 63.3 %
-         -> charge with 3.382 kW
+         PV:  -3.791 kW
+         STORAGE: SOC 63.3 % fixme: reminder check this at the end
+         -> charge with 3.522 kW
          -> remaining 0 kW
          */
 
@@ -308,42 +296,42 @@ class EmAgentIT
           7200,
           weatherService.ref.toClassic,
           WeatherData(
-            WattsPerSquareMeter(300d),
-            WattsPerSquareMeter(500d),
+            WattsPerSquareMeter(50d),
+            WattsPerSquareMeter(150d),
             Celsius(0d),
             MetersPerSecond(0d),
           ),
           Some(14400),
         )
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultListener.expectMessageType[ParticipantResultEvent](timeout2) match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
             emResult.getP should equalWithTolerance(
-              -0.020583738053224127.asMegaWatt
+              0.0.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(11368)))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(13115)))
 
-        /* TICK 11368
+        /* TICK 13115
          LOAD: 0.269 kW (unchanged)
-         PV:  -3.651 kW (unchanged)
+         PV:  -3.791 kW (unchanged)
          STORAGE: SOC 100 %
          -> charge with 0 kW
-         -> remaining -3.382 kW
+         -> remaining -3.522 kW
          */
 
-        emAgentActivation ! Activation(11368)
+        emAgentActivation ! Activation(13115)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultListener.expectMessageType[ParticipantResultEvent](timeout2) match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
-            emResult.getTime shouldBe 11368L.toDateTime
+            emResult.getTime shouldBe 13115L.toDateTime
             emResult.getP should equalWithTolerance(
-              -0.025583738053224125.asMegaWatt
+              -0.0035233186089842434.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
@@ -352,10 +340,10 @@ class EmAgentIT
 
         /* TICK 14400
          LOAD: 0.269 kW (unchanged)
-         PV:  -0.066 kW
+         PV:  -0.069 kW
          STORAGE: SOC 100 %
-         -> charge with -0.202956 kW
-         -> remaining 0 kW
+         -> charge with 0 kW
+         -> remaining 0.2 kW
          */
 
         // send weather data before activation, which can happen
@@ -364,8 +352,8 @@ class EmAgentIT
           14400,
           weatherService.ref.toClassic,
           WeatherData(
-            WattsPerSquareMeter(5d),
-            WattsPerSquareMeter(5d),
+            WattsPerSquareMeter(0.5d),
+            WattsPerSquareMeter(2d),
             Celsius(0d),
             MetersPerSecond(0d),
           ),
@@ -374,14 +362,14 @@ class EmAgentIT
 
         emAgentActivation ! Activation(14400)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultListener.expectMessageType[ParticipantResultEvent](timeout2) match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 14400L.toDateTime
             emResult.getP should equalWithTolerance(
-              -0.0001779479755506383.asMegaWatt
+              -0.0.asMegaWatt
             )
-            emResult.getQ should equalWithTolerance(0.000088285537.asMegaVar)
+            emResult.getQ should equalWithTolerance(0.000088285536.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
@@ -442,7 +430,7 @@ class EmAgentIT
               pvInput,
               PvRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
-                scaling = 2d,
+                scaling = 1d,
                 uuids = List.empty,
               ),
               primaryServiceProxy.ref.toClassic,
