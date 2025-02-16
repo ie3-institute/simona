@@ -250,11 +250,11 @@ final case class ThermalGrid(
 
     // We can use the qDots from lastState to keep continuity. If...
     if (
-      // ... house was heated in lastState but not from Storage and has still some demand.
-      ((qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW) && thermalDemands.houseDemand.hasAdditionalDemand) ||
+      // ... house was heated in lastState but not from Storage and has still some demand. Hp must still run for this.
+      ((qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW) && thermalDemands.houseDemand.hasAdditionalDemand) && isRunning ||
       // ... storage was filled up in the lastState and has still additional demand
-      // But only if the house not reached some requiredDemand.
-      qDotStorageLastState > zeroKW && thermalDemands.heatStorageDemand.hasAdditionalDemand && !thermalDemands.houseDemand.hasRequiredDemand)
+      // But only if the house not reached some requiredDemand. Hp must still run for this.
+      qDotStorageLastState > zeroKW && thermalDemands.heatStorageDemand.hasAdditionalDemand && !thermalDemands.houseDemand.hasRequiredDemand && isRunning)
     ) {
       // We can continue for the house
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
