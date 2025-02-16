@@ -12,7 +12,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached,
+  HouseTemperatureTargetOrUpperBoundaryReached,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
@@ -221,7 +221,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureUpperBoundaryReached(7372L)
+          HouseTemperatureTargetOrUpperBoundaryReached(7322L)
         )
       }
     }
@@ -244,7 +244,9 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),
                   None,
                 ),
-                Some(HouseTemperatureUpperBoundaryReached(thresholdTick)),
+                Some(
+                  HouseTemperatureTargetOrUpperBoundaryReached(thresholdTick)
+                ),
               ) =>
             tick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
