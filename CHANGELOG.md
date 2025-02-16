@@ -48,7 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Checking the number of slack nodes [#1122](https://github.com/ie3-institute/simona/issues/1122)
 - Enhance exception message in case of InvalidGridException [#1124](https://github.com/ie3-institute/simona/issues/1124)
 - Integration test for thermal grids without Em [#1145](https://github.com/ie3-institute/simona/issues/1145)
-- Integration test for thermal grids with Em [#1146](https://github.com/ie3-institute/simona/issues/1146)
+- Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
+- - Integration test for thermal grids with Em [#1146](https://github.com/ie3-institute/simona/issues/1146)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)

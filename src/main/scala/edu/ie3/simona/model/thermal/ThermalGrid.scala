@@ -164,6 +164,9 @@ final case class ThermalGrid(
     *   Ambient temperature valid up until (not including) the current tick
     * @param isRunning
     *   determines whether the heat pump is running or not
+    * @param useUpperTempBoundaryForFlexibility
+    *   determines whether the upper temperature boundary of the house will be
+    *   applied or not
     * @param qDot
     *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages
