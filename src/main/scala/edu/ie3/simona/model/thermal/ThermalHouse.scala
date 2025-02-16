@@ -87,12 +87,15 @@ final case class ThermalHouse(
     *   data of heat pump including state of the heat pump
     * @param state
     *   most recent state, that is valid for this model
+    * @param actualTargetTemperature
+    *   the applied target temperature for this model
     * @return
     *   the needed energy in the questioned tick
     */
   def energyDemand(
       relevantData: HpRelevantData,
       state: ThermalHouseState,
+      actualTargetTemperature: Temperature,
   ): ThermalEnergyDemand = {
     /* Calculate the inner temperature of the house, at the questioned instance in time */
     val duration = Seconds(relevantData.currentTick - state.tick)
@@ -103,33 +106,19 @@ final case class ThermalHouse(
       relevantData.ambientTemperature,
     )
 
-    /* Determine, which temperature boundary triggers a needed energy to reach the temperature constraints */
-    val temperatureToTriggerRequiredEnergy =
-      if (
-        currentInnerTemp <= state.innerTemperature &&
-        state.qDot <= zeroKW
-      ) {
-        // temperature has been decreasing and heat source has been turned off
-        // => we have reached target temp before and are now targeting lower temp
-        lowerBoundaryTemperature
-      } else targetTemperature
     val requiredEnergy =
-      if (
-        isInnerTemperatureTooLow(
-          currentInnerTemp,
-          temperatureToTriggerRequiredEnergy,
-        )
-      ) energy(targetTemperature, currentInnerTemp)
-      else
-        zeroMWh
+      if (isInnerTemperatureTooLow(currentInnerTemp)) {
+        energy(targetTemperature, currentInnerTemp)
+      } else
+        zeroKWh
 
     val possibleEnergy =
-      if (!isInnerTemperatureTooHigh(currentInnerTemp)) {
-        // if upper boundary has not been reached,
-        // there is an amount of optional energy that could be stored
-        energy(upperBoundaryTemperature, currentInnerTemp)
-      } else
-        zeroMWh
+      if (
+        !isInnerTemperatureTooHigh(currentInnerTemp, actualTargetTemperature)
+      ) {
+        energy(actualTargetTemperature, currentInnerTemp)
+      } else zeroKWh
+
     ThermalEnergyDemand(requiredEnergy, possibleEnergy)
   }
 
@@ -159,13 +148,17 @@ final case class ThermalHouse(
   }
 
   /** Check if inner temperature is higher than preferred maximum temperature
+    * @param innerTemperature
+    *   the inner temperature of the house
+    * @param boundaryTemperature
+    *   the applied boundary temperature to check against
     *
     * @return
     *   true, if inner temperature is too high
     */
   def isInnerTemperatureTooHigh(
       innerTemperature: Temperature,
-      boundaryTemperature: Temperature = upperBoundaryTemperature,
+      boundaryTemperature: Temperature,
   ): Boolean =
     innerTemperature > (
       boundaryTemperature - temperatureTolerance
@@ -231,6 +224,8 @@ final case class ThermalHouse(
     *   Ambient temperature valid up until (not including) the current tick
     * @param qDot
     *   New thermal influx
+    * @param actualTargetTemperature
+    *   the applied target temperature for this model
     * @return
     *   Updated state and the tick in which the next threshold is reached
     */
@@ -239,6 +234,7 @@ final case class ThermalHouse(
       state: ThermalHouseState,
       lastAmbientTemperature: Temperature,
       qDot: Power,
+      actualTargetTemperature: Temperature,
   ): (ThermalHouseState, Option[ThermalThreshold]) = {
     val duration = Seconds(relevantData.currentTick - state.tick)
     val updatedInnerTemperature = newInnerTemperature(
@@ -255,6 +251,7 @@ final case class ThermalHouse(
         qDot,
         updatedInnerTemperature,
         relevantData.ambientTemperature,
+        actualTargetTemperature,
       )
 
     (
@@ -276,6 +273,8 @@ final case class ThermalHouse(
     *   The inner temperature
     * @param ambientTemperature
     *   The ambient temperature
+    * @param actualTargetTemperature
+    *   the applied target temperature for this model
     * @return
     *   The next threshold, that will be reached
     */
@@ -284,6 +283,7 @@ final case class ThermalHouse(
       qDotExternal: Power,
       innerTemperature: Temperature,
       ambientTemperature: Temperature,
+      actualTargetTemperature: Temperature,
   ): Option[ThermalThreshold] = {
     val artificialDuration = Hours(1d)
     val loss = ethLosses.calcThermalEnergyChange(
@@ -306,13 +306,14 @@ final case class ThermalHouse(
       ).map(HouseTemperatureLowerBoundaryReached)
     } else if (
       resultingQDot > zeroMW && !isInnerTemperatureTooHigh(
-        innerTemperature
+        innerTemperature,
+        actualTargetTemperature,
       )
     ) {
       /* House has more gain than losses */
       nextActivation(
         tick,
-        upperBoundaryTemperature,
+        actualTargetTemperature,
         innerTemperature,
         resultingQDot,
       ).map(HouseTemperatureUpperBoundaryReached)

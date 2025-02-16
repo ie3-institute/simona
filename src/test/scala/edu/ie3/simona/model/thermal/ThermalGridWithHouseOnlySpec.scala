@@ -92,12 +92,14 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val expectedHouseDemand = thermalHouse.energyDemand(
           relevantData,
           expectedHouseStartingState,
+          thermalHouse.targetTemperature,
         )
 
         val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
             lastHpState,
+            false,
           )
 
         val houseDemand = thermalDemands.houseDemand
@@ -133,6 +135,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             relevantData,
             testGridAmbientTemperature,
             gridState,
+            false,
             externalQDot,
           )
 
@@ -163,6 +166,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             relevantData,
             testGridAmbientTemperature,
             gridState,
+            false,
             testGridQDotConsumption,
           )
 
@@ -201,6 +205,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             testGridAmbientTemperature,
             gridState,
             isNotRunning,
+            false,
             testGridQDotInfeed,
             onlyThermalDemandOfHouse,
           )
@@ -230,6 +235,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
           isRunning,
+          false,
           testGridQDotInfeed,
           onlyThermalDemandOfHouse,
         ) match {
@@ -254,6 +260,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
           isNotRunning,
+          false,
           testGridQDotConsumption,
           onlyThermalDemandOfHouse,
         ) match {
@@ -278,6 +285,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
           isNotRunning,
+          false,
           zeroKW,
           onlyThermalDemandOfHouse,
         ) match {

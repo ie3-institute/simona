@@ -207,7 +207,7 @@ class HpModelSpec
             val grid = thermalGrid(house)
             val hp = hpModel(grid)
 
-            hp.determineState(state, data) match {
+            hp.determineState(state, data, false) match {
               case (
                     _,
                     _,

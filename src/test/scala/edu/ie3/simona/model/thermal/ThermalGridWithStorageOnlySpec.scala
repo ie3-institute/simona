@@ -98,6 +98,7 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
             lastHpState,
+            false,
           )
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
@@ -134,6 +135,7 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
             lastHpState,
+            false,
           )
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
@@ -177,6 +179,7 @@ class ThermalGridWithStorageOnlySpec
             relevantData,
             testGridAmbientTemperature,
             gridState,
+            false,
             testGridQDotConsumptionHigh,
           )
 
@@ -213,6 +216,7 @@ class ThermalGridWithStorageOnlySpec
             testGridAmbientTemperature,
             gridState,
             isRunning,
+            false,
             testGridQDotInfeed,
             onlyThermalDemandOfHeatStorage,
           )
@@ -250,6 +254,7 @@ class ThermalGridWithStorageOnlySpec
             testGridAmbientTemperature,
             gridState,
             isNotRunning,
+            false,
             testGridQDotInfeed,
             onlyThermalDemandOfHeatStorage,
           )
@@ -277,6 +282,7 @@ class ThermalGridWithStorageOnlySpec
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
           isRunning,
+          false,
           testGridQDotInfeed,
           onlyThermalDemandOfHeatStorage,
         )
@@ -311,6 +317,7 @@ class ThermalGridWithStorageOnlySpec
             ),
           testGridAmbientTemperature,
           isRunning,
+          false,
           testGridQDotConsumptionHigh,
           onlyThermalDemandOfHouse,
         ) match {
@@ -335,6 +342,7 @@ class ThermalGridWithStorageOnlySpec
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
           isRunning,
+          false,
           zeroKW,
           noThermalDemand,
         )
