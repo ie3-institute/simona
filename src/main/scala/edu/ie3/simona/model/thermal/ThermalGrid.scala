@@ -85,10 +85,7 @@ final case class ThermalGrid(
               lastHouseState.qDot,
               actualTargetTemperature,
             )
-          if (
-            updatedHouseState.innerTemperature < thermalHouse.targetTemperature |
-              (lastHouseState.qDot > zeroKW && updatedHouseState.innerTemperature < thermalHouse.upperBoundaryTemperature)
-          ) {
+          if (updatedHouseState.innerTemperature < actualTargetTemperature) {
 
             (
               thermalHouse.energyDemand(
@@ -453,8 +450,9 @@ final case class ThermalGrid(
     *   Infeed to the house
     * @param qDotHeatStorage
     *   Infeed to the heat storage (positive: Storage is charging, negative:
-    *   Storage is discharging) * @param useUpperTempBoundaryForFlexibility *
-    *   determines whether the upper temperature boundary of the house will be
+    *   Storage is discharging)
+    * @param useUpperTempBoundaryForFlexibility
+    *   * determines whether the upper temperature boundary of the house will be
     *   applied or not
     * @return
     *   Updated thermal grid state and the next threshold if there is one
@@ -535,7 +533,7 @@ final case class ThermalGrid(
         if (
           thermalHouse.isInnerTemperatureTooHigh(
             newState.innerTemperature,
-            actualTargetTemperature
+            actualTargetTemperature,
           )
         ) {
           val (fullHouseState, maybeFullHouseThreshold) =
@@ -704,6 +702,9 @@ final case class ThermalGrid(
     * @param qDot
     *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages
+    * @param useUpperTempBoundaryForFlexibility
+    *   determines whether the upper temperature boundary of the house will be
+    *   applied or not
     * @return
     *   Options to revised thermal house and storage state
     */
