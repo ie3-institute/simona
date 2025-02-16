@@ -397,7 +397,7 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(21600)))
 
       /* TICK 21600
-      House would reach lowerTempBoundary at tick 50797
+      House would reach lowerTempBoundary at tick 50797,
       but now it's getting colder which should decrease inner temp of house faster
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 11.9 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh

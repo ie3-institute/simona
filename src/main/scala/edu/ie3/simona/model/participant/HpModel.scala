@@ -15,6 +15,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalGridState,
 }
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -150,7 +151,14 @@ final case class HpModel(
 
     // Updating the HpState
     val updatedHpState =
-      calcState(lastHpState, relevantData, turnOn, false, thermalDemandWrapper)
+      calcState(
+        lastHpState,
+        relevantData,
+        turnOn,
+        false,
+        thermalDemandWrapper,
+        currentThermalGridState,
+      )
     (canOperate, canBeOutOfOperation, updatedHpState)
   }
 
@@ -227,23 +235,36 @@ final case class HpModel(
       isRunning: Boolean,
       useUpperTempBoundaryForFlexibility: Boolean,
       demandWrapper: ThermalDemandWrapper,
+      currentThermalGridState: ThermalGridState,
   ): HpState = {
-    val lastStateStorageQDot = lastState.thermalGridState.storageState
-      .map(_.qDot)
-      .getOrElse(zeroKW)
+    val lastStateStorage = lastState.thermalGridState.storageState
+      // Todo: Maybe throw exception would be a better option here?
+      .getOrElse(ThermalStorageState(-1, zeroKWh, zeroKW))
+
+    val currentEnergyOfThermalStorage = currentThermalGridState.storageState
+      .map(_.storedEnergy)
+      .getOrElse(zeroKWh)
 
     val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
       if (isRunning)
         (pRated, pThermal, pThermal)
-      else if (lastStateStorageQDot < zeroKW)
-        (zeroKW, zeroKW, lastStateStorageQDot * (-1))
+      // If the house has required demand and storage isn't empty, we can heat the house from storage.
       else if (
-        lastStateStorageQDot == zeroKW && (demandWrapper.houseDemand.hasRequiredDemand || demandWrapper.heatStorageDemand.hasRequiredDemand)
+        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasRequiredDemand
       )
         (
           zeroKW,
           zeroKW,
           thermalGrid.storage.map(_.getChargingPower: squants.Power).get,
+        )
+      // If the house has any demand, was heated from storage in last state and storage isn't empty, we can continue heating the house from storage.
+      else if (
+        currentEnergyOfThermalStorage > zeroKWh && lastStateStorage.qDot < zeroKW && demandWrapper.houseDemand.hasAdditionalDemand
+      )
+        (
+          zeroKW,
+          zeroKW,
+          lastStateStorage.qDot * -1,
         )
       else (zeroKW, zeroKW, zeroKW)
     }
@@ -329,7 +350,7 @@ final case class HpModel(
 
     val (
       thermalDemandWrapper,
-      _,
+      updatedThermalGridState,
     ) =
       thermalGrid.energyDemandAndUpdatedState(
         relevantData,
@@ -343,6 +364,7 @@ final case class HpModel(
       turnOn,
       useUpperTempBoundaryForFlexibility,
       thermalDemandWrapper,
+      updatedThermalGridState,
     )
 
     (
