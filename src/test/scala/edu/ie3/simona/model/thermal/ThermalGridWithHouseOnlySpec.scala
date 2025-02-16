@@ -197,7 +197,10 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           0L,
           testGridAmbientTemperature,
         )
-        val gridState = ThermalGrid.startingState(thermalGrid)
+        val gridState = ThermalGridState(
+          Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
+          None,
+        )
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
@@ -216,7 +219,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None,
               ) =>
             tick shouldBe 0L
-            innerTemperature should approximate(Celsius(18.9999d))
+            innerTemperature should approximate(Celsius(16.9999d))
             qDot should approximate(testGridQDotInfeed)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
@@ -229,10 +232,14 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     "updating the grid state dependent on the given thermal infeed" should {
       val relevantData = HpRelevantData(0, testGridAmbientTemperature)
       "deliver proper result, if energy is fed into the grid" in {
+        val gridState = ThermalGridState(
+          Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
+          None,
+        )
 
         thermalGrid.updateState(
           relevantData,
-          ThermalGrid.startingState(thermalGrid),
+          gridState,
           testGridAmbientTemperature,
           isRunning,
           false,
@@ -249,9 +256,9 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 ),
               ) =>
             tick shouldBe 0L
-            innerTemperature should approximate(Celsius(18.9999d))
+            innerTemperature should approximate(Celsius(16.9999d))
             qDot should approximate(testGridQDotInfeed)
-            thresholdTick shouldBe 7372L
+            thresholdTick shouldBe 7322L
           case _ => fail("Thermal grid state updated failed")
         }
       }
