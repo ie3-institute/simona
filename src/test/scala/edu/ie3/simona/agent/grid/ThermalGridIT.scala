@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.HpRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   CylindricalThermalStorageResult,

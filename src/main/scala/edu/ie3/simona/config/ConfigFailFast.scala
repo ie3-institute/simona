@@ -8,6 +8,12 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.config.RuntimeConfig.{
+  BaseRuntimeConfig,
+  LoadRuntimeConfig,
+  ParticipantRuntimeConfigs,
+  StorageRuntimeConfig,
+}
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CouchbaseParams,
   InfluxDb1xParams,
@@ -275,7 +281,7 @@ object ConfigFailFast extends LazyLogging {
     *   Sub configuration tree to check
     */
   private def checkParticipantRuntimeConfiguration(
-      subConfig: SimonaConfig.Simona.Runtime.Participant
+      subConfig: RuntimeConfig.Participant
   ): Unit = {
     if (subConfig.requestVoltageDeviationThreshold < 0)
       throw new InvalidConfigParameterException(
@@ -319,7 +325,7 @@ object ConfigFailFast extends LazyLogging {
     *   the runtime listener config
     */
   private def checkRuntimeListenerConfiguration(
-      listenerConfig: SimonaConfig.Simona.Runtime.Listener
+      listenerConfig: RuntimeConfig.Listener
   ): Unit = {
     listenerConfig.kafka.foreach(kafka =>
       checkKafkaParams(kafka, Seq(kafka.topic))
@@ -331,8 +337,8 @@ object ConfigFailFast extends LazyLogging {
     * i.e. uuid and scaling factor
     */
   private def checkBaseRuntimeConfigs(
-      defaultConfig: SimonaConfig.BaseRuntimeConfig,
-      individualConfigs: List[SimonaConfig.BaseRuntimeConfig],
+      defaultConfig: BaseRuntimeConfig,
+      individualConfigs: List[BaseRuntimeConfig],
       defaultString: String = "default",
   ): Unit = {
     // special default config check
@@ -431,7 +437,7 @@ object ConfigFailFast extends LazyLogging {
     * model behaviour and reference
     */
   private def checkSpecificLoadModelConfig(
-      loadModelConfig: SimonaConfig.LoadRuntimeConfig
+      loadModelConfig: LoadRuntimeConfig
   ): Unit = {
     if (!LoadModelBehaviour.isEligibleInput(loadModelConfig.modelBehaviour))
       throw new InvalidConfigParameterException(
@@ -847,7 +853,7 @@ object ConfigFailFast extends LazyLogging {
     *   RuntimeConfig of Storages
     */
   private def checkStoragesConfig(
-      storageRuntimeConfig: SimonaConfig.Simona.Runtime.Participant.Storage
+      storageRuntimeConfig: ParticipantRuntimeConfigs[StorageRuntimeConfig]
   ): Unit = {
     if (
       storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
