@@ -702,7 +702,6 @@ class EmAgentIT
 
     "having a pv and a load agent connected" should {
       "have correct reactive power on em level " in {
-        val timeout = FiniteDuration(30, SECONDS)
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
           TestProbe[ServiceMessage]("PrimaryServiceProxy")
@@ -855,9 +854,7 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent](
-          timeout
-        ) match {
+        resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0.toDateTime
@@ -891,9 +888,7 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent](
-          timeout
-        ) match {
+        resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 3600.toDateTime
@@ -924,9 +919,7 @@ class EmAgentIT
         }
 
         emAgentActivation ! Activation(7200)
-        resultListener.expectMessageType[ParticipantResultEvent](
-          timeout
-        ) match {
+        resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
@@ -945,9 +938,7 @@ class EmAgentIT
          */
 
         emAgentActivation ! Activation(10800)
-        resultListener.expectMessageType[ParticipantResultEvent](
-          timeout
-        ) match {
+        resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 10800.toDateTime
@@ -966,9 +957,7 @@ class EmAgentIT
          */
 
         emAgentActivation ! Activation(14400)
-        resultListener.expectMessageType[ParticipantResultEvent](
-          timeout
-        ) match {
+        resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 14400.toDateTime
