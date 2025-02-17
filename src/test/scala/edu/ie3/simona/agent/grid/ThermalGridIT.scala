@@ -927,8 +927,7 @@ class ThermalGridIT
         new PvAgent(
           scheduler = scheduler.ref.toClassic,
           initStateData = ParticipantInitializeStateData(
-            // FIXME replace pvInput2 against pvInput when the other PR is merged
-            pvInput2,
+            pvInput,
             PvRuntimeConfig(
               calculateMissingReactivePowerWithModel = true,
               scaling = 1d,
@@ -984,15 +983,15 @@ class ThermalGridIT
       pvAgent ! Activation(INIT_SIM_TICK)
 
       primaryServiceProxy.expectMessage(
-        PrimaryServiceRegistrationMessage(pvInput2.getUuid)
+        PrimaryServiceRegistrationMessage(pvInput.getUuid)
       )
       pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
       // deal with weather service registration
       weatherService.expectMessage(
         RegisterForWeatherMessage(
-          pvInput2.getNode.getGeoPosition.getY,
-          pvInput2.getNode.getGeoPosition.getX,
+          pvInput.getNode.getGeoPosition.getY,
+          pvInput.getNode.getGeoPosition.getX,
         )
       )
 
