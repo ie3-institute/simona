@@ -64,7 +64,7 @@ class EvcsModelSpec
     EvcsModel(
       evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
       EvcsRuntimeConfig(
-        chargingStrategy = chargingStrategy,
+        chargingStrategy = chargingStrategy
       ),
     )
 

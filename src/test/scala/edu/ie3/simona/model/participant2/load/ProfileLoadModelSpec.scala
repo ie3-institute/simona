@@ -109,6 +109,9 @@ class ProfileLoadModelSpec
         )
       ) { (profile, eConsAnnual, expectedScalingFactor, expectedSRated) =>
         val config = LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          scaling = 1.0,
+          uuids = List.empty,
           modelBehaviour = "profile",
           reference = "energy",
         )
@@ -137,6 +140,9 @@ class ProfileLoadModelSpec
         val input = loadInput.copy().loadprofile(profile).build()
 
         val config = LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          scaling = 1.0,
+          uuids = List.empty,
           modelBehaviour = "profile",
           reference = "energy",
         )
@@ -171,7 +177,11 @@ class ProfileLoadModelSpec
         val input = loadInput.copy().loadprofile(profile).build()
 
         val config = LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          scaling = 1.0,
+          uuids = List.empty,
           modelBehaviour = "profile",
+          reference = "power",
         )
 
         val model = ProfileLoadModel(input, config)

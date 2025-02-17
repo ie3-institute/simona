@@ -62,7 +62,7 @@ object ParticipantModelInit {
       }).build()
 
     (scaledParticipantInput, modelConfig) match {
-      case (input: FixedFeedInInput, _) =>
+      case (input: FixedFeedInInput, config: LoadRuntimeConfig) =>
         FixedFeedInModel(input)
       case (input: LoadInput, config: LoadRuntimeConfig) =>
         LoadModel(input, config)

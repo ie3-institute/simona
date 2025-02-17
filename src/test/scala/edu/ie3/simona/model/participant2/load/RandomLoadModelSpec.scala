@@ -98,7 +98,10 @@ class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
           (3000.0, 4.1867763, 770.808),
         )
       ) { (eConsAnnual, expectedScalingFactor, expectedSRated) =>
-        val config = LoadRuntimeConfig(modelBehaviour = "random", reference = "energy")
+        val config = LoadRuntimeConfig(
+          modelBehaviour = "random",
+          reference = "energy",
+        )
         val model = RandomLoadModel(
           loadInput
             .copy()

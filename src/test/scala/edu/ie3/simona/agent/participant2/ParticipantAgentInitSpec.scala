@@ -112,7 +112,10 @@ class ParticipantAgentInitSpec
         activationRef ! Activation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! RegistrationFailedMessage(
@@ -155,7 +158,10 @@ class ParticipantAgentInitSpec
         activationRef ! Activation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
@@ -209,7 +215,10 @@ class ParticipantAgentInitSpec
         activationRef ! FlexActivation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! RegistrationFailedMessage(
@@ -262,7 +271,10 @@ class ParticipantAgentInitSpec
         activationRef ! FlexActivation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
@@ -329,7 +341,10 @@ class ParticipantAgentInitSpec
         activationRef ! Activation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! RegistrationFailedMessage(
@@ -385,7 +400,10 @@ class ParticipantAgentInitSpec
         activationRef ! Activation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
@@ -444,7 +462,10 @@ class ParticipantAgentInitSpec
         activationRef ! FlexActivation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! RegistrationFailedMessage(
@@ -506,7 +527,10 @@ class ParticipantAgentInitSpec
         activationRef ! FlexActivation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(

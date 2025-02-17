@@ -9,10 +9,7 @@ package edu.ie3.simona.ontology.messages.services
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ProvisionMessage,
-  ServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID
@@ -33,24 +30,6 @@ object EvMessage {
       with ServiceRegistrationMessage
 
   trait EvData extends SecondaryData
-
-  /** Provide EV movements for the requested tick
-    *
-    * @param tick
-    *   The tick, for which the data is requested for
-    * @param data
-    *   Actual information
-    * @param nextDataTick
-    *   Foreseen next tick, where data is available. Usually, no ticks can be
-    *   foreseen within evs
-    */
-  final case class ProvideEvDataMessage(
-      override val tick: Long,
-      override val serviceRef: ActorRef,
-      override val data: EvData,
-      override val nextDataTick: Option[Long],
-  ) extends EvMessage
-      with ProvisionMessage[EvData]
 
   /** Requests number of free lots from evcs
     *
