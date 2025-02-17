@@ -62,7 +62,7 @@ trait PvInputTestData
 
   private val interval = new ClosedInterval[ZonedDateTime](
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T11:00:00Z"),
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-10T22:00:00Z"),
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T14:00:00Z"),
   )
   private val operationTime: OperationTime =
     operationTimeBuilder.withOperationTime(interval).build()
