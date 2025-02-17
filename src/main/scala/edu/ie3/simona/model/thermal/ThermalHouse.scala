@@ -75,22 +75,22 @@ final case class ThermalHouse(
       bus,
     ) {
 
-  /** Calculate the energy demand at the instance in question. If the inner
-    * temperature is at or above the lower boundary temperature, there is no
-    * demand. If it is below the target temperature, the demand is the energy
-    * needed to heat up the house to the maximum temperature. The current
-    * (external) thermal infeed is not accounted for, as we assume, that after
-    * determining the thermal demand, a change in external infeed will take
-    * place.
+  /** Calculate the energy demand at the instance in question. The amount to
+    * reach target temperature of this model is interpreted as required demand.
+    * The amount to reach the current @actualTemperatureTarget (could be target
+    * temperature or upper temperature boundary of this model) is interpreted as
+    * possible demand. The current (external) thermal infeed is not accounted
+    * for, as we assume, that after determining the thermal demand, a change in
+    * external infeed will take place.
     *
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   Data of heat pump including state of the heat pump.
     * @param state
     *   most recent state, that is valid for this model
     * @param actualTargetTemperature
     *   the applied target temperature for this model
     * @return
-    *   the needed energy in the questioned tick
+    *   The needed energy in the questioned tick.
     */
   def energyDemand(
       relevantData: HpRelevantData,
@@ -130,11 +130,11 @@ final case class ThermalHouse(
     * temperature difference to zero, resulting in an energy demand of 0 kWh.
     *
     * @param targetTemperature
-    *   The target temperature to reach
+    *   The target temperature to reach.
     * @param startTemperature
-    *   The starting temperature
+    *   The starting temperature.
     * @return
-    *   The needed energy to change
+    *   The needed energy to change.
     */
   private def energy(
       targetTemperature: Temperature,
@@ -214,7 +214,7 @@ final case class ThermalHouse(
     currentInnerTemperature + temperatureChange
   }
 
-  /** Update the current state of the house
+  /** Update the current state of the house.
     *
     * @param relevantData
     *   data of heat pump including state of the heat pump

@@ -34,10 +34,10 @@ import scala.jdk.CollectionConverters.SetHasAsScala
 import scala.language.postfixOps
 
 /** Calculation model for a thermal grid. It is assumed, that all elements are
-  * connected directly with exactly one thermal bus
+  * connected directly with exactly one thermal bus.
   *
   * @param house
-  *   Thermal houses connected to the bus
+  *   Thermal houses connected to the bus.
   * @param storage
   *   Thermal storages
   */
@@ -47,18 +47,18 @@ final case class ThermalGrid(
 ) extends LazyLogging {
 
   /** Determine the energy demand of the total grid at the given instance in
-    * time and returns it including the updatedState
+    * time and returns it including the updatedState.
     *
     * @param lastHpState
-    *   Last state of the heat pump
+    *   Last state of the heat pump.
     * @param relevantData
-    *   data of heat pump including
+    *   Required data for calculation.
     * @param useUpperTempBoundaryForFlexibility
-    *   determines whether the upper temperature boundary of the house will be
-    *   applied or not
+    *   Determines whether the upper temperature boundary of the house will be
+    *   applied or not.
     * @return
     *   The total energy demand of the house and the storage and an updated
-    *   [[ThermalGridState]]
+    *   [[ThermalGridState]].
     */
   def energyDemandAndUpdatedState(
       relevantData: HpRelevantData,
@@ -154,24 +154,25 @@ final case class ThermalGrid(
     )
   }
 
-  /** Update the current state of the grid
+  /** Update the current state of the grid. Whether there are two cases to
+    * handle, external infeed into the thermal grid and no infeed.
     *
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   Data of heat pump including state of the heat pump.
     * @param lastThermalGridState
-    *   state of the thermalGrid until this tick
+    *   State of the thermalGrid until this tick.
     * @param lastAmbientTemperature
-    *   Ambient temperature valid up until (not including) the current tick
+    *   Ambient temperature valid up until (not including) the current tick.
     * @param isRunning
-    *   determines whether the heat pump is running or not
+    *   Determines whether the heat pump is running or not.
     * @param useUpperTempBoundaryForFlexibility
-    *   determines whether the upper temperature boundary of the house will be
-    *   applied or not
+    *   Determines whether the upper temperature boundary of the house will be
+    *   applied or not.
     * @param qDot
     *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
-    *   storages
+    *   storages.
     * @param thermalDemands
-    *   holds the thermal demands of the thermal units (house, storage)
+    *   Holds the thermal demands of the thermal units (house, storage).
     * @return
     *   The updated state of the grid
     */
@@ -207,7 +208,7 @@ final case class ThermalGrid(
     * First the actions from lastState will be considered and checked if the
     * behaviour should be continued. This might be the case, if we got activated
     * by updated weather data. If this is not the case, all other cases will be
-    * handled by [[ThermalGrid.handleFinalInfeedCases]]
+    * handled by [[ThermalGrid.handleFinalInfeedCases]].
     *
     * @param relevantData
     *   data of heat pump including state of the heat pump
@@ -683,9 +684,8 @@ final case class ThermalGrid(
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>
-    * <li>the house has reached it's lower temperature boundary,</li> <li>there
-    * is no infeed from external and</li> <li>the storage is not empty
-    * itself</li> </ul>
+    * <li>there is no infeed from external and</li> <li>the storage is not empty
+    * itself.</li> </ul>
     *
     * @param relevantData
     *   data of heat pump including state of the heat pump
