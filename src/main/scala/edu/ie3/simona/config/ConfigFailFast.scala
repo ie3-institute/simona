@@ -116,9 +116,10 @@ object ConfigFailFast extends LazyLogging {
     checkTimeConfig(simonaConfig.simona.time)
 
     // check if the provided combinations of refSystems provided are valid
-    val refSystems = simonaConfig.simona.gridConfig.refSystems
-    if (refSystems.isDefined)
-      refSystems.foreach(refsys => checkRefSystem(refsys))
+    simonaConfig.simona.gridConfig.refSystems.foreach(checkRefSystem)
+
+    // check if the provided combinations of voltageLimits provided are valid
+    simonaConfig.simona.gridConfig.voltageLimits.foreach(checkVoltageLimits)
 
     /* Check all participant model configurations */
     checkParticipantRuntimeConfiguration(
@@ -454,71 +455,102 @@ object ConfigFailFast extends LazyLogging {
     * @param refSystems
     *   a list of [[SimonaConfig.RefSystemConfig]]s that should be checked
     */
-
-  private def checkRefSystem(refSystems: List[RefSystemConfig]): Unit = {
+  private def checkRefSystem(
+      refSystems: List[RefSystemConfig]
+  ): Unit = {
     refSystems.foreach { refSystem =>
-      {
-        val voltLvls =
-          refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
-        val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
+      checkGridConfig(refSystem, "refSystem")
 
-        if (voltLvls.isEmpty && gridIds.isEmpty)
+      refSystem.sNom match {
+        case ConfigConventions.refSystemQuantRegex(_) =>
+        case _ =>
           throw new InvalidConfigParameterException(
-            "The provided values for voltLvls and gridIds are empty! " +
-              s"At least one of these optional parameters has to be provided for a valid refSystem! " +
-              s"Provided refSystem is: $refSystem."
-          )
-
-        voltLvls.foreach { voltLvl =>
-          Try(Quantities.getQuantity(voltLvl.vNom)) match {
-            case Success(quantity) =>
-              if (!quantity.getUnit.isCompatible(Units.VOLT))
-                throw new InvalidConfigParameterException(
-                  s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
-                )
-            case Failure(exception) =>
-              throw new InvalidConfigParameterException(
-                s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
-                exception,
-              )
-          }
-        }
-
-        gridIds.foreach {
-          case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>
-            rangeCheck(from.toInt, to.toInt, gridIdRange)
-          case gridIdRange @ ConfigConventions.gridIdMinusRange(from, to) =>
-            rangeCheck(from.toInt, to.toInt, gridIdRange)
-          case ConfigConventions.singleGridId(_) =>
-          case gridId =>
-            throw new InvalidConfigParameterException(
-              s"The provided gridId $gridId is malformed!"
-            )
-        }
-
-        refSystem.sNom match {
-          case ConfigConventions.refSystemQuantRegex(_) =>
-          case _ =>
-            throw new InvalidConfigParameterException(
-              s"Invalid value for sNom from provided refSystem $refSystem. Is a valid unit provided?"
-            )
-        }
-
-        refSystem.vNom match {
-          case ConfigConventions.refSystemQuantRegex(_) =>
-          case _ =>
-            throw new InvalidConfigParameterException(
-              s"Invalid value for vNom from provided refSystem $refSystem. Is a valid unit provided?"
-            )
-        }
-      }
-
-      def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit = {
-        if (from >= to)
-          throw new InvalidConfigParameterException(
-            s"Invalid gridId Range $gridIdRange. Start $from cannot be equals or bigger than end $to."
+            s"Invalid value for sNom from provided refSystem $refSystem. Is a valid unit provided?"
           )
       }
+
+      refSystem.vNom match {
+        case ConfigConventions.refSystemQuantRegex(_) =>
+        case _ =>
+          throw new InvalidConfigParameterException(
+            s"Invalid value for vNom from provided refSystem $refSystem. Is a valid unit provided?"
+          )
+      }
+    }
+  }
+
+  /** Sanity checks for a [[SimonaConfig.VoltageLimitsConfig]]
+    *
+    * @param voltageLimits
+    *   the [[SimonaConfig.VoltageLimitsConfig]] that should be checked
+    */
+  private def checkVoltageLimits(
+      voltageLimits: List[VoltageLimitsConfig]
+  ): Unit = {
+    voltageLimits.foreach { limit =>
+      checkGridConfig(limit, "voltage limit")
+
+      if (limit.vMin >= limit.vMax) {
+        throw new InvalidConfigParameterException(
+          s"Invalid value for vMin and vMax from provided voltage limit $limit. Is vMin smaller than vMax?"
+        )
+      }
+    }
+  }
+
+  /** Method to check the common elements of a
+    * [[SimonaConfig.Simona.GridConfig]].
+    * @param gridConfig
+    *   the individual config
+    * @param configType
+    *   the type of config (e.g. refSystem)
+    */
+  private def checkGridConfig(
+      gridConfig: GridConfigParams,
+      configType: String,
+  ): Unit = {
+    val voltLvls = gridConfig.voltLvls.getOrElse(List.empty)
+    val gridIds = gridConfig.gridIds.getOrElse(List.empty)
+
+    if (voltLvls.isEmpty && gridIds.isEmpty)
+      throw new InvalidConfigParameterException(
+        "The provided values for voltLvls and gridIds are empty! " +
+          s"At least one of these optional parameters has to be provided for a valid $configType! " +
+          s"Provided $configType is: $gridConfig."
+      )
+
+    voltLvls.foreach { voltLvl =>
+      Try(Quantities.getQuantity(voltLvl.vNom)) match {
+        case Success(quantity) =>
+          if (!quantity.getUnit.isCompatible(Units.VOLT))
+            throw new InvalidConfigParameterException(
+              s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
+            )
+        case Failure(exception) =>
+          throw new InvalidConfigParameterException(
+            s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
+            exception,
+          )
+      }
+    }
+
+    gridIds.foreach {
+      case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>
+        rangeCheck(from.toInt, to.toInt, gridIdRange)
+      case gridIdRange @ ConfigConventions.gridIdMinusRange(from, to) =>
+        rangeCheck(from.toInt, to.toInt, gridIdRange)
+      case ConfigConventions.singleGridId(_) =>
+      case gridId =>
+        throw new InvalidConfigParameterException(
+          s"The provided gridId $gridId is malformed!"
+        )
+    }
+
+    def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit = {
+      if (from >= to)
+        throw new InvalidConfigParameterException(
+          s"Invalid gridId Range $gridIdRange. Start $from cannot be equals or bigger than end $to."
+        )
     }
   }
 
