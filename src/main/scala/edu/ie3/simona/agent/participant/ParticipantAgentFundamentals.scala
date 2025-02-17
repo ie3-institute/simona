@@ -18,6 +18,7 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
+  ProvidedPowerResponse,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
@@ -42,6 +43,12 @@ import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   DataCollectionStateData,
   ParticipantStateData,
+}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationResponseMessage,
+  RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
@@ -75,10 +82,6 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ProvisionMessage,
-  RegistrationResponseMessage,
-}
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -429,7 +432,7 @@ protected trait ParticipantAgentFundamentals[
       stateData: CollectRegistrationConfirmMessages[PD],
   ): FSM.State[AgentState, ParticipantStateData[PD]] =
     registrationResponse match {
-      case RegistrationResponseMessage.RegistrationSuccessfulMessage(
+      case RegistrationSuccessfulMessage(
             serviceRef,
             maybeNextTick,
           ) =>
@@ -438,7 +441,9 @@ protected trait ParticipantAgentFundamentals[
 
         /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
         val foreseenDataTicks =
-          stateData.baseStateData.foreseenDataTicks + (serviceRef -> maybeNextTick)
+          stateData.baseStateData.foreseenDataTicks + (serviceRef -> Some(
+            maybeNextTick
+          ))
 
         if (remainingResponses.isEmpty) {
           /* All agent have responded. Determine the next to be used state data and reply completion to scheduler. */
@@ -466,7 +471,7 @@ protected trait ParticipantAgentFundamentals[
             foreseenNextDataTicks = foreseenDataTicksFlattened,
           )
         }
-      case RegistrationResponseMessage.RegistrationFailedMessage(serviceRef) =>
+      case RegistrationFailedMessage(serviceRef) =>
         self ! PoisonPill
         throw new ActorNotRegisteredException(
           s"Registration of actor $actorName for $serviceRef failed."
@@ -487,7 +492,7 @@ protected trait ParticipantAgentFundamentals[
     *   state change to [[HandleInformation]] with updated base state data
     */
   override def handleDataProvisionAndGoToHandleInformation(
-      msg: ProvisionMessage[Data],
+      msg: DataProvision[Data],
       baseStateData: BaseStateData[PD],
       scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
@@ -1164,7 +1169,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Determining the reply to an
-    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]],
+    * [[edu.ie3.simona.agent.participant2.ParticipantAgent.RequestAssetPowerMessage]],
     * send this answer and stay in the current state. If no reply can be
     * determined (because an activation or incoming data is expected), the
     * message is stashed.
@@ -1196,6 +1201,7 @@ protected trait ParticipantAgentFundamentals[
       eInPu: Dimensionless,
       fInPu: Dimensionless,
       alternativeResult: PD,
+      replyTo: TypedActorRef[ProvidedPowerResponse],
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* Check, if there is any calculation foreseen for this tick. If so, wait with the response. */
     val activationExpected =
@@ -1242,6 +1248,7 @@ protected trait ParticipantAgentFundamentals[
         updatedVoltageStore,
         nodalVoltage,
         lastNodalVoltage,
+        replyTo,
       ).getOrElse {
         /* If a fast reply is not possible, determine it the old-fashioned way */
         determineReply(
@@ -1251,6 +1258,7 @@ protected trait ParticipantAgentFundamentals[
           nodalVoltage,
           updatedVoltageStore,
           alternativeResult,
+          replyTo,
         )
       }
     }
@@ -1284,9 +1292,8 @@ protected trait ParticipantAgentFundamentals[
       voltageValueStore: ValueStore[Dimensionless],
       nodalVoltage: Dimensionless,
       lastNodalVoltage: Option[(Long, Dimensionless)],
+      replyTo: TypedActorRef[ProvidedPowerResponse],
   ): Option[FSM.State[AgentState, ParticipantStateData[PD]]] = {
-    implicit val outputConfig: NotifierConfig =
-      baseStateData.outputConfig
     mostRecentRequest match {
       case Some((mostRecentRequestTick, latestProvidedValues))
           if mostRecentRequestTick == requestTick =>
@@ -1297,12 +1304,14 @@ protected trait ParticipantAgentFundamentals[
           case externalBaseStateData: FromOutsideBaseStateData[M, PD] =>
             /* When data is provided from outside it is NOT altered depending on the node voltage. Send an
              * AssetPowerUnchangedMessage */
+            replyTo ! AssetPowerUnchangedMessage(
+              latestProvidedValues.p,
+              latestProvidedValues.q,
+            )
+
             Some(
               stay() using externalBaseStateData.copy(
                 voltageValueStore = voltageValueStore
-              ) replying AssetPowerUnchangedMessage(
-                latestProvidedValues.p,
-                latestProvidedValues.q,
               )
             )
           case modelBaseStateData: ParticipantModelBaseStateData[
@@ -1322,11 +1331,13 @@ protected trait ParticipantAgentFundamentals[
                 if (lastVoltage ~= nodalVoltage) {
                   /* This is the very same request (same tick and same nodal voltage). Reply with
                    * AssetPowerUnchangedMessage */
+                  replyTo ! AssetPowerUnchangedMessage(
+                    latestProvidedValues.p,
+                    latestProvidedValues.q,
+                  )
+
                   Some(
-                    stay() using modelBaseStateData replying AssetPowerUnchangedMessage(
-                      latestProvidedValues.p,
-                      latestProvidedValues.q,
-                    )
+                    stay() using modelBaseStateData
                   )
                 } else {
                   /* If the voltage is not exactly equal, continue to determine the correct reply. */
@@ -1345,7 +1356,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Determine a reply on a
-    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
+    * [[edu.ie3.simona.agent.participant2.ParticipantAgent.RequestAssetPowerMessage]]
     * by looking up the detailed simulation results, averaging them and
     * returning the equivalent state transition.
     *
@@ -1371,6 +1382,7 @@ protected trait ParticipantAgentFundamentals[
       nodalVoltage: Dimensionless,
       updatedVoltageValueStore: ValueStore[Dimensionless],
       alternativeResult: PD,
+      replyTo: TypedActorRef[ProvidedPowerResponse],
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* No fast reply possible --> Some calculations have to be made */
     mostRecentRequest match {
@@ -1405,10 +1417,12 @@ protected trait ParticipantAgentFundamentals[
                 voltageValueStore = updatedVoltageValueStore,
               )
 
-            stay() using nextStateData replying AssetPowerChangedMessage(
+            replyTo ! AssetPowerChangedMessage(
               lastResult.p,
               nextReactivePower,
             )
+
+            stay() using nextStateData
           case unexpectedStateData =>
             throw new IllegalStateException(
               s"The request reply should not be re-calculated for state data '$unexpectedStateData'"
@@ -1434,6 +1448,7 @@ protected trait ParticipantAgentFundamentals[
               nodalVoltage,
               updatedVoltageValueStore,
               alternativeResult,
+              replyTo,
             )
           case None =>
             /* There is no simulation result at all. Reply with zero power */
@@ -1442,6 +1457,7 @@ protected trait ParticipantAgentFundamentals[
               alternativeResult,
               requestTick,
               updatedVoltageValueStore,
+              replyTo,
             )
         }
     }
@@ -1565,6 +1581,7 @@ protected trait ParticipantAgentFundamentals[
       nodalVoltage: Dimensionless,
       voltageValueStore: ValueStore[Dimensionless],
       alternativeResult: PD,
+      replyTo: TypedActorRef[ProvidedPowerResponse],
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     if (relevantResults.relevantData.nonEmpty) {
       averagePowerAndStay(
@@ -1575,6 +1592,7 @@ protected trait ParticipantAgentFundamentals[
         relevantResults.windowEnd,
         nodalVoltage,
         voltageValueStore,
+        replyTo,
       )
     } else {
       log.debug(
@@ -1586,6 +1604,7 @@ protected trait ParticipantAgentFundamentals[
         alternativeResult,
         requestTick,
         voltageValueStore,
+        replyTo,
       )
     }
   }
@@ -1621,6 +1640,7 @@ protected trait ParticipantAgentFundamentals[
       windowEndTick: Long,
       nodalVoltage: Dimensionless,
       voltageValueStore: ValueStore[Dimensionless],
+      replyTo: TypedActorRef[ProvidedPowerResponse],
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     val averageResult = determineAverageResult(
       baseData,
@@ -1634,6 +1654,7 @@ protected trait ParticipantAgentFundamentals[
       averageResult,
       requestTick,
       voltageValueStore,
+      replyTo,
     )
   }
 
@@ -1722,6 +1743,7 @@ protected trait ParticipantAgentFundamentals[
       averageResult: PD,
       requestTick: Long,
       voltageValueStore: ValueStore[Dimensionless],
+      replyTo: TypedActorRef[ProvidedPowerResponse],
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     val updatedRequestValueStore =
       ValueStore.updateValueStore(
@@ -1740,7 +1762,8 @@ protected trait ParticipantAgentFundamentals[
 
     averageResult.toComplexPower match {
       case ComplexPower(p, q) =>
-        stay() using nextStateData replying AssetPowerChangedMessage(p, q)
+        replyTo ! AssetPowerChangedMessage(p, q)
+        stay() using nextStateData
     }
   }
 
