@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.system.`type`.StorageTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelInput,
@@ -81,20 +81,11 @@ class StorageModelSpec extends UnitSpec with Matchers {
 
   def buildStorageModel(
       targetSoc: Option[Double] = Option.empty
-  ): StorageModel = {
-    val runtimeConfig = new StorageRuntimeConfig(
-      calculateMissingReactivePowerWithModel = false,
-      scaling = 1d,
-      uuids = List.empty, // not used
-      initialSoc = 0d, // not used
-      targetSoc = targetSoc,
-    )
-
+  ): StorageModel =
     StorageModel.apply(
       inputModel,
-      runtimeConfig,
+      StorageRuntimeConfig(targetSoc = targetSoc),
     )
-  }
 
   "StorageModel" should {
 

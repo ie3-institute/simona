@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelInput,
@@ -34,7 +34,6 @@ import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.Kilovars
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.Behavior
@@ -65,11 +64,7 @@ class EvcsModelSpec
     EvcsModel(
       evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
       EvcsRuntimeConfig(
-        calculateMissingReactivePowerWithModel = false,
-        scaling = 1.0,
-        uuids = List.empty,
         chargingStrategy = chargingStrategy,
-        lowestEvSoc = 0.2,
       ),
     )
 

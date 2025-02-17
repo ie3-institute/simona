@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.matchers.DoubleMatchers
 import edu.ie3.util.TimeUtil
@@ -79,13 +79,7 @@ class ProfileLoadModelSpec
           (G0, 1000.0, 3.951747),
         )
       ) { (profile, sRated, expectedScalingFactor) =>
-        val config = LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
-          modelBehaviour = "profile",
-          reference = "power",
-        )
+        val config = LoadRuntimeConfig(modelBehaviour = "profile")
         val model = ProfileLoadModel(
           loadInput
             .copy()
@@ -115,9 +109,6 @@ class ProfileLoadModelSpec
         )
       ) { (profile, eConsAnnual, expectedScalingFactor, expectedSRated) =>
         val config = LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
           modelBehaviour = "profile",
           reference = "energy",
         )
@@ -146,9 +137,6 @@ class ProfileLoadModelSpec
         val input = loadInput.copy().loadprofile(profile).build()
 
         val config = LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
           modelBehaviour = "profile",
           reference = "energy",
         )
@@ -183,11 +171,7 @@ class ProfileLoadModelSpec
         val input = loadInput.copy().loadprofile(profile).build()
 
         val config = LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
           modelBehaviour = "profile",
-          reference = "power",
         )
 
         val model = ProfileLoadModel(input, config)

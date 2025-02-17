@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant2.load
 
-import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant2.ParticipantModel.{FixedState}
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.simona.test.common.UnitSpec
@@ -29,9 +29,6 @@ class FixedLoadModelSpec extends UnitSpec with LoadInputTestData {
 
       forAll(cases) { (reference, expectedPower) =>
         val config = LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
           modelBehaviour = "fixed",
           reference = reference,
         )
