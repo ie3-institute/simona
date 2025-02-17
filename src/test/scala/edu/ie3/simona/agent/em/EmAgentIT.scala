@@ -55,7 +55,6 @@ import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
-import scala.concurrent.duration.{FiniteDuration, SECONDS}
 
 class EmAgentIT
     extends ScalaTestWithActorTestKit
