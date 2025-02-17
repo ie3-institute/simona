@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.em
 
-import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EmInputTestData

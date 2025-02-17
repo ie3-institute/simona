@@ -7,7 +7,7 @@
 package edu.ie3.simona.event.listener
 
 import com.typesafe.config.ConfigValueFactory
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent.{
   CheckWindowPassed,
   Done,
@@ -48,7 +48,7 @@ class RuntimeEventListenerLoggingSpec
 
       val listenerRef = spawn(
         RuntimeEventListener(
-          SimonaConfig.Simona.Runtime.Listener(
+          RuntimeConfig.Listener(
             None,
             None,
           ),

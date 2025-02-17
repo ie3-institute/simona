@@ -12,10 +12,7 @@ import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
-  ActorExtEvDataService,
-  ActorWeatherService,
-}
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{ActorExtEvDataService, ActorWeatherService}
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.hp.HpAgent
@@ -23,16 +20,9 @@ import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant.wec.WecAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
-  ParticipantRefs,
-  SimulationParameters,
-}
-import edu.ie3.simona.agent.participant2.{
-  ParticipantAgent,
-  ParticipantAgentInit,
-}
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{ParticipantRefs, SimulationParameters}
+import edu.ie3.simona.agent.participant2.{ParticipantAgent, ParticipantAgentInit}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -83,7 +73,7 @@ class GridAgentController(
     environmentRefs: EnvironmentRefs,
     simulationStartDate: ZonedDateTime,
     simulationEndDate: ZonedDateTime,
-    participantsConfig: SimonaConfig.Simona.Runtime.Participant,
+    participantsConfig: Participant,
     outputConfig: SimonaConfig.Simona.Output.Participant,
     resolution: Long,
     listener: Iterable[ActorRef[ResultEvent]],
@@ -182,7 +172,7 @@ class GridAgentController(
     *   A map from coupling point to set of actor references
     */
   private def buildParticipantToActorRef(
-      participantsConfig: SimonaConfig.Simona.Runtime.Participant,
+      participantsConfig: Participant,
       outputConfig: SimonaConfig.Simona.Output.Participant,
       participants: Vector[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
@@ -841,7 +831,7 @@ class GridAgentController(
     */
   private def buildStorage(
       storageInput: StorageInput,
-      modelConfiguration: SimonaConfig.StorageRuntimeConfig,
+      modelConfiguration: StorageRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
