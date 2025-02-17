@@ -123,6 +123,9 @@ final case class HpModel(
     *   Last state of the heat pump
     * @param relevantData
     *   data of heat pump including
+    * @param useUpperTempBoundaryForFlexibility
+    *   determines whether the upper temperature boundary of the house will be
+    *   applied or not
     * @return
     *   Booleans if Hp can operate and can be out of operation plus the updated
     *   [[HpState]]
@@ -130,6 +133,7 @@ final case class HpModel(
   def determineState(
       lastHpState: HpState,
       relevantData: HpRelevantData,
+      useUpperTempBoundaryForFlexibility: Boolean,
   ): (Boolean, Boolean, HpState) = {
 
     // Use lastHpState and relevantData to update state of thermalGrid to the current tick
@@ -137,7 +141,7 @@ final case class HpModel(
       thermalGrid.energyDemandAndUpdatedState(
         relevantData,
         lastHpState,
-        false,
+        useUpperTempBoundaryForFlexibility,
       )
 
     // Determining the operation point and limitations at this tick
@@ -155,7 +159,7 @@ final case class HpModel(
         lastHpState,
         relevantData,
         turnOn,
-        false,
+        useUpperTempBoundaryForFlexibility,
         thermalDemandWrapper,
         currentThermalGridState,
       )
@@ -298,7 +302,7 @@ final case class HpModel(
   ): ProvideFlexOptions = {
     /* Determine the operating state in the given tick */
     val (canOperate, canBeOutOfOperation, updatedHpState)
-        : (Boolean, Boolean, HpState) = determineState(lastState, data)
+        : (Boolean, Boolean, HpState) = determineState(lastState, data, true)
 
     val lowerBoundary =
       if (canBeOutOfOperation)
