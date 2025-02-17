@@ -1,0 +1,4 @@
+type,washing_machine,dryer,dish_washer,stove,fridge,freezer,television,video_recorder,pc,telecommunication,lighting,water_heating,other_load
+flat,0.926,0.269,0.545,0.94,1.088,0.368,1.354,0.807,1.453,2.535,1.5,0.1,1
+house,1.032,0.561,0.873,1.043,1.393,0.817,1.88,1.023,1.91,3.53,2.5,0.3,1.5
+

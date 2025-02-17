@@ -699,7 +699,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           "eBeamSSol",
         ),
         (40d, 0d, 0d, -11.6d, -37.5d, 37.0d,
-          67.777778d), // flat surface => eBeamS = eBeamH
+          67.777778d), // by_Type.csv surface => eBeamS = eBeamH
         (40d, 60d, 0d, -11.6d, -37.5d, 37.0d,
           112.84217113154841369d), // 2011-02-20T09:00:00
         (40d, 60d, 0d, -11.6d, -78.0d, 75.0d, 210.97937494450755d), // sunrise

@@ -1,0 +1,14 @@
+appliance_category,usage_probability
+washing_machine,0.6
+lighting,5
+dish_washer,0.77
+video_recorder,0.15
+telecommunication,1
+pc,1
+fridge,1
+television,2.33
+freezer,1
+dryer,0.44
+stove,1
+water_heating,1
+other_load,1
