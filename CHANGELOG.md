@@ -129,6 +129,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhance EmAggregate of SelfOpt to cope with other targetLimits [#1131](https://github.com/ie3-institute/simona/issues/1131)
 - Switched to `pureconfig` [#608](https://github.com/ie3-institute/simona/issues/608)
 - Removing generated methods and cleaning up in config [#1170](https://github.com/ie3-institute/simona/issues/1170)
+- Changed `pvInput` values in `PvInputTestData` to more realistic values [#1144](https://github.com/ie3-institute/simona/issues/1144)
 - Refactor `RuntimeConfig` [#1172](https://github.com/ie3-institute/simona/issues/1172)
 
 ### Fixed
@@ -177,6 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename `PrimaryDataWithApparentPower` to `PrimaryDataWithComplexPower` [#1140](https://github.com/ie3-institute/simona/issues/1140)
 - Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
 - Move `ScheduleServiceActivation` out of `RegistrationResponseMessage` [#1143](https://github.com/ie3-institute/simona/issues/1143)
+- Check for runningHp when handling infeed to thermalGrid [#1167](https://github.com/ie3-institute/simona/issues/1167)
 
 ## [3.0.0] - 2023-08-07
 
