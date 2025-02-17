@@ -229,7 +229,7 @@ final case class ThermalHouse(
     * @return
     *   Updated state and the tick in which the next threshold is reached
     */
-  def determineState(
+  def updateState(
       relevantData: HpRelevantData,
       state: ThermalHouseState,
       lastAmbientTemperature: Temperature,

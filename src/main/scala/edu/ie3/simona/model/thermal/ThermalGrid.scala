@@ -76,7 +76,7 @@ final case class ThermalGrid(
             else thermalHouse.targetTemperature
 
           val (updatedHouseState, _) =
-            thermalHouse.determineState(
+            thermalHouse.updateState(
               relevantData,
               lastHouseState,
               lastHpState.ambientTemperature.getOrElse(
@@ -523,7 +523,7 @@ final case class ThermalGrid(
             thermalHouse.upperBoundaryTemperature
           else thermalHouse.targetTemperature
 
-        val (newState, threshold) = thermalHouse.determineState(
+        val (newState, threshold) = thermalHouse.updateState(
           relevantData,
           lastHouseState,
           lastAmbientTemperature,
@@ -538,7 +538,7 @@ final case class ThermalGrid(
           )
         ) {
           val (fullHouseState, maybeFullHouseThreshold) =
-            thermalHouse.determineState(
+            thermalHouse.updateState(
               relevantData,
               lastHouseState,
               lastAmbientTemperature,
@@ -641,7 +641,7 @@ final case class ThermalGrid(
               thermalHouse.upperBoundaryTemperature
             else thermalHouse.targetTemperature
 
-          thermalHouse.determineState(
+          thermalHouse.updateState(
             relevantData,
             houseState,
             lastAmbientTemperature,
@@ -749,7 +749,7 @@ final case class ThermalGrid(
           thermalHouse.upperBoundaryTemperature
         else thermalHouse.targetTemperature
 
-      val revisedHouseState = thermalHouse.determineState(
+      val revisedHouseState = thermalHouse.updateState(
         relevantData,
         formerHouseState.getOrElse(
           throw new InconsistentStateException(
