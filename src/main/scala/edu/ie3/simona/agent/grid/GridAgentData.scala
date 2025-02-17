@@ -11,8 +11,13 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.{
+  buildInferiorGridRefs,
+  buildSuperiorGridRefs,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
@@ -28,6 +33,8 @@ sealed trait GridAgentData
 /** Contains all state data of [[GridAgent]]
   */
 object GridAgentData {
+
+  private[grid] trait GridAgentDataInternal extends GridAgentData
 
   /** Class holding some [[GridAgent]] values that are immutable.
     * @param environmentRefs
@@ -130,8 +137,11 @@ object GridAgentData {
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,
+        congestionManagementParams: CongestionManagementParams,
         actorName: String,
     ): GridAgentBaseData = {
+      val gridEnv =
+        GridEnvironment(gridModel, subgridGateToActorRef, nodeToAssetAgents)
 
       val currentSweepNo = 0 // initialization is assumed to be always @ sweep 0
       val sweepValueStores: Map[Int, SweepValueStore] = Map
@@ -142,9 +152,11 @@ object GridAgentData {
       val inferiorGridGateToActorRef = subgridGateToActorRef.filter {
         case (gate, _) => inferiorGridGates.contains(gate)
       }
+
       GridAgentBaseData(
-        GridEnvironment(gridModel, subgridGateToActorRef, nodeToAssetAgents),
+        gridEnv,
         powerFlowParams,
+        congestionManagementParams,
         currentSweepNo,
         ReceivedValuesStore.empty(
           nodeToAssetAgents,
@@ -155,6 +167,37 @@ object GridAgentData {
         actorName,
       )
     }
+
+    def buildInferiorGridRefs(
+        inferiorGridGates: Vector[SubGridGate],
+        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+    ): Map[ActorRef[GridAgent.Request], Seq[UUID]] =
+      inferiorGridGates
+        .map { inferiorGridGate =>
+          subgridGateToActorRef(
+            inferiorGridGate
+          ) -> inferiorGridGate.superiorNode.getUuid
+        }
+        .groupMap {
+          // Group the gates by target actor, so that only one request is sent per grid agent
+          case (inferiorGridAgentRef, _) =>
+            inferiorGridAgentRef
+        } { case (_, inferiorGridGates) =>
+          inferiorGridGates
+        }
+        .map { case (inferiorGridAgentRef, inferiorGridGateNodes) =>
+          (inferiorGridAgentRef, inferiorGridGateNodes.distinct)
+        }
+
+    def buildSuperiorGridRefs(
+        superiorGridGates: Vector[SubGridGate],
+        subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+    ): Map[ActorRef[GridAgent.Request], Seq[UUID]] =
+      superiorGridGates
+        .groupBy(subGridGateToActorRef(_))
+        .map { case (superiorGridAgent, gridGates) =>
+          (superiorGridAgent, gridGates.map(_.superiorNode.getUuid))
+        }
 
     /** Constructs a new object of type [[GridAgentBaseData]] with the same data
       * as the provided one but with an empty [[ReceivedValuesStore]], an empty
@@ -188,9 +231,7 @@ object GridAgentData {
         currentSweepNo = 0,
         sweepValueStores = Map.empty[Int, SweepValueStore],
       )
-
     }
-
   }
 
   /** The base aka default data of a [[GridAgent]]. Contains information on the
@@ -203,6 +244,8 @@ object GridAgentData {
     *   the grid environment
     * @param powerFlowParams
     *   power flow configuration parameters
+    * @param congestionManagementParams
+    *   parameters for the congestions management
     * @param currentSweepNo
     *   the current sweep number
     * @param receivedValueStore
@@ -213,6 +256,7 @@ object GridAgentData {
   final case class GridAgentBaseData private (
       gridEnv: GridEnvironment,
       powerFlowParams: PowerFlowParams,
+      congestionManagementParams: CongestionManagementParams,
       currentSweepNo: Int,
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
@@ -238,6 +282,46 @@ object GridAgentData {
           .forall(_.isDefined)
 
       assetAndGridPowerValuesReady & slackVoltageValuesReady
+    }
+
+    private var _inferiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] =
+      buildInferiorGridRefs(inferiorGridGates, gridEnv.subgridGateToActorRef)
+
+    private var _superiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] =
+      buildSuperiorGridRefs(superiorGridGates, gridEnv.subgridGateToActorRef)
+
+    /** @param rebuild
+      *   true, if the actor ref should be updated
+      * @return
+      *   a set of actor refs to all inferior grids
+      */
+    def inferiorGridRefs(
+        rebuild: Boolean = false
+    ): Map[ActorRef[GridAgent.Request], Seq[UUID]] = {
+      if (rebuild) {
+        _inferiorGridRefs = buildInferiorGridRefs(
+          inferiorGridGates,
+          gridEnv.subgridGateToActorRef,
+        )
+      }
+      _inferiorGridRefs
+    }
+
+    /** @param rebuild
+      *   true, if the actor ref should be updated
+      * @return
+      *   a set of actor refs to all superior grids with the corresponding
+      *   superior nodes
+      */
+    def superiorGridRefs(
+        rebuild: Boolean = false
+    ): Map[ActorRef[GridAgent.Request], Seq[UUID]] = {
+      if (rebuild) {
+        _superiorGridRefs =
+          buildSuperiorGridRefs(subgridGates, gridEnv.subgridGateToActorRef)
+      }
+
+      _superiorGridRefs
     }
 
     /** Update this [[GridAgentBaseData]] with [[ReceivedPowerValues]] and

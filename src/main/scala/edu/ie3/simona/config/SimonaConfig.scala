@@ -140,6 +140,7 @@ object SimonaConfig {
       )
 
   final case class GridOutputConfig(
+      congestions: Boolean = false,
       lines: Boolean = false,
       nodes: Boolean = false,
       notifier: String,
@@ -276,6 +277,8 @@ object SimonaConfig {
       )
 
   final case class Simona(
+      congestionManagement: Simona.CongestionManagement =
+        Simona.CongestionManagement(),
       control: Option[Simona.Control] = None,
       event: Simona.Event = Simona.Event(),
       gridConfig: Simona.GridConfig = Simona.GridConfig(),
@@ -287,6 +290,11 @@ object SimonaConfig {
       time: Simona.Time = Simona.Time(),
   )
   object Simona {
+    final case class CongestionManagement(
+        enableDetection: Boolean = false,
+        timeout: Duration = Duration.ofSeconds(30),
+    )
+
     final case class Control(
         transformer: List[TransformerControlGroup] = List.empty
     )

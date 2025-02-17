@@ -298,10 +298,11 @@ object ResultEventListener extends Transformer3wResultSupport {
               lineResults,
               transformer2wResults,
               transformer3wResults,
+              congestionResults,
             ),
           ) =>
         val updatedBaseData =
-          (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
+          (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults ++ congestionResults)
             .foldLeft(baseData) {
               case (currentBaseData, resultEntity: ResultEntity) =>
                 handleResult(resultEntity, currentBaseData, ctx.log)

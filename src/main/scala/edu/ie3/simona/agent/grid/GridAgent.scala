@@ -13,10 +13,19 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentConstantData,
   GridAgentInitData,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  CreateGridAgent,
+  WrappedActivation,
+  WrappedFailure,
+}
+import edu.ie3.simona.agent.grid.congestion.{
+  CongestionManagementParams,
+  DCMAlgorithm,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.Activation
@@ -25,16 +34,26 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
+import org.apache.pekko.actor.typed.scaladsl.{
+  ActorContext,
+  Behaviors,
+  StashBuffer,
+}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
+import org.apache.pekko.util.Timeout
+import org.slf4j.Logger
 
-import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
+import java.time.{Duration, ZonedDateTime}
 import java.util.UUID
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
-object GridAgent extends DBFSAlgorithm {
+object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
   /** Trait for requests made to the [[GridAgent]] */
   sealed trait Request
@@ -44,6 +63,10 @@ object GridAgent extends DBFSAlgorithm {
     */
   private[grid] trait InternalRequest extends Request
   private[grid] trait InternalReply extends Request
+  private[grid] trait InternalReplyWithSender[T] extends InternalReply {
+    def sender: ActorRef[GridAgent.Request]
+    def value: T
+  }
 
   def apply(
       environmentRefs: EnvironmentRefs,
@@ -120,6 +143,8 @@ object GridAgent extends DBFSAlgorithm {
 
       ctx.log.debug("Received InitializeTrigger.")
 
+      val cfg = constantData.simonaConfig.simona
+
       // build the assets concurrently
       val subGridContainer = gridAgentInitData.subGridContainer
       val refSystem = gridAgentInitData.refSystem
@@ -134,10 +159,10 @@ object GridAgent extends DBFSAlgorithm {
         refSystem,
         gridAgentInitData.voltageLimits,
         TimeUtil.withDefaults.toZonedDateTime(
-          constantData.simonaConfig.simona.time.startDateTime
+          cfg.time.startDateTime
         ),
         TimeUtil.withDefaults.toZonedDateTime(
-          constantData.simonaConfig.simona.time.endDateTime
+          cfg.time.endDateTime
         ),
         simonaConfig,
       )
@@ -148,9 +173,9 @@ object GridAgent extends DBFSAlgorithm {
           constantData.environmentRefs,
           constantData.simStartTime,
           TimeUtil.withDefaults
-            .toZonedDateTime(constantData.simonaConfig.simona.time.endDateTime),
-          constantData.simonaConfig.simona.runtime.participant,
-          constantData.simonaConfig.simona.output.participant,
+            .toZonedDateTime(cfg.time.endDateTime),
+          cfg.runtime.participant,
+          cfg.output.participant,
           constantData.resolution,
           constantData.listener,
           ctx.log,
@@ -180,11 +205,15 @@ object GridAgent extends DBFSAlgorithm {
         gridAgentInitData.superiorGridNodeUuids,
         gridAgentInitData.inferiorGridGates,
         PowerFlowParams(
-          constantData.simonaConfig.simona.powerflow.maxSweepPowerDeviation,
-          constantData.simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
-          constantData.simonaConfig.simona.powerflow.newtonraphson.iterations,
-          constantData.simonaConfig.simona.powerflow.sweepTimeout,
-          constantData.simonaConfig.simona.powerflow.stopOnFailure,
+          cfg.powerflow.maxSweepPowerDeviation,
+          cfg.powerflow.newtonraphson.epsilon.toVector.sorted,
+          cfg.powerflow.newtonraphson.iterations,
+          cfg.powerflow.sweepTimeout,
+          cfg.powerflow.stopOnFailure,
+        ),
+        CongestionManagementParams(
+          cfg.congestionManagement.enableDetection,
+          cfg.congestionManagement.timeout,
         ),
         SimonaActorNaming.actorName(ctx.self),
       )
@@ -230,6 +259,160 @@ object GridAgent extends DBFSAlgorithm {
       Behaviors.same
   }
 
+  /** Behavior of the [[GridAgent]] after the powerflow is finished.
+    * @param gridAgentBaseData
+    *   state data of the actor
+    * @param currentTick
+    *   the current tick in the simulation
+    * @param ctx
+    *   actor context
+    * @param constantData
+    *   immutable [[GridAgent]] values
+    * @param buffer
+    *   for [[GridAgent.Request]]s
+    * @return
+    *   a [[Behavior]]
+    */
+  private[grid] def afterPowerFlow(
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
+      ctx: ActorContext[Request],
+  )(implicit
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[Request],
+  ): Behavior[Request] = {
+    ctx.log.debug(
+      "Calculate results ..."
+    )
+    val results: Option[PowerFlowResultEvent] =
+      gridAgentBaseData.sweepValueStores.lastOption.map {
+        case (_, valueStore) =>
+          createResultModels(
+            gridAgentBaseData.gridEnv.gridModel,
+            valueStore,
+          )(currentTick.toDateTime(constantData.simStartTime), ctx.log)
+      }
+
+    // check if congestion management is enabled
+    if (gridAgentBaseData.congestionManagementParams.detectionEnabled) {
+      startCongestionManagement(gridAgentBaseData, currentTick, results, ctx)
+    } else {
+      // clean up agent and go back to idle
+      gotoIdle(gridAgentBaseData, currentTick, results, ctx)
+    }
+  }
+
+  /** Method that will clean up the [[GridAgentBaseData]] and go to the
+    * [[idle()]] state.
+    * @param gridAgentBaseData
+    *   state data of the actor
+    * @param currentTick
+    *   the current tick in the simulation
+    * @param results
+    *   option for the last power flow, that should be written
+    * @param ctx
+    *   actor context
+    * @param constantData
+    *   immutable [[GridAgent]] values
+    * @param buffer
+    *   for [[GridAgent.Request]]s
+    * @return
+    *   a [[Behavior]]
+    */
+  private[grid] def gotoIdle(
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
+      results: Option[PowerFlowResultEvent],
+      ctx: ActorContext[Request],
+  )(implicit
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[Request] = {
+
+    // notify listener about the results
+    results.foreach(constantData.notifyListeners)
+
+    // do my cleanup stuff
+    ctx.log.debug("Doing my cleanup stuff")
+
+    // / clean copy of the gridAgentBaseData
+    val cleanedGridAgentBaseData = GridAgentBaseData.clean(
+      gridAgentBaseData,
+      gridAgentBaseData.superiorGridNodeUuids,
+      gridAgentBaseData.inferiorGridGates,
+    )
+
+    // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
+    constantData.environmentRefs.scheduler ! Completion(
+      constantData.activationAdapter,
+      Some(currentTick + constantData.resolution),
+    )
+
+    // return to Idle
+    buffer.unstashAll(idle(cleanedGridAgentBaseData))
+  }
+
+  /** Method to ask all inferior grids.
+    *
+    * @param inferiorGridRefs
+    *   a map containing a mapping from [[ActorRef]]s to corresponding [[UUID]]s
+    *   of inferior nodes
+    * @param askMsgBuilder
+    *   function to build the asked message
+    * @param resMsgBuilder
+    *   function to build the returned message
+    * @param ctx
+    *   actor context to use
+    * @tparam T
+    *   type of data
+    */
+  private[grid] def askInferior[T](
+      inferiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]],
+      askMsgBuilder: ActorRef[GridAgent.Request] => Request,
+      resMsgBuilder: Vector[(ActorRef[GridAgent.Request], T)] => InternalReply,
+      ctx: ActorContext[GridAgent.Request],
+  )(implicit timeout: Duration): Unit = {
+    if (inferiorGridRefs.nonEmpty) {
+      // creating implicit vals
+      implicit val ec: ExecutionContext = ctx.executionContext
+      implicit val scheduler: Scheduler = ctx.system.scheduler
+      implicit val askTimeout: Timeout = Timeout.create(timeout)
+
+      // asking process
+      val future = Future
+        .sequence(
+          inferiorGridRefs.map { case (inferiorGridAgentRef, _) =>
+            inferiorGridAgentRef
+              .ask(askMsgBuilder)
+              .map { case response: InternalReplyWithSender[T] =>
+                (response.sender, response.value)
+              }
+          }.toVector
+        )
+        .map(resMsgBuilder)
+      pipeToSelf(future, ctx)
+    }
+  }
+
+  /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
+    * itself. If the future is a [[Success]] the message is sent, else a
+    * [[WrappedFailure]] with the thrown error is sent.
+    *
+    * @param future
+    *   future message that should be sent to the agent after it was processed
+    * @param ctx
+    *   [[ActorContext]] of the receiving actor
+    */
+  private[grid] def pipeToSelf(
+      future: Future[GridAgent.Request],
+      ctx: ActorContext[GridAgent.Request],
+  ): Unit = {
+    ctx.pipeToSelf[GridAgent.Request](future) {
+      case Success(value)     => value
+      case Failure(exception) => WrappedFailure(exception)
+    }
+  }
+
   private def failFast(
       gridAgentInitData: GridAgentInitData,
       actorName: String,
@@ -242,5 +425,12 @@ object GridAgent extends DBFSAlgorithm {
         s"$actorName has neither superior nor inferior grids! This can either " +
           s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
       )
+  }
+
+  private[grid] def unsupported(msg: Request, log: Logger)(implicit
+      buffer: StashBuffer[GridAgent.Request]
+  ): Unit = {
+    log.debug(s"Received unsupported msg: $msg. Stash away!")
+    buffer.stash(msg)
   }
 }

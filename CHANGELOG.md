@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhance exception message in case of InvalidGridException [#1124](https://github.com/ie3-institute/simona/issues/1124)
 - Integration test for thermal grids [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Added `VoltageLimits` [#1133](https://github.com/ie3-institute/simona/issues/1133)
+- Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
