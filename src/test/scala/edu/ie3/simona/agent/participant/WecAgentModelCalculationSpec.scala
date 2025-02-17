@@ -25,14 +25,15 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 }
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
   RequestAssetPowerMessage,
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.RuntimeConfig.WecRuntimeConfig
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel
@@ -42,7 +43,6 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
   RegisterForWeatherMessage,
   WeatherData,
 }
@@ -440,7 +440,7 @@ class WecAgentModelCalculationSpec
 
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           900L,
           weatherService.ref,
           weatherData,
@@ -593,7 +593,7 @@ class WecAgentModelCalculationSpec
 
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           900L,
           weatherService.ref,
           weatherData,
@@ -690,7 +690,7 @@ class WecAgentModelCalculationSpec
       )
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           900L,
           weatherService.ref,
           weatherData,
@@ -747,7 +747,7 @@ class WecAgentModelCalculationSpec
       /* ... for tick 900 */
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           900L,
           weatherService.ref,
           WeatherData(
@@ -765,7 +765,7 @@ class WecAgentModelCalculationSpec
       /* ... for tick 1800 */
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           1800L,
           weatherService.ref,
           WeatherData(
@@ -783,7 +783,7 @@ class WecAgentModelCalculationSpec
       /* ... for tick 2700 */
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           2700L,
           weatherService.ref,
           WeatherData(

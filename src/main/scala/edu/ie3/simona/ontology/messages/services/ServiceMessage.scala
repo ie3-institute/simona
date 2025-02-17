@@ -48,19 +48,4 @@ object ServiceMessage {
       unlockKey: ScheduleKey,
   )
 
-  /** Actual provision of data
-    *
-    * @tparam D
-    *   type of data that is delivered
-    */
-  trait ProvisionMessage[D <: Data] extends ServiceMessage {
-    val tick: Long
-    val serviceRef: ActorRef
-    val data: D
-
-    /** Next tick at which data could arrive. If None, no data is expected for
-      * the rest of the simulation
-      */
-    val nextDataTick: Option[Long]
-  }
 }

@@ -13,7 +13,10 @@ import edu.ie3.simona.agent.participant.data.Data.{
   PrimaryData,
   PrimaryDataExtra,
 }
-import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, LoadRuntimeConfig}
+import edu.ie3.simona.config.RuntimeConfig.{
+  BaseRuntimeConfig,
+  LoadRuntimeConfig,
+}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,

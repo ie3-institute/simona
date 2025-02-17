@@ -26,6 +26,7 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModel
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
   RequestAssetPowerMessage,
@@ -444,7 +445,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0L,
           evService.ref,
           arrivingEvsData,
@@ -606,7 +607,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0L,
           evService.ref,
           arrivingEvsData,
@@ -766,7 +767,7 @@ class EvcsAgentModelCalculationSpec
       /* Send ev for this tick */
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0,
           evService.ref,
           ArrivingEvs(Seq(EvModelWrapper(evA))),
@@ -832,7 +833,7 @@ class EvcsAgentModelCalculationSpec
       /* Send ev for this tick */
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0,
           evService.ref,
           ArrivingEvs(Seq(EvModelWrapper(evA))),
@@ -849,7 +850,7 @@ class EvcsAgentModelCalculationSpec
       /* Send empty EV list for this tick */
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           900,
           evService.ref,
           ArrivingEvs(Seq.empty),
@@ -911,7 +912,7 @@ class EvcsAgentModelCalculationSpec
       /* ... for tick 0 */
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0,
           evService.ref,
           ArrivingEvs(
@@ -945,7 +946,7 @@ class EvcsAgentModelCalculationSpec
       // arrivals second
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           3600,
           evService.ref,
           ArrivingEvs(
@@ -979,7 +980,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           7200,
           evService.ref,
           ArrivingEvs(
@@ -1333,7 +1334,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           900,
           evService.ref,
           ArrivingEvs(Seq(ev900)),
@@ -1450,7 +1451,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           4500,
           evService.ref,
           ArrivingEvs(Seq(ev4500)),
@@ -1580,7 +1581,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           11700,
           evService.ref,
           ArrivingEvs(Seq(ev11700)),
@@ -2100,7 +2101,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0,
           evService.ref,
           ArrivingEvs(Seq.empty),
@@ -2120,7 +2121,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           900,
           evService.ref,
           ArrivingEvs(Seq(ev900)),
@@ -2148,7 +2149,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           1800,
           evService.ref,
           ArrivingEvs(Seq(ev1800)),
@@ -2187,7 +2188,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           2700,
           evService.ref,
           ArrivingEvs(Seq(ev2700)),

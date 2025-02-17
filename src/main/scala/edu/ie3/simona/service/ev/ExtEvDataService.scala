@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.service.ev
 
-import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationSuccessfulMessage
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
@@ -319,7 +322,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         val evs =
           allArrivingEvs.getOrElse(evcs, Seq.empty)
 
-        actor ! ProvideEvDataMessage(
+        actor ! DataProvision(
           tick,
           self,
           ArrivingEvs(evs.map(EvModelWrapper.apply)),

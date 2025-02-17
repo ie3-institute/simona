@@ -20,6 +20,7 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModel
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
   RequestAssetPowerMessage,
@@ -36,7 +37,6 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
   RegisterForWeatherMessage,
   WeatherData,
 }
@@ -462,7 +462,7 @@ class HpAgentModelCalculationSpec
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
+        DataProvision(0L, weatherService.ref, weatherData, Some(3600L)),
       )
 
       /* Find yourself in corresponding state and state data */
@@ -619,7 +619,7 @@ class HpAgentModelCalculationSpec
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
+        DataProvision(0L, weatherService.ref, weatherData, Some(3600L)),
       )
 
       /* Expect confirmation */
@@ -730,7 +730,7 @@ class HpAgentModelCalculationSpec
       )
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           3600L,
           weatherService.ref,
           weatherData,
@@ -787,7 +787,7 @@ class HpAgentModelCalculationSpec
       /* ... for tick 0 */
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           0L,
           weatherService.ref,
           WeatherData(
@@ -805,7 +805,7 @@ class HpAgentModelCalculationSpec
       /* ... for tick 3600 */
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           3600L,
           weatherService.ref,
           WeatherData(
@@ -823,7 +823,7 @@ class HpAgentModelCalculationSpec
       /* ... for tick 7200 */
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           7200L,
           weatherService.ref,
           WeatherData(

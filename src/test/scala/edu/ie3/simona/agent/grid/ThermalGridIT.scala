@@ -10,6 +10,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
@@ -26,7 +27,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
   RegisterForWeatherMessage,
   WeatherData,
 }
@@ -160,7 +160,7 @@ class ThermalGridIT
       heatPumpAgent ! Activation(0)
 
       weatherDependentAgents.foreach {
-        _ ! ProvideWeatherMessage(
+        _ ! DataProvision(
           0,
           weatherService.ref.toClassic,
           WeatherData(
@@ -285,7 +285,7 @@ class ThermalGridIT
       heatPumpAgent ! Activation(7200)
 
       weatherDependentAgents.foreach {
-        _ ! ProvideWeatherMessage(
+        _ ! DataProvision(
           7200,
           weatherService.ref.toClassic,
           WeatherData(
@@ -410,7 +410,7 @@ class ThermalGridIT
       heatPumpAgent ! Activation(28800)
 
       weatherDependentAgents.foreach {
-        _ ! ProvideWeatherMessage(
+        _ ! DataProvision(
           28800,
           weatherService.ref.toClassic,
           WeatherData(
@@ -534,7 +534,7 @@ class ThermalGridIT
       heatPumpAgent ! Activation(45000)
 
       weatherDependentAgents.foreach {
-        _ ! ProvideWeatherMessage(
+        _ ! DataProvision(
           45000,
           weatherService.ref.toClassic,
           WeatherData(
@@ -661,7 +661,7 @@ class ThermalGridIT
       heatPumpAgent ! Activation(57600)
 
       weatherDependentAgents.foreach {
-        _ ! ProvideWeatherMessage(
+        _ ! DataProvision(
           57600,
           weatherService.ref.toClassic,
           WeatherData(

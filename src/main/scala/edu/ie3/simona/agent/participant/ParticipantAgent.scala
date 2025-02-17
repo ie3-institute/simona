@@ -58,10 +58,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   IssueFlexControl,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  ProvisionMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
@@ -354,7 +351,7 @@ abstract class ParticipantAgent[
       )(stateData.baseStateData.outputConfig)
 
     case Event(
-          msg: ProvisionMessage[_],
+          msg: DataProvision[_],
           stateData @ DataCollectionStateData(
             baseStateData: BaseStateData[PD],
             data,
@@ -477,7 +474,7 @@ abstract class ParticipantAgent[
       stash()
       stay()
 
-    case Event(_: ProvisionMessage[_], _) | Event(Activation(_), _) =>
+    case Event(_: DataProvision[_], _) | Event(Activation(_), _) =>
       /* I got faced to new data, also I'm not ready to handle it, yet OR I got asked to do something else, while I'm
        * still busy, I will put it aside and answer it later */
       stash()

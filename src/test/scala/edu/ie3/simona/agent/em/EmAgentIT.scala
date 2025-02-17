@@ -14,6 +14,7 @@ import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
@@ -28,7 +29,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
   RegisterForWeatherMessage,
   WeatherData,
 }
@@ -120,10 +120,7 @@ class EmAgentIT
             initStateData = ParticipantInitializeStateData(
               loadInput,
               LoadRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                modelBehaviour = "fix",
-                reference = "power",
-                uuids = List.empty,
+                calculateMissingReactivePowerWithModel = true
               ),
               primaryServiceProxy.ref.toClassic,
               None,
@@ -263,7 +260,7 @@ class EmAgentIT
 
         emAgentActivation ! Activation(0)
 
-        pvAgent ! ProvideWeatherMessage(
+        pvAgent ! DataProvision(
           0,
           weatherService.ref.toClassic,
           WeatherData(
@@ -299,7 +296,7 @@ class EmAgentIT
 
         emAgentActivation ! Activation(7200)
 
-        pvAgent ! ProvideWeatherMessage(
+        pvAgent ! DataProvision(
           7200,
           weatherService.ref.toClassic,
           WeatherData(
@@ -355,7 +352,7 @@ class EmAgentIT
 
         // send weather data before activation, which can happen
         // it got cloudy now...
-        pvAgent ! ProvideWeatherMessage(
+        pvAgent ! DataProvision(
           14400,
           weatherService.ref.toClassic,
           WeatherData(
@@ -411,10 +408,7 @@ class EmAgentIT
             initStateData = ParticipantInitializeStateData(
               loadInput,
               LoadRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                modelBehaviour = "fix",
-                reference = "power",
-                uuids = List.empty,
+                calculateMissingReactivePowerWithModel = true
               ),
               primaryServiceProxy.ref.toClassic,
               None,
@@ -570,7 +564,7 @@ class EmAgentIT
         emAgentActivation ! Activation(0)
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             0,
             weatherService.ref.toClassic,
             WeatherData(
@@ -608,7 +602,7 @@ class EmAgentIT
         emAgentActivation ! Activation(7200)
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             7200,
             weatherService.ref.toClassic,
             WeatherData(
@@ -647,7 +641,7 @@ class EmAgentIT
 
         // it got cloudy now...
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             14400,
             weatherService.ref.toClassic,
             WeatherData(
@@ -685,7 +679,7 @@ class EmAgentIT
         emAgentActivation ! Activation(21600)
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             21600,
             weatherService.ref.toClassic,
             WeatherData(

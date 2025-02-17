@@ -7,7 +7,10 @@
 package edu.ie3.simona.service.ev
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationSuccessfulMessage
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
@@ -639,13 +642,13 @@ class ExtEvDataServiceSpec
       // we trigger ev service
       scheduler.send(evService, Activation(tick))
 
-      val evsMessage1 = evcs1.expectMsgType[ProvideEvDataMessage]
+      val evsMessage1 = evcs1.expectMsgType[DataProvision[_]]
       evsMessage1.tick shouldBe tick
       evsMessage1.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evA))
       )
 
-      val evsMessage2 = evcs2.expectMsgType[ProvideEvDataMessage]
+      val evsMessage2 = evcs2.expectMsgType[DataProvision[_]]
       evsMessage2.tick shouldBe tick
       evsMessage2.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evB))
@@ -713,7 +716,7 @@ class ExtEvDataServiceSpec
       // we trigger ev service
       scheduler.send(evService, Activation(tick))
 
-      val evsMessage1 = evcs1.expectMsgType[ProvideEvDataMessage]
+      val evsMessage1 = evcs1.expectMsgType[DataProvision[_]]
       evsMessage1.tick shouldBe tick
       evsMessage1.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evA))

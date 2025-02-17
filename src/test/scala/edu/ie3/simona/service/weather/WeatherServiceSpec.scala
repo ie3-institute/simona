@@ -9,6 +9,7 @@ package edu.ie3.simona.service.weather
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
@@ -180,7 +181,7 @@ class WeatherServiceSpec
       scheduler.expectMsg(Completion(weatherActor.toTyped, Some(3600)))
 
       expectMsg(
-        ProvideWeatherMessage(
+        DataProvision(
           0,
           weatherActor,
           WeatherData(
@@ -202,7 +203,7 @@ class WeatherServiceSpec
       scheduler.expectMsg(Completion(weatherActor.toTyped))
 
       expectMsg(
-        ProvideWeatherMessage(
+        DataProvision(
           3600,
           weatherActor,
           WeatherData(
