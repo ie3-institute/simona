@@ -11,7 +11,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.config.SimonaConfig.{
+import edu.ie3.simona.config.RuntimeConfig.{
   EmRuntimeConfig,
   HpRuntimeConfig,
   PvRuntimeConfig,
