@@ -230,6 +230,8 @@ final case class HpModel(
     *   applied or not
     * @param demandWrapper
     *   holds the thermal demands of the thermal units (house, storage)
+    * @param currentThermalGridState
+    *   Current state of the thermalGrid
     * @return
     *   next [[HpState]]
     */
@@ -241,10 +243,6 @@ final case class HpModel(
       demandWrapper: ThermalDemandWrapper,
       currentThermalGridState: ThermalGridState,
   ): HpState = {
-    val lastStateStorage = lastState.thermalGridState.storageState
-      // Todo: Maybe throw exception would be a better option here?
-      .getOrElse(ThermalStorageState(-1, zeroKWh, zeroKW))
-
     val currentEnergyOfThermalStorage = currentThermalGridState.storageState
       .map(_.storedEnergy)
       .getOrElse(zeroKWh)
@@ -252,9 +250,9 @@ final case class HpModel(
     val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
       if (isRunning)
         (pRated, pThermal, pThermal)
-      // If the has demand and storage isn't empty, we can heat the house from storage.
+      // If the house has demand and storage isn't empty, we can heat the house from storage.
       else if (
-        currentEnergyOfThermalStorage > zeroKWh && lastStateStorage.storedEnergy > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand
+        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand
       )
         (
           zeroKW,
