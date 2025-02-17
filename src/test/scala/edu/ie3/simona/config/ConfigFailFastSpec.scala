@@ -284,6 +284,138 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
       }
 
+      "A configuration with faulty voltage limit parameters" should {
+        val checkVoltageLimits =
+          PrivateMethod[Unit](Symbol("checkVoltageLimits"))
+
+        "throw an InvalidConfigParametersException when gridIds and voltLvls are empty" in {
+
+          val voltageLimitsConfigAllEmpty = ConfigFactory.parseString(
+            "simona.gridConfig.voltageLimits = [{vMin=\"0.9\", vMax=\"1.1\"}]"
+          )
+          val faultyConfig =
+            voltageLimitsConfigAllEmpty.withFallback(typesafeConfig).resolve()
+          val faultySimonaConfig = SimonaConfig(faultyConfig)
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast.check(faultySimonaConfig)
+          }.getMessage shouldBe "The provided values for voltLvls and gridIds are empty! " +
+            "At least one of these optional parameters has to be provided for a valid voltage limit! " +
+            "Provided voltage limit is: VoltageLimitsConfig(None,1.1,0.9,None)."
+
+        }
+
+        "throw an InvalidConfigParametersException when the gridId is malformed" in {
+
+          val malformedGridIds = List("10--100", "MV", "10..100")
+
+          malformedGridIds.foreach(malformedGridId => {
+
+            val voltageLimitsConfig =
+              ConfigFactory.parseString(s"""simona.gridConfig.voltageLimits = [
+                                           |  {
+                                           |   vMin="0.9",
+                                           |   vMax="1.1",
+                                           |   gridIds = [$malformedGridId]
+                                           |   }
+                                           |]""".stripMargin)
+            val faultyConfig =
+              voltageLimitsConfig.withFallback(typesafeConfig).resolve()
+            val faultySimonaConfig: List[SimonaConfig] =
+              List(SimonaConfig(faultyConfig))
+
+            intercept[InvalidConfigParameterException] {
+              faultySimonaConfig.foreach(conf =>
+                conf.simona.gridConfig.voltageLimits.foreach(refSystem =>
+                  ConfigFailFast invokePrivate checkVoltageLimits(refSystem)
+                )
+              )
+            }.getMessage shouldBe s"The provided gridId $malformedGridId is malformed!"
+
+          })
+        }
+
+        "throw an InvalidConfigParameterException if the nominal voltage of the voltage level is malformed" in {
+
+          val voltageLimitsConfig =
+            ConfigFactory.parseString("""simona.gridConfig.voltageLimits = [
+                                        |  {
+                                        |   vMin="0.9",
+                                        |   vMax="1.1",
+                                        |   voltLvls = [{id = "1", vNom = "foo"}]
+                                        |   }
+                                        |]""".stripMargin)
+          val faultyConfig =
+            voltageLimitsConfig.withFallback(typesafeConfig).resolve()
+          val faultySimonaConfig: List[SimonaConfig] =
+            List(SimonaConfig(faultyConfig))
+
+          intercept[InvalidConfigParameterException] {
+            faultySimonaConfig.foreach(conf =>
+              conf.simona.gridConfig.voltageLimits.foreach(refSystem =>
+                ConfigFailFast invokePrivate checkVoltageLimits(refSystem)
+              )
+            )
+          }.getMessage shouldBe "The given nominal voltage 'foo' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?"
+
+        }
+
+        "throw an InvalidConfigParametersException when vMin is greater than vMax" in {
+          val voltageLimitsConfig =
+            ConfigFactory.parseString(
+              """simona.gridConfig.voltageLimits = [
+                |  {
+                |   vMin="1.1",
+                |   vMax="1.0",
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
+                |   }
+                |]""".stripMargin
+            )
+          val faultyConfig =
+            voltageLimitsConfig.withFallback(typesafeConfig).resolve()
+          val faultySimonaConfig: List[SimonaConfig] =
+            List(SimonaConfig(faultyConfig))
+
+          intercept[InvalidConfigParameterException] {
+            faultySimonaConfig.foreach(conf =>
+              conf.simona.gridConfig.voltageLimits.foreach(refSystem =>
+                ConfigFailFast invokePrivate checkVoltageLimits(refSystem)
+              )
+            )
+          }.getMessage shouldBe "Invalid value for vMin and vMax from provided voltage limit VoltageLimitsConfig(None,1.0,1.1,Some(List(VoltLvlConfig(MV,10 kV), VoltLvlConfig(HV,110 kV)))). Is vMin smaller than vMax?"
+        }
+
+        "work as expected for correctly provided data" in {
+          val voltageLimitsConfig =
+            ConfigFactory.parseString(
+              """simona.gridConfig.voltageLimits = [
+                |  {
+                |   vMin="0.9",
+                |   vMax="1.1",
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
+                |   gridIds = ["1","1-10","10...100"]
+                |   },
+                |   {
+                |   vMin="0.9",
+                |   vMax="1.1",
+                |   voltLvls = [{id = "HV", vNom = "110 kV"},{id = "EHV", vNom = "380 kV"}]
+                |   gridIds = ["1-3","3...6","10...100"]
+                |   }
+                |]""".stripMargin
+            )
+          val config =
+            voltageLimitsConfig.withFallback(typesafeConfig).resolve()
+          val simonaConfig = List(SimonaConfig(config))
+
+          simonaConfig.foreach(conf =>
+            conf.simona.gridConfig.voltageLimits.foreach(refSystem => {
+              ConfigFailFast invokePrivate checkVoltageLimits(refSystem)
+            })
+          )
+
+        }
+      }
+
       "Checking a participant model config" should {
         val checkParticipantRuntimeConfiguration =
           PrivateMethod[Unit](Symbol("checkParticipantRuntimeConfiguration"))
