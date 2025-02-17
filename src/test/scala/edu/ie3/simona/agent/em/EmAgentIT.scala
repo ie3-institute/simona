@@ -568,7 +568,7 @@ class EmAgentIT
          PV:  -5.842 kW
          Heat pump: off, can be turned on or stay off
          -> set point ~3.5 kW (bigger than 50 % rated apparent power): turned on
-         -> remaining -0.499 kW
+         -> remaining -0.072 kW
          */
 
         emAgentActivation ! Activation(0)
@@ -606,7 +606,7 @@ class EmAgentIT
          PV:  -3.791 kW
          Heat pump: running (turned on from last request), can also be turned off
          -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-         -> remaining 1.468 kW
+         -> remaining 1.327 kW
          */
 
         emAgentActivation ! Activation(7200)
@@ -640,11 +640,11 @@ class EmAgentIT
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
-         LOAD: 0.269 kW (unchanged)
+         LOAD: 0.27 kW (unchanged)
          PV:  -0.069 kW
          Heat pump: Is still running, can still be turned off
          -> flex signal is 0 MW: Heat pump is turned off
-         -> remaining 0.2 kW
+         -> remaining 0.199 kW
          */
 
         emAgentActivation ! Activation(14400)
@@ -683,7 +683,7 @@ class EmAgentIT
          PV:  -0.023 kW
          Heat pump: Is not running, can run or stay off
          -> flex signal is 0 MW: Heat pump is turned off
-         -> remaining 0.246 kW
+         -> remaining 0.245 kW
          */
 
         emAgentActivation ! Activation(21600)
