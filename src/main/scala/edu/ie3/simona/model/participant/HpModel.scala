@@ -150,7 +150,13 @@ final case class HpModel(
 
     // Updating the HpState
     val updatedHpState =
-      calcState(lastHpState, relevantData, turnOn, thermalDemandWrapper)
+      calcState(
+        lastHpState,
+        relevantData,
+        turnOn,
+        thermalDemandWrapper,
+        currentThermalGridState,
+      )
     (canOperate, canBeOutOfOperation, updatedHpState)
   }
 
@@ -215,6 +221,8 @@ final case class HpModel(
     *   determines whether the heat pump is running or not
     * @param demandWrapper
     *   holds the thermal demands of the thermal units (house, storage)
+    * @param currentThermalGridState
+    *   Current state of the thermalGrid
     * @return
     *   next [[HpState]]
     */
@@ -223,18 +231,18 @@ final case class HpModel(
       relevantData: HpRelevantData,
       isRunning: Boolean,
       demandWrapper: ThermalDemandWrapper,
+      currentThermalGridState: ThermalGridState,
   ): HpState = {
-    val lastStateStorage = lastState.thermalGridState.storageState
-      .getOrElse(ThermalStorageState(-1, zeroKWh, zeroKW))
+    val currentEnergyOfThermalStorage = currentThermalGridState.storageState
+      .map(_.storedEnergy)
+      .getOrElse(zeroKWh)
 
     val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
       if (isRunning)
         (pRated, pThermal, pThermal)
-      else if (lastStateStorage.qDot < zeroKW)
-        (zeroKW, zeroKW, lastStateStorage.qDot * (-1))
+      // If the house has demand and storage isn't empty, we can heat the house from storage.
       else if (
-        // lastStateStorage is zero, so storedEnergy hasn't changed. Only if storage isn't empty, it can heat the house
-        lastStateStorage.qDot == zeroKW && lastStateStorage.storedEnergy > zeroKWh && demandWrapper.houseDemand.hasRequiredDemand
+        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand
       )
         (
           zeroKW,
@@ -320,7 +328,7 @@ final case class HpModel(
 
     val (
       thermalDemandWrapper,
-      _,
+      updatedThermalGridState,
     ) =
       thermalGrid.energyDemandAndUpdatedState(
         relevantData,
@@ -332,6 +340,7 @@ final case class HpModel(
       relevantData,
       turnOn,
       thermalDemandWrapper,
+      updatedThermalGridState,
     )
 
     (
