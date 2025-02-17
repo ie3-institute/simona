@@ -640,8 +640,8 @@ class EmAgentIT
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
-         LOAD: 0.27 kW (unchanged)
-         PV:  -0.069 kW
+         LOAD: 0.269 kW (unchanged)
+         PV:  -0.07 kW
          Heat pump: Is still running, can still be turned off
          -> flex signal is 0 MW: Heat pump is turned off
          -> remaining 0.199 kW
