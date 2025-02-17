@@ -346,7 +346,7 @@ class EmAgentIT
          LOAD: 0.269 kW (unchanged)
          PV:  -0.069 kW
          STORAGE: SOC 100 %
-         -> charge with 0.2 kW
+         -> discharge with 0.2 kW
          -> remaining 0.0 kW
          */
 
