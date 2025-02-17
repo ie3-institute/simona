@@ -15,6 +15,7 @@ import edu.ie3.datamodel.models.result.connector.{
 }
 import edu.ie3.datamodel.models.result.system.{ChpResult, LoadResult}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
+import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -57,7 +58,7 @@ class ConfigUtilSpec
       )
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
-        configs shouldBe Map.empty[UUID, SimonaConfig.LoadRuntimeConfig]
+        configs shouldBe Map.empty[UUID, LoadRuntimeConfig]
         defaultConfigs.size shouldBe 8
 
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
@@ -278,8 +279,7 @@ class ConfigUtilSpec
       )
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
-        configs shouldBe Map
-          .empty[UUID, SimonaConfig.FixedFeedInRuntimeConfig]
+        configs shouldBe Map.empty[UUID, FixedFeedInRuntimeConfig]
 
         inside(defaultConfigs.get(classOf[FixedFeedInRuntimeConfig])) {
           case Some(
