@@ -23,7 +23,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.model.participant.HpModel.HpState
