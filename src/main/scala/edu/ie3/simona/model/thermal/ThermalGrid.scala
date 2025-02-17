@@ -70,7 +70,7 @@ final case class ThermalGrid(
     val (houseDemand, updatedHouseState) =
       house.zip(lastHpState.thermalGridState.houseState) match {
         case Some((thermalHouse, lastHouseState)) =>
-          val actualTargetTemperature =
+          val actualTemperatureTarget =
             if (useUpperTempBoundaryForFlexibility)
               thermalHouse.upperBoundaryTemperature
             else thermalHouse.targetTemperature
@@ -83,15 +83,15 @@ final case class ThermalGrid(
                 relevantData.ambientTemperature
               ),
               lastHouseState.qDot,
-              actualTargetTemperature,
+              actualTemperatureTarget,
             )
-          if (updatedHouseState.innerTemperature < actualTargetTemperature) {
+          if (updatedHouseState.innerTemperature < actualTemperatureTarget) {
 
             (
               thermalHouse.energyDemand(
                 relevantData,
                 updatedHouseState,
-                actualTargetTemperature,
+                actualTemperatureTarget,
               ),
               Some(updatedHouseState),
             )
@@ -518,7 +518,7 @@ final case class ThermalGrid(
   ): (Option[ThermalHouseState], Option[ThermalThreshold], Power) = {
     (house, state.houseState) match {
       case (Some(thermalHouse), Some(lastHouseState)) =>
-        val actualTargetTemperature =
+        val actualTemperatureTarget =
           if (useUpperTempBoundaryForFlexibility)
             thermalHouse.upperBoundaryTemperature
           else thermalHouse.targetTemperature
@@ -528,13 +528,13 @@ final case class ThermalGrid(
           lastHouseState,
           lastAmbientTemperature,
           qDotHouse,
-          actualTargetTemperature,
+          actualTemperatureTarget,
         )
         /* Check if house can handle the thermal feed in */
         if (
           thermalHouse.isInnerTemperatureTooHigh(
             newState.innerTemperature,
-            actualTargetTemperature,
+            actualTemperatureTarget,
           )
         ) {
           val (fullHouseState, maybeFullHouseThreshold) =
@@ -543,7 +543,7 @@ final case class ThermalGrid(
               lastHouseState,
               lastAmbientTemperature,
               zeroKW,
-              actualTargetTemperature,
+              actualTemperatureTarget,
             )
           (Some(fullHouseState), maybeFullHouseThreshold, qDotHouse)
         } else {
@@ -636,7 +636,7 @@ final case class ThermalGrid(
     val maybeUpdatedHouseState =
       house.zip(lastThermalGridState.houseState).map {
         case (thermalHouse, houseState) =>
-          val actualTargetTemperature =
+          val actualTemperatureTarget =
             if (useUpperTempBoundaryForFlexibility)
               thermalHouse.upperBoundaryTemperature
             else thermalHouse.targetTemperature
@@ -646,7 +646,7 @@ final case class ThermalGrid(
             houseState,
             lastAmbientTemperature,
             zeroMW,
-            actualTargetTemperature,
+            actualTemperatureTarget,
           )
       }
 
@@ -744,7 +744,7 @@ final case class ThermalGrid(
         ),
       )
 
-      val actualTargetTemperature =
+      val actualTemperatureTarget =
         if (useUpperTempBoundaryForFlexibility)
           thermalHouse.upperBoundaryTemperature
         else thermalHouse.targetTemperature
@@ -758,7 +758,7 @@ final case class ThermalGrid(
         ),
         lastAmbientTemperature,
         thermalStorage.getChargingPower,
-        actualTargetTemperature,
+        actualTemperatureTarget,
       )
       (Some(revisedHouseState), Some(revisedStorageState))
     case _ => (maybeHouseState, maybeStorageState)

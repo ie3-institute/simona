@@ -86,16 +86,16 @@ final case class ThermalHouse(
     * @param relevantData
     *   Data of heat pump including state of the heat pump.
     * @param state
-    *   most recent state, that is valid for this model
-    * @param actualTargetTemperature
-    *   the applied target temperature for this model
+    *   Most recent state, that is valid for this model.
+    * @param actualTemperatureTarget
+    *   The currently applied temperature this model is aiming for.
     * @return
     *   The needed energy in the questioned tick.
     */
   def energyDemand(
       relevantData: HpRelevantData,
       state: ThermalHouseState,
-      actualTargetTemperature: Temperature,
+      actualTemperatureTarget: Temperature,
   ): ThermalEnergyDemand = {
     /* Calculate the inner temperature of the house, at the questioned instance in time */
     val duration = Seconds(relevantData.currentTick - state.tick)
@@ -114,9 +114,9 @@ final case class ThermalHouse(
 
     val possibleEnergy =
       if (
-        !isInnerTemperatureTooHigh(currentInnerTemp, actualTargetTemperature)
+        !isInnerTemperatureTooHigh(currentInnerTemp, actualTemperatureTarget)
       ) {
-        energy(actualTargetTemperature, currentInnerTemp)
+        energy(actualTemperatureTarget, currentInnerTemp)
       } else zeroKWh
 
     ThermalEnergyDemand(requiredEnergy, possibleEnergy)
@@ -224,7 +224,7 @@ final case class ThermalHouse(
     *   Ambient temperature valid up until (not including) the current tick
     * @param qDot
     *   New thermal influx
-    * @param actualTargetTemperature
+    * @param actualTemperatureTarget
     *   the applied target temperature for this model
     * @return
     *   Updated state and the tick in which the next threshold is reached
@@ -234,7 +234,7 @@ final case class ThermalHouse(
       state: ThermalHouseState,
       lastAmbientTemperature: Temperature,
       qDot: Power,
-      actualTargetTemperature: Temperature,
+      actualTemperatureTarget: Temperature,
   ): (ThermalHouseState, Option[ThermalThreshold]) = {
     val duration = Seconds(relevantData.currentTick - state.tick)
     val updatedInnerTemperature = newInnerTemperature(
@@ -251,7 +251,7 @@ final case class ThermalHouse(
         qDot,
         updatedInnerTemperature,
         relevantData.ambientTemperature,
-        actualTargetTemperature,
+        actualTemperatureTarget,
       )
 
     (
@@ -273,7 +273,7 @@ final case class ThermalHouse(
     *   The inner temperature
     * @param ambientTemperature
     *   The ambient temperature
-    * @param actualTargetTemperature
+    * @param actualTemperatureTarget
     *   the applied target temperature for this model
     * @return
     *   The next threshold, that will be reached
@@ -283,7 +283,7 @@ final case class ThermalHouse(
       qDotExternal: Power,
       innerTemperature: Temperature,
       ambientTemperature: Temperature,
-      actualTargetTemperature: Temperature,
+      actualTemperatureTarget: Temperature,
   ): Option[ThermalThreshold] = {
     val artificialDuration = Hours(1d)
     val loss = ethLosses.calcThermalEnergyChange(
@@ -307,13 +307,13 @@ final case class ThermalHouse(
     } else if (
       resultingQDot > zeroMW && !isInnerTemperatureTooHigh(
         innerTemperature,
-        actualTargetTemperature,
+        actualTemperatureTarget,
       )
     ) {
       /* House has more gain than losses */
       nextActivation(
         tick,
-        actualTargetTemperature,
+        actualTemperatureTarget,
         innerTemperature,
         resultingQDot,
       ).map(HouseTemperatureTargetOrUpperBoundaryReached)
