@@ -627,6 +627,31 @@ class EmAgentIT
             )
         }
 
+        scheduler.expectMessage(Completion(emAgentActivation, Some(12108)))
+
+        /* TICK 12108
+      LOAD: 0.269 kW (unchanged)
+      PV:  -3.791 kW (unchanged)
+      We stop here, since thermal house reached target temperature.
+      Heat pump: Can still run, since there is surplus energy from PV, can still be turned off
+      -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+      -> remaining 1.327 kW
+         */
+
+        emAgentActivation ! Activation(12108)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 12108.toDateTime
+            emResult.getP should equalWithTolerance(
+              0.0013266813910157566.asMegaWatt
+            )
+            emResult.getQ should equalWithTolerance(
+              0.0010731200407782782.asMegaVar
+            )
+        }
+
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
