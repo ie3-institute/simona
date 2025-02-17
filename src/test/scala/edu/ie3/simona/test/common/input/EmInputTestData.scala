@@ -24,6 +24,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalStorageInput,
 }
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -108,8 +109,8 @@ trait EmInputTestData
       simonaConfig.simona.output.participant.defaultConfig.flexResult,
     )
 
-  protected val modelConfig: SimonaConfig.EmRuntimeConfig =
-    configUtil.getOrDefault[SimonaConfig.EmRuntimeConfig](
+  protected val modelConfig: EmRuntimeConfig =
+    configUtil.getOrDefault[EmRuntimeConfig](
       emInput.getUuid
     )
 
