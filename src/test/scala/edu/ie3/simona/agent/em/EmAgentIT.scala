@@ -17,11 +17,21 @@ import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{ProvideWeatherMessage, RegisterForWeatherMessage, WeatherData}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
+  ProvideWeatherMessage,
+  RegisterForWeatherMessage,
+  WeatherData,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -31,7 +41,10 @@ import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.OptionValues._
@@ -581,7 +594,9 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(
               -0.0007234002705905523.asMegaWatt
             )
-            emResult.getQ should equalWithTolerance(0.0010731200407782782.asMegaVar)
+            emResult.getQ should equalWithTolerance(
+              0.0010731200407782782.asMegaVar
+            )
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
@@ -617,7 +632,9 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(
               0.0013266813910157566.asMegaWatt
             )
-            emResult.getQ should equalWithTolerance(0.0010731200407782782.asMegaVar)
+            emResult.getQ should equalWithTolerance(
+              0.0010731200407782782.asMegaVar
+            )
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
@@ -654,7 +671,9 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(
               0.00019892577822992104.asMegaWatt
             )
-            emResult.getQ should equalWithTolerance(0.0000882855367033582.asMegaVar)
+            emResult.getQ should equalWithTolerance(
+              0.0000882855367033582.asMegaVar
+            )
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
@@ -691,7 +710,9 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(
               0.0002450436827011999.asMegaWatt
             )
-            emResult.getQ should equalWithTolerance(0.0000882855367033582.asMegaVar)
+            emResult.getQ should equalWithTolerance(
+              0.0000882855367033582.asMegaVar
+            )
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
