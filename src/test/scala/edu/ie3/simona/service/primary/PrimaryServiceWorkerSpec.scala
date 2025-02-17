@@ -19,7 +19,10 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
   ActivePowerExtra,
 }
-import edu.ie3.simona.agent.participant2.ParticipantAgent.PrimaryRegistrationSuccessfulMessage
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  PrimaryRegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -33,7 +36,6 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   InitPrimaryServiceStateData,
   PrimaryServiceInitializedStateData,
-  ProvidePrimaryDataMessage,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
@@ -220,7 +222,7 @@ class PrimaryServiceWorkerSpec
        * provide data to all subscribed actors and check, if the subscribed probe gets one */
       scheduler.send(serviceRef, Activation(0))
       scheduler.expectMsgType[Completion]
-      systemParticipant.expectMsgAllClassOf(classOf[ProvidePrimaryDataMessage])
+      systemParticipant.expectMsgAllClassOf(classOf[DataProvision[_]])
     }
 
     /* At this point, the test (self) is registered with the service */
@@ -274,8 +276,8 @@ class PrimaryServiceWorkerSpec
           maybeNextTick shouldBe Some(900L)
       }
       /* Check, if correct message is sent */
-      expectMsgClass(classOf[ProvidePrimaryDataMessage]) match {
-        case ProvidePrimaryDataMessage(
+      expectMsgClass(classOf[DataProvision[_]]) match {
+        case DataProvision(
               actualTick,
               actualServiceRef,
               actualData,
@@ -354,7 +356,7 @@ class PrimaryServiceWorkerSpec
       }
 
       expectMsg(
-        ProvidePrimaryDataMessage(
+        DataProvision(
           tick,
           serviceRef,
           ActivePower(Kilowatts(50.0)),
@@ -376,9 +378,9 @@ class PrimaryServiceWorkerSpec
       scheduler.expectMsg(Completion(serviceRef.toTyped))
 
       inside(
-        systemParticipant.expectMsgClass(classOf[ProvidePrimaryDataMessage])
+        systemParticipant.expectMsgClass(classOf[DataProvision[_]])
       ) {
-        case ProvidePrimaryDataMessage(
+        case DataProvision(
               tick,
               actualServiceRef,
               data,

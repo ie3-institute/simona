@@ -140,7 +140,10 @@ class StorageAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(storageInputQv.getUuid)
+        PrimaryServiceRegistrationMessage(
+          storageAgent.ref,
+          storageInputQv.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       storageAgent.stateName shouldBe HandleInformation

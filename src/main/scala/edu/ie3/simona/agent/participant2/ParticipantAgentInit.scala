@@ -25,6 +25,7 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import squants.Dimensionless
@@ -150,12 +151,14 @@ object ParticipantAgentInit {
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],
-  ): Behavior[Request] = Behaviors.receiveMessagePartial {
+  ): Behavior[Request] = Behaviors.receivePartial {
 
-    case activation: ActivationRequest if activation.tick == INIT_SIM_TICK =>
+    case (ctx, activation: ActivationRequest)
+        if activation.tick == INIT_SIM_TICK =>
       // first, check whether we're just supposed to replay primary data time series
       participantRefs.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        participantInput.getUuid
+        ctx.self.toClassic,
+        participantInput.getUuid,
       )
 
       waitingForPrimaryProxy(

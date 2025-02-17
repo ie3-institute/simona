@@ -19,7 +19,10 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPowerAndHeat,
   ComplexPowerAndHeatExtra,
 }
-import edu.ie3.simona.agent.participant2.ParticipantAgent.PrimaryRegistrationSuccessfulMessage
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  PrimaryRegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -29,10 +32,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  ProvidePrimaryDataMessage,
-  SqlInitPrimaryServiceStateData,
-}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.SqlInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.test.helper.TestContainerHelper
@@ -186,7 +186,7 @@ class PrimaryServiceWorkerSqlIT
           scheduler.send(serviceRef, Activation(firstTick))
           scheduler.expectMsg(Completion(serviceRef.toTyped, maybeNextTick))
 
-          val dataMsg = participant.expectMsgType[ProvidePrimaryDataMessage]
+          val dataMsg = participant.expectMsgType[DataProvision[_]]
           dataMsg.tick shouldBe firstTick
           dataMsg.data shouldBe firstData
           dataMsg.nextDataTick shouldBe maybeNextTick

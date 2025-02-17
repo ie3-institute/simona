@@ -67,8 +67,6 @@ class ParticipantAgentInitSpec
   "A ParticipantAgent that is not depending on external services" when {
 
     val config = LoadRuntimeConfig(
-      calculateMissingReactivePowerWithModel = false,
-      scaling = 1.0,
       uuids = List.empty,
       modelBehaviour = "fix",
       reference = "power",
@@ -118,7 +116,10 @@ class ParticipantAgentInitSpec
         activationRef ! Activation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! RegistrationFailedMessage(
@@ -161,7 +162,10 @@ class ParticipantAgentInitSpec
         activationRef ! Activation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
@@ -215,7 +219,10 @@ class ParticipantAgentInitSpec
         activationRef ! FlexActivation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! RegistrationFailedMessage(
@@ -268,7 +275,10 @@ class ParticipantAgentInitSpec
         activationRef ! FlexActivation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
@@ -299,9 +309,7 @@ class ParticipantAgentInitSpec
       .build()
 
     val config = PvRuntimeConfig(
-      calculateMissingReactivePowerWithModel = false,
-      scaling = 1.0,
-      uuids = List.empty,
+      uuids = List.empty
     )
 
     "not controlled by EM" should {
@@ -339,7 +347,10 @@ class ParticipantAgentInitSpec
         activationRef ! Activation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! RegistrationFailedMessage(
@@ -395,7 +406,10 @@ class ParticipantAgentInitSpec
         activationRef ! Activation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
@@ -454,7 +468,10 @@ class ParticipantAgentInitSpec
         activationRef ! FlexActivation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! RegistrationFailedMessage(
@@ -516,7 +533,10 @@ class ParticipantAgentInitSpec
         activationRef ! FlexActivation(INIT_SIM_TICK)
 
         primaryService.expectMessage(
-          PrimaryServiceRegistrationMessage(mockInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            participantAgent.ref.toClassic,
+            mockInput.getUuid,
+          )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(

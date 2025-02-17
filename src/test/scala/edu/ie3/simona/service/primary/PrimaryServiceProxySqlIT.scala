@@ -132,7 +132,8 @@ class PrimaryServiceProxySqlIT
       systemParticipantProbe.send(
         proxyRef,
         PrimaryServiceRegistrationMessage(
-          UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409")
+          systemParticipantProbe.ref,
+          UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409"),
         ),
       )
       scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
@@ -170,7 +171,8 @@ class PrimaryServiceProxySqlIT
       systemParticipantProbe.send(
         proxyRef,
         PrimaryServiceRegistrationMessage(
-          UUID.fromString("db958617-e49d-44d3-b546-5f7b62776afd")
+          systemParticipantProbe.ref,
+          UUID.fromString("db958617-e49d-44d3-b546-5f7b62776afd"),
         ),
       )
 

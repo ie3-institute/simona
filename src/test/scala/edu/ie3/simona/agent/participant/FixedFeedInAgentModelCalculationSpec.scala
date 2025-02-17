@@ -154,7 +154,10 @@ class FixedFeedInAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(voltageSensitiveInput.getUuid)
+        PrimaryServiceRegistrationMessage(
+          fixedFeedAgent.ref,
+          voltageSensitiveInput.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       fixedFeedAgent.stateName shouldBe HandleInformation

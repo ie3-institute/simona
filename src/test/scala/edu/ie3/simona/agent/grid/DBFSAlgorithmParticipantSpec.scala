@@ -119,7 +119,10 @@ class DBFSAlgorithmParticipantSpec
       loadAgent ! Activation(INIT_SIM_TICK)
 
       primaryService.expectMessage(
-        PrimaryServiceRegistrationMessage(load1.getUuid)
+        PrimaryServiceRegistrationMessage(
+          loadAgent.ref.toClassic,
+          load1.getUuid,
+        )
       )
 
       loadAgent.toClassic ! RegistrationFailedMessage(

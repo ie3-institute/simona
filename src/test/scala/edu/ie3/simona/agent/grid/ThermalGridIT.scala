@@ -126,7 +126,10 @@ class ThermalGridIT
       heatPumpAgent ! Activation(INIT_SIM_TICK)
 
       primaryServiceProxy.expectMessage(
-        PrimaryServiceRegistrationMessage(typicalHpInputModel.getUuid)
+        PrimaryServiceRegistrationMessage(
+          heatPumpAgent.ref,
+          typicalHpInputModel.getUuid,
+        )
       )
       heatPumpAgent ! RegistrationFailedMessage(
         primaryServiceProxy.ref.toClassic

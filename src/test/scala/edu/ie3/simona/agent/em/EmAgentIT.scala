@@ -45,7 +45,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter.{TypedActorRefOps, _}
 import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.OptionValues._
 import org.scalatest.matchers.should
@@ -194,7 +194,7 @@ class EmAgentIT
         loadAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadInput.getUuid)
+          PrimaryServiceRegistrationMessage(loadAgent.ref, loadInput.getUuid)
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -221,7 +221,7 @@ class EmAgentIT
         pvAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvInput.getUuid)
+          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
         )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -244,7 +244,10 @@ class EmAgentIT
         storageAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(householdStorageInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            storageAgent.ref,
+            householdStorageInput.getUuid,
+          )
         )
         storageAgent ! RegistrationFailedMessage(
           primaryServiceProxy.ref.toClassic
@@ -478,7 +481,7 @@ class EmAgentIT
         loadAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadInput.getUuid)
+          PrimaryServiceRegistrationMessage(loadAgent.ref, loadInput.getUuid)
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -505,7 +508,7 @@ class EmAgentIT
         pvAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvInput.getUuid)
+          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
         )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -528,7 +531,10 @@ class EmAgentIT
         heatPumpAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(adaptedHpInputModel.getUuid)
+          PrimaryServiceRegistrationMessage(
+            heatPumpAgent.ref,
+            adaptedHpInputModel.getUuid,
+          )
         )
         heatPumpAgent ! RegistrationFailedMessage(
           primaryServiceProxy.ref.toClassic

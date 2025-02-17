@@ -233,7 +233,10 @@ class PvAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(voltageSensitiveInput.getUuid)
+        PrimaryServiceRegistrationMessage(
+          pvAgent.ref,
+          voltageSensitiveInput.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       pvAgent.stateName shouldBe HandleInformation

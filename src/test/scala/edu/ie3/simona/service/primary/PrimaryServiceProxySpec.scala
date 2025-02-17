@@ -673,7 +673,8 @@ class PrimaryServiceProxySpec
   "Trying to register with a proxy" should {
     "fail, if there is no information for the requested model" in {
       val request = PrimaryServiceRegistrationMessage(
-        UUID.fromString("2850a2d6-4b70-43c9-b5cc-cd823a72d860")
+        self,
+        UUID.fromString("2850a2d6-4b70-43c9-b5cc-cd823a72d860"),
       )
 
       proxyRef ! request
@@ -706,7 +707,7 @@ class PrimaryServiceProxySpec
       scheduler.expectMsg(Completion(fakeProxyRef.toTyped))
 
       /* Try to register with fake proxy */
-      fakeProxyRef ! PrimaryServiceRegistrationMessage(modelUuid)
+      fakeProxyRef ! PrimaryServiceRegistrationMessage(self, modelUuid)
       worker.expectMsg(WorkerRegistrationMessage(self))
     }
   }

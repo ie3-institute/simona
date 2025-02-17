@@ -133,7 +133,8 @@ abstract class ParticipantAgent[
        * that will confirm, otherwise, a failed registration is announced. */
       holdTick(INIT_SIM_TICK)
       initStateData.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        initStateData.inputModel.electricalInputModel.getUuid
+        context.self,
+        initStateData.inputModel.electricalInputModel.getUuid,
       )
       goto(HandleInformation) using ParticipantInitializingStateData(
         initStateData.inputModel,

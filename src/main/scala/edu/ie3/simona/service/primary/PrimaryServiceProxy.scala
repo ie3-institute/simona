@@ -244,7 +244,7 @@ case class PrimaryServiceProxy(
     *   Message handling routine
     */
   private def onMessage(stateData: PrimaryServiceStateData): Receive = {
-    case PrimaryServiceRegistrationMessage(modelUuid) =>
+    case PrimaryServiceRegistrationMessage(requestingActor, modelUuid) =>
       /* Try to register for this model */
       stateData.modelToTimeSeries.get(modelUuid) match {
         case Some(timeSeriesUuid) =>
@@ -253,14 +253,14 @@ case class PrimaryServiceProxy(
             modelUuid,
             timeSeriesUuid,
             stateData,
-            sender(),
+            requestingActor,
           )
         case None =>
           log.debug(
             s"There is no time series apparent for the model with uuid '{}'.",
             modelUuid,
           )
-          sender() ! RegistrationFailedMessage(self)
+          requestingActor ! RegistrationFailedMessage(self)
       }
     case x =>
       log.error(

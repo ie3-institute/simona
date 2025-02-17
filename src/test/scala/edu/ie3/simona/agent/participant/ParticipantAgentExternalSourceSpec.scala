@@ -36,6 +36,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   SimpleInputContainer,
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
   PrimaryRegistrationSuccessfulMessage,
   RequestAssetPowerMessage,
 }
@@ -51,7 +52,6 @@ import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -177,7 +177,7 @@ class ParticipantAgentExternalSourceSpec
 
       /* Expect a registration message */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(testUUID)
+        PrimaryServiceRegistrationMessage(mockAgent.ref, testUUID)
       )
 
       /* ... as well as corresponding state and state data */
@@ -335,7 +335,7 @@ class ParticipantAgentExternalSourceSpec
       /* Send out new data */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           900L,
           primaryServiceProxy.ref,
           ComplexPower(
@@ -471,7 +471,7 @@ class ParticipantAgentExternalSourceSpec
       /* Providing the awaited data will lead to the foreseen transitions */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           900L,
           primaryServiceProxy.ref,
           ComplexPower(
@@ -548,7 +548,7 @@ class ParticipantAgentExternalSourceSpec
       /* Send out the expected data and wait for the reply */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           900L,
           primaryServiceProxy.ref,
           ComplexPower(
@@ -660,7 +660,7 @@ class ParticipantAgentExternalSourceSpec
       /* ... for tick 900 */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           900L,
           primaryServiceProxy.ref,
           ComplexPower(
@@ -676,7 +676,7 @@ class ParticipantAgentExternalSourceSpec
       /* ... for tick 1800 */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           1800L,
           primaryServiceProxy.ref,
           ComplexPower(
@@ -692,7 +692,7 @@ class ParticipantAgentExternalSourceSpec
       /* ... for tick 2700 */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           2700L,
           primaryServiceProxy.ref,
           ComplexPower(

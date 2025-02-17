@@ -28,8 +28,10 @@ object ServiceMessage {
     * @param inputModelUuid
     *   Identifier of the input model
     */
-  final case class PrimaryServiceRegistrationMessage(inputModelUuid: UUID)
-      extends ServiceRegistrationMessage
+  final case class PrimaryServiceRegistrationMessage(
+      requestingActor: ActorRef,
+      inputModelUuid: UUID,
+  ) extends ServiceRegistrationMessage
 
   /** This message can be sent from a proxy to a subordinate worker in order to
     * forward the original registration request. This message may only be used,
