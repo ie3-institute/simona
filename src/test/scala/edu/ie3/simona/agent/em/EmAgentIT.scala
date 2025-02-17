@@ -55,6 +55,7 @@ import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
+import scala.concurrent.duration.{FiniteDuration, SECONDS}
 
 class EmAgentIT
     extends ScalaTestWithActorTestKit
@@ -699,5 +700,285 @@ class EmAgentIT
       }
     }
 
+    "having a pv and a load agent connected" should {
+      "have correct reactive power on em level " in {
+        val timeout = FiniteDuration(30, SECONDS)
+        val resultListener = TestProbe[ResultEvent]("ResultListener")
+        val primaryServiceProxy =
+          TestProbe[ServiceMessage]("PrimaryServiceProxy")
+        val weatherService = TestProbe[ServiceMessage]("WeatherService")
+        val scheduler = TestProbe[SchedulerMessage]("Scheduler")
+
+        val emAgent = spawn(
+          EmAgent(
+            emInput,
+            modelConfig,
+            outputConfigOn,
+            "PRIORITIZED",
+            simulationStartDate,
+            parent = Left(scheduler.ref),
+            listener = Iterable(resultListener.ref),
+          ),
+          "EmAgentReactivePower",
+        )
+
+        val pvAgent = TestActorRef(
+          new PvAgent(
+            scheduler = scheduler.ref.toClassic,
+            initStateData = ParticipantInitializeStateData(
+              pvInputWithQCharacteristicLimitedOperationTime,
+              PvRuntimeConfig(
+                calculateMissingReactivePowerWithModel = true,
+                scaling = 1d,
+                uuids = List.empty,
+              ),
+              primaryServiceProxy.ref.toClassic,
+              Iterable(ActorWeatherService(weatherService.ref.toClassic)),
+              simulationStartDate,
+              simulationEndDate,
+              resolution,
+              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              outputConfigOff,
+              Some(emAgent),
+            ),
+            listener = Iterable(resultListener.ref.toClassic),
+          ),
+          "PvAgentReactivePower",
+        )
+        val loadAgent = TestActorRef(
+          new FixedLoadAgent(
+            scheduler = scheduler.ref.toClassic,
+            initStateData = ParticipantInitializeStateData(
+              loadInputWithLimitedOperationTime,
+              LoadRuntimeConfig(
+                calculateMissingReactivePowerWithModel = true,
+                scaling = 1d,
+                modelBehaviour = "fix",
+                reference = "power",
+                uuids = List.empty,
+              ),
+              primaryServiceProxy.ref.toClassic,
+              None,
+              simulationStartDate,
+              simulationEndDate,
+              resolution,
+              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              outputConfigOff,
+              Some(emAgent),
+            ),
+            listener = Iterable(resultListener.ref.toClassic),
+          ),
+          "LoadAgentReactivePower",
+        )
+
+        scheduler.expectNoMessage()
+
+        /* INIT */
+
+        // pv
+        pvAgent ! Activation(INIT_SIM_TICK)
+
+        primaryServiceProxy.expectMessage(
+          PrimaryServiceRegistrationMessage(
+            pvInputWithQCharacteristicLimitedOperationTime.getUuid
+          )
+        )
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+
+        // deal with weather service registration
+        weatherService.expectMessage(
+          RegisterForWeatherMessage(
+            pvInputWithQCharacteristicLimitedOperationTime.getNode.getGeoPosition.getY,
+            pvInputWithQCharacteristicLimitedOperationTime.getNode.getGeoPosition.getX,
+          )
+        )
+
+        pvAgent ! RegistrationSuccessfulMessage(
+          weatherService.ref.toClassic,
+          Some(0L),
+        )
+
+        scheduler.expectMessage(Completion(pvAgent))
+
+        // load
+        loadAgent ! Activation(INIT_SIM_TICK)
+
+        primaryServiceProxy.expectMessage(
+          PrimaryServiceRegistrationMessage(
+            loadInputWithLimitedOperationTime.getUuid
+          )
+        )
+        loadAgent ! RegistrationFailedMessage(
+          primaryServiceProxy.ref.toClassic
+        )
+
+        // the order of the two messages is not given
+        val emAgentActivation = scheduler
+          .receiveMessages(2)
+          .flatMap {
+            case Completion(ref, maybeNewTick) =>
+              ref shouldBe loadAgent.toTyped
+              maybeNewTick shouldBe None
+              None
+            case ScheduleActivation(ref, tick, unlockKey) =>
+              // em agent schedules itself
+              tick shouldBe 0
+              unlockKey shouldBe None
+              Some(ref)
+            case unexpected =>
+              fail(s"Received unexpected message $unexpected")
+          }
+          .headOption
+          .value
+
+        val weatherDependentAgents = Seq(pvAgent)
+
+        /* TICK 0
+         Load: 282.74 VA, cosPhi: 0.95, P: 268.603 W, Q: 88.2855 var
+         PV:  0 kW (not yet in operation)
+         -> expect load p and q values as em p and q values
+         */
+
+        emAgentActivation ! Activation(0)
+
+        weatherDependentAgents.foreach {
+          _ ! ProvideWeatherMessage(
+            0,
+            weatherService.ref.toClassic,
+            WeatherData(
+              WattsPerSquareMeter(0d),
+              WattsPerSquareMeter(0d),
+              Celsius(0d),
+              MetersPerSecond(0d),
+            ),
+            Some(3600),
+          )
+        }
+
+        resultListener.expectMessageType[ParticipantResultEvent](
+          timeout
+        ) match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 0.toDateTime
+            emResult.getP should equalWithTolerance(
+              0.000268603.asMegaWatt
+            )
+            emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
+
+        /* TICK 3600
+         Load: P: 268.603 W, Q: 88.2855 var (unchanged)
+         PV:  P: 0 W  Q: 0 Var (in operation, but no sun)
+         -> expect load p and q values as em p and q values
+         */
+
+        emAgentActivation ! Activation(3600)
+
+        weatherDependentAgents.foreach {
+          _ ! ProvideWeatherMessage(
+            3600,
+            weatherService.ref.toClassic,
+            WeatherData(
+              WattsPerSquareMeter(0d),
+              WattsPerSquareMeter(0d),
+              Celsius(0d),
+              MetersPerSecond(0d),
+            ),
+            Some(7200),
+          )
+        }
+
+        resultListener.expectMessageType[ParticipantResultEvent](
+          timeout
+        ) match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 3600.toDateTime
+            emResult.getP should equalWithTolerance(0.000268603.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
+
+        /* TICK 7200
+         Load: P: 268.603 W, Q: 88.2855 var (unchanged)
+         PV:  P: -8692.167 W  Q: -2856.98 var
+         -> expect P:-8423.564 Q: -2768.69 var
+         */
+
+        weatherDependentAgents.foreach {
+          _ ! ProvideWeatherMessage(
+            7200,
+            weatherService.ref.toClassic,
+            WeatherData(
+              WattsPerSquareMeter(300d),
+              WattsPerSquareMeter(200d),
+              Celsius(0d),
+              MetersPerSecond(0d),
+            ),
+            Some(21800),
+          )
+        }
+
+        emAgentActivation ! Activation(7200)
+        resultListener.expectMessageType[ParticipantResultEvent](
+          timeout
+        ) match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 7200.toDateTime
+            emResult.getP should equalWithTolerance(-0.008423564.asMegaWatt)
+            emResult.getQ should equalWithTolerance(
+              -0.0027686916118040607.asMegaVar
+            )
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
+
+        /* TICK 10800
+        LOAD: P: 0 W, Q: 0 var (limited OperationTime)
+        PV:  P: -8692.167 W  Q: -2856.98 var
+        -> expect P and Q values of PV
+         */
+
+        emAgentActivation ! Activation(10800)
+        resultListener.expectMessageType[ParticipantResultEvent](
+          timeout
+        ) match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 10800.toDateTime
+            emResult.getP should equalWithTolerance(-0.008692167.asMegaWatt)
+            emResult.getQ should equalWithTolerance(
+              -0.00285698.asMegaVar
+            )
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
+
+        /* TICK 14400
+        LOAD: P: 0 W, Q: 0 var (limited OperationTime)
+        PV: P: 0 W, Q: 0 var (limited OperationTime)
+        -> expect P: 0 W Q: 0 var
+         */
+
+        emAgentActivation ! Activation(14400)
+        resultListener.expectMessageType[ParticipantResultEvent](
+          timeout
+        ) match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 14400.toDateTime
+            emResult.getP should equalWithTolerance(0.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.asMegaVar)
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(21800)))
+
+      }
+    }
   }
 }

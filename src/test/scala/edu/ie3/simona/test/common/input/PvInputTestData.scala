@@ -8,13 +8,16 @@ package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.datamodel.models.input.system.characteristic.{CosPhiFixed, QV}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.util.TimeUtil
+import edu.ie3.util.interval.ClosedInterval
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import tech.units.indriya.quantity.Quantities
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
 /** Simple test data to be used in tests for PvModel. Should be extended as
@@ -50,6 +53,34 @@ trait PvInputTestData
     Quantities.getQuantity(100, StandardUnits.SOLAR_ELEVATION_ANGLE),
     12,
     11,
+    false,
+    Quantities.getQuantity(10, StandardUnits.S_RATED),
+    0.95,
+  )
+
+  private val operationTimeBuilder = OperationTime.builder()
+
+  private val interval = new ClosedInterval[ZonedDateTime](
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T11:00:00Z"),
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-10T22:00:00Z"),
+  )
+  private val operationTime: OperationTime =
+    operationTimeBuilder.withOperationTime(interval).build()
+
+  protected val pvInputWithQCharacteristicLimitedOperationTime = new PvInput(
+    UUID.randomUUID(),
+    "Dummy_PvModel_With_Q_Characteristic",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    operationTime,
+    nodeInputNoSlackNs04KvA,
+    new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+    null,
+    0.2,
+    Quantities.getQuantity(12, StandardUnits.AZIMUTH),
+    Quantities.getQuantity(90, StandardUnits.EFFICIENCY),
+    Quantities.getQuantity(45, StandardUnits.SOLAR_ELEVATION_ANGLE),
+    0.9,
+    1.0,
     false,
     Quantities.getQuantity(10, StandardUnits.S_RATED),
     0.95,
