@@ -1578,7 +1578,6 @@ Heat pump: stays on
                 emResult._3 should equalWithTolerance(
                   -0.0013557965636002037.asMegaWatt
                 )
-                // FIXME: Include a case where Pv is producing, and Hp is not running, emResult should be p of Pv and q of Pv. Instead q is 0 - this is wrong, should be checked by EmAgentIT!
                 emResult._4 should equalWithTolerance(
                   0.0012489995996796802.asMegaVar
                 )
