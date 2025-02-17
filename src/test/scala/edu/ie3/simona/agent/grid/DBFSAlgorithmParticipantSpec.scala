@@ -119,14 +119,11 @@ class DBFSAlgorithmParticipantSpec
 
       loadAgent ! Activation(INIT_SIM_TICK)
 
-      primaryService.expectMessage(
-        PrimaryServiceRegistrationMessage(
-          loadAgent.ref.toClassic,
-          load1.getUuid,
-        )
-      )
+      val serviceRegistrationMsg = primaryService
+        .expectMessageType[PrimaryServiceRegistrationMessage]
+      serviceRegistrationMsg.inputModelUuid shouldBe load1.getUuid
 
-      loadAgent.toClassic ! RegistrationFailedMessage(
+      serviceRegistrationMsg.requestingActor ! RegistrationFailedMessage(
         primaryService.ref.toClassic
       )
 
@@ -136,7 +133,7 @@ class DBFSAlgorithmParticipantSpec
       loadAgent ! Activation(0)
 
       // the load agent should send a Completion
-      scheduler.expectMessage(Completion(loadAgent, None))
+      scheduler.expectMessage(Completion(loadAgent, Some(3600)))
 
     }
 

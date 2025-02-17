@@ -334,7 +334,7 @@ class EvcsAgentModelCalculationSpec
       evcsAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
-          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> None)
+          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> Some(0))
         case _ =>
           fail(
             s"Did not find expected state data $ParticipantModelBaseStateData, but ${evcsAgent.stateData}"

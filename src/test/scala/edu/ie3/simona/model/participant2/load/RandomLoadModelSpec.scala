@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.load.random.RandomLoadParameters
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
@@ -73,13 +73,7 @@ class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
           (1000.0, 5.9748428),
         )
       ) { (sRated, expectedScalingFactor) =>
-        val config = LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
-          modelBehaviour = "random",
-          reference = "power",
-        )
+        val config = LoadRuntimeConfig(modelBehaviour = "random")
         val model = RandomLoadModel(
           loadInput
             .copy()
@@ -105,9 +99,6 @@ class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
         )
       ) { (eConsAnnual, expectedScalingFactor, expectedSRated) =>
         val config = LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
           modelBehaviour = "random",
           reference = "energy",
         )
@@ -132,9 +123,6 @@ class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
       val model = RandomLoadModel(
         loadInput,
         LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
           modelBehaviour = "random",
           reference = "energy",
         ),
@@ -169,9 +157,6 @@ class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
 
     "reach the targeted annual energy consumption in a simulated year" in {
       val config = LoadRuntimeConfig(
-        calculateMissingReactivePowerWithModel = false,
-        scaling = 1.0,
-        uuids = List.empty,
         modelBehaviour = "random",
         reference = "energy",
       )
@@ -197,13 +182,7 @@ class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
     }
 
     "approximately reach the maximum power in a simulated year" in {
-      val config = LoadRuntimeConfig(
-        calculateMissingReactivePowerWithModel = false,
-        scaling = 1.0,
-        uuids = List.empty,
-        modelBehaviour = "random",
-        reference = "power",
-      )
+      val config = LoadRuntimeConfig(modelBehaviour = "random")
 
       val model = RandomLoadModel(
         loadInput,
