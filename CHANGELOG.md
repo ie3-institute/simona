@@ -176,7 +176,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename `PrimaryDataWithApparentPower` to `PrimaryDataWithComplexPower` [#1140](https://github.com/ie3-institute/simona/issues/1140)
 - Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
 - Move `ScheduleServiceActivation` out of `RegistrationResponseMessage` [#1143](https://github.com/ie3-institute/simona/issues/1143)
-- Handle edge cases of thermal grid [#1167](https://github.com/ie3-institute/simona/issues/1167)
+- Check for runningHp when handling infeed to thermalGrid [#1167](https://github.com/ie3-institute/simona/issues/1167)
 
 ## [3.0.0] - 2023-08-07
 
