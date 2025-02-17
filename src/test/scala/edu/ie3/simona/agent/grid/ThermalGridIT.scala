@@ -486,7 +486,7 @@ class ThermalGridIT
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 6.17 kWh
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 9.86 kWh
         Heat pump: stays off
-        */
+       */
 
       heatPumpAgent ! Activation(25000)
 
@@ -558,7 +558,7 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         DomesticWaterStorage : tba
         Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
-         */
+       */
 
       heatPumpAgent ! Activation(25200)
 
@@ -613,7 +613,7 @@ class ThermalGridIT
         House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.72 kWh
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays on
-         */
+       */
 
       heatPumpAgent ! Activation(28000)
 
@@ -678,7 +678,7 @@ class ThermalGridIT
         House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays on to recharge the storage now
-         */
+       */
 
       heatPumpAgent ! Activation(28273)
 
@@ -731,7 +731,7 @@ class ThermalGridIT
         House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 1.42 kWh
         ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
         Heat pump: stays on
-         */
+       */
 
       heatPumpAgent ! Activation(31690)
 
@@ -986,7 +986,6 @@ class ThermalGridIT
             Some(ref)
           case unexpected =>
             fail(s"Received unexpected message $unexpected")
-          // TODO clarify RuntimeException required / fix message
         }
         .headOption
         .getOrElse(throw new RuntimeException("RuntimeException"))
@@ -994,19 +993,13 @@ class ThermalGridIT
       val weatherDependentAgents = Seq(heatPumpAgentWithEm, pvAgent)
 
       /* TICK 0
-      Start of Simulation, No sun at the moment
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
-      House demand water   : tba
-      ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-      DomesticWaterStorage : tba
-      Heat pump: stays out - since requiredDemand of ThermalStorage not necessarily demand hp operation
-       */
-
-      // FIXME
-      /* TICK 0
-       PV:  -5.617 kW
-       -> charge with 5 kW
-       -> remaining -0.348 kW
+        Start of Simulation, No sun at the moment.
+        PV: 0.0 kW
+        House demand heating : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+        House demand water   : tba
+        ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
+        DomesticWaterStorage : tba
+        Heat pump: stays out - since requiredDemand of ThermalStorage not necessarily demand hp operation.
        */
 
       emAgentActivation ! Activation(0)
@@ -1075,13 +1068,13 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(1800)))
 
       /* TICK 1800
-    New Weather: The sun comes out, PV will produce
-    FIXME
-    House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 17.37 kWh
-    House demand water   : tba
-    ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-    DomesticWaterStorage : tba
-    Heat pump: turns on - since now we have flexibility potential available which can be used by hp to serve the reqDemand of ThermalStorage
+        New Weather: The sun comes out, PV will produce.
+        PV: -6.3 kW
+        House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 1.25 kWh (till target) + 15 kWh for upper boundary
+        House demand water   : tba
+        ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
+        DomesticWaterStorage : tba
+        Heat pump: turns on - since now we have flexibility potential available which can be used by hp to serve the reqDemand of ThermalStorage
        */
 
       emAgentActivation ! Activation(1800)
@@ -1150,13 +1143,13 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(5217)))
 
       /* TICK 5217
-      Storage is fully heated up
-      FIXME
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 17.37 kWh
+      Storage is fully heated up, meanwhile house cooled a bit.
+      PV: -6.3 kW
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 3.6 kWh + 15 kWh for upper boundary
       House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       DomesticWaterStorage : tba
-      Heat pump: stays on since it was on and the house as additional demand
+      Heat pump: stays on since it was on and the house has additional demand
        */
 
       emAgentActivation ! Activation(5217)
@@ -1213,8 +1206,9 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(5400)))
 
       /* TICK 5400
-      New weather data, sun is gone again, thus we should now heat the house by storage and only till targetTemperature
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 8.41 kWh
+      PV: 0.0 kW
+      New weather data, sun is gone again, thus we should now heat the house by storage and only till targetTemperature.
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 3.17 kWh
       House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       DomesticWaterStorage : tba
@@ -1288,9 +1282,10 @@ class ThermalGridIT
 
       /* TICK 6831
      The house reaches target temperature
+     PV: 0.0 kW
      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
      House demand water   : tba
-     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 4.15 kWh
      DomesticWaterStorage : tba
      Heat pump: turned off
        */
@@ -1347,15 +1342,14 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(9200)))
 
       /* TICK 9200
-     The sun is back again, storage first
-     House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+     The sun is back again, storage first.
+     PV: -5.2 kW
+     House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 1.64 kWh  + 15 kWh for upper boundary
      House demand water   : tba
-     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 4.15 kWh
      DomesticWaterStorage : tba
      Heat pump: turned off
        */
-
-      // PV 5.155 kW
 
       emAgentActivation ! Activation(9200)
 
@@ -1429,9 +1423,9 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(10558)))
 
       /* TICK 10558
-      Storage is full, now heating the house first till target temperature then continuing till upper temperature boundary
-      FIXME
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      Storage is full, now heating the house first till target temperature then continuing till upper temperature boundary.
+      PV: -5.2 kW
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 2.58 kWh  + 15 kWh for upper boundary
       House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       DomesticWaterStorage : tba
@@ -1494,13 +1488,13 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(11646)))
 
       /* TICK 11646
-House reaches again target temperature boundary
-FIXME
-House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-House demand water   : tba
-ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-DomesticWaterStorage : tba
-Heat pump: stays on
+      House reaches again target temperature boundary.
+      PV: -5.2 kW
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh + 15 kWh for upper boundary
+      House demand water   : tba
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      DomesticWaterStorage : tba
+      Heat pump: stays on
        */
 
       emAgentActivation ! Activation(11646)
@@ -1559,13 +1553,13 @@ Heat pump: stays on
       scheduler.expectMessage(Completion(emAgentActivation, Some(17999)))
 
       /* TICK 17999
-House reaches upper temperature boundary
-FIXME
-House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-House demand water   : tba
-ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-DomesticWaterStorage : tba
-Heat pump: stays on
+        House reaches upper temperature boundary
+        PV: -5.2 kW
+        House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+        House demand water   : tba
+        ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+        DomesticWaterStorage : tba
+        Heat pump: stays on
        */
 
       emAgentActivation ! Activation(17999)
@@ -1624,12 +1618,12 @@ Heat pump: stays on
       scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
 
       /* TICK 21600
-      FIXME
-   House would reach lowerTempBoundary at tick 50797
-   but now it's getting colder which should decrease inner temp of house faster, sun is also gone
-   House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-   ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-   Heat pump: stays off
+       PV: 0.0 kW
+       House would reach lowerTempBoundary at tick 50797
+       but now it's getting colder which should decrease inner temp of house faster, sun is also gone
+       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+       Heat pump: stays off
        */
 
       emAgentActivation ! Activation(21600)
@@ -1702,11 +1696,11 @@ Heat pump: stays on
       scheduler.expectMessage(Completion(emAgentActivation, Some(42671)))
 
       /* TICK 42671
-    House reach lowerTemperatureBoundary
-    FIXME
-    House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 30.00 kWh
-    ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-    Heat pump: stays off, demand should be covered by storage
+        House reach lowerTemperatureBoundary
+        PV: 0.0 kW
+        House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
+        ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+        Heat pump: stays off, demand should be covered by storage.
        */
 
       emAgentActivation ! Activation(42671)
@@ -1765,12 +1759,12 @@ Heat pump: stays on
       scheduler.expectMessage(Completion(emAgentActivation, Some(45000)))
 
       /* TICK 45000
-    Storage will be empty at tick 46271
-    Additional trigger caused by (unchanged) weather data should not change this
-    FIXME
-    House demand heating : requiredDemand = 9.78 kWh, possibleDemand = 24.78 kWh
-    ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 8.87 kWh
-    Heat pump: stays off
+        Storage will be empty at tick 46271
+        Additional trigger caused by (unchanged) weather data should not change this.
+        PV: 0.0 kW
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 11.03 kWh
+        ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 6.75 kWh
+        Heat pump: stays off
        */
 
       emAgentActivation ! Activation(45000)
@@ -1842,12 +1836,12 @@ Heat pump: stays on
       scheduler.expectMessage(Completion(emAgentActivation, Some(46271)))
 
       /* TICK 46271
-    Storage will be empty, since we haven't surplus energy from pv this not necessarily requires hp to run.
-    FIXME
-    House demand heating : requiredDemand = 8.87kWh, possibleDemand = 23.87 kWh
-    ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
-    DomesticWaterStorage : tba
-    Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
+        Storage is empty, since we haven't surplus energy from pv its not necessarily required to run the heat pump.
+        PV: 0.0 kW
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.88 kWh
+        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        DomesticWaterStorage : tba
+        Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
        */
 
       emAgentActivation ! Activation(46271)
@@ -1906,10 +1900,11 @@ Heat pump: stays on
       scheduler.expectMessage(Completion(emAgentActivation, Some(51300)))
 
       /* TICK 51300
-House reach lower temperature boundary
-House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 1.70 kWh
-ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
-Heat pump: stays on
+        House reach lower temperature boundary
+        PV: 0.0 kW
+        House demand heating : requiredDemand = 15.00 kWh, possibleDemand = 15.00 kWh
+        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        Heat pump: stays on
        */
 
       emAgentActivation ! Activation(51300)
@@ -1968,12 +1963,15 @@ Heat pump: stays on
       scheduler.expectMessage(Completion(emAgentActivation, Some(57600)))
 
       /* TICK 57600
-    New weather data: it's getting warmer again
-    Note: One could argue, that new weather should not change the operation of an agent (at least, if the weather did not change the flexOptions), but so far
-    we don't check for this. Thus, the Hp will stop operation since it can be turn off (lower Temp < innerTemp < targetTemp && storage must not directly recharged)
-    House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 1.70 kWh
-    ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
-    Heat pump: turned off
+        New weather data: it's getting warmer again
+        Note: One could argue, that new weather should not change the operation of an agent (at least,
+        if the weather did not change the flexOptions), but so far we don't check for this.
+        Thus, the Hp will stop operation since it can be turned off
+        (lower Temp < innerTemp < targetTemp && storage must not directly recharged).
+        PV: 0.0 kW
+        House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 3.27 kWh
+        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        Heat pump: turned off
        */
 
       emAgentActivation ! Activation(57600)
@@ -2046,10 +2044,11 @@ Heat pump: stays on
       scheduler.expectMessage(Completion(emAgentActivation, Some(86585)))
 
       /* TICK 86585
-    House will reach the lower temperature boundary
-    House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
-    ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
-    Heat pump: stays on to refill the storage now
+        House will reach the lower temperature boundary
+        PV: 0.0 kW
+        House demand heating : requiredDemand = 15.00 kWh, possibleDemand = 15.00 kWh
+        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        Heat pump: stays on to refill the storage now
        */
 
       emAgentActivation ! Activation(86585)
@@ -2108,10 +2107,11 @@ Heat pump: stays on
       scheduler.expectMessage(Completion(emAgentActivation, Some(92152)))
 
       /* TICK 92152
-House will reach target temperature
-House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
-ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
-Heat pump: stays on to refill the storage now
+        House will reach target temperature
+        PV: 0.0 kW
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        Heat pump: stays on to refill the storage now
        */
 
       emAgentActivation ! Activation(92152)

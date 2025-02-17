@@ -630,12 +630,12 @@ class EmAgentIT
         scheduler.expectMessage(Completion(emAgentActivation, Some(12108)))
 
         /* TICK 12108
-      LOAD: 0.269 kW (unchanged)
-      PV:  -3.791 kW (unchanged)
-      We stop here, since thermal house reached target temperature.
-      Heat pump: Can still run, since there is surplus energy from PV, can still be turned off
-      -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-      -> remaining 1.327 kW
+          LOAD: 0.269 kW (unchanged)
+          PV:  -3.791 kW (unchanged)
+          We stop here, since thermal house reached target temperature.
+          Heat pump: Can still run, since there is surplus energy from PV, can still be turned off
+          -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+          -> remaining 1.327 kW
          */
 
         emAgentActivation ! Activation(12108)
