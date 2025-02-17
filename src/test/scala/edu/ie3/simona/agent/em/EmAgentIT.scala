@@ -55,7 +55,6 @@ import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
-import scala.concurrent.duration.{FiniteDuration, SECONDS}
 
 class EmAgentIT
     extends ScalaTestWithActorTestKit
@@ -85,11 +84,8 @@ class EmAgentIT
   )
 
   override protected val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
-    calculateMissingReactivePowerWithModel = false,
-    scaling = 1d,
     uuids = List("default"),
     aggregateFlex = "SELF_OPT",
-    curtailRegenerative = false,
   )
 
   private implicit val quantityTolerance: Double = 1e-10d
@@ -125,7 +121,6 @@ class EmAgentIT
               loadInput,
               LoadRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
-                scaling = 1d,
                 modelBehaviour = "fix",
                 reference = "power",
                 uuids = List.empty,
@@ -150,7 +145,6 @@ class EmAgentIT
               pvInput,
               PvRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
-                scaling = 1d,
                 uuids = List.empty,
               ),
               primaryServiceProxy.ref.toClassic,
@@ -173,9 +167,7 @@ class EmAgentIT
               householdStorageInput,
               StorageRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
-                scaling = 1d,
                 uuids = List.empty,
-                initialSoc = 0d,
                 targetSoc = None,
               ),
               primaryServiceProxy.ref.toClassic,
@@ -297,7 +289,7 @@ class EmAgentIT
         /* TICK 7200
          LOAD: 0.269 kW (unchanged)
          PV:  -3.791 kW
-         STORAGE: SOC 63.3 % fixme: reminder check this at the end
+         STORAGE: SOC 63.3 %
          -> charge with 3.522 kW
          -> remaining 0 kW
          */
@@ -354,8 +346,8 @@ class EmAgentIT
          LOAD: 0.269 kW (unchanged)
          PV:  -0.069 kW
          STORAGE: SOC 100 %
-         -> charge with 0 kW
-         -> remaining 0.2 kW
+         -> charge with 0.2 kW
+         -> remaining 0.0 kW
          */
 
         // send weather data before activation, which can happen
@@ -417,7 +409,6 @@ class EmAgentIT
               loadInput,
               LoadRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
-                scaling = 1d,
                 modelBehaviour = "fix",
                 reference = "power",
                 uuids = List.empty,
@@ -442,7 +433,6 @@ class EmAgentIT
               pvInput,
               PvRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
-                scaling = 1d,
                 uuids = List.empty,
               ),
               primaryServiceProxy.ref.toClassic,
@@ -568,7 +558,7 @@ class EmAgentIT
          PV:  -5.842 kW
          Heat pump: off, can be turned on or stay off
          -> set point ~3.5 kW (bigger than 50 % rated apparent power): turned on
-         -> remaining -0.072 kW
+         -> remaining -0.723 kW
          */
 
         emAgentActivation ! Activation(0)
