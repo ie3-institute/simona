@@ -269,6 +269,7 @@ class ParticipantAgentExternalSourceSpec
         0L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -541,6 +542,7 @@ class ParticipantAgentExternalSourceSpec
         1800L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(mockAgent.stateName == Idle)
@@ -712,6 +714,7 @@ class ParticipantAgentExternalSourceSpec
         3000L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -728,6 +731,7 @@ class ParticipantAgentExternalSourceSpec
         3000L,
         Each(1.000000000000001d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -745,6 +749,7 @@ class ParticipantAgentExternalSourceSpec
         3000L,
         Each(0.98d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed, as this model is meant to forward information from outside */

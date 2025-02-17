@@ -10,6 +10,7 @@ import breeze.numerics.{pow, sqrt}
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
+  ProvidedPowerResponse,
 }
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.{
@@ -156,11 +157,14 @@ object ParticipantAgent {
     *   Real part of the complex, dimensionless nodal voltage.
     * @param fInPu
     *   Imaginary part of the complex, dimensionless nodal voltage.
+    * @param replyTo
+    *   Actor reference to send the reply to
     */
   final case class RequestAssetPowerMessage(
       tick: Long,
       eInPu: Dimensionless,
       fInPu: Dimensionless,
+      replyTo: ActorRef[ProvidedPowerResponse],
   ) extends Request
 
   /** Message announcing that calculations by the
@@ -284,7 +288,10 @@ object ParticipantAgent {
           parentData,
         )
 
-      case (ctx, RequestAssetPowerMessage(currentTick, eInPu, fInPu)) =>
+      case (
+            ctx,
+            RequestAssetPowerMessage(currentTick, eInPu, fInPu, replyTo),
+          ) =>
         // we do not have to wait for the resulting power of the current tick,
         // since the current power is irrelevant for the average power up until now
 
@@ -310,7 +317,7 @@ object ParticipantAgent {
             "Power result has not been calculated"
           )
         )
-        gridAdapter.gridAgent !
+        replyTo !
           (if (result.newResult) {
              AssetPowerChangedMessage(
                result.avgPower.p,

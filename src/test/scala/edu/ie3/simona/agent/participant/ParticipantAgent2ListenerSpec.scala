@@ -232,6 +232,7 @@ class ParticipantAgent2ListenerSpec
         3000L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
 
       /* Wait for original reply (this is the querying agent) */
@@ -294,6 +295,7 @@ class ParticipantAgent2ListenerSpec
         3000L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
 
       /* Wait for original reply (this is the querying agent) */

@@ -392,6 +392,7 @@ class HpAgentModelCalculationSpec
         0L,
         Dimensionless.primaryUnit(1.0),
         Dimensionless.primaryUnit(0.0),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -715,6 +716,7 @@ class HpAgentModelCalculationSpec
         7200L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(hpAgent.stateName == Idle)
@@ -841,6 +843,7 @@ class HpAgentModelCalculationSpec
         7500L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -858,6 +861,7 @@ class HpAgentModelCalculationSpec
         7500L,
         Each(1.000000000000001d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -874,6 +878,7 @@ class HpAgentModelCalculationSpec
         7500L,
         Each(0.98),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

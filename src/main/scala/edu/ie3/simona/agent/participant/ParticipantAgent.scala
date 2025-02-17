@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.simona.agent.grid.GridAgentMessages.ProvidedPowerResponse
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   StartCalculationTrigger,
   getAndCheckNodalVoltage,
@@ -206,7 +207,7 @@ abstract class ParticipantAgent[
       handleDataProvisionAndGoToHandleInformation(msg, baseStateData, scheduler)
 
     case Event(
-          RequestAssetPowerMessage(requestTick, eInPu, fInPu),
+          RequestAssetPowerMessage(requestTick, eInPu, fInPu, replyTo),
           baseStateData: BaseStateData[PD],
         ) =>
       /* Determine the reply and stay in this state (or stash the message if the request cannot yet be answered) */
@@ -216,6 +217,7 @@ abstract class ParticipantAgent[
         eInPu,
         fInPu,
         alternativeResult,
+        replyTo,
       )
 
     case Event(
@@ -392,7 +394,7 @@ abstract class ParticipantAgent[
         )
 
     case Event(
-          RequestAssetPowerMessage(currentTick, _, _),
+          RequestAssetPowerMessage(currentTick, _, _, _),
           DataCollectionStateData(_, data, yetTriggered),
         ) =>
       if (log.isDebugEnabled) {
@@ -466,7 +468,7 @@ abstract class ParticipantAgent[
         scheduler,
       )
 
-    case Event(RequestAssetPowerMessage(currentTick, _, _), _) =>
+    case Event(RequestAssetPowerMessage(currentTick, _, _, _), _) =>
       log.debug(
         s"Got asset power request for tick {} from '{}'. Will answer it later.",
         currentTick,
@@ -822,6 +824,7 @@ abstract class ParticipantAgent[
       eInPu: Dimensionless,
       fInPu: Dimensionless,
       alternativeResult: PD,
+      replyTo: TypedActorRef[ProvidedPowerResponse],
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Abstract definition to notify result listeners from every participant

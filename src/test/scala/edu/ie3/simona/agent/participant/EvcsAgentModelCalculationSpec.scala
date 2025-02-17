@@ -376,6 +376,7 @@ class EvcsAgentModelCalculationSpec
         0L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -705,6 +706,7 @@ class EvcsAgentModelCalculationSpec
         7200,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -996,6 +998,7 @@ class EvcsAgentModelCalculationSpec
         7500L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -1013,6 +1016,7 @@ class EvcsAgentModelCalculationSpec
         7500L,
         Each(1.000000000000001d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -1029,6 +1033,7 @@ class EvcsAgentModelCalculationSpec
         7500L,
         Each(0.98),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

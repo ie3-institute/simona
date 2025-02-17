@@ -366,6 +366,7 @@ class WecAgentModelCalculationSpec
         0L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -675,6 +676,7 @@ class WecAgentModelCalculationSpec
         1800L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(wecAgent.stateName == Idle)
@@ -801,6 +803,7 @@ class WecAgentModelCalculationSpec
         3000L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -818,6 +821,7 @@ class WecAgentModelCalculationSpec
         3000L,
         Each(1.000000000000001d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -834,6 +838,7 @@ class WecAgentModelCalculationSpec
         3000L,
         Each(0.98d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

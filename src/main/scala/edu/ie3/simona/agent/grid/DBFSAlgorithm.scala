@@ -37,14 +37,12 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
   StashBuffer,
 }
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
-import org.apache.pekko.pattern.ask
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior, Scheduler}
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import org.slf4j.Logger
 import squants.Each
@@ -354,8 +352,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                             // To model the exchanged power from the superior grid's point of view, -1 has to be multiplied.
                             // (Inferior grid is a feed in facility to superior grid, which is negative then). Analogously for load case.
                             (
-                              refSystem.pInSi(pInPu) * (-1),
-                              refSystem.qInSi(qInPu) * (-1),
+                              refSystem.pInSi(pInPu) * -1,
+                              refSystem.qInSi(qInPu) * -1,
                             )
                           case _ =>
                             /* TODO: As long as there are no multiple slack nodes, provide "real" power only for the slack node */
@@ -1128,8 +1126,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
+
+    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
+    implicit val system: ActorSystem[_] = ctx.system
 
     ctx.log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
 
@@ -1164,16 +1164,21 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                     )
                 }
 
-              (assetAgent.toClassic ? RequestAssetPowerMessage(
-                currentTick,
-                eInPu,
-                fInPU,
-              )).map {
-                case providedPowerValuesMessage: AssetPowerChangedMessage =>
-                  (assetAgent, providedPowerValuesMessage)
-                case assetPowerUnchangedMessage: AssetPowerUnchangedMessage =>
-                  (assetAgent, assetPowerUnchangedMessage)
-              }
+              assetAgent
+                .ask(replyTo =>
+                  RequestAssetPowerMessage(
+                    currentTick,
+                    eInPu,
+                    fInPU,
+                    replyTo,
+                  )
+                )
+                .map {
+                  case providedPowerValuesMessage: AssetPowerChangedMessage =>
+                    (assetAgent, providedPowerValuesMessage)
+                  case assetPowerUnchangedMessage: AssetPowerUnchangedMessage =>
+                    (assetAgent, assetPowerUnchangedMessage)
+                }
             })
           }.toVector
         )

@@ -389,6 +389,7 @@ class PvAgentModelCalculationSpec
         0L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -663,6 +664,7 @@ class PvAgentModelCalculationSpec
         7200L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(pvAgent.stateName == Idle)
@@ -789,6 +791,7 @@ class PvAgentModelCalculationSpec
         7500L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -806,6 +809,7 @@ class PvAgentModelCalculationSpec
         7500L,
         Each(1.000000000000001d),
         Each(0d),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -822,6 +826,7 @@ class PvAgentModelCalculationSpec
         7500L,
         Each(0.98),
         Each(0d),
+        self.toTyped,
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

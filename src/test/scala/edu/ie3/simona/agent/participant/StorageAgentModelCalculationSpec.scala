@@ -261,6 +261,7 @@ class StorageAgentModelCalculationSpec
         0,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(

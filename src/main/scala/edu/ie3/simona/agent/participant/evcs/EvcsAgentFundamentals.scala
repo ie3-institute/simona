@@ -13,7 +13,10 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
 }
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.grid.GridAgentMessages.AssetPowerChangedMessage
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  ProvidedPowerResponse,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
@@ -572,6 +575,7 @@ protected trait EvcsAgentFundamentals
       nodalVoltage: squants.Dimensionless,
       updatedVoltageValueStore: ValueStore[squants.Dimensionless],
       alternativeResult: ComplexPower,
+      replyTo: TypedActorRef[ProvidedPowerResponse],
   ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] = {
     /* No fast reply possible --> Some calculations have to be made */
     mostRecentRequest match {
@@ -607,10 +611,12 @@ protected trait EvcsAgentFundamentals
                 voltageValueStore = updatedVoltageValueStore,
               )
 
-            stay() using nextStateData replying AssetPowerChangedMessage(
+            replyTo ! AssetPowerChangedMessage(
               lastResult.p,
               nextReactivePower,
             )
+
+            stay() using nextStateData
           case unexpectedStateData =>
             throw new IllegalStateException(
               s"The request reply should not be re-calculated for state data '$unexpectedStateData'"
@@ -668,6 +674,7 @@ protected trait EvcsAgentFundamentals
               nodalVoltage,
               updatedVoltageValueStore,
               alternativeResult,
+              replyTo,
             )
           case None =>
             /* There is no simulation result at all. Reply with zero power */
@@ -676,6 +683,7 @@ protected trait EvcsAgentFundamentals
               alternativeResult,
               requestTick,
               updatedVoltageValueStore,
+              replyTo,
             )
         }
     }

@@ -264,6 +264,7 @@ class FixedFeedInAgentModelCalculationSpec
         0L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -376,6 +377,7 @@ class FixedFeedInAgentModelCalculationSpec
         3000L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -417,6 +419,7 @@ class FixedFeedInAgentModelCalculationSpec
         3000L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -434,6 +437,7 @@ class FixedFeedInAgentModelCalculationSpec
         3000L,
         Each(1.000000000000001d),
         Each(0d),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -450,6 +454,7 @@ class FixedFeedInAgentModelCalculationSpec
         3000L,
         Each(0.98),
         Each(0d),
+        self.toTyped,
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
