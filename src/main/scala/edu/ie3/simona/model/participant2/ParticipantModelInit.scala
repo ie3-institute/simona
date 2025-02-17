@@ -9,16 +9,10 @@ package edu.ie3.simona.model.participant2
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemParticipantInputCopyBuilder
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.participant.data.Data.{
-  PrimaryData,
-  PrimaryDataExtra,
-}
-import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
+import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, PrimaryDataExtra}
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ModelState,
-  OperatingPoint,
-}
+import edu.ie3.simona.model.participant2.ParticipantModel.{ModelState, OperatingPoint}
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.PrimaryResultFunc
 import edu.ie3.simona.model.participant2.load.LoadModel
 

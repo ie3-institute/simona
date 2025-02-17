@@ -9,28 +9,12 @@ package edu.ie3.simona.agent.participant2
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePowerExtra
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
-  PrimaryRegistrationSuccessfulMessage,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
-import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
-  ParticipantRefs,
-  SimulationParameters,
-}
-import edu.ie3.simona.config.SimonaConfig.{LoadRuntimeConfig, PvRuntimeConfig}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{PrimaryRegistrationSuccessfulMessage, RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{ParticipantRefs, SimulationParameters}
+import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, PvRuntimeConfig}
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexActivation,
-  FlexCompletion,
-  FlexResponse,
-  RegisterControlledAsset,
-  ScheduleFlexActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexActivation, FlexCompletion, FlexResponse, RegisterControlledAsset, ScheduleFlexActivation}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
@@ -66,13 +50,7 @@ class ParticipantAgentInitSpec
 
   "A ParticipantAgent that is not depending on external services" when {
 
-    val config = LoadRuntimeConfig(
-      calculateMissingReactivePowerWithModel = false,
-      scaling = 1.0,
-      uuids = List.empty,
-      modelBehaviour = "fix",
-      reference = "power",
-    )
+    val config = LoadRuntimeConfig()
 
     val operationStart = 10 * 3600L
 
@@ -298,11 +276,7 @@ class ParticipantAgentInitSpec
       )
       .build()
 
-    val config = PvRuntimeConfig(
-      calculateMissingReactivePowerWithModel = false,
-      scaling = 1.0,
-      uuids = List.empty,
-    )
+    val config = PvRuntimeConfig()
 
     "not controlled by EM" should {
 

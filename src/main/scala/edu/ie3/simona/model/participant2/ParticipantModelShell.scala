@@ -10,27 +10,16 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.agent.participant.data.Data.{
-  PrimaryData,
-  PrimaryDataExtra,
-}
+import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, PrimaryDataExtra}
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.em.EmTools
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ModelInput,
-  ModelState,
-  OperatingPoint,
-  OperationChangeIndicator,
-}
+import edu.ie3.simona.model.participant2.ParticipantModel.{ModelInput, ModelState, OperatingPoint, OperationChangeIndicator}
 import edu.ie3.simona.model.participant2.ParticipantModelShell.ResultsContainer
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  IssueFlexControl,
-  ProvideFlexOptions,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{IssueFlexControl, ProvideFlexOptions}
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.TickUtil.TickLong
