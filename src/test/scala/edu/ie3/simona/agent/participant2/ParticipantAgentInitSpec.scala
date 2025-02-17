@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
 }
-import edu.ie3.simona.config.SimonaConfig.{LoadRuntimeConfig, PvRuntimeConfig}
+import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, PvRuntimeConfig}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -66,13 +66,7 @@ class ParticipantAgentInitSpec
 
   "A ParticipantAgent that is not depending on external services" when {
 
-    val config = LoadRuntimeConfig(
-      calculateMissingReactivePowerWithModel = false,
-      scaling = 1.0,
-      uuids = List.empty,
-      modelBehaviour = "fix",
-      reference = "power",
-    )
+    val config = LoadRuntimeConfig()
 
     val operationStart = 10 * 3600L
 
@@ -298,11 +292,7 @@ class ParticipantAgentInitSpec
       )
       .build()
 
-    val config = PvRuntimeConfig(
-      calculateMissingReactivePowerWithModel = false,
-      scaling = 1.0,
-      uuids = List.empty,
-    )
+    val config = PvRuntimeConfig()
 
     "not controlled by EM" should {
 

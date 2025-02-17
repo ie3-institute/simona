@@ -92,52 +92,11 @@ object SimonaConfig {
       val notifier: String,
       val simulationResult: Boolean,
   )
-
-  sealed abstract class BaseRuntimeConfig(
-      val calculateMissingReactivePowerWithModel: Boolean = false,
-      val scaling: Double = 1.0,
-      val uuids: List[String] = List.empty,
-  ) extends Serializable
-
   sealed abstract class CsvParams(
       val csvSep: String,
       val directoryPath: String,
       val isHierarchic: Boolean,
   )
-
-  final case class EmRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List.empty,
-      aggregateFlex: String = "SELF_OPT_EXCL_REG",
-      curtailRegenerative: Boolean = false,
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
-
-  final case class EvcsRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List.empty,
-      chargingStrategy: String = "maxPower",
-      lowestEvSoc: Double = 0.2,
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
-
-  final case class FixedFeedInRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List.empty,
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
 
   final case class GridOutputConfig(
       lines: Boolean = false,
@@ -148,34 +107,12 @@ object SimonaConfig {
       transformers3w: Boolean = false,
   )
 
-  final case class HpRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List.empty,
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
-
   sealed abstract class KafkaParams(
       val bootstrapServers: String,
       val linger: Int,
       val runId: String,
       val schemaRegistryUrl: String,
   )
-
-  final case class LoadRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List.empty,
-      modelBehaviour: String,
-      reference: String,
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
 
   final case class ParticipantBaseOutputConfig(
       override val notifier: String,
@@ -191,22 +128,17 @@ object SimonaConfig {
       timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
   ) extends CsvParams(csvSep, directoryPath, isHierarchic)
 
-  final case class PvRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List.empty,
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
+  sealed trait GridConfigParams {
+    val gridIds: Option[List[String]]
+    val voltLvls: Option[List[VoltLvlConfig]]
+  }
 
   final case class RefSystemConfig(
-      gridIds: Option[List[String]] = None,
+      override val gridIds: Option[List[String]] = None,
       sNom: String,
       vNom: String,
-      voltLvls: Option[List[VoltLvlConfig]] = None,
-  )
+      override val voltLvls: Option[List[VoltLvlConfig]] = None,
+  ) extends GridConfigParams
 
   final case class ResultKafkaParams(
       override val bootstrapServers: String,
@@ -229,18 +161,6 @@ object SimonaConfig {
       override val simulationResult: Boolean,
   ) extends BaseOutputConfig(notifier, simulationResult)
 
-  final case class StorageRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List.empty,
-      initialSoc: Double = 0d,
-      targetSoc: Option[Double],
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
-
   final case class TransformerControlGroup(
       measurements: List[String] = List.empty,
       transformers: List[String] = List.empty,
@@ -253,15 +173,12 @@ object SimonaConfig {
       vNom: String,
   )
 
-  final case class WecRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean = false,
-      override val scaling: Double = 1.0,
-      override val uuids: List[String] = List.empty,
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
+  final case class VoltageLimitsConfig(
+      override val gridIds: Option[List[String]] = None,
+      vMax: Double,
+      vMin: Double,
+      override val voltLvls: Option[List[VoltLvlConfig]] = None,
+  ) extends GridConfigParams
 
   final case class Simona(
       control: Option[Simona.Control] = None,
@@ -270,7 +187,7 @@ object SimonaConfig {
       input: Simona.Input,
       output: Simona.Output,
       powerflow: Simona.Powerflow,
-      runtime: Simona.Runtime,
+      runtime: RuntimeConfig,
       simulationName: String,
       time: Simona.Time = Simona.Time(),
   )
@@ -290,7 +207,8 @@ object SimonaConfig {
     }
 
     final case class GridConfig(
-        refSystems: Option[List[RefSystemConfig]] = None
+        refSystems: Option[List[RefSystemConfig]] = None,
+        voltageLimits: Option[List[VoltageLimitsConfig]] = None,
     )
 
     final case class Input(
@@ -473,72 +391,6 @@ object SimonaConfig {
           epsilon: List[Double] = List.empty,
           iterations: Int,
       )
-    }
-
-    final case class Runtime(
-        listener: Runtime.Listener = Runtime.Listener(),
-        participant: Runtime.Participant,
-        selected_subgrids: Option[List[Int]] = None,
-        selected_volt_lvls: Option[List[VoltLvlConfig]] = None,
-    )
-    object Runtime {
-      final case class Listener(
-          eventsToProcess: Option[List[String]] = None,
-          kafka: Option[RuntimeKafkaParams] = None,
-      )
-
-      final case class Participant(
-          em: Participant.Em,
-          evcs: Participant.Evcs,
-          fixedFeedIn: Participant.FixedFeedIn,
-          hp: Participant.Hp,
-          load: Participant.Load,
-          pv: Participant.Pv,
-          requestVoltageDeviationThreshold: Double = 1e-14,
-          storage: Participant.Storage,
-          wec: Participant.Wec,
-      )
-      object Participant {
-        final case class Em(
-            defaultConfig: EmRuntimeConfig,
-            individualConfigs: List[EmRuntimeConfig] = List.empty,
-        )
-
-        final case class Evcs(
-            defaultConfig: EvcsRuntimeConfig,
-            individualConfigs: List[EvcsRuntimeConfig] = List.empty,
-        )
-
-        final case class FixedFeedIn(
-            defaultConfig: FixedFeedInRuntimeConfig,
-            individualConfigs: List[FixedFeedInRuntimeConfig] = List.empty,
-        )
-
-        final case class Hp(
-            defaultConfig: HpRuntimeConfig,
-            individualConfigs: List[HpRuntimeConfig] = List.empty,
-        )
-
-        final case class Load(
-            defaultConfig: LoadRuntimeConfig,
-            individualConfigs: List[LoadRuntimeConfig] = List.empty,
-        )
-
-        final case class Pv(
-            defaultConfig: PvRuntimeConfig,
-            individualConfigs: List[PvRuntimeConfig] = List.empty,
-        )
-
-        final case class Storage(
-            defaultConfig: StorageRuntimeConfig,
-            individualConfigs: List[StorageRuntimeConfig] = List.empty,
-        )
-
-        final case class Wec(
-            defaultConfig: WecRuntimeConfig,
-            individualConfigs: List[WecRuntimeConfig] = List.empty,
-        )
-      }
     }
 
     final case class Time(

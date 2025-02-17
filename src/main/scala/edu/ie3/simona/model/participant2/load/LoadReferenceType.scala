@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant2.load
 
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.util.StringUtils
 
 /** Denoting difference referencing scenarios for scaling load model output
@@ -34,7 +34,7 @@ object LoadReferenceType {
     *   A [[LoadReferenceType]] for use in [[LoadModel]]
     */
   def apply(
-      modelConfig: SimonaConfig.LoadRuntimeConfig
+      modelConfig: LoadRuntimeConfig
   ): LoadReferenceType =
     StringUtils.cleanString(modelConfig.reference).toLowerCase match {
       case "power" =>

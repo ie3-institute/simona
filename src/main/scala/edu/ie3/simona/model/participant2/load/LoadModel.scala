@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.load.LoadModelBehaviour
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel

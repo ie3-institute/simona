@@ -356,7 +356,7 @@ object ParticipantAgent {
 
   /** Starts a model calculation if all requirements have been met. A model
     * calculation could be the determination of flex options and operating point
-    * when EM-controlled, and only flex options when not EM-controlled.
+    * when EM-controlled, and only operating point when not EM-controlled.
     * Requirements include all necessary data having been received and power
     * flow calculation having finished, if applicable.
     *

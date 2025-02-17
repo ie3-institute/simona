@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.participant.data.Data.{
   PrimaryData,
   PrimaryDataExtra,
 }
-import edu.ie3.simona.config.SimonaConfig.{
+import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   EvcsRuntimeConfig,
   LoadRuntimeConfig,
