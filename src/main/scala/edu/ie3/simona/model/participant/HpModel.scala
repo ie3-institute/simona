@@ -339,9 +339,15 @@ final case class HpModel(
     /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
     val turnOn = setPower > (sRated.toActivePower(cosPhiRated) * 0.5)
 
+    // Check the activePower in case of using house flexibility till upper temp boundary
+    val activePowerUpdatedHpStateUpperLimit =
+      determineState(lastState, relevantData, true)._3.activePower
+    // Check the activePower in case of NOT using house flexibility till upper temp boundary
+    val activePowerUpdatedHpStateTargetLimit =
+      determineState(lastState, relevantData, false)._3.activePower
+
     val useUpperTempBoundaryForFlexibility =
-      (lastState.tick == relevantData.currentTick &&
-        lastState.isRunning != turnOn)
+      (activePowerUpdatedHpStateTargetLimit == zeroKW && activePowerUpdatedHpStateUpperLimit > zeroKW)
 
     val (
       thermalDemandWrapper,
