@@ -252,23 +252,14 @@ final case class HpModel(
     val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
       if (isRunning)
         (pRated, pThermal, pThermal)
-      // If the house has required demand and storage isn't empty, we can heat the house from storage.
+      // If the has demand and storage isn't empty, we can heat the house from storage.
       else if (
-        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasRequiredDemand
+        currentEnergyOfThermalStorage > zeroKWh && lastStateStorage.storedEnergy > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand
       )
         (
           zeroKW,
           zeroKW,
           thermalGrid.storage.map(_.getChargingPower: squants.Power).get,
-        )
-      // If the house has any demand, was heated from storage in last state and storage isn't empty, we can continue heating the house from storage.
-      else if (
-        currentEnergyOfThermalStorage > zeroKWh && lastStateStorage.qDot < zeroKW && demandWrapper.houseDemand.hasAdditionalDemand
-      )
-        (
-          zeroKW,
-          zeroKW,
-          lastStateStorage.qDot * -1,
         )
       else (zeroKW, zeroKW, zeroKW)
     }
