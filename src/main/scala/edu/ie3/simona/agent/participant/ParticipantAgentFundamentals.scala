@@ -434,16 +434,15 @@ protected trait ParticipantAgentFundamentals[
     registrationResponse match {
       case RegistrationSuccessfulMessage(
             serviceRef,
-            maybeNextTick,
+            firstDataTick,
           ) =>
         val remainingResponses =
           stateData.pendingResponses.filter(_ != serviceRef)
 
         /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
         val foreseenDataTicks =
-          stateData.baseStateData.foreseenDataTicks + (serviceRef -> Some(
-            maybeNextTick
-          ))
+          stateData.baseStateData.foreseenDataTicks +
+            (serviceRef -> Some(firstDataTick))
 
         if (remainingResponses.isEmpty) {
           /* All agent have responded. Determine the next to be used state data and reply completion to scheduler. */
