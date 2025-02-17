@@ -131,6 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removing generated methods and cleaning up in config [#1170](https://github.com/ie3-institute/simona/issues/1170)
 - Changed `pvInput` values in `PvInputTestData` to more realistic values [#1144](https://github.com/ie3-institute/simona/issues/1144)
 - Refactor `RuntimeConfig` [#1172](https://github.com/ie3-institute/simona/issues/1172)
+- Typo and format of `ThermalGrid` and `ThermalHouse` ScalaDocs [#1196](https://github.com/ie3-institute/simona/issues/1196)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
