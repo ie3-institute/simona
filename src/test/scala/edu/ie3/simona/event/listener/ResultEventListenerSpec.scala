@@ -402,7 +402,6 @@ class ResultEventListenerSpec
           max = timeoutDuration,
         )
 
-        // Debug: Check if the file exists
         assert(outputFile.exists(), "Output file does not exist")
 
         // stopping the actor should wait until existing messages within an actor are fully processed
@@ -428,7 +427,6 @@ class ResultEventListenerSpec
           timeoutDuration,
         )
 
-        // Debug: Check if the compressed file exists
         val compressedFile = specificOutputFileHierarchy.rawOutputDataFilePaths
           .getOrElse(
             classOf[PvResult],
