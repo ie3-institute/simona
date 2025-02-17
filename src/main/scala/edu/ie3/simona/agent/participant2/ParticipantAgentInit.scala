@@ -13,7 +13,10 @@ import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModelShell
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
@@ -92,11 +95,11 @@ object ParticipantAgentInit {
     *   [[edu.ie3.simona.agent.em.EmAgent]].
     */
   def apply(
-             participantInput: SystemParticipantInput,
-             config: BaseRuntimeConfig,
-             participantRefs: ParticipantRefs,
-             simulationParams: SimulationParameters,
-             parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
+      participantInput: SystemParticipantInput,
+      config: BaseRuntimeConfig,
+      participantRefs: ParticipantRefs,
+      simulationParams: SimulationParameters,
+      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
   ): Behavior[Request] = Behaviors.setup { ctx =>
     val parentData = parent
       .map { em =>
