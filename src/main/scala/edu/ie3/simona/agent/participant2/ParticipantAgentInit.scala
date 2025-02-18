@@ -71,15 +71,12 @@ object ParticipantAgentInit {
     *   The simulation start date and time.
     * @param simulationEnd
     *   The simulation end date and time.
-    * @param notifierConfig
-    *   The result configuration.
     */
   final case class SimulationParameters(
       expectedPowerRequestTick: Long,
       requestVoltageDeviationTolerance: Dimensionless,
       simulationStart: ZonedDateTime,
       simulationEnd: ZonedDateTime,
-      notifierConfig: NotifierConfig,
   )
 
   /** Starts the initialization process of a [[ParticipantAgent]].
@@ -87,8 +84,10 @@ object ParticipantAgentInit {
     * @param participantInput
     *   The system participant model input that represents the physical model at
     *   the core of the agent.
-    * @param config
+    * @param runtimeConfig
     *   Runtime configuration that has to match the participant type.
+    * @param notifierConfig
+    *   The result configuration.
     * @param participantRefs
     *   A collection of actor references to actors required for initialization
     *   and operation.
@@ -101,7 +100,8 @@ object ParticipantAgentInit {
     */
   def apply(
       participantInput: SystemParticipantInput,
-      config: BaseRuntimeConfig,
+      runtimeConfig: BaseRuntimeConfig,
+      notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
@@ -140,7 +140,8 @@ object ParticipantAgentInit {
 
     uninitialized(
       participantInput,
-      config,
+      runtimeConfig,
+      notifierConfig,
       participantRefs,
       simulationParams,
       parentData,
@@ -151,7 +152,8 @@ object ParticipantAgentInit {
     */
   private def uninitialized(
       participantInput: SystemParticipantInput,
-      config: BaseRuntimeConfig,
+      runtimeConfig: BaseRuntimeConfig,
+      notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],
@@ -167,7 +169,8 @@ object ParticipantAgentInit {
 
       waitingForPrimaryProxy(
         participantInput,
-        config,
+        runtimeConfig,
+        notifierConfig,
         participantRefs,
         simulationParams,
         parentData,
@@ -180,7 +183,8 @@ object ParticipantAgentInit {
     */
   private def waitingForPrimaryProxy(
       participantInput: SystemParticipantInput,
-      config: BaseRuntimeConfig,
+      runtimeConfig: BaseRuntimeConfig,
+      notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],
@@ -200,11 +204,12 @@ object ParticipantAgentInit {
       completeInitialization(
         ParticipantModelShell.createForPrimaryData(
           participantInput,
-          config,
+          runtimeConfig,
           primaryDataExtra,
           simulationParams.simulationStart,
           simulationParams.simulationEnd,
         ),
+        notifierConfig,
         expectedFirstData,
         participantRefs,
         simulationParams,
@@ -215,7 +220,7 @@ object ParticipantAgentInit {
       // we're _not_ supposed to replay primary data, thus initialize the physical model
       val modelShell = ParticipantModelShell.createForPhysicalModel(
         participantInput,
-        config,
+        runtimeConfig,
         simulationParams.simulationStart,
         simulationParams.simulationEnd,
       )
@@ -226,6 +231,7 @@ object ParticipantAgentInit {
         // not requiring any secondary services, thus we're ready to go
         completeInitialization(
           modelShell,
+          notifierConfig,
           Map.empty,
           participantRefs,
           simulationParams,
@@ -255,6 +261,7 @@ object ParticipantAgentInit {
 
         waitingForServices(
           modelShell,
+          notifierConfig,
           participantRefs,
           simulationParams,
           requiredServices.values.toSet,
@@ -299,6 +306,7 @@ object ParticipantAgentInit {
     */
   private def waitingForServices(
       modelShell: ParticipantModelShell[_, _],
+      notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       expectedRegistrations: Set[ClassicRef],
@@ -321,6 +329,7 @@ object ParticipantAgentInit {
           // all secondary services set up, ready to go
           completeInitialization(
             modelShell,
+            notifierConfig,
             newExpectedFirstData,
             participantRefs,
             simulationParams,
@@ -330,6 +339,7 @@ object ParticipantAgentInit {
           // there's at least one more service to go, let's wait for confirmation
           waitingForServices(
             modelShell,
+            notifierConfig,
             participantRefs,
             simulationParams,
             newExpectedRegistrations,
@@ -343,6 +353,7 @@ object ParticipantAgentInit {
     */
   private def completeInitialization(
       modelShell: ParticipantModelShell[_, _],
+      notifierConfig: NotifierConfig,
       expectedData: Map[ClassicRef, Long],
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
@@ -386,7 +397,7 @@ object ParticipantAgentInit {
       ),
       ParticipantResultHandler(
         participantRefs.resultListener,
-        simulationParams.notifierConfig,
+        notifierConfig,
       ),
       parentData,
     )

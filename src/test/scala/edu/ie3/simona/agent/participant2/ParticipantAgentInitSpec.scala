@@ -63,16 +63,11 @@ class ParticipantAgentInitSpec
     Each(1e-14),
     simulationStart,
     defaultSimulationStart.plus(2, ChronoUnit.DAYS),
-    NotifierConfig(
-      simulationResultInfo = false,
-      powerRequestReply = false,
-      flexResult = false,
-    ),
   )
 
   "A ParticipantAgent that is not depending on external services" when {
 
-    val config = LoadRuntimeConfig()
+    val runtimeConfig = LoadRuntimeConfig()
 
     val operationStart = 10 * 3600L
 
@@ -104,7 +99,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Left(scheduler.ref),
@@ -150,7 +146,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Left(scheduler.ref),
@@ -202,7 +199,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Right(em.ref),
@@ -258,7 +256,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Right(em.ref),
@@ -310,7 +309,7 @@ class ParticipantAgentInitSpec
       )
       .build()
 
-    val config = PvRuntimeConfig()
+    val runtimeConfig = PvRuntimeConfig()
 
     "not controlled by EM" should {
 
@@ -333,7 +332,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Left(scheduler.ref),
@@ -392,7 +392,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Left(scheduler.ref),
@@ -449,7 +450,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Right(em.ref),
@@ -514,7 +516,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Right(em.ref),
