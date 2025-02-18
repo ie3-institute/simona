@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhance exception message in case of InvalidGridException [#1124](https://github.com/ie3-institute/simona/issues/1124)
 - Integration test for thermal grids [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Added `VoltageLimits` [#1133](https://github.com/ie3-institute/simona/issues/1133)
+- Introducing new ParticipantAgent and ParticipantModel [#1134](https://github.com/ie3-institute/simona/issues/1134)
+- Using new `ParticipantAgent.Request` messages everywhere [#1195](https://github.com/ie3-institute/simona/issues/1195)
 - Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
 
 ### Changed
