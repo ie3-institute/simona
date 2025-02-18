@@ -478,7 +478,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
           case AssetPowerChangedMessage(p, q) =>
             p should approximate(Kilowatts(3))
-            q should approximate(Kilovars(1.452966314514))
+            q should approximate(Kilovars(1.4529663145))
         }
 
         participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
@@ -889,6 +889,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(3))
+            result.q should approximate(Kilovars(1.4529663145))
+        }
+
         em.expectMessage(
           FlexCompletion(
             model.uuid,
@@ -943,6 +950,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getTime shouldBe operationInterval.end.toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
+        }
+
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(0))
+            result.q should approximate(Kilovars(0))
         }
 
         em.expectMessage(FlexCompletion(model.uuid))
@@ -1046,6 +1060,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(3))
+            result.q should approximate(Kilovars(1.4529663145))
+        }
+
         em.expectMessage(
           FlexCompletion(
             model.uuid,
@@ -1103,6 +1124,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getQ should equalWithTolerance(0.0004843221.asMegaVar)
         }
 
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(1))
+            result.q should approximate(Kilovars(0.4843221048))
+        }
+
         em.expectMessage(
           FlexCompletion(
             model.uuid,
@@ -1140,6 +1168,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getTime shouldBe operationInterval.end.toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
+        }
+
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(0))
+            result.q should approximate(Kilovars(0))
         }
 
         em.expectMessage(FlexCompletion(model.uuid))
@@ -1260,6 +1295,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getQ should equalWithTolerance(0.0.asMegaVar)
         }
 
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(0))
+            result.q should approximate(Kilovars(0))
+        }
+
         // next model tick and next data tick are ignored,
         // because we are outside of operation interval
         em.expectMessage(
@@ -1310,6 +1352,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getTime shouldBe operationInterval.start.toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
+        }
+
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(3))
+            result.q should approximate(Kilovars(1.4529663145))
         }
 
         // next model tick and next data tick are both hour 12
@@ -1379,6 +1428,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(3))
+            result.q should approximate(Kilovars(1.4529663145))
+        }
+
         em.expectMessage(
           FlexCompletion(
             model.uuid,
@@ -1429,6 +1485,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getQ should equalWithTolerance(0.002905932629.asMegaVar)
         }
 
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(6))
+            result.q should approximate(Kilovars(2.905932629))
+        }
+
         em.expectMessage(
           FlexCompletion(
             model.uuid,
@@ -1466,6 +1529,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getTime shouldBe operationInterval.end.toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
+        }
+
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(0))
+            result.q should approximate(Kilovars(0))
         }
 
         // Since we left the operation interval, there are no more ticks to activate
@@ -1584,6 +1654,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getQ should equalWithTolerance(0.0.asMegaVar)
         }
 
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(0))
+            result.q should approximate(Kilovars(0))
+        }
+
         // next model tick and next data tick are ignored,
         // because we are outside of operation interval
         em.expectMessage(
@@ -1634,6 +1711,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getTime shouldBe operationInterval.start.toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
+        }
+
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(3))
+            result.q should approximate(Kilovars(1.4529663145))
         }
 
         // next data tick is hour 12
@@ -1700,7 +1784,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getInputModel shouldBe model.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getP should equalWithTolerance(0.006.asMegaWatt)
-            result.getQ should equalWithTolerance(0.00290593263.asMegaVar)
+            result.getQ should equalWithTolerance(0.002905932629.asMegaVar)
+        }
+
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(6))
+            result.q should approximate(Kilovars(2.905932629))
         }
 
         em.expectMessage(
@@ -1753,6 +1844,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(3))
+            result.q should approximate(Kilovars(1.4529663145))
+        }
+
         em.expectMessage(
           FlexCompletion(
             model.uuid,
@@ -1789,6 +1887,13 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getTime shouldBe operationInterval.end.toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
+        }
+
+        em.expectMessageType[FlexResult] match {
+          case FlexResult(uuid, result) =>
+            uuid shouldBe model.uuid
+            result.p should approximate(Kilowatts(0))
+            result.q should approximate(Kilovars(0))
         }
 
         // Since we left the operation interval, there are no more ticks to activate
