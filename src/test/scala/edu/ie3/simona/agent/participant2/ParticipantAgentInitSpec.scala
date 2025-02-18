@@ -20,6 +20,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
 }
 import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, PvRuntimeConfig}
 import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -62,6 +63,11 @@ class ParticipantAgentInitSpec
     Each(1e-14),
     simulationStart,
     defaultSimulationStart.plus(2, ChronoUnit.DAYS),
+    NotifierConfig(
+      simulationResultInfo = false,
+      powerRequestReply = false,
+      flexResult = false,
+    ),
   )
 
   "A ParticipantAgent that is not depending on external services" when {

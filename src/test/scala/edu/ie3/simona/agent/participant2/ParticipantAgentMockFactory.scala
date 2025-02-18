@@ -33,7 +33,7 @@ object ParticipantAgentMockFactory {
       modelShell: ParticipantModelShell[_, _],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
-      resultListener: Iterable[ActorRef[ResultEvent]],
+      resultHandler: ParticipantResultHandler,
       parent: Either[
         (ActorRef[SchedulerMessage], ActorRef[ActorRef[Activation]]),
         (ActorRef[FlexResponse], ActorRef[ActorRef[FlexRequest]]),
@@ -58,7 +58,7 @@ object ParticipantAgentMockFactory {
       modelShell,
       inputHandler,
       gridAdapter,
-      resultListener,
+      resultHandler,
       parentData,
     )
   }

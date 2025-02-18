@@ -29,6 +29,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
 }
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant2.{
   ParticipantModelInit,
   ParticipantModelShell,
@@ -63,6 +64,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
   private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
 
+  private val notifierConfig = NotifierConfig(
+    simulationResultInfo = true,
+    powerRequestReply = false,
+    flexResult = false,
+  )
+
   "A ParticipantAgent that is not controlled by EM" when {
 
     "not depending on external services" should {
@@ -96,7 +103,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Left(scheduler.ref, receiveAdapter.ref),
           )
         )
@@ -246,7 +256,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Left(scheduler.ref, receiveAdapter.ref),
           )
         )
@@ -377,7 +390,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Left(scheduler.ref, receiveAdapter.ref),
           )
         )
@@ -613,7 +629,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Left(scheduler.ref, receiveAdapter.ref),
           )
         )
@@ -826,7 +845,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Right(em.ref, receiveAdapter.ref),
           )
         )
@@ -962,7 +984,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Right(em.ref, receiveAdapter.ref),
           )
         )
@@ -1134,7 +1159,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Right(em.ref, receiveAdapter.ref),
           )
         )
@@ -1410,7 +1438,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Right(em.ref, receiveAdapter.ref),
           )
         )
