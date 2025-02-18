@@ -22,7 +22,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
-import squants.energy.{Energy, KilowattHours, Kilowatts}
+import squants.energy.Kilowatts
 import squants.{Power, Temperature}
 
 import java.time.ZonedDateTime
