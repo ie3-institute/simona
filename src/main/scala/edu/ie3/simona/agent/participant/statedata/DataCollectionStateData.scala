@@ -27,7 +27,7 @@ import scala.reflect.{ClassTag, classTag}
   *   Type of the [[PrimaryDataWithComplexPower]], that the model will produce
   *   or receive as primary data
   */
-final case class DataCollectionStateData[+PD <: PrimaryDataWithComplexPower[
+final case class DataCollectionStateData[PD <: PrimaryDataWithComplexPower[
   PD
 ]](
     baseStateData: BaseStateData[PD],

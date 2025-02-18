@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
@@ -231,7 +232,8 @@ trait SetupHelper extends LazyLogging {
     *   the resulting result file hierarchy
     */
   def buildResultFileHierarchy(
-      simonaConfig: SimonaConfig
+      simonaConfig: SimonaConfig,
+      typeSafeConfig: Config,
   ): ResultFileHierarchy = {
 
     /* Determine the result models to write */
@@ -250,7 +252,7 @@ trait SetupHelper extends LazyLogging {
       ),
       configureLogger =
         LogbackConfiguration.default(simonaConfig.simona.output.log.level),
-      config = Some(simonaConfig),
+      config = Some((simonaConfig, typeSafeConfig)),
       addTimeStampToOutputDir =
         simonaConfig.simona.output.base.addTimestampToOutputDir,
     )

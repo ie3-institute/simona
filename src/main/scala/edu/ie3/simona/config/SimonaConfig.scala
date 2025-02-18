@@ -6,28 +6,29 @@
 
 package edu.ie3.simona.config
 
-import com.typesafe.config.{Config, ConfigRenderOptions}
+import com.typesafe.config.Config
 import edu.ie3.simona.exceptions.CriticalFailureException
-import pureconfig._
-import pureconfig.error._
-import pureconfig.generic.ProductHint
-import pureconfig.generic.auto._
+import pureconfig.*
+import pureconfig.error.*
+import pureconfig.generic.*
+import pureconfig.generic.semiauto.deriveConvert
 
 import java.time.Duration
-import scala.language.implicitConversions
+import scala.deriving.Mirror
 import scala.util.Try
 
 final case class SimonaConfig(
     simona: SimonaConfig.Simona
-) {
-  def render(options: ConfigRenderOptions): String =
-    SimonaConfig.render(this, options)
-}
+) derives ConfigConvert
 
 object SimonaConfig {
   // pure config start
   implicit def productHint[T]: ProductHint[T] =
     ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  extension (c: ConfigConvert.type)
+    inline def derived[A](using m: Mirror.Of[A]): ConfigConvert[A] =
+      deriveConvert[A]
 
   // TODO: replace with finite duration
   implicit def durationConvert: ConfigConvert[Duration] =
@@ -75,11 +76,6 @@ object SimonaConfig {
   def apply(confSrc: ConfigObjectSource): SimonaConfig =
     confSrc.load[SimonaConfig]
 
-  def render(
-      simonaConfig: SimonaConfig,
-      options: ConfigRenderOptions,
-  ): String = ConfigWriter[SimonaConfig].to(simonaConfig).render(options)
-
   // pure config end
 
   final case class BaseCsvParams(
@@ -87,16 +83,17 @@ object SimonaConfig {
       override val directoryPath: String,
       override val isHierarchic: Boolean,
   ) extends CsvParams(csvSep, directoryPath, isHierarchic)
+      derives ConfigConvert
 
   sealed abstract class BaseOutputConfig(
       val notifier: String,
       val simulationResult: Boolean,
-  )
+  ) derives ConfigConvert
   sealed abstract class CsvParams(
       val csvSep: String,
       val directoryPath: String,
       val isHierarchic: Boolean,
-  )
+  ) derives ConfigConvert
 
   final case class GridOutputConfig(
       lines: Boolean = false,
@@ -105,14 +102,14 @@ object SimonaConfig {
       switches: Boolean = false,
       transformers2w: Boolean = false,
       transformers3w: Boolean = false,
-  )
+  ) derives ConfigConvert
 
   sealed abstract class KafkaParams(
       val bootstrapServers: String,
       val linger: Int,
       val runId: String,
       val schemaRegistryUrl: String,
-  )
+  ) derives ConfigConvert
 
   final case class ParticipantBaseOutputConfig(
       override val notifier: String,
@@ -120,6 +117,7 @@ object SimonaConfig {
       flexResult: Boolean = false,
       powerRequestReply: Boolean,
   ) extends BaseOutputConfig(notifier, simulationResult)
+      derives ConfigConvert
 
   final case class PrimaryDataCsvParams(
       override val csvSep: String,
@@ -127,6 +125,7 @@ object SimonaConfig {
       override val isHierarchic: Boolean,
       timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
   ) extends CsvParams(csvSep, directoryPath, isHierarchic)
+      derives ConfigConvert
 
   sealed trait GridConfigParams {
     val gridIds: Option[List[String]]
@@ -139,6 +138,7 @@ object SimonaConfig {
       vNom: String,
       override val voltLvls: Option[List[VoltLvlConfig]] = None,
   ) extends GridConfigParams
+      derives ConfigConvert
 
   final case class ResultKafkaParams(
       override val bootstrapServers: String,
@@ -147,6 +147,7 @@ object SimonaConfig {
       override val schemaRegistryUrl: String,
       topicNodeRes: String,
   ) extends KafkaParams(bootstrapServers, linger, runId, schemaRegistryUrl)
+      derives ConfigConvert
 
   final case class RuntimeKafkaParams(
       override val bootstrapServers: String,
@@ -155,23 +156,25 @@ object SimonaConfig {
       override val schemaRegistryUrl: String,
       topic: String,
   ) extends KafkaParams(bootstrapServers, linger, runId, schemaRegistryUrl)
+      derives ConfigConvert
 
   final case class SimpleOutputConfig(
       override val notifier: String,
       override val simulationResult: Boolean,
   ) extends BaseOutputConfig(notifier, simulationResult)
+      derives ConfigConvert
 
   final case class TransformerControlGroup(
       measurements: List[String] = List.empty,
       transformers: List[String] = List.empty,
       vMax: Double,
       vMin: Double,
-  )
+  ) derives ConfigConvert
 
   final case class VoltLvlConfig(
       id: String,
       vNom: String,
-  )
+  ) derives ConfigConvert
 
   final case class VoltageLimitsConfig(
       override val gridIds: Option[List[String]] = None,
@@ -179,6 +182,7 @@ object SimonaConfig {
       vMin: Double,
       override val voltLvls: Option[List[VoltLvlConfig]] = None,
   ) extends GridConfigParams
+      derives ConfigConvert
 
   final case class Simona(
       control: Option[Simona.Control] = None,
@@ -190,41 +194,41 @@ object SimonaConfig {
       runtime: RuntimeConfig,
       simulationName: String,
       time: Simona.Time = Simona.Time(),
-  )
+  ) derives ConfigConvert
   object Simona {
     final case class Control(
         transformer: List[TransformerControlGroup] = List.empty
-    )
+    ) derives ConfigConvert
 
     final case class Event(
         listener: Option[List[Event.Listener$Elm]] = None
-    )
+    ) derives ConfigConvert
     object Event {
       final case class Listener$Elm(
           eventsToProcess: Option[List[String]] = None,
           fullClassPath: String,
-      )
+      ) derives ConfigConvert
     }
 
     final case class GridConfig(
         refSystems: Option[List[RefSystemConfig]] = None,
         voltageLimits: Option[List[VoltageLimitsConfig]] = None,
-    )
+    ) derives ConfigConvert
 
     final case class Input(
         grid: Input.Grid,
         primary: Input.Primary = Input.Primary(),
         weather: Input.Weather = Input.Weather(),
-    )
+    ) derives ConfigConvert
     object Input {
       final case class Grid(
           datasource: Grid.Datasource
-      )
+      ) derives ConfigConvert
       object Grid {
         final case class Datasource(
             csvParams: Option[BaseCsvParams] = None,
             id: String,
-        )
+        ) derives ConfigConvert
       }
 
       final case class Primary(
@@ -232,7 +236,7 @@ object SimonaConfig {
           csvParams: Option[PrimaryDataCsvParams] = None,
           influxDb1xParams: Option[Primary.InfluxDb1xParams] = None,
           sqlParams: Option[Primary.SqlParams] = None,
-      )
+      ) derives ConfigConvert
       object Primary {
         final case class CouchbaseParams(
             bucketName: String,
@@ -242,14 +246,14 @@ object SimonaConfig {
             timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
             url: String,
             userName: String,
-        )
+        ) derives ConfigConvert
 
         final case class InfluxDb1xParams(
             database: String,
             port: Int,
             timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
             url: String,
-        )
+        ) derives ConfigConvert
 
         final case class SqlParams(
             jdbcUrl: String,
@@ -257,12 +261,12 @@ object SimonaConfig {
             schemaName: String = "public",
             timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
             userName: String,
-        )
+        ) derives ConfigConvert
       }
 
       final case class Weather(
           datasource: Weather.Datasource = Weather.Datasource()
-      )
+      ) derives ConfigConvert
       object Weather {
         final case class Datasource(
             coordinateSource: Datasource.CoordinateSource =
@@ -276,18 +280,18 @@ object SimonaConfig {
             scheme: String = "icon",
             sqlParams: Option[Datasource.SqlParams] = None,
             timestampPattern: Option[String] = None,
-        )
+        ) derives ConfigConvert
         object Datasource {
           final case class CoordinateSource(
               csvParams: Option[BaseCsvParams] = None,
               gridModel: String = "icon",
               sampleParams: Option[CoordinateSource.SampleParams] = None,
               sqlParams: Option[CoordinateSource.SqlParams] = None,
-          )
+          ) derives ConfigConvert
           object CoordinateSource {
             final case class SampleParams(
                 use: Boolean = true
-            )
+            ) derives ConfigConvert
 
             final case class SqlParams(
                 jdbcUrl: String,
@@ -295,7 +299,7 @@ object SimonaConfig {
                 schemaName: String = "public",
                 tableName: String,
                 userName: String,
-            )
+            ) derives ConfigConvert
           }
 
           final case class CouchbaseParams(
@@ -305,17 +309,17 @@ object SimonaConfig {
               password: String,
               url: String,
               userName: String,
-          )
+          ) derives ConfigConvert
 
           final case class InfluxDb1xParams(
               database: String,
               port: Int,
               url: String,
-          )
+          ) derives ConfigConvert
 
           final case class SampleParams(
               use: Boolean = true
-          )
+          ) derives ConfigConvert
 
           final case class SqlParams(
               jdbcUrl: String,
@@ -323,7 +327,7 @@ object SimonaConfig {
               schemaName: String = "public",
               tableName: String,
               userName: String,
-          )
+          ) derives ConfigConvert
         }
       }
     }
@@ -336,27 +340,27 @@ object SimonaConfig {
         participant: Output.Participant,
         sink: Output.Sink = Output.Sink(),
         thermal: Output.Thermal,
-    )
+    ) derives ConfigConvert
     object Output {
       final case class Base(
           addTimestampToOutputDir: Boolean = true,
           dir: String,
-      )
+      ) derives ConfigConvert
 
       final case class Log(
           level: String = "INFO"
-      )
+      ) derives ConfigConvert
 
       final case class Participant(
           defaultConfig: ParticipantBaseOutputConfig,
           individualConfigs: List[ParticipantBaseOutputConfig] = List.empty,
-      )
+      ) derives ConfigConvert
 
       final case class Sink(
           csv: Option[Sink.Csv] = None,
           influxDb1x: Option[Sink.InfluxDb1x] = None,
           kafka: Option[ResultKafkaParams] = None,
-      )
+      ) derives ConfigConvert
       object Sink {
         final case class Csv(
             compressOutputs: Boolean = false,
@@ -364,19 +368,19 @@ object SimonaConfig {
             filePrefix: String = "",
             fileSuffix: String = "",
             isHierarchic: Boolean = false,
-        )
+        ) derives ConfigConvert
 
         final case class InfluxDb1x(
             database: String,
             port: Int,
             url: String,
-        )
+        ) derives ConfigConvert
       }
 
       final case class Thermal(
           defaultConfig: SimpleOutputConfig,
           individualConfigs: List[SimpleOutputConfig] = List.empty,
-      )
+      ) derives ConfigConvert
     }
 
     final case class Powerflow(
@@ -385,18 +389,18 @@ object SimonaConfig {
         resolution: Duration = Duration.ofHours(1),
         stopOnFailure: Boolean = false,
         sweepTimeout: Duration = Duration.ofSeconds(30),
-    )
+    ) derives ConfigConvert
     object Powerflow {
       final case class Newtonraphson(
           epsilon: List[Double] = List.empty,
           iterations: Int,
-      )
+      ) derives ConfigConvert
     }
 
     final case class Time(
         endDateTime: String = "2011-05-01T01:00:00Z",
         schedulerReadyCheckWindow: Option[Int] = None,
         startDateTime: String = "2011-05-01T00:00:00Z",
-    )
+    ) derives ConfigConvert
   }
 }

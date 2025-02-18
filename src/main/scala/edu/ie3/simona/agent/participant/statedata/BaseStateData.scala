@@ -36,7 +36,7 @@ import scala.collection.SortedSet
   *   Type of [[PrimaryDataWithComplexPower]], that the represented Participant
   *   produces
   */
-trait BaseStateData[+PD <: PrimaryDataWithComplexPower]
+trait BaseStateData[PD <: PrimaryDataWithComplexPower[PD]]
     extends ParticipantStateData[PD] {
 
   /** The date, that fits the tick 0
@@ -98,7 +98,7 @@ object BaseStateData {
     *   Restricting the model to a certain class
     */
   trait ModelBaseStateData[
-      +PD <: PrimaryDataWithComplexPower,
+      PD <: PrimaryDataWithComplexPower[PD],
       CD <: CalcRelevantData,
       MS <: ModelState,
       +M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
@@ -156,7 +156,7 @@ object BaseStateData {
     _ <: CalcRelevantData,
     P,
     _,
-  ], +P <: PrimaryDataWithComplexPower](
+  ], P <: PrimaryDataWithComplexPower[P]](
       model: M,
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
@@ -207,10 +207,10 @@ object BaseStateData {
     *   Type of model, the base state data is attached to
     */
   final case class ParticipantModelBaseStateData[
-      +PD <: PrimaryDataWithComplexPower,
+      PD <: PrimaryDataWithComplexPower[PD],
       CD <: CalcRelevantData,
       MS <: ModelState,
-      M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
+      M <: SystemParticipant[? <: CalcRelevantData, PD, MS],
   ](
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
@@ -272,7 +272,13 @@ object BaseStateData {
     * @return
     *   A copy of the base data with updated value stores
     */
-  def updateBaseStateData[PD <: PrimaryDataWithComplexPower, MS <: ModelState](
+  def updateBaseStateData[PD <: PrimaryDataWithComplexPower[
+    PD
+  ], MS <: ModelState, C <: CalcRelevantData, SP <: SystemParticipant[
+    C,
+    PD,
+    MS,
+  ]](
       baseStateData: BaseStateData[PD],
       updatedResultValueStore: ValueStore[PD],
       updatedRequestValueStore: ValueStore[PD],
@@ -281,10 +287,7 @@ object BaseStateData {
       updatedForeseenTicks: Map[ClassicActorRef, Option[Long]],
   ): BaseStateData[PD] = {
     baseStateData match {
-      case external: FromOutsideBaseStateData[
-            _ <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
-            PD,
-          ] =>
+      case external: FromOutsideBaseStateData[SP, PD] =>
         external.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,
@@ -292,12 +295,7 @@ object BaseStateData {
           additionalActivationTicks = updatedAdditionalActivationTicks,
           foreseenDataTicks = updatedForeseenTicks,
         )
-      case model: ParticipantModelBaseStateData[
-            PD,
-            _ <: CalcRelevantData,
-            MS,
-            _ <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
-          ] =>
+      case model: ParticipantModelBaseStateData[PD, C, MS, SP] =>
         model.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,

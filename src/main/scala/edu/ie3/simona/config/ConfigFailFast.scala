@@ -37,7 +37,6 @@ import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkSqlParams,
 }
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
-import edu.ie3.util.scala.ReflectionTools
 import edu.ie3.util.{StringUtils, TimeUtil}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units

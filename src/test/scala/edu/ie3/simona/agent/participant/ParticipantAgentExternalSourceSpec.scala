@@ -25,7 +25,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePowerAndHeat,
   ComplexPower,
   ComplexPowerAndHeat,
-  PrimaryDataWithApparentPower,
 }
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FromOutsideBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData

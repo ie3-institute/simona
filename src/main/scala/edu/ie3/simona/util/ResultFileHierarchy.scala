@@ -9,7 +9,7 @@ package edu.ie3.simona.util
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.{Files, Path, Paths}
 import java.text.SimpleDateFormat
-import com.typesafe.config.ConfigRenderOptions
+import com.typesafe.config.{Config, ConfigRenderOptions}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.naming.{
   EntityPersistenceNamingStrategy,
@@ -22,7 +22,7 @@ import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.logging.logback.LogbackConfiguration
 import edu.ie3.util.io.FileIOUtils
-import org.apache.commons.io.FilenameUtils._
+import org.apache.commons.io.FilenameUtils.*
 
 import scala.jdk.OptionConverters.RichOptional
 
@@ -47,7 +47,7 @@ object ResultFileHierarchy extends LazyLogging {
       simulationName: String,
       resultEntityPathConfig: ResultEntityPathConfig,
       configureLogger: Path => Unit = LogbackConfiguration.default("INFO"),
-      config: Option[SimonaConfig] = None,
+      config: Option[(SimonaConfig, Config)] = None,
       addTimeStampToOutputDir: Boolean = true,
   ): ResultFileHierarchy = {
 
@@ -215,7 +215,7 @@ object ResultFileHierarchy extends LazyLogging {
       baseOutputDir: Path,
       dirsToBeCreated: Seq[Path],
       resultFileHierarchy: ResultFileHierarchy,
-      maybeConfig: Option[SimonaConfig],
+      maybeConfig: Option[(SimonaConfig, Config)],
   ): Unit = {
     // create output directories if they are not present yet
     if (!runOutputDirExists(resultFileHierarchy))
@@ -225,10 +225,10 @@ object ResultFileHierarchy extends LazyLogging {
         resultFileHierarchy,
       )
 
-    maybeConfig.foreach { config =>
+    maybeConfig.foreach { case (simonaConfig, config) =>
       logger.info(
         "Processing configs for simulation: {}.",
-        config.simona.simulationName,
+        simonaConfig.simona.simulationName,
       )
 
       val outFile =
@@ -236,6 +236,7 @@ object ResultFileHierarchy extends LazyLogging {
       val bw = new BufferedWriter(new FileWriter(outFile))
       bw.write(
         config
+          .root()
           .render(
             ConfigRenderOptions
               .defaults()

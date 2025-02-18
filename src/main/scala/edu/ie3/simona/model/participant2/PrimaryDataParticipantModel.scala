@@ -49,7 +49,7 @@ import scala.reflect.ClassTag
   * @tparam PD
   *   The type of primary data.
   */
-final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
+final case class PrimaryDataParticipantModel[PD <: PrimaryData](
     override val uuid: UUID,
     override val id: String,
     override val sRated: ApparentPower,
@@ -84,7 +84,7 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
       .getOrElse {
         throw new CriticalFailureException(
           "Expected primary data of type " +
-            s"${implicitly[ClassTag[PD]].runtimeClass.getSimpleName}, " +
+            s"${primaryDataExtra.zero.getClass.getSimpleName}, " +
             s"got $receivedData"
         )
       }
@@ -164,7 +164,7 @@ object PrimaryDataParticipantModel {
   }
 
   private object PrimaryOperatingPoint {
-    def apply[PD <: PrimaryData: ClassTag](
+    def apply[PD <: PrimaryData](
         data: PD
     ): PrimaryOperatingPoint[PD] =
       data match {
@@ -183,7 +183,7 @@ object PrimaryDataParticipantModel {
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
-      PE <: PrimaryData with EnrichableData[_]: ClassTag
+      PE <: PrimaryData with EnrichableData[_ <: PrimaryData]
   ](
       override val data: PE
   ) extends PrimaryOperatingPoint[PE] {

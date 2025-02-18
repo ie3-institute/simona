@@ -82,7 +82,7 @@ object ParticipantModelInit {
     * @return
     *   The [[PrimaryDataParticipantModel]].
     */
-  def createPrimaryModel[PD <: PrimaryData: ClassTag](
+  def createPrimaryModel[PD <: PrimaryData](
       participantInput: SystemParticipantInput,
       modelConfig: BaseRuntimeConfig,
       primaryDataExtra: PrimaryDataExtra[PD],
@@ -110,7 +110,7 @@ object ParticipantModelInit {
     * @return
     *   The [[PrimaryDataParticipantModel]].
     */
-  def createPrimaryModel[PD <: PrimaryData: ClassTag](
+  def createPrimaryModel[PD <: PrimaryData](
       physicalModel: ParticipantModel[_, _],
       primaryDataExtra: PrimaryDataExtra[PD],
   ): PrimaryDataParticipantModel[PD] = {

@@ -7,10 +7,7 @@
 package edu.ie3.simona.agent.participant.data
 
 import edu.ie3.datamodel.models.value._
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ComplexPower,
-  PrimaryDataWithApparentPower,
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -73,9 +70,7 @@ object Data {
 
     /** Denoting all primary data, that carry complex power
       */
-    sealed trait PrimaryDataWithComplexPower[
-        +T <: PrimaryDataWithComplexPower[T]
-    ] extends PrimaryData {
+    sealed trait PrimaryDataWithComplexPower[T] extends PrimaryData {
       val q: ReactivePower
 
       def withReactivePower(q: ReactivePower): T
@@ -208,6 +203,26 @@ object Data {
           data.q * factor,
           data.qDot * factor,
         )
+    }
+
+    def getPrimaryDataExtra(
+        value: Class[_ <: Value]
+    ): PrimaryDataExtra[_ <: PrimaryData] = {
+      val heatAndS = classOf[HeatAndSValue]
+      val s = classOf[SValue]
+      val heatAndP = classOf[HeatAndPValue]
+      val p = classOf[PValue]
+
+      value match {
+        case `heatAndS` => ComplexPowerAndHeatExtra
+        case `s`        => ComplexPowerExtra
+        case `heatAndP` => ActivePowerAndHeatExtra
+        case `p`        => ActivePowerExtra
+        case other =>
+          throw new IllegalArgumentException(
+            s"Value class '$other' is not supported."
+          )
+      }
     }
 
     implicit class RichValue(private val value: Value) {
