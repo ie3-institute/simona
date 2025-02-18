@@ -13,7 +13,6 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   Request,
   SchedulerData,
 }
-import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
