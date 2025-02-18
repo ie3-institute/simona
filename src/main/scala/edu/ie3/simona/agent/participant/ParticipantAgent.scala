@@ -812,6 +812,8 @@ abstract class ParticipantAgent[
     *   Imaginary part of the complex, dimensionless nodal voltage
     * @param alternativeResult
     *   Alternative result to use, if no reasonable result can be obtained
+    * @param replyTo
+    *   Actor reference to send the reply to
     * @return
     *   The very same state with updated request value store
     */

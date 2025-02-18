@@ -565,6 +565,8 @@ protected trait EvcsAgentFundamentals
     *   Value store with updated nodal voltages
     * @param alternativeResult
     *   Alternative result to use, if no reasonable result can be obtained
+    * @param replyTo
+    *   Actor reference to send the reply to
     * @return
     *   Matching state transition
     */
