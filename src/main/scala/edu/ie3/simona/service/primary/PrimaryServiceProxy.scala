@@ -29,6 +29,7 @@ import edu.ie3.datamodel.io.source.{
   TimeSeriesMetaInformationSource,
 }
 import edu.ie3.datamodel.models.value.Value
+import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.config.ConfigParams.{
   SqlParams,
   TimeStampedCsvParams,
@@ -42,7 +43,6 @@ import edu.ie3.simona.exceptions.{
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage,
@@ -245,7 +245,7 @@ case class PrimaryServiceProxy(
     *   Message handling routine
     */
   private def onMessage(stateData: PrimaryServiceStateData): Receive = {
-    case PrimaryServiceRegistrationMessage(modelUuid) =>
+    case PrimaryServiceRegistrationMessage(requestingActor, modelUuid) =>
       /* Try to register for this model */
       stateData.modelToTimeSeries.get(modelUuid) match {
         case Some(timeSeriesUuid) =>
@@ -254,14 +254,14 @@ case class PrimaryServiceProxy(
             modelUuid,
             timeSeriesUuid,
             stateData,
-            sender(),
+            requestingActor,
           )
         case None =>
           log.debug(
             s"There is no time series apparent for the model with uuid '{}'.",
             modelUuid,
           )
-          sender() ! RegistrationFailedMessage(self)
+          requestingActor ! RegistrationFailedMessage(self)
       }
     case x =>
       log.error(
