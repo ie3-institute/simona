@@ -7,12 +7,8 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ProvisionMessage,
-  ServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.util.scala.quantities.Irradiance
-import org.apache.pekko.actor.ActorRef
 import squants.{Temperature, Velocity}
 
 sealed trait WeatherMessage
@@ -38,23 +34,6 @@ object WeatherMessage {
       longitude: Double,
   ) extends WeatherMessage
       with ServiceRegistrationMessage
-
-  /** Provide weather for the requested tick
-    *
-    * @param tick
-    *   The tick, for which the data is requested for
-    * @param data
-    *   Actual information
-    * @param nextDataTick
-    *   Foreseen next tick, where data is available
-    */
-  final case class ProvideWeatherMessage(
-      override val tick: Long,
-      override val serviceRef: ActorRef,
-      override val data: WeatherData,
-      override val nextDataTick: Option[Long],
-  ) extends WeatherMessage
-      with ProvisionMessage[WeatherData]
 
   /** Container class for the entirety of weather information at a certain point
     * in time and at a certain coordinate

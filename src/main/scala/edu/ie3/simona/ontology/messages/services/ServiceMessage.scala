@@ -28,8 +28,10 @@ object ServiceMessage {
     * @param inputModelUuid
     *   Identifier of the input model
     */
-  final case class PrimaryServiceRegistrationMessage(inputModelUuid: UUID)
-      extends ServiceRegistrationMessage
+  final case class PrimaryServiceRegistrationMessage(
+      requestingActor: ActorRef,
+      inputModelUuid: UUID,
+  ) extends ServiceRegistrationMessage
 
   /** This message can be sent from a proxy to a subordinate worker in order to
     * forward the original registration request. This message may only be used,
@@ -41,45 +43,9 @@ object ServiceMessage {
   final case class WorkerRegistrationMessage(requestingActor: ActorRef)
       extends ServiceRegistrationMessage
 
-  sealed trait RegistrationResponseMessage extends ServiceMessage {
-    val serviceRef: ActorRef
-  }
-
-  object RegistrationResponseMessage {
-
-    /** Message, that is used to confirm a successful registration
-      */
-    final case class RegistrationSuccessfulMessage(
-        override val serviceRef: ActorRef,
-        nextDataTick: Option[Long],
-    ) extends RegistrationResponseMessage
-
-    /** Message, that is used to announce a failed registration
-      */
-    final case class RegistrationFailedMessage(
-        override val serviceRef: ActorRef
-    ) extends RegistrationResponseMessage
-
-  }
-
   final case class ScheduleServiceActivation(
       tick: Long,
       unlockKey: ScheduleKey,
   )
 
-  /** Actual provision of data
-    *
-    * @tparam D
-    *   type of data that is delivered
-    */
-  trait ProvisionMessage[D <: Data] extends ServiceMessage {
-    val tick: Long
-    val serviceRef: ActorRef
-    val data: D
-
-    /** Next tick at which data could arrive. If None, no data is expected for
-      * the rest of the simulation
-      */
-    val nextDataTick: Option[Long]
-  }
 }
