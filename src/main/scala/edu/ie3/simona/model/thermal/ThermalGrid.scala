@@ -373,19 +373,20 @@ final case class ThermalGrid(
     * @param qDot
     *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
-   * @param updatedHeatStorageState
-   *   Updated state of the heat storage.
-   * @param qDotHouseLastState
-   *   Thermal infeed into the house at the last state.
-   * @param qDotStorageLastState
-   *   Thermal infeed into the heat storage at the last state.
-   * @param qDotDomesticWaterStorageLastState
-   *   Thermal infeed into the domestic hot water storage at the last state.
-   * @param domesticHotWaterStorageLeftBoundary
-   *   Indicates if the domestic hot water storage has left on of its boundaries (if true, its neither full or empty).
-   * @param isRunning
-   *   Determines whether the heat pump is running or not.
-   * @return
+    * @param updatedHeatStorageState
+    *   Updated state of the heat storage.
+    * @param qDotHouseLastState
+    *   Thermal infeed into the house at the last state.
+    * @param qDotStorageLastState
+    *   Thermal infeed into the heat storage at the last state.
+    * @param qDotDomesticWaterStorageLastState
+    *   Thermal infeed into the domestic hot water storage at the last state.
+    * @param domesticHotWaterStorageLeftBoundary
+    *   Indicates if the domestic hot water storage has left on of its
+    *   boundaries (if true, its neither full or empty).
+    * @param isRunning
+    *   Determines whether the heat pump is running or not.
+    * @return
     *   Updated thermal grid state and the thermalThreshold if there is one.
     */
   private def handleFinalInfeedCases(
