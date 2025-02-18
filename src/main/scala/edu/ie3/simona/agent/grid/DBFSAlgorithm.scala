@@ -49,7 +49,7 @@ import squants.Each
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration.{Duration, FiniteDuration, MILLISECONDS}
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
