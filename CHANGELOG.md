@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhance exception message in case of InvalidGridException [#1124](https://github.com/ie3-institute/simona/issues/1124)
 - Integration test for thermal grids [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Added `VoltageLimits` [#1133](https://github.com/ie3-institute/simona/issues/1133)
+- Introducing new ParticipantAgent and ParticipantModel [#1134](https://github.com/ie3-institute/simona/issues/1134)
+- Using new `ParticipantAgent.Request` messages everywhere [#1195](https://github.com/ie3-institute/simona/issues/1195)
 - Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
 
 ### Changed
@@ -131,6 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Switched to `pureconfig` [#608](https://github.com/ie3-institute/simona/issues/608)
 - Removing generated methods and cleaning up in config [#1170](https://github.com/ie3-institute/simona/issues/1170)
 - Changed `pvInput` values in `PvInputTestData` to more realistic values [#1144](https://github.com/ie3-institute/simona/issues/1144)
+- Refactor `RuntimeConfig` [#1172](https://github.com/ie3-institute/simona/issues/1172)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)

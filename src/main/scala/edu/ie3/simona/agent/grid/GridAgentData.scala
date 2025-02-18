@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.{
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
+import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
@@ -133,7 +133,7 @@ object GridAgentData {
     def apply(
         gridModel: GridModel,
         subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
-        nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
+        nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,
