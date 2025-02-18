@@ -7,9 +7,8 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.simona.agent.grid.GridAgentMessages.ProvidedPowerResponse
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  FinishParticipantSimulation,
-  RequestAssetPowerMessage,
   StartCalculationTrigger,
   getAndCheckNodalVoltage,
 }
@@ -27,6 +26,14 @@ import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData,
 }
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  GridSimulationFinished,
+  PrimaryRegistrationSuccessfulMessage,
+  RegistrationFailedMessage,
+  RegistrationResponseMessage,
+  RequestAssetPowerMessage,
+}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.{
@@ -34,7 +41,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   HandleInformation,
 }
 import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
@@ -47,16 +54,11 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexActivation,
   FlexResponse,
   IssueFlexControl,
-  FlexActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  ProvisionMessage,
-  RegistrationResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
@@ -94,7 +96,7 @@ abstract class ParticipantAgent[
     MS <: ModelState,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
-    MC <: SimonaConfig.BaseRuntimeConfig,
+    MC <: BaseRuntimeConfig,
     M <: SystemParticipant[CD, PD, MS],
 ](
     scheduler: ActorRef,
@@ -129,7 +131,8 @@ abstract class ParticipantAgent[
        * that will confirm, otherwise, a failed registration is announced. */
       holdTick(INIT_SIM_TICK)
       initStateData.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        initStateData.inputModel.electricalInputModel.getUuid
+        context.self,
+        initStateData.inputModel.electricalInputModel.getUuid,
       )
       goto(HandleInformation) using ParticipantInitializingStateData(
         initStateData.inputModel,
@@ -193,7 +196,7 @@ abstract class ParticipantAgent[
       )
 
     case Event(
-          msg: ProvisionMessage[Data],
+          msg: DataProvision[Data],
           baseStateData: BaseStateData[PD],
         ) =>
       /* Somebody has sent new primary or secondary data. Collect, what is expected for this tick. Go over to data
@@ -201,7 +204,7 @@ abstract class ParticipantAgent[
       handleDataProvisionAndGoToHandleInformation(msg, baseStateData, scheduler)
 
     case Event(
-          RequestAssetPowerMessage(requestTick, eInPu, fInPu),
+          RequestAssetPowerMessage(requestTick, eInPu, fInPu, replyTo),
           baseStateData: BaseStateData[PD],
         ) =>
       /* Determine the reply and stay in this state (or stash the message if the request cannot yet be answered) */
@@ -211,10 +214,11 @@ abstract class ParticipantAgent[
         eInPu,
         fInPu,
         alternativeResult,
+        replyTo,
       )
 
     case Event(
-          FinishParticipantSimulation(tick),
+          GridSimulationFinished(tick, _),
           baseStateData: BaseStateData[PD],
         ) =>
       // clean up agent result value store
@@ -259,7 +263,7 @@ abstract class ParticipantAgent[
   when(HandleInformation) {
     /* Receive registration confirm from primary data service -> Set up actor for replay of data */
     case Event(
-          RegistrationSuccessfulMessage(serviceRef, maybeNextDataTick),
+          PrimaryRegistrationSuccessfulMessage(serviceRef, nextTick, _),
           ParticipantInitializingStateData(
             inputModel: InputModelContainer[I],
             modelConfig: MC,
@@ -281,13 +285,13 @@ abstract class ParticipantAgent[
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        serviceRef -> maybeNextDataTick,
+        serviceRef -> Some(nextTick),
         scheduler,
       )
 
     /* Receive registration refuse from primary data service -> Set up actor for model calculation */
     case Event(
-          RegistrationResponseMessage.RegistrationFailedMessage(_),
+          RegistrationFailedMessage(_),
           ParticipantInitializingStateData(
             inputModel: InputModelContainer[I],
             modelConfig: MC,
@@ -347,7 +351,7 @@ abstract class ParticipantAgent[
       )(stateData.baseStateData.outputConfig)
 
     case Event(
-          msg: ProvisionMessage[_],
+          msg: DataProvision[_],
           stateData @ DataCollectionStateData(
             baseStateData: BaseStateData[PD],
             data,
@@ -387,7 +391,7 @@ abstract class ParticipantAgent[
         )
 
     case Event(
-          RequestAssetPowerMessage(currentTick, _, _),
+          RequestAssetPowerMessage(currentTick, _, _, _),
           DataCollectionStateData(_, data, yetTriggered),
         ) =>
       if (log.isDebugEnabled) {
@@ -461,7 +465,7 @@ abstract class ParticipantAgent[
         scheduler,
       )
 
-    case Event(RequestAssetPowerMessage(currentTick, _, _), _) =>
+    case Event(RequestAssetPowerMessage(currentTick, _, _, _), _) =>
       log.debug(
         s"Got asset power request for tick {} from '{}'. Will answer it later.",
         currentTick,
@@ -470,7 +474,7 @@ abstract class ParticipantAgent[
       stash()
       stay()
 
-    case Event(_: ProvisionMessage[_], _) | Event(Activation(_), _) =>
+    case Event(_: DataProvision[_], _) | Event(Activation(_), _) =>
       /* I got faced to new data, also I'm not ready to handle it, yet OR I got asked to do something else, while I'm
        * still busy, I will put it aside and answer it later */
       stash()
@@ -645,7 +649,7 @@ abstract class ParticipantAgent[
     *   state change to [[HandleInformation]] with updated base state data
     */
   def handleDataProvisionAndGoToHandleInformation(
-      msg: ProvisionMessage[Data],
+      msg: DataProvision[Data],
       baseStateData: BaseStateData[PD],
       scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[PD]]
@@ -808,6 +812,8 @@ abstract class ParticipantAgent[
     *   Imaginary part of the complex, dimensionless nodal voltage
     * @param alternativeResult
     *   Alternative result to use, if no reasonable result can be obtained
+    * @param replyTo
+    *   Actor reference to send the reply to
     * @return
     *   The very same state with updated request value store
     */
@@ -817,6 +823,7 @@ abstract class ParticipantAgent[
       eInPu: Dimensionless,
       fInPu: Dimensionless,
       alternativeResult: PD,
+      replyTo: TypedActorRef[ProvidedPowerResponse],
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Abstract definition to notify result listeners from every participant
@@ -852,27 +859,6 @@ abstract class ParticipantAgent[
 }
 
 object ParticipantAgent {
-
-  trait ParticipantMessage
-
-  /** Request the power values for the requested tick from an AssetAgent and
-    * provide the latest nodal voltage
-    *
-    * @param currentTick
-    *   The tick that power values are requested for
-    * @param eInPu
-    *   Real part of the complex, dimensionless nodal voltage
-    * @param fInPu
-    *   Imaginary part of the complex, dimensionless nodal voltage
-    */
-  final case class RequestAssetPowerMessage(
-      currentTick: Long,
-      eInPu: Dimensionless,
-      fInPu: Dimensionless,
-  ) extends ParticipantMessage
-
-  final case class FinishParticipantSimulation(tick: Long)
-      extends ParticipantMessage
 
   final case class StartCalculationTrigger(tick: Long)
 

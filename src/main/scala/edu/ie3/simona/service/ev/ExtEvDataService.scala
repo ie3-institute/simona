@@ -6,6 +6,10 @@
 
 package edu.ie3.simona.service.ev
 
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
@@ -18,7 +22,6 @@ import edu.ie3.simona.exceptions.{
 }
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.EvMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -298,8 +301,10 @@ class ExtEvDataService(override val scheduler: ActorRef)
   ): (ExtEvStateData, Option[Long]) = {
 
     if (tick == INIT_SIM_TICK) {
+      // During initialization, an empty ProvideArrivingEvs message
+      // is sent, which includes the first relevant tick
 
-      maybeNextTick.getOrElse(
+      val nextTick = maybeNextTick.getOrElse(
         throw new CriticalFailureException(
           s"After initialization, a first simulation tick needs to be provided by the external mobility simulation."
         )
@@ -308,7 +313,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData.uuidToActorRef.foreach { case (_, actor) =>
         actor ! RegistrationSuccessfulMessage(
           self,
-          maybeNextTick,
+          nextTick,
         )
       }
 
@@ -317,7 +322,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         val evs =
           allArrivingEvs.getOrElse(evcs, Seq.empty)
 
-        actor ! ProvideEvDataMessage(
+        actor ! DataProvision(
           tick,
           self,
           ArrivingEvs(evs.map(EvModelWrapper.apply)),

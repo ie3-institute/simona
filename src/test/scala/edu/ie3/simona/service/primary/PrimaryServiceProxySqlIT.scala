@@ -6,14 +6,13 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorRefOps,
-}
-import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePowerExtra
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  PrimaryRegistrationSuccessfulMessage,
+  RegistrationFailedMessage,
+}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.ontology.messages.Activation
@@ -22,15 +21,17 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.test.helper.TestContainerHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import org.scalatest.BeforeAndAfterAll
 import org.testcontainers.utility.DockerImageName
 
@@ -131,7 +132,8 @@ class PrimaryServiceProxySqlIT
       systemParticipantProbe.send(
         proxyRef,
         PrimaryServiceRegistrationMessage(
-          UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409")
+          systemParticipantProbe.ref,
+          UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409"),
         ),
       )
       scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
@@ -150,7 +152,11 @@ class PrimaryServiceProxySqlIT
       scheduler.expectMsg(Completion(workerRef, Some(0)))
 
       systemParticipantProbe.expectMsg(
-        RegistrationSuccessfulMessage(workerRef.toClassic, Some(0L))
+        PrimaryRegistrationSuccessfulMessage(
+          workerRef.toClassic,
+          0L,
+          ActivePowerExtra,
+        )
       )
     }
 
@@ -165,7 +171,8 @@ class PrimaryServiceProxySqlIT
       systemParticipantProbe.send(
         proxyRef,
         PrimaryServiceRegistrationMessage(
-          UUID.fromString("db958617-e49d-44d3-b546-5f7b62776afd")
+          systemParticipantProbe.ref,
+          UUID.fromString("db958617-e49d-44d3-b546-5f7b62776afd"),
         ),
       )
 
