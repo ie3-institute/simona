@@ -128,7 +128,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         responseReceiver.expectMessage(MockResponseMessage)
 
         // first request
-        participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          12 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 8 hours of 0 kW, 4 hours of 6 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -138,7 +143,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         // second request with same voltage
-        participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          12 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         gridAgent.expectMessageType[AssetPowerUnchangedMessage] match {
           case AssetPowerUnchangedMessage(p, q) =>
@@ -151,6 +161,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           12 * 3600,
           Each(0.98),
           Each(0),
+          gridAgent.ref,
         )
 
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -184,7 +195,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         participantAgent ! MockRequestMessage(0, responseReceiver.ref)
         responseReceiver.expectMessage(MockResponseMessage)
 
-        participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          24 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
           case AssetPowerChangedMessage(p, q) =>
@@ -257,7 +273,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         activationRef ! Activation(12 * 3600)
 
-        participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          12 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 8 hours of 0 kW, 4 hours of 6 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -300,7 +321,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 24 * 3600: GridAgent requests power
 
-        participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          24 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
           case AssetPowerChangedMessage(p, q) =>
@@ -421,7 +447,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         activationRef ! Activation(12 * 3600)
 
-        participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          12 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 8 hours of 0 kW, 4 hours of 6+3=9 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -523,7 +554,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 24 * 3600: GridAgent requests power
 
-        participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          24 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 6 hours of 6+6=12 kW, 2 hours of 6+9=15 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -647,7 +683,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         activationRef ! Activation(12 * 3600)
 
-        participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          12 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 8 hours of 0 kW, 4 hours of 3 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -728,7 +769,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 24 * 3600: GridAgent requests power
 
-        participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          24 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 6 hours of 6 kW, 2 hours of 3 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -817,7 +863,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 12 * 3600: GridAgent requests power
 
-        participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          12 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 8 hours of 0 kW, 4 hours of 3 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -854,7 +905,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 24 * 3600: GridAgent requests power
 
-        participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          24 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 8 hours of 3 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -945,7 +1001,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         flexRef ! FlexActivation(12 * 3600)
 
-        participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          12 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
           case AssetPowerChangedMessage(p, q) =>
@@ -1011,7 +1072,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 24 * 3600: GridAgent requests power
 
-        participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          24 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 8 hours of 1 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -1163,7 +1229,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         flexRef ! FlexActivation(12 * 3600)
 
-        participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          12 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 8 hours of 0 kW, 4 hours of 3 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -1280,7 +1351,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 24 * 3600: GridAgent requests power
 
-        participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          24 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 6 hours of 3 kW, 2 hours of 6 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -1429,7 +1505,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         flexRef ! FlexActivation(12 * 3600)
 
-        participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          12 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 8 hours of 0 kW, 4 hours of 3 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
@@ -1545,7 +1626,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 24 * 3600: GridAgent requests power
 
-        participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
+        participantAgent ! RequestAssetPowerMessage(
+          24 * 3600,
+          Each(1),
+          Each(0),
+          gridAgent.ref,
+        )
 
         // 6 hours of 6 kW, 2 hours of 3 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {

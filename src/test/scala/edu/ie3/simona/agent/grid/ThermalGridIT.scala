@@ -11,6 +11,11 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.config.RuntimeConfig.{
   EmRuntimeConfig,
   HpRuntimeConfig,
@@ -26,12 +31,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
   RegisterForWeatherMessage,
   WeatherData,
 }
@@ -139,7 +139,10 @@ class ThermalGridIT
       heatPumpAgent ! Activation(INIT_SIM_TICK)
 
       primaryServiceProxy.expectMessage(
-        PrimaryServiceRegistrationMessage(typicalHpInputModel.getUuid)
+        PrimaryServiceRegistrationMessage(
+          heatPumpAgent.ref,
+          typicalHpInputModel.getUuid,
+        )
       )
       heatPumpAgent ! RegistrationFailedMessage(
         primaryServiceProxy.ref.toClassic
@@ -154,7 +157,7 @@ class ThermalGridIT
 
       heatPumpAgent ! RegistrationSuccessfulMessage(
         weatherService.ref.toClassic,
-        Some(0),
+        0,
       )
       val weatherDependentAgents = Seq(heatPumpAgent)
 
@@ -170,7 +173,7 @@ class ThermalGridIT
       heatPumpAgent ! Activation(0)
 
       weatherDependentAgents.foreach {
-        _ ! ProvideWeatherMessage(
+        _ ! DataProvision(
           0,
           weatherService.ref.toClassic,
           WeatherData(
@@ -295,7 +298,7 @@ class ThermalGridIT
       heatPumpAgent ! Activation(3600)
 
       weatherDependentAgents.foreach {
-        _ ! ProvideWeatherMessage(
+        _ ! DataProvision(
           3600,
           weatherService.ref.toClassic,
           WeatherData(
@@ -421,7 +424,7 @@ class ThermalGridIT
       heatPumpAgent ! Activation(21600)
 
       weatherDependentAgents.foreach {
-        _ ! ProvideWeatherMessage(
+        _ ! DataProvision(
           21600,
           weatherService.ref.toClassic,
           WeatherData(
@@ -491,7 +494,7 @@ class ThermalGridIT
       heatPumpAgent ! Activation(25000)
 
       weatherDependentAgents.foreach {
-        _ ! ProvideWeatherMessage(
+        _ ! DataProvision(
           25000,
           weatherService.ref.toClassic,
           WeatherData(
@@ -618,7 +621,7 @@ class ThermalGridIT
       heatPumpAgent ! Activation(28000)
 
       weatherDependentAgents.foreach {
-        _ ! ProvideWeatherMessage(
+        _ ! DataProvision(
           28000,
           weatherService.ref.toClassic,
           WeatherData(

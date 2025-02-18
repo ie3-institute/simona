@@ -14,7 +14,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -25,10 +24,16 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantUninitializedStateData,
 }
 import edu.ie3.simona.agent.participant.wec.WecAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+  RequestAssetPowerMessage,
+}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.RuntimeConfig.WecRuntimeConfig
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel
@@ -37,12 +42,7 @@ import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
   RegisterForWeatherMessage,
   WeatherData,
 }
@@ -305,7 +305,7 @@ class WecAgentModelCalculationSpec
       /* Reply, that registration was successful */
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 4711L),
       )
 
       /* Expect a completion message */
@@ -353,7 +353,7 @@ class WecAgentModelCalculationSpec
       weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 900L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -366,6 +366,7 @@ class WecAgentModelCalculationSpec
         0L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -421,7 +422,7 @@ class WecAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 900L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -439,7 +440,7 @@ class WecAgentModelCalculationSpec
 
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           900L,
           weatherService.ref,
           weatherData,
@@ -543,7 +544,7 @@ class WecAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 900L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -592,7 +593,7 @@ class WecAgentModelCalculationSpec
 
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           900L,
           weatherService.ref,
           weatherData,
@@ -663,7 +664,7 @@ class WecAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 900L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -675,6 +676,7 @@ class WecAgentModelCalculationSpec
         1800L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(wecAgent.stateName == Idle)
@@ -688,7 +690,7 @@ class WecAgentModelCalculationSpec
       )
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           900L,
           weatherService.ref,
           weatherData,
@@ -734,7 +736,7 @@ class WecAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 900L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -745,7 +747,7 @@ class WecAgentModelCalculationSpec
       /* ... for tick 900 */
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           900L,
           weatherService.ref,
           WeatherData(
@@ -763,7 +765,7 @@ class WecAgentModelCalculationSpec
       /* ... for tick 1800 */
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           1800L,
           weatherService.ref,
           WeatherData(
@@ -781,7 +783,7 @@ class WecAgentModelCalculationSpec
       /* ... for tick 2700 */
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           2700L,
           weatherService.ref,
           WeatherData(
@@ -801,6 +803,7 @@ class WecAgentModelCalculationSpec
         3000L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -818,6 +821,7 @@ class WecAgentModelCalculationSpec
         3000L,
         Each(1.000000000000001d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -834,6 +838,7 @@ class WecAgentModelCalculationSpec
         3000L,
         Each(0.98d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

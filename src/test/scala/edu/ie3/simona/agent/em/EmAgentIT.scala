@@ -13,6 +13,11 @@ import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
@@ -23,12 +28,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
   RegisterForWeatherMessage,
   WeatherData,
 }
@@ -120,10 +120,7 @@ class EmAgentIT
             initStateData = ParticipantInitializeStateData(
               loadInput,
               LoadRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                modelBehaviour = "fix",
-                reference = "power",
-                uuids = List.empty,
+                calculateMissingReactivePowerWithModel = true
               ),
               primaryServiceProxy.ref.toClassic,
               None,
@@ -192,7 +189,7 @@ class EmAgentIT
         loadAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadInput.getUuid)
+          PrimaryServiceRegistrationMessage(loadAgent.ref, loadInput.getUuid)
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -219,7 +216,7 @@ class EmAgentIT
         pvAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvInput.getUuid)
+          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
         )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -233,7 +230,7 @@ class EmAgentIT
 
         pvAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L),
+          0L,
         )
 
         scheduler.expectMessage(Completion(pvAgent))
@@ -242,7 +239,10 @@ class EmAgentIT
         storageAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(householdStorageInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            storageAgent.ref,
+            householdStorageInput.getUuid,
+          )
         )
         storageAgent ! RegistrationFailedMessage(
           primaryServiceProxy.ref.toClassic
@@ -260,7 +260,7 @@ class EmAgentIT
 
         emAgentActivation ! Activation(0)
 
-        pvAgent ! ProvideWeatherMessage(
+        pvAgent ! DataProvision(
           0,
           weatherService.ref.toClassic,
           WeatherData(
@@ -296,7 +296,7 @@ class EmAgentIT
 
         emAgentActivation ! Activation(7200)
 
-        pvAgent ! ProvideWeatherMessage(
+        pvAgent ! DataProvision(
           7200,
           weatherService.ref.toClassic,
           WeatherData(
@@ -352,7 +352,7 @@ class EmAgentIT
 
         // send weather data before activation, which can happen
         // it got cloudy now...
-        pvAgent ! ProvideWeatherMessage(
+        pvAgent ! DataProvision(
           14400,
           weatherService.ref.toClassic,
           WeatherData(
@@ -408,10 +408,7 @@ class EmAgentIT
             initStateData = ParticipantInitializeStateData(
               loadInput,
               LoadRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                modelBehaviour = "fix",
-                reference = "power",
-                uuids = List.empty,
+                calculateMissingReactivePowerWithModel = true
               ),
               primaryServiceProxy.ref.toClassic,
               None,
@@ -481,7 +478,7 @@ class EmAgentIT
         loadAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadInput.getUuid)
+          PrimaryServiceRegistrationMessage(loadAgent.ref, loadInput.getUuid)
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -508,7 +505,7 @@ class EmAgentIT
         pvAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvInput.getUuid)
+          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
         )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -522,7 +519,7 @@ class EmAgentIT
 
         pvAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L),
+          0L,
         )
 
         scheduler.expectMessage(Completion(pvAgent))
@@ -531,7 +528,10 @@ class EmAgentIT
         heatPumpAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(adaptedHpInputModel.getUuid)
+          PrimaryServiceRegistrationMessage(
+            heatPumpAgent.ref,
+            adaptedHpInputModel.getUuid,
+          )
         )
         heatPumpAgent ! RegistrationFailedMessage(
           primaryServiceProxy.ref.toClassic
@@ -546,7 +546,7 @@ class EmAgentIT
 
         heatPumpAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L),
+          0L,
         )
 
         scheduler.expectMessage(Completion(heatPumpAgent))
@@ -564,7 +564,7 @@ class EmAgentIT
         emAgentActivation ! Activation(0)
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             0,
             weatherService.ref.toClassic,
             WeatherData(
@@ -602,7 +602,7 @@ class EmAgentIT
         emAgentActivation ! Activation(7200)
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             7200,
             weatherService.ref.toClassic,
             WeatherData(
@@ -666,7 +666,7 @@ class EmAgentIT
 
         // it got cloudy now...
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             14400,
             weatherService.ref.toClassic,
             WeatherData(
@@ -704,7 +704,7 @@ class EmAgentIT
         emAgentActivation ! Activation(21600)
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             21600,
             weatherService.ref.toClassic,
             WeatherData(
