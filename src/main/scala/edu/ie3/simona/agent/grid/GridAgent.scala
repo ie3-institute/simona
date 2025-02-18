@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentInitData,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages._
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
+import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -132,6 +132,7 @@ object GridAgent extends DBFSAlgorithm {
       val gridModel = GridModel(
         subGridContainer,
         refSystem,
+        gridAgentInitData.voltageLimits,
         TimeUtil.withDefaults.toZonedDateTime(
           constantData.simonaConfig.simona.time.startDateTime
         ),
@@ -156,7 +157,8 @@ object GridAgent extends DBFSAlgorithm {
         )
 
       /* Reassure, that there are also calculation models for the given uuids */
-      val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef[ParticipantMessage]]] =
+      val nodeToAssetAgentsMap
+          : Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
         gridAgentController
           .buildSystemParticipants(subGridContainer, thermalGridsByBusId)
           .map { case (uuid: UUID, actorSet) =>

@@ -9,13 +9,14 @@ package edu.ie3.simona.util
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.{Files, Path, Paths}
 import java.text.SimpleDateFormat
-import com.typesafe.config.{ConfigRenderOptions, Config => TypesafeConfig}
+import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.naming.{
   EntityPersistenceNamingStrategy,
   FileNamingStrategy,
 }
 import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.FileHierarchyException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.io.result.ResultSinkType.Csv
@@ -46,7 +47,7 @@ object ResultFileHierarchy extends LazyLogging {
       simulationName: String,
       resultEntityPathConfig: ResultEntityPathConfig,
       configureLogger: Path => Unit = LogbackConfiguration.default("INFO"),
-      config: Option[TypesafeConfig] = None,
+      config: Option[SimonaConfig] = None,
       addTimeStampToOutputDir: Boolean = true,
   ): ResultFileHierarchy = {
 
@@ -214,7 +215,7 @@ object ResultFileHierarchy extends LazyLogging {
       baseOutputDir: Path,
       dirsToBeCreated: Seq[Path],
       resultFileHierarchy: ResultFileHierarchy,
-      maybeConfig: Option[TypesafeConfig],
+      maybeConfig: Option[SimonaConfig],
   ): Unit = {
     // create output directories if they are not present yet
     if (!runOutputDirExists(resultFileHierarchy))
@@ -227,7 +228,7 @@ object ResultFileHierarchy extends LazyLogging {
     maybeConfig.foreach { config =>
       logger.info(
         "Processing configs for simulation: {}.",
-        config.getString("simona.simulationName"),
+        config.simona.simulationName,
       )
 
       val outFile =
@@ -235,7 +236,6 @@ object ResultFileHierarchy extends LazyLogging {
       val bw = new BufferedWriter(new FileWriter(outFile))
       bw.write(
         config
-          .root()
           .render(
             ConfigRenderOptions
               .defaults()

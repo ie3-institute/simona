@@ -299,7 +299,7 @@ final case class ThermalGrid(
       qDotStorageLastState,
       thermalStorageReachedBoundary,
       thermalStorageLeftBoundary,
-    ) =
+      ) =
       updateStateGetLastThermalActionAndCheckIfCanContinueThermalStorage(
         relevantData.currentTick,
         lastThermalGridState,
@@ -309,7 +309,7 @@ final case class ThermalGrid(
       qDotDomesticWaterStorageLastState,
       domesticHotWaterStorageReachedBoundary,
       domesticHotWaterStorageLeftBoundary,
-    ) =
+      ) =
       updateStateGetLastThermalActionAndCheckIfCanContinueDomesticHotWaterStorage(
         relevantData.currentTick,
         lastThermalGridState,
@@ -319,8 +319,8 @@ final case class ThermalGrid(
 
     if (
       !houseReachedBoundary && !houseLeftBoundary &&
-      !thermalStorageReachedBoundary && !thermalStorageLeftBoundary &&
-      !domesticHotWaterStorageReachedBoundary && !domesticHotWaterStorageLeftBoundary
+        !thermalStorageReachedBoundary && !thermalStorageLeftBoundary &&
+        !domesticHotWaterStorageReachedBoundary && !domesticHotWaterStorageLeftBoundary
     ) {
       handleCases(
         relevantData,
