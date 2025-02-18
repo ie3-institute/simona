@@ -239,7 +239,9 @@ class ThermalGridWithHouseAndStorageSpec
 
         updatedGridState match {
           case ThermalGridState(
-                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalHouseState(houseTick, innerTemperature, qDotHouse)
+                ),
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),
@@ -537,7 +539,9 @@ class ThermalGridWithHouseAndStorageSpec
 
         updatedGridState match {
           case ThermalGridState(
-                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalHouseState(houseTick, innerTemperature, qDotHouse)
+                ),
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),
@@ -587,7 +591,9 @@ class ThermalGridWithHouseAndStorageSpec
 
         updatedGridState match {
           case ThermalGridState(
-                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalHouseState(houseTick, innerTemperature, qDotHouse)
+                ),
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),

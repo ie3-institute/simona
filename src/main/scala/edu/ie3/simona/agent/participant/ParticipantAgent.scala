@@ -34,7 +34,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   HandleInformation,
 }
 import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
@@ -47,9 +47,9 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexActivation,
   FlexResponse,
   IssueFlexControl,
-  FlexActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -94,7 +94,7 @@ abstract class ParticipantAgent[
     MS <: ModelState,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
-    MC <: SimonaConfig.BaseRuntimeConfig,
+    MC <: BaseRuntimeConfig,
     M <: SystemParticipant[CD, PD, MS],
 ](
     scheduler: ActorRef,

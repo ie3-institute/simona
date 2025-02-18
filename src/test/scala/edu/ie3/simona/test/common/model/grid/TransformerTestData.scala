@@ -8,8 +8,7 @@ package edu.ie3.simona.test.common.model.grid
 
 import breeze.math.Complex
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
-import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import org.scalatest.prop.TableDrivenPropertyChecks.Table
 import org.scalatest.prop.{TableFor5, TableFor9}
 import squants.electro.Kilovolts
@@ -28,11 +27,13 @@ trait TransformerTestData extends TransformerTestGrid {
   /* Define some parameters for the power flow calculation */
   val epsilon = 1e-10
   val maxIterations = 50
-  val refSystem: RefSystem =
+  val refSystem: RefSystem = {
     RefSystem(
       Kilowatts(400d),
       Kilovolts(0.4d),
     )
+  }
+  val defaultVoltageLimits: VoltageLimits = VoltageLimits(0.9, 1.1)
 
   val nodeUuidToIndexMap: Map[UUID, Int] = gridTapHv.getRawGrid.getNodes.asScala
     .map(node => node.getUuid -> node.getSubnet)
