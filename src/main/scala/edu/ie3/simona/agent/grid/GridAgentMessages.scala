@@ -11,7 +11,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
+import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.util.scala.quantities.ReactivePower
@@ -105,7 +105,7 @@ object GridAgentMessages {
     *   the asset power values and their senders
     */
   final case class ReceivedAssetPowerValues(
-      values: Vector[PowerRequestResponse[ParticipantMessage]]
+      values: Vector[PowerRequestResponse[ParticipantAgent.Request]]
   ) extends ReceivedPowerValues
 
   /** Wrapper for received grid power values (p, q)

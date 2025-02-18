@@ -67,6 +67,7 @@ class ThermalGridIT
     with MockitoSugar
     with DefaultTestData {
   private implicit val classicSystem: ActorSystem = system.toClassic
+  private implicit val quantityTolerance: Double = 1e-3
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
   protected val simulationEndDate: ZonedDateTime =

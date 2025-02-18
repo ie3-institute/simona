@@ -91,7 +91,7 @@ object ParticipantAgent {
     *   The type of primary data to be received.
     */
   final case class PrimaryRegistrationSuccessfulMessage[
-      P <: PrimaryData: ClassTag
+      P <: PrimaryData
   ](
       override val serviceRef: ClassicRef,
       firstDataTick: Long,
