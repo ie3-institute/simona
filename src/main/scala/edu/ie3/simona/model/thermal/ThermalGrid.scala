@@ -299,7 +299,7 @@ final case class ThermalGrid(
       qDotStorageLastState,
       thermalStorageReachedBoundary,
       thermalStorageLeftBoundary,
-      ) =
+    ) =
       updateStateGetLastThermalActionAndCheckIfCanContinueThermalStorage(
         relevantData.currentTick,
         lastThermalGridState,
@@ -309,7 +309,7 @@ final case class ThermalGrid(
       qDotDomesticWaterStorageLastState,
       domesticHotWaterStorageReachedBoundary,
       domesticHotWaterStorageLeftBoundary,
-      ) =
+    ) =
       updateStateGetLastThermalActionAndCheckIfCanContinueDomesticHotWaterStorage(
         relevantData.currentTick,
         lastThermalGridState,
@@ -319,8 +319,8 @@ final case class ThermalGrid(
 
     if (
       !houseReachedBoundary && !houseLeftBoundary &&
-        !thermalStorageReachedBoundary && !thermalStorageLeftBoundary &&
-        !domesticHotWaterStorageReachedBoundary && !domesticHotWaterStorageLeftBoundary
+      !thermalStorageReachedBoundary && !thermalStorageLeftBoundary &&
+      !domesticHotWaterStorageReachedBoundary && !domesticHotWaterStorageLeftBoundary
     ) {
       handleCases(
         relevantData,
@@ -363,19 +363,30 @@ final case class ThermalGrid(
     * | 5c | else                            | qDot to House                                                                                |
     *
     * @param thermalDemands
-    *   holds the thermal demands of the thermal units (house, storage)
+    *   holds the thermal demands of the thermal units (house, storage).
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   data of heat pump including state of the heat pump.
     * @param lastAmbientTemperature
-    *   Ambient temperature valid up until (not including) the current tick
+    *   Ambient temperature valid up until (not including) the current tick.
     * @param gridState
-    *   Current state of the thermalGrid
+    *   Current state of the thermalGrid.
     * @param qDot
     *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
-    *   storages
-   *   TODO Complete ScalaDoc
-    * @return
-    *   Updated thermal grid state and the thermalThreshold if there is one
+    *   storages.
+   * @param updatedHeatStorageState
+   *   Updated state of the heat storage.
+   * @param qDotHouseLastState
+   *   Thermal infeed into the house at the last state.
+   * @param qDotStorageLastState
+   *   Thermal infeed into the heat storage at the last state.
+   * @param qDotDomesticWaterStorageLastState
+   *   Thermal infeed into the domestic hot water storage at the last state.
+   * @param domesticHotWaterStorageLeftBoundary
+   *   Indicates if the domestic hot water storage has left on of its boundaries (if true, its neither full or empty).
+   * @param isRunning
+   *   Determines whether the heat pump is running or not.
+   * @return
+    *   Updated thermal grid state and the thermalThreshold if there is one.
     */
   private def handleFinalInfeedCases(
       thermalDemands: ThermalDemandWrapper,
