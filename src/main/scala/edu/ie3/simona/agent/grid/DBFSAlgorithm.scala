@@ -43,7 +43,7 @@ import org.apache.pekko.actor.typed.scaladsl.{
   StashBuffer,
 }
 import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior, Scheduler}
-import org.apache.pekko.util.{Timeout, Timeout => PekkoTimeout}
+import org.apache.pekko.util.Timeout
 import org.slf4j.Logger
 import squants.Each
 
@@ -1129,7 +1129,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   ): Boolean = {
     implicit val ec: ExecutionContext = ctx.executionContext
 
-    implicit val timeout: PekkoTimeout = Timeout(askTimeout)
+    implicit val timeout: Timeout = Timeout(askTimeout)
     implicit val system: ActorSystem[_] = ctx.system
 
     ctx.log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
@@ -1212,7 +1212,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout(askTimeout)
+    implicit val timeout: Timeout = Timeout(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
     implicit val scheduler: Scheduler = ctx.system.scheduler
 
@@ -1283,7 +1283,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout(askTimeout)
+    implicit val timeout: Timeout = Timeout(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
     implicit val scheduler: Scheduler = ctx.system.scheduler
 
