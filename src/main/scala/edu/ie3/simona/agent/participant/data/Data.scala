@@ -207,6 +207,26 @@ object Data {
         )
     }
 
+    def getPrimaryDataExtra(
+        value: Class[_ <: Value]
+    ): PrimaryDataExtra[_ <: PrimaryData] = {
+      val heatAndS = classOf[HeatAndSValue]
+      val s = classOf[SValue]
+      val heatAndP = classOf[HeatAndPValue]
+      val p = classOf[PValue]
+
+      value match {
+        case `heatAndS` => ComplexPowerAndHeatExtra
+        case `s`        => ComplexPowerExtra
+        case `heatAndP` => ActivePowerAndHeatExtra
+        case `p`        => ActivePowerExtra
+        case other =>
+          throw new IllegalArgumentException(
+            s"Value class '$other' is not supported."
+          )
+      }
+    }
+
     implicit class RichValue(private val value: Value) {
       def toPrimaryData: Try[PrimaryData] =
         value match {

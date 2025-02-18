@@ -17,6 +17,7 @@ import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformatio
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{SValue, Value}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
   CouchbaseParams,
@@ -34,7 +35,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage,
@@ -673,7 +673,8 @@ class PrimaryServiceProxySpec
   "Trying to register with a proxy" should {
     "fail, if there is no information for the requested model" in {
       val request = PrimaryServiceRegistrationMessage(
-        UUID.fromString("2850a2d6-4b70-43c9-b5cc-cd823a72d860")
+        self,
+        UUID.fromString("2850a2d6-4b70-43c9-b5cc-cd823a72d860"),
       )
 
       proxyRef ! request
@@ -706,7 +707,7 @@ class PrimaryServiceProxySpec
       scheduler.expectMsg(Completion(fakeProxyRef.toTyped))
 
       /* Try to register with fake proxy */
-      fakeProxyRef ! PrimaryServiceRegistrationMessage(modelUuid)
+      fakeProxyRef ! PrimaryServiceRegistrationMessage(self, modelUuid)
       worker.expectMsg(WorkerRegistrationMessage(self))
     }
   }
