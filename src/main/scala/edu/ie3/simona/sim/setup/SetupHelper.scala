@@ -14,13 +14,16 @@ import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.config.RefSystemParser.ConfigRefSystems
+import edu.ie3.simona.config.GridConfigParser.{
+  ConfigRefSystems,
+  ConfigVoltageLimits,
+}
 import edu.ie3.simona.config.{SimonaConfig, OutputConfig}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.logging.logback.LogbackConfiguration
-import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
@@ -61,6 +64,7 @@ trait SetupHelper extends LazyLogging {
       subGridToActorRef: Map[Int, ActorRef[GridAgent.Request]],
       gridGates: Set[SubGridGate],
       configRefSystems: ConfigRefSystems,
+      configVoltageLimits: ConfigVoltageLimits,
       thermalGrids: Seq[ThermalGrid],
   ): GridAgentInitData = {
     val subGridGateToActorRef = buildGateToActorRef(
@@ -73,6 +77,8 @@ trait SetupHelper extends LazyLogging {
     val refSystem =
       getRefSystem(configRefSystems, subGridContainer)
 
+    val voltageLimits = getVoltageLimits(configVoltageLimits, subGridContainer)
+
     /* Prepare the subgrid container for the agents by adapting the transformer high voltage nodes to be slacks */
     val updatedSubGridContainer =
       ContainerUtils.withTrafoNodeAsSlack(subGridContainer)
@@ -83,6 +89,7 @@ trait SetupHelper extends LazyLogging {
       thermalGrids,
       subGridGateToActorRef,
       refSystem,
+      voltageLimits,
     )
   }
 
@@ -198,6 +205,21 @@ trait SetupHelper extends LazyLogging {
 
     refSystem
   }
+
+  def getVoltageLimits(
+      configVoltageLimits: ConfigVoltageLimits,
+      subGridContainer: SubGridContainer,
+  ): VoltageLimits = configVoltageLimits
+    .find(
+      subGridContainer.getSubnet,
+      Some(subGridContainer.getPredominantVoltageLevel),
+    )
+    .getOrElse(
+      throw new InitializationException(
+        s"Unable to determine voltage limits for grid with id ${subGridContainer.getSubnet} @ " +
+          s"volt level ${subGridContainer.getPredominantVoltageLevel}. Please either provide voltage limits for the grid id or the whole volt level!"
+      )
+    )
 
   /** Build the result file hierarchy based on the provided configuration file.
     * The provided type safe config must be able to be parsed as
