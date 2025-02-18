@@ -83,9 +83,7 @@ class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
         )
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
-
       }
-
     }
 
     "be instantiated correctly with energy reference" in {
@@ -114,9 +112,7 @@ class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
         model.sRated should approximate(Voltamperes(expectedSRated))
-
       }
-
     }
 
     "deliver the correct distribution on request" in {

@@ -79,13 +79,7 @@ class ProfileLoadModelSpec
           (G0, 1000.0, 3.951747),
         )
       ) { (profile, sRated, expectedScalingFactor) =>
-        val config = LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
-          modelBehaviour = "profile",
-          reference = "power",
-        )
+        val config = LoadRuntimeConfig(modelBehaviour = "profile")
         val model = ProfileLoadModel(
           loadInput
             .copy()
@@ -96,9 +90,7 @@ class ProfileLoadModelSpec
         )
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
-
       }
-
     }
 
     "be instantiated correctly with energy reference" in {
@@ -115,9 +107,6 @@ class ProfileLoadModelSpec
         )
       ) { (profile, eConsAnnual, expectedScalingFactor, expectedSRated) =>
         val config = LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
           modelBehaviour = "profile",
           reference = "energy",
         )
@@ -134,9 +123,7 @@ class ProfileLoadModelSpec
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
         model.sRated should approximate(Voltamperes(expectedSRated))
-
       }
-
     }
 
     "reach the targeted annual energy consumption in a simulated year" in {
@@ -144,11 +131,7 @@ class ProfileLoadModelSpec
         Table("profile", H0, L0, G0)
       ) { profile =>
         val input = loadInput.copy().loadprofile(profile).build()
-
         val config = LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
           modelBehaviour = "profile",
           reference = "energy",
         )
@@ -181,14 +164,7 @@ class ProfileLoadModelSpec
         Table("profile", H0, L0, G0)
       ) { profile =>
         val input = loadInput.copy().loadprofile(profile).build()
-
-        val config = LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          scaling = 1.0,
-          uuids = List.empty,
-          modelBehaviour = "profile",
-          reference = "power",
-        )
+        val config = LoadRuntimeConfig(modelBehaviour = "profile")
 
         val model = ProfileLoadModel(input, config)
 
