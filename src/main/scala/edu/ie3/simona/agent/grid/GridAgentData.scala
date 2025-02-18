@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.model.grid.{GridModel, RefSystem}
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.Activation
 import org.apache.pekko.actor.typed.ActorRef
 
@@ -69,12 +69,17 @@ object GridAgentData {
     * @param subGridGateToActorRef
     *   information on inferior and superior grid connections [[SubGridGate]] s
     *   and [[ActorRef]] s of the corresponding [[GridAgent]]s
+    * @param refSystem
+    *   of the grid
+    * @param voltageLimits
+    *   of the grid, used to evaluate voltage congestion
     */
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,
       thermalIslandGrids: Seq[ThermalGrid],
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       refSystem: RefSystem,
+      voltageLimits: VoltageLimits,
   ) extends GridAgentData
       with GridAgentDataHelper {
     override protected val subgridGates: Vector[SubGridGate] =

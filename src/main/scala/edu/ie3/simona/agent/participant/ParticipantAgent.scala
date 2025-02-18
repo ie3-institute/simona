@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
   getAndCheckNodalVoltage,
 }
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithComplexPower
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
@@ -34,7 +34,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   HandleInformation,
 }
 import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
@@ -47,9 +47,9 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexActivation,
   FlexResponse,
   IssueFlexControl,
-  FlexActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -89,12 +89,12 @@ import scala.reflect.ClassTag
   * @since 2019-07-04
   */
 abstract class ParticipantAgent[
-    PD <: PrimaryDataWithApparentPower,
+    PD <: PrimaryDataWithComplexPower[PD],
     CD <: CalcRelevantData,
     MS <: ModelState,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
-    MC <: SimonaConfig.BaseRuntimeConfig,
+    MC <: BaseRuntimeConfig,
     M <: SystemParticipant[CD, PD, MS],
 ](
     scheduler: ActorRef,

@@ -24,7 +24,7 @@ import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
@@ -174,14 +174,10 @@ class StorageAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
-          storageInputQv.getUuid,
-          storageAgent.toTyped,
-          storageInputQv,
-        )
+        RegisterControlledAsset(storageAgent.toTyped, storageInputQv)
       )
       emAgent.expectMsg(
-        ScheduleFlexRequest(storageInputQv.getUuid, 0)
+        ScheduleFlexActivation(storageInputQv.getUuid, 0)
       )
 
       scheduler.expectMsg(Completion(storageAgent.toTyped))
@@ -247,8 +243,8 @@ class StorageAgentModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      emAgent.expectMsgType[RegisterParticipant]
-      emAgent.expectMsg(ScheduleFlexRequest(storageInputQv.getUuid, 0))
+      emAgent.expectMsgType[RegisterControlledAsset]
+      emAgent.expectMsg(ScheduleFlexActivation(storageInputQv.getUuid, 0))
 
       /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
@@ -308,8 +304,8 @@ class StorageAgentModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      emAgent.expectMsgType[RegisterParticipant]
-      emAgent.expectMsg(ScheduleFlexRequest(storageInputQv.getUuid, 0))
+      emAgent.expectMsgType[RegisterControlledAsset]
+      emAgent.expectMsg(ScheduleFlexActivation(storageInputQv.getUuid, 0))
 
       /* I am not interested in the Completion */
       scheduler.expectMsgType[Completion]
@@ -570,7 +566,7 @@ class StorageAgentModelCalculationSpec
         case ParticipantResultEvent(result: StorageResult) =>
           result.getInputModel shouldBe storageInputQv.getUuid
           result.getTime shouldBe 81099.toDateTime(simulationStartDate)
-          result.getP should beEquivalentTo((-12d).asKiloWatt)
+          result.getP should beEquivalentTo(-12d.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
           result.getSoc should beEquivalentTo(100d.asPercent)
       }

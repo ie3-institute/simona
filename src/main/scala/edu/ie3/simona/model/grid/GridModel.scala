@@ -39,6 +39,7 @@ final case class GridModel(
     subnetNo: Int,
     mainRefSystem: RefSystem,
     gridComponents: GridComponents,
+    voltageLimits: VoltageLimits,
     gridControls: GridControls,
 ) {
 
@@ -66,12 +67,14 @@ object GridModel {
   def apply(
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
+      voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       simonaConfig: SimonaConfig,
   ): GridModel = buildAndValidate(
     subGridContainer,
     refSystem,
+    voltageLimits,
     startDate,
     endDate,
     simonaConfig,
@@ -407,7 +410,7 @@ object GridModel {
       noLines && noTransformers2w && noTransformers3w && (noOfNodes > noOfSlackNodes)
     )
       throw new InvalidGridException(
-        "The grid contains no basic branch elements (lines or transformers)."
+        f"The grid with subnet number ${gridModel.subnetNo} contains additional nodes beside the slack nodes and no basic branch elements (lines or transformers). This is invalid."
       )
 
     // slack
@@ -500,6 +503,7 @@ object GridModel {
   private def buildAndValidate(
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
+      voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       simonaConfig: SimonaConfig,
@@ -600,6 +604,7 @@ object GridModel {
       subGridContainer.getSubnet,
       refSystem,
       gridComponents,
+      voltageLimits,
       GridControls(transformerControlGroups),
     )
 

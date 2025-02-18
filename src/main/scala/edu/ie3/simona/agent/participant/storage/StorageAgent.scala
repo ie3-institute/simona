@@ -11,7 +11,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.model.participant.StorageModel
 import edu.ie3.simona.model.participant.StorageModel.{
   StorageRelevantData,

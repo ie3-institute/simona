@@ -19,7 +19,8 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer3WResult,
 }
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
+import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
@@ -37,7 +38,7 @@ import scala.util.{Failure, Success, Try, Using}
 object ConfigUtil {
 
   final case class ParticipantConfigUtil private (
-      private val configs: Map[UUID, SimonaConfig.BaseRuntimeConfig],
+      private val configs: Map[UUID, BaseRuntimeConfig],
       private val defaultConfigs: Map[Class[_], BaseRuntimeConfig],
   ) {
 
@@ -78,7 +79,7 @@ object ConfigUtil {
       *   a matching config utility
       */
     def apply(
-        subConfig: SimonaConfig.Simona.Runtime.Participant
+        subConfig: RuntimeConfig.Participant
     ): ParticipantConfigUtil = {
       ParticipantConfigUtil(
         buildUuidMapping(

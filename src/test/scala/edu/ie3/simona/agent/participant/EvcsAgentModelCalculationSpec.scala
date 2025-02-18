@@ -28,7 +28,7 @@ import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
@@ -1116,11 +1116,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
-          evcsInputModelQv.getUuid,
-          evcsAgent.toTyped,
-          evcsInputModelQv,
-        )
+        RegisterControlledAsset(evcsAgent.toTyped, evcsInputModelQv)
       )
       // only receive registration message. ScheduleFlexRequest after secondary service initialized
       emAgent.expectNoMessage()
@@ -1132,7 +1128,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        ScheduleFlexRequest(evcsInputModelQv.getUuid, 0)
+        ScheduleFlexActivation(evcsInputModelQv.getUuid, 0)
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped))
@@ -1258,11 +1254,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
-          evcsInputModelQv.getUuid,
-          evcsAgent.toTyped,
-          evcsInputModelQv,
-        )
+        RegisterControlledAsset(evcsAgent.toTyped, evcsInputModelQv)
       )
       emAgent.expectNoMessage()
 
@@ -1273,7 +1265,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        ScheduleFlexRequest(evcsInputModelQv.getUuid, 900)
+        ScheduleFlexActivation(evcsInputModelQv.getUuid, 900)
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped))

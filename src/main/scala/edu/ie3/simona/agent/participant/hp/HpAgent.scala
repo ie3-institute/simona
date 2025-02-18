@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.HpRuntimeConfig
 import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import org.apache.pekko.actor.{ActorRef, Props}

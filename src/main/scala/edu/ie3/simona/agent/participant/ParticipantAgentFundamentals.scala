@@ -26,7 +26,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   ComplexPowerAndHeat,
   EnrichableData,
-  PrimaryDataWithApparentPower,
+  PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
@@ -49,7 +49,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation,
 }
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
@@ -103,12 +103,12 @@ import scala.util.{Failure, Success, Try}
 /** Useful functions to use in [[ParticipantAgent]] s
   */
 protected trait ParticipantAgentFundamentals[
-    PD <: PrimaryDataWithApparentPower,
+    PD <: PrimaryDataWithComplexPower[PD],
     CD <: CalcRelevantData,
     MS <: ModelState,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
-    MC <: SimonaConfig.BaseRuntimeConfig,
+    MC <: BaseRuntimeConfig,
     M <: SystemParticipant[CD, PD, MS],
 ] extends ServiceRegistration[PD, CD, MS, D, I, MC, M] {
   this: ParticipantAgent[PD, CD, MS, D, I, MC, M] =>
@@ -273,8 +273,7 @@ protected trait ParticipantAgentFundamentals[
 
       // register with EM if applicable
       maybeEmAgent.foreach { emAgent =>
-        emAgent ! RegisterParticipant(
-          inputModel.electricalInputModel.getUuid,
+        emAgent ! RegisterControlledAsset(
           self.toTyped[FlexRequest],
           inputModel.electricalInputModel,
         )
@@ -308,7 +307,7 @@ protected trait ParticipantAgentFundamentals[
 
         maybeEmAgent.foreach { emAgent =>
           // flex is scheduled for tick 0, if no first tick available
-          emAgent ! ScheduleFlexRequest(
+          emAgent ! ScheduleFlexActivation(
             inputModel.electricalInputModel.getUuid,
             newTick.getOrElse(0),
           )
@@ -1059,7 +1058,7 @@ protected trait ParticipantAgentFundamentals[
         val maybeEmAgent = modelStateData.flexStateData.map(_.emAgent)
 
         maybeEmAgent.foreach {
-          _ ! ScheduleFlexRequest(
+          _ ! ScheduleFlexActivation(
             modelStateData.model.getUuid,
             maybeNextTick.getOrElse(0),
           )
@@ -1398,7 +1397,7 @@ protected trait ParticipantAgentFundamentals[
               ValueStore.updateValueStore(
                 baseStateData.requestValueStore,
                 requestTick,
-                lastResult.withReactivePower(nextReactivePower).asInstanceOf[PD],
+                lastResult.withReactivePower(nextReactivePower),
               )
             val nextStateData =
               modelBaseStateData.copy(

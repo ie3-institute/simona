@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
-  PrimaryDataWithApparentPower,
+  PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
@@ -44,7 +44,7 @@ import java.util.UUID
   */
 abstract class SystemParticipant[
     CD <: CalcRelevantData,
-    +PD <: PrimaryDataWithApparentPower,
+    +PD <: PrimaryDataWithComplexPower[PD],
     MS <: ModelState,
 ](
     uuid: UUID,

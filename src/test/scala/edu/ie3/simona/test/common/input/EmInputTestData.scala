@@ -24,6 +24,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalStorageInput,
 }
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -108,8 +109,8 @@ trait EmInputTestData
       simonaConfig.simona.output.participant.defaultConfig.flexResult,
     )
 
-  protected val modelConfig: SimonaConfig.EmRuntimeConfig =
-    configUtil.getOrDefault[SimonaConfig.EmRuntimeConfig](
+  protected val modelConfig: EmRuntimeConfig =
+    configUtil.getOrDefault[EmRuntimeConfig](
       emInput.getUuid
     )
 
@@ -140,7 +141,7 @@ trait EmInputTestData
     UUID.fromString("91940626-bdd0-41cf-96dd-47c94c86b20e"),
     "thermal house",
     thermalBusInput,
-    Quantities.getQuantity(0.325, StandardUnits.THERMAL_TRANSMISSION),
+    Quantities.getQuantity(0.15, StandardUnits.THERMAL_TRANSMISSION),
     Quantities.getQuantity(75, StandardUnits.HEAT_CAPACITY),
     Quantities.getQuantity(20.3, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),

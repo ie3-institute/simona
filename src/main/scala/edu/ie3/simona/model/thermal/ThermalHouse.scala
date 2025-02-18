@@ -134,7 +134,11 @@ final case class ThermalHouse(
   }
 
   /** Calculate the needed energy to change from start temperature to target
-    * temperature
+    * temperature.
+    *
+    * In edge cases, i.e. within the tolerance margin of target temperatures,
+    * the temperature difference can be negative. For these cases we set the
+    * temperature difference to zero, resulting in an energy demand of 0 kWh.
     *
     * @param targetTemperature
     *   The target temperature to reach
@@ -147,9 +151,11 @@ final case class ThermalHouse(
       targetTemperature: Temperature,
       startTemperature: Temperature,
   ): Energy = {
-    ethCapa * Kelvin(
-      targetTemperature.toKelvinScale - startTemperature.toKelvinScale
-    )
+    val temperatureDiff =
+      Kelvin(targetTemperature.toKelvinScale - startTemperature.toKelvinScale)
+        .max(Kelvin(0))
+
+    ethCapa * temperatureDiff
   }
 
   /** Check if inner temperature is higher than preferred maximum temperature
@@ -161,8 +167,8 @@ final case class ThermalHouse(
       innerTemperature: Temperature,
       boundaryTemperature: Temperature = upperBoundaryTemperature,
   ): Boolean =
-    innerTemperature > Kelvin(
-      boundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
+    innerTemperature > (
+      boundaryTemperature - temperatureTolerance
     )
 
   /** Check if inner temperature is lower than preferred minimum temperature
@@ -174,8 +180,8 @@ final case class ThermalHouse(
       innerTemperature: Temperature,
       boundaryTemperature: Temperature = lowerBoundaryTemperature,
   ): Boolean =
-    innerTemperature < Kelvin(
-      boundaryTemperature.toKelvinScale + temperatureTolerance.toKelvinScale
+    innerTemperature < (
+      boundaryTemperature + temperatureTolerance
     )
 
   /** Calculate the new inner temperature of the thermal house.
@@ -374,7 +380,7 @@ object ThermalHouse {
     * @param innerTemperature
     *   Inner temperature of the house
     * @param qDot
-    *   Continuous infeed of thermal energy since the given tick
+    *   Continuous external infeed of thermal energy since the given tick
     */
   final case class ThermalHouseState(
       tick: Long,

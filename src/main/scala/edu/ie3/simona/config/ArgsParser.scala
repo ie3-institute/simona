@@ -23,7 +23,7 @@ object ArgsParser extends LazyLogging {
       mainArgs: Array[String],
       configLocation: Option[String] = None,
       config: Option[TypesafeConfig] = None,
-      selectedSubnets: Option[String] = None,
+      selectedSubgrids: Option[String] = None,
       selectedVoltLvls: Option[String] = None,
       clusterType: Option[ClusterType] = None,
       nodeHost: Option[String] = None,
@@ -57,7 +57,7 @@ object ArgsParser extends LazyLogging {
           "Comma separated list (no whitespaces!) of substitution arguments for simona config."
         )
       opt[String](name = "subnets")
-        .action((value, args) => args.copy(selectedSubnets = Some(value)))
+        .action((value, args) => args.copy(selectedSubgrids = Some(value)))
         .text("Comma separated list (no whitespaces!) of selected subnets.")
       opt[String](name = "voltlevels")
         .action((value, args) => args.copy(selectedVoltLvls = Some(value)))
@@ -227,8 +227,8 @@ object ArgsParser extends LazyLogging {
             .getOrElse("")
             .replace("\\", "\\\\")}"
            |simona.runtime_configuration {
-           |  selected_subnets = [${parsedArgs.selectedSubnets.getOrElse("")}]
-           |  selected_volt_lvls = [${parsedArgs.selectedVoltLvls
+           |  selectedSubgrids = [${parsedArgs.selectedSubgrids.getOrElse("")}]
+           |  selectedVoltLvls = [${parsedArgs.selectedVoltLvls
             .getOrElse("")}]
            |}
            |""".stripMargin
