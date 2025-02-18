@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant.statedata
 
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithComplexPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -33,10 +33,10 @@ import scala.collection.SortedSet
   * agents
   *
   * @tparam PD
-  *   Type of [[PrimaryDataWithApparentPower]], that the represented Participant
+  *   Type of [[PrimaryDataWithComplexPower]], that the represented Participant
   *   produces
   */
-trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
+trait BaseStateData[+PD <: PrimaryDataWithComplexPower[PD]]
     extends ParticipantStateData[PD] {
 
   /** The date, that fits the tick 0
@@ -90,7 +90,7 @@ object BaseStateData {
   /** The agent is supposed to carry out model calculations
     *
     * @tparam PD
-    *   Type of [[PrimaryDataWithApparentPower]], that the represented
+    *   Type of [[PrimaryDataWithComplexPower]], that the represented
     *   Participant produces
     * @tparam CD
     *   Type of [[CalcRelevantData]], that is required by the included model
@@ -98,7 +98,7 @@ object BaseStateData {
     *   Restricting the model to a certain class
     */
   trait ModelBaseStateData[
-      +PD <: PrimaryDataWithApparentPower[PD],
+      +PD <: PrimaryDataWithComplexPower[PD],
       CD <: CalcRelevantData,
       MS <: ModelState,
       +M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
@@ -156,7 +156,7 @@ object BaseStateData {
     _ <: CalcRelevantData,
     P,
     _,
-  ], +P <: PrimaryDataWithApparentPower[P]](
+  ], +P <: PrimaryDataWithComplexPower[P]](
       model: M,
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
@@ -207,7 +207,7 @@ object BaseStateData {
     *   Type of model, the base state data is attached to
     */
   final case class ParticipantModelBaseStateData[
-      +PD <: PrimaryDataWithApparentPower[PD],
+      +PD <: PrimaryDataWithComplexPower[PD],
       CD <: CalcRelevantData,
       MS <: ModelState,
       M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
@@ -272,7 +272,7 @@ object BaseStateData {
     * @return
     *   A copy of the base data with updated value stores
     */
-  def updateBaseStateData[PD <: PrimaryDataWithApparentPower[PD]](
+  def updateBaseStateData[PD <: PrimaryDataWithComplexPower[PD]](
       baseStateData: BaseStateData[PD],
       updatedResultValueStore: ValueStore[PD],
       updatedRequestValueStore: ValueStore[PD],

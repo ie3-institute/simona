@@ -13,21 +13,21 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  FinishParticipantSimulation,
-  RequestAssetPowerMessage,
-}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  GridSimulationFinished,
+  RegistrationFailedMessage,
+  RequestAssetPowerMessage,
+}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -232,6 +232,7 @@ class ParticipantAgent2ListenerSpec
         3000L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
 
       /* Wait for original reply (this is the querying agent) */
@@ -243,7 +244,7 @@ class ParticipantAgent2ListenerSpec
         case unknownMsg => fail(s"Received unexpected message: $unknownMsg")
       }
 
-      scheduler.send(mockAgent, FinishParticipantSimulation(3000L))
+      scheduler.send(mockAgent, GridSimulationFinished(3000L, 6000L))
 
       /* Wait for the result event (this is the event listener) */
       logger.warn(
@@ -294,6 +295,7 @@ class ParticipantAgent2ListenerSpec
         3000L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
 
       /* Wait for original reply (this is the querying agent) */
@@ -305,7 +307,7 @@ class ParticipantAgent2ListenerSpec
         case unknownMsg => fail(s"Received unexpected message: $unknownMsg")
       }
 
-      scheduler.send(mockAgent, FinishParticipantSimulation(3000L))
+      scheduler.send(mockAgent, GridSimulationFinished(3000L, 6000L))
 
       /* Make sure nothing else is sent */
       expectNoMessage(noReceiveTimeOut.duration)

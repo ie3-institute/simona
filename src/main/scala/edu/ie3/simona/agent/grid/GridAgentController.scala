@@ -12,7 +12,6 @@ import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorExtEvDataService,
   ActorWeatherService,
@@ -25,8 +24,9 @@ import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant.wec.WecAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -67,15 +67,14 @@ import scala.jdk.OptionConverters.RichOptional
   *   System participant listeners
   * @param log
   *   The logging adapter to use here
-  *
   * @since 2019-07-18
   */
 class GridAgentController(
-    gridAgentContext: ActorContext[_],
+    gridAgentContext: ActorContext[GridAgent.Request],
     environmentRefs: EnvironmentRefs,
     simulationStartDate: ZonedDateTime,
     simulationEndDate: ZonedDateTime,
-    participantsConfig: SimonaConfig.Simona.Runtime.Participant,
+    participantsConfig: Participant,
     outputConfig: SimonaConfig.Simona.Output.Participant,
     resolution: Long,
     listener: Iterable[ActorRef[ResultEvent]],
@@ -84,7 +83,7 @@ class GridAgentController(
   def buildSystemParticipants(
       subGridContainer: SubGridContainer,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
-  ): Map[UUID, Set[ActorRef[ParticipantMessage]]] = {
+  ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = {
 
     val systemParticipants =
       filterSysParts(subGridContainer, environmentRefs)
@@ -174,12 +173,12 @@ class GridAgentController(
     *   A map from coupling point to set of actor references
     */
   private def buildParticipantToActorRef(
-      participantsConfig: SimonaConfig.Simona.Runtime.Participant,
+      participantsConfig: Participant,
       outputConfig: SimonaConfig.Simona.Output.Participant,
       participants: Vector[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
-  ): Map[UUID, Set[ActorRef[ParticipantMessage]]] = {
+  ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = {
     /* Prepare the config util for the participant models, which (possibly) utilizes as map to speed up the initialization
      * phase */
     val participantConfigUtil =
@@ -226,7 +225,7 @@ class GridAgentController(
         // return uuid to actorRef
         node.getUuid -> actorRef
       }
-      .toSet[(UUID, ActorRef[ParticipantMessage])]
+      .toSet[(UUID, ActorRef[ParticipantAgent.Request])]
       .groupMap(entry => entry._1)(entry => entry._2)
   }
 
@@ -323,7 +322,7 @@ class GridAgentController(
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantMessage] = participantInputModel match {
+  ): ActorRef[ParticipantAgent.Request] = participantInputModel match {
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
         input,
@@ -479,7 +478,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantMessage] =
+  ): ActorRef[ParticipantAgent.Request] =
     gridAgentContext.toClassic
       .simonaActorOf(
         FixedFeedInAgent.props(
@@ -536,7 +535,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantMessage] =
+  ): ActorRef[ParticipantAgent.Request] =
     gridAgentContext.toClassic
       .simonaActorOf(
         LoadAgent.props(
@@ -596,7 +595,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantMessage] =
+  ): ActorRef[ParticipantAgent.Request] =
     gridAgentContext.toClassic
       .simonaActorOf(
         PvAgent.props(
@@ -656,7 +655,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantMessage] =
+  ): ActorRef[ParticipantAgent.Request] =
     gridAgentContext.toClassic
       .simonaActorOf(
         EvcsAgent.props(
@@ -713,7 +712,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantMessage] =
+  ): ActorRef[ParticipantAgent.Request] =
     gridAgentContext.toClassic
       .simonaActorOf(
         HpAgent.props(
@@ -774,7 +773,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantMessage] =
+  ): ActorRef[ParticipantAgent.Request] =
     gridAgentContext.toClassic
       .simonaActorOf(
         WecAgent.props(
@@ -823,7 +822,7 @@ class GridAgentController(
     */
   private def buildStorage(
       storageInput: StorageInput,
-      modelConfiguration: SimonaConfig.StorageRuntimeConfig,
+      modelConfiguration: StorageRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -831,7 +830,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
-  ): ActorRef[ParticipantMessage] =
+  ): ActorRef[ParticipantAgent.Request] =
     gridAgentContext.toClassic
       .simonaActorOf(
         StorageAgent.props(
@@ -894,7 +893,7 @@ class GridAgentController(
     *   Reference to the actor to add to the environment
     */
   private def introduceAgentToEnvironment(
-      actorRef: ActorRef[ParticipantMessage]
+      actorRef: ActorRef[ParticipantAgent.Request]
   ): Unit = {
     gridAgentContext.watch(actorRef)
     environmentRefs.scheduler ! ScheduleActivation(

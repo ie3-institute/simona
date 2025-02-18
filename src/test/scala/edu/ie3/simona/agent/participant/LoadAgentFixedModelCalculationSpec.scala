@@ -14,7 +14,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -24,16 +23,19 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantUninitializedStateData,
   SimpleInputContainer,
 }
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  RegistrationFailedMessage,
+  RequestAssetPowerMessage,
+}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.simona.util.ConfigUtil
@@ -146,7 +148,10 @@ class LoadAgentFixedModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(voltageSensitiveInput.getUuid)
+        PrimaryServiceRegistrationMessage(
+          loadAgent.ref,
+          voltageSensitiveInput.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       loadAgent.stateName shouldBe HandleInformation
@@ -253,6 +258,7 @@ class LoadAgentFixedModelCalculationSpec
         0L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -365,6 +371,7 @@ class LoadAgentFixedModelCalculationSpec
         3000L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -406,6 +413,7 @@ class LoadAgentFixedModelCalculationSpec
         3000L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -423,6 +431,7 @@ class LoadAgentFixedModelCalculationSpec
         3000L,
         Each(1.000000000000001d),
         Each(0d),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -439,6 +448,7 @@ class LoadAgentFixedModelCalculationSpec
         3000L,
         Each(0.98),
         Each(0d),
+        self.toTyped,
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

@@ -46,6 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Throw exception if the slack node is not directly conected to a transformer. [#525](https://github.com/ie3-institute/simona/issues/525)
 - Added support for topologies without transformers and slack grids with multiple nodes [#1099](https://github.com/ie3-institute/simona/issues/1099)
 - Checking the number of slack nodes [#1122](https://github.com/ie3-institute/simona/issues/1122)
+- Enhance exception message in case of InvalidGridException [#1124](https://github.com/ie3-institute/simona/issues/1124)
+- Integration test for thermal grids [#1145](https://github.com/ie3-institute/simona/issues/1145)
+- Added `VoltageLimits` [#1133](https://github.com/ie3-institute/simona/issues/1133)
+- Introducing new ParticipantAgent and ParticipantModel [#1134](https://github.com/ie3-institute/simona/issues/1134)
+- Using new `ParticipantAgent.Request` messages everywhere [#1195](https://github.com/ie3-institute/simona/issues/1195)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -121,6 +126,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor ThermalEnergyDemand definitions [#917](https://github.com/ie3-institute/simona/issues/917)
 - Rewrote PvModelIT from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Fix negative required energy demand for thermalHouse [#1127](https://github.com/ie3-institute/simona/issues/1127)
+- Refactored EM messages [#1138](https://github.com/ie3-institute/simona/issues/1138)
+- `OperationInterval` should extend `RightOpenInterval` [#1142](https://github.com/ie3-institute/simona/issues/1142)
+- Enhance EmAggregate of SelfOpt to cope with other targetLimits [#1131](https://github.com/ie3-institute/simona/issues/1131)
+- Switched to `pureconfig` [#608](https://github.com/ie3-institute/simona/issues/608)
+- Removing generated methods and cleaning up in config [#1170](https://github.com/ie3-institute/simona/issues/1170)
+- Changed `pvInput` values in `PvInputTestData` to more realistic values [#1144](https://github.com/ie3-institute/simona/issues/1144)
+- Refactor `RuntimeConfig` [#1172](https://github.com/ie3-institute/simona/issues/1172)
 - Updated to changes of PSDM release v6.0.0 [#1107](https://github.com/ie3-institute/simona/issues/1107)
 
 ### Fixed
@@ -166,6 +178,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed SonarQube quality gate using the right link for PRs or Branches [#1061](https://github.com/ie3-institute/simona/issues/1061)
 - Fixed ignored EM strategy [#1091](https://github.com/ie3-institute/simona/issues/1091)
 - EM should output flex option results even if it has no parent [#1112](https://github.com/ie3-institute/simona/issues/1112)
+- Rename `PrimaryDataWithApparentPower` to `PrimaryDataWithComplexPower` [#1140](https://github.com/ie3-institute/simona/issues/1140)
+- Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
+- Move `ScheduleServiceActivation` out of `RegistrationResponseMessage` [#1143](https://github.com/ie3-institute/simona/issues/1143)
+- Check for runningHp when handling infeed to thermalGrid [#1167](https://github.com/ie3-institute/simona/issues/1167)
 
 ## [3.0.0] - 2023-08-07
 

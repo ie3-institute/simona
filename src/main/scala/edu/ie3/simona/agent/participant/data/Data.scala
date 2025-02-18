@@ -15,7 +15,6 @@ import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
 
-import java.time.ZonedDateTime
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -39,16 +38,40 @@ object Data {
     def toComplexPower: ComplexPower
   }
 
+  /** Class that provides some static functionality for primary data, such as
+    * producing zero values and scaling the data.
+    *
+    * @tparam T
+    *   The type of primary data
+    */
+  sealed trait PrimaryDataExtra[T <: PrimaryData] {
+
+    /** Returns a zero value of the desired type
+      */
+    def zero: T
+
+    /** Scales given primary data by the given factor
+      *
+      * @param data
+      *   The primary data to scale
+      * @param factor
+      *   The factor to scale by
+      * @return
+      *   The scaled primary data
+      */
+    def scale(data: T, factor: Double): T
+  }
+
   object PrimaryData {
 
-    sealed trait EnrichableData[E <: PrimaryDataWithApparentPower[E]] {
+    sealed trait EnrichableData[E <: PrimaryDataWithComplexPower[E]] {
       def add(q: ReactivePower): E
     }
 
-    /** Denoting all primary data, that carry apparent power
+    /** Denoting all primary data, that carry complex power
       */
-    sealed trait PrimaryDataWithApparentPower[
-        +T <: PrimaryDataWithApparentPower[T]
+    sealed trait PrimaryDataWithComplexPower[
+        +T <: PrimaryDataWithComplexPower[T]
     ] extends PrimaryData {
       val q: ReactivePower
 
@@ -81,6 +104,13 @@ object Data {
         ComplexPower(p, q)
     }
 
+    object ActivePowerExtra extends PrimaryDataExtra[ActivePower] {
+      override def zero: ActivePower = ActivePower(zeroKW)
+
+      override def scale(data: ActivePower, factor: Double): ActivePower =
+        ActivePower(data.p * factor)
+    }
+
     /** Active and Reactive power as participant simulation result
       *
       * @param p
@@ -91,11 +121,18 @@ object Data {
     final case class ComplexPower(
         override val p: Power,
         override val q: ReactivePower,
-    ) extends PrimaryDataWithApparentPower[ComplexPower] {
+    ) extends PrimaryDataWithComplexPower[ComplexPower] {
       override def toComplexPower: ComplexPower = this
 
       override def withReactivePower(q: ReactivePower): ComplexPower =
         copy(q = q)
+    }
+
+    object ComplexPowerExtra extends PrimaryDataExtra[ComplexPower] {
+      override def zero: ComplexPower = ComplexPower(zeroKW, zeroKVAr)
+
+      override def scale(data: ComplexPower, factor: Double): ComplexPower =
+        ComplexPower(data.p * factor, data.q * factor)
     }
 
     /** Active power and heat demand as participant simulation result
@@ -121,6 +158,17 @@ object Data {
         ComplexPowerAndHeat(p, q, qDot)
     }
 
+    object ActivePowerAndHeatExtra
+        extends PrimaryDataExtra[ActivePowerAndHeat] {
+      override def zero: ActivePowerAndHeat = ActivePowerAndHeat(zeroKW, zeroKW)
+
+      override def scale(
+          data: ActivePowerAndHeat,
+          factor: Double,
+      ): ActivePowerAndHeat =
+        ActivePowerAndHeat(data.p * factor, data.qDot * factor)
+    }
+
     /** Apparent power and heat demand as participant simulation result
       *
       * @param p
@@ -134,13 +182,49 @@ object Data {
         override val p: Power,
         override val q: ReactivePower,
         override val qDot: Power,
-    ) extends PrimaryDataWithApparentPower[ComplexPowerAndHeat]
+    ) extends PrimaryDataWithComplexPower[ComplexPowerAndHeat]
         with Heat {
       override def toComplexPower: ComplexPower =
         ComplexPower(p, q)
 
       override def withReactivePower(q: ReactivePower): ComplexPowerAndHeat =
         copy(q = q)
+    }
+
+    object ComplexPowerAndHeatExtra
+        extends PrimaryDataExtra[ComplexPowerAndHeat] {
+      override def zero: ComplexPowerAndHeat =
+        ComplexPowerAndHeat(zeroKW, zeroKVAr, zeroKW)
+
+      override def scale(
+          data: ComplexPowerAndHeat,
+          factor: Double,
+      ): ComplexPowerAndHeat =
+        ComplexPowerAndHeat(
+          data.p * factor,
+          data.q * factor,
+          data.qDot * factor,
+        )
+    }
+
+    def getPrimaryDataExtra(
+        value: Class[_ <: Value]
+    ): PrimaryDataExtra[_ <: PrimaryData] = {
+      val heatAndS = classOf[HeatAndSValue]
+      val s = classOf[SValue]
+      val heatAndP = classOf[HeatAndPValue]
+      val p = classOf[PValue]
+
+      value match {
+        case `heatAndS` => ComplexPowerAndHeatExtra
+        case `s`        => ComplexPowerExtra
+        case `heatAndP` => ActivePowerAndHeatExtra
+        case `p`        => ActivePowerExtra
+        case other =>
+          throw new IllegalArgumentException(
+            s"Value class '$other' is not supported."
+          )
+      }
     }
 
     implicit class RichValue(private val value: Value) {
@@ -241,7 +325,6 @@ object Data {
     */
   trait SecondaryData extends Data
   object SecondaryData {
-    final case class DateTime(dateTime: ZonedDateTime) extends SecondaryData
     final case class WholesalePrice(price: ComparableQuantity[EnergyPrice])
         extends SecondaryData
   }
