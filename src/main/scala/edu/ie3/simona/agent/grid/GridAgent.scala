@@ -132,6 +132,7 @@ object GridAgent extends DBFSAlgorithm {
       val gridModel = GridModel(
         subGridContainer,
         refSystem,
+        gridAgentInitData.voltageLimits,
         TimeUtil.withDefaults.toZonedDateTime(
           constantData.simonaConfig.simona.time.startDateTime
         ),

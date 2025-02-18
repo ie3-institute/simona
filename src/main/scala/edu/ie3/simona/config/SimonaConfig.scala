@@ -141,12 +141,17 @@ object SimonaConfig {
       timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
   ) extends CsvParams(csvSep, directoryPath, isHierarchic)
 
+  sealed trait GridConfigParams {
+    val gridIds: Option[List[String]]
+    val voltLvls: Option[List[VoltLvlConfig]]
+  }
+
   final case class RefSystemConfig(
-      gridIds: Option[List[String]] = None,
+      override val gridIds: Option[List[String]] = None,
       sNom: String,
       vNom: String,
-      voltLvls: Option[List[VoltLvlConfig]] = None,
-  )
+      override val voltLvls: Option[List[VoltLvlConfig]] = None,
+  ) extends GridConfigParams
 
   final case class ResultKafkaParams(
       override val bootstrapServers: String,
@@ -181,6 +186,13 @@ object SimonaConfig {
       vNom: String,
   )
 
+  final case class VoltageLimitsConfig(
+      override val gridIds: Option[List[String]] = None,
+      vMax: Double,
+      vMin: Double,
+      override val voltLvls: Option[List[VoltLvlConfig]] = None,
+  ) extends GridConfigParams
+
   final case class Simona(
       control: Option[Simona.Control] = None,
       event: Simona.Event = Simona.Event(),
@@ -208,7 +220,8 @@ object SimonaConfig {
     }
 
     final case class GridConfig(
-        refSystems: Option[List[RefSystemConfig]] = None
+        refSystems: Option[List[RefSystemConfig]] = None,
+        voltageLimits: Option[List[VoltageLimitsConfig]] = None,
     )
 
     final case class Input(
@@ -349,7 +362,7 @@ object SimonaConfig {
 
       final case class Participant(
           defaultConfig: ParticipantBaseOutputConfig,
-          individualConfigs: List[ParticipantBaseOutputConfig] = List(),
+          individualConfigs: List[ParticipantBaseOutputConfig] = List.empty,
       )
 
       final case class Sink(
@@ -375,7 +388,7 @@ object SimonaConfig {
 
       final case class Thermal(
           defaultConfig: SimpleOutputConfig,
-          individualConfigs: List[SimpleOutputConfig] = List(),
+          individualConfigs: List[SimpleOutputConfig] = List.empty,
       )
     }
 
@@ -388,7 +401,7 @@ object SimonaConfig {
     )
     object Powerflow {
       final case class Newtonraphson(
-          epsilon: List[Double] = List(),
+          epsilon: List[Double] = List.empty,
           iterations: Int,
       )
     }
