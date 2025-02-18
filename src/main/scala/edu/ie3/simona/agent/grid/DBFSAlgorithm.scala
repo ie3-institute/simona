@@ -43,13 +43,13 @@ import org.apache.pekko.actor.typed.scaladsl.{
   StashBuffer,
 }
 import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior, Scheduler}
-import org.apache.pekko.util.{Timeout => PekkoTimeout}
+import org.apache.pekko.util.{Timeout, Timeout => PekkoTimeout}
 import org.slf4j.Logger
 import squants.Each
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Duration, FiniteDuration, MILLISECONDS}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -1129,7 +1129,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   ): Boolean = {
     implicit val ec: ExecutionContext = ctx.executionContext
 
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
+    implicit val timeout: PekkoTimeout = Timeout(askTimeout)
     implicit val system: ActorSystem[_] = ctx.system
 
     ctx.log.debug(s"asking assets for power values: {}", nodeToAssetAgents)

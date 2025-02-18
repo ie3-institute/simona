@@ -47,6 +47,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.{Duration, ZonedDateTime}
 import java.util.UUID
 import javax.measure.quantity.Angle
+import scala.concurrent.duration.{FiniteDuration, MINUTES}
 import scala.jdk.CollectionConverters.SetHasAsJava
 import scala.language.implicitConversions
 
@@ -394,7 +395,7 @@ class PowerFlowSupportSpec
       1e-5,
       Vector(1e-12),
       50,
-      Duration.ofMinutes(30),
+      FiniteDuration.apply(30, MINUTES),
       stopOnFailure = true,
     )
 
