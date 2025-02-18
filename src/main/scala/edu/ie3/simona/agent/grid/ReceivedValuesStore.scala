@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
   NodeToReceivedPower,
   NodeToReceivedSlackVoltage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
+import edu.ie3.simona.agent.participant2.ParticipantAgent
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -69,7 +69,7 @@ object ReceivedValuesStore {
     *   `empty` [[ReceivedValuesStore]] with pre-initialized options as `None`
     */
   def empty(
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgent.Request
       ]],
@@ -97,14 +97,14 @@ object ReceivedValuesStore {
     *   `empty` [[NodeToReceivedPower]] with pre-initialized options as `None`
     */
   private def buildEmptyNodeToReceivedPowerMap(
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgent.Request
       ]],
   ): NodeToReceivedPower = {
     /* Collect everything, that I expect from my asset agents */
     val assetsToReceivedPower: NodeToReceivedPower = nodeToAssetAgents.collect {
-      case (uuid: UUID, actorRefs: Set[ActorRef[ParticipantMessage]]) =>
+      case (uuid: UUID, actorRefs: Set[ActorRef[ParticipantAgent.Request]]) =>
         val map: Map[ActorRef[?], Option[PowerResponse]] =
           actorRefs.map(actorRef => actorRef -> None).toMap
         (uuid, map)
@@ -163,7 +163,7 @@ object ReceivedValuesStore {
     *   `empty` [[NodeToReceivedSlackVoltage]] and [[NodeToReceivedPower]]
     */
   private def buildEmptyReceiveMaps(
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgent.Request
       ]],

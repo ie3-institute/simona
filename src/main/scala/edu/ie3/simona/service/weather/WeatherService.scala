@@ -6,14 +6,18 @@
 
 package edu.ie3.simona.service.weather
 
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
-import edu.ie3.simona.exceptions.InitializationException
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
+import edu.ie3.simona.exceptions.{
+  CriticalFailureException,
+  InitializationException,
+}
+import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
 import edu.ie3.simona.service.SimonaService
@@ -228,7 +232,11 @@ final case class WeatherService(
           case Success(weightedCoordinates) =>
             agentToBeRegistered ! RegistrationSuccessfulMessage(
               self,
-              serviceStateData.maybeNextActivationTick,
+              serviceStateData.maybeNextActivationTick.getOrElse(
+                throw new CriticalFailureException(
+                  "No first data tick for weather service"
+                )
+              ),
             )
 
             /* Enhance the mapping from agent coordinate to requesting actor's ActorRef as well as the necessary
@@ -254,7 +262,11 @@ final case class WeatherService(
         // coordinate is already known (= we have data for it), but this actor is not registered yet
         agentToBeRegistered ! RegistrationSuccessfulMessage(
           self,
-          serviceStateData.maybeNextActivationTick,
+          serviceStateData.maybeNextActivationTick.getOrElse(
+            throw new CriticalFailureException(
+              "No first data tick for weather service"
+            )
+          ),
         )
 
         serviceStateData.copy(
@@ -313,7 +325,7 @@ final case class WeatherService(
           .get(coordinate)
           .foreach(recipients =>
             recipients.foreach(
-              _ ! ProvideWeatherMessage(
+              _ ! DataProvision(
                 tick,
                 self,
                 weatherResult,
