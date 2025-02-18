@@ -278,6 +278,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   private[grid] def afterPowerFlow(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
+      nextTick: Long,
       ctx: ActorContext[Request],
   )(implicit
       constantData: GridAgentConstantData,
@@ -300,7 +301,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       startCongestionManagement(gridAgentBaseData, currentTick, results, ctx)
     } else {
       // clean up agent and go back to idle
-      gotoIdle(gridAgentBaseData, currentTick, results, ctx)
+      gotoIdle(gridAgentBaseData, nextTick, results, ctx)
     }
   }
 
@@ -308,8 +309,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     * [[idle()]] state.
     * @param gridAgentBaseData
     *   state data of the actor
-    * @param currentTick
-    *   the current tick in the simulation
+    * @param nextTick
+    *   the next tick in the simulation
     * @param results
     *   option for the last power flow, that should be written
     * @param ctx
@@ -323,7 +324,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     */
   private[grid] def gotoIdle(
       gridAgentBaseData: GridAgentBaseData,
-      currentTick: Long,
+      nextTick: Long,
       results: Option[PowerFlowResultEvent],
       ctx: ActorContext[Request],
   )(implicit
@@ -347,7 +348,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
     constantData.environmentRefs.scheduler ! Completion(
       constantData.activationAdapter,
-      Some(currentTick + constantData.resolution),
+      Some(nextTick),
     )
 
     // return to Idle

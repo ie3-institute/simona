@@ -455,7 +455,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               }
           }
 
-          afterPowerFlow(gridAgentBaseData, currentTick, ctx)
+          afterPowerFlow(gridAgentBaseData, currentTick, nextTick, ctx)
 
         // handles power request that arrive to early
         case (requestGridPower: RequestGridPower, _) =>
