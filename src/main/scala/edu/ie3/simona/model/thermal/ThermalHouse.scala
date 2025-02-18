@@ -85,7 +85,7 @@ final case class ThermalHouse(
     *
     * @param relevantData
     *   Data of heat pump including state of the heat pump.
-    * @param state
+    * @param currentThermalHouseState
     *   Most recent state, that is valid for this model.
     * @param actualTemperatureTarget
     *   The currently applied temperature this model is aiming for.
@@ -94,17 +94,11 @@ final case class ThermalHouse(
     */
   def energyDemand(
       relevantData: HpRelevantData,
-      state: ThermalHouseState,
+      currentThermalHouseState: ThermalHouseState,
       actualTemperatureTarget: Temperature,
   ): ThermalEnergyDemand = {
-    /* Calculate the inner temperature of the house, at the questioned instance in time */
-    val duration = Seconds(relevantData.currentTick - state.tick)
-    val currentInnerTemp = newInnerTemperature(
-      state.qDot,
-      duration,
-      state.innerTemperature,
-      relevantData.ambientTemperature,
-    )
+    // Since we updated the state before, we can directly take the innerTemperature
+    val currentInnerTemp = currentThermalHouseState.innerTemperature
 
     val requiredEnergy =
       if (isInnerTemperatureTooLow(currentInnerTemp)) {
