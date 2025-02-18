@@ -14,7 +14,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -23,6 +22,10 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializingStateData,
   ParticipantUninitializedStateData,
   SimpleInputContainer,
+}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  RegistrationFailedMessage,
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
@@ -33,7 +36,6 @@ import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.simona.util.ConfigUtil
@@ -152,7 +154,10 @@ class FixedFeedInAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(voltageSensitiveInput.getUuid)
+        PrimaryServiceRegistrationMessage(
+          fixedFeedAgent.ref,
+          voltageSensitiveInput.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       fixedFeedAgent.stateName shouldBe HandleInformation
@@ -259,6 +264,7 @@ class FixedFeedInAgentModelCalculationSpec
         0L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -371,6 +377,7 @@ class FixedFeedInAgentModelCalculationSpec
         3000L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -412,6 +419,7 @@ class FixedFeedInAgentModelCalculationSpec
         3000L,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -429,6 +437,7 @@ class FixedFeedInAgentModelCalculationSpec
         3000L,
         Each(1.000000000000001d),
         Each(0d),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -445,6 +454,7 @@ class FixedFeedInAgentModelCalculationSpec
         3000L,
         Each(0.98),
         Each(0d),
+        self.toTyped,
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
