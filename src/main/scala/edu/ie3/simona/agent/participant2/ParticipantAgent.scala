@@ -416,7 +416,7 @@ object ParticipantAgent {
                   val results =
                     newShell.determineResults(tick, gridAdapter.nodalVoltage)
 
-                  results.modelResults.foreach(resultHandler.send)
+                  results.modelResults.foreach(resultHandler.maybeSend)
 
                   val newGridAdapter =
                     gridAdapter.storePowerValue(results.totalPower, tick)
@@ -447,7 +447,9 @@ object ParticipantAgent {
               val shellWithFlex =
                 if (isCalculationRequired(shell, inputHandler)) {
                   val newShell = shell.updateFlexOptions(tick)
-                  resultHandler.send(newShell.determineFlexOptionsResult(tick))
+                  resultHandler.maybeSend(
+                    newShell.determineFlexOptionsResult(tick)
+                  )
                   newShell
                 } else
                   shell
@@ -471,7 +473,7 @@ object ParticipantAgent {
                 gridAdapter.nodalVoltage,
               )
 
-              results.modelResults.foreach(resultHandler.send)
+              results.modelResults.foreach(resultHandler.maybeSend)
 
               val gridAdapterWithResult =
                 gridAdapter.storePowerValue(

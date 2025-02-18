@@ -36,7 +36,7 @@ final case class ParticipantResultHandler(
     * @param result
     *   The [[SystemParticipantResult]].
     */
-  def send(result: SystemParticipantResult): Unit =
+  def maybeSend(result: SystemParticipantResult): Unit =
     if (config.simulationResultInfo) {
       listener.foreach(
         _ ! ParticipantResultEvent(result)
@@ -48,7 +48,7 @@ final case class ParticipantResultHandler(
     * @param result
     *   The [[FlexOptionsResult]].
     */
-  def send(result: FlexOptionsResult): Unit =
+  def maybeSend(result: FlexOptionsResult): Unit =
     if (config.flexResult) {
       listener.foreach(
         _ ! FlexOptionsResultEvent(result)
