@@ -140,6 +140,7 @@ class EmAgentIT
           ParticipantAgentInit(
             loadInput,
             LoadRuntimeConfig(),
+            outputConfigOff,
             participantRefs,
             simulationParams,
             Right(emAgent),
@@ -414,6 +415,7 @@ class EmAgentIT
           ParticipantAgentInit(
             loadInput,
             LoadRuntimeConfig(),
+            outputConfigOff,
             participantRefs,
             simulationParams,
             Right(emAgent),
