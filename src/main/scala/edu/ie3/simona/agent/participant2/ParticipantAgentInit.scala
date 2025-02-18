@@ -11,6 +11,7 @@ import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent._
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -70,12 +71,15 @@ object ParticipantAgentInit {
     *   The simulation start date and time.
     * @param simulationEnd
     *   The simulation end date and time.
+    * @param notifierConfig
+    *   The result configuration.
     */
   final case class SimulationParameters(
       expectedPowerRequestTick: Long,
       requestVoltageDeviationTolerance: Dimensionless,
       simulationStart: ZonedDateTime,
       simulationEnd: ZonedDateTime,
+      notifierConfig: NotifierConfig,
   )
 
   /** Starts the initialization process of a [[ParticipantAgent]].
@@ -380,7 +384,10 @@ object ParticipantAgentInit {
         simulationParams.expectedPowerRequestTick,
         simulationParams.requestVoltageDeviationTolerance,
       ),
-      participantRefs.resultListener,
+      ParticipantResultHandler(
+        participantRefs.resultListener,
+        simulationParams.notifierConfig,
+      ),
       parentData,
     )
   }

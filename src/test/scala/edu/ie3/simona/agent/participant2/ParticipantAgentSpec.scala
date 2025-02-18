@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.participant2
 
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
@@ -28,7 +29,11 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   RequestAssetPowerMessage,
 }
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent,
+}
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant2.{
   ParticipantModelInit,
   ParticipantModelShell,
@@ -63,6 +68,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
   private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
 
+  private val notifierConfig = NotifierConfig(
+    simulationResultInfo = true,
+    powerRequestReply = false,
+    flexResult = true,
+  )
+
   "A ParticipantAgent that is not controlled by EM" when {
 
     "not depending on external services" should {
@@ -96,7 +107,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Left(scheduler.ref, receiveAdapter.ref),
           )
         )
@@ -246,7 +260,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Left(scheduler.ref, receiveAdapter.ref),
           )
         )
@@ -377,7 +394,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Left(scheduler.ref, receiveAdapter.ref),
           )
         )
@@ -613,7 +633,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Left(scheduler.ref, receiveAdapter.ref),
           )
         )
@@ -826,7 +849,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Right(em.ref, receiveAdapter.ref),
           )
         )
@@ -842,6 +868,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ref should approximate(Kilowatts(1))
             min should approximate(Kilowatts(-1))
             max should approximate(Kilowatts(3))
+        }
+
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getpRef() should equalWithTolerance(0.001.asMegaWatt)
+            result.getpMin() should equalWithTolerance(-0.001.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.003.asMegaWatt)
         }
 
         flexRef ! IssuePowerControl(operationInterval.start, Kilowatts(3))
@@ -889,6 +924,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
+        }
+
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getpRef() should equalWithTolerance(0.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.asMegaWatt)
         }
 
         flexRef ! IssueNoControl(operationInterval.end)
@@ -962,7 +1006,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Right(em.ref, receiveAdapter.ref),
           )
         )
@@ -978,6 +1025,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ref should approximate(Kilowatts(1))
             min should approximate(Kilowatts(-1))
             max should approximate(Kilowatts(3))
+        }
+
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getpRef() should equalWithTolerance(0.001.asMegaWatt)
+            result.getpMin() should equalWithTolerance(-0.001.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.003.asMegaWatt)
         }
 
         flexRef ! IssuePowerControl(operationInterval.start, Kilowatts(3))
@@ -1028,6 +1084,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             max should approximate(Kilowatts(3))
         }
 
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe (12 * 3600).toDateTime
+            result.getpRef() should equalWithTolerance(0.001.asMegaWatt)
+            result.getpMin() should equalWithTolerance(-0.001.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.003.asMegaWatt)
+        }
+
         flexRef ! IssueNoControl(12 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -1056,6 +1121,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
+        }
+
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getpRef() should equalWithTolerance(0.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.asMegaWatt)
         }
 
         flexRef ! IssueNoControl(operationInterval.end)
@@ -1134,7 +1208,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Right(em.ref, receiveAdapter.ref),
           )
         )
@@ -1161,6 +1238,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
+        }
+
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe simulationStartDate
+            result.getpRef() should equalWithTolerance(0.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.asMegaWatt)
         }
 
         flexRef ! IssueNoControl(0)
@@ -1205,6 +1291,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ref should approximate(Kilowatts(2))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(4))
+        }
+
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getpRef() should equalWithTolerance(0.002.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.004.asMegaWatt)
         }
 
         flexRef ! IssuePowerControl(operationInterval.start, Kilowatts(3))
@@ -1265,6 +1360,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             max should approximate(Kilowatts(5))
         }
 
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe (12 * 3600).toDateTime
+            result.getpRef() should equalWithTolerance(0.003.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.001.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.005.asMegaWatt)
+        }
+
         flexRef ! IssueNoControl(12 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -1306,6 +1410,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             max should approximate(Kilowatts(8))
         }
 
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe (18 * 3600).toDateTime
+            result.getpRef() should equalWithTolerance(0.006.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.004.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.008.asMegaWatt)
+        }
+
         flexRef ! IssueNoControl(18 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -1334,6 +1447,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
+        }
+
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getpRef() should equalWithTolerance(0.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.asMegaWatt)
         }
 
         flexRef ! IssueNoControl(operationInterval.end)
@@ -1410,7 +1532,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
-            Iterable(resultListener.ref),
+            ParticipantResultHandler(
+              Iterable(resultListener.ref),
+              notifierConfig,
+            ),
             Right(em.ref, receiveAdapter.ref),
           )
         )
@@ -1437,6 +1562,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
+        }
+
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe simulationStartDate
+            result.getpRef() should equalWithTolerance(0.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.asMegaWatt)
         }
 
         flexRef ! IssueNoControl(0)
@@ -1481,6 +1615,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ref should approximate(Kilowatts(3))
             min should approximate(Kilowatts(3))
             max should approximate(Kilowatts(3))
+        }
+
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getpRef() should equalWithTolerance(0.003.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.003.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.003.asMegaWatt)
         }
 
         flexRef ! IssuePowerControl(operationInterval.start, Kilowatts(3))
@@ -1541,6 +1684,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             max should approximate(Kilowatts(6))
         }
 
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe (12 * 3600).toDateTime
+            result.getpRef() should equalWithTolerance(0.006.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.006.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.006.asMegaWatt)
+        }
+
         flexRef ! IssueNoControl(12 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -1582,6 +1734,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             max should approximate(Kilowatts(3))
         }
 
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe (18 * 3600).toDateTime
+            result.getpRef() should equalWithTolerance(0.003.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.003.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.003.asMegaWatt)
+        }
+
         flexRef ! IssueNoControl(18 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -1609,6 +1770,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
+        }
+
+        resultListener.expectMessageType[FlexOptionsResultEvent] match {
+          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getpRef() should equalWithTolerance(0.asMegaWatt)
+            result.getpMin() should equalWithTolerance(0.asMegaWatt)
+            result.getpMax() should equalWithTolerance(0.asMegaWatt)
         }
 
         flexRef ! IssueNoControl(operationInterval.end)
