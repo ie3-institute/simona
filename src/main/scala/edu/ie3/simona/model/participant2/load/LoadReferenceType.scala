@@ -6,44 +6,20 @@
 
 package edu.ie3.simona.model.participant2.load
 
-import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.util.StringUtils
+import edu.ie3.simona.util.ParsableEnumeration
 
 /** Denoting difference referencing scenarios for scaling load model output
   */
-sealed trait LoadReferenceType
-
-object LoadReferenceType {
+object LoadReferenceType extends ParsableEnumeration {
 
   /** Scale the load model behaviour so that the rated power of the load model
     * serves as the maximum power consumption
     */
-  case object ActivePower extends LoadReferenceType
+  val ACTIVE_POWER: Value = Value("power")
 
   /** Scale the load model behaviour so that the aggregate annual energy
     * consumption corresponds to the energy set by the model input
     */
-  case object EnergyConsumption extends LoadReferenceType
+  val ENERGY_CONSUMPTION: Value = Value("energy")
 
-  /** Build a reference type, that denotes to which type of reference a load
-    * model behaviour might be scaled.
-    *
-    * @param modelConfig
-    *   Configuration of model behaviour
-    * @return
-    *   A [[LoadReferenceType]] for use in [[LoadModel]]
-    */
-  def apply(
-      modelConfig: LoadRuntimeConfig
-  ): LoadReferenceType =
-    StringUtils.cleanString(modelConfig.reference).toLowerCase match {
-      case "power" =>
-        LoadReferenceType.ActivePower
-      case "energy" =>
-        LoadReferenceType.EnergyConsumption
-      case unsupported =>
-        throw new IllegalArgumentException(
-          s"Unsupported load reference type '$unsupported'."
-        )
-    }
 }

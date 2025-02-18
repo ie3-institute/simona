@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load.profile
+package edu.ie3.simona.model.participant2.load.profile
 
 import breeze.numerics.round
 import com.typesafe.scalalogging.LazyLogging
@@ -12,11 +12,11 @@ import edu.ie3.datamodel.models.profile.{
   BdewStandardLoadProfile,
   StandardLoadProfile,
 }
-import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
+import edu.ie3.simona.model.participant2.load.DayType
+import edu.ie3.simona.model.participant2.load.profile.LoadProfileStore.{
   initializeMaxConsumptionPerProfile,
   initializeTypeDayValues,
 }
-import edu.ie3.simona.model.participant.load.{DayType, profile}
 import org.apache.commons.csv.CSVFormat
 import squants.energy.{Energy, KilowattHours, Power, Watts}
 
@@ -218,7 +218,7 @@ object LoadProfileStore extends LazyLogging {
 
       (for (season <- Season.values; dayType <- DayType.values) yield {
         val key =
-          profile.LoadProfileKey(loadProfile, season, dayType)
+          LoadProfileKey(loadProfile, season, dayType)
         profileMap
           .get(key)
           .map(typeDay => dyn(season, typeDay.getMaxValue))

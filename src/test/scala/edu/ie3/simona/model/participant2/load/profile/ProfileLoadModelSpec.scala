@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant2.load
+package edu.ie3.simona.model.participant2.load.profile
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.LoadInput
@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
+import edu.ie3.simona.model.participant2.load.LoadModelTestHelper
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.matchers.DoubleMatchers
 import edu.ie3.util.TimeUtil

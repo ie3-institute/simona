@@ -4,12 +4,8 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load
+package edu.ie3.simona.model.participant2.load.random
 
-import edu.ie3.simona.model.participant.load.random.{
-  RandomLoadParameters,
-  TypeDayParameters,
-}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 

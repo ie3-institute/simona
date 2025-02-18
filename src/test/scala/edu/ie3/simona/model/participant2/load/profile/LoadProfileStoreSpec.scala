@@ -4,19 +4,13 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load
+package edu.ie3.simona.model.participant2.load.profile
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
 import edu.ie3.datamodel.models.profile.StandardLoadProfile
-import edu.ie3.simona.model.participant.load.profile.{
-  LoadProfileKey,
-  LoadProfileStore,
-  TypeDayProfile,
-}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.Voltamperes
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{KilowattHours, Watts}

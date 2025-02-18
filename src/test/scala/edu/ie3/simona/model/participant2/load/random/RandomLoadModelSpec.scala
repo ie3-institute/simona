@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant2.load
+package edu.ie3.simona.model.participant2.load.random
 
 import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueDistribution
 import edu.ie3.datamodel.models.OperationTime
@@ -14,7 +14,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.load.random.RandomLoadParameters
+import edu.ie3.simona.model.participant2.load.LoadModelTestHelper
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
