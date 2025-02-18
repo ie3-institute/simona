@@ -16,13 +16,22 @@ import edu.ie3.datamodel.io.source.sql.SqlTimeSeriesSource
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{DataProvision, PrimaryRegistrationSuccessfulMessage}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  PrimaryRegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
-import edu.ie3.simona.exceptions.{CriticalFailureException, InitializationException}
+import edu.ie3.simona.exceptions.{
+  CriticalFailureException,
+  InitializationException,
+}
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceActivationBaseStateData}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceActivationBaseStateData,
+}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.PrimaryServiceInitializedStateData
 import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}

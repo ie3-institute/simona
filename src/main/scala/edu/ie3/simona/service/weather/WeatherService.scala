@@ -6,16 +6,32 @@
 
 package edu.ie3.simona.service.weather
 
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{DataProvision, RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.{CriticalFailureException, InitializationException}
+import edu.ie3.simona.exceptions.{
+  CriticalFailureException,
+  InitializationException,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceActivationBaseStateData}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceActivationBaseStateData,
+}
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.service.weather.WeatherService.{InitWeatherServiceStateData, WeatherInitializedStateData}
-import edu.ie3.simona.service.weather.WeatherSource.{AgentCoordinates, WeightedCoordinates}
+import edu.ie3.simona.service.weather.WeatherService.{
+  InitWeatherServiceStateData,
+  WeatherInitializedStateData,
+}
+import edu.ie3.simona.service.weather.WeatherSource.{
+  AgentCoordinates,
+  WeightedCoordinates,
+}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq

@@ -9,11 +9,17 @@ package edu.ie3.simona.service.primary
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePowerExtra
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{PrimaryRegistrationSuccessfulMessage, RegistrationFailedMessage}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  PrimaryRegistrationSuccessfulMessage,
+  RegistrationFailedMessage,
+}
 import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.config.InputConfig.Primary
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
@@ -21,7 +27,10 @@ import edu.ie3.simona.test.helper.TestContainerHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorRefOps}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
 import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import org.scalatest.BeforeAndAfterAll
 import org.testcontainers.utility.DockerImageName

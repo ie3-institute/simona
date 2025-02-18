@@ -13,13 +13,36 @@ import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformatio
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{SValue, Value}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
+import edu.ie3.simona.config.ConfigParams.{
+  CouchbaseParams,
+  TimeStampedCsvParams,
+  TimeStampedInfluxDb1xParams,
+}
 import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
-import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
+import edu.ie3.simona.exceptions.{
+  InitializationException,
+  InvalidConfigParameterException,
+}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  WorkerRegistrationMessage,
+}
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData, SourceRef}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{CsvInitPrimaryServiceStateData, InitPrimaryServiceStateData}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
+  InitPrimaryServiceProxyStateData,
+  PrimaryServiceStateData,
+  SourceRef,
+}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  CsvInitPrimaryServiceStateData,
+  InitPrimaryServiceStateData,
+}
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
