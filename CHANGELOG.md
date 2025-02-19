@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `VoltageLimits` [#1133](https://github.com/ie3-institute/simona/issues/1133)
 - Introducing new ParticipantAgent and ParticipantModel [#1134](https://github.com/ie3-institute/simona/issues/1134)
 - Using new `ParticipantAgent.Request` messages everywhere [#1195](https://github.com/ie3-institute/simona/issues/1195)
+- Implementing consideration of `NotifierConfig` into new participant [#1200](https://github.com/ie3-institute/simona/issues/1200)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -133,6 +134,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removing generated methods and cleaning up in config [#1170](https://github.com/ie3-institute/simona/issues/1170)
 - Changed `pvInput` values in `PvInputTestData` to more realistic values [#1144](https://github.com/ie3-institute/simona/issues/1144)
 - Refactor `RuntimeConfig` [#1172](https://github.com/ie3-institute/simona/issues/1172)
+- Renamed some methods and variables within `ThermalGrid` and `ThermalHouse` [#1193](https://github.com/ie3-institute/simona/issues/1193)
+- Replaced Java Durations with Scala Durations [#1068](https://github.com/ie3-institute/simona/issues/1068)
 - Refactor input and output configs [#1175](https://github.com/ie3-institute/simona/issues/1175)
 
 ### Fixed
@@ -182,6 +185,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
 - Move `ScheduleServiceActivation` out of `RegistrationResponseMessage` [#1143](https://github.com/ie3-institute/simona/issues/1143)
 - Check for runningHp when handling infeed to thermalGrid [#1167](https://github.com/ie3-institute/simona/issues/1167)
+- Send `FlexResult` to EM [#1202](https://github.com/ie3-institute/simona/issues/1202)
 
 ## [3.0.0] - 2023-08-07
 

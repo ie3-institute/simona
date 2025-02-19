@@ -116,7 +116,7 @@ class WecAgentModelCalculationSpec
 
   private val withServices = Iterable(ActorWeatherService(weatherService.ref))
 
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.simona.powerflow.resolution.toSeconds
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
@@ -130,7 +130,7 @@ class WecAgentModelCalculationSpec
       inputModel = voltageSensitiveInput,
       simulationStartDate = simulationStartDate,
       simulationEndDate = simulationEndDate,
-      resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+      resolution = simonaConfig.simona.powerflow.resolution.toSeconds,
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       modelConfig = modelConfig,
