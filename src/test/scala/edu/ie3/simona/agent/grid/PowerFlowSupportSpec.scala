@@ -395,7 +395,7 @@ class PowerFlowSupportSpec
       1e-5,
       Vector(1e-12),
       50,
-      FiniteDuration.apply(30, MINUTES),
+      FiniteDuration(30, MINUTES),
       stopOnFailure = true,
     )
 
