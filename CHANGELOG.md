@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Using new `ParticipantAgent.Request` messages everywhere [#1195](https://github.com/ie3-institute/simona/issues/1195)
 - Implementing consideration of `NotifierConfig` into new participant [#1200](https://github.com/ie3-institute/simona/issues/1200)
 - Replace `LoadModel` with its new implementation [#1150](https://github.com/ie3-institute/simona/issues/1150)
+- Replace `FixedFeedInModel` with its new implementation [#1152](https://github.com/ie3-institute/simona/issues/1152)
 - Fix determination of qDotIntoGrid in HpModel.calcState() in case heatStorage should feed the thermal grid [#1165](https://github.com/ie3-institute/simona/issues/1165)
 
 ### Changed
