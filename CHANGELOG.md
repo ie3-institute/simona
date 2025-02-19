@@ -185,7 +185,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move `ScheduleServiceActivation` out of `RegistrationResponseMessage` [#1143](https://github.com/ie3-institute/simona/issues/1143)
 - Check for runningHp when handling infeed to thermalGrid [#1167](https://github.com/ie3-institute/simona/issues/1167)
 - Send `FlexResult` to EM [#1202](https://github.com/ie3-institute/simona/issues/1202)
- 
+
 ## [3.0.0] - 2023-08-07
 
 ### Added
