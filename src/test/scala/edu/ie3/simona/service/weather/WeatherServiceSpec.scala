@@ -140,7 +140,7 @@ class WeatherServiceSpec
         )
         .intercept {
           weatherActor ! RegisterForWeatherMessage(
-            weatherActor.ref,
+            self,
             invalidCoordinate.latitude,
             invalidCoordinate.longitude,
           )
@@ -152,7 +152,7 @@ class WeatherServiceSpec
     "announce, that a valid coordinate is registered" in {
       /* The successful registration stems from the test above */
       weatherActor ! RegisterForWeatherMessage(
-        weatherActor.ref,
+        self,
         validCoordinate.latitude,
         validCoordinate.longitude,
       )
@@ -169,7 +169,7 @@ class WeatherServiceSpec
         )
         .intercept {
           weatherActor ! RegisterForWeatherMessage(
-            weatherActor.ref,
+            self,
             validCoordinate.latitude,
             validCoordinate.longitude,
           )

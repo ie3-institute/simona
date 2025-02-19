@@ -252,7 +252,7 @@ final case class WeatherService(
               exception,
               s"Unable to obtain necessary information to register for coordinate $agentCoord.",
             )
-            sender() ! RegistrationFailedMessage(self)
+            agentToBeRegistered ! RegistrationFailedMessage(self)
             serviceStateData
         }
 
