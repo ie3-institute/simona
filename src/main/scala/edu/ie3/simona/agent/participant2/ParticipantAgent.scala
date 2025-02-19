@@ -494,11 +494,17 @@ object ParticipantAgent {
                   throw new CriticalFailureException(
                     "Received issue flex control while not controlled by EM"
                   ),
-                _.emAgent ! FlexCompletion(
-                  shellWithOP.uuid,
-                  changeIndicator.changesAtNextActivation,
-                  changeIndicator.changesAtTick,
-                ),
+                flexData => {
+                  flexData.emAgent ! FlexResult(
+                    shellWithOP.uuid,
+                    results.totalPower,
+                  )
+                  flexData.emAgent ! FlexCompletion(
+                    shellWithOP.uuid,
+                    changeIndicator.changesAtNextActivation,
+                    changeIndicator.changesAtTick,
+                  )
+                },
               )
 
               (shellWithOP, gridAdapterWithResult)
