@@ -96,7 +96,7 @@ class StorageAgentModelCalculationSpec
     storageInputQv.getUuid
   )
   private val services = Iterable.empty
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.simona.powerflow.resolution.toSeconds
 
   private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
