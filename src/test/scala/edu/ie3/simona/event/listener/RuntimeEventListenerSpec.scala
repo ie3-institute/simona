@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.{
   Done,
@@ -31,7 +31,7 @@ class RuntimeEventListenerSpec
 
       val listenerRef = spawn(
         RuntimeEventListener(
-          SimonaConfig.Simona.Runtime.Listener(
+          RuntimeConfig.Listener(
             None,
             None,
           ),

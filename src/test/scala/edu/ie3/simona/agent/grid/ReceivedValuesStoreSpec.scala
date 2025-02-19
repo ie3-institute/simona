@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
+import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -24,24 +24,25 @@ class ReceivedValuesStoreSpec
     with SubGridGateMokka {
 
   // test actorRefs
-  val participant1: TestProbe[ParticipantMessage] =
-    TestProbe[ParticipantMessage]()
-  val participant2: TestProbe[ParticipantMessage] =
-    TestProbe[ParticipantMessage]()
-  val participant3: TestProbe[ParticipantMessage] =
-    TestProbe[ParticipantMessage]()
+  val participant1: TestProbe[ParticipantAgent.Request] =
+    TestProbe[ParticipantAgent.Request]()
+  val participant2: TestProbe[ParticipantAgent.Request] =
+    TestProbe[ParticipantAgent.Request]()
+  val participant3: TestProbe[ParticipantAgent.Request] =
+    TestProbe[ParticipantAgent.Request]()
   val gridAgent: TestProbe[GridAgent.Request] = TestProbe[GridAgent.Request]()
 
   // test data used by almost all tests
   // / node to asset agents mapping
-  val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef[ParticipantMessage]]] = Map(
-    UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546") -> Set(
-      participant1.ref
-    ),
-    UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97") -> Set(
-      participant2.ref
-    ),
-  )
+  val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
+    Map(
+      UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546") -> Set(
+        participant1.ref
+      ),
+      UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97") -> Set(
+        participant2.ref
+      ),
+    )
 
   // / subnet gate mapping for inferior grids
   val inferiorSubGridGateToActorRefMap
@@ -64,7 +65,7 @@ class ReceivedValuesStoreSpec
     "initialize an empty store correctly when everything is empty" in {
 
       val nodeToAssetAgentsMap =
-        Map.empty[UUID, Set[ActorRef[ParticipantMessage]]]
+        Map.empty[UUID, Set[ActorRef[ParticipantAgent.Request]]]
       val inferiorSubGridGateToActorRefMap =
         Map.empty[SubGridGate, ActorRef[GridAgent.Request]]
       val superiorGridNodeUuids = Vector.empty[UUID]
@@ -176,7 +177,7 @@ class ReceivedValuesStoreSpec
     "initialize an empty store correctly when only information on the superior grid slack nodes are provided" in {
 
       val nodeToAssetAgentsMap =
-        Map.empty[UUID, Set[ActorRef[ParticipantMessage]]]
+        Map.empty[UUID, Set[ActorRef[ParticipantAgent.Request]]]
       val inferiorSubGridGateToActorRefMap =
         Map.empty[SubGridGate, ActorRef[GridAgent.Request]]
 

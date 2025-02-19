@@ -13,34 +13,33 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATTHOUR, VOLTAMPERE}
 import tech.units.indriya.quantity.Quantities
 
-import edu.ie3.util.interval.ClosedInterval
 
 import java.time.ZonedDateTime
 
-/** //ToDo: Class Description
-  *
-  * @version 0.1
-  * @since 23.06.20
+
+/** Exemplary instances of [[LoadInput]] to be used in tests
   */
 trait LoadInputTestData extends NodeInputTestData {
-  val loadInput =
-    new LoadInput(
-      UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
-      "testLoad",
-      OperatorInput.NO_OPERATOR_ASSIGNED,
-      OperationTime.notLimited(),
-      nodeInputNoSlackNs04KvA,
-      new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-      null,
-      BdewStandardLoadProfile.H0,
-      false,
-      Quantities.getQuantity(3000d, KILOWATTHOUR),
-      Quantities.getQuantity(282.74d, VOLTAMPERE),
-      0.95,
-    )
+
+  protected val loadInput = new LoadInput(
+    UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
+    "testLoad",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    nodeInputNoSlackNs04KvA,
+    new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+    null,
+    BdewStandardLoadProfile.H0,
+    false,
+    Quantities.getQuantity(3000d, KILOWATTHOUR),
+    Quantities.getQuantity(282.74d, VOLTAMPERE),
+    0.95,
+  )
+
 
   private val operationTimeBuilder = OperationTime.builder()
 
@@ -51,7 +50,7 @@ trait LoadInputTestData extends NodeInputTestData {
   private val operationTime: OperationTime =
     operationTimeBuilder.withOperationTime(interval).build()
 
-  val loadInputWithLimitedOperationTime =
+  protected val loadInputWithLimitedOperationTime =
     new LoadInput(
       UUID.fromString("62f4b2cb-76ee-4900-a908-5073c6c51fc7"),
       "testLoadWithLimitedOperationTime",
@@ -66,4 +65,6 @@ trait LoadInputTestData extends NodeInputTestData {
       Quantities.getQuantity(282.74d, VOLTAMPERE),
       0.95,
     )
+
+
 }
