@@ -189,21 +189,21 @@ class EmAgentIT
 
         emAgentActivation ! Activation(INIT_SIM_TICK)
 
-        // load
-        primaryServiceProxy.expectMessage(
+        primaryServiceProxy.receiveMessages(2) should contain allOf (
           PrimaryServiceRegistrationMessage(
             loadAgent.toClassic,
             loadInput.getUuid,
+          ),
+          PrimaryServiceRegistrationMessage(
+            pvAgent.toClassic,
+            pvInput.getUuid,
           )
         )
+
+        // load
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
-
         // pv
-        primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvAgent.toClassic, pvInput.getUuid)
-        )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // deal with weather service registration
@@ -219,6 +219,8 @@ class EmAgentIT
           weatherService.ref.toClassic,
           0L,
         )
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         // storage
         storageAgent ! Activation(INIT_SIM_TICK)
@@ -451,21 +453,21 @@ class EmAgentIT
 
         emAgentActivation ! Activation(INIT_SIM_TICK)
 
-        // load
-        primaryServiceProxy.expectMessage(
+        primaryServiceProxy.receiveMessages(2) should contain allOf (
           PrimaryServiceRegistrationMessage(
             loadAgent.toClassic,
             loadInput.getUuid,
+          ),
+          PrimaryServiceRegistrationMessage(
+            pvAgent.toClassic,
+            pvInput.getUuid,
           )
         )
+
+        // load
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
-
         // pv
-        primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvAgent.toClassic, pvInput.getUuid)
-        )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // deal with weather service registration
@@ -481,6 +483,8 @@ class EmAgentIT
           weatherService.ref.toClassic,
           0L,
         )
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         // heat pump
         heatPumpAgent ! Activation(INIT_SIM_TICK)
