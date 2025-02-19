@@ -43,12 +43,13 @@ import org.apache.pekko.actor.typed.scaladsl.{
   StashBuffer,
 }
 import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior, Scheduler}
-import org.apache.pekko.util.{Timeout => PekkoTimeout}
+import org.apache.pekko.util.Timeout
 import org.slf4j.Logger
 import squants.Each
 
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
 import java.util.UUID
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -1122,13 +1123,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       sweepValueStore: Option[SweepValueStore],
       nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
       refSystem: RefSystem,
-      askTimeout: Duration,
+      askTimeout: FiniteDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
     implicit val ec: ExecutionContext = ctx.executionContext
 
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
+    implicit val timeout: Timeout = Timeout(askTimeout)
     implicit val system: ActorSystem[_] = ctx.system
 
     ctx.log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
@@ -1207,11 +1208,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentSweepNo: Int,
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       inferiorGridGates: Seq[SubGridGate],
-      askTimeout: Duration,
+      askTimeout: FiniteDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
+    implicit val timeout: Timeout = Timeout(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
     implicit val scheduler: Scheduler = ctx.system.scheduler
 
@@ -1278,11 +1279,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentSweepNo: Int,
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       superiorGridGates: Vector[SubGridGate],
-      askTimeout: Duration,
+      askTimeout: FiniteDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
+    implicit val timeout: Timeout = Timeout(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
     implicit val scheduler: Scheduler = ctx.system.scheduler
 

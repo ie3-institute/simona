@@ -133,7 +133,7 @@ class DBFSAlgorithmParticipantSpec
       loadAgent ! Activation(0)
 
       // the load agent should send a Completion
-      scheduler.expectMessage(Completion(loadAgent, None))
+      scheduler.expectMessage(Completion(loadAgent, Some(3600)))
 
     }
 

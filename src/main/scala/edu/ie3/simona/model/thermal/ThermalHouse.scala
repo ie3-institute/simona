@@ -16,7 +16,7 @@ import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached,
+  HouseTemperatureTargetOrUpperBoundaryReached,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
@@ -234,7 +234,7 @@ final case class ThermalHouse(
     * @return
     *   Updated state and the tick in which the next threshold is reached
     */
-  def determineState(
+  def updateState(
       relevantData: HpRelevantData,
       state: ThermalHouseState,
       lastAmbientTemperature: Temperature,
@@ -315,7 +315,7 @@ final case class ThermalHouse(
         upperBoundaryTemperature,
         innerTemperature,
         resultingQDot,
-      ).map(HouseTemperatureUpperBoundaryReached)
+      ).map(HouseTemperatureTargetOrUpperBoundaryReached)
     } else {
       /* House is in perfect balance */
       None
@@ -399,7 +399,7 @@ object ThermalHouse {
     final case class HouseTemperatureLowerBoundaryReached(
         override val tick: Long
     ) extends ThermalThreshold
-    final case class HouseTemperatureUpperBoundaryReached(
+    final case class HouseTemperatureTargetOrUpperBoundaryReached(
         override val tick: Long
     ) extends ThermalThreshold
   }
