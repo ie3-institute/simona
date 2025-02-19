@@ -32,7 +32,13 @@ object SimonaConfig {
   // TODO: replace with finite duration
   implicit def durationConvert: ConfigConvert[Duration] =
     ConfigConvert.viaStringTry(
-      str => Try(Duration.parse(("P" + str).toUpperCase)),
+      str => {
+        val adjustedStr = str.trim match {
+          case s if s.endsWith("d") => "P" + s.toUpperCase
+          case _ => "PT" + str.toUpperCase
+        }
+        Try(Duration.parse(adjustedStr))
+      },
       x => x.toString,
     )
 
