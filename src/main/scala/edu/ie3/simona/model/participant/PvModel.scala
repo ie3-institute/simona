@@ -138,11 +138,12 @@ final case class PvModel private (
     val eTotal = eDifS + eBeamS + eRefS
 
     val irraditionSTC = yieldSTC * duration
-    calcOutput(
+    val out = calcOutput(
       eTotal,
       data.dateTime,
       irraditionSTC,
     )
+    out
   }
 
   /** Calculates the position of the earth in relation to the sun (day angle)

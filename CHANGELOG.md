@@ -138,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor `RuntimeConfig` [#1172](https://github.com/ie3-institute/simona/issues/1172)
 - Renamed some methods and variables within `ThermalGrid` and `ThermalHouse` [#1193](https://github.com/ie3-institute/simona/issues/1193)
 - Replaced Java Durations with Scala Durations [#1068](https://github.com/ie3-institute/simona/issues/1068)
+- Operate `PvModel` with data validity duration based on the next, not the last tick [#1208](https://github.com/ie3-institute/simona/issues/1208)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)

@@ -197,6 +197,7 @@ protected trait PvAgentFundamentals
         PvModel,
       ],
       tick: Long,
+      nextDataTick: Option[Long],
   ): PvRelevantData = {
     /* convert current tick to a datetime */
     implicit val startDateTime: ZonedDateTime =
@@ -204,10 +205,9 @@ protected trait PvAgentFundamentals
     val dateTime = tick.toDateTime
 
     val tickInterval =
-      baseStateData.receivedSecondaryDataStore
-        .lastKnownTick(tick - 1) match {
-        case Some(dataTick) =>
-          tick - dataTick
+      nextDataTick match {
+        case Some(nextTick) =>
+          nextTick - tick
         case _ =>
           /* At the first tick, we are not able to determine the tick interval from last tick
            * (since there is none). Then we use a fallback pv stem distance. */
@@ -349,10 +349,13 @@ protected trait PvAgentFundamentals
     val voltage =
       getAndCheckNodalVoltage(baseStateData, currentTick)
 
+    val nextDataTick = baseStateData.foreseenDataTicks.values.flatten.minOption
+
     val relevantData =
       createCalcRelevantData(
         baseStateData,
         currentTick,
+        nextDataTick,
       )
 
     val result = baseStateData.model.calculatePower(

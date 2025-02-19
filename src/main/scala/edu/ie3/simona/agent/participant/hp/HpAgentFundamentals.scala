@@ -155,7 +155,8 @@ trait HpAgentFundamentals
     /* Determine needed information */
     val voltage =
       getAndCheckNodalVoltage(baseStateData, tick)
-    val relevantData = createCalcRelevantData(baseStateData, tick)
+    val nextDataTick = baseStateData.foreseenDataTicks.values.flatten.minOption
+    val relevantData = createCalcRelevantData(baseStateData, tick, nextDataTick)
 
     val modelState = baseStateData.stateDataStore.last(tick) match {
       case Some((lastTick, _)) if lastTick == tick =>
@@ -233,7 +234,9 @@ trait HpAgentFundamentals
     /* Determine needed information */
     val voltage =
       getAndCheckNodalVoltage(baseStateData, currentTick)
-    val relevantData = createCalcRelevantData(baseStateData, currentTick)
+    val nextDataTick = baseStateData.foreseenDataTicks.values.flatten.minOption
+    val relevantData =
+      createCalcRelevantData(baseStateData, currentTick, nextDataTick)
 
     /* Determine the next state */
     val updatedState =
@@ -405,6 +408,7 @@ trait HpAgentFundamentals
         HpModel,
       ],
       tick: Long,
+      nextDataTick: Option[Long],
   ): HpRelevantData = {
     /* extract weather data from secondary data, which should have been requested and received before */
     val weatherData =
