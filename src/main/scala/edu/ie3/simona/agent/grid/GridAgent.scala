@@ -57,9 +57,9 @@ object GridAgent extends DBFSAlgorithm {
         context.messageAdapter[Activation](msg => WrappedActivation(msg))
 
       // val initialization
-      val resolution: Long = simonaConfig.simona.powerflow.resolution.get(
-        ChronoUnit.SECONDS
-      ) // this determines the agents regular time bin it wants to be triggered e.g. one hour
+
+      // this determines the agents regular time bin it wants to be triggered e.g. one hour
+      val resolution: Long = simonaConfig.simona.powerflow.resolution.toSeconds
 
       val simStartTime: ZonedDateTime = TimeUtil.withDefaults
         .toZonedDateTime(simonaConfig.simona.time.startDateTime)

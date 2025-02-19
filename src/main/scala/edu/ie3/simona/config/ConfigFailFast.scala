@@ -43,7 +43,6 @@ import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
-import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
@@ -772,19 +771,11 @@ object ConfigFailFast extends LazyLogging {
   ): Unit = {
 
     // check if time bin is not smaller than in seconds
-    if (
-      (powerFlow.resolution.getUnits.contains(
-        ChronoUnit.NANOS
-      ) && powerFlow.resolution.getNano != 0) ||
-      (powerFlow.resolution.getUnits.contains(
-        ChronoUnit.MICROS
-      ) && powerFlow.resolution
-        .get(ChronoUnit.MICROS) != 0) ||
-      (powerFlow.resolution.getUnits.contains(
-        ChronoUnit.MILLIS
-      ) && powerFlow.resolution
-        .get(ChronoUnit.MILLIS) != 0)
-    ) {
+    val hasNanos = (powerFlow.resolution.toNanos / 1e9) % 1 != 0
+    val hasMicros = (powerFlow.resolution.toMicros / 1e6) % 1 != 0
+    val hasMillis = (powerFlow.resolution.toMillis / 1e3) % 1 != 0
+
+    if (hasNanos || hasMicros || hasMillis) {
       throw new InvalidConfigParameterException(
         s"Invalid time resolution. Please ensure, that " +
           s"the time resolution for power flow calculation is at least rounded to a full second!"

@@ -13,9 +13,8 @@ import pureconfig.error._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
 
-import java.time.Duration
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.implicitConversions
-import scala.util.Try
 
 final case class SimonaConfig(
     simona: SimonaConfig.Simona
@@ -28,19 +27,6 @@ object SimonaConfig {
   // pure config start
   implicit def productHint[T]: ProductHint[T] =
     ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
-
-  // TODO: replace with finite duration
-  implicit def durationConvert: ConfigConvert[Duration] =
-    ConfigConvert.viaStringTry(
-      str => {
-        val adjustedStr = str.trim match {
-          case s if s.endsWith("d") => "P" + s.toUpperCase
-          case _ => "PT" + str.toUpperCase
-        }
-        Try(Duration.parse(adjustedStr))
-      },
-      x => x.toString,
-    )
 
   /** Method to extract a config from a [[pureconfig.ConfigReader.Result]]
     * @param either
@@ -388,9 +374,9 @@ object SimonaConfig {
     final case class Powerflow(
         maxSweepPowerDeviation: Double,
         newtonraphson: Powerflow.Newtonraphson,
-        resolution: Duration = Duration.ofHours(1),
+        resolution: FiniteDuration = 1.hours,
         stopOnFailure: Boolean = false,
-        sweepTimeout: Duration = Duration.ofSeconds(30),
+        sweepTimeout: FiniteDuration = 30.seconds,
     )
     object Powerflow {
       final case class Newtonraphson(

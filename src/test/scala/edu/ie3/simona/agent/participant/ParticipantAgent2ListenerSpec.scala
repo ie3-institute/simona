@@ -99,7 +99,7 @@ class ParticipantAgent2ListenerSpec
         secondaryDataServices = services,
         simulationStartDate = defaultSimulationStart,
         simulationEndDate = defaultSimulationEnd,
-        resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+        resolution = simonaConfig.simona.powerflow.resolution.toSeconds,
         requestVoltageDeviationThreshold =
           simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
         outputConfig = outputConfig,
