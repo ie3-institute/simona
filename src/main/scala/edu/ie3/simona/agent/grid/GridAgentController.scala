@@ -17,7 +17,6 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorWeatherService,
 }
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
-import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
@@ -356,17 +355,15 @@ class GridAgentController(
 
     participantInputModel match {
       case input: FixedFeedInInput =>
-        buildFixedFeedIn(
+        buildParticipant(
           input,
           participantConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
             input.getUuid
           ),
-          environmentRefs.primaryServiceProxy,
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
           outputConfigUtil.getOrDefault(NotifierIdentifier.FixedFeedIn),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: LoadInput =>
@@ -499,67 +496,6 @@ class GridAgentController(
       ),
     )
     gridAgentContext.watch(participant)
-
-    participant
-  }
-
-  /** Creates a fixed feed in agent and determines the needed additional
-    * information for later initialization of the agent.
-    *
-    * @param fixedFeedInInput
-    *   Fixed Feed In input model to derive information from
-    * @param modelConfiguration
-    *   User-provided configuration for this specific fixed feed in model
-    * @param primaryServiceProxy
-    *   Reference to the primary data service proxy
-    * @param simulationStartDate
-    *   The simulation time at which the simulation starts
-    * @param simulationEndDate
-    *   The simulation time at which the simulation ends
-    * @param resolution
-    *   Frequency of power flow calculations
-    * @param requestVoltageDeviationThreshold
-    *   Maximum deviation in p.u. of request voltages to be considered equal
-    * @param outputConfig
-    *   Configuration of the output behavior
-    * @param maybeControllingEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   The [[FixedFeedInAgent]] 's [[ActorRef]]
-    */
-  private def buildFixedFeedIn(
-      fixedFeedInInput: FixedFeedInInput,
-      modelConfiguration: FixedFeedInRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantAgent.Request] = {
-    val participant = gridAgentContext.toClassic
-      .simonaActorOf(
-        FixedFeedInAgent.props(
-          environmentRefs.scheduler.toClassic,
-          ParticipantInitializeStateData(
-            fixedFeedInInput,
-            modelConfiguration,
-            primaryServiceProxy,
-            Iterable.empty,
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            requestVoltageDeviationThreshold,
-            outputConfig,
-            maybeControllingEm,
-          ),
-          listener.map(_.toClassic),
-        ),
-        fixedFeedInInput.getId,
-      )
-      .toTyped
-    introduceAgentToEnvironment(participant)
 
     participant
   }
