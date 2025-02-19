@@ -9,20 +9,17 @@ package edu.ie3.simona.model.participant2.load
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.LoadReference
-import edu.ie3.simona.model.participant.load.LoadReference.{
-  ActivePower,
-  EnergyConsumption,
-}
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   FixedState,
   ParticipantFixedState,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.time.Days
 import squants.Power
+import squants.energy.KilowattHours
 
 import java.util.UUID
 
@@ -48,24 +45,29 @@ object FixedLoadModel {
       input: LoadInput,
       config: LoadRuntimeConfig,
   ): FixedLoadModel = {
-    val reference = LoadReference(input, config)
+    val referenceType = LoadReferenceType(config.reference)
 
-    val activePower: Power = reference match {
-      case ActivePower(power) => power
-      case EnergyConsumption(energyConsumption) =>
-        val duration = Days(365d)
-        energyConsumption / duration
+    val sRated = Kilovoltamperes(
+      input.getsRated
+        .to(PowerSystemUnits.KILOVOLTAMPERE)
+        .getValue
+        .doubleValue
+    )
+
+    val activePower: Power = referenceType match {
+      case LoadReferenceType.ACTIVE_POWER =>
+        sRated.toActivePower(input.getCosPhiRated)
+      case LoadReferenceType.ENERGY_CONSUMPTION =>
+        val eConsAnnual = KilowattHours(
+          input.geteConsAnnual().to(KILOWATTHOUR).getValue.doubleValue
+        )
+        eConsAnnual / Days(365d)
     }
 
     new FixedLoadModel(
       input.getUuid,
       input.getId,
-      Kilovoltamperes(
-        input.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
+      sRated,
       input.getCosPhiRated,
       QControl.apply(input.getqCharacteristics),
       activePower,

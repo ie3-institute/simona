@@ -32,7 +32,10 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.RuntimeConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.model.participant2.load.{
+  LoadModelBehaviour,
+  LoadReferenceType,
+}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
@@ -82,11 +85,7 @@ class FixedFeedInAgentModelCalculationSpec
   private implicit val powerTolerance: squants.Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
-  private val simonaConfig: SimonaConfig =
-    createSimonaConfig(
-      LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0d)),
-    )
+  private val simonaConfig: SimonaConfig = createSimonaConfig()
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
     simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
@@ -101,7 +100,7 @@ class FixedFeedInAgentModelCalculationSpec
       voltageSensitiveInput.getUuid
     )
   private val services = Iterable.empty
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.simona.powerflow.resolution.toSeconds
 
   "A fixed feed in agent with model calculation " should {
     val initStateData = ParticipantInitializeStateData[

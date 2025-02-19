@@ -16,13 +16,14 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.load.LoadModelBehaviour
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
 }
+import edu.ie3.simona.model.participant2.load.profile.ProfileLoadModel
+import edu.ie3.simona.model.participant2.load.random.RandomLoadModel
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOVOLTAMPERE, KILOWATTHOUR}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -92,7 +93,7 @@ object LoadModel {
     *   consumption values and the scaled rated apparent power
     */
   def scaleToReference(
-      referenceType: LoadReferenceType,
+      referenceType: LoadReferenceType.Value,
       input: LoadInput,
       maxPower: Power,
       referenceEnergy: Energy,
@@ -108,17 +109,17 @@ object LoadModel {
     )
 
     val referenceScalingFactor = referenceType match {
-      case LoadReferenceType.ActivePower =>
+      case LoadReferenceType.ACTIVE_POWER =>
         val pRated = sRated.toActivePower(input.getCosPhiRated)
         pRated / maxPower
-      case LoadReferenceType.EnergyConsumption =>
+      case LoadReferenceType.ENERGY_CONSUMPTION =>
         eConsAnnual / referenceEnergy
     }
 
     val scaledSRated = referenceType match {
-      case LoadReferenceType.ActivePower =>
+      case LoadReferenceType.ACTIVE_POWER =>
         sRated
-      case LoadReferenceType.EnergyConsumption =>
+      case LoadReferenceType.ENERGY_CONSUMPTION =>
         val maxApparentPower = Kilovoltamperes(
           maxPower.toKilowatts / input.getCosPhiRated
         )

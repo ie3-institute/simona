@@ -4,11 +4,11 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load.profile
-
-import java.time.ZonedDateTime
+package edu.ie3.simona.model.participant2.load.profile
 
 import edu.ie3.util.TimeUtil
+
+import java.time.ZonedDateTime
 
 // needs to be imported for max function
 import scala.math.Ordering.Double.IeeeOrdering

@@ -4,9 +4,8 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load
+package edu.ie3.simona.model.participant2.load.profile
 
-import edu.ie3.simona.model.participant.load.profile.TypeDayProfile
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 

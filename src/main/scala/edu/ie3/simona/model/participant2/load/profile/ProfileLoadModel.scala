@@ -4,20 +4,20 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant2.load
+package edu.ie3.simona.model.participant2.load.profile
 
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.profile.LoadProfileStore
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   DateTimeState,
   ParticipantDateTimeState,
 }
+import edu.ie3.simona.model.participant2.load.{LoadModel, LoadReferenceType}
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.util.scala.quantities.ApparentPower
 
@@ -61,7 +61,7 @@ object ProfileLoadModel {
 
   def apply(input: LoadInput, config: LoadRuntimeConfig): ProfileLoadModel = {
 
-    val loadProfileStore: LoadProfileStore = LoadProfileStore()
+    val loadProfileStore = LoadProfileStore()
 
     val loadProfile = input.getLoadProfile match {
       case slp: StandardLoadProfile =>
@@ -72,7 +72,7 @@ object ProfileLoadModel {
         )
     }
 
-    val referenceType = LoadReferenceType(config)
+    val referenceType = LoadReferenceType(config.reference)
 
     val (referenceScalingFactor, scaledSRated) =
       LoadModel.scaleToReference(

@@ -115,7 +115,7 @@ class HpAgentModelCalculationSpec
   private val services = Iterable(
     ActorWeatherService(weatherService.ref)
   )
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.simona.powerflow.resolution.toSeconds
 
   "A heat pump agent depending on no services" should {
     val initStateData = ParticipantInitializeStateData[

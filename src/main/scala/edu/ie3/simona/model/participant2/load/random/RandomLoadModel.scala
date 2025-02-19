@@ -4,20 +4,23 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant2.load
+package edu.ie3.simona.model.participant2.load.random
 
 import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueDistribution
 import de.lmu.ifi.dbs.elki.utilities.random.RandomFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.DayType
-import edu.ie3.simona.model.participant.load.random.RandomLoadParamStore
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   DateTimeState,
   ParticipantDateTimeState,
+}
+import edu.ie3.simona.model.participant2.load.{
+  DayType,
+  LoadModel,
+  LoadReferenceType,
 }
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.util.TimeUtil
@@ -132,7 +135,7 @@ object RandomLoadModel {
 
   def apply(input: LoadInput, config: LoadRuntimeConfig): RandomLoadModel = {
 
-    val referenceType = LoadReferenceType(config)
+    val referenceType = LoadReferenceType(config.reference)
 
     val (referenceScalingFactor, scaledSRated) =
       LoadModel.scaleToReference(

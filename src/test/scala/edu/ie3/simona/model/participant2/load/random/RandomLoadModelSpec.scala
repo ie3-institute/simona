@@ -4,18 +4,13 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant2.load
+package edu.ie3.simona.model.participant2.load.random
 
 import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueDistribution
-import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
-import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
-import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.load.random.RandomLoadParameters
+import edu.ie3.simona.model.participant2.load.LoadModelTestHelper
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{
@@ -27,9 +22,10 @@ import squants.Percent
 import squants.energy.KilowattHours
 import tech.units.indriya.quantity.Quantities
 
-import java.util.UUID
-
-class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
+class RandomLoadModelSpec
+    extends UnitSpec
+    with LoadModelTestHelper
+    with LoadInputTestData {
 
   implicit val powerTolerance: ApparentPower = Voltamperes(1e-2)
   private implicit val doubleTolerance: Double = 1e-6
@@ -38,31 +34,6 @@ class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
     TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
 
   "A random load model" should {
-
-    val loadInput = new LoadInput(
-      UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
-      "testLoad",
-      OperatorInput.NO_OPERATOR_ASSIGNED,
-      OperationTime.notLimited(),
-      new NodeInput(
-        UUID.fromString("e5c1cde5-c161-4a4f-997f-fcf31fecbf57"),
-        "TestNodeInputModel",
-        OperatorInput.NO_OPERATOR_ASSIGNED,
-        OperationTime.notLimited(),
-        Quantities.getQuantity(1d, PowerSystemUnits.PU),
-        false,
-        NodeInput.DEFAULT_GEO_POSITION,
-        GermanVoltageLevelUtils.LV,
-        -1,
-      ),
-      new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-      null,
-      BdewStandardLoadProfile.H0,
-      false,
-      Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
-      Quantities.getQuantity(282.74d, PowerSystemUnits.VOLTAMPERE),
-      0.95,
-    )
 
     "be instantiated correctly with power reference" in {
 
@@ -83,9 +54,7 @@ class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
         )
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
-
       }
-
     }
 
     "be instantiated correctly with energy reference" in {
@@ -114,9 +83,7 @@ class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
         model.sRated should approximate(Voltamperes(expectedSRated))
-
       }
-
     }
 
     "deliver the correct distribution on request" in {

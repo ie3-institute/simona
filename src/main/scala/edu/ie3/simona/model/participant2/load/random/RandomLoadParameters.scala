@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load.random
+package edu.ie3.simona.model.participant2.load.random
 
 import edu.ie3.simona.util.ParsableEnumeration
 

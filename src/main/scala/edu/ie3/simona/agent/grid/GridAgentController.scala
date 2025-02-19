@@ -375,6 +375,7 @@ class GridAgentController(
           participantConfigUtil.getOrDefault[LoadRuntimeConfig](
             input.getUuid
           ),
+          outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
           participantRefs,
           simParams,
           environmentRefs.scheduler,
@@ -476,7 +477,8 @@ class GridAgentController(
 
   private def buildParticipant(
       participantInput: SystemParticipantInput,
-      config: BaseRuntimeConfig,
+      runtimeConfig: BaseRuntimeConfig,
+      notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simParams: SimulationParameters,
       scheduler: ActorRef[SchedulerMessage],
@@ -485,7 +487,8 @@ class GridAgentController(
     val participant = gridAgentContext.spawn(
       ParticipantAgentInit(
         participantInput,
-        config,
+        runtimeConfig,
+        notifierConfig,
         participantRefs,
         simParams,
         maybeControllingEm.toRight(scheduler),

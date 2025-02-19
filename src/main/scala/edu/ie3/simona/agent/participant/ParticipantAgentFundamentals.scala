@@ -434,16 +434,15 @@ protected trait ParticipantAgentFundamentals[
     registrationResponse match {
       case RegistrationSuccessfulMessage(
             serviceRef,
-            maybeNextTick,
+            firstDataTick,
           ) =>
         val remainingResponses =
           stateData.pendingResponses.filter(_ != serviceRef)
 
         /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
         val foreseenDataTicks =
-          stateData.baseStateData.foreseenDataTicks + (serviceRef -> Some(
-            maybeNextTick
-          ))
+          stateData.baseStateData.foreseenDataTicks +
+            (serviceRef -> Some(firstDataTick))
 
         if (remainingResponses.isEmpty) {
           /* All agent have responded. Determine the next to be used state data and reply completion to scheduler. */
@@ -1192,6 +1191,8 @@ protected trait ParticipantAgentFundamentals[
     *   Imaginary part of the complex, dimensionless nodal voltage
     * @param alternativeResult
     *   Alternative result to use, if no reasonable result can be obtained
+    * @param replyTo
+    *   Actor reference to send the reply to
     * @return
     *   The very same state with updated request value store
     */
@@ -1282,6 +1283,8 @@ protected trait ParticipantAgentFundamentals[
     *   Magnitude of the complex, dimensionless nodal voltage
     * @param lastNodalVoltage
     *   Lastly known magnitude of the complex, dimensionless nodal voltage
+    * @param replyTo
+    *   Actor reference to send the reply to
     * @return
     *   Option on a possible fast state change
     */
@@ -1372,6 +1375,8 @@ protected trait ParticipantAgentFundamentals[
     *   Value store with updated nodal voltages
     * @param alternativeResult
     *   Alternative result to use, if no reasonable result can be obtained
+    * @param replyTo
+    *   Actor reference to send the reply to
     * @return
     *   Matching state transition
     */
@@ -1570,6 +1575,8 @@ protected trait ParticipantAgentFundamentals[
     *   Voltage value store to be used in the updated base state data
     * @param alternativeResult
     *   If no relevant data are apparent, then use this result instead
+    * @param replyTo
+    *   Actor reference to send the reply to
     * @return
     *   The very same state as the agent currently is in, but with updated base
     *   state data
@@ -1628,6 +1635,8 @@ protected trait ParticipantAgentFundamentals[
     *   Nodal voltage magnitude in the moment of request
     * @param voltageValueStore
     *   Voltage value store to be used in the updated base state data
+    * @param replyTo
+    *   Actor reference to send the reply to
     * @return
     *   The very same state as the agent currently is in, but with updated base
     *   state data
@@ -1734,6 +1743,8 @@ protected trait ParticipantAgentFundamentals[
     *   Tick of the most recent request
     * @param voltageValueStore
     *   Voltage value store to be used in the updated base state data
+    * @param replyTo
+    *   Actor reference to send the reply to
     * @return
     *   The very same state as the agent currently is in, but with updated base
     *   state data

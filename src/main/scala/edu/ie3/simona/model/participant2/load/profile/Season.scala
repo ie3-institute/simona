@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load.profile
+package edu.ie3.simona.model.participant2.load.profile
 
 import java.time.Month._
 import java.time.ZonedDateTime
