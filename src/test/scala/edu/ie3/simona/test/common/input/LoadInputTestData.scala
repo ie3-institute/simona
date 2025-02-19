@@ -17,9 +17,7 @@ import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATTHOUR, VOLTAMPERE}
 import tech.units.indriya.quantity.Quantities
 
-
 import java.time.ZonedDateTime
-
 
 /** Exemplary instances of [[LoadInput]] to be used in tests
   */
@@ -39,7 +37,6 @@ trait LoadInputTestData extends NodeInputTestData {
     Quantities.getQuantity(282.74d, VOLTAMPERE),
     0.95,
   )
-
 
   private val operationTimeBuilder = OperationTime.builder()
 
@@ -65,6 +62,5 @@ trait LoadInputTestData extends NodeInputTestData {
       Quantities.getQuantity(282.74d, VOLTAMPERE),
       0.95,
     )
-
 
 }
