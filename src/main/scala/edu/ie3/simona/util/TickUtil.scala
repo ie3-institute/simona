@@ -75,4 +75,36 @@ object TickUtil {
     (firstFullHourTick to lastAvailableTick by resolution.intValue).toArray
   }
 
+  /** Rounds given tick and datetime with regard to their (implicit) minutes and
+    * seconds.
+    *
+    * @param tick
+    *   The given tick to round
+    * @param dateTime
+    *   The given date and time to round
+    * @param resolution
+    *   Resolution in seconds. Should divide 3600 without remainder, i.e.
+    *   {{{3600 % resolution == 0}}}
+    */
+  def roundToResolution(
+      tick: Long,
+      dateTime: ZonedDateTime,
+      resolution: Int,
+  ): (Long, ZonedDateTime) = {
+
+    val givenHourSeconds = dateTime.getMinute * 60 + dateTime.getSecond
+
+    val adaptedHourSeconds = givenHourSeconds / resolution * resolution
+    val adaptedMinute = adaptedHourSeconds / 60
+    val adaptedSecond = adaptedHourSeconds % 60
+
+    val adaptedDateTime =
+      dateTime.withMinute(adaptedMinute).withSecond(adaptedSecond).withNano(0)
+
+    val tickDifference = givenHourSeconds - adaptedHourSeconds
+
+    val adaptedTick = tick - tickDifference
+
+    (adaptedTick, adaptedDateTime)
+  }
 }

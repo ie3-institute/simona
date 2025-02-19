@@ -10,8 +10,11 @@ import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
+import edu.ie3.simona.model.participant2.load.{
+  LoadModelBehaviour,
+  LoadReferenceType,
+}
 import edu.ie3.util.scala.OperationInterval
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import squants.electro.Kilovolts
@@ -63,6 +66,8 @@ trait DefaultTestData {
     Kilovolts(10d),
   )
 
+  protected val defaultVoltageLimits: VoltageLimits = VoltageLimits(0.9, 1.1)
+
   /** Creates a [[SimonaConfig]], that provides the desired participant model
     * configurations
     *
@@ -74,8 +79,8 @@ trait DefaultTestData {
     *   Suitable configuration
     */
   def createSimonaConfig(
-      modelBehaviour: LoadModelBehaviour.Value,
-      reference: LoadReference,
+      modelBehaviour: LoadModelBehaviour.Value = LoadModelBehaviour.FIX,
+      reference: LoadReferenceType.Value = LoadReferenceType.ACTIVE_POWER,
   ): SimonaConfig = {
     val typesafeConfig: Config = ConfigFactory.parseString(
       s"""
@@ -116,7 +121,7 @@ trait DefaultTestData {
          |      uuids = ["4eeaf76a-ec17-4fc3-872d-34b7d6004b03"]
          |      scaling = 1.0
          |      modelBehaviour = "${modelBehaviour.toString}"
-         |      reference = "${reference.key}"
+         |      reference = "${reference.toString}"
          |    }
          |  ]
          |}

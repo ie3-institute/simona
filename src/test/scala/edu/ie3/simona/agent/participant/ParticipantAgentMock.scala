@@ -28,7 +28,7 @@ import edu.ie3.simona.agent.participant.statedata.{
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InvalidRequestException
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
@@ -72,7 +72,7 @@ class ParticipantAgentMock(
     scheduler: ActorRef,
     initStateData: ParticipantInitializeStateData[
       SystemParticipantInput,
-      SimonaConfig.BaseRuntimeConfig,
+      BaseRuntimeConfig,
       ComplexPower,
     ],
     override val listener: Iterable[ActorRef] = Iterable.empty[ActorRef],
@@ -82,7 +82,7 @@ class ParticipantAgentMock(
       ConstantState.type,
       ParticipantStateData[ComplexPower],
       SystemParticipantInput,
-      SimonaConfig.BaseRuntimeConfig,
+      BaseRuntimeConfig,
       SystemParticipant[
         FixedRelevantData.type,
         ComplexPower,
@@ -95,7 +95,7 @@ class ParticipantAgentMock(
       ConstantState.type,
       ParticipantStateData[ComplexPower],
       SystemParticipantInput,
-      SimonaConfig.BaseRuntimeConfig,
+      BaseRuntimeConfig,
       SystemParticipant[
         FixedRelevantData.type,
         ComplexPower,
@@ -192,7 +192,7 @@ class ParticipantAgentMock(
     */
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[SystemParticipantInput],
-      modelConfig: SimonaConfig.BaseRuntimeConfig,
+      modelConfig: BaseRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -462,7 +462,7 @@ object ParticipantAgentMock {
       scheduler: ActorRef,
       initStateData: ParticipantInitializeStateData[
         SystemParticipantInput,
-        SimonaConfig.BaseRuntimeConfig,
+        BaseRuntimeConfig,
         ComplexPower,
       ],
   ): Props =

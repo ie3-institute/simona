@@ -12,7 +12,6 @@ import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.datamodel.models.result.system.StorageResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.grid.GridAgentMessages.AssetPowerChangedMessage
-import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
@@ -21,22 +20,24 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   SimpleInputContainer,
 }
 import edu.ie3.simona.agent.participant.storage.StorageAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  RegistrationFailedMessage,
+  RequestAssetPowerMessage,
+}
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.StorageInputTestData
 import edu.ie3.simona.util.ConfigUtil
@@ -82,11 +83,7 @@ class StorageAgentModelCalculationSpec
   /* Assign this test to receive the result events from agent */
   override val systemListener: Iterable[ActorRef] = Vector(self)
 
-  private val simonaConfig: SimonaConfig =
-    createSimonaConfig(
-      LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0d)),
-    )
+  private val simonaConfig: SimonaConfig = createSimonaConfig()
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
     powerRequestReply = false,
@@ -99,7 +96,7 @@ class StorageAgentModelCalculationSpec
     storageInputQv.getUuid
   )
   private val services = Iterable.empty
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.simona.powerflow.resolution.toSeconds
 
   private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
@@ -138,7 +135,10 @@ class StorageAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(storageInputQv.getUuid)
+        PrimaryServiceRegistrationMessage(
+          storageAgent.ref,
+          storageInputQv.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       storageAgent.stateName shouldBe HandleInformation
@@ -256,6 +256,7 @@ class StorageAgentModelCalculationSpec
         0,
         Each(1d),
         Each(0d),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(

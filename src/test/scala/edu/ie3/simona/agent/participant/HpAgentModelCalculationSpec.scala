@@ -13,17 +13,22 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+  RequestAssetPowerMessage,
+}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.model.participant.HpModel.HpState
@@ -31,12 +36,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
   RegisterForWeatherMessage,
   WeatherData,
 }
@@ -115,7 +115,7 @@ class HpAgentModelCalculationSpec
   private val services = Iterable(
     ActorWeatherService(weatherService.ref)
   )
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.simona.powerflow.resolution.toSeconds
 
   "A heat pump agent depending on no services" should {
     val initStateData = ParticipantInitializeStateData[
@@ -235,7 +235,7 @@ class HpAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(hpInput.getUuid)
+        PrimaryServiceRegistrationMessage(hpAgent.ref, hpInput.getUuid)
       )
       /* State should be information handling and having correct state data */
       hpAgent.stateName shouldBe HandleInformation
@@ -334,7 +334,7 @@ class HpAgentModelCalculationSpec
       /* Reply, that registration was successful */
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 4711L),
       )
 
       /* Expect a completion message */
@@ -379,7 +379,7 @@ class HpAgentModelCalculationSpec
       )
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 900L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -392,6 +392,7 @@ class HpAgentModelCalculationSpec
         0L,
         Dimensionless.primaryUnit(1.0),
         Dimensionless.primaryUnit(0.0),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -443,7 +444,7 @@ class HpAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 0L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -461,7 +462,7 @@ class HpAgentModelCalculationSpec
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
+        DataProvision(0L, weatherService.ref, weatherData, Some(3600L)),
       )
 
       /* Find yourself in corresponding state and state data */
@@ -574,7 +575,7 @@ class HpAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 0L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -618,7 +619,7 @@ class HpAgentModelCalculationSpec
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
+        DataProvision(0L, weatherService.ref, weatherData, Some(3600L)),
       )
 
       /* Expect confirmation */
@@ -703,7 +704,7 @@ class HpAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 3600L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -715,6 +716,7 @@ class HpAgentModelCalculationSpec
         7200L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(hpAgent.stateName == Idle)
@@ -728,7 +730,7 @@ class HpAgentModelCalculationSpec
       )
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           3600L,
           weatherService.ref,
           weatherData,
@@ -774,7 +776,7 @@ class HpAgentModelCalculationSpec
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref, 0L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -785,7 +787,7 @@ class HpAgentModelCalculationSpec
       /* ... for tick 0 */
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           0L,
           weatherService.ref,
           WeatherData(
@@ -803,7 +805,7 @@ class HpAgentModelCalculationSpec
       /* ... for tick 3600 */
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           3600L,
           weatherService.ref,
           WeatherData(
@@ -821,7 +823,7 @@ class HpAgentModelCalculationSpec
       /* ... for tick 7200 */
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(
+        DataProvision(
           7200L,
           weatherService.ref,
           WeatherData(
@@ -841,6 +843,7 @@ class HpAgentModelCalculationSpec
         7500L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -858,6 +861,7 @@ class HpAgentModelCalculationSpec
         7500L,
         Each(1.000000000000001d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -874,6 +878,7 @@ class HpAgentModelCalculationSpec
         7500L,
         Each(0.98),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

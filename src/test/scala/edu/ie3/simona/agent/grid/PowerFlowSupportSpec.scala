@@ -23,7 +23,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangeVoltage,
 }
 import edu.ie3.simona.config.SimonaConfig.Simona
-import edu.ie3.simona.model.grid.{GridModel, RefSystem}
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGridWithSwitches,
   DbfsTestGrid,
@@ -44,9 +44,10 @@ import squants.energy.Megawatts
 import squants.{Dimensionless, Each}
 import tech.units.indriya.ComparableQuantity
 
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Angle
+import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.SetHasAsJava
 import scala.language.implicitConversions
 
@@ -394,7 +395,7 @@ class PowerFlowSupportSpec
       1e-5,
       Vector(1e-12),
       50,
-      Duration.ofMinutes(30),
+      30.minutes,
       stopOnFailure = true,
     )
 
@@ -469,6 +470,7 @@ class PowerFlowSupportSpec
       GridModel(
         subGridContainer,
         RefSystem("2000 MVA", "110 kV"),
+        VoltageLimits(0.9, 1.1),
         time.startDateTime,
         time.endDateTime,
         simonaConfig,
