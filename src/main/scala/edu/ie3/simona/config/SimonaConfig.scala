@@ -32,7 +32,7 @@ object SimonaConfig {
   // TODO: replace with finite duration
   implicit def durationConvert: ConfigConvert[Duration] =
     ConfigConvert.viaStringTry(
-      str => Try(Duration.parse(("PT" + str).toUpperCase)),
+      str => Try(Duration.parse(("P" + str).toUpperCase)),
       x => x.toString,
     )
 
