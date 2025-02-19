@@ -6,15 +6,11 @@
 
 package edu.ie3.simona.model.participant2.load.profile
 
-import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
-import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant2.load.LoadModelTestHelper
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.simona.test.matchers.DoubleMatchers
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -27,12 +23,11 @@ import squants.Percent
 import squants.energy.{KilowattHours, Power, Watts}
 import tech.units.indriya.quantity.Quantities
 
-import java.util.UUID
-
 class ProfileLoadModelSpec
     extends UnitSpec
     with DoubleMatchers
-    with LoadModelTestHelper {
+    with LoadModelTestHelper
+    with LoadInputTestData {
 
   private implicit val powerTolerance: ApparentPower = Voltamperes(1e-2)
   private implicit val doubleTolerance: Double = 1e-6
@@ -41,31 +36,6 @@ class ProfileLoadModelSpec
     TimeUtil.withDefaults.toZonedDateTime("2022-01-01T00:00:00Z")
 
   "A profile load model" should {
-
-    val loadInput = new LoadInput(
-      UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
-      "testLoad",
-      OperatorInput.NO_OPERATOR_ASSIGNED,
-      OperationTime.notLimited(),
-      new NodeInput(
-        UUID.fromString("e5c1cde5-c161-4a4f-997f-fcf31fecbf57"),
-        "TestNodeInputModel",
-        OperatorInput.NO_OPERATOR_ASSIGNED,
-        OperationTime.notLimited(),
-        Quantities.getQuantity(1d, PowerSystemUnits.PU),
-        false,
-        NodeInput.DEFAULT_GEO_POSITION,
-        GermanVoltageLevelUtils.LV,
-        -1,
-      ),
-      new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-      null,
-      H0,
-      false,
-      Quantities.getQuantity(3000, PowerSystemUnits.KILOWATTHOUR),
-      Quantities.getQuantity(282.74, PowerSystemUnits.VOLTAMPERE),
-      0.95,
-    )
 
     "be instantiated correctly with power reference" in {
 
