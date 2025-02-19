@@ -78,7 +78,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       val initialHousestate = startingState(house)
       val lastAmbientTemperature = Temperature(15, Celsius)
 
-      val (thermalHouseState, threshold) = house.determineState(
+      val (thermalHouseState, threshold) = house.updateState(
         relevantData,
         initialHousestate,
         lastAmbientTemperature,

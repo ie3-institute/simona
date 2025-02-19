@@ -19,12 +19,13 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
   ActivePowerAndHeat,
+  ActivePowerExtra,
   ComplexPower,
   ComplexPowerAndHeat,
+  ComplexPowerExtra,
 }
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FromOutsideBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
@@ -33,6 +34,11 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializingStateData,
   ParticipantUninitializedStateData,
   SimpleInputContainer,
+}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  PrimaryRegistrationSuccessfulMessage,
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
@@ -46,8 +52,6 @@ import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -173,7 +177,7 @@ class ParticipantAgentExternalSourceSpec
 
       /* Expect a registration message */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(testUUID)
+        PrimaryServiceRegistrationMessage(mockAgent.ref, testUUID)
       )
 
       /* ... as well as corresponding state and state data */
@@ -206,7 +210,11 @@ class ParticipantAgentExternalSourceSpec
       /* Reply, that registration was successful */
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(4711L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          4711L,
+          ActivePowerExtra,
+        ),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped, Some(4711L)))
@@ -244,7 +252,11 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          900L,
+          ActivePowerExtra,
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -257,6 +269,7 @@ class ParticipantAgentExternalSourceSpec
         0L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -309,7 +322,11 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          900L,
+          ComplexPowerExtra,
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -319,7 +336,7 @@ class ParticipantAgentExternalSourceSpec
       /* Send out new data */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           900L,
           primaryServiceProxy.ref,
           ComplexPower(
@@ -410,7 +427,11 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          900L,
+          ComplexPowerExtra,
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -451,7 +472,7 @@ class ParticipantAgentExternalSourceSpec
       /* Providing the awaited data will lead to the foreseen transitions */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           900L,
           primaryServiceProxy.ref,
           ComplexPower(
@@ -505,7 +526,11 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          900L,
+          ComplexPowerExtra,
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -517,6 +542,7 @@ class ParticipantAgentExternalSourceSpec
         1800L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(mockAgent.stateName == Idle)
@@ -524,7 +550,7 @@ class ParticipantAgentExternalSourceSpec
       /* Send out the expected data and wait for the reply */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           900L,
           primaryServiceProxy.ref,
           ComplexPower(
@@ -621,7 +647,11 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        PrimaryRegistrationSuccessfulMessage(
+          primaryServiceProxy.ref,
+          900L,
+          ComplexPowerExtra,
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -632,7 +662,7 @@ class ParticipantAgentExternalSourceSpec
       /* ... for tick 900 */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           900L,
           primaryServiceProxy.ref,
           ComplexPower(
@@ -648,7 +678,7 @@ class ParticipantAgentExternalSourceSpec
       /* ... for tick 1800 */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           1800L,
           primaryServiceProxy.ref,
           ComplexPower(
@@ -664,7 +694,7 @@ class ParticipantAgentExternalSourceSpec
       /* ... for tick 2700 */
       primaryServiceProxy.send(
         mockAgent,
-        ProvidePrimaryDataMessage(
+        DataProvision(
           2700L,
           primaryServiceProxy.ref,
           ComplexPower(
@@ -684,6 +714,7 @@ class ParticipantAgentExternalSourceSpec
         3000L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -700,6 +731,7 @@ class ParticipantAgentExternalSourceSpec
         3000L,
         Each(1.000000000000001d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -717,6 +749,7 @@ class ParticipantAgentExternalSourceSpec
         3000L,
         Each(0.98d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed, as this model is meant to forward information from outside */
