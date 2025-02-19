@@ -6,198 +6,284 @@
 
 package edu.ie3.simona.agent.grid.congestion.detection
 
-import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.datamodel.models.input.container.ThermalGrid
-import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  CreateGridAgent,
-  FinishGridSimulationTrigger,
-  WrappedActivation,
+import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.congestion.CMData.{
+  AwaitingData,
+  CongestionManagementData,
 }
 import edu.ie3.simona.agent.grid.congestion.CMMessages.{FinishStep, StartStep}
-import edu.ie3.simona.agent.grid.congestion.Congestions
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.{
   CongestionCheckRequest,
   CongestionResponse,
   ReceivedCongestions,
 }
-import edu.ie3.simona.agent.grid.{DBFSMockGridAgents, GridAgent}
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
+import edu.ie3.simona.agent.grid.congestion.{CongestionTestBase, Congestions}
+import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
+import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 
+import scala.concurrent.duration.DurationInt
 import scala.language.implicitConversions
 
-class CongestionDetectionSpec
-    extends ScalaTestWithActorTestKit
-    with DBFSMockGridAgents
-    with ConfigTestData
-    with DbfsTestGrid
-    with TestSpawnerTyped {
+class CongestionDetectionSpec extends CongestionTestBase {
 
-  private val config = SimonaConfig(
-    ConfigFactory
-      .parseString("""
-        |simona.congestionManagement.enableDetection = true
-        |""".stripMargin)
-      .withFallback(typesafeConfig)
-      .resolve()
-  )
-
-  private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
-  private val runtimeEvents: TestProbe[RuntimeEvent] =
-    TestProbe("runtimeEvents")
-  private val primaryService = TestProbe("primaryService")
-  private val weatherService = TestProbe("weatherService")
-
-  private val environmentRefs = EnvironmentRefs(
-    scheduler = scheduler.ref,
-    runtimeEventListener = runtimeEvents.ref,
-    primaryServiceProxy = primaryService.ref.toClassic,
-    weather = weatherService.ref.toClassic,
-    evDataService = None,
-  )
-
-  val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
+  val superiorAgent: TestProbe[GridAgent.Request] = TestProbe("superiorAgent")
+  val inferiorAgent: TestProbe[GridAgent.Request] = TestProbe("inferiorAgent")
 
   "The congestion detection" should {
 
-    "work as expected in center position" in {
-      val superiorGridAgent = SuperiorGA(
-        TestProbe("superiorGridAgent_1000"),
-        Seq(supNodeA.getUuid, supNodeB.getUuid),
+    "answer a request for congestions correctly" in {
+      val stateData = CongestionManagementData(
+        gridAgentBaseData(),
+        3600,
+        100,
+        PowerFlowResultEvent(
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+        ),
+        Congestions(
+          voltageCongestions = true,
+          lineCongestions = false,
+          transformerCongestions = false,
+        ),
       )
 
-      val inferiorGrid11 =
-        InferiorGA(TestProbe("inferiorGridAgent_11"), Seq(node1.getUuid))
-
-      val inferiorGrid12 =
-        InferiorGA(TestProbe("inferiorGridAgent_12"), Seq(node2.getUuid))
-
-      val inferiorGrid13 = InferiorGA(
-        TestProbe("inferiorGridAgent_13"),
-        Seq(node3.getUuid, node4.getUuid),
+      val cases = Table(
+        ("inferiorData", "expectedCongestions"),
+        (
+          Map.empty[ActorRef[GridAgent.Request], Option[Congestions]],
+          Congestions(
+            voltageCongestions = true,
+            lineCongestions = false,
+            transformerCongestions = false,
+          ),
+        ),
+        (
+          Map(
+            inferiorAgent.ref -> Some(
+              Congestions(
+                voltageCongestions = true,
+                lineCongestions = false,
+                transformerCongestions = false,
+              )
+            )
+          ),
+          Congestions(
+            voltageCongestions = true,
+            lineCongestions = false,
+            transformerCongestions = false,
+          ),
+        ),
+        (
+          Map(
+            inferiorAgent.ref -> Some(
+              Congestions(
+                voltageCongestions = false,
+                lineCongestions = true,
+                transformerCongestions = false,
+              )
+            )
+          ),
+          Congestions(
+            voltageCongestions = true,
+            lineCongestions = true,
+            transformerCongestions = false,
+          ),
+        ),
       )
 
-      // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val subGridGateToActorRef = hvSubGridGates.map {
-        case gate if gate.getInferiorSubGrid == hvGridContainer.getSubnet =>
-          gate -> superiorGridAgent.ref
-        case gate =>
-          val actor = gate.getInferiorSubGrid match {
-            case 11 => inferiorGrid11
-            case 12 => inferiorGrid12
-            case 13 => inferiorGrid13
-          }
-          gate -> actor.ref
-      }.toMap
+      forAll(cases) { (inferiorData, expectedCongestions) =>
+        val awaitingData = AwaitingData(inferiorData)
 
-      val centerGridAgent =
-        testKit.spawn(
-          GridAgent(
-            environmentRefs,
-            config,
-            listener = Iterable(resultListener.ref),
-          )
+        val behavior = spawnWithBuffer(
+          GridAgent.checkForCongestion(
+            stateData,
+            awaitingData,
+          )(constantData, _)
         )
 
-      // initialize the agent and go to the detection step
-      initAgent(centerGridAgent, subGridGateToActorRef)
+        behavior ! CongestionCheckRequest(superiorAgent.ref)
 
-      inferiorGrid11.gaProbe.expectMessageType[FinishGridSimulationTrigger]
-      inferiorGrid12.gaProbe.expectMessageType[FinishGridSimulationTrigger]
-      inferiorGrid13.gaProbe.expectMessageType[FinishGridSimulationTrigger]
+        val congestions =
+          superiorAgent.expectMessageType[CongestionResponse].value
+        congestions shouldBe expectedCongestions
+      }
+    }
 
-      centerGridAgent ! CongestionCheckRequest(superiorGridAgent.ref)
-
-      val sender11 =
-        inferiorGrid11.gaProbe.expectMessageType[CongestionCheckRequest].sender
-      val sender12 =
-        inferiorGrid12.gaProbe.expectMessageType[CongestionCheckRequest].sender
-      val sender13 =
-        inferiorGrid13.gaProbe.expectMessageType[CongestionCheckRequest].sender
-
-      sender11 ! CongestionResponse(
-        inferiorGrid11.ref,
-        Congestions(true, false, false),
-      )
-      sender12 ! CongestionResponse(
-        inferiorGrid12.ref,
-        Congestions(false, true, false),
-      )
-      sender13 ! CongestionResponse(
-        inferiorGrid13.ref,
-        Congestions(false, false, false),
+    "wait to answer a request for congestions if inferior data is still missing" in {
+      val stateData = CongestionManagementData(
+        gridAgentBaseData(),
+        3600,
+        100,
+        PowerFlowResultEvent(
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+        ),
+        Congestions(
+          voltageCongestions = true,
+          lineCongestions = false,
+          transformerCongestions = false,
+        ),
       )
 
+      val awaitingData: AwaitingData[Congestions] =
+        AwaitingData(Set(inferiorAgent.ref))
+
+      val behavior = spawnWithBuffer(
+        GridAgent.checkForCongestion(
+          stateData,
+          awaitingData,
+        )(constantData, _)
+      )
+
+      behavior ! CongestionCheckRequest(superiorAgent.ref)
+
+      // the request will be stashed and answered after inferior data was received
+      behavior ! ReceivedCongestions(
+        Vector(
+          (
+            inferiorAgent.ref,
+            Congestions(
+              voltageCongestions = false,
+              lineCongestions = true,
+              transformerCongestions = false,
+            ),
+          )
+        )
+      )
+
+      val congestions =
+        superiorAgent.expectMessageType[CongestionResponse](30.seconds).value
+      congestions shouldBe Congestions(
+        voltageCongestions = true,
+        lineCongestions = true,
+        transformerCongestions = false,
+      )
+    }
+
+    "work as expected in center position" in {
+      val stateData = CongestionManagementData(
+        gridAgentBaseData(Set(inferiorAgent.ref)),
+        3600,
+        100,
+        PowerFlowResultEvent(
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+        ),
+        Congestions(
+          voltageCongestions = true,
+          lineCongestions = false,
+          transformerCongestions = false,
+        ),
+      )
+
+      val awaitingData: AwaitingData[Congestions] =
+        AwaitingData(Set(inferiorAgent.ref))
+
+      // init behavior
+      val centerGridAgent = spawnWithBuffer(
+        GridAgent.checkForCongestion(
+          stateData,
+          awaitingData,
+        )(constantData, _)
+      )
+
+      // we will send the center grid agent a StartStep message to start the detection
+      centerGridAgent ! StartStep
+
+      // normally, the superior grid agent would send a CongestionCheckRequest
+      // we mock this behavior by sending it manually
+      centerGridAgent ! CongestionCheckRequest(superiorAgent.ref)
+
+      // the center grid agent will request congestions from inferior grids
+      val sender = inferiorAgent
+        .expectMessageType[CongestionCheckRequest](30.seconds)
+        .sender
+
+      sender ! CongestionResponse(
+        inferiorAgent.ref,
+        Congestions(
+          voltageCongestions = false,
+          lineCongestions = true,
+          transformerCongestions = false,
+        ),
+      )
+
+      // after the center grid receives the responses,
+      // all congestions will be combined and send to the superior grid
       val allCongestions =
-        superiorGridAgent.gaProbe.expectMessageType[CongestionResponse]
-      allCongestions.value shouldBe Congestions(true, true, false)
+        superiorAgent.expectMessageType[CongestionResponse]
+      allCongestions.value shouldBe Congestions(
+        voltageCongestions = true,
+        lineCongestions = true,
+        transformerCongestions = false,
+      )
 
+      // we send the center grid agent a FinishStep message to finish the detection
       centerGridAgent ! FinishStep
 
-      inferiorGrid11.gaProbe.expectMessageType[FinishStep.type]
-      inferiorGrid12.gaProbe.expectMessageType[FinishStep.type]
-      inferiorGrid13.gaProbe.expectMessageType[FinishStep.type]
-
-      scheduler.expectMessageType[Completion]
+      inferiorAgent.expectMessageType[FinishStep.type]
     }
-  }
 
-  def initAgent(
-      gridAgent: ActorRef[GridAgent.Request],
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
-  ): Unit = {
-
-    val gridAgentInitData =
-      GridAgentInitData(
-        hvGridContainer,
-        Seq.empty[ThermalGrid],
-        subGridGateToActorRef,
-        RefSystem("2000 MVA", "110 kV"),
-        VoltageLimits(0.9, 1.1),
+    "work as expected in superior position" in {
+      val stateData = CongestionManagementData(
+        gridAgentBaseData(Set(inferiorAgent.ref), isSuperior = true),
+        3600,
+        100,
+        PowerFlowResultEvent(
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+          Iterable.empty,
+        ),
+        Congestions(
+          voltageCongestions = true,
+          lineCongestions = false,
+          transformerCongestions = false,
+        ),
       )
 
-    val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-    // lock activation scheduled
-    scheduler.expectMessageType[ScheduleActivation]
+      val awaitingData: AwaitingData[Congestions] =
+        AwaitingData(Set.empty[ActorRef[GridAgent.Request]])
 
-    gridAgent ! CreateGridAgent(
-      gridAgentInitData,
-      key,
-    )
+      // init behavior
+      val superiorGridAgent = spawnWithBuffer(
+        GridAgent.checkForCongestion(
+          stateData,
+          awaitingData,
+        )(constantData, _)
+      )
 
-    val scheduleActivationMsg =
-      scheduler.expectMessageType[ScheduleActivation]
-    scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
-    scheduleActivationMsg.unlockKey shouldBe Some(key)
-    val gridAgentActivation = scheduleActivationMsg.actor
+      // we will send the center grid agent a StartStep message to start the detection
+      superiorGridAgent ! StartStep
 
-    gridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
-    scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
+      // the center grid agent will request congestions from inferior grids
+      val sender = inferiorAgent
+        .expectMessageType[CongestionCheckRequest](30.seconds)
+        .sender
 
-    gridAgent ! WrappedActivation(Activation(3600))
+      // we answer the request
+      sender ! CongestionResponse(
+        inferiorAgent.ref,
+        Congestions(
+          voltageCongestions = false,
+          lineCongestions = true,
+          transformerCongestions = false,
+        ),
+      )
 
-    scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
-
-    gridAgent ! FinishGridSimulationTrigger(3600)
+      // we expect a FinishStep message
+      inferiorAgent.expectMessageType[FinishStep.type]
+    }
   }
-
 }

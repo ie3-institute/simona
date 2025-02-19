@@ -15,8 +15,9 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import org.apache.pekko.actor.typed.ActorRef
 
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
 import java.util.UUID
+import scala.concurrent.duration.FiniteDuration
 
 object CMData {
 
@@ -89,6 +90,8 @@ object CMData {
     *   agent base data
     * @param currentTick
     *   current tick used for additional power flow calculations
+    * @param subgridNo
+    *   the number of the subgrid
     * @param powerFlowResults
     *   result of the previous power flow calculation
     * @param congestions
@@ -97,6 +100,7 @@ object CMData {
   final case class CongestionManagementData private (
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
+      subgridNo: Int,
       powerFlowResults: PowerFlowResultEvent,
       congestions: Congestions,
   ) extends GridAgentDataInternal {
@@ -130,7 +134,8 @@ object CMData {
     def superiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] =
       gridAgentBaseData.superiorGridRefs(false)
 
-    def timeout: Duration = gridAgentBaseData.congestionManagementParams.timeout
+    def timeout: FiniteDuration =
+      gridAgentBaseData.congestionManagementParams.timeout
   }
 
   object CongestionManagementData {
@@ -144,6 +149,7 @@ object CMData {
       CongestionManagementData(
         gridAgentBaseData,
         currentTick,
+        gridModel.subnetNo,
         powerFlowResults,
         Congestions(
           powerFlowResults,

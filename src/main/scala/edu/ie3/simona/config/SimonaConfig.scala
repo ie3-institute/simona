@@ -189,7 +189,7 @@ object SimonaConfig {
   object Simona {
     final case class CongestionManagement(
         enableDetection: Boolean = false,
-        timeout: Duration = Duration.ofSeconds(30),
+        timeout: FiniteDuration = 30.seconds,
     )
 
     final case class Control(

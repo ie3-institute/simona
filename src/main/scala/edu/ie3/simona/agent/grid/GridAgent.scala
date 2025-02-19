@@ -22,7 +22,6 @@ import edu.ie3.simona.agent.grid.congestion.{
   CongestionManagementParams,
   DCMAlgorithm,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
@@ -49,6 +48,7 @@ import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{implicitConversions, postfixOps}
 import scala.util.{Failure, Success}

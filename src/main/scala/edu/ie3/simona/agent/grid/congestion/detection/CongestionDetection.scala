@@ -20,8 +20,12 @@ import edu.ie3.simona.agent.grid.congestion.CMData.{
   CongestionManagementData,
 }
 import edu.ie3.simona.agent.grid.congestion.Congestions
-import org.apache.pekko.actor.typed.Behavior
-import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.scaladsl.{
+  ActorContext,
+  Behaviors,
+  StashBuffer,
+}
 
 trait CongestionDetection {
 
@@ -54,71 +58,21 @@ trait CongestionDetection {
 
       Behaviors.same
 
-    case (ctx, congestionRequest @ CongestionCheckRequest(sender)) =>
-      // check if waiting for inferior data is needed
-      if (awaitingData.notDone) {
-        ctx.log.debug(
-          s"Received request for congestions before all data from inferior grids were received. Stashing away."
-        )
-
-        // stash away the message, because we need to wait for data from inferior grids
-        buffer.stash(congestionRequest)
-      } else {
-        // check if there are any congestions in the grid
-        val congestions = stateData.congestions
-
-        if (congestions.any) {
-          ctx.log.info(
-            s"In the grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, the following congestions were found: $congestions"
-          )
-        }
-
-        // sends the results to the superior grid
-        sender ! CongestionResponse(
-          ctx.self,
-          congestions.combine(awaitingData.values),
-        )
-      }
-
-      Behaviors.same
+    case (ctx, congestionRequest: CongestionCheckRequest) =>
+      answerRequest(
+        stateData,
+        awaitingData,
+        congestionRequest,
+        ctx,
+      )
 
     case (ctx, ReceivedCongestions(congestions)) =>
-      // updating the state data with received data from inferior grids
-      val updatedData = awaitingData.handleReceivingData(congestions)
-
-      if (stateData.gridAgentBaseData.isSuperior) {
-        // if we are the superior grid, we find the next behavior
-
-        val congestions = stateData.congestions.combine(updatedData.values)
-
-        // checking for any congestion in the complete grid
-        if (!congestions.any) {
-          ctx.log.info(
-            s"No congestions found. Finishing the congestion management."
-          )
-
-          ctx.self ! FinishStep
-          checkForCongestion(stateData, updatedData)
-        } else {
-          ctx.log.debug(
-            s"Congestion overall: $congestions"
-          )
-
-          val timestamp =
-            constantData.simStartTime.plusSeconds(stateData.currentTick)
-
-          ctx.log.info(
-            s"There were some congestions that could not be resolved for timestamp: $timestamp."
-          )
-
-          ctx.self ! FinishStep
-          checkForCongestion(stateData, updatedData)
-        }
-
-      } else {
-        // un-stash all messages
-        buffer.unstashAll(checkForCongestion(stateData, updatedData))
-      }
+      processReceivedData(
+        stateData,
+        awaitingData,
+        congestions,
+        ctx,
+      )
 
     case (ctx, FinishStep) =>
       // inform my inferior grids about the end of the congestion management
@@ -132,6 +86,90 @@ trait CongestionDetection {
     case (ctx, msg) =>
       unsupported(msg, ctx.log)
       Behaviors.same
+  }
+
+  private def answerRequest(
+      stateData: CongestionManagementData,
+      awaitingData: AwaitingData[Congestions],
+      congestionRequest: CongestionCheckRequest,
+      ctx: ActorContext[GridAgent.Request],
+  )(implicit
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = {
+    // check if waiting for inferior data is needed
+    if (awaitingData.notDone) {
+      ctx.log.debug(
+        s"Received request for congestions before all data from inferior grids were received. Stashing away."
+      )
+
+      // stash away the message, because we need to wait for data from inferior grids
+      buffer.stash(congestionRequest)
+    } else {
+      // check if there are any congestions in the grid
+      val congestions = stateData.congestions
+
+      if (congestions.any) {
+        ctx.log.info(
+          s"In the grid ${stateData.subgridNo}, the following congestions were found: $congestions"
+        )
+      }
+
+      // sends the results to the superior grid
+      congestionRequest.sender ! CongestionResponse(
+        ctx.self,
+        congestions.combine(awaitingData.values),
+      )
+    }
+
+    checkForCongestion(stateData, awaitingData)
+  }
+
+  private def processReceivedData(
+      stateData: CongestionManagementData,
+      awaitingData: AwaitingData[Congestions],
+      congestions: Vector[(ActorRef[GridAgent.Request], Congestions)],
+      ctx: ActorContext[GridAgent.Request],
+  )(implicit
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = {
+    // updating the state data with received data from inferior grids
+    val updatedData = awaitingData.handleReceivingData(congestions)
+
+    if (stateData.gridAgentBaseData.isSuperior) {
+      // if we are the superior grid, we find the next behavior
+
+      val congestions = stateData.congestions.combine(updatedData.values)
+
+      // checking for any congestion in the complete grid
+      if (!congestions.any) {
+        ctx.log.info(
+          s"No congestions found. Finishing the congestion management."
+        )
+
+        ctx.self ! FinishStep
+        checkForCongestion(stateData, updatedData)
+      } else {
+        ctx.log.debug(
+          s"Congestion overall: $congestions"
+        )
+
+        val timestamp =
+          constantData.simStartTime.plusSeconds(stateData.currentTick)
+
+        ctx.log.info(
+          s"There were some congestions that could not be resolved for timestamp: $timestamp."
+        )
+
+        ctx.self ! FinishStep
+        checkForCongestion(stateData, updatedData)
+      }
+
+    } else {
+      // un-stash all messages
+      buffer.unstashAll(checkForCongestion(stateData, updatedData))
+    }
   }
 
 }

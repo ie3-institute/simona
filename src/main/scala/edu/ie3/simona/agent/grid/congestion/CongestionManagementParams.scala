@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid.congestion
 
-import java.time.Duration
+import scala.concurrent.duration.FiniteDuration
 
 /** Holds all congestion management configuration parameters used in
   * [[edu.ie3.simona.agent.grid]]. If the parameter [[detectionEnabled]] is set
@@ -20,5 +20,5 @@ import java.time.Duration
   */
 final case class CongestionManagementParams(
     detectionEnabled: Boolean,
-    timeout: Duration,
+    timeout: FiniteDuration,
 )
