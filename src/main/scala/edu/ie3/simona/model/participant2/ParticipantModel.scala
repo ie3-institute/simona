@@ -195,6 +195,8 @@ object ParticipantModel {
     *
     * @param receivedData
     *   The received primary or secondary data.
+    * @param nextDataTick
+    *   The tick at which new input data is expected next, if applicable.
     * @param nodalVoltage
     *   The voltage at the node that we're connected to.
     * @param currentTick
@@ -204,6 +206,7 @@ object ParticipantModel {
     */
   final case class ModelInput(
       receivedData: Seq[Data],
+      nextDataTick: Option[Long],
       nodalVoltage: Dimensionless,
       currentTick: Long,
       currentSimulationTime: ZonedDateTime,

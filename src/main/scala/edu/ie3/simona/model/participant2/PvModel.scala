@@ -33,7 +33,7 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities._
 import squants._
 import squants.space.{Degrees, SquareMeters}
-import squants.time.Minutes
+import squants.time.{Hours, Minutes}
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
@@ -76,12 +76,19 @@ class PvModel private (
 
   override val initialState: ModelInput => PvState = { input =>
     val weatherData = getWeatherData(input.receivedData)
+    val dataValidityDuration = input.nextDataTick
+      .map { nextTick =>
+        Seconds(nextTick - input.currentTick)
+      }
+      // default is one hour, if no duration can be determined
+      .getOrElse(Hours(1))
+
     PvState(
       input.currentTick,
       input.currentSimulationTime,
-      ???,
       weatherData.diffIrr,
       weatherData.dirIrr,
+      dataValidityDuration,
     )
   }
 
@@ -117,7 +124,7 @@ class PvModel private (
     /* The pv model calculates the power in-feed based on the solar irradiance that is received over a specific
      * time frame (which actually is the solar irradiation). Hence, a multiplication with the time frame within
      * this irradiance is received is required. */
-    val duration: Time = Seconds(state.weatherDataFrameLength)
+    val duration = state.dataValidityDuration
 
     // eBeamH and eDifH needs to be extract to their double values in some places
     // hence a conversion to watt-hour per square meter is required, to avoid
@@ -797,20 +804,20 @@ object PvModel {
     *   The current tick
     * @param dateTime
     *   date and time of the <b>ending</b> of time frame to calculate
-    * @param weatherDataFrameLength
-    *   the duration in ticks (= seconds) the provided irradiance is received by
-    *   the pv panel
     * @param diffIrradiance
     *   diffuse solar irradiance
     * @param dirIrradiance
     *   direct solar irradiance
+    * @param dataValidityDuration
+    *   The duration for which the irradiation data is valid, starting from
+    *   dateTime
     */
   final case class PvState(
       override val tick: Long,
       dateTime: ZonedDateTime,
-      weatherDataFrameLength: Long,
       diffIrradiance: Irradiance,
       dirIrradiance: Irradiance,
+      dataValidityDuration: Time,
   ) extends ModelState
 
   def apply(

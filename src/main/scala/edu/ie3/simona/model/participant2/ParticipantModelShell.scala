@@ -182,6 +182,8 @@ final case class ParticipantModelShell[
     *
     * @param receivedData
     *   The received input data.
+    * @param nextDataTick
+    *   The tick at which new input data is expected next, if applicable.
     * @param nodalVoltage
     *   The current nodal voltage.
     * @param tick
@@ -191,6 +193,7 @@ final case class ParticipantModelShell[
     */
   def updateModelInput(
       receivedData: Seq[Data],
+      nextDataTick: Option[Long],
       nodalVoltage: Dimensionless,
       tick: Long,
   ): ParticipantModelShell[OP, S] = {
@@ -200,6 +203,7 @@ final case class ParticipantModelShell[
       Some(
         ModelInput(
           receivedData,
+          nextDataTick,
           nodalVoltage,
           tick,
           currentSimulationTime,
