@@ -59,15 +59,16 @@ object ParticipantModelInit {
       }).build()
 
     (scaledParticipantInput, modelConfig) match {
+      case (input: FixedFeedInInput, _) =>
+        FixedFeedInModel(input)
       case (input: LoadInput, config: LoadRuntimeConfig) =>
         LoadModel(input, config)
       case (input: PvInput, _) =>
         PvModel(input)
       case (input, config) =>
         throw new CriticalFailureException(
-          s"Handling the input model ${input.getClass.getSimpleName} or " +
-            "the combination of the input model with model config " +
-            s"${config.getClass.getSimpleName} is not implemented."
+          s"Handling the input model ${input.getClass.getSimpleName} and " +
+            s"model config ${config.getClass.getSimpleName} is not implemented."
         )
     }
   }
