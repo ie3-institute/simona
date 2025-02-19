@@ -47,11 +47,10 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
 import org.apache.pekko.util.Timeout
 import org.slf4j.Logger
 
-import java.time.temporal.ChronoUnit
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
+import scala.language.{implicitConversions, postfixOps}
 import scala.util.{Failure, Success}
 
 object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
@@ -79,9 +78,9 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         context.messageAdapter[Activation](msg => WrappedActivation(msg))
 
       // val initialization
-      val resolution: Long = simonaConfig.simona.powerflow.resolution.get(
-        ChronoUnit.SECONDS
-      ) // this determines the agents regular time bin it wants to be triggered e.g. one hour
+
+      // this determines the agents regular time bin it wants to be triggered e.g. one hour
+      val resolution: Long = simonaConfig.simona.powerflow.resolution.toSeconds
 
       val simStartTime: ZonedDateTime = TimeUtil.withDefaults
         .toZonedDateTime(simonaConfig.simona.time.startDateTime)
@@ -374,12 +373,12 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       askMsgBuilder: ActorRef[GridAgent.Request] => Request,
       resMsgBuilder: Vector[(ActorRef[GridAgent.Request], T)] => InternalReply,
       ctx: ActorContext[GridAgent.Request],
-  )(implicit timeout: Duration): Unit = {
+  )(implicit timeout: FiniteDuration): Unit = {
     if (inferiorGridRefs.nonEmpty) {
       // creating implicit vals
       implicit val ec: ExecutionContext = ctx.executionContext
       implicit val scheduler: Scheduler = ctx.system.scheduler
-      implicit val askTimeout: Timeout = Timeout.create(timeout)
+      implicit val askTimeout: Timeout = Timeout(timeout)
 
       // asking process
       val future = Future

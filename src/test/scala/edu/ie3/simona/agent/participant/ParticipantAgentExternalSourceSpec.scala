@@ -123,7 +123,7 @@ class ParticipantAgentExternalSourceSpec
     flexResult = false,
   )
 
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.simona.powerflow.resolution.toSeconds
 
   private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
@@ -139,7 +139,7 @@ class ParticipantAgentExternalSourceSpec
       secondaryDataServices = Iterable.empty,
       simulationStartDate = defaultSimulationStart,
       simulationEndDate = defaultSimulationEnd,
-      resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+      resolution = simonaConfig.simona.powerflow.resolution.toSeconds,
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,

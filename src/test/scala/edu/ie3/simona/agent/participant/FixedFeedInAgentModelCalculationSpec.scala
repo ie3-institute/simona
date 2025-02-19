@@ -101,7 +101,7 @@ class FixedFeedInAgentModelCalculationSpec
       voltageSensitiveInput.getUuid
     )
   private val services = Iterable.empty
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.simona.powerflow.resolution.toSeconds
 
   "A fixed feed in agent with model calculation " should {
     val initStateData = ParticipantInitializeStateData[
