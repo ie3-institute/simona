@@ -174,8 +174,8 @@ final case class WeatherService(
       serviceStateData: WeatherInitializedStateData
   ): Try[WeatherInitializedStateData] =
     registrationMessage match {
-      case RegisterForWeatherMessage(latitude, longitude) =>
-        Success(handleRegistrationRequest(sender(), latitude, longitude))
+      case RegisterForWeatherMessage(actor, latitude, longitude) =>
+        Success(handleRegistrationRequest(actor, latitude, longitude))
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(

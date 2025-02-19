@@ -10,7 +10,6 @@ import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
-import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
@@ -147,25 +146,14 @@ class EmAgentIT
           ),
           "LoadAgent",
         )
-        val pvAgent = TestActorRef(
-          new PvAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              pvInput,
-              PvRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                uuids = List.empty,
-              ),
-              primaryServiceProxy.ref.toClassic,
-              Iterable(ActorWeatherService(weatherService.ref.toClassic)),
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val pvAgent = spawn(
+          ParticipantAgentInit(
+            pvInput,
+            PvRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "PvAgent",
         )
@@ -204,7 +192,7 @@ class EmAgentIT
         // load
         primaryServiceProxy.expectMessage(
           PrimaryServiceRegistrationMessage(
-            loadAgent.ref.toClassic,
+            loadAgent.toClassic,
             loadInput.getUuid,
           )
         )
@@ -213,16 +201,15 @@ class EmAgentIT
         scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         // pv
-        pvAgent ! Activation(INIT_SIM_TICK)
-
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
+          PrimaryServiceRegistrationMessage(pvAgent.toClassic, pvInput.getUuid)
         )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
+            pvAgent.toClassic,
             pvInput.getNode.getGeoPosition.getY,
             pvInput.getNode.getGeoPosition.getX,
           )
@@ -232,8 +219,6 @@ class EmAgentIT
           weatherService.ref.toClassic,
           0L,
         )
-
-        scheduler.expectMessage(Completion(pvAgent))
 
         // storage
         storageAgent ! Activation(INIT_SIM_TICK)
@@ -422,25 +407,14 @@ class EmAgentIT
           ),
           "LoadAgent1",
         )
-        val pvAgent = TestActorRef(
-          new PvAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              pvInput,
-              PvRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                uuids = List.empty,
-              ),
-              primaryServiceProxy.ref.toClassic,
-              Iterable(ActorWeatherService(weatherService.ref.toClassic)),
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val pvAgent = spawn(
+          ParticipantAgentInit(
+            pvInput,
+            PvRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "PvAgent1",
         )
@@ -480,7 +454,7 @@ class EmAgentIT
         // load
         primaryServiceProxy.expectMessage(
           PrimaryServiceRegistrationMessage(
-            loadAgent.ref.toClassic,
+            loadAgent.toClassic,
             loadInput.getUuid,
           )
         )
@@ -489,16 +463,15 @@ class EmAgentIT
         scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         // pv
-        pvAgent ! Activation(INIT_SIM_TICK)
-
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
+          PrimaryServiceRegistrationMessage(pvAgent.toClassic, pvInput.getUuid)
         )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
+            pvAgent.toClassic,
             pvInput.getNode.getGeoPosition.getY,
             pvInput.getNode.getGeoPosition.getX,
           )
@@ -508,8 +481,6 @@ class EmAgentIT
           weatherService.ref.toClassic,
           0L,
         )
-
-        scheduler.expectMessage(Completion(pvAgent))
 
         // heat pump
         heatPumpAgent ! Activation(INIT_SIM_TICK)
@@ -526,6 +497,7 @@ class EmAgentIT
 
         weatherService.expectMessage(
           RegisterForWeatherMessage(
+            heatPumpAgent.ref,
             adaptedHpInputModel.getNode.getGeoPosition.getY,
             adaptedHpInputModel.getNode.getGeoPosition.getX,
           )
@@ -538,7 +510,7 @@ class EmAgentIT
 
         scheduler.expectMessage(Completion(heatPumpAgent))
 
-        val weatherDependentAgents = Seq(pvAgent, heatPumpAgent)
+        val weatherDependentAgents = Seq(pvAgent.toClassic, heatPumpAgent)
 
         /* TICK 0
          LOAD: 0.269 kW
