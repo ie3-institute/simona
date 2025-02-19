@@ -33,7 +33,6 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -84,11 +83,7 @@ class StorageAgentModelCalculationSpec
   /* Assign this test to receive the result events from agent */
   override val systemListener: Iterable[ActorRef] = Vector(self)
 
-  private val simonaConfig: SimonaConfig =
-    createSimonaConfig(
-      LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0d)),
-    )
+  private val simonaConfig: SimonaConfig = createSimonaConfig()
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
     powerRequestReply = false,
