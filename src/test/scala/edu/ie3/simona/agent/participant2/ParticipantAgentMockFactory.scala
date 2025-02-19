@@ -13,7 +13,6 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   Request,
   SchedulerData,
 }
-import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
@@ -33,7 +32,7 @@ object ParticipantAgentMockFactory {
       modelShell: ParticipantModelShell[_, _],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
-      resultListener: Iterable[ActorRef[ResultEvent]],
+      resultHandler: ParticipantResultHandler,
       parent: Either[
         (ActorRef[SchedulerMessage], ActorRef[ActorRef[Activation]]),
         (ActorRef[FlexResponse], ActorRef[ActorRef[FlexRequest]]),
@@ -58,7 +57,7 @@ object ParticipantAgentMockFactory {
       modelShell,
       inputHandler,
       gridAdapter,
-      resultListener,
+      resultHandler,
       parentData,
     )
   }
