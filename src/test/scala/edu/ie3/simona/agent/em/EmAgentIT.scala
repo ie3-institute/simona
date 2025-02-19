@@ -239,7 +239,7 @@ class EmAgentIT
 
         /* TICK 0
          LOAD: 0.269 kW
-         PV:  -5.842 kW
+         PV:  -5.945 kW
          STORAGE: SOC 0 %
          -> charge with 5 kW
          -> remaining -0.573 kW
@@ -251,8 +251,8 @@ class EmAgentIT
           0,
           weatherService.ref.toClassic,
           WeatherData(
-            WattsPerSquareMeter(200d),
-            WattsPerSquareMeter(100d),
+            WattsPerSquareMeter(80d),
+            WattsPerSquareMeter(220d),
             Celsius(0d),
             MetersPerSecond(0d),
           ),
@@ -264,7 +264,7 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0L.toDateTime
             emResult.getP should equalWithTolerance(
-              -0.00057340027059.asMegaWatt
+              -0.000676282069474.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
               0.0000882855367033.asMegaVar
@@ -518,7 +518,7 @@ class EmAgentIT
 
         /* TICK 0
          LOAD: 0.269 kW
-         PV:  -5.842 kW
+         PV:  -5.945 kW
          Heat pump: off, can be turned on or stay off
          -> set point ~3.5 kW (bigger than 50 % rated apparent power): turned on
          -> remaining -0.723 kW
@@ -531,8 +531,8 @@ class EmAgentIT
             0,
             weatherService.ref.toClassic,
             WeatherData(
-              WattsPerSquareMeter(200d),
-              WattsPerSquareMeter(100d),
+              WattsPerSquareMeter(80d),
+              WattsPerSquareMeter(220d),
               Celsius(0d),
               MetersPerSecond(0d),
             ),
@@ -545,7 +545,7 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0.toDateTime
             emResult.getP should equalWithTolerance(
-              -0.0007234002705905523.asMegaWatt
+              -0.000826282069474174.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
               0.0010731200407782782.asMegaVar
