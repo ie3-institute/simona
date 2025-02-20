@@ -39,7 +39,7 @@ import scala.language.postfixOps
   * @param house
   *   Thermal houses connected to the bus.
   * @param storage
-  *   Thermal storages
+  *   Thermal storages connected to the bus.
   */
 final case class ThermalGrid(
     house: Option[ThermalHouse],
@@ -174,7 +174,7 @@ final case class ThermalGrid(
     * @param thermalDemands
     *   Holds the thermal demands of the thermal units (house, storage).
     * @return
-    *   The updated state of the grid
+    *   The updated state of the grid.
     */
   def updateState(
       relevantData: HpRelevantData,
@@ -211,23 +211,23 @@ final case class ThermalGrid(
     * handled by [[ThermalGrid.handleFinalInfeedCases]].
     *
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   data of heat pump including state of the heat pump.
     * @param lastAmbientTemperature
-    *   Ambient temperature valid up until (not including) the current tick
+    *   Ambient temperature valid up until (not including) the current tick.
     * @param lastThermalGridState
-    *   state of the thermalGrid until this tick
+    *   state of the thermalGrid until this tick.
     * @param isRunning
-    *   determines whether the heat pump is running or not
+    *   determines whether the heat pump is running or not.
     * @param useUpperTempBoundaryForFlexibility
     *   determines whether the upper temperature boundary of the house will be
-    *   applied or not
+    *   applied or not.
     * @param qDot
     *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
-    *   storages
+    *   storages.
     * @param thermalDemands
-    *   holds the thermal demands of the thermal units (house, storage)
+    *   holds the thermal demands of the thermal units (house, storage).
     * @return
-    *   Updated thermal grid state and the thermalThreshold if there is one
+    *   Updated thermal grid state and the thermalThreshold if there is one.
     */
   private def handleInfeed(
       relevantData: HpRelevantData,
@@ -372,21 +372,21 @@ final case class ThermalGrid(
     * | 4  | else                                 | no output |
     *
     * @param thermalDemands
-    *   holds the thermal demands of the thermal units (house, storage)
+    *   holds the thermal demands of the thermal units (house, storage).
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   data of heat pump including state of the heat pump.
     * @param lastAmbientTemperature
-    *   Ambient temperature valid up until (not including) the current tick
+    *   Ambient temperature valid up until (not including) the current tick.
     * @param gridState
-    *   Current state of the thermalGrid
+    *   Current state of the thermalGrid.
     * @param qDot
     *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
-    *   storages
+    *   storages.
     * @param useUpperTempBoundaryForFlexibility
     *   determines whether the upper temperature boundary of the house will be
-    *   applied or not
+    *   applied or not.
     * @return
-    *   Updated thermal grid state and the thermalThreshold if there is one
+    *   Updated thermal grid state and the thermalThreshold if there is one.
     */
   private def handleFinalInfeedCases(
       thermalDemands: ThermalDemandWrapper,
@@ -442,21 +442,21 @@ final case class ThermalGrid(
     * grid.
     *
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   data of heat pump including state of the heat pump.
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature until this tick.
     * @param state
-    *   Current state of the thermal grid
+    *   Current state of the thermal grid.
     * @param qDotHouse
-    *   Infeed to the house
+    *   Infeed to the house.
     * @param qDotHeatStorage
     *   Infeed to the heat storage (positive: Storage is charging, negative:
-    *   Storage is discharging)
+    *   Storage is discharging).
     * @param useUpperTempBoundaryForFlexibility
     *   * determines whether the upper temperature boundary of the house will be
-    *   applied or not
+    *   applied or not.
     * @return
-    *   Updated thermal grid state and the next threshold if there is one
+    *   Updated thermal grid state and the next threshold if there is one.
     */
   private def handleCases(
       relevantData: HpRelevantData,
@@ -496,18 +496,18 @@ final case class ThermalGrid(
     * here.
     *
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   Data of heat pump including state of the heat pump.
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature until this tick.
     * @param state
-    *   Current state of the houses
+    *   Current state of the houses.
     * @param qDotHouse
     *   Infeed into the house
     * @param useUpperTempBoundaryForFlexibility
     *   determines whether the upper temperature boundary of the house will be
-    *   applied or not
+    *   applied or not.
     * @return
-    *   Updated thermal house state, a ThermalThreshold and the remaining qDot
+    *   Updated thermal house state, a ThermalThreshold and the remaining qDot.
     */
   private def handleInfeedHouse(
       relevantData: HpRelevantData,
@@ -557,14 +557,14 @@ final case class ThermalGrid(
     * here (positive qDot) or will return its stored energy into the thermal
     * grid (negative qDot).
     * @param tick
-    *   Current tick
+    *   Current tick.
     * @param state
-    *   Current state of the houses
+    *   Current state of the houses.
     * @param qDotStorage
     *   Infeed to the storage (positive: Storage is charging, negative: Storage
-    *   is discharging)
+    *   is discharging).
     * @return
-    *   Updated thermal grid state
+    *   Updated thermal grid state.
     */
   private def handleStorageCases(
       tick: Long,
@@ -583,14 +583,14 @@ final case class ThermalGrid(
     }
   }
 
-  /** Determines the most recent threshold of two given input thresholds
+  /** Determines the most recent threshold of two given input thresholds.
     *
     * @param maybeHouseThreshold
-    *   Option of a possible next threshold of the thermal house
+    *   Option of a possible next threshold of the thermal house.
     * @param maybeStorageThreshold
-    *   Option of a possible next threshold of the thermal storage
+    *   Option of a possible next threshold of the thermal storage.
     * @return
-    *   The next threshold
+    *   The next threshold.
     */
   private def determineMostRecentThreshold(
       maybeHouseThreshold: Option[ThermalThreshold],
@@ -607,22 +607,22 @@ final case class ThermalGrid(
       case _               => None
     }
 
-  /** Handle consumption (or no infeed) from thermal grid
+  /** Handle consumption (or no infeed) from thermal grid.
     *
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   data of heat pump including state of the heat pump.
     * @param lastAmbientTemperature
-    *   Ambient temperature valid up until (not including) the current tick
+    *   Ambient temperature valid up until (not including) the current tick.
     * @param lastThermalGridState
     *   state of the thermalGrid until this tick
     * @param useUpperTempBoundaryForFlexibility
     *   determines whether the upper temperature boundary of the house will be
-    *   applied or not
+    *   applied or not.
     * @param qDot
     *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
-    *   storages
+    *   storages.
     * @return
-    *   Updated thermal grid state
+    *   Updated thermal grid state.
     */
   private def handleConsumption(
       relevantData: HpRelevantData,
@@ -688,25 +688,25 @@ final case class ThermalGrid(
     * itself.</li> </ul>
     *
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   data of heat pump including state of the heat pump.
     * @param maybeHouseState
-    *   Optional thermal house state
+    *   Optional thermal house state.
     * @param maybeStorageState
-    *   Optional thermal storage state
+    *   Optional thermal storage state.
     * @param formerHouseState
-    *   Previous thermal house state before a first update was performed
+    *   Previous thermal house state before a first update was performed.
     * @param formerStorageState
-    *   Previous thermal storage state before a first update was performed
+    *   Previous thermal storage state before a first update was performed.
     * @param lastAmbientTemperature
-    *   Ambient temperature valid up until (not including) the current tick
+    *   Ambient temperature valid up until (not including) the current tick.
     * @param qDot
     *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
-    *   storages
+    *   storages.
     * @param useUpperTempBoundaryForFlexibility
     *   determines whether the upper temperature boundary of the house will be
-    *   applied or not
+    *   applied or not.
     * @return
-    *   Options to revised thermal house and storage state
+    *   Options to revised thermal house and storage state.
     */
   def reviseInfeedFromStorage(
       relevantData: HpRelevantData,
@@ -765,16 +765,16 @@ final case class ThermalGrid(
   }
 
   /** Convert the given state of the thermal grid into result models of its
-    * constituent models
+    * constituent models.
     *
     * @param currentTick
-    *   Actual simulation tick
+    *   Actual simulation tick.
     * @param state
-    *   State to be converted
+    *   State to be converted.
     * @param startDateTime
-    *   Start date time of the simulation
+    *   Start date time of the simulation.
     * @return
-    *   A [[Seq]] of results of the constituent thermal model
+    *   A [[Seq]] of results of the constituent thermal model.
     */
   def results(currentTick: Long, state: ThermalGridState)(implicit
       startDateTime: ZonedDateTime
@@ -841,11 +841,11 @@ object ThermalGrid {
     )
   }
 
-  /** Current state of a grid
+  /** Current state of a grid.
     * @param houseState
-    *   State of the thermal house
+    *   State of the thermal house.
     * @param storageState
-    *   State of the thermal storage
+    *   State of the thermal storage.
     */
   final case class ThermalGridState(
       houseState: Option[ThermalHouseState],
@@ -877,9 +877,9 @@ object ThermalGrid {
   /** Wraps the demand of thermal units (thermal house, thermal storage).
     *
     * @param houseDemand
-    *   the demand of the thermal house
+    *   The demand of the thermal house.
     * @param heatStorageDemand
-    *   the demand of the thermal heat storage
+    *   The demand of the thermal heat storage.
     */
   final case class ThermalDemandWrapper private (
       houseDemand: ThermalEnergyDemand,
@@ -895,10 +895,10 @@ object ThermalGrid {
     *   The absolutely required energy to reach target state. For
     *   [[ThermalHouse]] this would be the energy demand to reach the boundary
     *   or targetTemperature. For [[ThermalStorage]] this would be the amount of
-    *   energy to get fully charged when empty. If the [[ThermalStorage]] is not
+    *   Energy to get fully charged when empty. If the [[ThermalStorage]] is not
     *   empty, the required energy is zero.
     * @param possible
-    *   The maximum possible energy, that can be handled
+    *   The maximum possible energy, that can be handled.
     */
   final case class ThermalEnergyDemand private (
       required: Energy,
@@ -918,11 +918,11 @@ object ThermalGrid {
     /** Builds a new instance of [[ThermalEnergyDemand]]. If the possible energy
       * is less than the required energy, this is considered to be a bad state.
       * @param required
-      *   The absolutely required energy to reach target state
+      *   The absolutely required energy to reach target state.
       * @param possible
-      *   The maximum possible energy, that can be handled
+      *   The maximum possible energy, that can be handled.
       * @return
-      *   Thermal energy demand container class, that meets all specifications
+      *   Thermal energy demand container class, that meets all specifications.
       */
     def apply(
         required: Energy,

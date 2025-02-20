@@ -73,7 +73,7 @@ class ThermalGridIT
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
   private val resolution =
-    simonaConfig.simona.powerflow.resolution.getSeconds
+    simonaConfig.simona.powerflow.resolution.toSeconds
 
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
