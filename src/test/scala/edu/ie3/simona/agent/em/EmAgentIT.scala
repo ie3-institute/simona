@@ -7,9 +7,9 @@
 package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.result.system.EmResult
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
-import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
@@ -17,6 +17,11 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
+}
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
+  ParticipantRefs,
+  SimulationParameters,
 }
 import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.event.ResultEvent
@@ -33,6 +38,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   WeatherData,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -47,10 +53,10 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.testkit.TestActorRef
-import org.scalatest.OptionValues._
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
+import squants.Each
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
@@ -70,6 +76,13 @@ class EmAgentIT
 
   private val resolution =
     simonaConfig.simona.powerflow.resolution.toSeconds
+
+  private val simulationParams = SimulationParameters(
+    expectedPowerRequestTick = Long.MaxValue,
+    requestVoltageDeviationTolerance = Each(1e-14d),
+    simulationStart = simulationStartDate,
+    simulationEnd = simulationEndDate,
+  )
 
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
@@ -95,11 +108,20 @@ class EmAgentIT
   "An em agent" when {
     "having load, pv and storage agents connected" should {
       "be initialized correctly and run through some activations" in {
+        val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
           TestProbe[ServiceMessage]("PrimaryServiceProxy")
         val weatherService = TestProbe[ServiceMessage]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
+
+        val participantRefs = ParticipantRefs(
+          gridAgent = gridAgent.ref,
+          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
+          services =
+            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          resultListener = Iterable(resultListener.ref),
+        )
 
         val emAgent = spawn(
           EmAgent(
@@ -114,24 +136,14 @@ class EmAgentIT
           "EmAgent",
         )
 
-        val loadAgent = TestActorRef(
-          new FixedLoadAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              loadInput,
-              LoadRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true
-              ),
-              primaryServiceProxy.ref.toClassic,
-              None,
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val loadAgent = spawn(
+          ParticipantAgentInit(
+            loadInput,
+            LoadRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "LoadAgent",
         )
@@ -181,36 +193,24 @@ class EmAgentIT
           "StorageAgent",
         )
 
-        scheduler.expectNoMessage()
+        val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
+        emInitSchedule.tick shouldBe INIT_SIM_TICK
+        val emAgentActivation = emInitSchedule.actor
 
         /* INIT */
 
-        // load
-        loadAgent ! Activation(INIT_SIM_TICK)
+        emAgentActivation ! Activation(INIT_SIM_TICK)
 
+        // load
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadAgent.ref, loadInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            loadAgent.ref.toClassic,
+            loadInput.getUuid,
+          )
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
-        // the order of the two messages is not given
-        val emAgentActivation = scheduler
-          .receiveMessages(2)
-          .flatMap {
-            case Completion(ref, maybeNewTick) =>
-              ref shouldBe loadAgent.toTyped
-              maybeNewTick shouldBe None
-              None
-            case ScheduleActivation(ref, tick, unlockKey) =>
-              // em agent schedules itself
-              tick shouldBe 0
-              unlockKey shouldBe None
-              Some(ref)
-            case unexpected =>
-              fail(s"Received unexpected message $unexpected")
-          }
-          .headOption
-          .value
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         // pv
         pvAgent ! Activation(INIT_SIM_TICK)
@@ -383,11 +383,20 @@ class EmAgentIT
 
     "having load, pv and heat pump agents connected" should {
       "be initialized correctly and run through some activations" in {
+        val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
           TestProbe[ServiceMessage]("PrimaryServiceProxy")
         val weatherService = TestProbe[ServiceMessage]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
+
+        val participantRefs = ParticipantRefs(
+          gridAgent = gridAgent.ref,
+          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
+          services =
+            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          resultListener = Iterable(resultListener.ref),
+        )
 
         val emAgent = spawn(
           EmAgent(
@@ -402,24 +411,14 @@ class EmAgentIT
           "EmAgent1",
         )
 
-        val loadAgent = TestActorRef(
-          new FixedLoadAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              loadInput,
-              LoadRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true
-              ),
-              primaryServiceProxy.ref.toClassic,
-              None,
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val loadAgent = spawn(
+          ParticipantAgentInit(
+            loadInput,
+            LoadRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "LoadAgent1",
         )
@@ -470,36 +469,24 @@ class EmAgentIT
           "HeatPumpAgent1",
         )
 
-        scheduler.expectNoMessage()
+        val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
+        emInitSchedule.tick shouldBe INIT_SIM_TICK
+        val emAgentActivation = emInitSchedule.actor
 
         /* INIT */
 
-        // load
-        loadAgent ! Activation(INIT_SIM_TICK)
+        emAgentActivation ! Activation(INIT_SIM_TICK)
 
+        // load
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadAgent.ref, loadInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            loadAgent.ref.toClassic,
+            loadInput.getUuid,
+          )
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
-        // the order of the two messages is not given
-        val emAgentActivation = scheduler
-          .receiveMessages(2)
-          .flatMap {
-            case Completion(ref, maybeNewTick) =>
-              ref shouldBe loadAgent.toTyped
-              maybeNewTick shouldBe None
-              None
-            case ScheduleActivation(ref, tick, unlockKey) =>
-              // em agent schedules itself
-              tick shouldBe 0
-              unlockKey shouldBe None
-              Some(ref)
-            case unexpected =>
-              fail(s"Received unexpected message $unexpected")
-          }
-          .headOption
-          .value
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         // pv
         pvAgent ! Activation(INIT_SIM_TICK)

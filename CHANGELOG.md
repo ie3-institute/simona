@@ -52,6 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introducing new ParticipantAgent and ParticipantModel [#1134](https://github.com/ie3-institute/simona/issues/1134)
 - Using new `ParticipantAgent.Request` messages everywhere [#1195](https://github.com/ie3-institute/simona/issues/1195)
 - Implementing consideration of `NotifierConfig` into new participant [#1200](https://github.com/ie3-institute/simona/issues/1200)
+- Replace `LoadModel` with its new implementation [#1150](https://github.com/ie3-institute/simona/issues/1150)
+- Replace `FixedFeedInModel` with its new implementation [#1152](https://github.com/ie3-institute/simona/issues/1152)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)

@@ -24,7 +24,10 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.model.participant2.load.{
+  LoadModelBehaviour,
+  LoadReferenceType,
+}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherSource.WeatherScheme
 import edu.ie3.simona.util.CollectionUtils
@@ -444,7 +447,7 @@ object ConfigFailFast extends LazyLogging {
       )
 
     if (
-      !LoadReference.isEligibleKey(
+      !LoadReferenceType.isEligibleInput(
         loadModelConfig.reference
       )
     )

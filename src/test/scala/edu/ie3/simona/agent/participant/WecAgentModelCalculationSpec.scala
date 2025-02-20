@@ -38,7 +38,6 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
@@ -63,7 +62,7 @@ import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import org.apache.pekko.util.Timeout
 import org.scalatest.PrivateMethodTester
 import squants.Each
-import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.energy.{Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
@@ -101,11 +100,7 @@ class WecAgentModelCalculationSpec
   /* Assign this test to receive the result events from agent */
   override val systemListener: Iterable[ActorRef] = Iterable(self)
 
-  private val simonaConfig: SimonaConfig =
-    createSimonaConfig(
-      LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0d)),
-    )
+  private val simonaConfig: SimonaConfig = createSimonaConfig()
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
   )
