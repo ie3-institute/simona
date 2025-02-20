@@ -174,7 +174,6 @@ object SimonaConfig {
 
   final case class Simona(
       control: Option[Simona.Control] = None,
-      event: Simona.Event = Simona.Event(),
       gridConfig: Simona.GridConfig = Simona.GridConfig(),
       input: Simona.Input,
       output: Simona.Output,
@@ -187,16 +186,6 @@ object SimonaConfig {
     final case class Control(
         transformer: List[TransformerControlGroup] = List.empty
     )
-
-    final case class Event(
-        listener: Option[List[Event.Listener$Elm]] = None
-    )
-    object Event {
-      final case class Listener$Elm(
-          eventsToProcess: Option[List[String]] = None,
-          fullClassPath: String,
-      )
-    }
 
     final case class GridConfig(
         refSystems: Option[List[RefSystemConfig]] = None,
