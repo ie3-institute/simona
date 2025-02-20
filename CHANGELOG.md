@@ -138,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor `RuntimeConfig` [#1172](https://github.com/ie3-institute/simona/issues/1172)
 - Renamed some methods and variables within `ThermalGrid` and `ThermalHouse` [#1193](https://github.com/ie3-institute/simona/issues/1193)
 - Replaced Java Durations with Scala Durations [#1068](https://github.com/ie3-institute/simona/issues/1068)
+- Typo and format of `ThermalGrid` and `ThermalHouse` ScalaDocs [#1196](https://github.com/ie3-institute/simona/issues/1196)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
