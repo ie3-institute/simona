@@ -459,7 +459,7 @@ final case class ThermalGrid(
     * here.
     *
     * @param relevantData
-    *   data of heat pump including state of the heat pump.
+    *   Data of heat pump including state of the heat pump.
     * @param lastAmbientTemperature
     *   Ambient temperature until this tick.
     * @param state
@@ -806,9 +806,9 @@ object ThermalGrid {
   /** Wraps the demand of thermal units (thermal house, thermal storage).
     *
     * @param houseDemand
-    *   the demand of the thermal house.
+    *   The demand of the thermal house.
     * @param heatStorageDemand
-    *   the demand of the thermal heat storage.
+    *   The demand of the thermal heat storage.
     */
   final case class ThermalDemandWrapper private (
       houseDemand: ThermalEnergyDemand,
@@ -824,7 +824,7 @@ object ThermalGrid {
     *   The absolutely required energy to reach target state. For
     *   [[ThermalHouse]] this would be the energy demand to reach the boundary
     *   or targetTemperature. For [[ThermalStorage]] this would be the amount of
-    *   energy to get fully charged when empty. If the [[ThermalStorage]] is not
+    *   Energy to get fully charged when empty. If the [[ThermalStorage]] is not
     *   empty, the required energy is zero.
     * @param possible
     *   The maximum possible energy, that can be handled.

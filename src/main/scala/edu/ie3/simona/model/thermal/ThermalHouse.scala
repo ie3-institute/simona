@@ -160,12 +160,12 @@ final case class ThermalHouse(
 
   /** Check if inner temperature is higher than preferred maximum temperature
     * @param innerTemperature
-    *   the inner temperature of the house
+    *   The inner temperature of the house
     * @param boundaryTemperature
-    *   the applied boundary temperature to check against
+    *   The applied boundary temperature to check against
     *
     * @return
-    *   true, if inner temperature is too high
+    *   True, if inner temperature is too high.
     */
   def isInnerTemperatureTooHigh(
       innerTemperature: Temperature,
@@ -228,7 +228,7 @@ final case class ThermalHouse(
   /** Update the current state of the house.
     *
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   Data of heat pump including state of the heat pump.
     * @param state
     *   Currently applicable state
     * @param lastAmbientTemperature
@@ -273,7 +273,7 @@ final case class ThermalHouse(
 
   /** Determine the next threshold, that will be reached.
     * @param tick
-    *   The current tick
+    *   The current tick.
     * @param qDotExternal
     *   The external influx
     * @param innerTemperature
