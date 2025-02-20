@@ -186,6 +186,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Check for runningHp when handling infeed to thermalGrid [#1167](https://github.com/ie3-institute/simona/issues/1167)
 - Send `FlexResult` to EM [#1202](https://github.com/ie3-institute/simona/issues/1202)
 
+### Removed
+- Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
+
 ## [3.0.0] - 2023-08-07
 
 ### Added
