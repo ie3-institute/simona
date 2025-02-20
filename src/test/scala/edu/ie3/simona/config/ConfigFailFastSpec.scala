@@ -27,8 +27,8 @@ import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.TimeUtil
 
-import java.time.temporal.ChronoUnit
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
+import scala.concurrent.duration.DurationInt
 
 class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
   "Validating the configs" when {
@@ -99,9 +99,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                   List(10, 30),
                   100,
                 ),
-                Duration.of(3600, ChronoUnit.SECONDS),
+                3600.seconds,
                 stopOnFailure = false,
-                Duration.of(3600, ChronoUnit.SECONDS),
+                3600.seconds,
               )
             )
           }
@@ -116,9 +116,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                   List(10, 30),
                   100,
                 ),
-                resolution = Duration.of(3600, ChronoUnit.NANOS),
+                resolution = 3600.nanos,
                 stopOnFailure = false,
-                sweepTimeout = Duration.of(3600, ChronoUnit.SECONDS),
+                sweepTimeout = 3600.seconds,
               )
             )
           }.getMessage shouldBe "Invalid time resolution. Please ensure, that the time resolution for power flow calculation is at least rounded to a full second!"

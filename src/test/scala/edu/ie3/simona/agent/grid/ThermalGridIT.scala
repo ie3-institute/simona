@@ -75,7 +75,7 @@ class ThermalGridIT
   private implicit val classicSystem: ActorSystem = system.toClassic
 
   private val resolution =
-    simonaConfig.simona.powerflow.resolution.getSeconds
+    simonaConfig.simona.powerflow.resolution.toSeconds
 
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,

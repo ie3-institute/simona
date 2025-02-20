@@ -9,7 +9,6 @@ package edu.ie3.simona.test.common
 import org.apache.pekko.actor.ActorRef
 import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.listener.SimonaListenerCompanion
 
 /** Simple (empty) configuration data. Furthermore, it would make sense to
   * implement another class which reads a config and provides config based
@@ -150,6 +149,4 @@ trait ConfigTestData {
   protected val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
 
   protected val listener: Iterable[ActorRef] = Iterable.empty[ActorRef]
-  protected val listenerSingletonCompanions =
-    Map.empty[SimonaListenerCompanion, Option[List[String]]]
 }

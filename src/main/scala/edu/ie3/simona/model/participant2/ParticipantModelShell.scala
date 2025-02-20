@@ -7,7 +7,10 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.result.system.{
+  FlexOptionsResult,
+  SystemParticipantResult,
+}
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.Data.{
@@ -34,6 +37,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.ReactivePower
@@ -235,14 +239,40 @@ final case class ParticipantModelShell[
     )
   }
 
-  /** Determines and returns results of the current operating point.
+  /** Determines flex options results for the current flex options, which have
+    * to have been calculated before.
+    *
+    * @param tick
+    *   The current tick.
+    * @return
+    *   The flex options results.
+    */
+  def determineFlexOptionsResult(
+      tick: Long
+  ): FlexOptionsResult = {
+    val minMaxFlexOptions =
+      flexOptions match {
+        case flex: ProvideMinMaxFlexOptions => flex
+      }
+
+    new FlexOptionsResult(
+      tick.toDateTime(simulationStartDate),
+      uuid,
+      minMaxFlexOptions.ref.toMegawatts.asMegaWatt,
+      minMaxFlexOptions.min.toMegawatts.asMegaWatt,
+      minMaxFlexOptions.max.toMegawatts.asMegaWatt,
+    )
+  }
+
+  /** Determines and returns results of the current operating point, which has
+    * to have been calculated before.
     *
     * @param tick
     *   The current tick.
     * @param nodalVoltage
     *   The current nodal voltage.
     * @return
-    *   An updated [[ParticipantModelShell]].
+    *   The model results.
     */
   def determineResults(
       tick: Long,
