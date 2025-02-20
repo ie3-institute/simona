@@ -67,7 +67,7 @@ final case class ThermalGrid(
       house.zip(lastHpState.thermalGridState.houseState) match {
         case Some((thermalHouse, lastHouseState)) =>
           val (updatedHouseState, _) =
-            thermalHouse.determineState(
+            thermalHouse.updateState(
               relevantData,
               lastHouseState,
               lastHpState.ambientTemperature.getOrElse(
@@ -228,11 +228,11 @@ final case class ThermalGrid(
 
     // We can use the qDots from lastState to keep continuity. If...
     if (
-      // ... house was heated in lastState but not from Storage and has still some demand.
-      ((qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW) && thermalDemands.houseDemand.hasAdditionalDemand) ||
+      // ... house was heated in lastState but not from Storage and has still some demand. Hp must still run for this.
+      ((qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW) && thermalDemands.houseDemand.hasAdditionalDemand) && isRunning ||
       // ... storage was filled up in the lastState and has still additional demand
-      // But only if the house not reached some requiredDemand.
-      qDotStorageLastState > zeroKW && thermalDemands.heatStorageDemand.hasAdditionalDemand && !thermalDemands.houseDemand.hasRequiredDemand)
+      // But only if the house not reached some requiredDemand. Hp must still run for this.
+      qDotStorageLastState > zeroKW && thermalDemands.heatStorageDemand.hasAdditionalDemand && !thermalDemands.houseDemand.hasRequiredDemand && isRunning)
     ) {
       // We can continue for the house
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
@@ -476,7 +476,7 @@ final case class ThermalGrid(
   ): (Option[ThermalHouseState], Option[ThermalThreshold], Power) = {
     (house, state.houseState) match {
       case (Some(thermalHouse), Some(lastHouseState)) =>
-        val (newState, threshold) = thermalHouse.determineState(
+        val (newState, threshold) = thermalHouse.updateState(
           relevantData,
           lastHouseState,
           lastAmbientTemperature,
@@ -489,7 +489,7 @@ final case class ThermalGrid(
           )
         ) {
           val (fullHouseState, maybeFullHouseThreshold) =
-            thermalHouse.determineState(
+            thermalHouse.updateState(
               relevantData,
               lastHouseState,
               lastAmbientTemperature,
@@ -580,8 +580,8 @@ final case class ThermalGrid(
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
     val maybeUpdatedHouseState =
       house.zip(lastThermalGridState.houseState).map {
-        case (house, houseState) =>
-          house.determineState(
+        case (thermalHouse, houseState) =>
+          thermalHouse.updateState(
             relevantData,
             houseState,
             lastAmbientTemperature,
@@ -678,7 +678,7 @@ final case class ThermalGrid(
           )
         ),
       )
-      val revisedHouseState = thermalHouse.determineState(
+      val revisedHouseState = thermalHouse.updateState(
         relevantData,
         formerHouseState.getOrElse(
           throw new InconsistentStateException(

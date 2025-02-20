@@ -16,7 +16,7 @@ import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached,
+  HouseTemperatureTargetOrUpperBoundaryReached,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
@@ -167,8 +167,8 @@ final case class ThermalHouse(
       innerTemperature: Temperature,
       boundaryTemperature: Temperature = upperBoundaryTemperature,
   ): Boolean =
-    innerTemperature > Kelvin(
-      boundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
+    innerTemperature > (
+      boundaryTemperature - temperatureTolerance
     )
 
   /** Check if inner temperature is lower than preferred minimum temperature
@@ -180,8 +180,8 @@ final case class ThermalHouse(
       innerTemperature: Temperature,
       boundaryTemperature: Temperature = lowerBoundaryTemperature,
   ): Boolean =
-    innerTemperature < Kelvin(
-      boundaryTemperature.toKelvinScale + temperatureTolerance.toKelvinScale
+    innerTemperature < (
+      boundaryTemperature + temperatureTolerance
     )
 
   /** Calculate the new inner temperature of the thermal house.
@@ -234,7 +234,7 @@ final case class ThermalHouse(
     * @return
     *   Updated state and the tick in which the next threshold is reached
     */
-  def determineState(
+  def updateState(
       relevantData: HpRelevantData,
       state: ThermalHouseState,
       lastAmbientTemperature: Temperature,
@@ -315,7 +315,7 @@ final case class ThermalHouse(
         upperBoundaryTemperature,
         innerTemperature,
         resultingQDot,
-      ).map(HouseTemperatureUpperBoundaryReached)
+      ).map(HouseTemperatureTargetOrUpperBoundaryReached)
     } else {
       /* House is in perfect balance */
       None
@@ -399,7 +399,7 @@ object ThermalHouse {
     final case class HouseTemperatureLowerBoundaryReached(
         override val tick: Long
     ) extends ThermalThreshold
-    final case class HouseTemperatureUpperBoundaryReached(
+    final case class HouseTemperatureTargetOrUpperBoundaryReached(
         override val tick: Long
     ) extends ThermalThreshold
   }
