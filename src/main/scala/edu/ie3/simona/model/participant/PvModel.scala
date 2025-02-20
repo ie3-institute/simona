@@ -670,7 +670,7 @@ final case class PvModel private (
   }
 
   private def calcOutput(
-      gTotalInWhPerSM: Irradiance,
+      gTotal: Irradiance,
       time: ZonedDateTime,
       irradianceSTC: Irradiance,
   ): Power = {
@@ -680,7 +680,7 @@ final case class PvModel private (
      * area. The yield also takes care of generator and temperature correction factors as well as the converter's
      * efficiency */
     val actYield =
-      gTotalInWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
+      gTotal * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
     val proposal =
