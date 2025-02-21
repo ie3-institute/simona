@@ -6,10 +6,7 @@
 
 package edu.ie3.simona.ontology.messages.services
 
-import edu.ie3.simona.api.data.ontology.{
-  DataMessageFromExt,
-  ScheduleDataServiceMessage,
-}
+import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvInternal
 import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryInternal

@@ -26,22 +26,16 @@ import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.{
   WorkerRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.{
-  ServiceRegistrationMessage,
-  WrappedActivation,
-}
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.ServiceRegistrationMessage
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData,
-  ServiceConstantStateData,
 }
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.PrimaryServiceInitializedStateData
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.slf4j.Logger
 
@@ -53,7 +47,9 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
-object PrimaryServiceWorker {
+object PrimaryServiceWorker extends SimonaService[PrimaryDataMessage] {
+
+  override type S = PrimaryServiceInitializedStateData[_ <: Value]
 
   /** List of supported column schemes aka. column schemes, that belong to
     * primary data
@@ -151,31 +147,6 @@ object PrimaryServiceWorker {
       source: TimeSeriesSource[V],
       subscribers: Vector[ClassicRef] = Vector.empty[ClassicRef],
   ) extends ServiceActivationBaseStateData
-
-  def apply(
-      scheduler: ActorRef[SchedulerMessage]
-  ): Behavior[PrimaryDataMessage] =
-    Behaviors.withStash(100) { buffer =>
-      Behaviors.setup { ctx =>
-        val activationAdapter: ActorRef[Activation] =
-          ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
-
-        implicit val constantData: ServiceConstantStateData =
-          ServiceConstantStateData(
-            scheduler,
-            activationAdapter,
-          )
-
-        new PrimaryServiceWorker().uninitialized(constantData, buffer)
-      }
-    }
-
-}
-
-private final class PrimaryServiceWorker
-    extends SimonaService[PrimaryServiceInitializedStateData[
-      _ <: Value
-    ], PrimaryDataMessage] {
 
   /** Initialize the actor with the given information. Try to figure out the
     * initialized state data and the next activation ticks, that will then be

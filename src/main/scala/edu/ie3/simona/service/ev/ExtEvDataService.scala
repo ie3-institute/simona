@@ -22,18 +22,11 @@ import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.{
   ServiceRegistrationMessage,
-  WrappedActivation,
   WrappedExternalMessage,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
-  ServiceConstantStateData,
-}
-import edu.ie3.simona.service.ev.ExtEvDataService.{
-  ExtEvStateData,
-  InitExtEvData,
 }
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
@@ -44,12 +37,15 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.slf4j.Logger
 
 import java.util.UUID
-import scala.concurrent.Future
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success, Try}
 
-object ExtEvDataService {
+object ExtEvDataService
+    extends SimonaService[EvMessage]
+    with ExtDataSupport[EvMessage] {
+
+  override type S = ExtEvStateData
 
   final case class ExtEvStateData(
       extEvData: ExtEvDataConnection,
@@ -69,28 +65,6 @@ object ExtEvDataService {
       evService ! WrappedExternalMessage(extMsg)
       Behaviors.same
     }
-
-  def apply(
-      scheduler: ActorRef[SchedulerMessage]
-  ): Behavior[EvMessage] = Behaviors.withStash[EvMessage](100) { buffer =>
-    Behaviors.setup { ctx =>
-      val activationAdapter: ActorRef[Activation] =
-        ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
-
-      implicit val constantData: ServiceConstantStateData =
-        ServiceConstantStateData(
-          scheduler,
-          activationAdapter,
-        )
-
-      new ExtEvDataService().uninitialized(constantData, buffer)
-    }
-  }
-}
-
-private final class ExtEvDataService
-    extends SimonaService[ExtEvStateData, EvMessage]
-    with ExtDataSupport[ExtEvStateData, EvMessage] {
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
@@ -146,9 +120,9 @@ private final class ExtEvDataService
   override def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
   )(implicit
-      serviceStateData: ExtEvStateData,
+      serviceStateData: S,
       ctx: ActorContext[EvMessage],
-  ): Try[ExtEvStateData] =
+  ): Try[S] =
     registrationMessage match {
       case RegisterForEvDataMessage(actorRef, evcs) =>
         Success(handleRegistrationRequest(actorRef, evcs))
@@ -220,10 +194,10 @@ private final class ExtEvDataService
   override protected def announceInformation(
       tick: Long
   )(implicit
-      serviceStateData: ExtEvStateData,
+      serviceStateData: S,
       ctx: ActorContext[EvMessage],
   ): (
-      ExtEvStateData,
+      S,
       Option[Long],
   ) = {
     def asScala[E]
@@ -391,7 +365,7 @@ private final class ExtEvDataService
 
   override protected def handleDataMessage(
       extMsg: DataMessageFromExt
-  )(implicit serviceStateData: ExtEvStateData): ExtEvStateData =
+  )(implicit serviceStateData: S): S =
     extMsg match {
       case extEvMessage: EvDataMessageFromExt =>
         serviceStateData.copy(

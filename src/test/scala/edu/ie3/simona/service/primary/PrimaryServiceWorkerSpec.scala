@@ -106,7 +106,6 @@ class PrimaryServiceWorkerSpec
     val scheduler = TestProbe[SchedulerMessage]("scheduler")
     val systemParticipant = TestProbe[Any]("dummySystemParticipant")
 
-    val service = new PrimaryServiceWorker()
     implicit val serviceRef: ActorRef[PrimaryDataMessage] =
       testKit.spawn(PrimaryServiceWorker(scheduler.ref))
     implicit val log: Logger =
@@ -114,7 +113,7 @@ class PrimaryServiceWorkerSpec
 
     "refuse instantiation on wrong init data" in {
       val maliciousInitData = WrongInitPrimaryServiceStateData()
-      service.init(maliciousInitData) match {
+      PrimaryServiceWorker.init(maliciousInitData) match {
         case Failure(exception) =>
           exception.getMessage shouldBe "Provided init data 'WrongInitPrimaryServiceStateData' for primary service are invalid!"
         case Success(_) =>
@@ -127,7 +126,7 @@ class PrimaryServiceWorkerSpec
         simulationStart = validInitData.simulationStart.plusHours(1)
       )
 
-      service.init(initData) match {
+      PrimaryServiceWorker.init(initData) match {
         case Failure(exception) =>
           exception.getMessage shouldBe "No appropriate data found within simulation time range in timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5'!"
         case Success(_) =>
@@ -140,7 +139,7 @@ class PrimaryServiceWorkerSpec
         simulationStart = validInitData.simulationStart.minusHours(1)
       )
 
-      service.init(initData) match {
+      PrimaryServiceWorker.init(initData) match {
         case Failure(exception) =>
           exception.getMessage shouldBe "The data for the timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5' starts after the start of this simulation (tick: 3600)! This is not allowed!"
         case Success(_) =>
@@ -163,7 +162,7 @@ class PrimaryServiceWorkerSpec
         fileNamingStrategy = new FileNamingStrategy(),
         timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
       )
-      service.init(maliciousInitData) match {
+      PrimaryServiceWorker.init(maliciousInitData) match {
         case Failure(exception) =>
           exception.getClass shouldBe classOf[IllegalArgumentException]
           exception.getMessage shouldBe "Unable to obtain time series with UUID '3fbfaa97-cff4-46d4-95ba-a95665e87c27'. Please check arguments!"
@@ -173,7 +172,7 @@ class PrimaryServiceWorkerSpec
     }
 
     "be instantiated correctly if faced to valid init data" in {
-      service.init(validInitData) match {
+      PrimaryServiceWorker.init(validInitData) match {
         case Success((stateData, maybeNextTick)) =>
           /* Initialisation was successful. Check state data and triggers, that will be sent to scheduler */
           stateData match {
@@ -262,7 +261,7 @@ class PrimaryServiceWorkerSpec
       val primaryData = ActivePower(Kilowatts(50.0))
       val serviceStateData = validStateData.copy()
 
-      service.announcePrimaryData(
+      PrimaryServiceWorker.announcePrimaryData(
         tick,
         primaryData,
         serviceStateData,
@@ -307,7 +306,7 @@ class PrimaryServiceWorkerSpec
         activationTicks = SortedDistinctSeq(Seq(900L))
       )
 
-      service.processDataAndAnnounce(
+      PrimaryServiceWorker.processDataAndAnnounce(
         tick,
         maliciousValue,
         stateData,
@@ -336,7 +335,7 @@ class PrimaryServiceWorkerSpec
         activationTicks = SortedDistinctSeq(Seq(900L))
       )
 
-      service.processDataAndAnnounce(
+      PrimaryServiceWorker.processDataAndAnnounce(
         tick,
         value,
         serviceStateData,

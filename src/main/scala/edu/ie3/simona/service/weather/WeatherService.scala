@@ -13,23 +13,14 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.Registr
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.{
-  ServiceRegistrationMessage,
-  WrappedActivation,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.ServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData,
-  ServiceConstantStateData,
 }
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.service.weather.WeatherService.{
-  InitWeatherServiceStateData,
-  WeatherInitializedStateData,
-}
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates,
@@ -37,8 +28,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.time.ZonedDateTime
@@ -50,7 +40,9 @@ import scala.util.{Failure, Success, Try}
   * @version 0.1
   * @since 2019-07-28
   */
-object WeatherService {
+object WeatherService extends SimonaService[WeatherMessage] {
+
+  override type S = WeatherInitializedStateData
 
   /** @param weatherSource
     *   weather source to receive information from
@@ -89,29 +81,6 @@ object WeatherService {
   ) extends InitializeServiceStateData
 
   val FALLBACK_WEATHER_STEM_DISTANCE = 3600L
-
-  def apply(
-      scheduler: ActorRef[SchedulerMessage]
-  ): Behavior[WeatherMessage] =
-    Behaviors.withStash(100) { buffer =>
-      Behaviors.setup { ctx =>
-        val activationAdapter: ActorRef[Activation] =
-          ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
-
-        implicit val constantData: ServiceConstantStateData =
-          ServiceConstantStateData(
-            scheduler,
-            activationAdapter,
-          )
-
-        new WeatherService().uninitialized(constantData, buffer)
-      }
-    }
-
-}
-
-private final class WeatherService
-    extends SimonaService[WeatherInitializedStateData, WeatherMessage] {
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks

@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.service
 
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -18,6 +17,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.{
   ServiceRegistrationMessage,
   WrappedActivation,
 }
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -25,12 +25,12 @@ import edu.ie3.simona.service.ServiceStateData.{
   ServiceConstantStateData,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
   StashBuffer,
 }
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
@@ -38,13 +38,34 @@ import scala.util.{Failure, Success, Try}
 /** Abstract description of a service agent, that is able to announce new
   * information to registered participants
   *
-  * @tparam S
-  *   the service specific type of the [[ServiceStateData]]
+  * @tparam T
+  *   the type of messages this service accepts
   */
 abstract class SimonaService[
-    S <: ServiceBaseStateData,
-    T >: ServiceMessageUniversal,
+    T >: ServiceMessageUniversal
 ] {
+
+  /** The service specific type of the [[ServiceStateData]]
+    */
+  type S <: ServiceBaseStateData
+
+  def apply(
+      scheduler: ActorRef[SchedulerMessage],
+      bufferSize: Int = 100,
+  ): Behavior[T] = Behaviors.withStash(bufferSize) { buffer =>
+    Behaviors.setup { ctx =>
+      val activationAdapter: ActorRef[Activation] =
+        ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
+
+      val constantData: ServiceConstantStateData =
+        ServiceConstantStateData(
+          scheduler,
+          activationAdapter,
+        )
+
+      uninitialized(constantData, buffer)
+    }
+  }
 
   /** Receive method that is used before the service is initialized. Represents
     * the state "Uninitialized".
@@ -191,7 +212,8 @@ abstract class SimonaService[
     * @param stateData
     *   the state data of this service
     * @return
-    *   empty behavior to ensure it only is called if it is overridden
+    *   the [[idleExternal()]] behavior as default, to override extend
+    *   [[ExtDataSupport]]
     */
   private[service] def idleExternal(implicit
       stateData: S,

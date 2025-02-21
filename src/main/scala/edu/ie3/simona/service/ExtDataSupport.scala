@@ -10,18 +10,14 @@ import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvResponseMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal
 import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.WrappedExternalMessage
-import edu.ie3.simona.service.ServiceStateData.{
-  ServiceBaseStateData,
-  ServiceConstantStateData,
-}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
+import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 
 trait ExtDataSupport[
-    S <: ServiceBaseStateData,
-    T >: ServiceMessageUniversal,
+    T >: ServiceMessageUniversal
 ] {
-  this: SimonaService[S, T] =>
+  this: SimonaService[T] =>
 
   override private[service] def idleExternal(implicit
       stateData: S,
