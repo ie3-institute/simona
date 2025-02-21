@@ -507,7 +507,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       }
     }
 
-    "calculate the extraterrestrial radiance I0 correctly" in {
+    "calculate the extraterrestrial radiance g0 correctly" in {
       val testCases = Table(
         ("j", "g0Sol"),
         (0d, 1414.91335d), // Jan 1st
@@ -517,10 +517,10 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
       forAll(testCases) { (j, g0Sol) =>
         When("the extraterrestrial radiance is calculated")
-        val I0Calc = pvModel.calcExtraterrestrialRadianceG0(Radians(j))
+        val g0Calc = pvModel.calcExtraterrestrialRadianceG0(Radians(j))
 
         Then("result should match the test data")
-        I0Calc should approximate(WattsPerSquareMeter(g0Sol))
+        g0Calc should approximate(WattsPerSquareMeter(g0Sol))
       }
     }
 
@@ -760,7 +760,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       }
 
       val testCases = Table(
-        ("thetaGDeg", "thetaZDeg", "gammaEDeg", "airMass", "I0", "gDifSSol"),
+        ("thetaGDeg", "thetaZDeg", "gammaEDeg", "airMass", "g0", "gDifSSol"),
         // Reference Duffie 4th ed., p.95
         // I_0 = 5.025 MJ * 277.778 Wh/MJ = 1395.83445 Wh
         // gDifSSol is 0.79607 MJ (0.444 + 0.348 + 0.003) if one only calculates the relevant terms
