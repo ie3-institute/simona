@@ -676,7 +676,7 @@ class PvModel private (
       albedo: Double,
   ): Irradiance = {
     val gammaEInRad = gammaE.toRadians
-    (gBeamH + gDifH) * (albedo * 0.5 * (1 - cos(gammaEInRad)))
+    (gBeamH + gDifH) * albedo * 0.5 * (1 - cos(gammaEInRad))
   }
 
   private def generatorCorrectionFactor(
