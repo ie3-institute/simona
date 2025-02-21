@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant
+package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.PvInput
@@ -13,11 +13,14 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.quantities._
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Irradiance,
+  Kilovoltamperes,
+  WattsPerSquareMeter,
+}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
-import squants.Each
-import squants.energy.Kilowatts
 import squants.space.{Angle, Degrees, Radians}
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units._
@@ -77,19 +80,13 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
   )
 
   // build the PvModel
-  val pvModel: PvModel = PvModel(
-    pvInput,
-    scalingFactor = 1.0d,
-    defaultSimulationStart,
-    defaultSimulationEnd,
-  )
+  val pvModel: PvModel = PvModel(pvInput)
 
   private implicit val angleTolerance: Angle = Radians(1e-10)
   private implicit val irradianceTolerance: Irradiance =
     WattsPerSquareMeter(1e-10)
   private implicit val apparentPowerTolerance: ApparentPower =
     Kilovoltamperes(1e-10)
-  private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
 
   "A PV Model" should {
     "have sMax set to be 10% higher than its sRated" in {
@@ -99,26 +96,6 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
       Then("result should match the test data")
       actualSMax should approximate(expectedSMax)
-    }
-
-    "provide reactive power up to 110% of its rated apparent power" in {
-      val testCases = Table(
-        ("pVal", "qSol"),
-        (9.5d, 0.004601059995959599d), // above sRated (no q limitation)
-        (11d, 0d), // above sMax (limit q becomes active)
-      )
-
-      forAll(testCases) { (pVal, qSol) =>
-        Given("default adjusted voltage of 1 p.u.")
-        val adjustedVoltage = 1
-
-        When("the reactive power is calculated")
-        val qCalc =
-          pvModel.calculateReactivePower(Kilowatts(pVal), Each(adjustedVoltage))
-
-        Then("result should be capped if apparent power exceeds limit")
-        qCalc should approximate(Megavars(qSol))
-      }
     }
 
     "calculate the day angle J correctly" in {
