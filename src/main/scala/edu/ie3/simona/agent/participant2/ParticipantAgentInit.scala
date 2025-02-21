@@ -20,6 +20,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
@@ -55,7 +56,7 @@ object ParticipantAgentInit {
   final case class ParticipantRefs(
       gridAgent: ActorRef[GridAgent.Request],
       primaryServiceProxy: ClassicRef,
-      services: Map[ServiceType, ClassicRef],
+      services: Map[ServiceType, ActorRef[_ >: ServiceMessage]],
       resultListener: Iterable[ActorRef[ResultEvent]],
   )
 
@@ -241,12 +242,14 @@ object ParticipantAgentInit {
         // requiring at least one secondary service, thus send out registrations and wait for replies
         val requiredServices = requiredServiceTypes
           .map(serviceType =>
-            serviceType -> participantRefs.services.getOrElse(
-              serviceType,
-              throw new CriticalFailureException(
-                s"${modelShell.identifier}: Service of type $serviceType is not available."
-              ),
-            )
+            serviceType -> participantRefs.services
+              .getOrElse(
+                serviceType,
+                throw new CriticalFailureException(
+                  s"${modelShell.identifier}: Service of type $serviceType is not available."
+                ),
+              )
+              .toClassic
           )
           .toMap
 
@@ -282,7 +285,7 @@ object ParticipantAgentInit {
 
         Option(geoPosition.getY).zip(Option(geoPosition.getX)) match {
           case Some((lat, lon)) =>
-            serviceRef ! RegisterForWeatherMessage(lat, lon)
+            serviceRef ! RegisterForWeatherMessage(ctx.self, lat, lon)
           case _ =>
             throw new CriticalFailureException(
               s"${modelShell.identifier} cannot register for weather information at " +

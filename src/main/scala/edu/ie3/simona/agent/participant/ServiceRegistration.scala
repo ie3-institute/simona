@@ -114,7 +114,7 @@ trait ServiceRegistration[
               s"is invalid."
           )
       }
-    actorRef ! RegisterForWeatherMessage(lat, lon)
+    actorRef ! RegisterForWeatherMessage(self.toTyped, lat, lon)
   }
 
   /** Register for the EV movement service

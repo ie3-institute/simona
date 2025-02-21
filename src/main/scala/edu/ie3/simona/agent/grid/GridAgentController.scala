@@ -39,7 +39,11 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
-import edu.ie3.simona.ontology.messages.services.EvMessage
+import edu.ie3.simona.ontology.messages.services.{
+  EvMessage,
+  ServiceMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
@@ -332,11 +336,11 @@ class GridAgentController(
       maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantAgent.Request] = {
 
-    val serviceMap: Map[ServiceType, ClassicRef] =
+    val serviceMap: Map[ServiceType, ActorRef[_ >: ServiceMessage]] =
       Seq(
         Some(ServiceType.WeatherService -> environmentRefs.weather),
         environmentRefs.evDataService.map(ref =>
-          ServiceType.EvMovementService -> ref.toClassic
+          ServiceType.EvMovementService -> ref
         ),
       ).flatten.toMap
 
@@ -531,7 +535,7 @@ class GridAgentController(
       pvInput: PvInput,
       modelConfiguration: PvRuntimeConfig,
       primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
+      weatherService: ActorRef[WeatherMessage],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -547,7 +551,7 @@ class GridAgentController(
             pvInput,
             modelConfiguration,
             primaryServiceProxy,
-            Iterable(ActorWeatherService(weatherService)),
+            Iterable(ActorWeatherService(weatherService.toClassic)),
             simulationStartDate,
             simulationEndDate,
             resolution,
@@ -659,7 +663,7 @@ class GridAgentController(
       thermalGrid: ThermalGrid,
       modelConfiguration: HpRuntimeConfig,
       primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
+      weatherService: ActorRef[WeatherMessage],
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
@@ -673,7 +677,7 @@ class GridAgentController(
             thermalGrid,
             modelConfiguration,
             primaryServiceProxy,
-            Iterable(ActorWeatherService(weatherService)),
+            Iterable(ActorWeatherService(weatherService.toClassic)),
             simulationStartDate,
             simulationEndDate,
             resolution,
@@ -721,7 +725,7 @@ class GridAgentController(
       wecInput: WecInput,
       modelConfiguration: WecRuntimeConfig,
       primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
+      weatherService: ActorRef[WeatherMessage],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -737,7 +741,7 @@ class GridAgentController(
             wecInput,
             modelConfiguration,
             primaryServiceProxy,
-            Iterable(ActorWeatherService(weatherService)),
+            Iterable(ActorWeatherService(weatherService.toClassic)),
             simulationStartDate,
             simulationEndDate,
             resolution,

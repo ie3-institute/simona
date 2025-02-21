@@ -139,7 +139,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed some methods and variables within `ThermalGrid` and `ThermalHouse` [#1193](https://github.com/ie3-institute/simona/issues/1193)
 - Replaced Java Durations with Scala Durations [#1068](https://github.com/ie3-institute/simona/issues/1068)
 - Typo and format of `ThermalGrid` and `ThermalHouse` ScalaDocs [#1196](https://github.com/ie3-institute/simona/issues/1196)
-- Converting `ExtEvDataservice` to pekko typed [#1214](https://github.com/ie3-institute/simona/issues/1214)
+- Converting `ExtEvDataService` to pekko typed [#1214](https://github.com/ie3-institute/simona/issues/1214)
+- Converting `WeatherService` to pekko typed [#1216](https://github.com/ie3-institute/simona/issues/1216)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)

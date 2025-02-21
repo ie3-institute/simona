@@ -274,7 +274,7 @@ class HpAgentModelCalculationSpec
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(52.02083574, 7.40110716)
+        RegisterForWeatherMessage(hpAgent.ref.toTyped, 52.02083574, 7.40110716)
       )
 
       /* ... as well as corresponding state and state data */
@@ -375,7 +375,7 @@ class HpAgentModelCalculationSpec
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(52.02083574, 7.40110716)
+        RegisterForWeatherMessage(hpAgent.ref.toTyped, 52.02083574, 7.40110716)
       )
       weatherService.send(
         hpAgent,

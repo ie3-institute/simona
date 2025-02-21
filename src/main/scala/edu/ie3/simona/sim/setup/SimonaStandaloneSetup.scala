@@ -25,11 +25,13 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.{
+  ServiceMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
-import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
@@ -181,20 +183,18 @@ class SimonaStandaloneSetup(
   override def weatherService(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef = {
-    val weatherService = context.toClassic.simonaActorOf(
-      WeatherService.props(
-        scheduler.toClassic,
+  ): ActorRef[WeatherMessage] = {
+    val weatherService = context.spawn(
+      WeatherService(scheduler),
+      "weatherAgent",
+    )
+    weatherService ! ServiceMessage.Create(
+      InitWeatherServiceStateData(
+        simonaConfig.simona.input.weather.datasource,
         TimeUtil.withDefaults
           .toZonedDateTime(simonaConfig.simona.time.startDateTime),
         TimeUtil.withDefaults
           .toZonedDateTime(simonaConfig.simona.time.endDateTime),
-      ),
-      "weatherAgent",
-    )
-    weatherService ! SimonaService.Create(
-      InitWeatherServiceStateData(
-        simonaConfig.simona.input.weather.datasource
       ),
       ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
     )

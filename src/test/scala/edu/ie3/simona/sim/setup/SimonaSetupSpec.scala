@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
@@ -55,7 +56,9 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
   override def weatherService(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef = throw new NotImplementedException("This is a dummy setup")
+  ): ActorRef[WeatherMessage] = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
 
   override def extSimulations(
       context: ActorContext[_],

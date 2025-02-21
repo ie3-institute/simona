@@ -28,8 +28,8 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.RuntimeConfig.PvRuntimeConfig
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
@@ -53,7 +53,7 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{ActorRef, ActorSystem}
 import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import org.apache.pekko.util.Timeout
-import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.energy.{Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 import squants.{Each, Power}
@@ -268,7 +268,7 @@ class PvAgentModelCalculationSpec
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(52.02083574, 7.40110716)
+        RegisterForWeatherMessage(pvAgent.ref.toTyped, 52.02083574, 7.40110716)
       )
 
       /* ... as well as corresponding state and state data */
@@ -367,7 +367,7 @@ class PvAgentModelCalculationSpec
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(52.02083574, 7.40110716)
+        RegisterForWeatherMessage(pvAgent.ref.toTyped, 52.02083574, 7.40110716)
       )
       weatherService.send(
         pvAgent,

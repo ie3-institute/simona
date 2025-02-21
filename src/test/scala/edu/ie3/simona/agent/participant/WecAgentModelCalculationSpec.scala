@@ -245,7 +245,9 @@ class WecAgentModelCalculationSpec
       )
 
       /* Expect a registration message */
-      weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
+      weatherService.expectMsg(
+        RegisterForWeatherMessage(wecAgent.ref.toTyped, 51.4843281, 7.4116482)
+      )
 
       /* ... as well as corresponding state and state data */
       wecAgent.stateName shouldBe HandleInformation
@@ -345,7 +347,9 @@ class WecAgentModelCalculationSpec
       )
 
       /* Expect a registration message */
-      weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
+      weatherService.expectMsg(
+        RegisterForWeatherMessage(wecAgent.ref.toTyped, 51.4843281, 7.4116482)
+      )
       weatherService.send(
         wecAgent,
         RegistrationSuccessfulMessage(weatherService.ref, 900L),
