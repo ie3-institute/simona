@@ -233,7 +233,6 @@ object ParticipantAgent {
         val updatedShell = modelShell
           .updateModelInput(
             inputHandler.getData,
-            inputHandler.getNextDataTick,
             gridAdapter.nodalVoltage,
             request.tick,
           )
@@ -403,7 +402,6 @@ object ParticipantAgent {
         .map(
           _.updateModelInput(
             inputHandler.getData,
-            inputHandler.getNextDataTick,
             gridAdapter.nodalVoltage,
             activation.tick,
           )

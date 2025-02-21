@@ -40,7 +40,6 @@ class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
             dateTime,
             weather.diffIrr,
             weather.dirIrr,
-            Hours(1),
           )
 
           val calc = model.determineOperatingPoint(pvState) match {
