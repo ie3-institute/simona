@@ -21,6 +21,7 @@ import edu.ie3.util.scala.quantities.{
 }
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
+import squants.energy.Megajoules
 import squants.space.{Angle, Degrees, Radians}
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units._
@@ -732,9 +733,6 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
     }
 
     "calculate the estimated diffuse irradiance gDifS correctly" in {
-      def megaJoule2WattHours(megajoule: Double): Double = {
-        megajoule / (3.6 / 1000)
-      }
 
       val testCases = Table(
         ("thetaGDeg", "thetaZDeg", "gammaEDeg", "airMass", "g0", "gDifSSol"),
@@ -742,26 +740,28 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         // I_0 = 5.025 MJ * 277.778 Wh/MJ = 1395.83445 Wh
         // gDifSSol is 0.79607 MJ (0.444 + 0.348 + 0.003) if one only calculates the relevant terms
         // from I_T on p. 96, but Duffie uses fixed f values, so the inaccuracy is fine (approx. 4.5 Wh/m^2 or 0.016 MJ/m^2)
+        // g0 and gDifSol are energies (radiations) in Duffie, but we interpret them as powers (radiances).
         (
           37.0d,
           62.2d,
           60d,
           2.144d,
-          megaJoule2WattHours(5.025),
-          megaJoule2WattHours(0.812140993078191252),
+          Megajoules(5.025).toWattHours,
+          Megajoules(0.812140993078191252).toWattHours,
         ),
       )
 
       forAll(testCases) {
         (thetaGDeg, thetaZDeg, gammaEDeg, airMass, g0, gDifSSol) =>
           // Reference Duffie 4th ed., p.95
+          // gBeamH and gDifH are energies (radiations) in Duffie, but we interpret them as powers (radiances).
           Given("using the input data")
           // Beam irradiance on horizontal surface given a radiation for one hour
           // 0.244 MJ/m^2 = 67.777778 Wh/m^2
-          val gBeamH = megaJoule2WattHours(0.244)
+          val gBeamH = Megajoules(0.244).toWattHours
           // Diffuse irradiance on a horizontal surface given a radiation for one hour
           // 0.796 MJ/m^2 = 221.111111 Wh/m^2
-          val gDifH = megaJoule2WattHours(0.796)
+          val gDifH = Megajoules(0.796).toWattHours
 
           When("the diffuse irradiance is calculated")
           val gDifSCalc = pvModel.calcDiffuseIrradianceOnSlopedSurfacePerez(
