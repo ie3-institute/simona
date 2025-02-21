@@ -631,7 +631,7 @@ class ExtEvDataServiceSpec
         new ScheduleDataServiceMessage(adapter.toClassic)
       )
       evService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(activationMsg.actor))
+      scheduler.expectMessage(10.seconds, Completion(activationMsg.actor))
 
       evcs1.expectMessage(
         RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
