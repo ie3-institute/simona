@@ -90,7 +90,6 @@ object WeatherService {
       sourceDefinition: SimonaConfig.Simona.Input.Weather.Datasource
   ) extends InitializeServiceStateData
 
-  val FALLBACK_WEATHER_STEM_DISTANCE = 3600L
 }
 
 /** Weather Service is responsible to register other actors that require weather

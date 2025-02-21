@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
-import edu.ie3.simona.config.{ArgsParser, GridConfigParser, SimonaConfig}
+import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -319,24 +319,15 @@ class SimonaStandaloneSetup(
       context: ActorContext[_]
   ): Seq[ActorRef[ResultEventListener.Request]] = {
     // append ResultEventListener as well to write raw output files
-    ArgsParser
-      .parseListenerConfigOption(simonaConfig.simona.event.listener)
-      .zipWithIndex
-      .map { case ((listenerCompanion, events), index) =>
-        context.toClassic
-          .simonaActorOf(
-            listenerCompanion.props(events),
-            index.toString,
-          )
-          .toTyped
-      }
-      .toSeq :+ context
-      .spawn(
-        ResultEventListener(
-          resultFileHierarchy
-        ),
-        ResultEventListener.getClass.getSimpleName,
-      )
+    Seq(
+      context
+        .spawn(
+          ResultEventListener(
+            resultFileHierarchy
+          ),
+          ResultEventListener.getClass.getSimpleName,
+        )
+    )
   }
 
   def buildSubGridToActorRefMap(
