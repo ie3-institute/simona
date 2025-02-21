@@ -312,7 +312,7 @@ final case class PvModel private (
     * @param angleJ
     *   The day angle J.
     * @return
-    *   The extraterrestrial irradiance I0.
+    *   The extraterrestrial irradiance G0.
     */
   def calcExtraterrestrialRadianceG0(
       angleJ: Angle
@@ -507,7 +507,7 @@ final case class PvModel private (
     *   The beam irradiance on a horizontal surface.
     * @param airMass
     *   The air mass.
-    * @param extraterrestrialRadianceI0
+    * @param extraterrestrialRadianceG0
     *   The extraterrestrial irradiance.
     * @param thetaZ
     *   The zenith angle.
@@ -523,7 +523,7 @@ final case class PvModel private (
       gDifH: Irradiance,
       gBeamH: Irradiance,
       airMass: Double,
-      extraterrestrialRadianceI0: Irradiance,
+      extraterrestrialRadianceG0: Irradiance,
       thetaZ: Angle,
       thetaG: Angle,
       gammaE: Angle,
@@ -533,7 +533,7 @@ final case class PvModel private (
     val gammaEInRad = gammaE.toRadians
 
     // == brightness index beta  ==//
-    val delta = gDifH * airMass / extraterrestrialRadianceI0
+    val delta = gDifH * airMass / extraterrestrialRadianceG0
 
     // == cloud index epsilon  ==//
     val x = if (gDifH.value.doubleValue > 0) {
