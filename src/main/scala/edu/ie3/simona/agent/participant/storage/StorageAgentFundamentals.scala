@@ -181,7 +181,6 @@ trait StorageAgentFundamentals
         StorageModel,
       ],
       tick: Long,
-      nextDataTick: Option[Long],
   ): StorageRelevantData =
     StorageRelevantData(tick)
 

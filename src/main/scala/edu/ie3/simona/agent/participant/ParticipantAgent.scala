@@ -760,7 +760,6 @@ abstract class ParticipantAgent[
   protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       tick: Long,
-      nextDataTick: Option[Long],
   ): CD
 
   protected def handleFlexCtrl(

@@ -208,7 +208,6 @@ protected trait EvcsAgentFundamentals
         EvcsModel,
       ],
       tick: Long,
-      nextDataTick: Option[Long],
   ): EvcsRelevantData = {
     // always only take arrivals for the current tick
     // or empty sequence if none arrived
@@ -495,10 +494,8 @@ protected trait EvcsAgentFundamentals
       ],
   ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] = {
 
-    val nextDataTick =
-      modelBaseStateData.foreseenDataTicks.values.flatten.minOption
     val relevantData =
-      createCalcRelevantData(modelBaseStateData, tick, nextDataTick)
+      createCalcRelevantData(modelBaseStateData, tick)
 
     val lastState = getLastOrInitialStateData(modelBaseStateData, tick)
 
@@ -552,7 +549,7 @@ protected trait EvcsAgentFundamentals
   }
 
   /** Determine a reply on a
-    * [[edu.ie3.simona.agent.participant2.ParticipantAgent.RequestAssetPowerMessage]]
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
     * by looking up the detailed simulation results, averaging them and
     * returning the equivalent state transition.
     *

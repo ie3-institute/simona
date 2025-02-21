@@ -685,13 +685,11 @@ protected trait ParticipantAgentFundamentals[
 
     implicit val startDateTime: ZonedDateTime = baseStateData.startDate
 
-    val nextDataTick = baseStateData.foreseenDataTicks.values.flatten.minOption
-
-    val relevantData = createCalcRelevantData(
-      baseStateData,
-      tick,
-      nextDataTick,
-    )
+    val relevantData =
+      createCalcRelevantData(
+        baseStateData,
+        tick,
+      )
 
     val lastState = getLastOrInitialStateData(baseStateData, tick)
 
@@ -738,11 +736,9 @@ protected trait ParticipantAgentFundamentals[
         s"Received $flexCtrl, but participant agent is not in EM mode"
       )
     )
-    val nextDataTick = baseStateData.foreseenDataTicks.values.flatten.minOption
     val relevantData = createCalcRelevantData(
       baseStateData,
       flexCtrl.tick,
-      nextDataTick,
     )
     val lastState = getLastOrInitialStateData(baseStateData, flexCtrl.tick)
 
@@ -875,10 +871,8 @@ protected trait ParticipantAgentFundamentals[
       scheduler: ActorRef,
       nodalVoltage: squants.Dimensionless,
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
-    val nextDataTick = baseStateData.foreseenDataTicks.values.flatten.minOption
-
     val calcRelevantData =
-      createCalcRelevantData(baseStateData, currentTick, nextDataTick)
+      createCalcRelevantData(baseStateData, currentTick)
 
     val updatedState =
       updateState(

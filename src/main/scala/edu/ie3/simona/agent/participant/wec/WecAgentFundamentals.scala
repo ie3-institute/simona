@@ -192,7 +192,6 @@ protected trait WecAgentFundamentals
         WecModel,
       ],
       tick: Long,
-      nextDataTick: Option[Long],
   ): WecRelevantData = {
     // take the last weather data, not necessarily the one for the current tick:
     // we might receive flex control messages for irregular ticks
@@ -335,13 +334,12 @@ protected trait WecAgentFundamentals
   ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] = {
     val voltage =
       getAndCheckNodalVoltage(baseStateData, currentTick)
-    val nextDataTick = baseStateData.foreseenDataTicks.values.flatten.minOption
 
-    val relevantData = createCalcRelevantData(
-      baseStateData,
-      currentTick,
-      nextDataTick,
-    )
+    val relevantData =
+      createCalcRelevantData(
+        baseStateData,
+        currentTick,
+      )
 
     val result = baseStateData.model.calculatePower(
       currentTick,
