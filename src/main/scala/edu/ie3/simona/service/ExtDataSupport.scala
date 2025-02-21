@@ -8,22 +8,41 @@ package edu.ie3.simona.service
 
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvResponseMessage
-import edu.ie3.simona.service.ServiceStateData.ServiceBaseStateData
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.WrappedExternalMessage
+import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
+import org.apache.pekko.actor.typed.Behavior
+import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 
+/** Trait that enables handling of external data.
+  * @tparam T
+  *   the type of messages this service accepts
+  */
 trait ExtDataSupport[
-    S <: ServiceBaseStateData
+    T >: ServiceMessage
 ] {
-  this: SimonaService[S] =>
+  this: TypedSimonaService[T] =>
 
-  override def idleExternal(implicit stateData: S): Receive = {
-    case extMsg: DataMessageFromExt =>
+  override private[service] def idleExternal(implicit
+      stateData: S,
+      constantData: ServiceConstantStateData,
+      buffer: StashBuffer[T],
+  ): Behavior[T] = Behaviors.receive {
+    case (_, WrappedExternalMessage(extMsg)) =>
       val updatedStateData = handleDataMessage(extMsg)(stateData)
-      context become idle(updatedStateData)
 
-    case extResponseMsg: EvResponseMessage =>
+      buffer.unstashAll(idle(updatedStateData, constantData, buffer))
+
+    case (_, extResponseMsg: EvResponseMessage) =>
       val updatedStateData =
         handleDataResponseMessage(extResponseMsg)(stateData)
-      context become idle(updatedStateData)
+
+      buffer.unstashAll(idle(updatedStateData, constantData, buffer))
+
+    case (ctx, unsupported) =>
+      ctx.log.warn(s"Received unsupported message: $unsupported!")
+      buffer.stash(unsupported)
+      buffer.unstashAll(idleInternal)
   }
 
   /** Handle a message from outside the simulation

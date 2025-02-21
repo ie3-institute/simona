@@ -26,6 +26,7 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 
 trait ServiceRegistration[
     PD <: PrimaryDataWithComplexPower[PD],
@@ -130,7 +131,7 @@ trait ServiceRegistration[
   ): Unit = {
     inputModel match {
       case evcsInput: EvcsInput =>
-        serviceRef ! RegisterForEvDataMessage(evcsInput.getUuid)
+        serviceRef ! RegisterForEvDataMessage(self.toTyped, evcsInput.getUuid)
       case _ =>
         throw new ServiceRegistrationException(
           s"Cannot register for EV movements information at node ${inputModel.getNode.getId} " +

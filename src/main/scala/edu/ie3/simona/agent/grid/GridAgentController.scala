@@ -39,6 +39,7 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
+import edu.ie3.simona.ontology.messages.services.EvMessage
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
@@ -335,7 +336,7 @@ class GridAgentController(
       Seq(
         Some(ServiceType.WeatherService -> environmentRefs.weather),
         environmentRefs.evDataService.map(ref =>
-          ServiceType.EvMovementService -> ref
+          ServiceType.EvMovementService -> ref.toClassic
         ),
       ).flatten.toMap
 
@@ -594,7 +595,7 @@ class GridAgentController(
       evcsInput: EvcsInput,
       modelConfiguration: EvcsRuntimeConfig,
       primaryServiceProxy: ClassicRef,
-      evMovementsService: ClassicRef,
+      evMovementsService: ActorRef[EvMessage],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -612,7 +613,7 @@ class GridAgentController(
             primaryServiceProxy,
             Iterable(
               ActorExtEvDataService(
-                evMovementsService
+                evMovementsService.toClassic
               )
             ),
             simulationStartDate,

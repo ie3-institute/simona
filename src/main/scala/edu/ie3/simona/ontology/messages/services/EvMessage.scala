@@ -7,8 +7,11 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
 
@@ -16,14 +19,19 @@ sealed trait EvMessage
 
 object EvMessage {
 
+  private[services] trait EvInternal extends EvMessage
+
   /** Indicate the [[edu.ie3.simona.service.ev.ExtEvDataService]] that the
     * requesting agent wants to receive EV movements
     *
+    * @param actorRef
+    *   actor ref for the agent to be registered
     * @param evcs
     *   the charging station
     */
   final case class RegisterForEvDataMessage(
-      evcs: UUID
+      actorRef: ActorRef[ParticipantAgent.Request],
+      evcs: UUID,
   ) extends EvMessage
       with ServiceRegistrationMessage
 
@@ -35,6 +43,8 @@ object EvMessage {
     *   The latest tick that the data is requested for
     */
   final case class EvFreeLotsRequest(tick: Long)
+      extends EvMessage
+      with ParticipantRequest
 
   /** Requests EV models of departing EVs with given UUIDs
     *
@@ -44,6 +54,8 @@ object EvMessage {
     *   The UUIDs of EVs that are requested
     */
   final case class DepartingEvsRequest(tick: Long, departingEvs: Seq[UUID])
+      extends EvMessage
+      with ParticipantRequest
 
   /** Holds arrivals for one charging station
     *

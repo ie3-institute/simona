@@ -266,7 +266,9 @@ class EvcsAgentModelCalculationSpec
       )
 
       /* Expect a registration message */
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
+      evService.expectMsg(
+        RegisterForEvDataMessage(evcsAgent.ref.toTyped, evcsInputModel.getUuid)
+      )
 
       /* ... as well as corresponding state and state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -361,7 +363,9 @@ class EvcsAgentModelCalculationSpec
       )
 
       /* Expect a registration message */
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
+      evService.expectMsg(
+        RegisterForEvDataMessage(evcsAgent.ref.toTyped, evcsInputModel.getUuid)
+      )
       evService.send(
         evcsAgent,
         RegistrationSuccessfulMessage(evService.ref, 900L),
@@ -1123,7 +1127,12 @@ class EvcsAgentModelCalculationSpec
       // only receive registration message. ScheduleFlexRequest after secondary service initialized
       emAgent.expectNoMessage()
 
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModelQv.getUuid))
+      evService.expectMsg(
+        RegisterForEvDataMessage(
+          evcsAgent.ref.toTyped,
+          evcsInputModelQv.getUuid,
+        )
+      )
       evService.send(
         evcsAgent,
         RegistrationSuccessfulMessage(evService.ref, 0),
@@ -1263,7 +1272,12 @@ class EvcsAgentModelCalculationSpec
       )
       emAgent.expectNoMessage()
 
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModelQv.getUuid))
+      evService.expectMsg(
+        RegisterForEvDataMessage(
+          evcsAgent.ref.toTyped,
+          evcsInputModelQv.getUuid,
+        )
+      )
       evService.send(
         evcsAgent,
         RegistrationSuccessfulMessage(evService.ref, 900),
@@ -2086,7 +2100,9 @@ class EvcsAgentModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
+      evService.expectMsg(
+        RegisterForEvDataMessage(evcsAgent.ref.toTyped, evcsInputModel.getUuid)
+      )
       evService.send(
         evcsAgent,
         RegistrationSuccessfulMessage(evService.ref, 0),
