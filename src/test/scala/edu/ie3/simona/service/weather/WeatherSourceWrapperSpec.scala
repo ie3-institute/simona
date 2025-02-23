@@ -424,5 +424,4 @@ object WeatherSourceWrapperSpec {
 
     (weightedWeather, weightSum)
   }
-
 }
