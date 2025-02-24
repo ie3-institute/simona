@@ -83,8 +83,6 @@ object WeatherService extends TypedSimonaService[WeatherMessage] {
       simulationEnd: ZonedDateTime,
   ) extends InitializeServiceStateData
 
-  val FALLBACK_WEATHER_STEM_DISTANCE = 3600L
-
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of

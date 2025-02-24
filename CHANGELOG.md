@@ -139,6 +139,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed some methods and variables within `ThermalGrid` and `ThermalHouse` [#1193](https://github.com/ie3-institute/simona/issues/1193)
 - Replaced Java Durations with Scala Durations [#1068](https://github.com/ie3-institute/simona/issues/1068)
 - Typo and format of `ThermalGrid` and `ThermalHouse` ScalaDocs [#1196](https://github.com/ie3-institute/simona/issues/1196)
+- Refactor `EmRuntimeConfig` [#1181](https://github.com/ie3-institute/simona/issues/1181)
+- Based `PvModel` calculations on irradiance (power per area) instead of irradiation (energy per area) [#1212](https://github.com/ie3-institute/simona/issues/1212)
 - Converting `ExtEvDataService` to pekko typed [#1214](https://github.com/ie3-institute/simona/issues/1214)
 - Converting `WeatherService` to pekko typed [#1216](https://github.com/ie3-institute/simona/issues/1216)
 
@@ -190,6 +192,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move `ScheduleServiceActivation` out of `RegistrationResponseMessage` [#1143](https://github.com/ie3-institute/simona/issues/1143)
 - Check for runningHp when handling infeed to thermalGrid [#1167](https://github.com/ie3-institute/simona/issues/1167)
 - Send `FlexResult` to EM [#1202](https://github.com/ie3-institute/simona/issues/1202)
+- Fix test timeouts for all tests [#1222](https://github.com/ie3-institute/simona/issues/1222)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
