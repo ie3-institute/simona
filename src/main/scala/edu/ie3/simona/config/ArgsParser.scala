@@ -8,8 +8,6 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.event.listener.SimonaListenerCompanion
-import edu.ie3.util.scala.ReflectionTools
 import scopt.{OptionParser => scoptOptionParser}
 
 import java.io.File
@@ -154,43 +152,6 @@ object ArgsParser extends LazyLogging {
 
   private case object SeedNode extends ClusterType {
     override def toString = "worker"
-  }
-
-  /** Parses the given listener configuration tino a map of
-    * [[SimonaListenerCompanion]] to an optional list of it's regarding events
-    * to process
-    *
-    * @param listenerConfigOption
-    *   Option to a list of listener definitions from config
-    * @return
-    *   A mapping from [[SimonaListenerCompanion]] to an Option to a list of
-    *   events to process
-    */
-  def parseListenerConfigOption(
-      listenerConfigOption: Option[List[SimonaConfig.Simona.Event.Listener$Elm]]
-  ): Map[SimonaListenerCompanion, Option[List[String]]] = {
-    listenerConfigOption match {
-      case Some(listenerElems) =>
-        listenerElems.foldLeft(
-          Map.empty[SimonaListenerCompanion, Option[List[String]]]
-        )((listenerMap, listenerElem) =>
-          ReflectionTools
-            .resolveClassNameToCompanion(listenerElem.fullClassPath) match {
-            case Some(listener: SimonaListenerCompanion) =>
-              listenerMap + (listener -> listenerElem.eventsToProcess)
-            case nonListenerCompanion =>
-              logger.warn(
-                s"Invalid value ${nonListenerCompanion.getClass} for 'event.listener' config parameter!"
-              )
-              listenerMap
-          }
-        )
-      case None =>
-        logger.info(
-          "No listener assigned in configuration value 'event.listener'. No event are going to be processed!"
-        )
-        Map.empty[SimonaListenerCompanion, Option[List[String]]]
-    }
   }
 
   /** Prepare the config by parsing the provided program arguments
