@@ -24,7 +24,8 @@ import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
-import squants.energy.{Kilowatts, Power}
+import squants.energy.{Energy, Kilowatts, Power}
+import squants.time.Seconds
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -57,6 +58,7 @@ class MockParticipantModel(
   override val initialState: (Long, ZonedDateTime) => MockState = { (tick, _) =>
     MockState(
       None,
+      zeroKWh,
       tick,
     )
   }
@@ -66,7 +68,15 @@ class MockParticipantModel(
       operatingPoint: ActivePowerOperatingPoint,
       tick: Long,
       simulationTime: ZonedDateTime,
-  ): MockState = lastState.copy(tick = tick)
+  ): MockState = {
+    val energySinceLastState =
+      operatingPoint.activePower * Seconds(tick - lastState.tick)
+
+    lastState.copy(
+      tick = tick,
+      countedEnergy = lastState.countedEnergy + energySinceLastState,
+    )
+  }
 
   override def handleInput(
       state: MockState,
@@ -157,7 +167,7 @@ class MockParticipantModel(
   ): MockState = {
     msg match {
       case MockRequestMessage(_, replyTo) =>
-        replyTo ! MockResponseMessage
+        replyTo ! MockResponseMessage(state.countedEnergy)
     }
 
     state
@@ -167,14 +177,20 @@ class MockParticipantModel(
 
 object MockParticipantModel {
 
-  /** Simple [[ModelState]] to test its usage in operation point calculations
+  /** Simple [[ModelState]] to test its usage in operation point calculations.
+    * Produced and consumed energy is counted in order to test the handling of
+    * states.
     *
     * @param additionalP
     *   Power value that is added to the power or flex options power for testing
     *   purposes
+    * @param countedEnergy
+    *   The counted produced and consumed energy since beginning of the
+    *   simulation
     */
   final case class MockState(
       additionalP: Option[Power],
+      countedEnergy: Energy,
       override val tick: Long,
   ) extends ModelState
 
@@ -187,10 +203,17 @@ object MockParticipantModel {
 
   final case class MockRequestMessage(
       override val tick: Long,
-      replyTo: ActorRef[MockResponseMessage.type],
+      replyTo: ActorRef[MockResponseMessage],
   ) extends ParticipantRequest
 
-  case object MockResponseMessage
+  /** Mock response message that also enables testing of state handling
+    *
+    * @param countedEnergy
+    *   The counted energy per current state
+    */
+  final case class MockResponseMessage(
+      countedEnergy: Energy
+  )
 
   final case class MockSecondaryData(additionalP: Power) extends SecondaryData
 
