@@ -11,6 +11,7 @@ import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent._
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -25,6 +26,7 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import squants.Dimensionless
@@ -82,8 +84,10 @@ object ParticipantAgentInit {
     * @param participantInput
     *   The system participant model input that represents the physical model at
     *   the core of the agent.
-    * @param config
+    * @param runtimeConfig
     *   Runtime configuration that has to match the participant type.
+    * @param notifierConfig
+    *   The result configuration.
     * @param participantRefs
     *   A collection of actor references to actors required for initialization
     *   and operation.
@@ -96,7 +100,8 @@ object ParticipantAgentInit {
     */
   def apply(
       participantInput: SystemParticipantInput,
-      config: BaseRuntimeConfig,
+      runtimeConfig: BaseRuntimeConfig,
+      notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
@@ -135,7 +140,8 @@ object ParticipantAgentInit {
 
     uninitialized(
       participantInput,
-      config,
+      runtimeConfig,
+      notifierConfig,
       participantRefs,
       simulationParams,
       parentData,
@@ -146,21 +152,25 @@ object ParticipantAgentInit {
     */
   private def uninitialized(
       participantInput: SystemParticipantInput,
-      config: BaseRuntimeConfig,
+      runtimeConfig: BaseRuntimeConfig,
+      notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],
-  ): Behavior[Request] = Behaviors.receiveMessagePartial {
+  ): Behavior[Request] = Behaviors.receivePartial {
 
-    case activation: ActivationRequest if activation.tick == INIT_SIM_TICK =>
+    case (ctx, activation: ActivationRequest)
+        if activation.tick == INIT_SIM_TICK =>
       // first, check whether we're just supposed to replay primary data time series
       participantRefs.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        participantInput.getUuid
+        ctx.self.toClassic,
+        participantInput.getUuid,
       )
 
       waitingForPrimaryProxy(
         participantInput,
-        config,
+        runtimeConfig,
+        notifierConfig,
         participantRefs,
         simulationParams,
         parentData,
@@ -173,7 +183,8 @@ object ParticipantAgentInit {
     */
   private def waitingForPrimaryProxy(
       participantInput: SystemParticipantInput,
-      config: BaseRuntimeConfig,
+      runtimeConfig: BaseRuntimeConfig,
+      notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],
@@ -193,11 +204,12 @@ object ParticipantAgentInit {
       completeInitialization(
         ParticipantModelShell.createForPrimaryData(
           participantInput,
-          config,
+          runtimeConfig,
           primaryDataExtra,
           simulationParams.simulationStart,
           simulationParams.simulationEnd,
         ),
+        notifierConfig,
         expectedFirstData,
         participantRefs,
         simulationParams,
@@ -208,7 +220,7 @@ object ParticipantAgentInit {
       // we're _not_ supposed to replay primary data, thus initialize the physical model
       val modelShell = ParticipantModelShell.createForPhysicalModel(
         participantInput,
-        config,
+        runtimeConfig,
         simulationParams.simulationStart,
         simulationParams.simulationEnd,
       )
@@ -219,6 +231,7 @@ object ParticipantAgentInit {
         // not requiring any secondary services, thus we're ready to go
         completeInitialization(
           modelShell,
+          notifierConfig,
           Map.empty,
           participantRefs,
           simulationParams,
@@ -248,6 +261,7 @@ object ParticipantAgentInit {
 
         waitingForServices(
           modelShell,
+          notifierConfig,
           participantRefs,
           simulationParams,
           requiredServices.values.toSet,
@@ -292,6 +306,7 @@ object ParticipantAgentInit {
     */
   private def waitingForServices(
       modelShell: ParticipantModelShell[_, _],
+      notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       expectedRegistrations: Set[ClassicRef],
@@ -314,6 +329,7 @@ object ParticipantAgentInit {
           // all secondary services set up, ready to go
           completeInitialization(
             modelShell,
+            notifierConfig,
             newExpectedFirstData,
             participantRefs,
             simulationParams,
@@ -323,6 +339,7 @@ object ParticipantAgentInit {
           // there's at least one more service to go, let's wait for confirmation
           waitingForServices(
             modelShell,
+            notifierConfig,
             participantRefs,
             simulationParams,
             newExpectedRegistrations,
@@ -336,6 +353,7 @@ object ParticipantAgentInit {
     */
   private def completeInitialization(
       modelShell: ParticipantModelShell[_, _],
+      notifierConfig: NotifierConfig,
       expectedData: Map[ClassicRef, Long],
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
@@ -377,7 +395,10 @@ object ParticipantAgentInit {
         simulationParams.expectedPowerRequestTick,
         simulationParams.requestVoltageDeviationTolerance,
       ),
-      participantRefs.resultListener,
+      ParticipantResultHandler(
+        participantRefs.resultListener,
+        notifierConfig,
+      ),
       parentData,
     )
   }

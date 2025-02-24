@@ -10,14 +10,13 @@ import breeze.numerics.{pow, sqrt}
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
+  ProvidedPowerResponse,
 }
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.{
   PrimaryData,
   PrimaryDataExtra,
 }
-import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
@@ -156,11 +155,14 @@ object ParticipantAgent {
     *   Real part of the complex, dimensionless nodal voltage.
     * @param fInPu
     *   Imaginary part of the complex, dimensionless nodal voltage.
+    * @param replyTo
+    *   Actor reference to send the reply to
     */
   final case class RequestAssetPowerMessage(
       tick: Long,
       eInPu: Dimensionless,
       fInPu: Dimensionless,
+      replyTo: ActorRef[ProvidedPowerResponse],
   ) extends Request
 
   /** Message announcing that calculations by the
@@ -223,7 +225,7 @@ object ParticipantAgent {
       modelShell: ParticipantModelShell[_, _],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
-      resultListener: Iterable[ActorRef[ResultEvent]],
+      resultHandler: ParticipantResultHandler,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] =
     Behaviors.receivePartial {
@@ -240,7 +242,7 @@ object ParticipantAgent {
           updatedShell,
           inputHandler,
           gridAdapter,
-          resultListener,
+          resultHandler,
           parentData,
         )
 
@@ -252,7 +254,7 @@ object ParticipantAgent {
             modelShell,
             coreWithActivation,
             gridAdapter,
-            resultListener,
+            resultHandler,
             parentData,
           )
 
@@ -260,7 +262,7 @@ object ParticipantAgent {
           updatedShell,
           updatedInputHandler,
           updatedGridAdapter,
-          resultListener,
+          resultHandler,
           parentData,
         )
 
@@ -272,7 +274,7 @@ object ParticipantAgent {
             modelShell,
             inputHandlerWithData,
             gridAdapter,
-            resultListener,
+            resultHandler,
             parentData,
           )
 
@@ -280,11 +282,14 @@ object ParticipantAgent {
           updatedShell,
           updatedInputHandler,
           updatedGridAdapter,
-          resultListener,
+          resultHandler,
           parentData,
         )
 
-      case (ctx, RequestAssetPowerMessage(currentTick, eInPu, fInPu)) =>
+      case (
+            ctx,
+            RequestAssetPowerMessage(currentTick, eInPu, fInPu, replyTo),
+          ) =>
         // we do not have to wait for the resulting power of the current tick,
         // since the current power is irrelevant for the average power up until now
 
@@ -310,7 +315,7 @@ object ParticipantAgent {
             "Power result has not been calculated"
           )
         )
-        gridAdapter.gridAgent !
+        replyTo !
           (if (result.newResult) {
              AssetPowerChangedMessage(
                result.avgPower.p,
@@ -327,7 +332,7 @@ object ParticipantAgent {
           modelShell,
           inputHandler,
           updatedGridAdapter,
-          resultListener,
+          resultHandler,
           parentData,
         )
 
@@ -341,7 +346,7 @@ object ParticipantAgent {
             modelShell,
             inputHandler,
             gridAdapterFinished,
-            resultListener,
+            resultHandler,
             parentData,
           )
 
@@ -349,7 +354,7 @@ object ParticipantAgent {
           updatedShell,
           updatedInputHandler,
           updatedGridAdapter,
-          resultListener,
+          resultHandler,
           parentData,
         )
     }
@@ -366,8 +371,8 @@ object ParticipantAgent {
     *   The [[ParticipantInputHandler]].
     * @param gridAdapter
     *   The [[ParticipantGridAdapter]].
-    * @param listener
-    *   The result listeners.
+    * @param resultHandler
+    *   The [[ParticipantResultHandler]].
     * @param parentData
     *   The parent of this [[ParticipantAgent]].
     * @return
@@ -378,7 +383,7 @@ object ParticipantAgent {
       modelShell: ParticipantModelShell[_, _],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
-      listener: Iterable[ActorRef[ResultEvent]],
+      resultHandler: ParticipantResultHandler,
       parentData: Either[SchedulerData, FlexControlledData],
   ): (
       ParticipantModelShell[_, _],
@@ -411,9 +416,7 @@ object ParticipantAgent {
                   val results =
                     newShell.determineResults(tick, gridAdapter.nodalVoltage)
 
-                  results.modelResults.foreach { res =>
-                    listener.foreach(_ ! ParticipantResultEvent(res))
-                  }
+                  results.modelResults.foreach(resultHandler.maybeSend)
 
                   val newGridAdapter =
                     gridAdapter.storePowerValue(results.totalPower, tick)
@@ -443,7 +446,11 @@ object ParticipantAgent {
             case Flex(FlexActivation(tick)) =>
               val shellWithFlex =
                 if (isCalculationRequired(shell, inputHandler)) {
-                  shell.updateFlexOptions(tick)
+                  val newShell = shell.updateFlexOptions(tick)
+                  resultHandler.maybeSend(
+                    newShell.determineFlexOptionsResult(tick)
+                  )
+                  newShell
                 } else
                   shell
 
@@ -461,15 +468,12 @@ object ParticipantAgent {
               val shellWithOP = shell.updateOperatingPoint(flexControl)
 
               // todo we determine results even if no new data arrived, and EM is also activated...
-              val results =
-                shellWithOP.determineResults(
-                  flexControl.tick,
-                  gridAdapter.nodalVoltage,
-                )
+              val results = shellWithOP.determineResults(
+                flexControl.tick,
+                gridAdapter.nodalVoltage,
+              )
 
-              results.modelResults.foreach { res =>
-                listener.foreach(_ ! ParticipantResultEvent(res))
-              }
+              results.modelResults.foreach(resultHandler.maybeSend)
 
               val gridAdapterWithResult =
                 gridAdapter.storePowerValue(
@@ -487,11 +491,17 @@ object ParticipantAgent {
                   throw new CriticalFailureException(
                     "Received issue flex control while not controlled by EM"
                   ),
-                _.emAgent ! FlexCompletion(
-                  shellWithOP.uuid,
-                  changeIndicator.changesAtNextActivation,
-                  changeIndicator.changesAtTick,
-                ),
+                flexData => {
+                  flexData.emAgent ! FlexResult(
+                    shellWithOP.uuid,
+                    results.totalPower,
+                  )
+                  flexData.emAgent ! FlexCompletion(
+                    shellWithOP.uuid,
+                    changeIndicator.changesAtNextActivation,
+                    changeIndicator.changesAtTick,
+                  )
+                },
               )
 
               (shellWithOP, gridAdapterWithResult)

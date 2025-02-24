@@ -7,12 +7,22 @@
 package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.result.system.EmResult
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
-import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
+  ParticipantRefs,
+  SimulationParameters,
+}
 import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
@@ -23,16 +33,12 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
   RegisterForWeatherMessage,
   WeatherData,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -47,10 +53,10 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.testkit.TestActorRef
-import org.scalatest.OptionValues._
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
+import squants.Each
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
@@ -69,7 +75,14 @@ class EmAgentIT
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
   private val resolution =
-    simonaConfig.simona.powerflow.resolution.getSeconds
+    simonaConfig.simona.powerflow.resolution.toSeconds
+
+  private val simulationParams = SimulationParameters(
+    expectedPowerRequestTick = Long.MaxValue,
+    requestVoltageDeviationTolerance = Each(1e-14d),
+    simulationStart = simulationStartDate,
+    simulationEnd = simulationEndDate,
+  )
 
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
@@ -95,11 +108,20 @@ class EmAgentIT
   "An em agent" when {
     "having load, pv and storage agents connected" should {
       "be initialized correctly and run through some activations" in {
+        val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
           TestProbe[ServiceMessage]("PrimaryServiceProxy")
         val weatherService = TestProbe[ServiceMessage]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
+
+        val participantRefs = ParticipantRefs(
+          gridAgent = gridAgent.ref,
+          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
+          services =
+            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          resultListener = Iterable(resultListener.ref),
+        )
 
         val emAgent = spawn(
           EmAgent(
@@ -114,27 +136,14 @@ class EmAgentIT
           "EmAgent",
         )
 
-        val loadAgent = TestActorRef(
-          new FixedLoadAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              loadInput,
-              LoadRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                modelBehaviour = "fix",
-                reference = "power",
-                uuids = List.empty,
-              ),
-              primaryServiceProxy.ref.toClassic,
-              None,
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val loadAgent = spawn(
+          ParticipantAgentInit(
+            loadInput,
+            LoadRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "LoadAgent",
         )
@@ -184,42 +193,30 @@ class EmAgentIT
           "StorageAgent",
         )
 
-        scheduler.expectNoMessage()
+        val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
+        emInitSchedule.tick shouldBe INIT_SIM_TICK
+        val emAgentActivation = emInitSchedule.actor
 
         /* INIT */
 
-        // load
-        loadAgent ! Activation(INIT_SIM_TICK)
+        emAgentActivation ! Activation(INIT_SIM_TICK)
 
+        // load
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            loadAgent.ref.toClassic,
+            loadInput.getUuid,
+          )
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
-        // the order of the two messages is not given
-        val emAgentActivation = scheduler
-          .receiveMessages(2)
-          .flatMap {
-            case Completion(ref, maybeNewTick) =>
-              ref shouldBe loadAgent.toTyped
-              maybeNewTick shouldBe None
-              None
-            case ScheduleActivation(ref, tick, unlockKey) =>
-              // em agent schedules itself
-              tick shouldBe 0
-              unlockKey shouldBe None
-              Some(ref)
-            case unexpected =>
-              fail(s"Received unexpected message $unexpected")
-          }
-          .headOption
-          .value
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         // pv
         pvAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvInput.getUuid)
+          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
         )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -233,7 +230,7 @@ class EmAgentIT
 
         pvAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L),
+          0L,
         )
 
         scheduler.expectMessage(Completion(pvAgent))
@@ -242,7 +239,10 @@ class EmAgentIT
         storageAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(householdStorageInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            storageAgent.ref,
+            householdStorageInput.getUuid,
+          )
         )
         storageAgent ! RegistrationFailedMessage(
           primaryServiceProxy.ref.toClassic
@@ -260,7 +260,7 @@ class EmAgentIT
 
         emAgentActivation ! Activation(0)
 
-        pvAgent ! ProvideWeatherMessage(
+        pvAgent ! DataProvision(
           0,
           weatherService.ref.toClassic,
           WeatherData(
@@ -296,7 +296,7 @@ class EmAgentIT
 
         emAgentActivation ! Activation(7200)
 
-        pvAgent ! ProvideWeatherMessage(
+        pvAgent ! DataProvision(
           7200,
           weatherService.ref.toClassic,
           WeatherData(
@@ -352,7 +352,7 @@ class EmAgentIT
 
         // send weather data before activation, which can happen
         // it got cloudy now...
-        pvAgent ! ProvideWeatherMessage(
+        pvAgent ! DataProvision(
           14400,
           weatherService.ref.toClassic,
           WeatherData(
@@ -383,11 +383,20 @@ class EmAgentIT
 
     "having load, pv and heat pump agents connected" should {
       "be initialized correctly and run through some activations" in {
+        val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
           TestProbe[ServiceMessage]("PrimaryServiceProxy")
         val weatherService = TestProbe[ServiceMessage]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
+
+        val participantRefs = ParticipantRefs(
+          gridAgent = gridAgent.ref,
+          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
+          services =
+            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          resultListener = Iterable(resultListener.ref),
+        )
 
         val emAgent = spawn(
           EmAgent(
@@ -402,27 +411,14 @@ class EmAgentIT
           "EmAgent1",
         )
 
-        val loadAgent = TestActorRef(
-          new FixedLoadAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              loadInput,
-              LoadRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                modelBehaviour = "fix",
-                reference = "power",
-                uuids = List.empty,
-              ),
-              primaryServiceProxy.ref.toClassic,
-              None,
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val loadAgent = spawn(
+          ParticipantAgentInit(
+            loadInput,
+            LoadRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "LoadAgent1",
         )
@@ -473,42 +469,30 @@ class EmAgentIT
           "HeatPumpAgent1",
         )
 
-        scheduler.expectNoMessage()
+        val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
+        emInitSchedule.tick shouldBe INIT_SIM_TICK
+        val emAgentActivation = emInitSchedule.actor
 
         /* INIT */
 
-        // load
-        loadAgent ! Activation(INIT_SIM_TICK)
+        emAgentActivation ! Activation(INIT_SIM_TICK)
 
+        // load
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            loadAgent.ref.toClassic,
+            loadInput.getUuid,
+          )
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
-        // the order of the two messages is not given
-        val emAgentActivation = scheduler
-          .receiveMessages(2)
-          .flatMap {
-            case Completion(ref, maybeNewTick) =>
-              ref shouldBe loadAgent.toTyped
-              maybeNewTick shouldBe None
-              None
-            case ScheduleActivation(ref, tick, unlockKey) =>
-              // em agent schedules itself
-              tick shouldBe 0
-              unlockKey shouldBe None
-              Some(ref)
-            case unexpected =>
-              fail(s"Received unexpected message $unexpected")
-          }
-          .headOption
-          .value
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         // pv
         pvAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvInput.getUuid)
+          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
         )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -522,7 +506,7 @@ class EmAgentIT
 
         pvAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L),
+          0L,
         )
 
         scheduler.expectMessage(Completion(pvAgent))
@@ -531,7 +515,10 @@ class EmAgentIT
         heatPumpAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(adaptedHpInputModel.getUuid)
+          PrimaryServiceRegistrationMessage(
+            heatPumpAgent.ref,
+            adaptedHpInputModel.getUuid,
+          )
         )
         heatPumpAgent ! RegistrationFailedMessage(
           primaryServiceProxy.ref.toClassic
@@ -546,7 +533,7 @@ class EmAgentIT
 
         heatPumpAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L),
+          0L,
         )
 
         scheduler.expectMessage(Completion(heatPumpAgent))
@@ -564,7 +551,7 @@ class EmAgentIT
         emAgentActivation ! Activation(0)
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             0,
             weatherService.ref.toClassic,
             WeatherData(
@@ -602,7 +589,7 @@ class EmAgentIT
         emAgentActivation ! Activation(7200)
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             7200,
             weatherService.ref.toClassic,
             WeatherData(
@@ -641,7 +628,7 @@ class EmAgentIT
 
         // it got cloudy now...
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             14400,
             weatherService.ref.toClassic,
             WeatherData(
@@ -679,7 +666,7 @@ class EmAgentIT
         emAgentActivation ! Activation(21600)
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             21600,
             weatherService.ref.toClassic,
             WeatherData(

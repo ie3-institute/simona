@@ -7,89 +7,139 @@
 package edu.ie3.simona.model.participant2.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.result.system.{
+  LoadResult,
+  SystemParticipantResult,
+}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  FixedState,
+  ModelState,
 }
+import edu.ie3.simona.model.participant2.load.profile.ProfileLoadModel
+import edu.ie3.simona.model.participant2.load.random.RandomLoadModel
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.PowerSystemUnits.{KILOVOLTAMPERE, KILOWATTHOUR}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import squants.energy.KilowattHours
+import squants.{Energy, Power}
 
 import java.time.ZonedDateTime
-import java.util.UUID
 
-class LoadModel private (
-    override val uuid: UUID,
-    override val id: String,
-    override val sRated: ApparentPower,
-    override val cosPhiRated: Double,
-    override val qControl: QControl,
-) extends ParticipantModel[
+abstract class LoadModel[S <: ModelState]
+    extends ParticipantModel[
       ActivePowerOperatingPoint,
-      FixedState,
+      S,
     ]
-    with ParticipantSimpleFlexibility[FixedState] {
+    with ParticipantSimpleFlexibility[S] {
 
   override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
     ActivePowerOperatingPoint.zero
 
   override def createResults(
-      state: FixedState,
+      state: S,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: ComplexPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] =
-    throw new NotImplementedError("Dummy implementation")
+    Iterable(
+      new LoadResult(
+        dateTime,
+        uuid,
+        complexPower.p.toMegawatts.asMegaWatt,
+        complexPower.q.toMegavars.asMegaVar,
+      )
+    )
 
   override def createPrimaryDataResult(
       data: PrimaryDataWithComplexPower[_],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
-    throw new NotImplementedError("Dummy implementation")
+    new LoadResult(
+      dateTime,
+      uuid,
+      data.p.toMegawatts.asMegaWatt,
+      data.q.toMegavars.asMegaVar,
+    )
 
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable.empty
 
-  override val initialState: ParticipantModel.ModelInput => FixedState =
-    _ => FixedState(-1)
-
-  override def determineState(
-      lastState: FixedState,
-      operatingPoint: ActivePowerOperatingPoint,
-      input: ParticipantModel.ModelInput,
-  ): FixedState = throw new NotImplementedError("Dummy implementation")
-
-  override def determineOperatingPoint(
-      state: FixedState
-  ): (ActivePowerOperatingPoint, Option[Long]) = throw new NotImplementedError(
-    "Dummy implementation"
-  )
 }
 
 object LoadModel {
 
-  def apply(
-      input: LoadInput
-  ): LoadModel =
-    new LoadModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
-      input.getCosPhiRated,
-      QControl(input.getqCharacteristics),
+  /** Calculates the scaling factor and scaled rated apparent power according to
+    * the reference type
+    *
+    * @param referenceType
+    *   The type of reference according to which scaling is calculated
+    * @param input
+    *   The [[LoadInput]] of the model
+    * @param maxPower
+    *   The maximum power consumption possible for the model
+    * @param referenceEnergy
+    *   The (annual) reference energy relevant to the load model
+    * @return
+    *   the reference scaling factor used for calculation of specific power
+    *   consumption values and the scaled rated apparent power
+    */
+  def scaleToReference(
+      referenceType: LoadReferenceType.Value,
+      input: LoadInput,
+      maxPower: Power,
+      referenceEnergy: Energy,
+  ): (Double, ApparentPower) = {
+    val sRated = Kilovoltamperes(
+      input.getsRated
+        .to(KILOVOLTAMPERE)
+        .getValue
+        .doubleValue
     )
+    val eConsAnnual = KilowattHours(
+      input.geteConsAnnual().to(KILOWATTHOUR).getValue.doubleValue
+    )
+
+    val referenceScalingFactor = referenceType match {
+      case LoadReferenceType.ACTIVE_POWER =>
+        val pRated = sRated.toActivePower(input.getCosPhiRated)
+        pRated / maxPower
+      case LoadReferenceType.ENERGY_CONSUMPTION =>
+        eConsAnnual / referenceEnergy
+    }
+
+    val scaledSRated = referenceType match {
+      case LoadReferenceType.ACTIVE_POWER =>
+        sRated
+      case LoadReferenceType.ENERGY_CONSUMPTION =>
+        val maxApparentPower = Kilovoltamperes(
+          maxPower.toKilowatts / input.getCosPhiRated
+        )
+        maxApparentPower * referenceScalingFactor
+    }
+
+    (referenceScalingFactor, scaledSRated)
+  }
+
+  def apply(
+      input: LoadInput,
+      config: LoadRuntimeConfig,
+  ): LoadModel[_ <: ModelState] = {
+    LoadModelBehaviour(config.modelBehaviour) match {
+      case LoadModelBehaviour.FIX =>
+        FixedLoadModel(input, config)
+      case LoadModelBehaviour.PROFILE =>
+        ProfileLoadModel(input, config)
+      case LoadModelBehaviour.RANDOM =>
+        RandomLoadModel(input, config)
+    }
+  }
 }
