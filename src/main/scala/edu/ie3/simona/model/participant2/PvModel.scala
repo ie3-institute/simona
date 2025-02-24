@@ -61,14 +61,14 @@ class PvModel private (
     with LazyLogging {
 
   /** Override sMax as the power output of a pv unit could become easily up to
-    * 10% higher than the sRated value found in the technical sheets
+    * 10% higher than the sRated value found in the technical sheets.
     */
   val sMax: ApparentPower = sRated * 1.1
 
-  /** Permissible maximum active power feed in (therefore negative) */
+  /** Permissible maximum active power feed in (therefore negative). */
   protected val pMax: Power = sMax.toActivePower(cosPhiRated) * -1
 
-  /** Reference yield at standard testing conditions (STC) */
+  /** Reference yield at standard testing conditions (STC). */
   private val yieldSTC = WattsPerSquareMeter(1000d)
 
   private val activationThreshold =
@@ -76,10 +76,10 @@ class PvModel private (
 
   override val initialState: ModelInput => PvState = { input =>
     val weatherData = getWeatherData(input.receivedData)
+
     PvState(
       input.currentTick,
       input.currentSimulationTime,
-      ???,
       weatherData.diffIrr,
       weatherData.dirIrr,
     )
@@ -103,31 +103,21 @@ class PvModel private (
       }
   }
 
-  /** Calculate the active power behaviour of the model
+  /** Calculate the active power behaviour of the model.
     *
     * @param state
-    *   The current state including weather data
+    *   The current state including weather data.
     * @return
-    *   Active power
+    *   The active power.
     */
   override def determineOperatingPoint(
       state: PvState
   ): (ActivePowerOperatingPoint, Option[Long]) = {
-    // === Weather Base Data  === //
-    /* The pv model calculates the power in-feed based on the solar irradiance that is received over a specific
-     * time frame (which actually is the solar irradiation). Hence, a multiplication with the time frame within
-     * this irradiance is received is required. */
-    val duration: Time = Seconds(state.weatherDataFrameLength)
+    // Irradiance on a horizontal surface
+    val gBeamH = state.dirIrradiance
+    val gDifH = state.diffIrradiance
 
-    // eBeamH and eDifH needs to be extract to their double values in some places
-    // hence a conversion to watt-hour per square meter is required, to avoid
-    // invalid double value extraction!
-    val eBeamH =
-      state.dirIrradiance * duration
-    val eDifH =
-      state.diffIrradiance * duration
-
-    // === Beam Radiation Parameters  === //
+    // === Beam irradiance parameters  === //
     val angleJ = calcAngleJ(state.dateTime)
     val delta = calcSunDeclinationDelta(angleJ)
 
@@ -142,9 +132,9 @@ class PvModel private (
 
     val omegas = calculateBeamOmegas(thetaG, omega, omegaSS, omegaSR)
 
-    // === Beam Radiation ===//
-    val eBeamS = calcBeamRadiationOnSlopedSurface(
-      eBeamH,
+    // === Beam irradiance ===//
+    val gBeamS = calcBeamIrradianceOnSlopedSurface(
+      gBeamH,
       omegas,
       delta,
       lat,
@@ -152,34 +142,33 @@ class PvModel private (
       alphaE,
     )
 
-    // === Diffuse Radiation Parameters ===//
+    // === Diffuse irradiance parameters ===//
     val thetaZ = calcZenithAngleThetaZ(alphaS)
     val airMass = calcAirMass(thetaZ)
-    val extraterrestrialRadiationI0 = calcExtraterrestrialRadiationI0(angleJ)
+    val g0 = calcExtraterrestrialRadianceG0(angleJ)
 
-    // === Diffuse Radiation ===//
-    val eDifS = calcDiffuseRadiationOnSlopedSurfacePerez(
-      eDifH,
-      eBeamH,
+    // === Diffuse irradiance ===//
+    val gDifS = calcDiffuseIrradianceOnSlopedSurfacePerez(
+      gDifH,
+      gBeamH,
       airMass,
-      extraterrestrialRadiationI0,
+      g0,
       thetaZ,
       thetaG,
       gammaE,
     )
 
-    // === Reflected Radiation ===//
-    val eRefS =
-      calcReflectedRadiationOnSlopedSurface(eBeamH, eDifH, gammaE, albedo)
+    // === Reflected irradiance ===//
+    val gRefS =
+      calcReflectedIrradianceOnSlopedSurface(gBeamH, gDifH, gammaE, albedo)
 
-    // === Total Radiation ===//
-    val eTotal = eDifS + eBeamS + eRefS
+    // === Total irradiance ===//
+    val gTotal = gDifS + gBeamS + gRefS
 
-    val irraditionSTC = yieldSTC * duration
     val power = calcOutput(
-      eTotal,
+      gTotal,
       state.dateTime,
-      irraditionSTC,
+      yieldSTC,
     )
 
     (ActivePowerOperatingPoint(power), None)
@@ -189,12 +178,12 @@ class PvModel private (
     ActivePowerOperatingPoint.zero
 
   /** Calculates the position of the earth in relation to the sun (day angle)
-    * for the provided time
+    * for the provided time.
     *
     * @param time
-    *   the time
+    *   The time.
     * @return
-    *   day angle J
+    *   The day angle J.
     */
   def calcAngleJ(time: ZonedDateTime): Angle = {
     val day = time.getDayOfYear // day of the year
@@ -208,9 +197,9 @@ class PvModel private (
     * of the position of the sun". Appl. Opt. 1971, 10, 2569–2571
     *
     * @param angleJ
-    *   day angle J
+    *   The day angle J.
     * @return
-    *   declination angle
+    *   The declination angle.
     */
   def calcSunDeclinationDelta(
       angleJ: Angle
@@ -232,13 +221,13 @@ class PvModel private (
     * on its axis at 15◦ per hour; morning negative, afternoon positive.
     *
     * @param time
-    *   the requested time (which is transformed to solar time)
+    *   The requested time (which is transformed to solar time).
     * @param angleJ
-    *   day angle J
+    *   The day angle J.
     * @param longitude
-    *   longitude of the position
+    *   The longitude of the position.
     * @return
-    *   hour angle omega
+    *   The hour angle omega.
     */
   def calcHourAngleOmega(
       time: ZonedDateTime,
@@ -264,11 +253,11 @@ class PvModel private (
     * omegaSS.
     *
     * @param latitude
-    *   latitude of the position
+    *   The latitude of the position.
     * @param delta
-    *   sun declination angle
+    *   The sun declination angle.
     * @return
-    *   sunset angle omegaSS
+    *   The sunset angle omegaSS.
     */
   def calcSunsetAngleOmegaSS(
       latitude: Angle,
@@ -290,13 +279,13 @@ class PvModel private (
     * the zenith angle.
     *
     * @param omega
-    *   hour angle
+    *   The hour angle.
     * @param delta
-    *   sun declination angle
+    *   The sun declination angle.
     * @param latitude
-    *   latitude of the position
+    *   The latitude of the position.
     * @return
-    *   solar altitude angle alphaS
+    *   The solar altitude angle alphaS.
     */
   def calcSolarAltitudeAngleAlphaS(
       omega: Angle,
@@ -320,7 +309,7 @@ class PvModel private (
 
   /** Calculates the zenith angle thetaG which represents the angle between the
     * vertical and the line to the sun, that is, the angle of incidence of beam
-    * radiation on a horizontal surface.
+    * irradiance on a horizontal surface.
     *
     * @param alphaS
     *   sun altitude angle
@@ -337,13 +326,13 @@ class PvModel private (
   }
 
   /** Calculates the ratio of the mass of atmosphere through which beam
-    * radiation passes to the mass it would pass through if the sun were at the
+    * irradiance passes to the mass it would pass through if the sun were at the
     * zenith (i.e., directly overhead).
     *
     * @param thetaZ
-    *   zenith angle
+    *   The zenith angle.
     * @return
-    *   air mass
+    *   The air mass.
     */
   def calcAirMass(thetaZ: Angle): Double = {
     val thetaZInRad = thetaZ.toRadians
@@ -360,17 +349,17 @@ class PvModel private (
     ) - airMassRatio * cos(thetaZInRad)
   }
 
-  /** Calculates the extraterrestrial radiation, that is, the radiation that
+  /** Calculates the extraterrestrial irradiance, that is, the irradiance that
     * would be received in the absence of the atmosphere.
     *
     * @param angleJ
-    *   day angle J
+    *   The day angle J.
     * @return
-    *   extraterrestrial radiation I0
+    *   The extraterrestrial irradiance G0.
     */
-  def calcExtraterrestrialRadiationI0(
+  def calcExtraterrestrialRadianceG0(
       angleJ: Angle
-  ): Irradiation = {
+  ): Irradiance = {
     val jInRad = angleJ.toRadians
 
     // eccentricity correction factor
@@ -381,27 +370,27 @@ class PvModel private (
       0.000077 * sin(2d * jInRad)
 
     // solar constant in W/m2
-    val Gsc = WattHoursPerSquareMeter(1367) // solar constant
-    Gsc * e0
+    val gSc = WattsPerSquareMeter(1367) // solar constant
+    gSc * e0
   }
 
-  /** Calculates the angle of incidence thetaG of beam radiation on a surface
+  /** Calculates the angle of incidence thetaG of beam irradiance on a surface.
     *
     * @param delta
-    *   sun declination angle
+    *   The sun declination angle.
     * @param latitude
-    *   latitude of the position
+    *   The latitude of the position.
     * @param gammaE
-    *   slope angle (the angle between the plane of the surface in question and
-    *   the horizontal)
+    *   The slope angle (the angle between the plane of the surface in question
+    *   and the horizontal).
     * @param alphaE
-    *   surface azimuth angle (the deviation of the projection on a horizontal
-    *   plane of the normal to the surface from the local meridian, with zero
-    *   due south, east negative, and west positive)
+    *   The surface azimuth angle (the deviation of the projection on a
+    *   horizontal plane of the normal to the surface from the local meridian,
+    *   with zero due south, east negative, and west positive).
     * @param omega
-    *   hour angle
+    *   The hour angle.
     * @return
-    *   angle of incidence thetaG
+    *   The angle of incidence thetaG.
     */
   def calcAngleOfIncidenceThetaG(
       delta: Angle,
@@ -429,19 +418,19 @@ class PvModel private (
   }
 
   /** Calculates omega1 and omega2, which are parameters for
-    * calcBeamRadiationOnSlopedSurface
+    * calcBeamIrradianceOnSlopedSurface
     *
     * @param thetaG
-    *   angle of incidence
+    *   The angle of incidence.
     * @param omega
-    *   hour angle
+    *   The hour angle.
     * @param omegaSS
-    *   sunset angle
+    *   The sunset angle.
     * @param omegaSR
-    *   sunrise angle
+    *   The sunrise angle.
     * @return
-    *   omega1 and omega encapsulated in an Option, if applicable. None
-    *   otherwise
+    *   The omega1 and omega encapsulated in an Option, if applicable. None
+    *   otherwise.
     */
   def calculateBeamOmegas(
       thetaG: Angle,
@@ -460,7 +449,7 @@ class PvModel private (
     val omega2InRad = omega1InRad + omegaOneHour // requested hour plus 1 hour
 
     // (thetaG < 90°): sun is visible
-    // (thetaG > 90°), otherwise: sun is behind the surface  -> no direct radiation
+    // (thetaG > 90°), otherwise: sun is behind the surface  -> no direct irradiance
     if (
       thetaGInRad < toRadians(90)
       // omega1 and omega2: sun has risen and has not set yet
@@ -484,34 +473,34 @@ class PvModel private (
       None
   }
 
-  /** Calculates the beam radiation on a sloped surface
+  /** Calculates the beam irradiance on a sloped surface.
     *
-    * @param eBeamH
-    *   beam radiation on a horizontal surface
+    * @param gBeamH
+    *   The beam irradiance on a horizontal surface.
     * @param omegas
-    *   omega1 and omega2
+    *   Omega1 and omega2.
     * @param delta
-    *   sun declination angle
+    *   The sun declination angle.
     * @param latitude
-    *   latitude of the position
+    *   The latitude of the position.
     * @param gammaE
-    *   slope angle (the angle between the plane of the surface in question and
-    *   the horizontal)
+    *   The slope angle (the angle between the plane of the surface in question
+    *   and the horizontal).
     * @param alphaE
-    *   surface azimuth angle (the deviation of the projection on a horizontal
-    *   plane of the normal to the surface from the local meridian, with zero
-    *   due south, east negative, and west positive)
+    *   The surface azimuth angle (the deviation of the projection on a
+    *   horizontal plane of the normal to the surface from the local meridian,
+    *   with zero due south, east negative, and west positive).
     * @return
-    *   the beam radiation on the sloped surface
+    *   The beam irradiance on the sloped surface.
     */
-  def calcBeamRadiationOnSlopedSurface(
-      eBeamH: Irradiation,
+  def calcBeamIrradianceOnSlopedSurface(
+      gBeamH: Irradiance,
       omegas: Option[(Angle, Angle)],
       delta: Angle,
       latitude: Angle,
       gammaE: Angle,
       alphaE: Angle,
-  ): Irradiation = {
+  ): Irradiance = {
 
     omegas match {
       case Some((omega1, omega2)) =>
@@ -543,61 +532,60 @@ class PvModel private (
 
         // in rare cases (close to sunrise) r can become negative (although very small)
         val r = max(a / b, 0d)
-        eBeamH * r
-      case None => WattHoursPerSquareMeter(0d)
+        gBeamH * r
+      case None => WattsPerSquareMeter(0d)
     }
   }
 
-  /** Calculates the diffuse radiation on a sloped surface based on the model of
-    * Perez et al.
+  /** Calculates the diffuse irradiance on a sloped surface based on the model
+    * of Perez et al.
     *
     * <p>Formula taken from Perez, R., P. Ineichen, R. Seals, J. Michalsky, and
     * R. Stewart, "Modeling Daylight Availability and Irradiance Components from
     * Direct and Global Irradiance". Solar Energy, 44, 271 (1990).
     *
-    * @param eDifH
-    *   diffuse radiation on a horizontal surface
-    * @param eBeamH
-    *   beam radiation on a horizontal surface
+    * @param gDifH
+    *   The diffuse irradiance on a horizontal surface.
+    * @param gBeamH
+    *   The beam irradiance on a horizontal surface.
     * @param airMass
-    *   the air mass
-    * @param extraterrestrialRadiationI0
-    *   extraterrestrial radiation
+    *   The air mass.
+    * @param extraterrestrialRadianceG0
+    *   The extraterrestrial irradiance.
     * @param thetaZ
-    *   zenith angle
+    *   The zenith angle.
     * @param thetaG
-    *   angle of incidence
+    *   The angle of incidence.
     * @param gammaE
-    *   slope angle (the angle between the plane of the surface in question and
-    *   the horizontal)
+    *   The slope angle (the angle between the plane of the surface in question
+    *   and the horizontal).
     * @return
-    *   the diffuse radiation on the sloped surface
+    *   The diffuse irradiance on the sloped surface.
     */
-  def calcDiffuseRadiationOnSlopedSurfacePerez(
-      eDifH: Irradiation,
-      eBeamH: Irradiation,
+  def calcDiffuseIrradianceOnSlopedSurfacePerez(
+      gDifH: Irradiance,
+      gBeamH: Irradiance,
       airMass: Double,
-      extraterrestrialRadiationI0: Irradiation,
+      extraterrestrialRadianceG0: Irradiance,
       thetaZ: Angle,
       thetaG: Angle,
       gammaE: Angle,
-  ): Irradiation = {
+  ): Irradiance = {
     val thetaZInRad = thetaZ.toRadians
     val thetaGInRad = thetaG.toRadians
     val gammaEInRad = gammaE.toRadians
 
-    // == brightness index delta  ==//
-    val delta = eDifH * airMass / extraterrestrialRadiationI0
+    // == brightness index beta  ==//
+    val delta = gDifH * airMass / extraterrestrialRadianceG0
 
     // == cloud index epsilon  ==//
-    // if we have no clouds,  the epsilon bin is 8, as epsilon bin for an epsilon in [6.2, inf.[ = 8
-    val x = if (eDifH.value.doubleValue > 0) {
-      // if we have diffuse radiation on horizontal surface we have to consider
+    val x = if (gDifH.value.doubleValue > 0) {
+      // if we have diffuse irradiance on horizontal surface we have to consider
       // the clearness parameter epsilon, which then gives us an epsilon bin x
 
-      // Beam radiation is required on a plane normal to the beam direction (normal incidence),
+      // Beam irradiance is required on a plane normal to the beam direction (normal incidence),
       // thus dividing by cos theta_z
-      var epsilon = ((eDifH + eBeamH / cos(thetaZInRad)) / eDifH +
+      var epsilon = ((gDifH + gBeamH / cos(thetaZInRad)) / gDifH +
         (5.535d * 1.0e-6) * pow(
           thetaZ.toDegrees,
           3,
@@ -659,36 +647,36 @@ class PvModel private (
     val aPerez = max(0, cos(thetaGInRad))
     val bPerez = max(cos(1.4835298641951802), cos(thetaZInRad))
 
-    // finally calculate the diffuse radiation on an inclined surface
-    eDifH * (
+    // finally calculate the diffuse irradiance on an inclined surface
+    gDifH * (
       ((1 + cos(gammaEInRad)) / 2) * (1 - f1) +
         (f1 * (aPerez / bPerez)) +
         (f2 * sin(gammaEInRad))
     )
   }
 
-  /** Calculates the reflected radiation on a sloped surface
+  /** Calculates the reflected irradiance on a sloped surface.
     *
-    * @param eBeamH
-    *   beam radiation on a horizontal surface
-    * @param eDifH
-    *   diffuse radiation on a horizontal surface
+    * @param gBeamH
+    *   The beam irradiance on a horizontal surface.
+    * @param gDifH
+    *   The diffuse irradiance on a horizontal surface.
     * @param gammaE
-    *   slope angle (the angle between the plane of the surface in question and
-    *   the horizontal)
+    *   The slope angle (the angle between the plane of the surface in question
+    *   and the horizontal).
     * @param albedo
-    *   albedo / "composite" ground reflection
+    *   The albedo / "composite" ground reflection.
     * @return
-    *   the reflected radiation on the sloped surface eRefS
+    *   The reflected irradiance on the sloped surface eRefS.
     */
-  def calcReflectedRadiationOnSlopedSurface(
-      eBeamH: Irradiation,
-      eDifH: Irradiation,
+  def calcReflectedIrradianceOnSlopedSurface(
+      gBeamH: Irradiance,
+      gDifH: Irradiance,
       gammaE: Angle,
       albedo: Double,
-  ): Irradiation = {
+  ): Irradiance = {
     val gammaEInRad = gammaE.toRadians
-    (eBeamH + eDifH) * (albedo * 0.5 * (1 - cos(gammaEInRad)))
+    (gBeamH + gDifH) * albedo * 0.5 * (1 - cos(gammaEInRad))
   }
 
   private def generatorCorrectionFactor(
@@ -725,9 +713,9 @@ class PvModel private (
   }
 
   private def calcOutput(
-      eTotalInWhPerSM: Irradiation,
+      gTotal: Irradiance,
       time: ZonedDateTime,
-      irradiationSTC: Irradiation,
+      irradianceSTC: Irradiance,
   ): Power = {
     val genCorr = generatorCorrectionFactor(time, gammaE)
     val tempCorr = temperatureCorrectionFactor(time)
@@ -735,12 +723,11 @@ class PvModel private (
      * area. The yield also takes care of generator and temperature correction factors as well as the converter's
      * efficiency */
     val actYield =
-      eTotalInWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
+      gTotal * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
-    val proposal = pRated * -1 * (
-      actYield / irradiationSTC
-    )
+    val proposal =
+      sRated.toActivePower(cosPhiRated) * -1 * (actYield / irradianceSTC)
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
     if (proposal < pMax)
@@ -791,24 +778,20 @@ class PvModel private (
 
 object PvModel {
 
-  /** Holds all relevant data for a pv model calculation
+  /** Holds all relevant data for a pv model calculation.
     *
     * @param tick
-    *   The current tick
+    *   The current tick.
     * @param dateTime
-    *   date and time of the <b>ending</b> of time frame to calculate
-    * @param weatherDataFrameLength
-    *   the duration in ticks (= seconds) the provided irradiance is received by
-    *   the pv panel
+    *   The date and time of the <b>ending</b> of time frame to calculate.
     * @param diffIrradiance
-    *   diffuse solar irradiance
+    *   The diffuse solar irradiance on a horizontal surface.
     * @param dirIrradiance
-    *   direct solar irradiance
+    *   The direct solar irradiance on a horizontal surface.
     */
   final case class PvState(
       override val tick: Long,
       dateTime: ZonedDateTime,
-      weatherDataFrameLength: Long,
       diffIrradiance: Irradiance,
       dirIrradiance: Irradiance,
   ) extends ModelState

@@ -15,12 +15,13 @@ import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
-  Irradiation,
+  Irradiance,
   Kilovoltamperes,
-  WattHoursPerSquareMeter,
+  WattsPerSquareMeter,
 }
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
+import squants.energy.Megajoules
 import squants.space.{Angle, Degrees, Radians}
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units._
@@ -80,16 +81,13 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
   )
 
   // build the PvModel
-  val pvModel: PvModel = PvModel(
-    pvInput
-  )
+  val pvModel: PvModel = PvModel(pvInput)
 
   private implicit val angleTolerance: Angle = Radians(1e-10)
-  private implicit val irradiationTolerance: Irradiation =
-    WattHoursPerSquareMeter(1e-10)
-  private implicit val apparentPowerTolerance: ApparentPower = Kilovoltamperes(
-    1e-10
-  )
+  private implicit val irradianceTolerance: Irradiance =
+    WattsPerSquareMeter(1e-10)
+  private implicit val apparentPowerTolerance: ApparentPower =
+    Kilovoltamperes(1e-10)
 
   "A PV Model" should {
     "have sMax set to be 10% higher than its sRated" in {
@@ -487,20 +485,20 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       }
     }
 
-    "calculate the extraterrestrial radiation I0 correctly" in {
+    "calculate the extraterrestrial radiance g0 correctly" in {
       val testCases = Table(
-        ("j", "I0Sol"),
+        ("j", "g0Sol"),
         (0d, 1414.91335d), // Jan 1st
         (2.943629280897834d, 1322.494291080537598d), // Jun 21st
         (4.52733626243351d, 1355.944773587800003d), // Sep 21st
       )
 
-      forAll(testCases) { (j, I0Sol) =>
-        When("the extraterrestrial radiation is calculated")
-        val I0Calc = pvModel.calcExtraterrestrialRadiationI0(Radians(j))
+      forAll(testCases) { (j, g0Sol) =>
+        When("the extraterrestrial radiance is calculated")
+        val g0Calc = pvModel.calcExtraterrestrialRadianceG0(Radians(j))
 
         Then("result should match the test data")
-        I0Calc should approximate(WattHoursPerSquareMeter(I0Sol))
+        g0Calc should approximate(WattsPerSquareMeter(g0Sol))
       }
     }
 
@@ -591,7 +589,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
       )
 
-      /** Calculate the angle of incidence of beam radiation on a surface
+      /** Calculate the angle of incidence of beam irradiance on a surface
         * located at a latitude at a certain hour angle (solar time) on a given
         * declination (date) if the surface is tilted by a certain slope from
         * the horizontal and pointed to a certain panel azimuth west of south.
@@ -666,7 +664,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       }
     }
 
-    "calculate the estimate beam radiation eBeamS correctly" in {
+    "calculate the estimate beam irradiance gBeamS correctly" in {
       val testCases = Table(
         (
           "latitudeDeg",
@@ -675,10 +673,10 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           "deltaDeg",
           "omegaDeg",
           "thetaGDeg",
-          "eBeamSSol",
+          "gBeamSSol",
         ),
         (40d, 0d, 0d, -11.6d, -37.5d, 37.0d,
-          67.777778d), // flat surface => eBeamS = eBeamH
+          67.777778d), // flat surface => gBeamS = gBeamH
         (40d, 60d, 0d, -11.6d, -37.5d, 37.0d,
           112.84217113154841369d), // 2011-02-20T09:00:00
         (40d, 60d, 0d, -11.6d, -78.0d, 75.0d, 210.97937494450755d), // sunrise
@@ -689,7 +687,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         (40d, 60d, -90.0d, -11.6d, 60.0d, 91.0d, 0d), // no direct beam
       )
 
-      /** For a given hour angle, the estimate beam radiation on a sloped
+      /** For a given hour angle, the estimated beam irradiance on a sloped
         * surface is calculated for the next 60 minutes. Reference p.95
         * https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
         */
@@ -701,12 +699,12 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
             deltaDeg,
             omegaDeg,
             thetaGDeg,
-            eBeamSSol,
+            gBeamSSol,
         ) =>
           Given("using the input data")
-          // Beam Radiation on a horizontal surface
-          val eBeamH =
-            67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
+          // Beam irradiance on a horizontal surface
+          // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
+          val gBeamH = 67.777778d
           val omegaSS = pvModel.calcSunsetAngleOmegaSS(
             Degrees(latitudeDeg),
             Degrees(deltaDeg),
@@ -719,9 +717,9 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
             omegaSR,
           ) // omega1 and omega2
 
-          When("the beam radiation is calculated")
-          val eBeamSCalc = pvModel.calcBeamRadiationOnSlopedSurface(
-            WattHoursPerSquareMeter(eBeamH),
+          When("the beam irradiance is calculated")
+          val gBeamSCalc = pvModel.calcBeamIrradianceOnSlopedSurface(
+            WattsPerSquareMeter(gBeamH),
             omegas,
             Degrees(deltaDeg),
             Degrees(latitudeDeg),
@@ -730,82 +728,82 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           )
 
           Then("result should match the test data")
-          eBeamSCalc should approximate(WattHoursPerSquareMeter(eBeamSSol))
+          gBeamSCalc should approximate(WattsPerSquareMeter(gBeamSSol))
       }
     }
 
-    "calculate the estimate diffuse radiation eDifS correctly" in {
-      def megaJoule2WattHours(megajoule: Double): Double = {
-        megajoule / (3.6 / 1000)
-      }
+    "calculate the estimated diffuse irradiance gDifS correctly" in {
 
       val testCases = Table(
-        ("thetaGDeg", "thetaZDeg", "gammaEDeg", "airMass", "I0", "eDifSSol"),
+        ("thetaGDeg", "thetaZDeg", "gammaEDeg", "airMass", "g0", "gDifSSol"),
         // Reference Duffie 4th ed., p.95
         // I_0 = 5.025 MJ * 277.778 Wh/MJ = 1395.83445 Wh
-        // eDifSSol is 0.79607 MJ (0.444 + 0.348 + 0.003) if one only calculates the relevant terms
+        // gDifSSol is 0.79607 MJ (0.444 + 0.348 + 0.003) if one only calculates the relevant terms
         // from I_T on p. 96, but Duffie uses fixed f values, so the inaccuracy is fine (approx. 4.5 Wh/m^2 or 0.016 MJ/m^2)
+        // g0 and gDifSol are energies (radiations) in Duffie, but we interpret them as powers (radiances).
         (
           37.0d,
           62.2d,
           60d,
           2.144d,
-          megaJoule2WattHours(5.025),
-          megaJoule2WattHours(0.812140993078191252),
+          Megajoules(5.025).toWattHours,
+          Megajoules(0.812140993078191252).toWattHours,
         ),
       )
 
       forAll(testCases) {
-        (thetaGDeg, thetaZDeg, gammaEDeg, airMass, I0, eDifSSol) =>
+        (thetaGDeg, thetaZDeg, gammaEDeg, airMass, g0, gDifSSol) =>
           // Reference Duffie 4th ed., p.95
+          // gBeamH and gDifH are energies (radiations) in Duffie, but we interpret them as powers (radiances).
           Given("using the input data")
-          // Beam Radiation on horizontal surface
-          val eBeamH =
-            megaJoule2WattHours(0.244) // 0.244 MJ/m^2 = 67.777778 Wh/m^2
-          // Diffuse Radiation on a horizontal surface
-          val eDifH =
-            megaJoule2WattHours(0.796) // 0.796 MJ/m^2 = 221.111111 Wh/m^2
+          // Beam irradiance on horizontal surface given a radiation for one hour
+          // 0.244 MJ/m^2 = 67.777778 Wh/m^2
+          val gBeamH = Megajoules(0.244).toWattHours
+          // Diffuse irradiance on a horizontal surface given a radiation for one hour
+          // 0.796 MJ/m^2 = 221.111111 Wh/m^2
+          val gDifH = Megajoules(0.796).toWattHours
 
-          When("the diffuse radiation is calculated")
-          val eDifSCalc = pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(
-            WattHoursPerSquareMeter(eDifH),
-            WattHoursPerSquareMeter(eBeamH),
+          When("the diffuse irradiance is calculated")
+          val gDifSCalc = pvModel.calcDiffuseIrradianceOnSlopedSurfacePerez(
+            WattsPerSquareMeter(gDifH),
+            WattsPerSquareMeter(gBeamH),
             airMass,
-            WattHoursPerSquareMeter(I0),
+            WattsPerSquareMeter(g0),
             Degrees(thetaZDeg),
             Degrees(thetaGDeg),
             Degrees(gammaEDeg),
           )
 
           Then("result should match the test data")
-          eDifSCalc should approximate(WattHoursPerSquareMeter(eDifSSol))
+          gDifSCalc should approximate(WattsPerSquareMeter(gDifSSol))
       }
     }
 
     "calculate the ground reflection eRefS" in {
       val testCases = Table(
-        ("gammaEDeg", "albedo", "eRefSSol"),
+        ("gammaEDeg", "albedo", "gRefSSol"),
         (60d, 0.60d, 42.20833319999999155833336d), // '2011-02-20T09:00:00'
       )
 
-      forAll(testCases) { (gammaEDeg, albedo, eRefSSol) =>
+      forAll(testCases) { (gammaEDeg, albedo, gRefSSol) =>
         Given("using the input data")
-        // Beam Radiation on horizontal surface
-        val eBeamH =
-          67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
-        // Diffuse Radiation on a horizontal surface
-        val eDifH = 213.61111d // 0.769 MJ/m^2 = 213,61111 Wh/m^2
+        // Beam irradiance on horizontal surface given a radiation for one hour
+        // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
+        val gBeamH = 67.777778d
+        // Diffuse irradiance on a horizontal surface given a radiation for one hour
+        // 0.769 MJ/m^2 = 213,61111 Wh/m^2
+        val gDifH = 213.61111d
 
         When("the ground reflection is calculated")
-        val eRefSCalc = pvModel.calcReflectedRadiationOnSlopedSurface(
-          WattHoursPerSquareMeter(eBeamH),
-          WattHoursPerSquareMeter(eDifH),
+        val gRefSCalc = pvModel.calcReflectedIrradianceOnSlopedSurface(
+          WattsPerSquareMeter(gBeamH),
+          WattsPerSquareMeter(gDifH),
           Degrees(gammaEDeg),
           albedo,
         )
 
         Then("result should match the test data")
-        eRefSCalc should approximate(WattHoursPerSquareMeter(eRefSSol))
+        gRefSCalc should approximate(WattsPerSquareMeter(gRefSSol))
       }
     }
   }

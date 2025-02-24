@@ -205,7 +205,7 @@ class PrimaryServiceWorkerSpec
     }
 
     "refuse registration for wrong registration request" in {
-      serviceRef ! RegisterForWeatherMessage(51.4843281, 7.4116482)
+      serviceRef ! RegisterForWeatherMessage(self, 51.4843281, 7.4116482)
       expectNoMessage()
     }
 

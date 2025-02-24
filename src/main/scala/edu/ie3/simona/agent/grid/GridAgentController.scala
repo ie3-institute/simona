@@ -17,9 +17,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorWeatherService,
 }
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
-import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.hp.HpAgent
-import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant.wec.WecAgent
@@ -33,6 +31,7 @@ import edu.ie3.simona.agent.participant2.{
 }
 import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.AssetConfigs
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -83,6 +82,7 @@ class GridAgentController(
     environmentRefs: EnvironmentRefs,
     simulationStartDate: ZonedDateTime,
     simulationEndDate: ZonedDateTime,
+    emConfigs: AssetConfigs[EmRuntimeConfig],
     participantsConfig: Participant,
     outputConfig: SimonaConfig.Simona.Output.Participant,
     resolution: Long,
@@ -97,10 +97,24 @@ class GridAgentController(
     val systemParticipants =
       filterSysParts(subGridContainer, environmentRefs)
 
+    val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
+
+    // ems that control at least one participant directly
+    val firstLevelEms = systemParticipants.flatMap {
+      _.getControllingEm.toScala.map(em => em.getUuid -> em)
+    }.toMap
+
+    val allEms = buildEmsRecursively(
+      EmConfigUtil(emConfigs),
+      outputConfigUtil,
+      firstLevelEms,
+    )
+
     /* Browse through all system participants, build actors and map their node's UUID to the actor references */
     buildParticipantToActorRef(
       participantsConfig,
-      outputConfig,
+      allEms,
+      outputConfigUtil,
       systemParticipants,
       thermalIslandGridsByBusId,
       environmentRefs,
@@ -183,7 +197,8 @@ class GridAgentController(
     */
   private def buildParticipantToActorRef(
       participantsConfig: Participant,
-      outputConfig: SimonaConfig.Simona.Output.Participant,
+      emAgents: Map[UUID, ActorRef[FlexResponse]],
+      outputConfigUtil: OutputConfigUtil,
       participants: Vector[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
@@ -192,18 +207,6 @@ class GridAgentController(
      * phase */
     val participantConfigUtil =
       ConfigUtil.ParticipantConfigUtil(participantsConfig)
-    val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
-
-    // ems that control at least one participant directly
-    val firstLevelEms = participants.flatMap {
-      _.getControllingEm.toScala.map(em => em.getUuid -> em)
-    }.toMap
-
-    val allEms = buildEmsRecursively(
-      participantConfigUtil,
-      outputConfigUtil,
-      firstLevelEms,
-    )
 
     participants
       .map { participant =>
@@ -213,7 +216,7 @@ class GridAgentController(
           participant.getControllingEm.toScala
             .map(_.getUuid)
             .map(uuid =>
-              allEms.getOrElse(
+              emAgents.getOrElse(
                 uuid,
                 throw new CriticalFailureException(
                   s"EM actor with UUID $uuid not found."
@@ -242,7 +245,7 @@ class GridAgentController(
     * its way up to EMs at root level, which are not EM-controlled themselves.
     * The first level can also be root level.
     *
-    * @param participantConfigUtil
+    * @param emConfigUtil
     *   Configuration util for participant models
     * @param outputConfigUtil
     *   Configuration util for output behaviour
@@ -255,7 +258,7 @@ class GridAgentController(
     *   Map from model UUID to EmAgent ActorRef
     */
   private def buildEmsRecursively(
-      participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
+      emConfigUtil: ConfigUtil.EmConfigUtil,
       outputConfigUtil: OutputConfigUtil,
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
@@ -269,7 +272,7 @@ class GridAgentController(
         else {
           val actor = buildEm(
             emInput,
-            participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
+            emConfigUtil.getOrDefault(uuid),
             outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
             maybeControllingEm = None,
           )
@@ -290,7 +293,7 @@ class GridAgentController(
 
       // Return value includes previous level and uncontrolled EMs of this level
       val recursiveEms = buildEmsRecursively(
-        participantConfigUtil,
+        emConfigUtil,
         outputConfigUtil,
         controllingEms,
         previousLevelAndUncontrolledEms,
@@ -310,7 +313,7 @@ class GridAgentController(
 
         uuid -> buildEm(
           emInput,
-          participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
+          emConfigUtil.getOrDefault(uuid),
           outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
           maybeControllingEm = controllingEm,
         )
@@ -356,17 +359,15 @@ class GridAgentController(
 
     participantInputModel match {
       case input: FixedFeedInInput =>
-        buildFixedFeedIn(
+        buildParticipant(
           input,
           participantConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
             input.getUuid
           ),
-          environmentRefs.primaryServiceProxy,
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
           outputConfigUtil.getOrDefault(NotifierIdentifier.FixedFeedIn),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: LoadInput =>
@@ -382,18 +383,15 @@ class GridAgentController(
           maybeControllingEm,
         )
       case input: PvInput =>
-        buildPv(
+        buildParticipant(
           input,
           participantConfigUtil.getOrDefault[PvRuntimeConfig](
             input.getUuid
           ),
-          environmentRefs.primaryServiceProxy,
-          environmentRefs.weather,
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
           outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: WecInput =>
@@ -499,131 +497,6 @@ class GridAgentController(
       ),
     )
     gridAgentContext.watch(participant)
-
-    participant
-  }
-
-  /** Creates a fixed feed in agent and determines the needed additional
-    * information for later initialization of the agent.
-    *
-    * @param fixedFeedInInput
-    *   Fixed Feed In input model to derive information from
-    * @param modelConfiguration
-    *   User-provided configuration for this specific fixed feed in model
-    * @param primaryServiceProxy
-    *   Reference to the primary data service proxy
-    * @param simulationStartDate
-    *   The simulation time at which the simulation starts
-    * @param simulationEndDate
-    *   The simulation time at which the simulation ends
-    * @param resolution
-    *   Frequency of power flow calculations
-    * @param requestVoltageDeviationThreshold
-    *   Maximum deviation in p.u. of request voltages to be considered equal
-    * @param outputConfig
-    *   Configuration of the output behavior
-    * @param maybeControllingEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   The [[FixedFeedInAgent]] 's [[ActorRef]]
-    */
-  private def buildFixedFeedIn(
-      fixedFeedInInput: FixedFeedInInput,
-      modelConfiguration: FixedFeedInRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantAgent.Request] = {
-    val participant = gridAgentContext.toClassic
-      .simonaActorOf(
-        FixedFeedInAgent.props(
-          environmentRefs.scheduler.toClassic,
-          ParticipantInitializeStateData(
-            fixedFeedInInput,
-            modelConfiguration,
-            primaryServiceProxy,
-            Iterable.empty,
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            requestVoltageDeviationThreshold,
-            outputConfig,
-            maybeControllingEm,
-          ),
-          listener.map(_.toClassic),
-        ),
-        fixedFeedInInput.getId,
-      )
-      .toTyped
-    introduceAgentToEnvironment(participant)
-
-    participant
-  }
-
-  /** Creates a pv agent and determines the needed additional information for
-    * later initialization of the agent.
-    *
-    * @param pvInput
-    *   Pv input model to derive information from
-    * @param modelConfiguration
-    *   User-provided configuration for this specific load model
-    * @param primaryServiceProxy
-    *   Reference to the primary data service proxy
-    * @param weatherService
-    *   Reference to the weather service actor
-    * @param simulationStartDate
-    *   The simulation time at which the simulation starts
-    * @param simulationEndDate
-    *   The simulation time at which the simulation ends
-    * @param resolution
-    *   Frequency of power flow calculations
-    * @param requestVoltageDeviationThreshold
-    *   Maximum deviation in p.u. of request voltages to be considered equal
-    * @param outputConfig
-    *   Configuration of the output behavior
-    * @param maybeControllingEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   The [[PvAgent]] 's [[ActorRef]]
-    */
-  private def buildPv(
-      pvInput: PvInput,
-      modelConfiguration: PvRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantAgent.Request] = {
-    val participant = gridAgentContext.toClassic
-      .simonaActorOf(
-        PvAgent.props(
-          environmentRefs.scheduler.toClassic,
-          ParticipantInitializeStateData(
-            pvInput,
-            modelConfiguration,
-            primaryServiceProxy,
-            Iterable(ActorWeatherService(weatherService)),
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            requestVoltageDeviationThreshold,
-            outputConfig,
-            maybeControllingEm,
-          ),
-          listener.map(_.toClassic),
-        ),
-        pvInput.getId,
-      )
-      .toTyped
-    introduceAgentToEnvironment(participant)
 
     participant
   }

@@ -359,6 +359,7 @@ class ParticipantAgentInitSpec
 
         service.expectMessage(
           RegisterForWeatherMessage(
+            participantAgent.toClassic,
             mockInput.getNode.getGeoPosition.getY,
             mockInput.getNode.getGeoPosition.getX,
           )
@@ -482,6 +483,7 @@ class ParticipantAgentInitSpec
 
         service.expectMessage(
           RegisterForWeatherMessage(
+            participantAgent.toClassic,
             mockInput.getNode.getGeoPosition.getY,
             mockInput.getNode.getGeoPosition.getX,
           )

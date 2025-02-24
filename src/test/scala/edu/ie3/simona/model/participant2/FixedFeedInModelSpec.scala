@@ -43,9 +43,8 @@ class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
           .doubleValue * -1
       ).toActivePower(fixedFeedInput.getCosPhiRated)
 
-      val (operatingPoint, nextTick) = model.determineOperatingPoint(
-        FixedState(0)
-      )
+      val (operatingPoint, nextTick) =
+        model.determineOperatingPoint(FixedState(0))
       operatingPoint.activePower shouldBe expectedPower
       nextTick shouldBe None
 
