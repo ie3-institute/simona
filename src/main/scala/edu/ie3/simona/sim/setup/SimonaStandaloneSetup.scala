@@ -16,10 +16,9 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ExtDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
-import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
+import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -89,8 +88,8 @@ class SimonaStandaloneSetup(
     )
 
     /* extract and prepare refSystem information from config */
-    val configRefSystems =
-      RefSystemParser.parse(simonaConfig.simona.gridConfig.refSystems)
+    val (configRefSystems, configVoltageLimits) =
+      GridConfigParser.parse(simonaConfig.simona.gridConfig)
 
     /* Create all agents and map the sub grid id to their actor references */
     val subGridToActorRefMap = buildSubGridToActorRefMap(
@@ -141,6 +140,7 @@ class SimonaStandaloneSetup(
           subGridToActorRefMap,
           subGridGates,
           configRefSystems,
+          configVoltageLimits,
           thermalGrids,
         )
 
@@ -319,24 +319,15 @@ class SimonaStandaloneSetup(
       context: ActorContext[_]
   ): Seq[ActorRef[ResultEventListener.Request]] = {
     // append ResultEventListener as well to write raw output files
-    ArgsParser
-      .parseListenerConfigOption(simonaConfig.simona.event.listener)
-      .zipWithIndex
-      .map { case ((listenerCompanion, events), index) =>
-        context.toClassic
-          .simonaActorOf(
-            listenerCompanion.props(events),
-            index.toString,
-          )
-          .toTyped
-      }
-      .toSeq :+ context
-      .spawn(
-        ResultEventListener(
-          resultFileHierarchy
-        ),
-        ResultEventListener.getClass.getSimpleName,
-      )
+    Seq(
+      context
+        .spawn(
+          ResultEventListener(
+            resultFileHierarchy
+          ),
+          ResultEventListener.getClass.getSimpleName,
+        )
+    )
   }
 
   def buildSubGridToActorRefMap(
@@ -388,13 +379,14 @@ object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
 
   def apply(
       typeSafeConfig: Config,
+      simonaConfig: SimonaConfig,
       resultFileHierarchy: ResultFileHierarchy,
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
       mainArgs: Array[String] = Array.empty[String],
   ): SimonaStandaloneSetup =
     new SimonaStandaloneSetup(
       typeSafeConfig,
-      SimonaConfig(typeSafeConfig),
+      simonaConfig,
       resultFileHierarchy,
       runtimeEventQueue,
       mainArgs,

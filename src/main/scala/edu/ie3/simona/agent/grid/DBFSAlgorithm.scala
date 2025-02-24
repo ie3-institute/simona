@@ -23,9 +23,9 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.agent.grid.GridAgentMessages._
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  FinishParticipantSimulation,
-  ParticipantMessage,
+import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  GridSimulationFinished,
   RequestAssetPowerMessage,
 }
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
@@ -37,20 +37,19 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
   StashBuffer,
 }
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
-import org.apache.pekko.pattern.ask
-import org.apache.pekko.util.{Timeout => PekkoTimeout}
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior, Scheduler}
+import org.apache.pekko.util.Timeout
 import org.slf4j.Logger
 import squants.Each
 
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
 import java.util.UUID
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -354,8 +353,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                             // To model the exchanged power from the superior grid's point of view, -1 has to be multiplied.
                             // (Inferior grid is a feed in facility to superior grid, which is negative then). Analogously for load case.
                             (
-                              refSystem.pInSi(pInPu) * (-1),
-                              refSystem.qInSi(qInPu) * (-1),
+                              refSystem.pInSi(pInPu) * -1,
+                              refSystem.qInSi(qInPu) * -1,
                             )
                           case _ =>
                             /* TODO: As long as there are no multiple slack nodes, provide "real" power only for the slack node */
@@ -444,6 +443,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               FinishGridSimulationTrigger(currentTick),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
+          val nextTick = currentTick + constantData.resolution
+
           // inform my child grids about the end of this grid simulation
           gridAgentBaseData.inferiorGridGates
             .map {
@@ -458,7 +459,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach {
             case (_, actors) =>
               actors.foreach { actor =>
-                actor ! FinishParticipantSimulation(currentTick)
+                actor ! GridSimulationFinished(currentTick, nextTick)
               }
           }
 
@@ -484,7 +485,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
           constantData.environmentRefs.scheduler ! Completion(
             constantData.activationAdapter,
-            Some(currentTick + constantData.resolution),
+            Some(nextTick),
           )
 
           // return to Idle
@@ -1120,14 +1121,16 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   private def askForAssetPowers(
       currentTick: Long,
       sweepValueStore: Option[SweepValueStore],
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
       refSystem: RefSystem,
-      askTimeout: Duration,
+      askTimeout: FiniteDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
+
+    implicit val timeout: Timeout = Timeout(askTimeout)
+    implicit val system: ActorSystem[_] = ctx.system
 
     ctx.log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
 
@@ -1162,16 +1165,21 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                     )
                 }
 
-              (assetAgent.toClassic ? RequestAssetPowerMessage(
-                currentTick,
-                eInPu,
-                fInPU,
-              )).map {
-                case providedPowerValuesMessage: AssetPowerChangedMessage =>
-                  (assetAgent, providedPowerValuesMessage)
-                case assetPowerUnchangedMessage: AssetPowerUnchangedMessage =>
-                  (assetAgent, assetPowerUnchangedMessage)
-              }
+              assetAgent
+                .ask(replyTo =>
+                  RequestAssetPowerMessage(
+                    currentTick,
+                    eInPu,
+                    fInPU,
+                    replyTo,
+                  )
+                )
+                .map {
+                  case providedPowerValuesMessage: AssetPowerChangedMessage =>
+                    (assetAgent, providedPowerValuesMessage)
+                  case assetPowerUnchangedMessage: AssetPowerUnchangedMessage =>
+                    (assetAgent, assetPowerUnchangedMessage)
+                }
             })
           }.toVector
         )
@@ -1200,11 +1208,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentSweepNo: Int,
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       inferiorGridGates: Seq[SubGridGate],
-      askTimeout: Duration,
+      askTimeout: FiniteDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
+    implicit val timeout: Timeout = Timeout(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
     implicit val scheduler: Scheduler = ctx.system.scheduler
 
@@ -1271,11 +1279,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentSweepNo: Int,
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       superiorGridGates: Vector[SubGridGate],
-      askTimeout: Duration,
+      askTimeout: FiniteDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
+    implicit val timeout: Timeout = Timeout(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
     implicit val scheduler: Scheduler = ctx.system.scheduler
 

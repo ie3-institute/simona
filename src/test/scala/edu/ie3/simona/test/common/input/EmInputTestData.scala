@@ -24,12 +24,11 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalStorageInput,
 }
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
-import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
@@ -89,16 +88,10 @@ trait EmInputTestData
     householdStorageTypeInput,
   )
 
-  protected val simonaConfig: SimonaConfig =
-    createSimonaConfig(
-      LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(
-        Kilowatts(0.0)
-      ),
-    )
+  protected val simonaConfig: SimonaConfig = createSimonaConfig()
 
-  private val configUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+  private val configUtil = ConfigUtil.EmConfigUtil(
+    simonaConfig.simona.runtime.em
   )
 
   protected val defaultOutputConfig: NotifierConfig =
@@ -108,10 +101,8 @@ trait EmInputTestData
       simonaConfig.simona.output.participant.defaultConfig.flexResult,
     )
 
-  protected val modelConfig: SimonaConfig.EmRuntimeConfig =
-    configUtil.getOrDefault[SimonaConfig.EmRuntimeConfig](
-      emInput.getUuid
-    )
+  protected val modelConfig: EmRuntimeConfig =
+    configUtil.getOrDefault(emInput.getUuid)
 
   protected val adaptedTypeInput = new HpTypeInput(
     UUID.fromString("9802bf35-2a4e-4ff5-be9b-cd9e6a78dcd6"),
