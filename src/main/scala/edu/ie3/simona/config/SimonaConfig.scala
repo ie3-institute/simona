@@ -74,6 +74,19 @@ object SimonaConfig {
 
   // pure config end
 
+  /** Case class contains default and individual configs for assets.
+    * @param defaultConfig
+    *   to use
+    * @param individualConfigs
+    *   specific configs, that are used instead of the [[defaultConfig]]
+    * @tparam T
+    *   type of asset config
+    */
+  final case class AssetConfigs[T](
+      defaultConfig: T,
+      individualConfigs: List[T] = List.empty,
+  )
+
   final case class BaseCsvParams(
       override val csvSep: String,
       override val directoryPath: String,
