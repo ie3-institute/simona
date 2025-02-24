@@ -61,10 +61,7 @@ object ConfigUtil {
       *   the requested config or a default value
       */
     def getOrDefault(uuid: UUID): EmRuntimeConfig =
-      configs.get(uuid) match {
-        case Some(conf) => conf
-        case _          => defaultConfigs
-      }
+      configs.getOrElse(uuid, defaultConfigs)
   }
 
   object EmConfigUtil {
