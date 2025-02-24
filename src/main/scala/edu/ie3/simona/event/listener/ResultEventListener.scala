@@ -6,11 +6,14 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
-import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
+import edu.ie3.datamodel.models.result.{
+  ModelResultEntity,
+  NodeResult,
+  ResultEntity,
+}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
+import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
@@ -22,7 +25,11 @@ import edu.ie3.simona.exceptions.{
   ProcessResultEventException,
 }
 import edu.ie3.simona.io.result._
+import edu.ie3.simona.service.results.ExtResultDataProvider
+import edu.ie3.simona.service.results.ExtResultDataProvider.ResultResponseMessage
 import edu.ie3.simona.util.ResultFileHierarchy
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import org.slf4j.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -46,9 +53,14 @@ object ResultEventListener extends Transformer3wResultSupport {
     * @param classToSink
     *   a map containing the sink for each class that should be processed by the
     *   listener
+    * @param extResultListeners
+    *   actors for external result data services
     */
   private final case class BaseData(
       classToSink: Map[Class[_], ResultEntitySink],
+      extResultListeners: Map[ExtResultDataConnection, ActorRef[
+        ExtResultDataProvider.Request
+      ]],
       threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult,
@@ -160,7 +172,16 @@ object ResultEventListener extends Transformer3wResultSupport {
       baseData: BaseData,
       log: Logger,
   ): BaseData = {
+    // log.info("Got Result " + resultEntity)
     handOverToSink(resultEntity, baseData.classToSink, log)
+
+    if (baseData.extResultListeners.nonEmpty) {
+      handOverToExternalService(
+        resultEntity,
+        baseData.extResultListeners.values,
+      )
+    }
+
     baseData
   }
 
@@ -235,8 +256,25 @@ object ResultEventListener extends Transformer3wResultSupport {
       log.error("Error while writing result event: ", exception)
     }
 
+  private def handOverToExternalService(
+      resultEntity: ResultEntity,
+      extResultListeners: Iterable[ActorRef[ExtResultDataProvider.Request]],
+  ): Unit = Try {
+    resultEntity match {
+      case modelResultEntity: ModelResultEntity =>
+        extResultListeners.foreach(
+          _ ! ResultResponseMessage(modelResultEntity)
+        )
+      case _ =>
+        throw new Exception("Wrong data type!")
+    }
+  }
+
   def apply(
-      resultFileHierarchy: ResultFileHierarchy
+      resultFileHierarchy: ResultFileHierarchy,
+      extResultListeners: Map[ExtResultDataConnection, ActorRef[
+        ExtResultDataProvider.Request
+      ]] = Map.empty,
   ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
     ctx.log.debug("Starting initialization!")
     resultFileHierarchy.resultSinkType match {
@@ -260,14 +298,18 @@ object ResultEventListener extends Transformer3wResultSupport {
       case Success(result)               => SinkResponse(result.toMap)
     }
 
-    init()
+    init(extResultListeners)
   }
 
-  private def init(): Behavior[Request] = Behaviors.withStash(200) { buffer =>
+  private def init(
+      extResultListeners: Map[ExtResultDataConnection, ActorRef[
+        ExtResultDataProvider.Request
+      ]]
+  ): Behavior[Request] = Behaviors.withStash(200) { buffer =>
     Behaviors.receive[Request] {
       case (ctx, SinkResponse(response)) =>
         ctx.log.debug("Initialization complete!")
-        buffer.unstashAll(idle(BaseData(response)))
+        buffer.unstashAll(idle(BaseData(response, extResultListeners)))
 
       case (ctx, InitFailed(ex)) =>
         ctx.log.error("Unable to setup ResultEventListener.", ex)

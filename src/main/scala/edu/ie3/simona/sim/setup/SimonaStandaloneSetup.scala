@@ -270,7 +270,8 @@ class SimonaStandaloneSetup(
       context
         .spawn(
           ResultEventListener(
-            resultFileHierarchy
+            resultFileHierarchy,
+            extSimSetupData.extResultListeners,
           ),
           ResultEventListener.getClass.getSimpleName,
         )

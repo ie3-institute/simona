@@ -11,6 +11,7 @@ import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
+import edu.ie3.simona.service.results.ExtResultDataProvider
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
@@ -30,7 +31,9 @@ final case class ExtSimSetupData(
     extSimAdapters: Iterable[ClassicRef],
     extPrimaryDataServices: Map[ExtPrimaryDataConnection, ClassicRef],
     extDataServices: Map[ExtInputDataConnection, ClassicRef],
-    extResultListeners: Map[ExtResultDataConnection, ActorRef[_]],
+    extResultListeners: Map[ExtResultDataConnection, ActorRef[
+      ExtResultDataProvider.Request
+    ]],
 ) {
 
   private[setup] def update(
@@ -53,7 +56,7 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtResultDataConnection,
-      ref: ActorRef[_],
+      ref: ActorRef[ExtResultDataProvider.Request],
   ): ExtSimSetupData =
     copy(extResultListeners = extResultListeners ++ Map(connection -> ref))
 

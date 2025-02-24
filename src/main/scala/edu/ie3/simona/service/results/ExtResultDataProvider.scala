@@ -24,9 +24,11 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
+import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters._
 
@@ -54,10 +56,14 @@ object ExtResultDataProvider {
 
   /** ResultEventListener -> ExtResultDataProvider */
   final case class ResultResponseMessage(
-      result: ModelResultEntity,
-      tick: Long,
-      nextTick: Option[Long],
-  ) extends Request
+      result: ModelResultEntity
+  ) extends Request {
+    def tick(implicit startTime: ZonedDateTime): Long =
+      TimeUtil.withDefaults.zonedDateTimeDifferenceInSeconds(
+        startTime,
+        result.getTime,
+      )
+  }
 
   /** ExtResultDataProvider -> ExtResultDataProvider */
   final case class ResultRequestMessage(
@@ -72,7 +78,8 @@ object ExtResultDataProvider {
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
   def apply(
-      scheduler: ActorRef[SchedulerMessage]
+      scheduler: ActorRef[SchedulerMessage],
+      startTime: ZonedDateTime,
   ): Behavior[Request] = Behaviors.withStash(5000) { buffer =>
     Behaviors.setup[Request] { ctx =>
       val activationAdapter: ActorRef[Activation] =
@@ -93,6 +100,7 @@ object ExtResultDataProvider {
         resultDataMessageFromExtAdapter,
         scheduleServiceActivationAdapter,
         buffer,
+        startTime,
       )
     }
   }
@@ -103,6 +111,7 @@ object ExtResultDataProvider {
       resultDataMessageFromExtAdapter: ActorRef[ResultDataMessageFromExt],
       scheduleServiceActivationAdapter: ActorRef[ScheduleServiceActivation],
       buffer: StashBuffer[Request],
+      startTime: ZonedDateTime,
   ): Behavior[Request] = Behaviors.receiveMessagePartial {
     case RequestDataMessageAdapter(sender) =>
       sender ! resultDataMessageFromExtAdapter
@@ -132,6 +141,7 @@ object ExtResultDataProvider {
       activationAdapter: ActorRef[Activation],
       resultDataMessageFromExtAdapter: ActorRef[ResultDataMessageFromExt],
       buffer: StashBuffer[Request],
+      startTime: ZonedDateTime,
   ): Behavior[Request] = {
     Behaviors.receivePartial {
       case (_, WrappedActivation(Activation(INIT_SIM_TICK))) =>
@@ -148,6 +158,7 @@ object ExtResultDataProvider {
 
         val resultInitializedStateData = ExtResultStateData(
           extResultData = initServiceData.extResultData,
+          powerFlowResolution = initServiceData.powerFlowResolution,
           currentTick = INIT_SIM_TICK,
           extResultSchedule = ExtResultSchedule(
             scheduleMap = initResultScheduleMap
@@ -166,6 +177,7 @@ object ExtResultDataProvider {
       activationAdapter: ActorRef[Activation],
       resultDataMessageFromExtAdapter: ActorRef[ResultDataMessageFromExt],
       buffer: StashBuffer[Request],
+      startTime: ZonedDateTime,
   ): Behavior[Request] = Behaviors
     .receivePartial[Request] {
       case (ctx, WrappedActivation(activation: Activation)) =>
@@ -281,7 +293,8 @@ object ExtResultDataProvider {
                 serviceStateData.resultStorage + (extResultResponseMsg.result.getInputModel -> extResultResponseMsg.result)
               val updatedResultSchedule =
                 serviceStateData.extResultSchedule.handleResult(
-                  extResultResponseMsg
+                  extResultResponseMsg,
+                  extResultResponseMsg.tick + serviceStateData.powerFlowResolution,
                 )
               // ctx.log.info(s"[hDRM] updatedResultSchedule = $updatedResultSchedule")
               // ctx.log.info(s"[hDRM] updatedResultStorage = $updatedResultStorage")
@@ -332,6 +345,7 @@ object ExtResultDataProvider {
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   final case class ExtResultStateData(
       extResultData: ExtResultDataConnection,
+      powerFlowResolution: Long,
       currentTick: Long,
       extResultSchedule: ExtResultSchedule,
       extResultsMessage: Option[ResultDataMessageFromExt] = None,
@@ -370,18 +384,16 @@ object ExtResultDataProvider {
       )
     }
 
-    def handleResult(msg: ResultResponseMessage): ExtResultSchedule = {
-      msg.nextTick.fold {
-        copy()
-      } { // the next tick was provided -> update schedule
-        newTick => // ctx.log.info(s"[hDRM] update schedule = $newTick, uuid = ${extResultResponseMsg.result.getInputModel}")
-          copy(
-            scheduleMap = scheduleMap.updated(
-              newTick,
-              getScheduledKeys(newTick) + msg.result.getInputModel,
-            )
-          )
-      }
+    def handleResult(
+        msg: ResultResponseMessage,
+        nextTick: Long,
+    ): ExtResultSchedule = {
+      copy(
+        scheduleMap = scheduleMap.updated(
+          nextTick,
+          getScheduledKeys(nextTick) + msg.result.getInputModel,
+        )
+      )
     }
   }
 

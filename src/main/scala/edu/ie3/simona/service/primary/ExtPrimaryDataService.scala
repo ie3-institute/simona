@@ -6,10 +6,11 @@
 
 package edu.ie3.simona.service.primary
 
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
-  RegistrationSuccessfulMessage,
+  PrimaryRegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
@@ -112,13 +113,29 @@ final case class ExtPrimaryDataService(
   ): ExtPrimaryDataStateData = {
     serviceStateData.uuidToActorRef.get(agentUUID) match {
       case None =>
-        // Actor is not registered yet
-        agentToBeRegistered ! RegistrationSuccessfulMessage(self, 0L)
-        log.info(s"Successful registration for $agentUUID")
-        serviceStateData.copy(
-          uuidToActorRef =
-            serviceStateData.uuidToActorRef + (agentUUID -> agentToBeRegistered)
+        // checks if a value class was specified for the agent
+        val valueClass = serviceStateData.extPrimaryData
+          .getValueClass(agentUUID)
+          .toScala
+          .getOrElse(
+            throw InvalidRegistrationRequestException(
+              s"A primary service provider is not able to handle registration request, because there was no value class specified for the agent with id: '$agentUUID'."
+            )
+          )
+
+        agentToBeRegistered ! PrimaryRegistrationSuccessfulMessage(
+          self,
+          0L,
+          PrimaryData.getPrimaryDataExtra(valueClass),
         )
+        log.info(s"Successful registration for $agentUUID")
+
+        serviceStateData.copy(
+          subscribers = serviceStateData.subscribers :+ agentUUID,
+          uuidToActorRef =
+            serviceStateData.uuidToActorRef + (agentUUID -> agentToBeRegistered),
+        )
+
       case Some(_) =>
         // actor is already registered, do nothing
         log.warning(

@@ -342,7 +342,7 @@ object ExtSimSetup {
   ): ExtSimSetupData = {
     val extResultDataProvider =
       context.spawn(
-        ExtResultDataProvider(scheduler),
+        ExtResultDataProvider(scheduler, simonaConfig.simona.time.startTime),
         s"ExtResultDataProvider",
       )
 
