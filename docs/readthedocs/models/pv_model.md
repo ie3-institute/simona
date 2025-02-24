@@ -37,8 +37,6 @@ To calculate the overall feed in of the PV unit, the sum of the direct irradianc
 In the following, the formulas to calculate each of these radiances are presented and explained.
 The sections end with the formula to calculate the corresponding power feed in.
 
-**Caution:** if not stated otherwise, all angles are given in radian!
-
 The surface azimuth angle $\alpha_{e}$ starts at negative values in the East and moves over 0° (South) towards positive values in the West ([Source](https://www.photovoltaik.org/wissen/azimutwinkel)).
 
 ### Declination Angle
@@ -212,8 +210,7 @@ $$
 
 ### Air Mass
 
-Calculating the air mass ratio by dividing the radius of the earth with approx.
-effective height of the atmosphere (each in kilometer)
+Calculating the air mass ratio by dividing the radius of the earth with approx. effective height of the atmosphere (each in kilometer):
 
 $$
 \mathrm{airmassratio} = (\frac{6371 km}{9 km}) = 707.8\overline{8}
