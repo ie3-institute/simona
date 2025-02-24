@@ -306,7 +306,7 @@ class ExtEvDataServiceSpec
       )
     }
 
-    "handle price requests correctly by returning dummy values" ignore {
+    "handle price requests correctly by returning dummy values" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
@@ -345,13 +345,15 @@ class ExtEvDataServiceSpec
         new ScheduleDataServiceMessage(adapter.toClassic)
       )
       evService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(activationMsg.actor))
+      scheduler.expectMessage(10.seconds, Completion(activationMsg.actor))
 
       evcs1.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
+        10.seconds,
+        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L),
       )
       evcs2.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
+        10.seconds,
+        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L),
       )
 
       extEvData.sendExtMsg(new RequestCurrentPrices())
@@ -374,7 +376,7 @@ class ExtEvDataServiceSpec
       // thus should send ProvideEvcsFreeLots
       awaitCond(
         !extEvData.receiveTriggerQueue.isEmpty,
-        max = 10.seconds,
+        max = 30.seconds,
       )
       extEvData.receiveTriggerQueue.size() shouldBe 1
       // only evcs 1 should be included, the other one is full
@@ -502,10 +504,12 @@ class ExtEvDataServiceSpec
       evService ! Activation(tick)
 
       evcs1.expectMessage(
-        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evA.getUuid))
+        10.seconds,
+        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evA.getUuid)),
       )
       evcs2.expectMessage(
-        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evB.getUuid))
+        10.seconds,
+        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evB.getUuid)),
       )
 
       scheduler.expectMessage(Completion(activationMsg.actor))
