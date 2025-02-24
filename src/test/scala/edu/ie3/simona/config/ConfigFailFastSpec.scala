@@ -27,8 +27,7 @@ import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.TimeUtil
 
-import java.time.temporal.ChronoUnit
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
 import scala.concurrent.duration.DurationInt
 
 class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
