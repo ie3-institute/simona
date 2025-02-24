@@ -50,7 +50,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTANCE
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -203,17 +202,6 @@ protected trait PvAgentFundamentals
       baseStateData.startDate
     val dateTime = tick.toDateTime
 
-    val tickInterval =
-      baseStateData.receivedSecondaryDataStore
-        .lastKnownTick(tick - 1) match {
-        case Some(dataTick) =>
-          tick - dataTick
-        case _ =>
-          /* At the first tick, we are not able to determine the tick interval from last tick
-           * (since there is none). Then we use a fallback pv stem distance. */
-          FALLBACK_WEATHER_STEM_DISTANCE
-      }
-
     // take the last weather data, not necessarily the one for the current tick:
     // we might receive flex control messages for irregular ticks
     val (_, secondaryData) = baseStateData.receivedSecondaryDataStore
@@ -240,7 +228,6 @@ protected trait PvAgentFundamentals
 
     PvRelevantData(
       dateTime,
-      tickInterval,
       weatherData.diffIrr,
       weatherData.dirIrr,
     )
