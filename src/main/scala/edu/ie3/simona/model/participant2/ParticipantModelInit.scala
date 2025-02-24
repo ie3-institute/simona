@@ -65,6 +65,8 @@ object ParticipantModelInit {
         LoadModel(input, config)
       case (input: PvInput, _) =>
         PvModel(input)
+      case (input: WecInput, _) =>
+        WecModel(input)
       case (input, config) =>
         throw new CriticalFailureException(
           s"Handling the input model ${input.getClass.getSimpleName} and " +
