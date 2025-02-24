@@ -32,7 +32,6 @@ import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkSqlParams,
 }
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
-import edu.ie3.util.scala.ReflectionTools
 import edu.ie3.util.{StringUtils, TimeUtil}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -196,7 +195,7 @@ object ConfigFailFast extends LazyLogging {
       )
 
     // failure if all sinks are not-configured
-    val sinkConfigs = ReflectionTools.classFieldToVal(sink).values.map {
+    val sinkConfigs = sink.productIterator.toSeq.map {
       case o: Option[_] => o
       case _ =>
         throw new InvalidConfigParameterException(
@@ -790,8 +789,7 @@ object ConfigFailFast extends LazyLogging {
     *
     * One important check cannot be performed at this place, as input data is
     * not available, yet: Do the measurements belong to a region, that can be
-    * influenced by the transformer? This is partly addressed in
-    * [[edu.ie3.simona.agent.grid.GridAgentFailFast]]
+    * influenced by the transformer?
     *
     * @param transformerControlGroup
     *   Transformer control group definition

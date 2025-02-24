@@ -15,6 +15,8 @@ import pureconfig.{CamelCase, ConfigFieldMapping}
 import scala.language.implicitConversions
 
 /** Runtime configurations for simona.
+  * @param em
+  *   runtime configs for energy management systems
   * @param listener
   *   runtime listener configuration
   * @param participant
@@ -25,6 +27,7 @@ import scala.language.implicitConversions
   *   option for selected voltage levels (default: None)
   */
 final case class RuntimeConfig(
+    em: AssetConfigs[EmRuntimeConfig] = AssetConfigs(EmRuntimeConfig()),
     listener: Listener = Listener(),
     participant: Participant = Participant.empty(),
     selectedSubgrids: Option[List[Int]] = None,
@@ -53,8 +56,6 @@ object RuntimeConfig {
   )
 
   /** Runtime configurations for participants.
-    * @param em
-    *   runtime configs for energy management systems
     * @param evcs
     *   runtime configs for electrical vehicle charging stations
     * @param fixedFeedIn
@@ -73,7 +74,6 @@ object RuntimeConfig {
     *   runtime configs for wind energy converters
     */
   final case class Participant(
-      em: AssetConfigs[EmRuntimeConfig],
       evcs: AssetConfigs[EvcsRuntimeConfig],
       fixedFeedIn: AssetConfigs[FixedFeedInRuntimeConfig],
       hp: AssetConfigs[HpRuntimeConfig],
@@ -89,7 +89,6 @@ object RuntimeConfig {
     /** Returns a [[Participant]] object with default values.
       */
     def empty(): Participant = Participant(
-      em = EmRuntimeConfig(),
       evcs = EvcsRuntimeConfig(),
       fixedFeedIn = FixedFeedInRuntimeConfig(),
       hp = HpRuntimeConfig(),
