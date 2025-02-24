@@ -8,30 +8,49 @@ package edu.ie3.simona.sim.setup
 
 import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.api.data.ExtInputDataConnection
+import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
+import edu.ie3.simona.api.data.results.ExtResultDataConnection
+import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ScheduleServiceActivation
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.service.em.ExtEmDataService
+import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
+import edu.ie3.simona.service.primary.ExtPrimaryDataService
+import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
+import edu.ie3.simona.service.results.ExtResultDataProvider
+import edu.ie3.simona.service.results.ExtResultDataProvider.{
+  InitExtResultData,
+  RequestDataMessageAdapter,
+  RequestScheduleActivationAdapter,
+}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   TypedActorContextOps,
   TypedActorRefOps,
 }
+import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{Props, ActorRef => ClassicRef}
+import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
+import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
+import scala.jdk.DurationConverters.ScalaDurationOps
 import scala.util.{Failure, Success, Try}
 
 object ExtSimSetup {
@@ -142,6 +161,32 @@ object ExtSimSetup {
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
       case (setupData, connection) =>
         connection match {
+          case extPrimaryDataConnection: ExtPrimaryDataConnection =>
+            extPrimaryDataSetup(setupData, extPrimaryDataConnection)
+
+          case extEmDataConnection: ExtEmDataConnection =>
+            if (setupData.emDataConnection.nonEmpty) {
+              throw ServiceException(
+                s"Trying to connect another EmDataConnection. Currently only one is allowed."
+              )
+            }
+
+            if (extEmDataConnection.getControlledEms.isEmpty) {
+              log.warn(
+                s"External em connection $extEmDataConnection is not used, because there are no controlled ems present!"
+              )
+              setupData
+            } else {
+              val serviceRef = setupInputService(
+                extEmDataConnection,
+                ExtEmDataService.props,
+                "ExtEmDataService",
+                InitExtEmData,
+              )
+
+              extSimSetupData.update(extEmDataConnection, serviceRef)
+            }
+
           case extEvDataConnection: ExtEvDataConnection =>
             if (setupData.evDataConnection.nonEmpty) {
               throw ServiceException(
@@ -157,6 +202,9 @@ object ExtSimSetup {
             )
 
             extSimSetupData.update(extEvDataConnection, serviceRef)
+
+          case extResultDataConnection: ExtResultDataConnection =>
+            extResultDataSetup(setupData, extResultDataConnection)
 
           case otherConnection =>
             log.warn(
@@ -223,6 +271,116 @@ object ExtSimSetup {
     )
 
     extDataService
+  }
+
+  /** Method to set up an external primary data service.
+    * @param extSimSetupData
+    *   that contains information about all external simulations
+    * @param extPrimaryDataConnection
+    *   the data connection
+    * @param context
+    *   the actor context of this actor system
+    * @param scheduler
+    *   the scheduler of simona
+    * @param extSimAdapter
+    *   the adapter for the external simulation
+    * @return
+    *   an updated [[ExtSimSetupData]]
+    */
+  private[setup] def extPrimaryDataSetup(
+      extSimSetupData: ExtSimSetupData,
+      extPrimaryDataConnection: ExtPrimaryDataConnection,
+  )(implicit
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimAdapter: ClassicRef,
+  ): ExtSimSetupData = {
+    val extPrimaryDataService = context.toClassic.simonaActorOf(
+      ExtPrimaryDataService.props(scheduler.toClassic),
+      "ExtPrimaryDataService",
+    )
+
+    extPrimaryDataService ! SimonaService.Create(
+      InitExtPrimaryData(extPrimaryDataConnection),
+      ScheduleLock.singleKey(
+        context,
+        scheduler,
+        INIT_SIM_TICK,
+      ),
+    )
+
+    extPrimaryDataConnection.setActorRefs(extPrimaryDataService, extSimAdapter)
+
+    extSimSetupData update (extPrimaryDataConnection, extPrimaryDataService)
+  }
+
+  /** Method to set up an external result data service.
+    *
+    * @param extSimSetupData
+    *   that contains information about all external simulations
+    * @param extResultDataConnection
+    *   the data connection
+    * @param context
+    *   the actor context of this actor system
+    * @param scheduler
+    *   the scheduler of simona
+    * @param extSimAdapter
+    *   the adapter for the external simulation
+    * @param simonaConfig
+    *   the config
+    * @return
+    *   an updated [[ExtSimSetupData]]
+    */
+  private[setup] def extResultDataSetup(
+      extSimSetupData: ExtSimSetupData,
+      extResultDataConnection: ExtResultDataConnection,
+  )(implicit
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimAdapter: ClassicRef,
+      simonaConfig: SimonaConfig,
+  ): ExtSimSetupData = {
+    val extResultDataProvider =
+      context.spawn(
+        ExtResultDataProvider(scheduler),
+        s"ExtResultDataProvider",
+      )
+
+    val timeout: PekkoTimeout = PekkoTimeout.create(5.seconds.toJava)
+    val scheduler2: Scheduler = context.system.scheduler
+
+    val adapterRef = Await.result(
+      extResultDataProvider.ask[ActorRef[ResultDataMessageFromExt]](ref =>
+        RequestDataMessageAdapter(ref)
+      )(timeout, scheduler2),
+      timeout.duration,
+    )
+    val adapterScheduleRef = Await.result(
+      extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]](ref =>
+        RequestScheduleActivationAdapter(ref)
+      )(timeout, scheduler2),
+      timeout.duration,
+    )
+
+    extResultDataConnection.setActorRefs(
+      adapterRef.toClassic,
+      adapterScheduleRef.toClassic,
+      extSimAdapter,
+    )
+
+    val powerFlowResolution =
+      simonaConfig.simona.powerflow.resolution.toSeconds
+
+    extResultDataProvider ! ExtResultDataProvider.Create(
+      InitExtResultData(extResultDataConnection, powerFlowResolution),
+      ScheduleLock.singleKey(
+        context,
+        scheduler,
+        INIT_SIM_TICK,
+      ),
+    )
+
+    extSimSetupData update (extResultDataConnection, extResultDataProvider)
   }
 
   /** Method for validating the external primary data connections.

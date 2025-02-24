@@ -8,7 +8,10 @@ package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  DataResponseMessage,
+  ServiceRegistrationMessage,
+}
 
 import java.util.UUID
 
@@ -54,7 +57,7 @@ object EvMessage {
       arrivals: Seq[EvModelWrapper]
   ) extends EvData {}
 
-  trait EvResponseMessage extends EvMessage
+  trait EvResponseMessage extends EvMessage with DataResponseMessage
 
   final case class FreeLotsResponse(
       evcs: UUID,

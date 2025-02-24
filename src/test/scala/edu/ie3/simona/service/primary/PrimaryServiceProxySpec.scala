@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, ActorSystem, PoisonPill}
-import org.apache.pekko.testkit.{TestActorRef, TestProbe}
-import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
@@ -18,6 +14,7 @@ import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{SValue, Value}
 import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
   CouchbaseParams,
@@ -53,6 +50,10 @@ import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, ActorSystem, PoisonPill}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import org.scalatest.PartialFunctionValues
 import org.scalatest.prop.TableDrivenPropertyChecks
 
@@ -61,6 +62,7 @@ import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import java.util.{Objects, UUID}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 class PrimaryServiceProxySpec
@@ -128,6 +130,18 @@ class PrimaryServiceProxySpec
   )
 
   private val scheduler: TestProbe = TestProbe("scheduler")
+
+  private val validExtPrimaryDataService = TestActorRef(
+    new ExtPrimaryDataService(
+      scheduler.ref
+    )
+  )
+
+  private val extEntityId =
+    UUID.fromString("07bbe1aa-1f39-4dfb-b41b-339dec816ec4")
+  private val extPrimaryDataConnection = new ExtPrimaryDataConnection(
+    Map(extEntityId.toString -> extEntityId).asJava
+  )
 
   "Testing a primary service config" should {
     "lead to complaining about too much source definitions" in {
@@ -239,6 +253,7 @@ class PrimaryServiceProxySpec
     InitPrimaryServiceProxyStateData(
       validPrimaryConfig,
       simulationStart,
+      Map.empty,
     )
   val proxyRef: TestActorRef[PrimaryServiceProxy] = TestActorRef(
     new PrimaryServiceProxy(scheduler.ref, initStateData, simulationStart)
@@ -260,6 +275,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         maliciousConfig,
         simulationStart,
+        Map.empty,
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -280,6 +296,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         maliciousConfig,
         simulationStart,
+        Map.empty,
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -293,6 +310,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         validPrimaryConfig,
         simulationStart,
+        Map.empty,
       ) match {
         case Success(
               PrimaryServiceStateData(
@@ -301,6 +319,7 @@ class PrimaryServiceProxySpec
                 simulationStart,
                 primaryConfig,
                 mappingSource,
+                _,
               )
             ) =>
           modelToTimeSeries shouldBe Map(
@@ -338,6 +357,29 @@ class PrimaryServiceProxySpec
           )
       }
     }
+
+    "build proxy correctly when there is an external simulation" in {
+      proxy invokePrivate prepareStateData(
+        validPrimaryConfig,
+        simulationStart,
+        Map(extPrimaryDataConnection -> validExtPrimaryDataService),
+      ) match {
+        case Success(
+              PrimaryServiceStateData(
+                _,
+                _,
+                _,
+                _,
+                _,
+                extSubscribersToService,
+              )
+            ) =>
+          extSubscribersToService shouldBe Map(
+            extEntityId -> validExtPrimaryDataService
+          )
+      }
+    }
+
   }
 
   "Sending initialization information to an uninitialized actor" should {
@@ -562,6 +604,7 @@ class PrimaryServiceProxySpec
               simulationStart,
               primaryConfig,
               mappingSource,
+              _,
             ) =>
           modelToTimeSeries shouldBe proxyStateData.modelToTimeSeries
           timeSeriesToSourceRef shouldBe Map(

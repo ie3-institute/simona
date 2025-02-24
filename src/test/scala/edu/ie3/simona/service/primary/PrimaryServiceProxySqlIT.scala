@@ -101,6 +101,7 @@ class PrimaryServiceProxySqlIT
         sqlParams = Some(sqlParams),
       ),
       simulationStart,
+      Map.empty,
     )
 
     TestActorRef(

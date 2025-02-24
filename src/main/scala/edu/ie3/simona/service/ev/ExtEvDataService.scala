@@ -22,7 +22,10 @@ import edu.ie3.simona.exceptions.{
 }
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.EvMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  DataResponseMessage,
+  ServiceRegistrationMessage,
+}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
@@ -351,7 +354,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
     }
 
   override protected def handleDataResponseMessage(
-      extResponseMsg: EvResponseMessage
+      extResponseMsg: DataResponseMessage
   )(implicit serviceStateData: ExtEvStateData): ExtEvStateData = {
     extResponseMsg match {
       case DepartingEvsResponse(evcs, evModels) =>

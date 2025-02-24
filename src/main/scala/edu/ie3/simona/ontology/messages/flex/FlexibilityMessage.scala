@@ -37,6 +37,12 @@ object FlexibilityMessage {
     val modelUuid: UUID
   }
 
+  final case class SetPointFlexRequest(
+      tick: Long,
+      setPower: Power,
+      nextSetPointTick: Option[Long],
+  ) extends FlexRequest
+
   /** Message that registers a controlled asset model with an
     * [[edu.ie3.simona.agent.em.EmAgent]].
     *

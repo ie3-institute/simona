@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
@@ -30,6 +28,7 @@ import edu.ie3.datamodel.io.source.{
 }
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
@@ -47,7 +46,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   WorkerRegistrationMessage,
 }
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
@@ -59,7 +57,10 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   InitPrimaryServiceStateData,
   SqlInitPrimaryServiceStateData,
 }
+import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
@@ -107,6 +108,7 @@ case class PrimaryServiceProxy(
       prepareStateData(
         initStateData.primaryConfig,
         initStateData.simulationStart,
+        initStateData.extSimulationData,
       ) match {
         case Success(stateData) =>
           scheduler ! Completion(self.toTyped)
@@ -139,6 +141,7 @@ case class PrimaryServiceProxy(
   private def prepareStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
+      extSimulationData: Map[ExtPrimaryDataConnection, ActorRef],
   ): Try[PrimaryServiceStateData] = {
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
@@ -167,13 +170,30 @@ case class PrimaryServiceProxy(
             }
           }
           .toMap
-        PrimaryServiceStateData(
-          modelToTimeSeries,
-          timeSeriesToSourceRef,
-          simulationStart,
-          primaryConfig,
-          mappingSource,
-        )
+        if (extSimulationData.nonEmpty) {
+          val extSubscribersToService = extSimulationData.flatMap {
+            case (connection, ref) =>
+              connection.getPrimaryDataAssets.asScala.map(id => id -> ref)
+          }
+
+          // Ask ExtPrimaryDataService which UUIDs should be substituted
+          PrimaryServiceStateData(
+            modelToTimeSeries,
+            timeSeriesToSourceRef,
+            simulationStart,
+            primaryConfig,
+            mappingSource,
+            extSubscribersToService,
+          )
+        } else {
+          PrimaryServiceStateData(
+            modelToTimeSeries,
+            timeSeriesToSourceRef,
+            simulationStart,
+            primaryConfig,
+            mappingSource,
+          )
+        }
     }
   }
 
@@ -246,21 +266,34 @@ case class PrimaryServiceProxy(
   private def onMessage(stateData: PrimaryServiceStateData): Receive = {
     case PrimaryServiceRegistrationMessage(requestingActor, modelUuid) =>
       /* Try to register for this model */
-      stateData.modelToTimeSeries.get(modelUuid) match {
-        case Some(timeSeriesUuid) =>
-          /* There is a time series apparent for this model, try to get a worker for it */
-          handleCoveredModel(
-            modelUuid,
-            timeSeriesUuid,
-            stateData,
-            requestingActor,
-          )
+      stateData.extSubscribersToService.get(modelUuid) match {
+        case Some(_) =>
+          /* There is external data apparent for this model */
+          handleExternalModel(modelUuid, stateData, requestingActor)
+
         case None =>
           log.debug(
-            s"There is no time series apparent for the model with uuid '{}'.",
+            s"There is no external data apparent for the model with uuid '{}'.",
             modelUuid,
           )
-          requestingActor ! RegistrationFailedMessage(self)
+
+          stateData.modelToTimeSeries.get(modelUuid) match {
+            case Some(timeSeriesUuid) =>
+              /* There is a time series apparent for this model, try to get a worker for it */
+              handleCoveredModel(
+                modelUuid,
+                timeSeriesUuid,
+                stateData,
+                requestingActor,
+              )
+
+            case None =>
+              log.debug(
+                s"There is no time series apparent for the model with uuid '{}'.",
+                modelUuid,
+              )
+              requestingActor ! RegistrationFailedMessage(self)
+          }
       }
     case x =>
       log.error(
@@ -322,6 +355,19 @@ case class PrimaryServiceProxy(
             s"'$modelUuid'), although the mapping contains information about it."
         )
         requestingActor ! RegistrationFailedMessage(self)
+    }
+  }
+
+  protected def handleExternalModel(
+      modelUuid: UUID,
+      stateData: PrimaryServiceStateData,
+      requestingActor: ActorRef,
+  ): Unit = {
+    stateData.extSubscribersToService.foreach { case (_, ref) =>
+      ref ! PrimaryServiceRegistrationMessage(
+        requestingActor,
+        modelUuid,
+      )
     }
   }
 
@@ -510,6 +556,7 @@ object PrimaryServiceProxy {
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
+      extSimulationData: Map[ExtPrimaryDataConnection, ActorRef],
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.
@@ -531,6 +578,7 @@ object PrimaryServiceProxy {
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
       mappingSource: TimeSeriesMappingSource,
+      extSubscribersToService: Map[UUID, ActorRef] = Map.empty,
   ) extends ServiceStateData
 
   /** Giving reference to the target time series and source worker.
