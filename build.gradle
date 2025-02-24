@@ -98,7 +98,7 @@ dependencies {
   /* testing */
   // scalatest & junit
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.19"
-  testImplementation "org.junit.platform:junit-platform-launcher:1.11.4"
+  testImplementation "org.junit.platform:junit-platform-launcher:1.12.0"
   testRuntimeOnly "org.junit.platform:junit-platform-engine:1.11.4"
   testRuntimeOnly "org.scalatestplus:junit-5-11_${scalaVersion}:3.2.19.0"
 
