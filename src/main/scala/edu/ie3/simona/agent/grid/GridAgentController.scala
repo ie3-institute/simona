@@ -32,6 +32,7 @@ import edu.ie3.simona.agent.participant2.{
 }
 import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.AssetConfigs
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -83,6 +84,7 @@ class GridAgentController(
     environmentRefs: EnvironmentRefs,
     simulationStartDate: ZonedDateTime,
     simulationEndDate: ZonedDateTime,
+    emConfigs: AssetConfigs[EmRuntimeConfig],
     participantsConfig: Participant,
     outputConfig: SimonaConfig.Simona.Output.Participant,
     resolution: Long,
@@ -97,10 +99,24 @@ class GridAgentController(
     val systemParticipants =
       filterSysParts(subGridContainer, environmentRefs)
 
+    val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
+
+    // ems that control at least one participant directly
+    val firstLevelEms = systemParticipants.flatMap {
+      _.getControllingEm.toScala.map(em => em.getUuid -> em)
+    }.toMap
+
+    val allEms = buildEmsRecursively(
+      EmConfigUtil(emConfigs),
+      outputConfigUtil,
+      firstLevelEms,
+    )
+
     /* Browse through all system participants, build actors and map their node's UUID to the actor references */
     buildParticipantToActorRef(
       participantsConfig,
-      outputConfig,
+      allEms,
+      outputConfigUtil,
       systemParticipants,
       thermalIslandGridsByBusId,
       environmentRefs,
@@ -183,7 +199,8 @@ class GridAgentController(
     */
   private def buildParticipantToActorRef(
       participantsConfig: Participant,
-      outputConfig: SimonaConfig.Simona.Output.Participant,
+      emAgents: Map[UUID, ActorRef[FlexResponse]],
+      outputConfigUtil: OutputConfigUtil,
       participants: Vector[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
@@ -192,18 +209,6 @@ class GridAgentController(
      * phase */
     val participantConfigUtil =
       ConfigUtil.ParticipantConfigUtil(participantsConfig)
-    val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
-
-    // ems that control at least one participant directly
-    val firstLevelEms = participants.flatMap {
-      _.getControllingEm.toScala.map(em => em.getUuid -> em)
-    }.toMap
-
-    val allEms = buildEmsRecursively(
-      participantConfigUtil,
-      outputConfigUtil,
-      firstLevelEms,
-    )
 
     participants
       .map { participant =>
@@ -213,7 +218,7 @@ class GridAgentController(
           participant.getControllingEm.toScala
             .map(_.getUuid)
             .map(uuid =>
-              allEms.getOrElse(
+              emAgents.getOrElse(
                 uuid,
                 throw new CriticalFailureException(
                   s"EM actor with UUID $uuid not found."
@@ -242,7 +247,7 @@ class GridAgentController(
     * its way up to EMs at root level, which are not EM-controlled themselves.
     * The first level can also be root level.
     *
-    * @param participantConfigUtil
+    * @param emConfigUtil
     *   Configuration util for participant models
     * @param outputConfigUtil
     *   Configuration util for output behaviour
@@ -255,7 +260,7 @@ class GridAgentController(
     *   Map from model UUID to EmAgent ActorRef
     */
   private def buildEmsRecursively(
-      participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
+      emConfigUtil: ConfigUtil.EmConfigUtil,
       outputConfigUtil: OutputConfigUtil,
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
@@ -269,7 +274,7 @@ class GridAgentController(
         else {
           val actor = buildEm(
             emInput,
-            participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
+            emConfigUtil.getOrDefault(uuid),
             outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
             maybeControllingEm = None,
           )
@@ -290,7 +295,7 @@ class GridAgentController(
 
       // Return value includes previous level and uncontrolled EMs of this level
       val recursiveEms = buildEmsRecursively(
-        participantConfigUtil,
+        emConfigUtil,
         outputConfigUtil,
         controllingEms,
         previousLevelAndUncontrolledEms,
@@ -310,7 +315,7 @@ class GridAgentController(
 
         uuid -> buildEm(
           emInput,
-          participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
+          emConfigUtil.getOrDefault(uuid),
           outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
           maybeControllingEm = controllingEm,
         )

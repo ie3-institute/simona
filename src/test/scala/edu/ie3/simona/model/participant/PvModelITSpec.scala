@@ -38,7 +38,6 @@ class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
           val weather = modelToWeatherMap(modelId)
           val neededData = PvModel.PvRelevantData(
             dateTime,
-            3600L,
             weather.diffIrr,
             weather.dirIrr,
           )
