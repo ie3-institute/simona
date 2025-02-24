@@ -27,6 +27,7 @@ import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
 import edu.ie3.simona.util.ConfigUtil.{
+  EmConfigUtil,
   GridOutputConfigUtil,
   NotifierIdentifier,
   ParticipantConfigUtil,
@@ -40,6 +41,77 @@ class ConfigUtilSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
     with ConfigTestData {
+
+  "The em config util" should {
+    "be created correctly with valid data" in {
+      val emRuntimeConfig = ConfigFactory.parseString(
+        """simona.runtime.em = {
+          |  defaultConfig = {
+          |    uuids = ["default"]
+          |    scaling = 1.0
+          |    }
+          |  individualConfigs = []
+          |}""".stripMargin
+      )
+      val config =
+        emRuntimeConfig.withFallback(typesafeConfig).resolve()
+      val simonaConfig = SimonaConfig(config)
+
+      val actual = ConfigUtil.EmConfigUtil(
+        simonaConfig.simona.runtime.em
+      )
+
+      inside(actual) { case EmConfigUtil(configs, defaultConfigs) =>
+        configs shouldBe Map.empty[UUID, EmRuntimeConfig]
+
+        defaultConfigs.calculateMissingReactivePowerWithModel shouldBe false
+        defaultConfigs.scaling shouldBe 1.0
+        defaultConfigs.uuids shouldBe List("default")
+        defaultConfigs.aggregateFlex shouldBe "SELF_OPT_EXCL_REG"
+        defaultConfigs.curtailRegenerative shouldBe false
+      }
+    }
+
+    "be created correctly with one UUID correctly" in {
+      val emRuntimeConfig = ConfigFactory.parseString(
+        """simona.runtime.em = {
+          |  defaultConfig = {
+          |    uuids = ["default"]
+          |    scaling = 1.0
+          |    }
+          |  individualConfigs = [
+          |    {
+          |      calculateMissingReactivePowerWithModel = false
+          |      uuids = ["49f250fa-41ff-4434-a083-79c98d260a76"]
+          |      scaling = 1.3
+          |      curtailRegenerative = true
+          |    }
+          |  ]
+          |}""".stripMargin
+      )
+      val config =
+        emRuntimeConfig.withFallback(typesafeConfig).resolve()
+      val simonaConfig = SimonaConfig(config)
+
+      val actual = ConfigUtil.EmConfigUtil(
+        simonaConfig.simona.runtime.em
+      )
+
+      inside(actual) { case EmConfigUtil(configs, _) =>
+        configs.size shouldBe 1
+
+        val individual =
+          configs(UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76"))
+
+        individual.calculateMissingReactivePowerWithModel shouldBe false
+        individual.scaling shouldBe 1.3
+        individual.uuids shouldBe List("49f250fa-41ff-4434-a083-79c98d260a76")
+        individual.aggregateFlex shouldBe "SELF_OPT_EXCL_REG"
+        individual.curtailRegenerative shouldBe true
+      }
+    }
+  }
+
   "The participant config util" should {
     "setup correctly with valid load data" in {
       val loadRuntimeConfig = ConfigFactory.parseString(
@@ -63,7 +135,7 @@ class ConfigUtilSpec
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs shouldBe Map.empty[UUID, LoadRuntimeConfig]
-        defaultConfigs.size shouldBe 8
+        defaultConfigs.size shouldBe 7
 
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
           case Some(
@@ -123,7 +195,7 @@ class ConfigUtilSpec
           UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
         )
 
-        defaultConfigs.size shouldBe 8
+        defaultConfigs.size shouldBe 7
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
           case Some(
                 LoadRuntimeConfig(
@@ -335,7 +407,7 @@ class ConfigUtilSpec
           UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
         )
 
-        defaultConfigs.size shouldBe 8
+        defaultConfigs.size shouldBe 7
         inside(defaultConfigs.get(classOf[FixedFeedInRuntimeConfig])) {
           case Some(
                 FixedFeedInRuntimeConfig(

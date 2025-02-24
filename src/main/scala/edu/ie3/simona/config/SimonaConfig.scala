@@ -74,6 +74,19 @@ object SimonaConfig {
 
   // pure config end
 
+  /** Case class contains default and individual configs for assets.
+    * @param defaultConfig
+    *   to use
+    * @param individualConfigs
+    *   specific configs, that are used instead of the [[defaultConfig]]
+    * @tparam T
+    *   type of asset config
+    */
+  final case class AssetConfigs[T](
+      defaultConfig: T,
+      individualConfigs: List[T] = List.empty,
+  )
+
   final case class BaseCsvParams(
       override val csvSep: String,
       override val directoryPath: String,
@@ -177,7 +190,6 @@ object SimonaConfig {
       congestionManagement: Simona.CongestionManagement =
         Simona.CongestionManagement(),
       control: Option[Simona.Control] = None,
-      event: Simona.Event = Simona.Event(),
       gridConfig: Simona.GridConfig = Simona.GridConfig(),
       input: Simona.Input,
       output: Simona.Output,
@@ -195,16 +207,6 @@ object SimonaConfig {
     final case class Control(
         transformer: List[TransformerControlGroup] = List.empty
     )
-
-    final case class Event(
-        listener: Option[List[Event.Listener$Elm]] = None
-    )
-    object Event {
-      final case class Listener$Elm(
-          eventsToProcess: Option[List[String]] = None,
-          fullClassPath: String,
-      )
-    }
 
     final case class GridConfig(
         refSystems: Option[List[RefSystemConfig]] = None,

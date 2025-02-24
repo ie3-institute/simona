@@ -27,8 +27,7 @@ import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.TimeUtil
 
-import java.time.temporal.ChronoUnit
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
 import scala.concurrent.duration.DurationInt
 
 class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
@@ -1001,7 +1000,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             "one sink is configured!"
         }
 
-        "throw an exception if an influxDb1x is configured, but not accessible" ignore {
+        "throw an exception if an influxDb1x is configured, but not accessible" in {
           intercept[java.lang.IllegalArgumentException] {
             ConfigFailFast invokePrivate checkDataSink(
               Sink(None, Some(InfluxDb1x("", 0, "")), None)

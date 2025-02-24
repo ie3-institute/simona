@@ -174,6 +174,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           constantData.simStartTime,
           TimeUtil.withDefaults
             .toZonedDateTime(cfg.time.endDateTime),
+          cfg.runtime.em,
           cfg.runtime.participant,
           cfg.output.participant,
           constantData.resolution,

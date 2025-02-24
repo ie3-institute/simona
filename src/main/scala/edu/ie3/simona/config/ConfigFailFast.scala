@@ -24,7 +24,10 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.model.participant2.load.{
+  LoadModelBehaviour,
+  LoadReferenceType,
+}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherSource.WeatherScheme
 import edu.ie3.simona.util.CollectionUtils
@@ -36,7 +39,6 @@ import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkSqlParams,
 }
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
-import edu.ie3.util.scala.ReflectionTools
 import edu.ie3.util.{StringUtils, TimeUtil}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -200,7 +202,7 @@ object ConfigFailFast extends LazyLogging {
       )
 
     // failure if all sinks are not-configured
-    val sinkConfigs = ReflectionTools.classFieldToVal(sink).values.map {
+    val sinkConfigs = sink.productIterator.toSeq.map {
       case o: Option[_] => o
       case _ =>
         throw new InvalidConfigParameterException(
@@ -445,7 +447,7 @@ object ConfigFailFast extends LazyLogging {
       )
 
     if (
-      !LoadReference.isEligibleKey(
+      !LoadReferenceType.isEligibleInput(
         loadModelConfig.reference
       )
     )
@@ -796,8 +798,7 @@ object ConfigFailFast extends LazyLogging {
     *
     * One important check cannot be performed at this place, as input data is
     * not available, yet: Do the measurements belong to a region, that can be
-    * influenced by the transformer? This is partly addressed in
-    * [[edu.ie3.simona.agent.grid.GridAgentFailFast]]
+    * influenced by the transformer?
     *
     * @param transformerControlGroup
     *   Transformer control group definition
