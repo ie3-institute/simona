@@ -37,16 +37,6 @@ import scala.util.{Failure, Success, Try, Using}
 
 object ConfigUtil {
 
-  private def buildUuidMapping[T <: BaseRuntimeConfig](
-      configs: Seq[T]
-  ): Map[UUID, T] =
-    configs
-      .flatMap(modelConfig =>
-        modelConfig.uuids
-          .map(UUID.fromString(_) -> modelConfig)
-      )
-      .toMap
-
   final case class EmConfigUtil private (
       private val configs: Map[UUID, EmRuntimeConfig],
       private val defaultConfigs: EmRuntimeConfig,
@@ -568,5 +558,15 @@ object ConfigUtil {
       }
     }
   }
+
+  private def buildUuidMapping[T <: BaseRuntimeConfig](
+      configs: Seq[T]
+  ): Map[UUID, T] =
+    configs
+      .flatMap(modelConfig =>
+        modelConfig.uuids
+          .map(UUID.fromString(_) -> modelConfig)
+      )
+      .toMap
 
 }
