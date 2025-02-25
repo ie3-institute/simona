@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `LoadModel` with its new implementation [#1150](https://github.com/ie3-institute/simona/issues/1150)
 - Replace `FixedFeedInModel` with its new implementation [#1152](https://github.com/ie3-institute/simona/issues/1152)
 - Replace `PvModel` with its new implementation [#1149](https://github.com/ie3-institute/simona/issues/1149)
+- Replace `WecModel` with its new implementation [#1154](https://github.com/ie3-institute/simona/issues/1154)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
