@@ -237,12 +237,6 @@ The initial SOC defaults to 0%, while the target SOC is optional. When no target
 
 Individual configuration can be assigned accordingly.
 
-## Event configuration 
-
-Tba:
-
-  `simona.event.listener = []`
-
 ## Grid configuration 
 
 ### Reference System

@@ -4,12 +4,13 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant
+package edu.ie3.simona.model.participant2
 
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import org.scalatest.matchers.should.Matchers
-import squants.Each
 import squants.energy.{Megawatts, Power}
+import squants.time.Hours
 
 /** A simple integration test that uses pre-calculated data to check if the pv
   * model works as expected. It uses 8 pv models located in GER.
@@ -17,9 +18,7 @@ import squants.energy.{Megawatts, Power}
 
 class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
 
-  private implicit val tolerance: Power = Megawatts(
-    1e-14
-  )
+  private implicit val tolerance: Power = Megawatts(1e-14)
 
   "The photovoltaic model" should {
     "match the expected results for all 8 PV panels over the whole year" in {
@@ -36,17 +35,16 @@ class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
         modelIds.map { modelId =>
           val model = pvModels(modelId)
           val weather = modelToWeatherMap(modelId)
-          val neededData = PvModel.PvRelevantData(
+          val pvState = PvModel.PvState(
+            dateTime.toTick,
             dateTime,
-            3600L,
             weather.diffIrr,
             weather.dirIrr,
           )
 
-          val voltage = Each(1.414213562d)
-          val calc = model
-            .calculatePower(0L, voltage, ModelState.ConstantState, neededData)
-            .p
+          val calc = model.determineOperatingPoint(pvState) match {
+            case (op, _) => op.activePower
+          }
 
           val sol = resultsMap(dateTime)(modelId)
 
