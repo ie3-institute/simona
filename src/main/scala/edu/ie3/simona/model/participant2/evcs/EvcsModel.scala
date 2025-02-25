@@ -22,7 +22,6 @@ import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ModelInput,
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
@@ -47,7 +46,7 @@ import edu.ie3.util.scala.quantities.{
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.energy.{Kilowatts, Watts}
 import squants.time.Seconds
-import squants.{Energy, Power}
+import squants.{Dimensionless, Energy, Power}
 import tech.units.indriya.unit.Units.PERCENT
 
 import java.time.ZonedDateTime
@@ -70,14 +69,15 @@ class EvcsModel private (
     ]
     with EvcsChargingProperties {
 
-  override val initialState: ModelInput => EvcsState = { input =>
-    EvcsState(getArrivals(input.receivedData), input.currentTick)
+  override val initialState: (Long, ZonedDateTime) => EvcsState = { (tick, _) =>
+    EvcsState(Seq.empty, tick)
   }
 
   override def determineState(
       lastState: EvcsState,
       operatingPoint: EvcsOperatingPoint,
-      input: ModelInput,
+      tick: Long,
+      simulationTime: ZonedDateTime,
   ): EvcsState = {
 
     val updatedEvs = lastState.evs.map { ev =>
@@ -88,7 +88,7 @@ class EvcsModel private (
             ev.storedEnergy,
             chargingPower,
             lastState.tick,
-            input.currentTick,
+            tick,
             ev.eStorage,
           )
 
@@ -97,17 +97,21 @@ class EvcsModel private (
         .getOrElse(ev)
     }
 
-    val arrivals = getArrivals(input.receivedData)
-
-    EvcsState(updatedEvs ++ arrivals, input.currentTick)
+    EvcsState(updatedEvs, tick)
   }
 
-  private def getArrivals(receivedData: Seq[Data]): Seq[EvModelWrapper] = {
-    receivedData
+  override def handleInput(
+      state: EvcsState,
+      receivedData: Seq[Data],
+      nodalVoltage: Dimensionless,
+  ): EvcsState = {
+    val arrivals = receivedData
       .collectFirst { case evData: ArrivingEvs =>
         evData.arrivals
       }
       .getOrElse(Seq.empty)
+
+    state.copy(state.evs ++ arrivals)
   }
 
   override def determineOperatingPoint(

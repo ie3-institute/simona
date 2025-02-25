@@ -231,7 +231,7 @@ object ParticipantAgent {
     Behaviors.receivePartial {
       case (ctx, request: ParticipantRequest) =>
         val updatedShell = modelShell
-          .updateModelInput(
+          .handleInputData(
             inputHandler.getData,
             gridAdapter.nodalVoltage,
             request.tick,
@@ -400,7 +400,7 @@ object ParticipantAgent {
 
       val (updatedShell, updatedGridAdapter) = Scope(modelShell)
         .map(
-          _.updateModelInput(
+          _.handleInputData(
             inputHandler.getData,
             gridAdapter.nodalVoltage,
             activation.tick,

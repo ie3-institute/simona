@@ -12,10 +12,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ModelInput,
-  OperationChangeIndicator,
-}
+import edu.ie3.simona.model.participant2.ParticipantModel.OperationChangeIndicator
 import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsOperatingPoint,
   EvcsState,
@@ -39,7 +36,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import squants.Each
 import squants.energy.{KilowattHours, Kilowatts}
 
 import java.time.ZonedDateTime
@@ -67,6 +63,8 @@ class EvcsModelSpec
         chargingStrategy = chargingStrategy
       ),
     )
+
+  // todo test arrivals as well
 
   "An EVCS model" should {
 
@@ -189,17 +187,11 @@ class EvcsModelSpec
               Map(ev.uuid -> Kilowatts(power))
             )
 
-            val input = ModelInput(
-              Seq.empty, // todo test arrivals
-              Each(1),
-              currentTick,
-              dateTime,
-            )
-
             val newState = evcsModel.determineState(
               state,
               operatingPoint,
-              input,
+              currentTick,
+              dateTime,
             )
 
             newState.evs should have size 1

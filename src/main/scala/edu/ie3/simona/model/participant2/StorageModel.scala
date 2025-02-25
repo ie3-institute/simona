@@ -21,7 +21,6 @@ import edu.ie3.simona.model.participant.StorageModel.RefTargetSocParams
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  ModelInput,
   ModelState,
 }
 import edu.ie3.simona.model.participant2.StorageModel.StorageState
@@ -44,7 +43,7 @@ class StorageModel private (
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    override val initialState: ModelInput => StorageState,
+    override val initialState: (Long, ZonedDateTime) => StorageState,
     eStorage: Energy,
     pMax: Power,
     eta: Dimensionless,
@@ -109,19 +108,20 @@ class StorageModel private (
   override def determineState(
       lastState: StorageState,
       operatingPoint: ActivePowerOperatingPoint,
-      input: ModelInput,
+      tick: Long,
+      simulationTime: ZonedDateTime,
   ): StorageState = {
     val currentEnergy = ChargingHelper.calcEnergy(
       lastState.storedEnergy,
       operatingPoint.activePower,
       lastState.tick,
-      input.currentTick,
+      tick,
       eStorage,
       minEnergy,
       eta,
     )
 
-    StorageState(currentEnergy, input.currentTick)
+    StorageState(currentEnergy, tick)
   }
 
   override def determineOperatingPoint(
@@ -318,10 +318,11 @@ object StorageModel {
         .doubleValue
     )
     def getInitialState(eStorage: Energy, config: StorageRuntimeConfig)(
-        input: ModelInput
+        tick: Long,
+        simulationTime: ZonedDateTime,
     ): StorageState = {
       val initialStorage = eStorage * config.initialSoc
-      StorageState(storedEnergy = initialStorage, input.currentTick)
+      StorageState(storedEnergy = initialStorage, tick)
     }
 
     new StorageModel(

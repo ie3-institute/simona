@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant2
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant2.MockParticipantModel._
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
@@ -22,6 +23,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import squants.Dimensionless
 import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
 
@@ -52,23 +54,32 @@ class MockParticipantModel(
       MockState,
     ] {
 
-  override val initialState: ModelInput => MockState = { input =>
-    val maybeAdditionalPower = input.receivedData.collectFirst {
-      case data: MockSecondaryData =>
-        data.additionalP
-    }
-
+  override val initialState: (Long, ZonedDateTime) => MockState = { (tick, _) =>
     MockState(
-      maybeAdditionalPower,
-      input.currentTick,
+      None,
+      tick,
     )
   }
 
   override def determineState(
       lastState: MockState,
       operatingPoint: ActivePowerOperatingPoint,
-      input: ModelInput,
-  ): MockState = initialState(input)
+      tick: Long,
+      simulationTime: ZonedDateTime,
+  ): MockState = lastState.copy(tick = tick)
+
+  override def handleInput(
+      state: MockState,
+      receivedData: Seq[Data],
+      nodalVoltage: Dimensionless,
+  ): MockState = {
+    val maybeAdditionalPower = receivedData.collectFirst {
+      case data: MockSecondaryData =>
+        data.additionalP
+    }
+
+    state.copy(additionalP = maybeAdditionalPower)
+  }
 
   override def determineOperatingPoint(
       state: MockState

@@ -23,7 +23,6 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  ModelInput,
   ModelState,
 }
 import edu.ie3.simona.model.participant2.WecModel.{
@@ -45,7 +44,7 @@ import squants.energy.Watts
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
 import squants.space.SquareMeters
-import squants.thermal.JoulesPerKelvin
+import squants.thermal.{Celsius, JoulesPerKelvin}
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
@@ -67,12 +66,11 @@ class WecModel private (
     with ParticipantSimpleFlexibility[WecState]
     with LazyLogging {
 
-  override val initialState: ModelInput => WecState = { input =>
-    val weatherData = getWeatherData(input.receivedData)
+  override val initialState: (Long, ZonedDateTime) => WecState = { (tick, _) =>
     WecState(
-      input.currentTick,
-      weatherData.windVel,
-      weatherData.temp,
+      tick,
+      MetersPerSecond(0d),
+      Celsius(0d),
       None,
     )
   }
@@ -80,11 +78,16 @@ class WecModel private (
   override def determineState(
       lastState: WecState,
       operatingPoint: ActivePowerOperatingPoint,
-      input: ModelInput,
-  ): WecState = initialState(input)
+      tick: Long,
+      simulationTime: ZonedDateTime,
+  ): WecState = lastState.copy(tick = tick)
 
-  private def getWeatherData(receivedData: Seq[Data]): WeatherData = {
-    receivedData
+  override def handleInput(
+      state: WecState,
+      receivedData: Seq[Data],
+      nodalVoltage: Dimensionless,
+  ): WecState = {
+    val weatherData = receivedData
       .collectFirst { case weatherData: WeatherData =>
         weatherData
       }
@@ -93,6 +96,11 @@ class WecModel private (
           s"Expected WeatherData, got $receivedData"
         )
       }
+
+    state.copy(
+      windVelocity = weatherData.windVel,
+      temperature = weatherData.temp,
+    )
   }
 
   override def determineOperatingPoint(
