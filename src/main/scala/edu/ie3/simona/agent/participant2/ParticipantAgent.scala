@@ -230,12 +230,9 @@ object ParticipantAgent {
   ): Behavior[Request] =
     Behaviors.receivePartial {
       case (ctx, request: ParticipantRequest) =>
+        // ParticipantRequests are always directly answered
+        // without taking into account possible new input data
         val updatedShell = modelShell
-          .handleInputData(
-            inputHandler.getData,
-            gridAdapter.nodalVoltage,
-            request.tick,
-          )
           .handleRequest(ctx, request)
 
         ParticipantAgent(
