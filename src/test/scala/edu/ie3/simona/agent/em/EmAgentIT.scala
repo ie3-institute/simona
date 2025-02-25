@@ -673,12 +673,21 @@ class EmAgentIT
     }
 
     "having a pv and a load agent connected" should {
-      "have correct reactive power on em level " in {
+      "have correct power and reactive power on em level also for agents with limited operation time" in {
+        val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
           TestProbe[ServiceMessage]("PrimaryServiceProxy")
         val weatherService = TestProbe[ServiceMessage]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
+
+        val participantRefs = ParticipantRefs(
+          gridAgent = gridAgent.ref,
+          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
+          services =
+            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          resultListener = Iterable(resultListener.ref),
+        )
 
         val emAgent = spawn(
           EmAgent(
@@ -692,73 +701,65 @@ class EmAgentIT
           ),
           "EmAgentReactivePower",
         )
-
-        val pvAgent = TestActorRef(
-          new PvAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              pvInputWithQCharacteristicLimitedOperationTime,
-              PvRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                scaling = 1d,
-                uuids = List.empty,
-              ),
-              primaryServiceProxy.ref.toClassic,
-              Iterable(ActorWeatherService(weatherService.ref.toClassic)),
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val pvAgent = spawn(
+          ParticipantAgentInit(
+            pvInputWithQCharacteristicLimitedOperationTime,
+            PvRuntimeConfig(calculateMissingReactivePowerWithModel = true),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "PvAgentReactivePower",
         )
-        val loadAgent = TestActorRef(
-          new FixedLoadAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              loadInputWithLimitedOperationTime,
-              LoadRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                scaling = 1d,
-                modelBehaviour = "fix",
-                reference = "power",
-                uuids = List.empty,
-              ),
-              primaryServiceProxy.ref.toClassic,
-              None,
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+
+        val loadAgent = spawn(
+          ParticipantAgentInit(
+            loadInputWithLimitedOperationTime,
+            LoadRuntimeConfig(calculateMissingReactivePowerWithModel = true),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "LoadAgentReactivePower",
         )
 
-        scheduler.expectNoMessage()
+        val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
+        emInitSchedule.tick shouldBe INIT_SIM_TICK
+        val emAgentActivation = emInitSchedule.actor
 
         /* INIT */
 
-        // pv
-        pvAgent ! Activation(INIT_SIM_TICK)
+        emAgentActivation ! Activation(INIT_SIM_TICK)
 
-        primaryServiceProxy.expectMessage(
+        // load
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+
+        // pv
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+
+        primaryServiceProxy.receiveMessages(2) should contain allOf (
           PrimaryServiceRegistrationMessage(
-            pvInputWithQCharacteristicLimitedOperationTime.getUuid
+            loadAgent.toClassic,
+            loadInputWithLimitedOperationTime.getUuid,
+          ),
+          PrimaryServiceRegistrationMessage(
+            pvAgent.toClassic,
+            pvInputWithQCharacteristicLimitedOperationTime.getUuid,
           )
         )
+
+        // load
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+
+        // pv
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
+            pvAgent.toClassic,
             pvInputWithQCharacteristicLimitedOperationTime.getNode.getGeoPosition.getY,
             pvInputWithQCharacteristicLimitedOperationTime.getNode.getGeoPosition.getX,
           )
@@ -766,41 +767,10 @@ class EmAgentIT
 
         pvAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L),
+          0L,
         )
 
-        scheduler.expectMessage(Completion(pvAgent))
-
-        // load
-        loadAgent ! Activation(INIT_SIM_TICK)
-
-        primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(
-            loadInputWithLimitedOperationTime.getUuid
-          )
-        )
-        loadAgent ! RegistrationFailedMessage(
-          primaryServiceProxy.ref.toClassic
-        )
-
-        // the order of the two messages is not given
-        val emAgentActivation = scheduler
-          .receiveMessages(2)
-          .flatMap {
-            case Completion(ref, maybeNewTick) =>
-              ref shouldBe loadAgent.toTyped
-              maybeNewTick shouldBe None
-              None
-            case ScheduleActivation(ref, tick, unlockKey) =>
-              // em agent schedules itself
-              tick shouldBe 0
-              unlockKey shouldBe None
-              Some(ref)
-            case unexpected =>
-              fail(s"Received unexpected message $unexpected")
-          }
-          .headOption
-          .value
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         val weatherDependentAgents = Seq(pvAgent)
 
@@ -813,7 +783,7 @@ class EmAgentIT
         emAgentActivation ! Activation(0)
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             0,
             weatherService.ref.toClassic,
             WeatherData(
@@ -847,7 +817,7 @@ class EmAgentIT
         emAgentActivation ! Activation(3600)
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             3600,
             weatherService.ref.toClassic,
             WeatherData(
@@ -877,7 +847,7 @@ class EmAgentIT
          */
 
         weatherDependentAgents.foreach {
-          _ ! ProvideWeatherMessage(
+          _ ! DataProvision(
             7200,
             weatherService.ref.toClassic,
             WeatherData(
