@@ -14,6 +14,8 @@ object DefaultQuantities {
   val zeroKW: Power = Kilowatts(0d)
   val zeroMW: Power = Megawatts(0d)
 
+  val zeroWPerSM: Irradiance = WattsPerSquareMeter(0d)
+
   val zeroKVAr: ReactivePower = Kilovars(0d)
   val zeroMVAr: ReactivePower = Megavars(0d)
 
