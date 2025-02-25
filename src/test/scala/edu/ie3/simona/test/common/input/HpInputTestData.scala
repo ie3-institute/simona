@@ -108,7 +108,6 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       "thermal storage",
       thermalBusInput,
       Quantities.getQuantity(300.0, Units.LITRE),
-      Quantities.getQuantity(0.0, Units.LITRE),
       Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(30.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
