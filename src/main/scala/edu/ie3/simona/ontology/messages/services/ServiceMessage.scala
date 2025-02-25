@@ -50,6 +50,8 @@ object ServiceMessage {
 
   /** Message to register with a primary data service.
     *
+    * @param requestingActor
+    *   The actor requesting registration for primary data
     * @param inputModelUuid
     *   Identifier of the input model
     */

@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant
+package edu.ie3.simona.model.participant2
 
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.test.common.input.PvInputTestData
@@ -26,6 +26,9 @@ trait PvModelITHelper extends PvInputTestData {
   private val CSV_FORMAT: CSVFormat =
     CSVFormat.DEFAULT.builder().setHeader().get()
 
+  protected implicit val simulationStartDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2011-01-01T00:00:00Z")
+
   def getCsvRecords(fileName: String): Iterable[CSVRecord] = {
     val resourcePath = getClass.getResource(fileName).getPath
     val resultsInputData = new File(resourcePath)
@@ -39,12 +42,7 @@ trait PvModelITHelper extends PvInputTestData {
 
   def createPvModels(): Map[String, PvModel] = {
     pvInputsTest.map { inputModel =>
-      inputModel.getId -> PvModel(
-        inputModel,
-        1.0,
-        TimeUtil.withDefaults.toZonedDateTime("2011-01-01T00:00:00Z"),
-        TimeUtil.withDefaults.toZonedDateTime("2012-01-01T00:00:00Z"),
-      )
+      inputModel.getId -> PvModel(inputModel)
     }.toMap
   }
 

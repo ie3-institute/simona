@@ -253,6 +253,7 @@ object ParticipantAgentInit {
         requiredServices.foreach { case (serviceType, serviceRef) =>
           registerForService(
             participantInput,
+            ctx.self,
             modelShell,
             serviceType,
             serviceRef,
@@ -272,6 +273,7 @@ object ParticipantAgentInit {
 
   private def registerForService(
       participantInput: SystemParticipantInput,
+      participantRef: ActorRef[Request],
       modelShell: ParticipantModelShell[_, _],
       serviceType: ServiceType,
       serviceRef: ClassicRef,
@@ -282,7 +284,11 @@ object ParticipantAgentInit {
 
         Option(geoPosition.getY).zip(Option(geoPosition.getX)) match {
           case Some((lat, lon)) =>
-            serviceRef ! RegisterForWeatherMessage(lat, lon)
+            serviceRef ! RegisterForWeatherMessage(
+              participantRef.toClassic,
+              lat,
+              lon,
+            )
           case _ =>
             throw new CriticalFailureException(
               s"${modelShell.identifier} cannot register for weather information at " +
