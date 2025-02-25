@@ -886,7 +886,7 @@ class EmAgentIT
             emResult.getTime shouldBe 10800.toDateTime
             emResult.getP should equalWithTolerance(-0.008692167.asMegaWatt)
             emResult.getQ should equalWithTolerance(
-              -0.00285698.asMegaVar
+              -0.002856977148.asMegaVar
             )
         }
 
@@ -907,7 +907,7 @@ class EmAgentIT
             emResult.getQ should equalWithTolerance(0.asMegaVar)
         }
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(21800)))
+        scheduler.expectMessage(Completion(emAgentActivation, None))
 
       }
     }
