@@ -228,7 +228,10 @@ class EvcsAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(evcsAgent.ref, evcsInputModel.getUuid)
+        PrimaryServiceRegistrationMessage(
+          evcsAgent.ref.toTyped,
+          evcsInputModel.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -1082,7 +1085,7 @@ class EvcsAgentModelCalculationSpec
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
         PrimaryServiceRegistrationMessage(
-          evcsAgent.ref,
+          evcsAgent.ref.toTyped,
           evcsInputModelQv.getUuid,
         )
       )
@@ -1224,7 +1227,7 @@ class EvcsAgentModelCalculationSpec
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
         PrimaryServiceRegistrationMessage(
-          evcsAgent.ref,
+          evcsAgent.ref.toTyped,
           evcsInputModelQv.getUuid,
         )
       )
@@ -2059,7 +2062,7 @@ class EvcsAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(evcsAgent.ref, inputModelUuid)
+        PrimaryServiceRegistrationMessage(evcsAgent.ref.toTyped, inputModelUuid)
       )
       /* State should be information handling and having correct state data */
       evcsAgent.stateName shouldBe HandleInformation

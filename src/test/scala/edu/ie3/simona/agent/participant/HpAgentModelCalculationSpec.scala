@@ -235,7 +235,7 @@ class HpAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(hpAgent.ref, hpInput.getUuid)
+        PrimaryServiceRegistrationMessage(hpAgent.ref.toTyped, hpInput.getUuid)
       )
       /* State should be information handling and having correct state data */
       hpAgent.stateName shouldBe HandleInformation

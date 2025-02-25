@@ -115,7 +115,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.getUuid,
           )
         )
@@ -162,7 +162,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.getUuid,
           )
         )
@@ -220,7 +220,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.getUuid,
           )
         )
@@ -277,7 +277,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.getUuid,
           )
         )
@@ -348,7 +348,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.getUuid,
           )
         )
@@ -409,7 +409,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.getUuid,
           )
         )
@@ -472,7 +472,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.getUuid,
           )
         )
@@ -539,7 +539,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.getUuid,
           )
         )

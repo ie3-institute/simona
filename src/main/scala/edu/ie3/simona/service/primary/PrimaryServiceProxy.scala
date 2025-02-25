@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
@@ -29,6 +27,7 @@ import edu.ie3.datamodel.io.source.{
   TimeSeriesMetaInformationSource,
 }
 import edu.ie3.datamodel.models.value.Value
+import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
@@ -39,20 +38,23 @@ import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException,
 }
-import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  Create,
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage,
+  WrappedActivation,
 }
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.{ServiceStateData, SimonaService}
-import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
-  InitPrimaryServiceProxyStateData,
-  PrimaryServiceStateData,
-  SourceRef,
+import edu.ie3.simona.service.ServiceStateData
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceConstantStateData,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
@@ -60,6 +62,10 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   SqlInitPrimaryServiceStateData,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.slf4j.Logger
 
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
@@ -68,6 +74,7 @@ import java.util.UUID
 import scala.Option.when
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
+import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
 /** This actor has information on which models can be replaced by precalculated
@@ -75,54 +82,172 @@ import scala.util.{Failure, Success, Try}
   * register for a certain model. If data is available, a child actor is spun
   * of, that will do the actual provision and the requesting agent is informed
   * accordingly.
-  *
-  * @param scheduler
-  *   Reference to the scheduler of the simulation
-  * @param startDateTime
-  *   Simulation time of the first instant in simulation
   */
-case class PrimaryServiceProxy(
-    scheduler: ActorRef,
-    initStateData: InitPrimaryServiceProxyStateData,
-    private implicit val startDateTime: ZonedDateTime,
-) extends Actor
-    with SimonaActorLogging {
+object PrimaryServiceProxy {
 
-  /** Start receiving without knowing specifics about myself
+  /** State data with needed information to initialize this primary service
+    * provider proxy
     *
-    * @return
-    *   How receiving should be handled
+    * @param primaryConfig
+    *   Configuration for the primary source
+    * @param simulationStart
+    *   Simulation time of the first instant in simulation
     */
-  override def receive: Receive = uninitialized
+  final case class InitPrimaryServiceProxyStateData(
+      primaryConfig: PrimaryConfig,
+      simulationStart: ZonedDateTime,
+  ) extends InitializeServiceStateData
+
+  /** Holding the state of an initialized proxy.
+    *
+    * @param modelToTimeSeries
+    *   Mapping from models' to time series unique identifiers
+    * @param timeSeriesToSourceRef
+    *   Mapping from time series identifier to [[SourceRef]]
+    * @param simulationStart
+    *   Simulation time of the first instant in simulation
+    * @param primaryConfig
+    *   The configuration for the sources
+    * @param mappingSource
+    *   The mapping source
+    */
+  final case class PrimaryServiceStateData(
+      modelToTimeSeries: Map[UUID, UUID],
+      timeSeriesToSourceRef: Map[UUID, SourceRef],
+      simulationStart: ZonedDateTime,
+      primaryConfig: PrimaryConfig,
+      mappingSource: TimeSeriesMappingSource,
+  ) extends ServiceStateData
+
+  /** Giving reference to the target time series and source worker.
+    *
+    * @param metaInformation
+    *   Meta information (including column scheme) of the time series
+    * @param worker
+    *   Optional reference to an already existing worker providing information
+    *   on that time series
+    */
+  final case class SourceRef(
+      metaInformation: IndividualTimeSeriesMetaInformation,
+      worker: Option[ActorRef[ServiceMessage]],
+  )
+
+  /** Check if the config holds correct information to instantiate a mapping
+    * source
+    *
+    * @param primaryConfig
+    *   Config entries for primary source
+    */
+  def checkConfig(primaryConfig: PrimaryConfig): Unit = {
+
+    def checkTimePattern(dtfPattern: String): Unit =
+      Try {
+        new SimpleDateFormat(dtfPattern)
+      } match {
+        case Failure(exception) =>
+          throw new InvalidConfigParameterException(
+            s"Invalid timePattern '$dtfPattern' for a time series source. Please provide a valid pattern!" +
+              s"\nException: $exception"
+          )
+        case Success(_) =>
+        // this is fine
+      }
+
+    val supportedSources =
+      Set("csv", "sql")
+
+    val sourceConfigs = Seq(
+      primaryConfig.couchbaseParams,
+      primaryConfig.csvParams,
+      primaryConfig.influxDb1xParams,
+      primaryConfig.sqlParams,
+    ).filter(_.isDefined).flatten
+    if (sourceConfigs.size > 1)
+      throw new InvalidConfigParameterException(
+        s"${sourceConfigs.size} time series source types defined. " +
+          s"Please define only one type!\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"
+      )
+    else if (sourceConfigs.isEmpty)
+      throw new InvalidConfigParameterException(
+        s"No time series source type defined. Please define exactly one type!" +
+          s"\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"
+      )
+    else {
+      sourceConfigs.headOption match {
+        case Some(csvParams: PrimaryDataCsvParams) =>
+          // note: if inheritance is supported by tscfg,
+          // the following method should be called for all different supported sources!
+          checkTimePattern(csvParams.timePattern)
+        case Some(sqlParams: SqlParams) =>
+          checkTimePattern(sqlParams.timePattern)
+        case Some(x) =>
+          throw new InvalidConfigParameterException(
+            s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources
+                .mkString("\n\t")}"
+          )
+        case None =>
+          throw new InvalidConfigParameterException(
+            s"No configuration for a time series mapping source provided.\nPlease provide one of the available sources:\n\t${supportedSources
+                .mkString("\n\t")}"
+          )
+      }
+    }
+  }
+
+  def apply(
+      scheduler: ActorRef[SchedulerMessage],
+      initStateData: InitPrimaryServiceProxyStateData,
+  ): Behavior[ServiceMessage] = Behaviors.setup { ctx =>
+    val activationAdapter: ActorRef[Activation] =
+      ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
+
+    implicit val constantData: ServiceConstantStateData =
+      ServiceConstantStateData(
+        scheduler,
+        activationAdapter,
+      )
+
+    scheduler ! ScheduleActivation(
+      activationAdapter,
+      INIT_SIM_TICK,
+    )
+
+    uninitialized(initStateData)
+  }
 
   /** Handle all messages, when the actor isn't initialized, yet.
     *
     * @return
     *   How receiving should be handled with gained insight of myself
     */
-  private def uninitialized: Receive = {
-    case Activation(INIT_SIM_TICK) =>
+  private def uninitialized(
+      initStateData: InitPrimaryServiceProxyStateData
+  )(implicit
+      constantData: ServiceConstantStateData
+  ): Behavior[ServiceMessage] = Behaviors.receive {
+    case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
       /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
        * messages */
       prepareStateData(
         initStateData.primaryConfig,
         initStateData.simulationStart,
-      ) match {
+      )(ctx.log) match {
         case Success(stateData) =>
-          scheduler ! Completion(self.toTyped)
-          context become onMessage(stateData)
+          constantData.scheduler ! Completion(constantData.activationAdapter)
+          onMessage(stateData)
         case Failure(exception) =>
-          log.error(
+          ctx.log.error(
+            s"Unable to initialize the ${ctx.self.path}. Shut it down.",
             exception,
-            s"Unable to initialize the $actorName. Shut it down.",
           )
-          self ! PoisonPill
+
+          Behaviors.stopped
       }
 
-    case x =>
+    case (ctx, x) =>
       /* Unhandled message */
-      log.error("Received unhandled message: {}", x)
-      unhandled(x)
+      ctx.log.error("Received unhandled message: {}", x)
+      Behaviors.same
   }
 
   /** Prepare the needed state data by building a
@@ -136,10 +261,10 @@ case class PrimaryServiceProxy(
     * @return
     *   State data, containing the known model and time series identifiers
     */
-  private def prepareStateData(
+  private[service] def prepareStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
-  ): Try[PrimaryServiceStateData] = {
+  )(implicit log: Logger): Try[PrimaryServiceStateData] = {
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
         val modelToTimeSeries = mappingSource.getMapping.asScala.toMap
@@ -159,7 +284,7 @@ case class PrimaryServiceProxy(
                   timeSeriesUuid -> SourceRef(metaInformation, None)
                 }
               case None =>
-                log.warning(
+                log.warn(
                   "Unable to acquire meta information for time series '{}'. Leave that out.",
                   timeSeriesUuid,
                 )
@@ -243,8 +368,13 @@ case class PrimaryServiceProxy(
     * @return
     *   Message handling routine
     */
-  private def onMessage(stateData: PrimaryServiceStateData): Receive = {
-    case PrimaryServiceRegistrationMessage(requestingActor, modelUuid) =>
+  private[service] def onMessage(stateData: PrimaryServiceStateData)(implicit
+      constantData: ServiceConstantStateData
+  ): Behavior[ServiceMessage] = Behaviors.receive {
+    case (
+          ctx,
+          PrimaryServiceRegistrationMessage(agentToBeRegistered, modelUuid),
+        ) =>
       /* Try to register for this model */
       stateData.modelToTimeSeries.get(modelUuid) match {
         case Some(timeSeriesUuid) =>
@@ -253,20 +383,22 @@ case class PrimaryServiceProxy(
             modelUuid,
             timeSeriesUuid,
             stateData,
-            requestingActor,
-          )
+            agentToBeRegistered,
+          )(constantData, ctx)
         case None =>
-          log.debug(
+          ctx.log.debug(
             s"There is no time series apparent for the model with uuid '{}'.",
             modelUuid,
           )
-          requestingActor ! RegistrationFailedMessage(self)
+          agentToBeRegistered ! RegistrationFailedMessage(ctx.self.toClassic)
       }
-    case x =>
-      log.error(
+
+      Behaviors.same
+    case (ctx, x) =>
+      ctx.log.error(
         s"Received message '$x', but I'm only able to handle registration requests."
       )
-      unhandled(x)
+      Behaviors.same
   }
 
   /** Handle the registration request for a covered model. First, try to get an
@@ -280,18 +412,21 @@ case class PrimaryServiceProxy(
     * @param stateData
     *   Current state data of the actor
     */
-  protected def handleCoveredModel(
+  protected[service] def handleCoveredModel(
       modelUuid: UUID,
       timeSeriesUuid: UUID,
       stateData: PrimaryServiceStateData,
-      requestingActor: ActorRef,
+      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
+  )(implicit
+      constantData: ServiceConstantStateData,
+      ctx: ActorContext[ServiceMessage],
   ): Unit = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     timeSeriesToSourceRef.get(timeSeriesUuid) match {
       case Some(SourceRef(_, Some(worker))) =>
         /* There is yet a worker apparent. Register the requesting actor. The worker will reply to the original
          * requesting actor. */
-        worker ! WorkerRegistrationMessage(requestingActor)
+        worker ! WorkerRegistrationMessage(agentToBeRegistered)
       case Some(SourceRef(metaInformation, None)) =>
         /* There is NO worker apparent, yet. Spin one off. */
         initializeWorker(
@@ -301,27 +436,27 @@ case class PrimaryServiceProxy(
         ) match {
           case Success(workerRef) =>
             /* Forward the registration request. The worker will reply about successful registration or not. */
-            workerRef ! WorkerRegistrationMessage(requestingActor)
+            workerRef ! WorkerRegistrationMessage(agentToBeRegistered)
 
             /* Register the new worker within the state data and change the context */
-            context become onMessage(
+            onMessage(
               updateStateData(stateData, timeSeriesUuid, workerRef)
             )
           case Failure(exception) =>
-            log.warning(
+            ctx.log.warn(
               s"A failure occurred during spin-off of a primary source for time series '$timeSeriesUuid'. " +
                 s"Will inform the requesting actor, that registration is not possible.",
               exception,
             )
-            requestingActor ! RegistrationFailedMessage(self)
+            agentToBeRegistered ! RegistrationFailedMessage(ctx.self.toClassic)
         }
 
       case None =>
-        log.warning(
+        ctx.log.warn(
           s"There is no source information for time series '$timeSeriesUuid' (requested for model " +
             s"'$modelUuid'), although the mapping contains information about it."
         )
-        requestingActor ! RegistrationFailedMessage(self)
+        agentToBeRegistered ! RegistrationFailedMessage(ctx.self.toClassic)
     }
   }
 
@@ -337,28 +472,31 @@ case class PrimaryServiceProxy(
     * @return
     *   The [[ActorRef]] to the worker
     */
-  protected def initializeWorker(
+  protected[service] def initializeWorker(
       metaInformation: IndividualTimeSeriesMetaInformation,
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
-  ): Try[ActorRef] = {
-    val workerRef = classToWorkerRef(
-      metaInformation.getColumnScheme.getValueClass,
-      metaInformation.getUuid.toString,
-    )
+  )(implicit
+      constantData: ServiceConstantStateData,
+      ctx: ActorContext[_],
+  ): Try[ActorRef[ServiceMessage]] = {
+    val valueClass = metaInformation.getColumnScheme.getValueClass
+
+    val workerRef = classToWorkerRef(metaInformation.getUuid.toString)
     toInitData(
       metaInformation,
       simulationStart,
       primaryConfig,
+      valueClass,
     ) match {
       case Success(initData) =>
-        workerRef ! SimonaService.Create(
+        workerRef ! Create(
           initData,
-          ScheduleLock.singleKey(context, scheduler.toTyped, INIT_SIM_TICK),
+          ScheduleLock.singleKey(ctx, constantData.scheduler, INIT_SIM_TICK),
         )
         Success(workerRef)
       case Failure(cause) =>
-        workerRef ! PoisonPill
+        ctx.stop(workerRef)
         Failure(
           new InitializationException(
             "Unable to build init data for worker. Kill the uninitialized worker. Goodbye my friend!",
@@ -371,25 +509,21 @@ case class PrimaryServiceProxy(
   /** Build a primary source worker and type it to the foreseen value class to
     * come
     *
-    * @param valueClass
-    *   Class of the values to provide later on
     * @param timeSeriesUuid
     *   uuid of the time series the actor processes
-    * @tparam V
-    *   Type of the class to provide
     * @return
     *   The [[ActorRef]] to the spun off actor
     */
-  protected def classToWorkerRef[V <: Value](
-      valueClass: Class[V],
-      timeSeriesUuid: String,
-  ): ActorRef = {
-    import edu.ie3.simona.actor.SimonaActorNaming._
-    context.simonaActorOf(
-      PrimaryServiceWorker.props(scheduler, valueClass),
+  private[service] def classToWorkerRef(
+      timeSeriesUuid: String
+  )(implicit
+      constantData: ServiceConstantStateData,
+      ctx: ActorContext[_],
+  ): ActorRef[ServiceMessage] =
+    ctx.spawn(
+      PrimaryServiceWorker(constantData.scheduler),
       timeSeriesUuid,
     )
-  }
 
   /** Building proper init data for the worker
     *
@@ -401,11 +535,12 @@ case class PrimaryServiceProxy(
     *   Configuration for the primary config
     * @return
     */
-  private def toInitData(
+  private[service] def toInitData[V <: Value](
       metaInformation: IndividualTimeSeriesMetaInformation,
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
-  ): Try[InitPrimaryServiceStateData] =
+      valueClass: Class[V],
+  ): Try[InitPrimaryServiceStateData[V]] =
     primaryConfig match {
       case PrimaryConfig(
             None,
@@ -420,6 +555,7 @@ case class PrimaryServiceProxy(
               CsvInitPrimaryServiceStateData(
                 csvMetaData.getUuid,
                 simulationStart,
+                valueClass,
                 csvSep,
                 Paths.get(directoryPath),
                 csvMetaData.getFullFilePath,
@@ -445,6 +581,7 @@ case class PrimaryServiceProxy(
           SqlInitPrimaryServiceStateData(
             metaInformation.getUuid,
             simulationStart,
+            valueClass,
             sqlParams,
             new DatabaseNamingStrategy(),
           )
@@ -472,7 +609,7 @@ case class PrimaryServiceProxy(
   private def updateStateData(
       stateData: PrimaryServiceStateData,
       timeSeriesUuid: UUID,
-      workerRef: ActorRef,
+      workerRef: ActorRef[ServiceMessage],
   ): PrimaryServiceStateData = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     val sourceRef = timeSeriesToSourceRef.getOrElse(
@@ -487,124 +624,5 @@ case class PrimaryServiceProxy(
     )
     stateData.copy(timeSeriesToSourceRef = updatedTimeSeriesToSourceRef)
   }
-}
 
-object PrimaryServiceProxy {
-
-  def props(
-      scheduler: ActorRef,
-      initStateData: InitPrimaryServiceProxyStateData,
-      startDateTime: ZonedDateTime,
-  ): Props = Props(
-    new PrimaryServiceProxy(scheduler, initStateData, startDateTime)
-  )
-
-  /** State data with needed information to initialize this primary service
-    * provider proxy
-    *
-    * @param primaryConfig
-    *   Configuration for the primary source
-    * @param simulationStart
-    *   Simulation time of the first instant in simulation
-    */
-  final case class InitPrimaryServiceProxyStateData(
-      primaryConfig: PrimaryConfig,
-      simulationStart: ZonedDateTime,
-  ) extends InitializeServiceStateData
-
-  /** Holding the state of an initialized proxy.
-    *
-    * @param modelToTimeSeries
-    *   Mapping from models' to time series unique identifiers
-    * @param timeSeriesToSourceRef
-    *   Mapping from time series identifier to [[SourceRef]]
-    * @param simulationStart
-    *   Simulation time of the first instant in simulation
-    * @param primaryConfig
-    *   The configuration for the sources
-    * @param mappingSource
-    *   The mapping source
-    */
-  final case class PrimaryServiceStateData(
-      modelToTimeSeries: Map[UUID, UUID],
-      timeSeriesToSourceRef: Map[UUID, SourceRef],
-      simulationStart: ZonedDateTime,
-      primaryConfig: PrimaryConfig,
-      mappingSource: TimeSeriesMappingSource,
-  ) extends ServiceStateData
-
-  /** Giving reference to the target time series and source worker.
-    *
-    * @param metaInformation
-    *   Meta information (including column scheme) of the time series
-    * @param worker
-    *   Optional reference to an already existing worker providing information
-    *   on that time series
-    */
-  final case class SourceRef(
-      metaInformation: IndividualTimeSeriesMetaInformation,
-      worker: Option[ActorRef],
-  )
-
-  /** Check if the config holds correct information to instantiate a mapping
-    * source
-    *
-    * @param primaryConfig
-    *   Config entries for primary source
-    */
-  def checkConfig(primaryConfig: PrimaryConfig): Unit = {
-
-    def checkTimePattern(dtfPattern: String): Unit =
-      Try {
-        new SimpleDateFormat(dtfPattern)
-      } match {
-        case Failure(exception) =>
-          throw new InvalidConfigParameterException(
-            s"Invalid timePattern '$dtfPattern' for a time series source. Please provide a valid pattern!" +
-              s"\nException: $exception"
-          )
-        case Success(_) =>
-        // this is fine
-      }
-
-    val supportedSources =
-      Set("csv", "sql")
-
-    val sourceConfigs = Seq(
-      primaryConfig.couchbaseParams,
-      primaryConfig.csvParams,
-      primaryConfig.influxDb1xParams,
-      primaryConfig.sqlParams,
-    ).filter(_.isDefined).flatten
-    if (sourceConfigs.size > 1)
-      throw new InvalidConfigParameterException(
-        s"${sourceConfigs.size} time series source types defined. " +
-          s"Please define only one type!\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"
-      )
-    else if (sourceConfigs.isEmpty)
-      throw new InvalidConfigParameterException(
-        s"No time series source type defined. Please define exactly one type!" +
-          s"\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"
-      )
-    else {
-      sourceConfigs.headOption match {
-        case Some(csvParams: PrimaryDataCsvParams) =>
-          // note: if inheritance is supported by tscfg,
-          // the following method should be called for all different supported sources!
-          checkTimePattern(csvParams.timePattern)
-        case Some(sqlParams: SqlParams) =>
-          checkTimePattern(sqlParams.timePattern)
-        case Some(x) =>
-          throw new InvalidConfigParameterException(
-            s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources
-                .mkString("\n\t")}"
-          )
-        case None =>
-          throw new InvalidConfigParameterException(
-            s"No configuration for a time series mapping source provided.\nPlease provide one of the available sources:\n\t${supportedSources
-                .mkString("\n\t")}"
-          )
-      }
-    }
-  }
 }

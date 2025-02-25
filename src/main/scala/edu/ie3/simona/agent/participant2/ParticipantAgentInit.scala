@@ -163,7 +163,7 @@ object ParticipantAgentInit {
         if activation.tick == INIT_SIM_TICK =>
       // first, check whether we're just supposed to replay primary data time series
       participantRefs.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        ctx.self.toClassic,
+        ctx.self,
         participantInput.getUuid,
       )
 

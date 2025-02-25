@@ -136,7 +136,7 @@ class StorageAgentModelCalculationSpec
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
         PrimaryServiceRegistrationMessage(
-          storageAgent.ref,
+          storageAgent.ref.toTyped,
           storageInputQv.getUuid,
         )
       )

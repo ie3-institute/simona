@@ -158,23 +158,21 @@ class SimonaStandaloneSetup(
   override def primaryServiceProxy(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef = {
+  ): ActorRef[ServiceMessage] = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
-    val primaryServiceProxy = context.toClassic.simonaActorOf(
-      PrimaryServiceProxy.props(
-        scheduler.toClassic,
+    val primaryServiceProxy = context.spawn(
+      PrimaryServiceProxy(
+        scheduler,
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
           simulationStart,
         ),
-        simulationStart,
       ),
       "primaryServiceProxyAgent",
     )
 
-    scheduler ! ScheduleActivation(primaryServiceProxy.toTyped, INIT_SIM_TICK)
     primaryServiceProxy
   }
 

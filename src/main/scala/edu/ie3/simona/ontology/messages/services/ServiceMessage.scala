@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.ontology.messages.services
 
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import edu.ie3.simona.agent.participant2.ParticipantAgent
 
 import java.util.UUID
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
@@ -14,6 +14,7 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvInternal
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
+import org.apache.pekko.actor.typed.ActorRef
 
 /** Collections of all messages, that are send to and from the different
   * services
@@ -50,13 +51,13 @@ object ServiceMessage {
 
   /** Message to register with a primary data service.
     *
-    * @param requestingActor
-    *   The actor requesting registration for primary data
+    * @param agentToBeRegistered
+    *   Reference to the agent, that should be registered
     * @param inputModelUuid
     *   Identifier of the input model
     */
   final case class PrimaryServiceRegistrationMessage(
-      requestingActor: ClassicRef,
+      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
       inputModelUuid: UUID,
   ) extends ServiceRegistrationMessage
 
@@ -64,9 +65,10 @@ object ServiceMessage {
     * forward the original registration request. This message may only be used,
     * if no further information are needed.
     *
-    * @param requestingActor
-    *   Reference to the requesting actor
+    * @param agentToBeRegistered
+    *   Reference to the agent, that should be registered
     */
-  final case class WorkerRegistrationMessage(requestingActor: ClassicRef)
-      extends ServiceRegistrationMessage
+  final case class WorkerRegistrationMessage(
+      agentToBeRegistered: ActorRef[ParticipantAgent.Request]
+  ) extends ServiceRegistrationMessage
 }

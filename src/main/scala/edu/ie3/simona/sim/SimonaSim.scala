@@ -94,7 +94,7 @@ object SimonaSim {
         val environmentRefs = EnvironmentRefs(
           scheduler,
           runtimeEventListener.toClassic,
-          primaryServiceProxy,
+          primaryServiceProxy.toClassic,
           weatherService,
           extSimulationData.evDataService,
         )
@@ -109,7 +109,7 @@ object SimonaSim {
         val otherActors = Iterable[ActorRef[_]](
           timeAdvancer,
           scheduler,
-          primaryServiceProxy.toTyped,
+          primaryServiceProxy,
           weatherService.toTyped,
         ) ++
           gridAgents ++
