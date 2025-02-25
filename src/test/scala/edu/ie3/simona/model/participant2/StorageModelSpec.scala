@@ -13,10 +13,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ActivePowerOperatingPoint,
-  ModelInput,
-}
+import edu.ie3.simona.model.participant2.ParticipantModel.ActivePowerOperatingPoint
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
@@ -25,7 +22,7 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Each, Energy, Power}
+import squants.{Energy, Power}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.quantity.Quantities.getQuantity
 
@@ -165,17 +162,11 @@ class StorageModelSpec extends UnitSpec with Matchers {
 
           val currentTick = lastTick + duration
 
-          val input = ModelInput(
-            Seq.empty,
-            Each(1),
-            currentTick,
-            dateTime,
-          )
-
           val newState = storageModel.determineState(
             lastState,
             operatingPoint,
-            input,
+            currentTick,
+            dateTime,
           )
 
           newState.tick shouldBe currentTick
