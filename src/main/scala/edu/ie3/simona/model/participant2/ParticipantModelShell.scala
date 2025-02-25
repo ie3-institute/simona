@@ -430,18 +430,22 @@ final case class ParticipantModelShell[
   private def determineCurrentState(tick: Long): S = {
     // new state is only calculated if there's an old state and an operating point
     val state = _state
-      .zip(_operatingPoint)
-      .map { case (st, op) =>
-        if (st.tick < tick)
+      .map { st =>
+        if (st.tick < tick) {
+          // If the state is old, an operating point needs
+          // to be present to determine the curren state
           model.determineState(
             st,
-            op,
+            operatingPoint,
             tick,
             tick.toDateTime(simulationStartDate),
           )
-        else
+        } else {
+          // The state is up-to-date, no need to update
           st
+        }
       }
+      // No state present, create an initial one
       .getOrElse(model.initialState(tick, tick.toDateTime(simulationStartDate)))
 
     if (state.tick != tick)
