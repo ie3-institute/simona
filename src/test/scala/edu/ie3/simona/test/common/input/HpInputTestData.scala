@@ -11,7 +11,6 @@ import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
-  DomesticHotWaterStorageInput,
   ThermalHouseInput,
   ThermalStorageInput,
 }
@@ -118,7 +117,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     thermalBusInput,
     Seq(typicalThermalHouse).asJava,
     Set[ThermalStorageInput](typicalThermalStorage).asJava,
-    // Set.empty[ThermalStorageInput].asJava,
+    Set.empty[ThermalStorageInput].asJava,
   )
 
   protected val typicalHpTypeInput = new HpTypeInput(
