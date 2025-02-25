@@ -98,6 +98,8 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(18.0, StandardUnits.TEMPERATURE),
+    "house",
+    2.0,
   )
 
   protected val typicalThermalStorage: CylindricalStorageInput =
@@ -110,6 +112,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(30.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      Quantities.getQuantity(11.0, StandardUnits.ACTIVE_POWER_IN),
     )
 
   protected val typicalThermalGrid = new container.ThermalGrid(
