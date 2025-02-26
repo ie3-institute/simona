@@ -9,8 +9,32 @@ package edu.ie3.simona.model.participant2
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.{Dimensionless, Each, Energy, Power, Seconds}
 
+/** Provides some basic functionality that can be used wherever energy is stored
+  * within some kind of storage system.
+  */
 object ChargingHelper {
 
+  /** Calculates a new total amount of stored energy given an old amount of
+    * energy, a charging or discharging power and a time span. Minimum and
+    * maximum charging levels are adhered to.
+    *
+    * @param storedEnergy
+    *   The former amount of stored energy.
+    * @param power
+    *   The charging power that has been valid from startTick to endTick.
+    * @param startTick
+    *   The tick (in seconds) at which charging started.
+    * @param endTick
+    *   The tick (in seconds) at which charging ended.
+    * @param maxEnergy
+    *   The maximum allowed stored energy.
+    * @param minEnergy
+    *   The minimum allowed stored energy, default to 0 Wh.
+    * @param eta
+    *   The efficiency applied to charging and discharging.
+    * @return
+    *   The new amount of stored energy.
+    */
   def calcEnergy(
       storedEnergy: Energy,
       power: Power,
@@ -27,6 +51,26 @@ object ChargingHelper {
     minEnergy.max(maxEnergy.min(storedEnergy + energyChange))
   }
 
+  /** Calculates the next tick (if applicable) at which some target energy level
+    * has been reached.
+    *
+    * @param storedEnergy
+    *   The current amount of stored energy.
+    * @param power
+    *   The charging power.
+    * @param currentTick
+    *   The current tick.
+    * @param chargingEnergyTarget
+    *   The target energy when charging.
+    * @param dischargingEnergyTarget
+    *   The target energy when discharging.
+    * @param eta
+    *   The efficiency applied to charging and discharging.
+    * @param tolerance
+    *   Tolerance for zero charging power.
+    * @return
+    *   The tick at which the target is reached, if applicable.
+    */
   def calcNextEventTick(
       storedEnergy: Energy,
       power: Power,
@@ -59,11 +103,11 @@ object ChargingHelper {
   /** Calculate net power (after considering efficiency eta).
     *
     * @param setPower
-    *   The gross power
+    *   The gross charging or discharging power.
     * @param eta
-    *   The efficiency
+    *   The efficiency.
     * @return
-    *   The net power
+    *   The net power.
     */
   private def calcNetPower(setPower: Power, eta: Dimensionless): Power =
     if (setPower > zeroKW) {
