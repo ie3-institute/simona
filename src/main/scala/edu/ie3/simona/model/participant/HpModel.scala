@@ -15,7 +15,6 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalGridState,
 }
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -233,22 +232,30 @@ final case class HpModel(
       demandWrapper: ThermalDemandWrapper,
       currentThermalGridState: ThermalGridState,
   ): HpState = {
+    val qDotLastHouseState = lastState.thermalGridState.houseState
+      .map(_.qDot)
+      .getOrElse(zeroKW)
     val currentEnergyOfThermalStorage = currentThermalGridState.storageState
       .map(_.storedEnergy)
       .getOrElse(zeroKWh)
+    val pThermalOfStorage = thermalGrid.storage
+      .map(_.getChargingPower: squants.Power)
+      .get
 
     val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
       if (isRunning)
         (pRated, pThermal, pThermal)
-      // If the house has demand and storage isn't empty, we can heat the house from storage.
+      // If the house has req. demand and storage isn't empty, we can heat the house from storage.
       else if (
-        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand
+        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasRequiredDemand
+      ) {
+        (zeroKW, zeroKW, pThermalOfStorage)
+        // Edge case when em controlled: If we heated the house last state by Hp and surplus energy is gone now,
+        // but we didn't reach target temperature yet. We continue heating the house from storage, if this one is not empty.
+      } else if (
+        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand && qDotLastHouseState > zeroKW
       )
-        (
-          zeroKW,
-          zeroKW,
-          thermalGrid.storage.map(_.getChargingPower: squants.Power).get,
-        )
+        (zeroKW, zeroKW, pThermalOfStorage)
       else (zeroKW, zeroKW, zeroKW)
     }
 
