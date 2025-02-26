@@ -47,7 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for topologies without transformers and slack grids with multiple nodes [#1099](https://github.com/ie3-institute/simona/issues/1099)
 - Checking the number of slack nodes [#1122](https://github.com/ie3-institute/simona/issues/1122)
 - Enhance exception message in case of InvalidGridException [#1124](https://github.com/ie3-institute/simona/issues/1124)
-- Integration test for thermal grids [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Added `VoltageLimits` [#1133](https://github.com/ie3-institute/simona/issues/1133)
 - Introducing new ParticipantAgent and ParticipantModel [#1134](https://github.com/ie3-institute/simona/issues/1134)
 - Using new `ParticipantAgent.Request` messages everywhere [#1195](https://github.com/ie3-institute/simona/issues/1195)
@@ -57,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `PvModel` with its new implementation [#1149](https://github.com/ie3-institute/simona/issues/1149)
 - Replace `WecModel` with its new implementation [#1154](https://github.com/ie3-institute/simona/issues/1154)
 - Replace `StorageModel` with its new implementation [#1153](https://github.com/ie3-institute/simona/issues/1153)
+- Integration test for thermal grids without Em [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
 
 ### Changed

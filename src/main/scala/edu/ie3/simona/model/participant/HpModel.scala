@@ -15,7 +15,6 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalGridState,
 }
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -123,9 +122,6 @@ final case class HpModel(
     *   Last state of the heat pump
     * @param relevantData
     *   data of heat pump including
-    * @param useUpperTempBoundaryForFlexibility
-    *   determines whether the upper temperature boundary of the house will be
-    *   applied or not
     * @return
     *   Booleans if Hp can operate and can be out of operation plus the updated
     *   [[HpState]]
@@ -133,7 +129,6 @@ final case class HpModel(
   def determineState(
       lastHpState: HpState,
       relevantData: HpRelevantData,
-      useUpperTempBoundaryForFlexibility: Boolean,
   ): (Boolean, Boolean, HpState) = {
 
     // Use lastHpState and relevantData to update state of thermalGrid to the current tick
@@ -141,7 +136,6 @@ final case class HpModel(
       thermalGrid.energyDemandAndUpdatedState(
         relevantData,
         lastHpState,
-        useUpperTempBoundaryForFlexibility,
       )
 
     // Determining the operation point and limitations at this tick
@@ -159,7 +153,6 @@ final case class HpModel(
         lastHpState,
         relevantData,
         turnOn,
-        useUpperTempBoundaryForFlexibility,
         thermalDemandWrapper,
         currentThermalGridState,
       )
@@ -225,9 +218,6 @@ final case class HpModel(
     *   data of heat pump including state of the heat pump
     * @param isRunning
     *   determines whether the heat pump is running or not
-    * @param useUpperTempBoundaryForFlexibility
-    *   determines whether the upper temperature boundary of the house will be
-    *   applied or not
     * @param demandWrapper
     *   holds the thermal demands of the thermal units (house, storage)
     * @param currentThermalGridState
@@ -239,10 +229,12 @@ final case class HpModel(
       lastState: HpState,
       relevantData: HpRelevantData,
       isRunning: Boolean,
-      useUpperTempBoundaryForFlexibility: Boolean,
       demandWrapper: ThermalDemandWrapper,
       currentThermalGridState: ThermalGridState,
   ): HpState = {
+    val qDotLastHouseState = lastState.thermalGridState.houseState
+      .map(_.qDot)
+      .getOrElse(zeroKW)
     val currentEnergyOfThermalStorage = currentThermalGridState.storageState
       .map(_.storedEnergy)
       .getOrElse(zeroKWh)
@@ -250,9 +242,19 @@ final case class HpModel(
     val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
       if (isRunning)
         (pRated, pThermal, pThermal)
-      // If the house has demand and storage isn't empty, we can heat the house from storage.
+      // If the house has req. demand and storage isn't empty, we can heat the house from storage.
       else if (
-        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand
+        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasRequiredDemand
+      ) {
+        (
+          zeroKW,
+          zeroKW,
+          thermalGrid.storage.map(_.getChargingPower: squants.Power).get,
+        )
+        // Edge case when em controlled: If we heated the house last state by Hp and surplus energy is gone now,
+        // but we didn't reach target temperature yet. We continue heating the house from storage, if this one is not empty.
+      } else if (
+        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand && qDotLastHouseState > zeroKW
       )
         (
           zeroKW,
@@ -269,7 +271,6 @@ final case class HpModel(
         lastState.thermalGridState,
         lastState.ambientTemperature.getOrElse(relevantData.ambientTemperature),
         isRunning,
-        useUpperTempBoundaryForFlexibility,
         qDotIntoGrid,
         demandWrapper,
       )
@@ -291,7 +292,7 @@ final case class HpModel(
   ): ProvideFlexOptions = {
     /* Determine the operating state in the given tick */
     val (canOperate, canBeOutOfOperation, updatedHpState)
-        : (Boolean, Boolean, HpState) = determineState(lastState, data, true)
+        : (Boolean, Boolean, HpState) = determineState(lastState, data)
 
     val lowerBoundary =
       if (canBeOutOfOperation)
@@ -337,16 +338,6 @@ final case class HpModel(
     /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
     val turnOn = setPower > (sRated.toActivePower(cosPhiRated) * 0.5)
 
-    // Check the activePower in case of using house flexibility till upper temp boundary
-    val activePowerUpdatedHpStateUpperLimit =
-      determineState(lastState, relevantData, true)._3.activePower
-    // Check the activePower in case of NOT using house flexibility till upper temp boundary
-    val activePowerUpdatedHpStateTargetLimit =
-      determineState(lastState, relevantData, false)._3.activePower
-
-    val useUpperTempBoundaryForFlexibility =
-      (activePowerUpdatedHpStateTargetLimit == zeroKW && activePowerUpdatedHpStateUpperLimit > zeroKW)
-
     val (
       thermalDemandWrapper,
       updatedThermalGridState,
@@ -354,14 +345,12 @@ final case class HpModel(
       thermalGrid.energyDemandAndUpdatedState(
         relevantData,
         lastState,
-        useUpperTempBoundaryForFlexibility,
       )
 
     val updatedHpState = calcState(
       lastState,
       relevantData,
       turnOn,
-      useUpperTempBoundaryForFlexibility,
       thermalDemandWrapper,
       updatedThermalGridState,
     )
