@@ -63,7 +63,7 @@ object EvMessage {
     */
   final case class ArrivingEvs(
       arrivals: Seq[EvModelWrapper]
-  ) extends EvData {}
+  ) extends EvData
 
   trait EvResponseMessage extends EvMessage
 

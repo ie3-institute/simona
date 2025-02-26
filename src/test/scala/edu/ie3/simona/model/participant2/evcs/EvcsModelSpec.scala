@@ -18,6 +18,7 @@ import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
+  ArrivingEvs,
   DepartingEvsRequest,
   DepartingEvsResponse,
   EvFreeLotsRequest,
@@ -35,6 +36,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import squants.{Each, Energy, Power}
 import squants.energy.{KilowattHours, Kilowatts}
 
 import java.time.ZonedDateTime
@@ -46,8 +48,8 @@ class EvcsModelSpec
     with TableDrivenHelper
     with EvcsInputTestData {
 
-  private implicit val energyTolerance: squants.Energy = KilowattHours(1e-10)
-  private implicit val powerTolerance: squants.Power = Kilowatts(1e-10)
+  private implicit val energyTolerance: Energy = KilowattHours(1e-10)
+  private implicit val powerTolerance: Power = Kilowatts(1e-10)
 
   private val dateTime: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T03:04:05Z")
@@ -715,6 +717,26 @@ class EvcsModelSpec
 
       }
 
+    }
+
+    "handle arrivals correctly" in {
+      val evcsModel = createModel("maxpower")
+
+      val state = EvcsState(
+        Seq(EvModelWrapper(ev1)),
+        3600L,
+      )
+
+      val newState = evcsModel.handleInput(
+        state = state,
+        receivedData = Seq(ArrivingEvs(Seq(EvModelWrapper(ev2)))),
+        nodalVoltage = Each(1.0),
+      )
+
+      newState shouldBe EvcsState(
+        Seq(EvModelWrapper(ev1), EvModelWrapper(ev2)),
+        3600L,
+      )
     }
 
     "reply to requests" when {
