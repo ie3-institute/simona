@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant2.evcs
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import squants.Power
 
 import java.util.UUID

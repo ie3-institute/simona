@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant2.evcs
 
-import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import squants.{Power, Seconds}
 
 import java.util.UUID

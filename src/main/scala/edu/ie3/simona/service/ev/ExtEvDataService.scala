@@ -20,7 +20,7 @@ import edu.ie3.simona.exceptions.{
   InitializationException,
   ServiceException,
 }
-import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.service.ServiceStateData.{

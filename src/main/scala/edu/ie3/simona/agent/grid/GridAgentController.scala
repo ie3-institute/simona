@@ -12,11 +12,7 @@ import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
-  ActorExtEvDataService,
-  ActorWeatherService,
-}
-import edu.ie3.simona.agent.participant.evcs.EvcsAgent
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
@@ -405,22 +401,15 @@ class GridAgentController(
           maybeControllingEm,
         )
       case input: EvcsInput =>
-        buildEvcs(
+        buildParticipant(
           input,
           participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
             input.getUuid
           ),
-          environmentRefs.primaryServiceProxy,
-          environmentRefs.evDataService.getOrElse(
-            throw new GridAgentInitializationException(
-              "EvMovementsService required for setting up evcs."
-            )
-          ),
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
           outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case hpInput: HpInput =>
@@ -490,74 +479,6 @@ class GridAgentController(
       ),
     )
     gridAgentContext.watch(participant)
-
-    participant
-  }
-
-  /** Creates an Evcs agent and determines the needed additional information for
-    * later initialization of the agent.
-    *
-    * @param evcsInput
-    *   Evcs input model to derive information from
-    * @param modelConfiguration
-    *   User-provided configuration for this specific load model
-    * @param primaryServiceProxy
-    *   Reference to the primary data service proxy
-    * @param evMovementsService
-    *   Reference to the ev movements service actor
-    * @param simulationStartDate
-    *   The simulation time at which the simulation starts
-    * @param simulationEndDate
-    *   The simulation time at which the simulation ends
-    * @param resolution
-    *   Frequency of power flow calculations
-    * @param requestVoltageDeviationThreshold
-    *   Maximum deviation in p.u. of request voltages to be considered equal
-    * @param outputConfig
-    *   Configuration of the output behavior
-    * @param maybeControllingEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   The [[EvcsAgent]] 's [[ActorRef]]
-    */
-  private def buildEvcs(
-      evcsInput: EvcsInput,
-      modelConfiguration: EvcsRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      evMovementsService: ClassicRef,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantAgent.Request] = {
-    val participant = gridAgentContext.toClassic
-      .simonaActorOf(
-        EvcsAgent.props(
-          environmentRefs.scheduler.toClassic,
-          ParticipantInitializeStateData(
-            evcsInput,
-            modelConfiguration,
-            primaryServiceProxy,
-            Iterable(
-              ActorExtEvDataService(
-                evMovementsService
-              )
-            ),
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            requestVoltageDeviationThreshold,
-            outputConfig,
-            maybeControllingEm,
-          ),
-          listener.map(_.toClassic),
-        ),
-        evcsInput.getId,
-      )
-      .toTyped
-    introduceAgentToEnvironment(participant)
 
     participant
   }

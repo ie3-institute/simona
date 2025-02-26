@@ -11,7 +11,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
-import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.OperationChangeIndicator
 import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsOperatingPoint,
