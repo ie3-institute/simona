@@ -336,8 +336,8 @@ object StorageModel {
     )
     val initialState: (Long, ZonedDateTime) => StorageState =
       (tick, _) => {
-        val initialStorage = eStorage * config.initialSoc
-        StorageState(storedEnergy = initialStorage, tick)
+        val initialStoredEnergy = eStorage * config.initialSoc
+        StorageState(storedEnergy = initialStoredEnergy, tick)
       }
 
     new StorageModel(
