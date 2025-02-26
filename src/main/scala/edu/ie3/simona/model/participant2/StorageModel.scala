@@ -23,7 +23,10 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
 }
-import edu.ie3.simona.model.participant2.StorageModel.StorageState
+import edu.ie3.simona.model.participant2.StorageModel.{
+  RefTargetSocParams,
+  StorageState,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.ServiceType
@@ -58,7 +61,7 @@ class StorageModel private (
   /** Tolerance for power comparisons. With very small (dis-)charging powers,
     * problems can occur when calculating the future tick at which storage is
     * full or empty. For sufficiently large time frames, the maximum Long value
-    * ([[Long.MaxValue]]) can be exceeded, thus the Long value overflows and we
+    * ([[Long.MaxValue]]) can be exceeded, thus the Long value overflows, and we
     * get undefined behavior.
     *
     * Thus, small (dis-)charging powers compared to storage capacity have to be
@@ -78,12 +81,12 @@ class StorageModel private (
     */
   private val toleranceMargin: Energy = pMax * Seconds(1d)
 
-  /** Minimal allowed energy with tolerance margin added
+  /** Minimal allowed energy with tolerance margin added.
     */
   private val minEnergyWithMargin: Energy =
     minEnergy + (toleranceMargin / eta.toEach)
 
-  /** Maximum allowed energy with tolerance margin added
+  /** Maximum allowed energy with tolerance margin added.
     */
   private val maxEnergyWithMargin: Energy =
     eStorage - (toleranceMargin * eta.toEach)
@@ -160,7 +163,8 @@ class StorageModel private (
       uuid,
       data.p.toMegawatts.asMegaWatt,
       data.q.toMegavars.asMegaVar,
-      -1.asPu, // FIXME currently not supported
+      // Stored energy currently not supported by primary data time series
+      -1.asPu,
     )
 
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
@@ -307,6 +311,20 @@ object StorageModel {
       tick: Long,
   ) extends ModelState
 
+  /** @param targetSoc
+    *   The SOC that the StorageModel aims at, i.e. that it prefers to
+    *   charge/discharge towards
+    * @param targetWithPosMargin
+    *   The targetSoc plus a tolerance margin
+    * @param targetWithNegMargin
+    *   The targetSoc minus a tolerance margin
+    */
+  final case class RefTargetSocParams(
+      targetSoc: Energy,
+      targetWithPosMargin: Energy,
+      targetWithNegMargin: Energy,
+  )
+
   def apply(
       input: StorageInput,
       config: StorageRuntimeConfig,
@@ -317,13 +335,11 @@ object StorageModel {
         .getValue
         .doubleValue
     )
-    def getInitialState(eStorage: Energy, config: StorageRuntimeConfig)(
-        tick: Long,
-        simulationTime: ZonedDateTime,
-    ): StorageState = {
-      val initialStorage = eStorage * config.initialSoc
-      StorageState(storedEnergy = initialStorage, tick)
-    }
+    val initialState: (Long, ZonedDateTime) => StorageState =
+      (tick, _) => {
+        val initialStoredEnergy = eStorage * config.initialSoc
+        StorageState(storedEnergy = initialStoredEnergy, tick)
+      }
 
     new StorageModel(
       input.getUuid,
@@ -336,7 +352,7 @@ object StorageModel {
       ),
       input.getType.getCosPhiRated,
       QControl.apply(input.getqCharacteristics),
-      getInitialState(eStorage, config),
+      initialState,
       eStorage,
       Kilowatts(
         input.getType.getpMax

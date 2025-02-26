@@ -7,10 +7,12 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.simona.test.common.UnitSpec
-import squants.energy.{Energy, KilowattHours, Kilowatts}
+import squants.energy.{KilowattHours, Kilowatts}
+import squants.{Each, Energy, Power}
 
 class ChargingHelperSpec extends UnitSpec {
 
+  private implicit val powerTolerance: Power = Kilowatts(1e-10)
   private implicit val energyTolerance: Energy = KilowattHours(1e-10)
 
   "A ChargingHelper" should {
@@ -68,5 +70,93 @@ class ChargingHelperSpec extends UnitSpec {
       }
 
     }
+
+    "calculate the next tick correctly" in {
+
+      val tick = 3600L
+
+      val testCases = Table(
+        (
+          "storedEnergy",
+          "setPower",
+          "expScheduled",
+          "expDelta",
+        ),
+        // no power
+        (0.0, 0.0, false, 0.0),
+        (50.0, 0.0, false, 0.0),
+        (100.0, 0.0, false, 0.0),
+        // charging on empty
+        (0.0, 1.0, true, 100 * 3600 / 0.8),
+        (0.0, 2.5, true, 40 * 3600 / 0.8),
+        (0.0, 5.0, true, 20 * 3600 / 0.8),
+        (0.0, 10.0, true, 10 * 3600 / 0.8),
+        // charging on half charged
+        (50.0, 5.0, true, 10 * 3600 / 0.8),
+        (50.0, 10.0, true, 5 * 3600 / 0.8),
+        // discharging on half charged
+        (50.0, -4.0, true, 10 * 3600.0),
+        (50.0, -8.0, true, 5 * 3600.0),
+        // discharging on full
+        (100.0, -4.0, true, 20 * 3600.0),
+        (100.0, -8.0, true, 10 * 3600.0),
+      )
+
+      forAll(testCases) {
+        (
+            storedEnergy: Double,
+            setPower: Double,
+            expScheduled: Boolean,
+            expDelta: Double,
+        ) =>
+          val actualNextTick = ChargingHelper.calcNextEventTick(
+            KilowattHours(storedEnergy),
+            Kilowatts(setPower),
+            tick,
+            () => KilowattHours(100),
+            () => KilowattHours(0),
+            Each(0.8),
+          )
+
+          actualNextTick.isDefined shouldBe expScheduled
+          actualNextTick.forall(_ == (tick + expDelta)) shouldBe true
+      }
+
+    }
+
+    "calculate net power correctly" in {
+
+      val cases = Table(
+        (
+          "setPower",
+          "eta",
+          "expectedNetPower",
+        ),
+        // charging
+        (10.0, 0.0, 0.0),
+        (10.0, 0.8, 8.0),
+        (10.0, 1.0, 10.0),
+        // discharging
+        (-10.0, 0.8, -12.5),
+        (-10.0, 1.0, -10.0),
+      )
+
+      forAll(cases) {
+        (
+            setPower,
+            eta,
+            expectedNetPower,
+        ) =>
+          val actualNetPower = ChargingHelper.calcNetPower(
+            Kilowatts(setPower),
+            Each(eta),
+          )
+
+          actualNetPower should approximate(Kilowatts(expectedNetPower))
+      }
+
+    }
+
   }
+
 }
