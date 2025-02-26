@@ -21,7 +21,8 @@ object ChargingHelper {
     * @param storedEnergy
     *   The former amount of stored energy.
     * @param power
-    *   The charging power that has been valid from startTick to endTick.
+    *   The gross (dis-)charging power that has been valid from startTick to
+    *   endTick.
     * @param startTick
     *   The tick (in seconds) at which charging started.
     * @param endTick
@@ -57,7 +58,7 @@ object ChargingHelper {
     * @param storedEnergy
     *   The current amount of stored energy.
     * @param power
-    *   The charging power.
+    *   The gross (dis-)charging power.
     * @param currentTick
     *   The current tick.
     * @param chargingEnergyTarget
