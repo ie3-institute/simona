@@ -63,9 +63,57 @@ class EvcsModelSpec
       ),
     )
 
-  // todo test arrivals as well
-
   "An EVCS model" should {
+
+    val ev1 = new MockEvModel(
+      UUID.fromString("0-0-0-1-1"),
+      "TestEv1",
+      5.0.asKiloWatt,
+      10.0.asKiloWatt,
+      10.0.asKiloWattHour,
+      5.0.asKiloWattHour,
+      18000L,
+    )
+
+    val ev2 = new MockEvModel(
+      UUID.fromString("0-0-0-1-2"),
+      "TestEv2",
+      5.0.asKiloWatt,
+      10.0.asKiloWatt,
+      10.0.asKiloWattHour,
+      7.5.asKiloWattHour,
+      18000L,
+    )
+
+    val ev3 = new MockEvModel(
+      UUID.fromString("0-0-0-1-3"),
+      "TestEv3",
+      10.0.asKiloWatt, // AC is relevant,
+      20.0.asKiloWatt, // DC is not
+      20.0.asKiloWattHour,
+      15.0.asKiloWattHour,
+      10800L,
+    )
+
+    val ev4 = new MockEvModel(
+      UUID.fromString("0-0-0-1-4"),
+      "TestEv4",
+      10.0.asKiloWatt, // AC is relevant,
+      20.0.asKiloWatt, // DC is not
+      10.0.asKiloWattHour,
+      0.0.asKiloWattHour,
+      10800L,
+    )
+
+    val ev5 = new MockEvModel(
+      UUID.fromString("0-0-0-1-5"),
+      "TestEv5",
+      5.0.asKiloWatt, // AC is relevant,
+      10.0.asKiloWatt, // DC is not
+      15.0.asKiloWattHour,
+      0.0.asKiloWattHour,
+      14400L,
+    )
 
     "calculate new schedules correctly" when {
 
@@ -73,15 +121,7 @@ class EvcsModelSpec
         val evcsModel = createModel("maxpower")
 
         val evModel = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "Mock EV",
-            10.0.asKiloWatt, // AC is relevant,
-            20.0.asKiloWatt, // DC is not
-            20.0.asKiloWattHour,
-            5.0.asKiloWattHour,
-            10800L,
-          )
+          ev3.copyWith(5.0.asKiloWattHour)
         )
 
         val (operatingPoint, nextEvent) = evcsModel.determineOperatingPoint(
@@ -103,17 +143,7 @@ class EvcsModelSpec
       "configured with constant power charging" in {
         val evcsModel = createModel("constantpower")
 
-        val evModel = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "Mock EV",
-            10.0.asKiloWatt, // AC is relevant,
-            20.0.asKiloWatt, // DC is not
-            20.0.asKiloWattHour,
-            15.0.asKiloWattHour,
-            10800L,
-          )
-        )
+        val evModel = EvModelWrapper(ev3)
 
         val (operatingPoint, nextEvent) = evcsModel.determineOperatingPoint(
           EvcsState(
@@ -166,15 +196,7 @@ class EvcsModelSpec
               expectedStored,
           ) =>
             val ev = EvModelWrapper(
-              new MockEvModel(
-                UUID.randomUUID(),
-                "TestEv1",
-                5.0.asKiloWatt, // using AC charging here
-                10.0.asKiloWatt,
-                10.0.asKiloWattHour,
-                storedEnergy.asKiloWattHour,
-                7200L, // is ignored here
-              )
+              ev1.copyWith(storedEnergy.asKiloWattHour)
             )
 
             val state = EvcsState(
@@ -216,40 +238,20 @@ class EvcsModelSpec
     }
 
     "calculate results correctly" when {
+
       val evcsModel = createModel("constantpower")
 
-      val ev1 = EvModelWrapper(
-        new MockEvModel(
-          UUID.randomUUID(),
-          "TestEv1",
-          5.0.asKiloWatt,
-          10.0.asKiloWatt,
-          10.0.asKiloWattHour,
-          5.0.asKiloWattHour,
-          18000L,
-        )
-      )
-
-      val ev2 = EvModelWrapper(
-        new MockEvModel(
-          UUID.randomUUID(),
-          "TestEv2",
-          5.0.asKiloWatt,
-          10.0.asKiloWatt,
-          10.0.asKiloWattHour,
-          7.5.asKiloWattHour,
-          18000L,
-        )
-      )
+      val evA = EvModelWrapper(ev1)
+      val evB = EvModelWrapper(ev2)
 
       "two EVs are parked and charging without last operating point" in {
 
         val currentOperatingPoint = EvcsOperatingPoint(
-          Map(ev1.uuid -> Kilowatts(3.0), ev2.uuid -> Kilowatts(2.0))
+          Map(evA.uuid -> Kilowatts(3.0), evB.uuid -> Kilowatts(2.0))
         )
 
         val state = EvcsState(
-          Seq(ev1, ev2),
+          Seq(evA, evB),
           10800L,
         )
 
@@ -264,8 +266,8 @@ class EvcsModelSpec
         results should have size 3
 
         results
-          .find(_.getInputModel == ev1.uuid)
-          .getOrElse(fail(s"No results for EV ${ev1.uuid}.")) match {
+          .find(_.getInputModel == evA.uuid)
+          .getOrElse(fail(s"No results for EV ${evA.uuid}.")) match {
           case evResult: EvResult =>
             evResult.getTime shouldBe dateTime
             evResult.getP should beEquivalentTo(3.0.asKiloWatt)
@@ -276,8 +278,8 @@ class EvcsModelSpec
         }
 
         results
-          .find(_.getInputModel == ev2.uuid)
-          .getOrElse(fail(s"No results for EV ${ev2.uuid}.")) match {
+          .find(_.getInputModel == evB.uuid)
+          .getOrElse(fail(s"No results for EV ${evB.uuid}.")) match {
           case evResult: EvResult =>
             evResult.getTime shouldBe dateTime
             evResult.getP should beEquivalentTo(2.0.asKiloWatt)
@@ -303,11 +305,11 @@ class EvcsModelSpec
       "two EVs are parked and charging with given last operating point" in {
 
         val lastOperatingPoint = EvcsOperatingPoint(
-          Map(ev1.uuid -> Kilowatts(3.0), ev2.uuid -> Kilowatts(2.0))
+          Map(evA.uuid -> Kilowatts(3.0), evB.uuid -> Kilowatts(2.0))
         )
 
         val state = EvcsState(
-          Seq(ev1, ev2),
+          Seq(evA, evB),
           10800L,
         )
 
@@ -324,7 +326,7 @@ class EvcsModelSpec
           val evcsQ = evcsP / 10
 
           val currentOperatingPoint = EvcsOperatingPoint(
-            Map(ev1.uuid -> Kilowatts(ev1P), ev2.uuid -> Kilowatts(ev2P))
+            Map(evA.uuid -> Kilowatts(ev1P), evB.uuid -> Kilowatts(ev2P))
           )
 
           val results = evcsModel.createResults(
@@ -341,7 +343,7 @@ class EvcsModelSpec
 
           results should have size expectedResults
 
-          val actualEv1Result = results.find(_.getInputModel == ev1.uuid)
+          val actualEv1Result = results.find(_.getInputModel == evA.uuid)
           actualEv1Result.isDefined shouldBe ev1Res
           actualEv1Result.foreach {
             case evResult: EvResult =>
@@ -353,7 +355,7 @@ class EvcsModelSpec
               fail(s"Unexpected result $unexpected was found.")
           }
 
-          val actualEv2Result = results.find(_.getInputModel == ev2.uuid)
+          val actualEv2Result = results.find(_.getInputModel == evB.uuid)
           actualEv2Result.isDefined shouldBe ev2Res
           actualEv2Result.foreach {
             case evResult: EvResult =>
@@ -450,34 +452,18 @@ class EvcsModelSpec
               expectedPMax,
           ) =>
             // stays one more hour
-            val ev1 = EvModelWrapper(
-              new MockEvModel(
-                UUID.randomUUID(),
-                "Mock EV 1",
-                10.0.asKiloWatt, // AC is relevant,
-                20.0.asKiloWatt, // DC is not
-                10.0.asKiloWattHour,
-                stored1.asKiloWattHour,
-                10800L,
-              )
+            val evA = EvModelWrapper(
+              ev4.copyWith(stored1.asKiloWattHour)
             )
 
             // stays two more hours
-            val ev2 = EvModelWrapper(
-              new MockEvModel(
-                UUID.randomUUID(),
-                "Mock EV 2",
-                5.0.asKiloWatt, // AC is relevant,
-                10.0.asKiloWatt, // DC is not
-                15.0.asKiloWattHour,
-                stored2.asKiloWattHour,
-                14400L,
-              )
+            val evB = EvModelWrapper(
+              ev5.copyWith(stored2.asKiloWattHour)
             )
 
             evcsModel.determineFlexOptions(
               EvcsState(
-                Seq(ev1, ev2),
+                Seq(evA, evB),
                 currentTick,
               )
             ) match {
@@ -563,33 +549,17 @@ class EvcsModelSpec
               expectedPMin,
               expectedPMax,
           ) =>
-            val ev1 = EvModelWrapper(
-              new MockEvModel(
-                UUID.randomUUID(),
-                "Mock EV 1",
-                10.0.asKiloWatt, // AC is relevant,
-                20.0.asKiloWatt, // DC is not
-                10.0.asKiloWattHour,
-                stored1.asKiloWattHour,
-                10800L,
-              )
+            val evA = EvModelWrapper(
+              ev4.copyWith(stored1.asKiloWattHour)
             )
 
-            val ev2 = EvModelWrapper(
-              new MockEvModel(
-                UUID.randomUUID(),
-                "Mock EV 2",
-                5.0.asKiloWatt, // AC is relevant,
-                10.0.asKiloWatt, // DC is not
-                15.0.asKiloWattHour,
-                stored2.asKiloWattHour,
-                10800L,
-              )
+            val evB = EvModelWrapper(
+              ev5.copyWith(stored2.asKiloWattHour).copyWithDeparture(10800L)
             )
 
             evcsModel.determineFlexOptions(
               EvcsState(
-                Seq(ev1, ev2),
+                Seq(evA, evB),
                 currentTick,
               )
             ) match {
@@ -614,15 +584,7 @@ class EvcsModelSpec
         val currentTick = 7200L
 
         val ev1 = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "Mock EV 1",
-            10.0.asKiloWatt, // AC is relevant,
-            20.0.asKiloWatt, // DC is not
-            10.0.asKiloWattHour,
-            5.0.asKiloWattHour,
-            10800L,
-          )
+          ev4.copyWith(5.0.asKiloWattHour)
         )
 
         evcsModel.determineFlexOptions(
@@ -717,33 +679,17 @@ class EvcsModelSpec
               expNextActivation: Boolean,
               expNextTick: Option[Long],
           ) =>
-            val ev1 = EvModelWrapper(
-              new MockEvModel(
-                UUID.randomUUID(),
-                "Mock EV 1",
-                10.0.asKiloWatt, // AC is relevant,
-                20.0.asKiloWatt, // DC is not
-                10.0.asKiloWattHour,
-                stored1.asKiloWattHour,
-                7200L,
-              )
+            val evA = EvModelWrapper(
+              ev4.copyWith(stored1.asKiloWattHour).copyWithDeparture(7200L)
             )
 
-            val ev2 = EvModelWrapper(
-              new MockEvModel(
-                UUID.randomUUID(),
-                "Mock EV 2",
-                5.0.asKiloWatt, // AC is relevant,
-                10.0.asKiloWatt, // DC is not
-                15.0.asKiloWattHour,
-                stored2.asKiloWattHour,
-                10800L,
-              )
+            val evB = EvModelWrapper(
+              ev5.copyWith(stored2.asKiloWattHour).copyWithDeparture(10800L)
             )
 
             evcsModel.determineOperatingPoint(
               EvcsState(
-                Seq(ev1, ev2),
+                Seq(evA, evB),
                 currentTick,
               ),
               Kilowatts(setPower),
@@ -756,10 +702,10 @@ class EvcsModelSpec
                     ),
                   ) =>
                 evOperatingPoints
-                  .get(ev1.uuid)
+                  .get(evA.uuid)
                   .map(_.toKilowatts) shouldBe expPower1
                 evOperatingPoints
-                  .get(ev2.uuid)
+                  .get(evB.uuid)
                   .map(_.toKilowatts) shouldBe expPower2
 
                 actualNextActivation shouldBe expNextActivation
@@ -775,15 +721,7 @@ class EvcsModelSpec
       val evcsModel = createModel("constantpower")
 
       val evModel = EvModelWrapper(
-        new MockEvModel(
-          UUID.randomUUID(),
-          "Mock EV",
-          10.0.asKiloWatt, // AC is relevant,
-          20.0.asKiloWatt, // DC is not
-          20.0.asKiloWattHour,
-          5.0.asKiloWattHour,
-          10800L,
-        )
+        ev3.copyWith(5.0.asKiloWattHour)
       )
 
       def testAgent(
