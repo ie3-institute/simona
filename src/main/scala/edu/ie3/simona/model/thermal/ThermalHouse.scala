@@ -146,7 +146,6 @@ final case class ThermalHouse(
     *   The inner temperature of the house.
     * @param boundaryTemperature
     *   The applied boundary temperature to check against.
-    *
     * @return
     *   True, if inner temperature is too high.
     */
@@ -218,8 +217,6 @@ final case class ThermalHouse(
     *   Ambient temperature valid up until (not including) the current tick
     * @param qDot
     *   New thermal influx
-    * @param actualTemperatureTarget
-    *   the applied target temperature for this model
     * @return
     *   Updated state and the tick in which the next threshold is reached
     */
@@ -228,7 +225,6 @@ final case class ThermalHouse(
       state: ThermalHouseState,
       lastAmbientTemperature: Temperature,
       qDot: Power,
-      actualTemperatureTarget: Temperature,
   ): (ThermalHouseState, Option[ThermalThreshold]) = {
     val duration = Seconds(relevantData.currentTick - state.tick)
     val updatedInnerTemperature = newInnerTemperature(
@@ -245,7 +241,7 @@ final case class ThermalHouse(
         qDot,
         updatedInnerTemperature,
         relevantData.ambientTemperature,
-        actualTemperatureTarget,
+        targetTemperature,
       )
 
     (

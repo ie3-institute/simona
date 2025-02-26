@@ -87,7 +87,6 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         initialHousestate,
         lastAmbientTemperature,
         zeroKW,
-        house.targetTemperature,
       )
 
       thermalHouseState match {
