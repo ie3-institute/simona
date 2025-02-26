@@ -62,7 +62,6 @@ final case class ThermalGrid(
       lastHpState: HpState,
   ): (ThermalDemandWrapper, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
-
     val (houseDemand, updatedHouseState) =
       house.zip(lastHpState.thermalGridState.houseState) match {
         case Some((thermalHouse, lastHouseState)) =>
@@ -78,7 +77,6 @@ final case class ThermalGrid(
           if (
             updatedHouseState.innerTemperature < thermalHouse.targetTemperature
           ) {
-
             (
               thermalHouse.energyDemand(
                 relevantData,
@@ -86,11 +84,9 @@ final case class ThermalGrid(
               ),
               Some(updatedHouseState),
             )
-
           } else {
             (ThermalEnergyDemand.noDemand, Some(updatedHouseState))
           }
-
         case None =>
           (ThermalEnergyDemand.noDemand, None)
       }
@@ -202,7 +198,7 @@ final case class ThermalGrid(
     * @param lastThermalGridState
     *   state of the thermalGrid until this tick.
     * @param isRunning
-    *   determines whether the heat pump is running or not
+    *   determines whether the heat pump is running or not.
     * @param qDot
     *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
@@ -579,7 +575,6 @@ final case class ThermalGrid(
       qDot: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
-
     val maybeUpdatedHouseState =
       house.zip(lastThermalGridState.houseState).map {
         case (thermalHouse, houseState) =>
@@ -679,7 +674,6 @@ final case class ThermalGrid(
           )
         ),
       )
-
       val revisedHouseState = thermalHouse.updateState(
         relevantData,
         formerHouseState.getOrElse(
