@@ -137,6 +137,7 @@ class ThermalGridIT
 
       weatherService.expectMessage(
         RegisterForWeatherMessage(
+          heatPumpAgent.ref,
           typicalHpInputModel.getNode.getGeoPosition.getY,
           typicalHpInputModel.getNode.getGeoPosition.getX,
         )
