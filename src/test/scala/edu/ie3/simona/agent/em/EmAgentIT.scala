@@ -209,7 +209,7 @@ class EmAgentIT
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
-            pvAgent.ref,
+            pvAgent,
             pvInput.getNode.getGeoPosition.getY,
             pvInput.getNode.getGeoPosition.getX,
           )
@@ -473,7 +473,7 @@ class EmAgentIT
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
-            pvAgent.ref,
+            pvAgent,
             pvInput.getNode.getGeoPosition.getY,
             pvInput.getNode.getGeoPosition.getX,
           )

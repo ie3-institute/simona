@@ -11,7 +11,6 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.util.scala.quantities.Irradiance
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import squants.{Temperature, Velocity}
 
 sealed trait WeatherMessage
@@ -37,7 +36,7 @@ object WeatherMessage {
     *   Longitude of the requested location
     */
   final case class RegisterForWeatherMessage(
-      requestingActor: ActorRef[ParticipantAgent.Request],,
+      requestingActor: ActorRef[ParticipantAgent.Request],
       latitude: Double,
       longitude: Double,
   ) extends WeatherMessage
