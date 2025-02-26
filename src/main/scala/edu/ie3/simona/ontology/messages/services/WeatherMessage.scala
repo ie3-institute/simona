@@ -29,15 +29,15 @@ object WeatherMessage {
   /** Indicate the [[edu.ie3.simona.service.weather.WeatherService]] that the
     * requesting agent wants to receive weather for the provided coordinates
     *
-    * @param actorRef
-    *   actor ref for the agent to be registered
+    * @param requestingActor
+    *   The actor requesting registration for weather data
     * @param latitude
     *   Latitude of the requested location
     * @param longitude
     *   Longitude of the requested location
     */
   final case class RegisterForWeatherMessage(
-      actorRef: ActorRef[ParticipantAgent.Request],
+      requestingActor: ActorRef[ParticipantAgent.Request],,
       latitude: Double,
       longitude: Double,
   ) extends WeatherMessage

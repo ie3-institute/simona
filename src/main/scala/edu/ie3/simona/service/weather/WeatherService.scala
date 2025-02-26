@@ -156,8 +156,8 @@ object WeatherService extends TypedSimonaService[WeatherMessage] {
       ctx: ActorContext[WeatherMessage],
   ): Try[WeatherInitializedStateData] =
     registrationMessage match {
-      case RegisterForWeatherMessage(sender, latitude, longitude) =>
-        Success(handleRegistrationRequest(sender, latitude, longitude))
+      case RegisterForWeatherMessage(agentToBeRegistered, latitude, longitude) =>
+        Success(handleRegistrationRequest(agentToBeRegistered, latitude, longitude))
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(

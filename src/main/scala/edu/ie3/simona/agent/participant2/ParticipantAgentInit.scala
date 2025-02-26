@@ -256,6 +256,7 @@ object ParticipantAgentInit {
         requiredServices.foreach { case (serviceType, serviceRef) =>
           registerForService(
             participantInput,
+            ctx.self,
             modelShell,
             serviceType,
             serviceRef,
@@ -275,6 +276,7 @@ object ParticipantAgentInit {
 
   private def registerForService(
       participantInput: SystemParticipantInput,
+      participantRef: ActorRef[Request],
       modelShell: ParticipantModelShell[_, _],
       serviceType: ServiceType,
       serviceRef: ClassicRef,
