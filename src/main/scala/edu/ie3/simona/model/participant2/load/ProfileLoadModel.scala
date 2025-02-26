@@ -4,21 +4,19 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant2.load.profile
+package edu.ie3.simona.model.participant2.load
 
+import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.datamodel.models.profile.StandardLoadProfile
+import edu.ie3.datamodel.models.profile.{LoadProfile, StandardLoadProfile}
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant2.ParticipantModel
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ActivePowerOperatingPoint,
-  DateTimeState,
-  ParticipantDateTimeState,
+import edu.ie3.simona.model.participant2.load.LoadModel.{
+  LoadModelState,
+  LoadModelWithService,
 }
-import edu.ie3.simona.model.participant2.load.{LoadModel, LoadReferenceType}
-import edu.ie3.simona.util.TickUtil
+import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.util.scala.quantities.ApparentPower
 
 import java.util.UUID
@@ -29,38 +27,16 @@ class ProfileLoadModel(
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    private val loadProfileStore: LoadProfileStore,
-    private val loadProfile: StandardLoadProfile,
-    val referenceScalingFactor: Double,
-) extends LoadModel[DateTimeState]
-    with ParticipantDateTimeState[ActivePowerOperatingPoint] {
-
-  override def determineOperatingPoint(
-      state: DateTimeState
-  ): (ParticipantModel.ActivePowerOperatingPoint, Option[Long]) = {
-    val resolution = LoadProfileStore.resolution.getSeconds
-
-    val (modelTick, modelDateTime) = TickUtil.roundToResolution(
-      state.tick,
-      state.dateTime,
-      resolution.toInt,
-    )
-
-    val averagePower = loadProfileStore.entry(modelDateTime, loadProfile)
-    val nextTick = modelTick + resolution
-
-    (
-      ActivePowerOperatingPoint(averagePower * referenceScalingFactor),
-      Some(nextTick),
-    )
-  }
-
-}
+    val loadProfile: LoadProfile,
+    override val referenceScalingFactor: Double,
+) extends LoadModel[LoadModelState]
+    with LoadModelWithService
 
 object ProfileLoadModel {
 
   def apply(input: LoadInput, config: LoadRuntimeConfig): ProfileLoadModel = {
 
+    // This currently works only for the build in load profiles (bdew)
     val loadProfileStore = LoadProfileStore()
 
     val loadProfile = input.getLoadProfile match {
@@ -74,12 +50,22 @@ object ProfileLoadModel {
 
     val referenceType = LoadReferenceType(config.reference)
 
+    val maxPower = loadProfileStore
+      .maxPower(loadProfile)
+      .getOrElse(
+        throw new SourceException(
+          s"Expected a maximal power value for this load profile: ${input.getLoadProfile}!"
+        )
+      )
+
+    val profileReferenceEnergy = loadProfileStore.profileScaling(loadProfile)
+
     val (referenceScalingFactor, scaledSRated) =
       LoadModel.scaleToReference(
         referenceType,
         input,
-        loadProfileStore.maxPower(loadProfile),
-        LoadProfileStore.profileReferenceEnergy,
+        maxPower,
+        profileReferenceEnergy,
       )
 
     new ProfileLoadModel(
@@ -88,7 +74,6 @@ object ProfileLoadModel {
       scaledSRated,
       input.getCosPhiRated,
       QControl.apply(input.getqCharacteristics()),
-      loadProfileStore,
       loadProfile,
       referenceScalingFactor,
     )

@@ -4,11 +4,11 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant2.load.profile
+package edu.ie3.simona.model.participant2.load
 
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant2.load.LoadModelTestHelper
+import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.simona.test.matchers.DoubleMatchers

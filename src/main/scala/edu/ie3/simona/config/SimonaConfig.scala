@@ -207,6 +207,7 @@ object SimonaConfig {
 
     final case class Input(
         grid: Input.Grid,
+        loadProfile: Input.LoadProfile = Input.LoadProfile(),
         primary: Input.Primary = Input.Primary(),
         weather: Input.Weather = Input.Weather(),
     )
@@ -219,6 +220,26 @@ object SimonaConfig {
             csvParams: Option[BaseCsvParams] = None,
             id: String,
         )
+      }
+
+      final case class LoadProfile(
+          datasource: LoadProfile.Datasource = LoadProfile.Datasource()
+      )
+      object LoadProfile {
+        final case class Datasource(
+            csvParams: Option[SimonaConfig.BaseCsvParams] = None,
+            sqlParams: Option[Datasource.SqlParams] = None,
+        )
+
+        object Datasource {
+          final case class SqlParams(
+              jdbcUrl: String,
+              password: String,
+              schemaName: String,
+              tableName: String,
+              userName: String,
+          )
+        }
       }
 
       final case class Primary(

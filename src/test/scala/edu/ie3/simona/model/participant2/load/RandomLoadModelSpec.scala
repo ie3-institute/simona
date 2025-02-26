@@ -4,11 +4,9 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant2.load.random
+package edu.ie3.simona.model.participant2.load
 
-import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueDistribution
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant2.load.LoadModelTestHelper
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.util.TimeUtil
@@ -84,42 +82,6 @@ class RandomLoadModelSpec
         model.referenceScalingFactor should approximate(expectedScalingFactor)
         model.sRated should approximate(Voltamperes(expectedSRated))
       }
-    }
-
-    "deliver the correct distribution on request" in {
-      val model = RandomLoadModel(
-        loadInput,
-        LoadRuntimeConfig(
-          modelBehaviour = "random",
-          reference = "energy",
-        ),
-      )
-
-      /* Working day, 61st quarter-hour */
-      val queryDate =
-        TimeUtil.withDefaults.toZonedDateTime("2019-07-19T15:21:00Z")
-      val expectedParams = new RandomLoadParameters(
-        0.405802458524704,
-        0.0671483352780342,
-        0.0417016632854939,
-      )
-
-      /* First query leeds to generation of distribution */
-      val getGevDistribution =
-        PrivateMethod[GeneralizedExtremeValueDistribution](
-          Symbol("getGevDistribution")
-        )
-
-      def firstHit = model invokePrivate getGevDistribution(queryDate)
-
-      firstHit.getK shouldBe expectedParams.k
-      firstHit.getMu shouldBe expectedParams.my
-      firstHit.getSigma shouldBe expectedParams.sigma
-
-      /* Second query is only look up in storage */
-      def secondHit = model invokePrivate getGevDistribution(queryDate)
-
-      secondHit shouldBe firstHit
     }
 
     "reach the targeted annual energy consumption in a simulated year" in {

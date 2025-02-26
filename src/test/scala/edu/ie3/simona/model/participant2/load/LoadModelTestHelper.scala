@@ -6,21 +6,24 @@
 
 package edu.ie3.simona.model.participant2.load
 
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ActivePowerOperatingPoint,
-  DateTimeState,
-}
-import squants.{Dimensionless, Each, Energy, Power, Quantity}
+import edu.ie3.datamodel.exceptions.SourceException
+import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile
+import edu.ie3.simona.model.participant2.ParticipantModel.ActivePowerOperatingPoint
+import edu.ie3.simona.model.participant2.load.LoadModel.LoadModelState
+import edu.ie3.simona.service.load.LoadProfileStore
 import squants.energy.KilowattHours
 import squants.time.Minutes
+import squants.{Dimensionless, Each, Energy, Power, Quantity}
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
 trait LoadModelTestHelper {
 
+  private val store = LoadProfileStore()
+
   protected def calculateEnergyDiffForYear(
-      model: LoadModel[DateTimeState],
+      model: LoadModel[LoadModelState],
       simulationStartDate: ZonedDateTime,
       expectedEnergy: Energy,
   ): Dimensionless = {
@@ -40,7 +43,7 @@ trait LoadModelTestHelper {
   }
 
   protected def calculatePowerForYear(
-      model: LoadModel[DateTimeState],
+      model: LoadModel[LoadModelState],
       simulationStartDate: ZonedDateTime,
   ): Iterable[Power] = {
     val quarterHoursInYear = 365L * 96L
@@ -48,9 +51,21 @@ trait LoadModelTestHelper {
     (0L until quarterHoursInYear)
       .map { quarterHour =>
         val tick = quarterHour * 15 * 60
-        val state = DateTimeState(
+        val dateTime =
+          simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES)
+
+        val averagePower = (model match {
+          case profileLoadModel: ProfileLoadModel =>
+            store.entry(dateTime, profileLoadModel.loadProfile)
+          case _: RandomLoadModel =>
+            store.entry(dateTime, RandomLoadProfile.RANDOM_LOAD_PROFILE)
+        }).getOrElse(
+          throw new SourceException("No load value present!")
+        )
+
+        val state = LoadModelState(
           tick,
-          simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES),
+          averagePower,
         )
 
         model

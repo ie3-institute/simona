@@ -11,25 +11,27 @@ import edu.ie3.datamodel.models.result.system.{
   LoadResult,
   SystemParticipantResult,
 }
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
 }
-import edu.ie3.simona.model.participant2.load.profile.ProfileLoadModel
-import edu.ie3.simona.model.participant2.load.random.RandomLoadModel
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.LoadData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOVOLTAMPERE, KILOWATTHOUR}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.energy.KilowattHours
-import squants.{Energy, Power}
+import squants.{Dimensionless, Energy, Power}
 
 import java.time.ZonedDateTime
 
@@ -76,6 +78,16 @@ abstract class LoadModel[S <: ModelState]
 }
 
 object LoadModel {
+
+  /** Holds all relevant data for profile load model calculation
+    *
+    * @param averagePower
+    *   the average power for the current interval
+    */
+  final case class LoadModelState(
+      override val tick: Long,
+      averagePower: Power,
+  ) extends ModelState
 
   /** Calculates the scaling factor and scaled rated apparent power according to
     * the reference type
@@ -140,6 +152,74 @@ object LoadModel {
         ProfileLoadModel(input, config)
       case LoadModelBehaviour.RANDOM =>
         RandomLoadModel(input, config)
+    }
+  }
+
+  /** Some implementations common for load models with secondary service.
+    */
+  trait LoadModelWithService {
+    this: LoadModel[LoadModelState] =>
+
+    val referenceScalingFactor: Double
+
+    /** Determines the initial state given an initial model input.
+      */
+    override val initialState: (Long, ZonedDateTime) => LoadModelState =
+      (tick, _) => LoadModelState(tick, zeroKW)
+
+    override def determineOperatingPoint(
+        state: LoadModelState
+    ): (ParticipantModel.ActivePowerOperatingPoint, Option[Long]) = {
+      val averagePower = state.averagePower
+
+      (
+        ActivePowerOperatingPoint(averagePower * referenceScalingFactor),
+        None,
+      )
+    }
+
+    /** Determines the current state given the last state and the operating
+      * point that has been valid from the last state up until now.
+      *
+      * @param lastState
+      *   The last state.
+      * @param operatingPoint
+      *   The operating point valid from the simulation time of the last state
+      *   up until now.
+      * @param tick
+      *   The current tick
+      * @param simulationTime
+      *   The current simulation time
+      * @return
+      *   The current state.
+      */
+    override def determineState(
+        lastState: LoadModelState,
+        operatingPoint: ActivePowerOperatingPoint,
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): LoadModelState = lastState.copy(tick = tick)
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.LoadProfileService)
+
+    override def handleInput(
+        state: LoadModelState,
+        receivedData: Seq[Data],
+        nodalVoltage: Dimensionless,
+    ): LoadModelState = {
+
+      val loadData = receivedData
+        .collectFirst { case loadData: LoadData =>
+          loadData
+        }
+        .getOrElse(
+          throw new CriticalFailureException(
+            s"Expected LoadProfileData, got $receivedData"
+          )
+        )
+
+      state.copy(averagePower = loadData.averagePower)
     }
   }
 }
