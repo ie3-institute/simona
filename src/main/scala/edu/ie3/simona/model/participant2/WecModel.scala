@@ -66,14 +66,14 @@ class WecModel private (
     with ParticipantSimpleFlexibility[WecState]
     with LazyLogging {
 
-  override val initialState: (Long, ZonedDateTime) => WecState = { (tick, _) =>
-    WecState(
-      tick,
-      MetersPerSecond(0d),
-      Celsius(0d),
-      None,
-    )
-  }
+  override val initialState: (Long, ZonedDateTime) => WecState =
+    (tick, _) =>
+      WecState(
+        tick,
+        MetersPerSecond(0d),
+        Celsius(0d),
+        None,
+      )
 
   override def determineState(
       lastState: WecState,

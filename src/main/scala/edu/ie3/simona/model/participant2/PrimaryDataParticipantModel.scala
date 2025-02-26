@@ -61,13 +61,12 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
       PrimaryDataState[PD],
     ] {
 
-  override val initialState: (Long, ZonedDateTime) => PrimaryDataState[PD] = {
+  override val initialState: (Long, ZonedDateTime) => PrimaryDataState[PD] =
     (tick, _) =>
       PrimaryDataState(
         primaryDataExtra.zero,
         tick,
       )
-  }
 
   override def determineState(
       lastState: PrimaryDataState[PD],

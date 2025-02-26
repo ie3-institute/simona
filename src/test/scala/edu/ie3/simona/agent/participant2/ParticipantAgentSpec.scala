@@ -629,7 +629,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 24 * 3600: GridAgent requests power
 
-        participantAgent ! MockRequestMessage(20 * 3600, responseReceiver.ref)
+        participantAgent ! MockRequestMessage(24 * 3600, responseReceiver.ref)
         responseReceiver.expectMessage(MockResponseMessage(KilowattHours(138)))
 
         participantAgent ! RequestAssetPowerMessage(

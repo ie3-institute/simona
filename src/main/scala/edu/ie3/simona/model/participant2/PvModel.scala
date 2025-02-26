@@ -74,7 +74,7 @@ class PvModel private (
   private val activationThreshold =
     sRated.toActivePower(cosPhiRated) * 0.001 * -1
 
-  override val initialState: (Long, ZonedDateTime) => PvState = {
+  override val initialState: (Long, ZonedDateTime) => PvState =
     (tick, simulationTime) =>
       PvState(
         tick,
@@ -82,7 +82,6 @@ class PvModel private (
         zeroWPerSM,
         zeroWPerSM,
       )
-  }
 
   override def determineState(
       lastState: PvState,

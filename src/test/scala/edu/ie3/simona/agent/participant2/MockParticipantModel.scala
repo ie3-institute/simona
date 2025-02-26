@@ -55,13 +55,13 @@ class MockParticipantModel(
       MockState,
     ] {
 
-  override val initialState: (Long, ZonedDateTime) => MockState = { (tick, _) =>
-    MockState(
-      None,
-      zeroKWh,
-      tick,
-    )
-  }
+  override val initialState: (Long, ZonedDateTime) => MockState =
+    (tick, _) =>
+      MockState(
+        None,
+        zeroKWh,
+        tick,
+      )
 
   override def determineState(
       lastState: MockState,
