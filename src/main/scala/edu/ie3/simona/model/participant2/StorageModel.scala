@@ -333,13 +333,11 @@ object StorageModel {
         .getValue
         .doubleValue
     )
-    def getInitialState(eStorage: Energy, config: StorageRuntimeConfig)(
-        tick: Long,
-        simulationTime: ZonedDateTime,
-    ): StorageState = {
-      val initialStorage = eStorage * config.initialSoc
-      StorageState(storedEnergy = initialStorage, tick)
-    }
+    val getInitialState: (Long, ZonedDateTime) => StorageState =
+      (tick, _) => {
+        val initialStorage = eStorage * config.initialSoc
+        StorageState(storedEnergy = initialStorage, tick)
+      }
 
     new StorageModel(
       input.getUuid,
@@ -352,7 +350,7 @@ object StorageModel {
       ),
       input.getType.getCosPhiRated,
       QControl.apply(input.getqCharacteristics),
-      getInitialState(eStorage, config),
+      getInitialState,
       eStorage,
       Kilowatts(
         input.getType.getpMax
