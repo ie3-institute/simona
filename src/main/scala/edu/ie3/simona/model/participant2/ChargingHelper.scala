@@ -109,7 +109,7 @@ object ChargingHelper {
     * @return
     *   The net power.
     */
-  private def calcNetPower(setPower: Power, eta: Dimensionless): Power =
+  def calcNetPower(setPower: Power, eta: Dimensionless): Power =
     if (setPower > zeroKW) {
       // multiply eta if we're charging
       setPower * eta.toEach
