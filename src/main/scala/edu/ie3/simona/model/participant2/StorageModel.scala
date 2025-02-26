@@ -80,12 +80,12 @@ class StorageModel private (
     */
   private val toleranceMargin: Energy = pMax * Seconds(1d)
 
-  /** Minimal allowed energy with tolerance margin added
+  /** Minimal allowed energy with tolerance margin added.
     */
   private val minEnergyWithMargin: Energy =
     minEnergy + (toleranceMargin / eta.toEach)
 
-  /** Maximum allowed energy with tolerance margin added
+  /** Maximum allowed energy with tolerance margin added.
     */
   private val maxEnergyWithMargin: Energy =
     eStorage - (toleranceMargin * eta.toEach)
@@ -162,7 +162,8 @@ class StorageModel private (
       uuid,
       data.p.toMegawatts.asMegaWatt,
       data.q.toMegavars.asMegaVar,
-      -1.asPu, // FIXME currently not supported
+      // Stored energy currently not supported by primary data time series
+      -1.asPu,
     )
 
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
@@ -333,7 +334,7 @@ object StorageModel {
         .getValue
         .doubleValue
     )
-    val getInitialState: (Long, ZonedDateTime) => StorageState =
+    val initialState: (Long, ZonedDateTime) => StorageState =
       (tick, _) => {
         val initialStorage = eStorage * config.initialSoc
         StorageState(storedEnergy = initialStorage, tick)
@@ -350,7 +351,7 @@ object StorageModel {
       ),
       input.getType.getCosPhiRated,
       QControl.apply(input.getqCharacteristics),
-      getInitialState,
+      initialState,
       eStorage,
       Kilowatts(
         input.getType.getpMax
