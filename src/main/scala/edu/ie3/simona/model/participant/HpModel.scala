@@ -240,7 +240,7 @@ final case class HpModel(
       .getOrElse(zeroKWh)
     val pThermalOfStorage = thermalGrid.storage
       .map(_.getChargingPower: squants.Power)
-      .get
+      .getOrElse(zeroKW)
 
     val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
       if (isRunning)
@@ -250,8 +250,8 @@ final case class HpModel(
         currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasRequiredDemand
       ) {
         (zeroKW, zeroKW, pThermalOfStorage)
-        // Edge case when em controlled: If we heated the house last state by Hp and surplus energy is gone now,
-        // but we didn't reach target temperature yet. We continue heating the house from storage, if this one is not empty.
+        // Edge case when em controlled: If the house was heated last state by Hp and surplus energy is gone now,
+        // but house didn't reach target temperature yet. House can be heated from storage, if this one is not empty.
       } else if (
         currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand && qDotLastHouseState > zeroKW
       )

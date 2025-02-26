@@ -75,27 +75,26 @@ final case class ThermalHouse(
       bus,
     ) {
 
-  /** Calculate the energy demand at the instance in question. The amount to
-    * reach target temperature of this model is interpreted as required demand.
-    * The amount to reach the current @actualTemperatureTarget (could be target
-    * temperature or upper temperature boundary of this model) is interpreted as
-    * possible demand. The current (external) thermal infeed is not accounted
-    * for, as we assume, that after determining the thermal demand, a change in
-    * external infeed will take place.
+  /** Calculate the energy demand at the instance in question by calculating the
+    * energy needed to reach target temperature from actual inner temperature.
+    * In case the inner temperature is at or below the lower boundary
+    * temperature, this energy demand is interpreted as required energy. Else,
+    * required energy will be zero. In case the inner temperature is not at or
+    * above the target temperature, the demand is interpreted as additional
+    * energy. Else, additional energy will be zero. The current (external)
+    * thermal infeed is not accounted for, as we assume, that after determining
+    * the thermal demand, a change in external infeed will take place.
     *
     * @param relevantData
     *   Data of heat pump including state of the heat pump.
     * @param currentThermalHouseState
     *   Most recent state, that is valid for this model.
-    * @param actualTemperatureTarget
-    *   The currently applied temperature this model is aiming for.
     * @return
     *   The needed energy in the questioned tick.
     */
   def energyDemand(
       relevantData: HpRelevantData,
       currentThermalHouseState: ThermalHouseState,
-      actualTemperatureTarget: Temperature,
   ): ThermalEnergyDemand = {
     // Since we updated the state before, we can directly take the innerTemperature
     val currentInnerTemp = currentThermalHouseState.innerTemperature
@@ -107,10 +106,8 @@ final case class ThermalHouse(
         zeroKWh
 
     val possibleEnergy =
-      if (
-        !isInnerTemperatureTooHigh(currentInnerTemp, actualTemperatureTarget)
-      ) {
-        energy(actualTemperatureTarget, currentInnerTemp)
+      if (!isInnerTemperatureTooHigh(currentInnerTemp)) {
+        energy(targetTemperature, currentInnerTemp)
       } else zeroKWh
 
     ThermalEnergyDemand(requiredEnergy, possibleEnergy)
@@ -151,7 +148,7 @@ final case class ThermalHouse(
     */
   def isInnerTemperatureTooHigh(
       innerTemperature: Temperature,
-      boundaryTemperature: Temperature,
+      boundaryTemperature: Temperature = targetTemperature,
   ): Boolean =
     innerTemperature > (
       boundaryTemperature - temperatureTolerance
@@ -241,7 +238,6 @@ final case class ThermalHouse(
         qDot,
         updatedInnerTemperature,
         relevantData.ambientTemperature,
-        targetTemperature,
       )
 
     (
@@ -263,8 +259,6 @@ final case class ThermalHouse(
     *   The inner temperature
     * @param ambientTemperature
     *   The ambient temperature
-    * @param actualTemperatureTarget
-    *   the applied target temperature for this model
     * @return
     *   The next threshold, that will be reached
     */
@@ -273,7 +267,6 @@ final case class ThermalHouse(
       qDotExternal: Power,
       innerTemperature: Temperature,
       ambientTemperature: Temperature,
-      actualTemperatureTarget: Temperature,
   ): Option[ThermalThreshold] = {
     val artificialDuration = Hours(1d)
     val loss = ethLosses.calcThermalEnergyChange(
@@ -296,14 +289,13 @@ final case class ThermalHouse(
       ).map(HouseTemperatureLowerBoundaryReached)
     } else if (
       resultingQDot > zeroMW && !isInnerTemperatureTooHigh(
-        innerTemperature,
-        actualTemperatureTarget,
+        innerTemperature
       )
     ) {
       /* House has more gain than losses */
       nextActivation(
         tick,
-        actualTemperatureTarget,
+        targetTemperature,
         innerTemperature,
         resultingQDot,
       ).map(HouseTemperatureTargetOrUpperBoundaryReached)

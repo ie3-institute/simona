@@ -83,7 +83,6 @@ final case class ThermalGrid(
               thermalHouse.energyDemand(
                 relevantData,
                 updatedHouseState,
-                thermalHouse.targetTemperature,
               ),
               Some(updatedHouseState),
             )
@@ -487,8 +486,7 @@ final case class ThermalGrid(
         /* Check if house can handle the thermal feed in */
         if (
           thermalHouse.isInnerTemperatureTooHigh(
-            newState.innerTemperature,
-            thermalHouse.targetTemperature,
+            newState.innerTemperature
           )
         ) {
           val (fullHouseState, maybeFullHouseThreshold) =
