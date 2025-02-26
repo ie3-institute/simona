@@ -7,16 +7,20 @@
 package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.result.system.EmResult
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
-import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
-import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
+}
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
+  ParticipantRefs,
+  SimulationParameters,
 }
 import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.event.ResultEvent
@@ -33,6 +37,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   WeatherData,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -47,10 +52,10 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.testkit.TestActorRef
-import org.scalatest.OptionValues._
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
+import squants.Each
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
@@ -69,7 +74,14 @@ class EmAgentIT
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
   private val resolution =
-    simonaConfig.simona.powerflow.resolution.getSeconds
+    simonaConfig.simona.powerflow.resolution.toSeconds
+
+  private val simulationParams = SimulationParameters(
+    expectedPowerRequestTick = Long.MaxValue,
+    requestVoltageDeviationTolerance = Each(1e-14d),
+    simulationStart = simulationStartDate,
+    simulationEnd = simulationEndDate,
+  )
 
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
@@ -95,11 +107,20 @@ class EmAgentIT
   "An em agent" when {
     "having load, pv and storage agents connected" should {
       "be initialized correctly and run through some activations" in {
+        val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
           TestProbe[ServiceMessage]("PrimaryServiceProxy")
         val weatherService = TestProbe[ServiceMessage]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
+
+        val participantRefs = ParticipantRefs(
+          gridAgent = gridAgent.ref,
+          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
+          services =
+            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          resultListener = Iterable(resultListener.ref),
+        )
 
         val emAgent = spawn(
           EmAgent(
@@ -114,46 +135,25 @@ class EmAgentIT
           "EmAgent",
         )
 
-        val loadAgent = TestActorRef(
-          new FixedLoadAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              loadInput,
-              LoadRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true
-              ),
-              primaryServiceProxy.ref.toClassic,
-              None,
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val loadAgent = spawn(
+          ParticipantAgentInit(
+            loadInput,
+            LoadRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "LoadAgent",
         )
-        val pvAgent = TestActorRef(
-          new PvAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              pvInput,
-              PvRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                uuids = List.empty,
-              ),
-              primaryServiceProxy.ref.toClassic,
-              Iterable(ActorWeatherService(weatherService.ref.toClassic)),
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val pvAgent = spawn(
+          ParticipantAgentInit(
+            pvInput,
+            PvRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "PvAgent",
         )
@@ -181,48 +181,35 @@ class EmAgentIT
           "StorageAgent",
         )
 
-        scheduler.expectNoMessage()
+        val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
+        emInitSchedule.tick shouldBe INIT_SIM_TICK
+        val emAgentActivation = emInitSchedule.actor
 
         /* INIT */
 
-        // load
-        loadAgent ! Activation(INIT_SIM_TICK)
+        emAgentActivation ! Activation(INIT_SIM_TICK)
 
-        primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadAgent.ref, loadInput.getUuid)
+        primaryServiceProxy.receiveMessages(2) should contain allOf (
+          PrimaryServiceRegistrationMessage(
+            loadAgent.toClassic,
+            loadInput.getUuid,
+          ),
+          PrimaryServiceRegistrationMessage(
+            pvAgent.toClassic,
+            pvInput.getUuid,
+          )
         )
+
+        // load
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
-        // the order of the two messages is not given
-        val emAgentActivation = scheduler
-          .receiveMessages(2)
-          .flatMap {
-            case Completion(ref, maybeNewTick) =>
-              ref shouldBe loadAgent.toTyped
-              maybeNewTick shouldBe None
-              None
-            case ScheduleActivation(ref, tick, unlockKey) =>
-              // em agent schedules itself
-              tick shouldBe 0
-              unlockKey shouldBe None
-              Some(ref)
-            case unexpected =>
-              fail(s"Received unexpected message $unexpected")
-          }
-          .headOption
-          .value
-
         // pv
-        pvAgent ! Activation(INIT_SIM_TICK)
-
-        primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
-        )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
+            pvAgent.toClassic,
             pvInput.getNode.getGeoPosition.getY,
             pvInput.getNode.getGeoPosition.getX,
           )
@@ -233,7 +220,7 @@ class EmAgentIT
           0L,
         )
 
-        scheduler.expectMessage(Completion(pvAgent))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         // storage
         storageAgent ! Activation(INIT_SIM_TICK)
@@ -288,7 +275,7 @@ class EmAgentIT
 
         /* TICK 7200
          LOAD: 0.269 kW (unchanged)
-         PV:  -3.791 kW
+         PV:  -3.715 kW
          STORAGE: SOC 63.3 %
          -> charge with 3.522 kW
          -> remaining 0 kW
@@ -300,8 +287,8 @@ class EmAgentIT
           7200,
           weatherService.ref.toClassic,
           WeatherData(
-            WattsPerSquareMeter(50d),
-            WattsPerSquareMeter(150d),
+            WattsPerSquareMeter(45d),
+            WattsPerSquareMeter(140d),
             Celsius(0d),
             MetersPerSecond(0d),
           ),
@@ -318,24 +305,24 @@ class EmAgentIT
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(13115)))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(13247)))
 
-        /* TICK 13115
+        /* TICK 13247
          LOAD: 0.269 kW (unchanged)
-         PV:  -3.791 kW (unchanged)
+         PV:  -3.715 kW (unchanged)
          STORAGE: SOC 100 %
          -> charge with 0 kW
-         -> remaining -3.522 kW
+         -> remaining -3.447 kW
          */
 
-        emAgentActivation ! Activation(13115)
+        emAgentActivation ! Activation(13247)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
-            emResult.getTime shouldBe 13115L.toDateTime
+            emResult.getTime shouldBe 13247.toDateTime
             emResult.getP should equalWithTolerance(
-              -0.0035233186089842434.asMegaWatt
+              -0.0034468567291.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
@@ -344,9 +331,9 @@ class EmAgentIT
 
         /* TICK 14400
          LOAD: 0.269 kW (unchanged)
-         PV:  -0.069 kW
+         PV:  -0.07 kW
          STORAGE: SOC 100 %
-         -> discharge with 0.2 kW
+         -> discharge with 0.199 kW
          -> remaining 0.0 kW
          */
 
@@ -383,11 +370,20 @@ class EmAgentIT
 
     "having load, pv and heat pump agents connected" should {
       "be initialized correctly and run through some activations" in {
+        val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
           TestProbe[ServiceMessage]("PrimaryServiceProxy")
         val weatherService = TestProbe[ServiceMessage]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
+
+        val participantRefs = ParticipantRefs(
+          gridAgent = gridAgent.ref,
+          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
+          services =
+            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          resultListener = Iterable(resultListener.ref),
+        )
 
         val emAgent = spawn(
           EmAgent(
@@ -402,46 +398,25 @@ class EmAgentIT
           "EmAgent1",
         )
 
-        val loadAgent = TestActorRef(
-          new FixedLoadAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              loadInput,
-              LoadRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true
-              ),
-              primaryServiceProxy.ref.toClassic,
-              None,
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val loadAgent = spawn(
+          ParticipantAgentInit(
+            loadInput,
+            LoadRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "LoadAgent1",
         )
-        val pvAgent = TestActorRef(
-          new PvAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              pvInput,
-              PvRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                uuids = List.empty,
-              ),
-              primaryServiceProxy.ref.toClassic,
-              Iterable(ActorWeatherService(weatherService.ref.toClassic)),
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val pvAgent = spawn(
+          ParticipantAgentInit(
+            pvInput,
+            PvRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "PvAgent1",
         )
@@ -470,48 +445,35 @@ class EmAgentIT
           "HeatPumpAgent1",
         )
 
-        scheduler.expectNoMessage()
+        val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
+        emInitSchedule.tick shouldBe INIT_SIM_TICK
+        val emAgentActivation = emInitSchedule.actor
 
         /* INIT */
 
-        // load
-        loadAgent ! Activation(INIT_SIM_TICK)
+        emAgentActivation ! Activation(INIT_SIM_TICK)
 
-        primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadAgent.ref, loadInput.getUuid)
+        primaryServiceProxy.receiveMessages(2) should contain allOf (
+          PrimaryServiceRegistrationMessage(
+            loadAgent.toClassic,
+            loadInput.getUuid,
+          ),
+          PrimaryServiceRegistrationMessage(
+            pvAgent.toClassic,
+            pvInput.getUuid,
+          )
         )
+
+        // load
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
-        // the order of the two messages is not given
-        val emAgentActivation = scheduler
-          .receiveMessages(2)
-          .flatMap {
-            case Completion(ref, maybeNewTick) =>
-              ref shouldBe loadAgent.toTyped
-              maybeNewTick shouldBe None
-              None
-            case ScheduleActivation(ref, tick, unlockKey) =>
-              // em agent schedules itself
-              tick shouldBe 0
-              unlockKey shouldBe None
-              Some(ref)
-            case unexpected =>
-              fail(s"Received unexpected message $unexpected")
-          }
-          .headOption
-          .value
-
         // pv
-        pvAgent ! Activation(INIT_SIM_TICK)
-
-        primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
-        )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
+            pvAgent.toClassic,
             pvInput.getNode.getGeoPosition.getY,
             pvInput.getNode.getGeoPosition.getX,
           )
@@ -522,7 +484,7 @@ class EmAgentIT
           0L,
         )
 
-        scheduler.expectMessage(Completion(pvAgent))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         // heat pump
         heatPumpAgent ! Activation(INIT_SIM_TICK)
@@ -539,6 +501,7 @@ class EmAgentIT
 
         weatherService.expectMessage(
           RegisterForWeatherMessage(
+            heatPumpAgent.ref,
             adaptedHpInputModel.getNode.getGeoPosition.getY,
             adaptedHpInputModel.getNode.getGeoPosition.getX,
           )
@@ -551,7 +514,7 @@ class EmAgentIT
 
         scheduler.expectMessage(Completion(heatPumpAgent))
 
-        val weatherDependentAgents = Seq(pvAgent, heatPumpAgent)
+        val weatherDependentAgents = Seq(pvAgent.toClassic, heatPumpAgent)
 
         /* TICK 0
          LOAD: 0.269 kW
@@ -593,10 +556,10 @@ class EmAgentIT
 
         /* TICK 7200
          LOAD: 0.269 kW (unchanged)
-         PV:  -3.791 kW
+         PV:  -3.715 kW
          Heat pump: running (turned on from last request), can also be turned off
          -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-         -> remaining 1.327 kW
+         -> remaining 1.403 kW
          */
 
         emAgentActivation ! Activation(7200)
@@ -606,8 +569,8 @@ class EmAgentIT
             7200,
             weatherService.ref.toClassic,
             WeatherData(
-              WattsPerSquareMeter(50d),
-              WattsPerSquareMeter(150d),
+              WattsPerSquareMeter(45d),
+              WattsPerSquareMeter(140d),
               Celsius(0d),
               MetersPerSecond(0d),
             ),
@@ -620,10 +583,10 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
             emResult.getP should equalWithTolerance(
-              0.0013266813910157566.asMegaWatt
+              0.0014031432709.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0010731200407782782.asMegaVar
+              0.0010731200408.asMegaVar
             )
         }
 
@@ -657,12 +620,12 @@ class EmAgentIT
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
-            emResult.getTime shouldBe 14400L.toDateTime
+            emResult.getTime shouldBe 14400.toDateTime
             emResult.getP should equalWithTolerance(
-              0.00019892577822992104.asMegaWatt
+              0.0001988993578.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0000882855367033582.asMegaVar
+              0.0000882855367.asMegaVar
             )
         }
 
@@ -670,10 +633,10 @@ class EmAgentIT
 
         /* TICK 21600
          LOAD: 0.269 kW (unchanged)
-         PV:  -0.023 kW
+         PV:  -0.024 kW
          Heat pump: Is not running, can run or stay off
          -> flex signal is 0 MW: Heat pump is turned off
-         -> remaining 0.245 kW
+         -> remaining 0.244 kW
          */
 
         emAgentActivation ! Activation(21600)
@@ -698,10 +661,10 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 21600.toDateTime
             emResult.getP should equalWithTolerance(
-              0.0002450436827011999.asMegaWatt
+              0.0002442471208.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0000882855367033582.asMegaVar
+              0.0000882855367.asMegaVar
             )
         }
 

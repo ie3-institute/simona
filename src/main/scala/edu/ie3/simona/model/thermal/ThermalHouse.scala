@@ -16,7 +16,7 @@ import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached,
+  HouseTemperatureTargetOrUpperBoundaryReached,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
@@ -84,11 +84,11 @@ final case class ThermalHouse(
     * place.
     *
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   Data of heat pump including state of the heat pump.
     * @param state
-    *   most recent state, that is valid for this model
+    *   Most recent state, that is valid for this model.
     * @return
-    *   the needed energy in the questioned tick
+    *   The needed energy in the questioned tick.
     */
   def energyDemand(
       relevantData: HpRelevantData,
@@ -141,11 +141,11 @@ final case class ThermalHouse(
     * temperature difference to zero, resulting in an energy demand of 0 kWh.
     *
     * @param targetTemperature
-    *   The target temperature to reach
+    *   The target temperature to reach.
     * @param startTemperature
-    *   The starting temperature
+    *   The starting temperature.
     * @return
-    *   The needed energy to change
+    *   The needed energy to change.
     */
   private def energy(
       targetTemperature: Temperature,
@@ -159,9 +159,13 @@ final case class ThermalHouse(
   }
 
   /** Check if inner temperature is higher than preferred maximum temperature
+    * @param innerTemperature
+    *   The inner temperature of the house
+    * @param boundaryTemperature
+    *   The applied boundary temperature to check against
     *
     * @return
-    *   true, if inner temperature is too high
+    *   True, if inner temperature is too high.
     */
   def isInnerTemperatureTooHigh(
       innerTemperature: Temperature,
@@ -221,10 +225,10 @@ final case class ThermalHouse(
     currentInnerTemperature + temperatureChange
   }
 
-  /** Update the current state of the house
+  /** Update the current state of the house.
     *
     * @param relevantData
-    *   data of heat pump including state of the heat pump
+    *   Data of heat pump including state of the heat pump.
     * @param state
     *   Currently applicable state
     * @param lastAmbientTemperature
@@ -234,7 +238,7 @@ final case class ThermalHouse(
     * @return
     *   Updated state and the tick in which the next threshold is reached
     */
-  def determineState(
+  def updateState(
       relevantData: HpRelevantData,
       state: ThermalHouseState,
       lastAmbientTemperature: Temperature,
@@ -267,9 +271,9 @@ final case class ThermalHouse(
     )
   }
 
-  /** Determine the next threshold, that will be reached
+  /** Determine the next threshold, that will be reached.
     * @param tick
-    *   The current tick
+    *   The current tick.
     * @param qDotExternal
     *   The external influx
     * @param innerTemperature
@@ -315,7 +319,7 @@ final case class ThermalHouse(
         upperBoundaryTemperature,
         innerTemperature,
         resultingQDot,
-      ).map(HouseTemperatureUpperBoundaryReached)
+      ).map(HouseTemperatureTargetOrUpperBoundaryReached)
     } else {
       /* House is in perfect balance */
       None
@@ -399,7 +403,7 @@ object ThermalHouse {
     final case class HouseTemperatureLowerBoundaryReached(
         override val tick: Long
     ) extends ThermalThreshold
-    final case class HouseTemperatureUpperBoundaryReached(
+    final case class HouseTemperatureTargetOrUpperBoundaryReached(
         override val tick: Long
     ) extends ThermalThreshold
   }
