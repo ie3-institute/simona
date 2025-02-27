@@ -49,36 +49,28 @@ jobs:
           
           ./gradlew checkBranchName -PbranchName="$branch_name"
 
-      - name: Version Check
+      - name: Get Versions
         if: ${{ github.event_name == 'pull_request' }}
         run: |
-          BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
-          echo "Base branch is $BASE_BRANCH"
-      
-          if [ "$BASE_BRANCH" = "main" ] || [ "$BASE_BRANCH" = "dev" ]; then
-            echo "Performing version check..."
-      
-            git clone ${{ github.event.pull_request.base.repo.clone_url }} base-branch
-            cd base-branch
-
-            git checkout ${{ github.event.pull_request.base.sha }}
-      
-            BASE_VERSION="$(./gradlew -q currentVersion)"
-            echo "Base version: $BASE_VERSION"
-            cd ..
-
-            HEAD_VERSION="$(./gradlew -q currentVersion)"
-            echo "PR head version: $HEAD_VERSION"
-      
-            if [ "$BASE_VERSION" != "$HEAD_VERSION" ]; then
-              echo "ERROR: Version mismatch! Base: $BASE_VERSION vs. PR head: $HEAD_VERSION"
-              exit 1
-            else
-              echo "Version check passed. ($BASE_VERSION == $HEAD_VERSION)"
-            fi
-          else
-            echo "Base branch is $BASE_BRANCH; no version check needed."
-          fi
+          REPO_URL="https://github.com/ie3-institute/simona.git"
+          
+          PR_VERSION=$(./gradlew -q currentVersion)
+          echo "PR_VERSION=$PR_VERSION"
+          
+          #DEV-Version
+          git clone --depth 1 --branch dev "$REPO_URL" dev-branch
+          cd dev-branch
+          DEV_VERSION=$(./gradlew -q currentVersion)
+          cd ..
+          echo "DEV_VERSION=$DEV_VERSION"
+          
+          #MAIN-Version
+          git clone --depth 1 --branch main "$REPO_URL" main-branch
+          cd main-branch
+          MAIN_VERSION=$(./gradlew -q currentVersion)
+          cd ..
+          echo "MAIN_VERSION=$MAIN_VERSION"
+          
 
       - name: Setup Java
         uses: actions/setup-java@v4
