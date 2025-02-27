@@ -41,7 +41,7 @@ import scala.language.postfixOps
   * connected directly with exactly one thermal bus.
   *
   * @param house
-  *   Thermal houses connected to the bus
+  *   Thermal houses connected to the bus.
   * @param heatStorage
   *   Thermal storages connected to the bus.
   * @param domesticHotWaterStorage

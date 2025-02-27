@@ -19,9 +19,12 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
-import squants.energy.Kilowatts
-import squants.space.CubicMeters
+import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
+import edu.ie3.util.scala.quantities.{
+  KilowattHoursPerKelvinCubicMeters,
+  SpecificHeatCapacity,
+}
+import squants.space.{CubicMeters, Volume}
 import squants.thermal.Celsius
 import squants.time.Seconds
 import squants.{Energy, Power}
@@ -43,8 +46,6 @@ import java.util.UUID
   *   Operation time
   * @param bus
   *   Thermal bus input
-  * @param minEnergyThreshold
-  *   Minimum permissible energy stored in the storage
   * @param maxEnergyThreshold
   *   Maximum permissible energy stored in the storage
   * @param chargingPower
