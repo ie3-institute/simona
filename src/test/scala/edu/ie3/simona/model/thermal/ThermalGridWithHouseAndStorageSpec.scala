@@ -12,7 +12,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureTargetOrUpperBoundaryReached,
+  HouseTargetTemperatureReached,
 }
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
@@ -354,7 +354,7 @@ class ThermalGridWithHouseAndStorageSpec
               ),
               testGridQDotInfeed,
             ),
-            Some(HouseTemperatureTargetOrUpperBoundaryReached(3600L)),
+            Some(HouseTargetTemperatureReached(3600L)),
           )
         )
         val maybeStorageState = Some(
@@ -488,11 +488,7 @@ class ThermalGridWithHouseAndStorageSpec
                 Some(
                   (
                     ThermalHouseState(houseTick, _, revisedQDotHouse),
-                    Some(
-                      HouseTemperatureTargetOrUpperBoundaryReached(
-                        houseWarmTick
-                      )
-                    ),
+                    Some(HouseTargetTemperatureReached(houseWarmTick)),
                   )
                 ),
                 Some(
@@ -568,9 +564,7 @@ class ThermalGridWithHouseAndStorageSpec
 
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(
-          HouseTemperatureTargetOrUpperBoundaryReached(7322L)
-        )
+        reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7322L))
       }
 
       "load the storage, if the target temperature in the house is reached" in {

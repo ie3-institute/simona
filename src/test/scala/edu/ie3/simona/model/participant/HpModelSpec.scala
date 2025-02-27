@@ -11,7 +11,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureTargetOrUpperBoundaryReached,
+  HouseTargetTemperatureReached,
 }
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -55,7 +55,7 @@ class HpModelSpec
             true,
             95,
             15.6,
-            Some(HouseTemperatureTargetOrUpperBoundaryReached(24051)),
+            Some(HouseTargetTemperatureReached(24051)),
           ),
           (
             HpState(
@@ -70,7 +70,7 @@ class HpModelSpec
             true,
             95,
             16.4,
-            Some(HouseTemperatureTargetOrUpperBoundaryReached(22270)),
+            Some(HouseTargetTemperatureReached(22270)),
           ),
           (
             HpState(
@@ -85,7 +85,7 @@ class HpModelSpec
             true,
             95,
             18.0,
-            Some(HouseTemperatureTargetOrUpperBoundaryReached(17486)),
+            Some(HouseTargetTemperatureReached(17486)),
           ),
           (
             HpState(
@@ -450,7 +450,7 @@ class HpModelSpec
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
                 ),
-                Some(HouseTemperatureTargetOrUpperBoundaryReached(0L)),
+                Some(HouseTargetTemperatureReached(0L)),
               ),
               (95.0, 0.0, 95.0),
             ),
@@ -471,7 +471,7 @@ class HpModelSpec
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
                 ),
-                Some(HouseTemperatureTargetOrUpperBoundaryReached(0L)),
+                Some(HouseTargetTemperatureReached(0L)),
               ),
               (95.0, 0.0, 95.0),
             ),
@@ -494,7 +494,7 @@ class HpModelSpec
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
                 ),
-                Some(HouseTemperatureTargetOrUpperBoundaryReached(0L)),
+                Some(HouseTargetTemperatureReached(0L)),
               ),
               (95.0, 0.0, 95.0),
             ),
@@ -515,7 +515,7 @@ class HpModelSpec
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
                 ),
-                Some(HouseTemperatureTargetOrUpperBoundaryReached(0L)),
+                Some(HouseTargetTemperatureReached(0L)),
               ),
               (0.0, 0.0, 95.0),
             ),
@@ -539,7 +539,7 @@ class HpModelSpec
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
                 ),
-                Some(HouseTemperatureTargetOrUpperBoundaryReached(0L)),
+                Some(HouseTargetTemperatureReached(0L)),
               ),
               (95.0, 0.0, 95.0),
             ),
@@ -560,7 +560,7 @@ class HpModelSpec
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
                 ),
-                Some(HouseTemperatureTargetOrUpperBoundaryReached(0L)),
+                Some(HouseTargetTemperatureReached(0L)),
               ),
               (95.0, 0.0, 95.0),
             ),
@@ -583,7 +583,7 @@ class HpModelSpec
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
                 ),
-                Some(HouseTemperatureTargetOrUpperBoundaryReached(0L)),
+                Some(HouseTargetTemperatureReached(0L)),
               ),
               (95.0, 0.0, 95.0),
             ),
@@ -605,7 +605,7 @@ class HpModelSpec
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
                 ),
-                Some(HouseTemperatureTargetOrUpperBoundaryReached(0L)),
+                Some(HouseTargetTemperatureReached(0L)),
               ),
               (0.0, 0.0, 95.0),
             ),
@@ -628,7 +628,7 @@ class HpModelSpec
                     ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
                   ),
                 ),
-                Some(HouseTemperatureTargetOrUpperBoundaryReached(0L)),
+                Some(HouseTargetTemperatureReached(0L)),
               ),
               (0.0, 0.0, 95.0),
             ),
@@ -651,7 +651,7 @@ class HpModelSpec
                     ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
                   ),
                 ),
-                Some(HouseTemperatureTargetOrUpperBoundaryReached(0L)),
+                Some(HouseTargetTemperatureReached(0L)),
               ),
               (0.0, 0.0, 0.0),
             ),
