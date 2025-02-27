@@ -84,7 +84,7 @@ jobs:
           
           PR_VERSION="${{ env.PR_VERSION }}"
           DEV_VERSION="${{ env.DEV_VERSION }}"
-          MAIN_VERSION="${{ env.MAIN_VERSION }}"
+          MAIN_VERSION="3.1.0"
           
           echo "PR_VERSION=$PR_VERSION"
           echo "DEV_VERSION=$DEV_VERSION"
