@@ -57,7 +57,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         Set.empty[ThermalStorageInput].asJava,
       )
     )
-    val initialGridState: ThermalGridState = ThermalGrid.startingState(thermalGrid)
+    val initialGridState: ThermalGridState =
+      ThermalGrid.startingState(thermalGrid)
 
     "requesting the starting state" should {
       "deliver proper results" in {
