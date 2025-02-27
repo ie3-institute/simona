@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.participant.data.Data.{
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   LoadRuntimeConfig,
+  StorageRuntimeConfig,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -67,6 +68,8 @@ object ParticipantModelInit {
         PvModel(input)
       case (input: WecInput, _) =>
         WecModel(input)
+      case (input: StorageInput, config: StorageRuntimeConfig) =>
+        StorageModel(input, config)
       case (input, config) =>
         throw new CriticalFailureException(
           s"Handling the input model ${input.getClass.getSimpleName} and " +

@@ -47,11 +47,12 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter._
-import squants.energy.Kilowatts
+import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Each, Power}
 
 import java.time.ZonedDateTime
@@ -83,7 +84,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val scheduler = createTestProbe[SchedulerMessage]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
-        val responseReceiver = createTestProbe[MockResponseMessage.type]()
+        val responseReceiver = createTestProbe[MockResponseMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
@@ -119,8 +120,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 8 * 3600: Start of operation interval
 
-        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
-        responseReceiver.expectMessage(MockResponseMessage)
+        participantAgent ! MockRequestMessage(
+          operationInterval.start,
+          responseReceiver.ref,
+        )
+        responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
 
         activationRef ! Activation(operationInterval.start)
 
@@ -138,8 +142,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 12 * 3600: GridAgent requests power
 
-        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
-        responseReceiver.expectMessage(MockResponseMessage)
+        participantAgent ! MockRequestMessage(12 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(24)))
 
         // first request
         participantAgent ! RequestAssetPowerMessage(
@@ -187,10 +191,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
 
+        // TICK 14 * 3600: Mock request
+
+        participantAgent ! MockRequestMessage(14 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(36)))
+
         // TICK 20 * 3600: Outside of operation interval (last tick)
 
-        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
-        responseReceiver.expectMessage(MockResponseMessage)
+        participantAgent ! MockRequestMessage(20 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(72)))
 
         activationRef ! Activation(operationInterval.end)
 
@@ -206,8 +215,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 24 * 3600: GridAgent requests power
 
-        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
-        responseReceiver.expectMessage(MockResponseMessage)
+        participantAgent ! MockRequestMessage(24 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(72)))
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
@@ -231,6 +240,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val scheduler = createTestProbe[SchedulerMessage]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
+        val responseReceiver = createTestProbe[MockResponseMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
@@ -272,6 +282,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 8 * 3600: Start of operation interval
 
+        participantAgent ! MockRequestMessage(
+          operationInterval.start,
+          responseReceiver.ref,
+        )
+        responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
+
         activationRef ! Activation(operationInterval.start)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -287,6 +303,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
 
         // TICK 12 * 3600: Inside of operation interval and GridAgent requests power
+
+        participantAgent ! MockRequestMessage(12 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(24)))
 
         activationRef ! Activation(12 * 3600)
 
@@ -322,7 +341,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Completion(activationRef, Some(operationInterval.end))
         )
 
+        // TICK 14 * 3600: Mock request
+
+        participantAgent ! MockRequestMessage(14 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(36)))
+
         // TICK 20 * 3600: Outside of operation interval (last tick)
+
+        participantAgent ! MockRequestMessage(20 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(72)))
 
         activationRef ! Activation(operationInterval.end)
 
@@ -337,6 +364,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         scheduler.expectMessage(Completion(activationRef))
 
         // TICK 24 * 3600: GridAgent requests power
+
+        participantAgent ! MockRequestMessage(24 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(72)))
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
@@ -364,6 +394,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val scheduler = createTestProbe[SchedulerMessage]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
+        val responseReceiver = createTestProbe[MockResponseMessage]()
         val service = createTestProbe()
 
         // receiving the activation adapter
@@ -406,6 +437,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 0: Outside of operation interval
 
+        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
+
         activationRef ! Activation(0)
 
         // nothing should happen, still waiting for secondary data...
@@ -436,6 +470,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 6 * 3600: Outside of operation interval, only data expected, no activation
 
+        participantAgent ! MockRequestMessage(6 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
+
         participantAgent ! DataProvision(
           6 * 3600,
           service.ref.toClassic,
@@ -447,6 +484,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         scheduler.expectNoMessage()
 
         // TICK 8 * 3600: Start of operation interval
+
+        participantAgent ! MockRequestMessage(
+          operationInterval.start,
+          responseReceiver.ref,
+        )
+        responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
 
         activationRef ! Activation(operationInterval.start)
 
@@ -464,6 +507,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
 
         // TICK 12 * 3600: Inside of operation interval, secondary data and GridAgent requests power
+
+        participantAgent ! MockRequestMessage(12 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(36)))
 
         activationRef ! Activation(12 * 3600)
 
@@ -510,6 +556,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 15 * 3600: Inside of operation interval, but empty input data received
 
+        participantAgent ! MockRequestMessage(15 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(72)))
+
         activationRef ! Activation(15 * 3600)
 
         // nothing should happen, still waiting for secondary data...
@@ -530,6 +579,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
 
         // TICK 18 * 3600: Inside of operation interval because of expected secondary data
+
+        participantAgent ! MockRequestMessage(18 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(108)))
 
         activationRef ! Activation(18 * 3600)
 
@@ -559,6 +611,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 20 * 3600: Outside of operation interval (last tick)
 
+        participantAgent ! MockRequestMessage(20 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(138)))
+
         activationRef ! Activation(operationInterval.end)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -573,6 +628,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         scheduler.expectMessage(Completion(activationRef))
 
         // TICK 24 * 3600: GridAgent requests power
+
+        participantAgent ! MockRequestMessage(24 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(138)))
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
@@ -826,6 +884,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val em = createTestProbe[FlexResponse]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
+        val responseReceiver = createTestProbe[MockResponseMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
@@ -859,6 +918,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val flexRef = receiveAdapter.expectMessageType[ActorRef[FlexRequest]]
 
         // TICK 8 * 3600: Start of operation interval
+
+        participantAgent ! MockRequestMessage(
+          operationInterval.start,
+          responseReceiver.ref,
+        )
+        responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
 
         flexRef ! FlexActivation(operationInterval.start)
 
@@ -905,6 +970,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 12 * 3600: GridAgent requests power
 
+        participantAgent ! MockRequestMessage(12 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(12)))
+
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
           Each(1),
@@ -922,6 +990,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
 
         // TICK 20 * 3600: Outside of operation interval (last tick)
+
+        participantAgent ! MockRequestMessage(20 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(36)))
 
         flexRef ! FlexActivation(operationInterval.end)
 
@@ -986,6 +1057,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val em = createTestProbe[FlexResponse]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
+        val responseReceiver = createTestProbe[MockResponseMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
@@ -1075,6 +1147,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
 
         // TICK 12 * 3600: Inside of operation interval and GridAgent requests power
+
+        participantAgent ! MockRequestMessage(12 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(12)))
 
         flexRef ! FlexActivation(12 * 3600)
 
@@ -1181,6 +1256,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 24 * 3600: GridAgent requests power
 
+        participantAgent ! MockRequestMessage(24 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(20)))
+
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
           Each(1),
@@ -1208,6 +1286,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val em = createTestProbe[FlexResponse]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
+        val responseReceiver = createTestProbe[MockResponseMessage]()
         val service = createTestProbe()
 
         // receiving the activation adapter
@@ -1253,6 +1332,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val flexRef = receiveAdapter.expectMessageType[ActorRef[FlexRequest]]
 
         // TICK 0: Outside of operation interval
+
+        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
 
         flexRef ! FlexActivation(0)
 
@@ -1313,6 +1395,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 6 * 3600: Outside of operation interval, only data expected, no activation
 
+        participantAgent ! MockRequestMessage(6 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
+
         participantAgent ! DataProvision(
           6 * 3600,
           service.ref.toClassic,
@@ -1324,6 +1409,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectNoMessage()
 
         // TICK 8 * 3600: Start of operation interval
+
+        participantAgent ! MockRequestMessage(
+          operationInterval.start,
+          responseReceiver.ref,
+        )
+        responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
 
         flexRef ! FlexActivation(operationInterval.start)
 
@@ -1370,6 +1461,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
 
         // TICK 12 * 3600: Inside of operation interval, GridAgent requests power
+
+        participantAgent ! MockRequestMessage(12 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(12)))
 
         flexRef ! FlexActivation(12 * 3600)
 
@@ -1444,6 +1538,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 18 * 3600: Inside of operation interval because of expected secondary data
 
+        participantAgent ! MockRequestMessage(18 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(30)))
+
         flexRef ! FlexActivation(18 * 3600)
 
         // nothing should happen, still waiting for secondary data...
@@ -1502,6 +1599,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 20 * 3600: Outside of operation interval (last tick)
 
+        participantAgent ! MockRequestMessage(20 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(42)))
+
         flexRef ! FlexActivation(operationInterval.end)
 
         em.expectMessageType[ProvideMinMaxFlexOptions] match {
@@ -1542,6 +1642,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessage(FlexCompletion(model.uuid))
 
         // TICK 24 * 3600: GridAgent requests power
+
+        participantAgent ! MockRequestMessage(24 * 3600, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage(KilowattHours(42)))
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,

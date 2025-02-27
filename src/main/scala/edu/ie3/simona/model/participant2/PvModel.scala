@@ -22,7 +22,6 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  ModelInput,
   ModelState,
 }
 import edu.ie3.simona.model.participant2.PvModel.PvState
@@ -30,6 +29,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroWPerSM
 import edu.ie3.util.scala.quantities._
 import squants._
 import squants.space.{Degrees, SquareMeters}
@@ -74,25 +74,29 @@ class PvModel private (
   private val activationThreshold =
     sRated.toActivePower(cosPhiRated) * 0.001 * -1
 
-  override val initialState: ModelInput => PvState = { input =>
-    val weatherData = getWeatherData(input.receivedData)
-
-    PvState(
-      input.currentTick,
-      input.currentSimulationTime,
-      weatherData.diffIrr,
-      weatherData.dirIrr,
-    )
-  }
+  override val initialState: (Long, ZonedDateTime) => PvState =
+    (tick, simulationTime) =>
+      PvState(
+        tick,
+        simulationTime,
+        zeroWPerSM,
+        zeroWPerSM,
+      )
 
   override def determineState(
       lastState: PvState,
       operatingPoint: ActivePowerOperatingPoint,
-      input: ModelInput,
-  ): PvState = initialState(input)
+      tick: Long,
+      simulationTime: ZonedDateTime,
+  ): PvState =
+    lastState.copy(tick = tick, dateTime = simulationTime)
 
-  private def getWeatherData(receivedData: Seq[Data]): WeatherData = {
-    receivedData
+  override def handleInput(
+      state: PvState,
+      receivedData: Seq[Data],
+      nodalVoltage: Dimensionless,
+  ): PvState = {
+    val weatherData = receivedData
       .collectFirst { case weatherData: WeatherData =>
         weatherData
       }
@@ -101,6 +105,11 @@ class PvModel private (
           s"Expected WeatherData, got $receivedData"
         )
       }
+
+    state.copy(
+      diffIrradiance = weatherData.diffIrr,
+      dirIrradiance = weatherData.dirIrr,
+    )
   }
 
   /** Calculate the active power behaviour of the model.
