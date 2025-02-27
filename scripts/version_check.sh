@@ -15,7 +15,9 @@ echo "DEV_VERSION=$DEV_VERSION"
 echo "MAIN_VERSION=$MAIN_VERSION"
 echo "BASE_BRANCH=$BASE_BRANCH"
 
-source ../branch_type.sh echo "Detected Branch-Type: $branch_type"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "$SCRIPT_DIR/branch_type.sh"
+echo "Detected Branch-Type: $branch_type"
 
 # Version Checking Logic
 if [ "$BASE_BRANCH" = "dev" ]; then
