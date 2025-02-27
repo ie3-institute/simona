@@ -56,6 +56,7 @@ jobs:
           
           PR_VERSION=$(./gradlew -q currentVersion)
           echo "PR_VERSION=$PR_VERSION"
+          echo "PR_VERSION=$PR_VERSION" >> $GITHUB_ENV
           
           #DEV-Version
           git clone --depth 1 --branch dev "$REPO_URL" dev-branch
@@ -63,6 +64,7 @@ jobs:
           DEV_VERSION=$(./gradlew -q currentVersion)
           cd ..
           echo "DEV_VERSION=$DEV_VERSION"
+          echo "DEV_VERSION=$DEV_VERSION" >> $GITHUB_ENV
           rm -rf dev-branch
           
           #MAIN-Version
@@ -71,6 +73,7 @@ jobs:
           MAIN_VERSION=$(./gradlew -q currentVersion)
           cd ..
           echo "MAIN_VERSION=$MAIN_VERSION"
+          echo "MAIN_VERSION=$MAIN_VERSION" >> $GITHUB_ENV
           rm -rf main-branch
 
       - name: Version Check
