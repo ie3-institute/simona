@@ -15,8 +15,8 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
+  HouseTargetTemperatureReached,
   HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureTargetOrUpperBoundaryReached,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
@@ -32,10 +32,9 @@ import squants.time.{Hours, Seconds}
 import squants.{Energy, Power, Temperature, Time, Volume}
 import tech.units.indriya.unit.Units
 
-import java.time.ZonedDateTime
-import java.util.UUID
-import java.time.Duration
+import java.time.{Duration, ZonedDateTime}
 import java.time.temporal.ChronoUnit
+import java.util.UUID
 
 /** A thermal house model
   *
@@ -526,7 +525,7 @@ final case class ThermalHouse(
         upperBoundaryTemperature,
         innerTemperature,
         resultingQDot,
-      ).map(HouseTemperatureTargetOrUpperBoundaryReached)
+      ).map(HouseTargetTemperatureReached)
     } else {
       /* House is in perfect balance */
       None
@@ -612,7 +611,7 @@ object ThermalHouse {
     final case class HouseTemperatureLowerBoundaryReached(
         override val tick: Long
     ) extends ThermalThreshold
-    final case class HouseTemperatureTargetOrUpperBoundaryReached(
+    final case class HouseTargetTemperatureReached(
         override val tick: Long
     ) extends ThermalThreshold
   }
