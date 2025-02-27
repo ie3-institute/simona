@@ -24,9 +24,10 @@ import edu.ie3.util.scala.quantities.{
   KilowattHoursPerKelvinCubicMeters,
   SpecificHeatCapacity,
 }
+import squants.energy.Kilowatts
 import squants.space.{CubicMeters, Volume}
 import squants.thermal.Celsius
-import squants.time.{Hours, Seconds}
+import squants.time.Seconds
 import squants.{Energy, Power, Temperature}
 import tech.units.indriya.unit.Units
 
@@ -48,7 +49,7 @@ import java.util.UUID
   *   Thermal bus input
   * @param maxEnergyThreshold
   *   Maximum permissible energy stored in the storage
-  * @param chargingPower
+  * @param pThermalMax
   *   Thermal power, that can be charged / discharged
   */
 final case class CylindricalThermalStorage(
@@ -58,7 +59,7 @@ final case class CylindricalThermalStorage(
     operationTime: OperationTime,
     bus: ThermalBusInput,
     maxEnergyThreshold: Energy,
-    chargingPower: Power,
+    pThermalMax: Power,
     override var _storedEnergy: Energy,
 ) extends ThermalStorage(
       uuid,
@@ -67,7 +68,7 @@ final case class CylindricalThermalStorage(
       operationTime,
       bus,
       maxEnergyThreshold,
-      chargingPower,
+      pThermalMax,
     )
     with MutableStorage {
 
@@ -200,9 +201,13 @@ object CylindricalThermalStorage {
         Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
       )
 
-    /* TODO: Currently, the input model does not define any maximum charge power. Assume, that the usable energy can
-     *   be charged / discharged within the interval of an hour */
-    val chargingPower = maxEnergyThreshold / Hours(1d)
+    val pThermalMax = Kilowatts(
+      input
+        .getpThermalMax()
+        .to(PowerSystemUnits.KILOWATT)
+        .getValue
+        .doubleValue()
+    )
 
     new CylindricalThermalStorage(
       input.getUuid,
@@ -211,7 +216,7 @@ object CylindricalThermalStorage {
       input.getOperationTime,
       input.getThermalBus,
       maxEnergyThreshold,
-      chargingPower,
+      pThermalMax,
       initialStoredEnergy,
     )
   }

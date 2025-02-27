@@ -672,7 +672,7 @@ final case class ThermalGrid(
       /* Storage is meant to heat the house only, if there is no infeed from external (+/- 10 W) and the house is cold */
       val revisedStorageState = thermalStorage.updateState(
         relevantData.currentTick,
-        thermalStorage.getChargingPower * -1,
+        thermalStorage.getpThermalMax * -1,
         formerStorageState.getOrElse(
           throw new InconsistentStateException(
             "Impossible to find no storage state"
@@ -687,7 +687,7 @@ final case class ThermalGrid(
           )
         ),
         lastAmbientTemperature,
-        thermalStorage.getChargingPower,
+        thermalStorage.getpThermalMax,
       )
       (Some(revisedHouseState), Some(revisedStorageState))
     case _ => (maybeHouseState, maybeStorageState)
