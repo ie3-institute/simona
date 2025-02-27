@@ -17,13 +17,13 @@ trait EvcsChargingStrategy {
     * station until their departure.
     *
     * @param evs
-    *   currently parked evs at the charging station
+    *   The currently parked EVs at the charging station.
     * @param currentTick
-    *   current tick
+    *   The current tick.
     * @param chargingProps
-    *   interface that provides information on charging station
+    *   The interface that provides information on charging station.
     * @return
-    *   scheduling for charging the EVs
+    *   The scheduling for charging the EVs.
     */
   def determineChargingPowers(
       evs: Iterable[EvModelWrapper],
