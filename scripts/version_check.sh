@@ -15,7 +15,7 @@ echo "DEV_VERSION=$DEV_VERSION"
 echo "MAIN_VERSION=$MAIN_VERSION"
 echo "BASE_BRANCH=$BASE_BRANCH"
 
-./branch_type.sh
+source ./branch_type.sh echo "Detected Branch-Type: $branch_type"
 
 # Version Checking Logic
 if [ "$BASE_BRANCH" = "dev" ]; then
