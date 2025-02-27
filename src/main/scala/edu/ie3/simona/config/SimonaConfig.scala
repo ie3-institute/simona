@@ -14,7 +14,6 @@ import pureconfig.generic.*
 import pureconfig.generic.semiauto.deriveConvert
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.language.implicitConversions
 import scala.deriving.Mirror
 
 final case class SimonaConfig(

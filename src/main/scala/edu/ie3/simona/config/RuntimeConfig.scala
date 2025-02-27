@@ -19,7 +19,6 @@ import pureconfig.generic.semiauto.deriveConvert
 import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
 
 import scala.deriving.Mirror
-import scala.language.implicitConversions
 
 /** Runtime configurations for simona.
   * @param em
