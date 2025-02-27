@@ -12,6 +12,8 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.datamodel.models.input.{OperatorInput, container}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -24,6 +26,15 @@ trait ThermalGridITInputTestData
     with PvInputTestData
     with LoadInputTestData
     with HpInputTestData {
+
+  protected val simonaConfig: SimonaConfig = createSimonaConfig()
+
+  protected val defaultOutputConfig: NotifierConfig =
+    NotifierConfig(
+      simonaConfig.simona.output.participant.defaultConfig.simulationResult,
+      simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
+      simonaConfig.simona.output.participant.defaultConfig.flexResult,
+    )
 
   protected val littleDomesticHotWaterStorageInput =
     new DomesticHotWaterStorageInput(
