@@ -215,8 +215,8 @@ class EvcsModelIT
             evResult.getP should beEquivalentTo(5.0.asKiloWatt)
             evResult.getQ should beEquivalentTo(0.0.asKiloVar)
             evResult.getSoc should beEquivalentTo(75.0.asPercent)
-          case evcsResult: EvcsResult
-              if evcsResult.getInputModel == evcsInputModel.getUuid =>
+          case evcsResult: EvcsResult =>
+            evcsResult.getInputModel shouldBe evcsInputModel.getUuid
             evcsResult.getTime shouldBe 0.toDateTime
             evcsResult.getP should beEquivalentTo(10.0.asKiloWatt)
             evcsResult.getQ should beEquivalentTo(0.0.asKiloVar)
@@ -242,8 +242,8 @@ class EvcsModelIT
             evResult.getP should beEquivalentTo(0.0.asKiloWatt)
             evResult.getQ should beEquivalentTo(0.0.asKiloVar)
             evResult.getSoc should beEquivalentTo(100.0.asPercent)
-          case evcsResult: EvcsResult
-              if evcsResult.getInputModel == evcsInputModel.getUuid =>
+          case evcsResult: EvcsResult =>
+            evcsResult.getInputModel shouldBe evcsInputModel.getUuid
             evcsResult.getTime shouldBe 1800.toDateTime
             evcsResult.getP should beEquivalentTo(5.0.asKiloWatt)
             evcsResult.getQ should beEquivalentTo(0.0.asKiloVar)
@@ -258,7 +258,6 @@ class EvcsModelIT
 
       evcsActivation ! Activation(3600)
 
-      // TODO Save non-charging EVs with 0 kW in operating point
       resultListener
         .receiveMessages(2)
         .map { case ParticipantResultEvent(result) =>
@@ -270,8 +269,8 @@ class EvcsModelIT
             evResult.getP should beEquivalentTo(0.0.asKiloWatt)
             evResult.getQ should beEquivalentTo(0.0.asKiloVar)
             evResult.getSoc should beEquivalentTo(100.0.asPercent)
-          case evcsResult: EvcsResult
-              if evcsResult.getInputModel == evcsInputModel.getUuid =>
+          case evcsResult: EvcsResult =>
+            evcsResult.getInputModel shouldBe evcsInputModel.getUuid
             evcsResult.getTime shouldBe 3600.toDateTime
             evcsResult.getP should beEquivalentTo(0.0.asKiloWatt)
             evcsResult.getQ should beEquivalentTo(0.0.asKiloVar)

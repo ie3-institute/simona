@@ -135,7 +135,10 @@ class EvcsModel private (
       }
       .minOption
 
-    (EvcsOperatingPoint(chargingPowers), nextEvent)
+    (
+      EvcsOperatingPoint(addMissingZeroPowerEntries(state.evs, chargingPowers)),
+      nextEvent,
+    )
   }
 
   override def zeroPowerOperatingPoint: EvcsOperatingPoint =
@@ -285,11 +288,16 @@ class EvcsModel private (
       state: EvcsState,
       setPower: Power,
   ): (EvcsOperatingPoint, OperationChangeIndicator) = {
-    if (setPower == zeroKW)
+    if (setPower == zeroKW) {
+      val chargingPowers = state.evs.map { ev =>
+        ev.uuid -> zeroKW
+      }.toMap
+
       return (
-        EvcsOperatingPoint(Map.empty),
+        EvcsOperatingPoint(chargingPowers),
         OperationChangeIndicator(),
       )
+    }
 
     // applicable evs can be charged/discharged, other evs cannot
     val applicableEvs = state.evs.filter { ev =>
@@ -317,9 +325,10 @@ class EvcsModel private (
     val combinedSchedules = forcedSchedules ++ regularSchedules
 
     // preparing results
-    val allSchedules = combinedSchedules.map { case (ev, power) =>
-      ev.uuid -> power
-    }.toMap
+    val combinedSchedulesPerUuid =
+      combinedSchedules.map { case (ev, power) =>
+        ev.uuid -> power
+      }.toMap
 
     val aggregateIndicator = combinedSchedules
       .map { case (ev, chargingPower) =>
@@ -339,7 +348,9 @@ class EvcsModel private (
       }
 
     (
-      EvcsOperatingPoint(allSchedules),
+      EvcsOperatingPoint(
+        addMissingZeroPowerEntries(state.evs, combinedSchedulesPerUuid)
+      ),
       aggregateIndicator,
     )
   }
@@ -423,6 +434,25 @@ class EvcsModel private (
       (combinedResults, remainingAfterRecursion)
     }
   }
+
+  /** Adds zero power values for EVs that have not been assigned any charging
+    * power yet.
+    *
+    * @param evs
+    *   The complete set of EVs currently connected to the charging station.
+    * @param chargingPowers
+    *   The charging powers that have been determined, which might not contain
+    *   values for all EVs.
+    * @return
+    *   Charging powers for all EVs.
+    */
+  private def addMissingZeroPowerEntries(
+      evs: Seq[EvModelWrapper],
+      chargingPowers: Map[UUID, Power],
+  ): Map[UUID, Power] =
+    evs.map { ev =>
+      ev.uuid -> chargingPowers.getOrElse(ev.uuid, zeroKW)
+    }.toMap
 
   /** Calculates the tick at which the target energy (e.g. full on charging or
     * empty on discharging) is reached.

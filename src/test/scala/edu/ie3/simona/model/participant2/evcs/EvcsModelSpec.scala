@@ -215,34 +215,19 @@ class EvcsModelSpec
 
         results should have size 3
 
-        results
-          .find(_.getInputModel == evA.uuid)
-          .getOrElse(fail(s"No results for EV ${evA.uuid}.")) match {
-          case evResult: EvResult =>
+        results.foreach {
+          case evResult: EvResult if evResult.getInputModel == evA.uuid =>
             evResult.getTime shouldBe dateTime
             evResult.getP should beEquivalentTo(3.0.asKiloWatt)
             evResult.getQ should beEquivalentTo(0.3.asKiloVar)
             evResult.getSoc should beEquivalentTo(50.0.asPercent)
-          case unexpected =>
-            fail(s"Unexpected result $unexpected was found.")
-        }
-
-        results
-          .find(_.getInputModel == evB.uuid)
-          .getOrElse(fail(s"No results for EV ${evB.uuid}.")) match {
-          case evResult: EvResult =>
+          case evResult: EvResult if evResult.getInputModel == evB.uuid =>
             evResult.getTime shouldBe dateTime
             evResult.getP should beEquivalentTo(2.0.asKiloWatt)
             evResult.getQ should beEquivalentTo(0.2.asKiloVar)
             evResult.getSoc should beEquivalentTo(75.0.asPercent)
-          case unexpected =>
-            fail(s"Unexpected result $unexpected was found.")
-        }
-
-        results
-          .find(_.getInputModel == evcsModel.uuid)
-          .getOrElse(fail(s"No results for EVCS.")) match {
           case evcsResult: EvcsResult =>
+            evcsResult.getInputModel shouldBe evcsModel.uuid
             evcsResult.getTime shouldBe dateTime
             evcsResult.getP should beEquivalentTo(5.0.asKiloWatt)
             evcsResult.getQ should beEquivalentTo(0.5.asKiloVar)
@@ -577,46 +562,46 @@ class EvcsModelSpec
           ),
 
           /* setPower is 0 kWh */
-          (0.0, 0.0, 0.0, N, N, false, N),
-          (10.0, 5.0, 0.0, N, N, false, N),
-          (5.0, 15.0, 0.0, N, N, false, N),
-          (10.0, 15.0, 0.0, N, N, false, N),
+          (0.0, 0.0, 0.0, 0.0, 0.0, false, N),
+          (10.0, 5.0, 0.0, 0.0, 0.0, false, N),
+          (5.0, 15.0, 0.0, 0.0, 0.0, false, N),
+          (10.0, 15.0, 0.0, 0.0, 0.0, false, N),
 
           /* setPower is positive (charging) */
-          (0.0, 0.0, 4.0, S(2.0), S(2.0), true, S(7200L)),
-          (5.0, 0.0, 4.0, N, S(4.0), true, S(6300L)),
-          (0.0, 7.5, 4.0, S(4.0), N, true, S(5400L)),
-          (9.0, 0.0, 4.0, N, S(4.0), true, S(6300L)),
-          (5.0, 14.0, 4.0, S(2.0), S(2.0), false, S(5400L)),
-          (9.0, 14.0, 4.0, S(2.0), S(2.0), false, S(5400L)),
-          (10.0, 14.0, 4.0, N, S(4.0), false, S(4500L)),
-          (6.0, 15.0, 4.0, S(4.0), N, false, S(7200L)),
+          (0.0, 0.0, 4.0, 2.0, 2.0, true, S(7200L)),
+          (5.0, 0.0, 4.0, 0.0, 4.0, true, S(6300L)),
+          (0.0, 7.5, 4.0, 4.0, 0.0, true, S(5400L)),
+          (9.0, 0.0, 4.0, 0.0, 4.0, true, S(6300L)),
+          (5.0, 14.0, 4.0, 2.0, 2.0, false, S(5400L)),
+          (9.0, 14.0, 4.0, 2.0, 2.0, false, S(5400L)),
+          (10.0, 14.0, 4.0, 0.0, 4.0, false, S(4500L)),
+          (6.0, 15.0, 4.0, 4.0, 0.0, false, S(7200L)),
 
           /* setPower is set to > (ev2 * 2) (charging) */
-          (0.0, 0.0, 13.0, S(8.0), S(5.0), true, S(4500L)),
-          (7.0, 0.0, 11.0, S(6.0), S(5.0), true, S(5400L)),
-          (0.0, 5.0, 15.0, S(10.0), S(5.0), true, S(4320L)),
-          (0.0, 12.5, 15.0, S(10.0), S(5.0), true, S(4320L)),
-          (0.0, 0.0, 15.0, S(10.0), S(5.0), true, S(4320L)),
-          (5.0, 7.5, 15.0, S(10.0), S(5.0), false, S(5400L)),
+          (0.0, 0.0, 13.0, 8.0, 5.0, true, S(4500L)),
+          (7.0, 0.0, 11.0, 6.0, 5.0, true, S(5400L)),
+          (0.0, 5.0, 15.0, 10.0, 5.0, true, S(4320L)),
+          (0.0, 12.5, 15.0, 10.0, 5.0, true, S(4320L)),
+          (0.0, 0.0, 15.0, 10.0, 5.0, true, S(4320L)),
+          (5.0, 7.5, 15.0, 10.0, 5.0, false, S(5400L)),
 
           /* setPower is negative (discharging) */
-          (10.0, 15.0, -4.0, S(-2.0), S(-2.0), true, S(7200L)),
-          (5.0, 15.0, -4.0, S(-2.0), S(-2.0), true, S(7200L)),
-          (10.0, 7.5, -4.0, S(-2.0), S(-2.0), true, S(7200L)),
-          (3.0, 15.0, -4.0, S(-2.0), S(-2.0), true, S(5400L)),
-          (5.0, 4.0, -4.0, S(-2.0), S(-2.0), false, S(5400L)),
-          (3.0, 4.0, -4.0, S(-2.0), S(-2.0), false, S(5400L)),
-          (0.0, 4.0, -4.0, N, S(-4.0), false, S(4500L)),
-          (6.0, 0.0, -4.0, S(-4.0), N, false, S(7200L)),
+          (10.0, 15.0, -4.0, -2.0, -2.0, true, S(7200L)),
+          (5.0, 15.0, -4.0, -2.0, -2.0, true, S(7200L)),
+          (10.0, 7.5, -4.0, -2.0, -2.0, true, S(7200L)),
+          (3.0, 15.0, -4.0, -2.0, -2.0, true, S(5400L)),
+          (5.0, 4.0, -4.0, -2.0, -2.0, false, S(5400L)),
+          (3.0, 4.0, -4.0, -2.0, -2.0, false, S(5400L)),
+          (0.0, 4.0, -4.0, 0.0, -4.0, false, S(4500L)),
+          (6.0, 0.0, -4.0, -4.0, 0.0, false, S(7200L)),
 
           /* setPower is set to > (ev2 * 2) (discharging) */
-          (10.0, 15.0, -13.0, S(-8.0), S(-5.0), true, S(7200L)),
-          (5.0, 15.0, -11.0, S(-6.0), S(-5.0), true, S(5400L)),
-          (10.0, 8.0, -15.0, S(-10.0), S(-5.0), true, S(6480L)),
-          (10.0, 5.5, -15.0, S(-10.0), S(-5.0), true, S(5400L)),
-          (10.0, 15.0, -15.0, S(-10.0), S(-5.0), true, S(6480L)),
-          (7.0, 10.5, -15.0, S(-10.0), S(-5.0), false, S(5400L)),
+          (10.0, 15.0, -13.0, -8.0, -5.0, true, S(7200L)),
+          (5.0, 15.0, -11.0, -6.0, -5.0, true, S(5400L)),
+          (10.0, 8.0, -15.0, -10.0, -5.0, true, S(6480L)),
+          (10.0, 5.5, -15.0, -10.0, -5.0, true, S(5400L)),
+          (10.0, 15.0, -15.0, -10.0, -5.0, true, S(6480L)),
+          (7.0, 10.5, -15.0, -10.0, -5.0, false, S(5400L)),
         )
 
         forAll(cases) {
@@ -624,8 +609,8 @@ class EvcsModelSpec
               stored1: Double,
               stored2: Double,
               setPower: Double,
-              expPower1: Option[Double],
-              expPower2: Option[Double],
+              expPower1: Double,
+              expPower2: Double,
               expNextActivation: Boolean,
               expNextTick: Option[Long],
           ) =>
@@ -653,10 +638,10 @@ class EvcsModelSpec
                   ) =>
                 evOperatingPoints
                   .get(evA.uuid)
-                  .map(_.toKilowatts) shouldBe expPower1
+                  .value shouldBe Kilowatts(expPower1)
                 evOperatingPoints
                   .get(evB.uuid)
-                  .map(_.toKilowatts) shouldBe expPower2
+                  .value shouldBe Kilowatts(expPower2)
 
                 actualNextActivation shouldBe expNextActivation
                 actualNextTick shouldBe expNextTick
