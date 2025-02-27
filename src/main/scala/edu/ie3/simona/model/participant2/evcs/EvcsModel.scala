@@ -104,13 +104,16 @@ class EvcsModel private (
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
   ): EvcsState = {
-    val arrivals = receivedData
+    receivedData
       .collectFirst { case evData: ArrivingEvs =>
-        evData.arrivals
+        evData
       }
-      .getOrElse(Seq.empty)
-
-    state.copy(state.evs ++ arrivals)
+      .map(newData =>
+        state.copy(
+          state.evs ++ newData.arrivals
+        )
+      )
+      .getOrElse(state)
   }
 
   override def determineOperatingPoint(
