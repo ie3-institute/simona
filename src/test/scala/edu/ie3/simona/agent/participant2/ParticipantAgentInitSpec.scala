@@ -20,6 +20,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
 }
 import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, PvRuntimeConfig}
 import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -66,7 +67,7 @@ class ParticipantAgentInitSpec
 
   "A ParticipantAgent that is not depending on external services" when {
 
-    val config = LoadRuntimeConfig()
+    val runtimeConfig = LoadRuntimeConfig()
 
     val operationStart = 10 * 3600L
 
@@ -98,7 +99,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Left(scheduler.ref),
@@ -144,7 +146,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Left(scheduler.ref),
@@ -196,7 +199,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Right(em.ref),
@@ -252,7 +256,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Right(em.ref),
@@ -304,7 +309,7 @@ class ParticipantAgentInitSpec
       )
       .build()
 
-    val config = PvRuntimeConfig()
+    val runtimeConfig = PvRuntimeConfig()
 
     "not controlled by EM" should {
 
@@ -327,7 +332,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Left(scheduler.ref),
@@ -353,6 +359,7 @@ class ParticipantAgentInitSpec
 
         service.expectMessage(
           RegisterForWeatherMessage(
+            participantAgent.toClassic,
             mockInput.getNode.getGeoPosition.getY,
             mockInput.getNode.getGeoPosition.getX,
           )
@@ -386,7 +393,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Left(scheduler.ref),
@@ -443,7 +451,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Right(em.ref),
@@ -474,6 +483,7 @@ class ParticipantAgentInitSpec
 
         service.expectMessage(
           RegisterForWeatherMessage(
+            participantAgent.toClassic,
             mockInput.getNode.getGeoPosition.getY,
             mockInput.getNode.getGeoPosition.getX,
           )
@@ -508,7 +518,8 @@ class ParticipantAgentInitSpec
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
-            config,
+            runtimeConfig,
+            mock[NotifierConfig],
             refs,
             simulationParams,
             Right(em.ref),

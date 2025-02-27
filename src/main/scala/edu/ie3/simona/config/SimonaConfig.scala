@@ -13,9 +13,9 @@ import pureconfig.error.*
 import pureconfig.generic.*
 import pureconfig.generic.semiauto.deriveConvert
 
-import java.time.Duration
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.language.implicitConversions
 import scala.deriving.Mirror
-import scala.util.Try
 
 final case class SimonaConfig(
     simona: SimonaConfig.Simona
@@ -29,13 +29,6 @@ object SimonaConfig {
   extension (c: ConfigConvert.type)
     inline def derived[A](using m: Mirror.Of[A]): ConfigConvert[A] =
       deriveConvert[A]
-
-  // TODO: replace with finite duration
-  implicit def durationConvert: ConfigConvert[Duration] =
-    ConfigConvert.viaStringTry(
-      str => Try(Duration.parse(("PT" + str).toUpperCase)),
-      x => x.toString,
-    )
 
   /** Method to extract a config from a [[pureconfig.ConfigReader.Result]]
     * @param either
@@ -77,6 +70,19 @@ object SimonaConfig {
     confSrc.load[SimonaConfig]
 
   // pure config end
+
+  /** Case class contains default and individual configs for assets.
+    * @param defaultConfig
+    *   to use
+    * @param individualConfigs
+    *   specific configs, that are used instead of the [[defaultConfig]]
+    * @tparam T
+    *   type of asset config
+    */
+  final case class AssetConfigs[T](
+      defaultConfig: T,
+      individualConfigs: List[T] = List.empty,
+  )
 
   final case class BaseCsvParams(
       override val csvSep: String,
@@ -186,7 +192,6 @@ object SimonaConfig {
 
   final case class Simona(
       control: Option[Simona.Control] = None,
-      event: Simona.Event = Simona.Event(),
       gridConfig: Simona.GridConfig = Simona.GridConfig(),
       input: Simona.Input,
       output: Simona.Output,
@@ -199,16 +204,6 @@ object SimonaConfig {
     final case class Control(
         transformer: List[TransformerControlGroup] = List.empty
     ) derives ConfigConvert
-
-    final case class Event(
-        listener: Option[List[Event.Listener$Elm]] = None
-    ) derives ConfigConvert
-    object Event {
-      final case class Listener$Elm(
-          eventsToProcess: Option[List[String]] = None,
-          fullClassPath: String,
-      ) derives ConfigConvert
-    }
 
     final case class GridConfig(
         refSystems: Option[List[RefSystemConfig]] = None,
@@ -386,9 +381,9 @@ object SimonaConfig {
     final case class Powerflow(
         maxSweepPowerDeviation: Double,
         newtonraphson: Powerflow.Newtonraphson,
-        resolution: Duration = Duration.ofHours(1),
+        resolution: FiniteDuration = 1.hours,
         stopOnFailure: Boolean = false,
-        sweepTimeout: Duration = Duration.ofSeconds(30),
+        sweepTimeout: FiniteDuration = 30.seconds,
     ) derives ConfigConvert
     object Powerflow {
       final case class Newtonraphson(

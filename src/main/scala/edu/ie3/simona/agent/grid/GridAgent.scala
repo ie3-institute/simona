@@ -30,9 +30,8 @@ import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.language.postfixOps
+import scala.language.{implicitConversions, postfixOps}
 
 object GridAgent extends DBFSAlgorithm {
 
@@ -55,9 +54,9 @@ object GridAgent extends DBFSAlgorithm {
         context.messageAdapter[Activation](msg => WrappedActivation(msg))
 
       // val initialization
-      val resolution: Long = simonaConfig.simona.powerflow.resolution.get(
-        ChronoUnit.SECONDS
-      ) // this determines the agents regular time bin it wants to be triggered e.g. one hour
+
+      // this determines the agents regular time bin it wants to be triggered e.g. one hour
+      val resolution: Long = simonaConfig.simona.powerflow.resolution.toSeconds
 
       val simStartTime: ZonedDateTime = TimeUtil.withDefaults
         .toZonedDateTime(simonaConfig.simona.time.startDateTime)
@@ -149,6 +148,7 @@ object GridAgent extends DBFSAlgorithm {
           constantData.simStartTime,
           TimeUtil.withDefaults
             .toZonedDateTime(constantData.simonaConfig.simona.time.endDateTime),
+          constantData.simonaConfig.simona.runtime.em,
           constantData.simonaConfig.simona.runtime.participant,
           constantData.simonaConfig.simona.output.participant,
           constantData.resolution,

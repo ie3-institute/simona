@@ -6,6 +6,12 @@
 
 package edu.ie3.simona.config
 
+import edu.ie3.simona.config.RuntimeConfig._
+import edu.ie3.simona.config.SimonaConfig.{
+  AssetConfigs,
+  RuntimeKafkaParams,
+  VoltLvlConfig,
+}
 import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.config.SimonaConfig.{RuntimeKafkaParams, VoltLvlConfig}
 import pureconfig.generic.ProductHint
@@ -16,6 +22,8 @@ import scala.deriving.Mirror
 import scala.language.implicitConversions
 
 /** Runtime configurations for simona.
+  * @param em
+  *   runtime configs for energy management systems
   * @param listener
   *   runtime listener configuration
   * @param participant
@@ -26,6 +34,7 @@ import scala.language.implicitConversions
   *   option for selected voltage levels (default: None)
   */
 final case class RuntimeConfig(
+    em: AssetConfigs[EmRuntimeConfig] = AssetConfigs(EmRuntimeConfig()),
     listener: Listener = Listener(),
     participant: Participant = Participant.empty(),
     selectedSubgrids: Option[List[Int]] = None,
@@ -60,8 +69,6 @@ object RuntimeConfig {
   ) derives ConfigConvert
 
   /** Runtime configurations for participants.
-    * @param em
-    *   runtime configs for energy management systems
     * @param evcs
     *   runtime configs for electrical vehicle charging stations
     * @param fixedFeedIn
@@ -80,7 +87,6 @@ object RuntimeConfig {
     *   runtime configs for wind energy converters
     */
   final case class Participant(
-      em: ParticipantRuntimeConfigs[EmRuntimeConfig],
       evcs: ParticipantRuntimeConfigs[EvcsRuntimeConfig],
       fixedFeedIn: ParticipantRuntimeConfigs[FixedFeedInRuntimeConfig],
       hp: ParticipantRuntimeConfigs[HpRuntimeConfig],
@@ -96,7 +102,6 @@ object RuntimeConfig {
     /** Returns a [[Participant]] object with default values.
       */
     def empty(): Participant = Participant(
-      em = EmRuntimeConfig(),
       evcs = EvcsRuntimeConfig(),
       fixedFeedIn = FixedFeedInRuntimeConfig(),
       hp = HpRuntimeConfig(),

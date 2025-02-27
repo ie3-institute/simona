@@ -91,7 +91,6 @@ object WeatherService {
       sourceDefinition: SimonaConfig.Simona.Input.Weather.Datasource
   ) extends InitializeServiceStateData
 
-  val FALLBACK_WEATHER_STEM_DISTANCE = 3600L
 }
 
 /** Weather Service is responsible to register other actors that require weather
@@ -176,8 +175,8 @@ final case class WeatherService(
       serviceStateData: WeatherInitializedStateData
   ): Try[WeatherInitializedStateData] =
     registrationMessage match {
-      case RegisterForWeatherMessage(latitude, longitude) =>
-        Success(handleRegistrationRequest(sender(), latitude, longitude))
+      case RegisterForWeatherMessage(actor, latitude, longitude) =>
+        Success(handleRegistrationRequest(actor, latitude, longitude))
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
@@ -254,7 +253,7 @@ final case class WeatherService(
               exception,
               s"Unable to obtain necessary information to register for coordinate $agentCoord.",
             )
-            sender() ! RegistrationFailedMessage(self)
+            agentToBeRegistered ! RegistrationFailedMessage(self)
             serviceStateData
         }
 

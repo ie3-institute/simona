@@ -7,7 +7,10 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.result.system.{
+  FlexOptionsResult,
+  SystemParticipantResult,
+}
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.Data.{
@@ -21,7 +24,6 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.em.EmTools
 import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ModelInput,
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
@@ -34,6 +36,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.ReactivePower
@@ -63,9 +66,6 @@ import scala.reflect.ClassTag
   *   The date and time at which simulation started.
   * @param _state
   *   The most recent model state, if one has been calculated already.
-  * @param _input
-  *   The most recent model input used for calculation, if it has been received
-  *   already.
   * @param _flexOptions
   *   The most recent flex options, if they have been calculated already.
   * @param _lastOperatingPoint
@@ -90,7 +90,6 @@ final case class ParticipantModelShell[
     private val operationInterval: OperationInterval,
     private val simulationStartDate: ZonedDateTime,
     private val _state: Option[S] = None,
-    private val _input: Option[ModelInput] = None,
     private val _flexOptions: Option[ProvideFlexOptions] = None,
     private val _lastOperatingPoint: Option[OP] = None,
     private val _operatingPoint: Option[OP] = None,
@@ -123,18 +122,6 @@ final case class ParticipantModelShell[
     */
   def requiredServices: Iterable[ServiceType] =
     model.getRequiredSecondaryServices
-
-  /** Returns the current relevant data, if present, or throws a
-    * [[CriticalFailureException]]. Only call this if you are certain the model
-    * input data has been set.
-    *
-    * @return
-    *   The model input data.
-    */
-  private def modelInput: ModelInput =
-    _input.getOrElse(
-      throw new CriticalFailureException("No relevant data available!")
-    )
 
   /** Returns the current operating point, if present, or throws a
     * [[CriticalFailureException]]. Only call this if you are certain the
@@ -173,7 +160,7 @@ final case class ParticipantModelShell[
   def reactivePowerFunc: Dimensionless => Power => ReactivePower =
     model.reactivePowerFunc
 
-  /** Updates the model input according to the received data, the current nodal
+  /** Updates the model state according to the received data, the current nodal
     * voltage and the current tick.
     *
     * @param receivedData
@@ -185,23 +172,16 @@ final case class ParticipantModelShell[
     * @return
     *   An updated [[ParticipantModelShell]].
     */
-  def updateModelInput(
+  def handleInputData(
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,
   ): ParticipantModelShell[OP, S] = {
-    val currentSimulationTime = tick.toDateTime(simulationStartDate)
+    val currentState = determineCurrentState(tick)
+    val updatedState =
+      model.handleInput(currentState, receivedData, nodalVoltage)
 
-    copy(_input =
-      Some(
-        ModelInput(
-          receivedData,
-          nodalVoltage,
-          tick,
-          currentSimulationTime,
-        )
-      )
-    )
+    copy(_state = Some(updatedState))
   }
 
   /** Update operating point when the model is '''not''' em-controlled.
@@ -235,14 +215,40 @@ final case class ParticipantModelShell[
     )
   }
 
-  /** Determines and returns results of the current operating point.
+  /** Determines flex options results for the current flex options, which have
+    * to have been calculated before.
+    *
+    * @param tick
+    *   The current tick.
+    * @return
+    *   The flex options results.
+    */
+  def determineFlexOptionsResult(
+      tick: Long
+  ): FlexOptionsResult = {
+    val minMaxFlexOptions =
+      flexOptions match {
+        case flex: ProvideMinMaxFlexOptions => flex
+      }
+
+    new FlexOptionsResult(
+      tick.toDateTime(simulationStartDate),
+      uuid,
+      minMaxFlexOptions.ref.toMegawatts.asMegaWatt,
+      minMaxFlexOptions.min.toMegawatts.asMegaWatt,
+      minMaxFlexOptions.max.toMegawatts.asMegaWatt,
+    )
+  }
+
+  /** Determines and returns results of the current operating point, which has
+    * to have been calculated before.
     *
     * @param tick
     *   The current tick.
     * @param nodalVoltage
     *   The current nodal voltage.
     * @return
-    *   An updated [[ParticipantModelShell]].
+    *   The model results.
     */
   def determineResults(
       tick: Long,
@@ -424,13 +430,23 @@ final case class ParticipantModelShell[
   private def determineCurrentState(tick: Long): S = {
     // new state is only calculated if there's an old state and an operating point
     val state = _state
-      .zip(_operatingPoint)
-      .flatMap { case (st, op) =>
-        Option.when(st.tick < tick) {
-          model.determineState(st, op, modelInput)
+      .map { st =>
+        if (st.tick < tick) {
+          // If the state is old, an operating point needs
+          // to be present to determine the curren state
+          model.determineState(
+            st,
+            operatingPoint,
+            tick,
+            tick.toDateTime(simulationStartDate),
+          )
+        } else {
+          // The state is up-to-date, no need to update
+          st
         }
       }
-      .getOrElse(model.initialState(modelInput))
+      // No state present, create an initial one
+      .getOrElse(model.initialState(tick, tick.toDateTime(simulationStartDate)))
 
     if (state.tick != tick)
       throw new CriticalFailureException(
