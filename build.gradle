@@ -94,7 +94,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.16"
+  implementation "ch.qos.logback:logback-classic:1.5.17"
 
   /* testing */
   // scalatest & junit
