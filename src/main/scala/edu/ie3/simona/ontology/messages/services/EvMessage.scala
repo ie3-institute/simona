@@ -21,11 +21,14 @@ object EvMessage {
   /** Indicate the [[edu.ie3.simona.service.ev.ExtEvDataService]] that the
     * requesting agent wants to receive EV movements
     *
+    * @param requestingActor
+    *   The actor requesting registration for weather data
     * @param evcs
     *   the charging station
     */
   final case class RegisterForEvDataMessage(
-      evcs: UUID
+      requestingActor: ActorRef,
+      evcs: UUID,
   ) extends EvMessage
       with ServiceRegistrationMessage
 

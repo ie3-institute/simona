@@ -110,8 +110,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): Try[ExtEvStateData] =
     registrationMessage match {
-      case RegisterForEvDataMessage(evcs) =>
-        Success(handleRegistrationRequest(sender(), evcs))
+      case RegisterForEvDataMessage(requestingActor, evcs) =>
+        Success(handleRegistrationRequest(requestingActor, evcs))
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
