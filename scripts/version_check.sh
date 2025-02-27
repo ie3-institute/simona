@@ -15,11 +15,13 @@ echo "DEV_VERSION=$DEV_VERSION"
 echo "MAIN_VERSION=$MAIN_VERSION"
 echo "BASE_BRANCH=$BASE_BRANCH"
 
+bash ./branch_type.sh
+
 # Version Checking Logic
 if [ "$BASE_BRANCH" = "dev" ]; then
   echo "PR into dev => applying dev rules"
   if [ "$DEV_VERSION" = "$PR_VERSION" ]; then
-    echo "OK: dev version == PR version (no bump needed)"
+    echo "OK: dev version == PR version"
     exit 0
   else
     if [ "$MAIN_VERSION" = "$DEV_VERSION" ]; then
