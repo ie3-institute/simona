@@ -12,12 +12,8 @@ import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
-  ActorExtEvDataService,
-  ActorWeatherService,
-}
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
-import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
   ParticipantRefs,
@@ -424,25 +420,17 @@ class GridAgentController(
           maybeControllingEm,
         )
       case hpInput: HpInput =>
-        thermalIslandGridsByBusId.get(hpInput.getThermalBus.getUuid) match {
-          case Some(thermalGrid) =>
-            buildHp(
-              hpInput,
-              thermalGrid,
-              participantConfigUtil.getOrDefault[HpRuntimeConfig](
-                hpInput.getUuid
-              ),
-              environmentRefs.primaryServiceProxy,
-              environmentRefs.weather,
-              requestVoltageDeviationThreshold,
-              outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
-              maybeControllingEm,
-            )
-          case None =>
-            throw new GridAgentInitializationException(
-              s"Unable to find thermal island grid for heat pump '${hpInput.getUuid}' with thermal bus '${hpInput.getThermalBus.getUuid}'."
-            )
-        }
+        buildParticipant(
+          hpInput,
+          participantConfigUtil.getOrDefault[HpRuntimeConfig](
+            hpInput.getUuid
+          ),
+          outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
+          maybeControllingEm,
+        )
       case input: StorageInput =>
         buildParticipant(
           input,
@@ -555,64 +543,6 @@ class GridAgentController(
           listener.map(_.toClassic),
         ),
         evcsInput.getId,
-      )
-      .toTyped
-    introduceAgentToEnvironment(participant)
-
-    participant
-  }
-
-  /** Builds an [[HpAgent]] from given input
-    *
-    * @param hpInput
-    *   Input model
-    * @param thermalGrid
-    *   The thermal grid, that this heat pump is ought to handle
-    * @param modelConfiguration
-    *   Runtime configuration for the agent
-    * @param primaryServiceProxy
-    *   Proxy actor reference for primary data
-    * @param weatherService
-    *   Actor reference for weather service
-    * @param requestVoltageDeviationThreshold
-    *   Permissible voltage magnitude deviation to consider being equal
-    * @param outputConfig
-    *   Configuration for output notification
-    * @param maybeControllingEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   A tuple of actor reference and [[ParticipantInitializeStateData]]
-    */
-  private def buildHp(
-      hpInput: HpInput,
-      thermalGrid: ThermalGrid,
-      modelConfiguration: HpRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantAgent.Request] = {
-    val participant = gridAgentContext.toClassic
-      .simonaActorOf(
-        HpAgent.props(
-          environmentRefs.scheduler.toClassic,
-          ParticipantInitializeStateData(
-            hpInput,
-            thermalGrid,
-            modelConfiguration,
-            primaryServiceProxy,
-            Iterable(ActorWeatherService(weatherService)),
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            requestVoltageDeviationThreshold,
-            outputConfig,
-            maybeControllingEm,
-          ),
-          listener.map(_.toClassic),
-        ),
-        hpInput.getId,
       )
       .toTyped
     introduceAgentToEnvironment(participant)

@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import edu.ie3.simona.model.participant2.HpModel.HpState
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureLowerBoundaryReached
 import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
@@ -73,15 +74,20 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
 
     "Check for the correct state of house when ambient temperature changes" in {
       val ambientTemperature = Temperature(-20, Celsius)
-      val relevantData = HpRelevantData(3600, ambientTemperature)
       val house = thermalHouse(18, 22)
       val initialHousestate = startingState(house)
+      val initialGridState = ThermalGridState(Some(initialHousestate), None)
       val lastAmbientTemperature = Temperature(15, Celsius)
+      val state = HpState(
+        3600,
+        ambientTemperature,
+        initialGridState,
+        lastAmbientTemperature,
+      )
 
       val (thermalHouseState, threshold) = house.updateState(
-        relevantData,
+        state,
         initialHousestate,
-        lastAmbientTemperature,
         zeroKW,
       )
 

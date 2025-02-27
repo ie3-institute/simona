@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
 }
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import edu.ie3.simona.model.participant2.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
@@ -83,31 +83,31 @@ final case class ThermalHouse(
     * determining the thermal demand, a change in external infeed will take
     * place.
     *
-    * @param relevantData
-    *   Data of heat pump including state of the heat pump.
     * @param state
+    *   Data of heat pump including state of the heat pump.
+    * @param thermalHouseState
     *   Most recent state, that is valid for this model.
     * @return
     *   The needed energy in the questioned tick.
     */
   def energyDemand(
-      relevantData: HpRelevantData,
-      state: ThermalHouseState,
+      state: HpState,
+      thermalHouseState: ThermalHouseState,
   ): ThermalEnergyDemand = {
     /* Calculate the inner temperature of the house, at the questioned instance in time */
-    val duration = Seconds(relevantData.currentTick - state.tick)
+    val duration = Seconds(state.tick - thermalHouseState.tick)
     val currentInnerTemp = newInnerTemperature(
-      state.qDot,
+      thermalHouseState.qDot,
       duration,
-      state.innerTemperature,
-      relevantData.ambientTemperature,
+      thermalHouseState.innerTemperature,
+      state.ambientTemperature,
     )
 
     /* Determine, which temperature boundary triggers a needed energy to reach the temperature constraints */
     val temperatureToTriggerRequiredEnergy =
       if (
-        currentInnerTemp <= state.innerTemperature &&
-        state.qDot <= zeroKW
+        currentInnerTemp <= thermalHouseState.innerTemperature &&
+        thermalHouseState.qDot <= zeroKW
       ) {
         // temperature has been decreasing and heat source has been turned off
         // => we have reached target temp before and are now targeting lower temp
@@ -227,9 +227,9 @@ final case class ThermalHouse(
 
   /** Update the current state of the house.
     *
-    * @param relevantData
-    *   Data of heat pump including state of the heat pump.
     * @param state
+    *   Data of heat pump including state of the heat pump.
+    * @param thermalHouseState
     *   Currently applicable state
     * @param lastAmbientTemperature
     *   Ambient temperature valid up until (not including) the current tick
@@ -239,31 +239,30 @@ final case class ThermalHouse(
     *   Updated state and the tick in which the next threshold is reached
     */
   def updateState(
-      relevantData: HpRelevantData,
-      state: ThermalHouseState,
-      lastAmbientTemperature: Temperature,
+      state: HpState,
+      thermalHouseState: ThermalHouseState,
       qDot: Power,
   ): (ThermalHouseState, Option[ThermalThreshold]) = {
-    val duration = Seconds(relevantData.currentTick - state.tick)
+    val duration = Seconds(state.tick - thermalHouseState.tick)
     val updatedInnerTemperature = newInnerTemperature(
-      state.qDot,
+      thermalHouseState.qDot,
       duration,
-      state.innerTemperature,
-      lastAmbientTemperature,
+      thermalHouseState.innerTemperature,
+      state.lastAmbientTemperature,
     )
 
     /* Calculate the next given threshold */
     val threshold =
       nextThreshold(
-        relevantData.currentTick,
+        state.tick,
         qDot,
         updatedInnerTemperature,
-        relevantData.ambientTemperature,
+        state.ambientTemperature,
       )
 
     (
-      state.copy(
-        tick = relevantData.currentTick,
+      thermalHouseState.copy(
+        tick = state.tick,
         innerTemperature = updatedInnerTemperature,
         qDot = qDot,
       ),

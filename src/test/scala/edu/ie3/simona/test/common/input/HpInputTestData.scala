@@ -16,17 +16,11 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.datamodel.models.input.{OperatorInput, container}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.model.participant.HpModel
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal._
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.Kilovoltamperes
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.thermal.Celsius
 import squants.{Power, Temperature}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -58,16 +52,6 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     hpTypeInput,
   )
 
-  protected def hpModel(thermalGrid: ThermalGrid) = new HpModel(
-    UUID.randomUUID(),
-    "HpModel",
-    OperationInterval.apply(0L, 86400L),
-    QControl.CosPhiFixed(0.95),
-    Kilovoltamperes(100d),
-    0.95,
-    Kilowatts(15d),
-    thermalGrid,
-  )
   protected val defaultThermalHouse = new ThermalHouseInput(
     UUID.fromString("91940626-bdd0-41cf-96dd-47c94c86b20e"),
     "Thermal house",
@@ -190,8 +174,4 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     ),
     None,
   )
-
-  protected def hpData: HpRelevantData =
-    HpRelevantData(7200, Celsius(10d))
-
 }
