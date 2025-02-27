@@ -6,8 +6,7 @@ set -e  # Exit on error
 cd "$(dirname "$0")/.."
 
 PR_VERSION="${PR_VERSION}"
-#DEV_VERSION="${DEV_VERSION}"
-DEV_VERSION="3.2.0"
+DEV_VERSION="${DEV_VERSION}"
 MAIN_VERSION="${MAIN_VERSION}"
 BASE_BRANCH="${BASE_BRANCH}"
 
