@@ -344,7 +344,7 @@ object HpModel {
   def apply(
       hpInput: HpInput,
       // FIXME?
-      thermalGridInput: ThermalGrid,
+      thermalGrid: ThermalGrid,
   ): HpModel =
     new HpModel(
       hpInput.getUuid,
@@ -366,7 +366,7 @@ object HpModel {
           .getValue
           .doubleValue
       ),
-      ThermalGrid(thermalGridInput.house, thermalGridInput.storage),
+      thermalGrid,
     )
 
 }
