@@ -166,7 +166,11 @@ class EvcsModel private (
 
       resultPower.map { activePower =>
         // assume that reactive power is proportional to active power
-        val reactivePower = complexPower.q * (activePower / complexPower.p)
+        val reactivePower =
+          if (complexPower.p == zeroKW)
+            zeroKVAr
+          else
+            complexPower.q * (activePower / complexPower.p)
 
         val soc = (ev.storedEnergy / ev.eStorage).asPu
           .to(PERCENT)
