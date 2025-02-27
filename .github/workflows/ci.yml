@@ -79,8 +79,7 @@ jobs:
       - name: Version Check
         if: ${{ github.event_name == 'pull_request' }}
         run: |
-          #BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
-          BASE_BRANCH="main"
+          BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
           echo "BASE_BRANCH=$BASE_BRANCH"
           
           PR_VERSION="${{ env.PR_VERSION }}"
