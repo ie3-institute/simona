@@ -543,7 +543,7 @@ final case class ThermalGrid(
           ) =>
         (house, state.houseState) match {
           case (Some(thermalHouse), Some(lastHouseState)) =>
-            val (newState, _) = thermalHouse.determineState(
+            val (newState, _) = thermalHouse.updateState(
               relevantData,
               lastHouseState,
               lastAmbientTemperature,
