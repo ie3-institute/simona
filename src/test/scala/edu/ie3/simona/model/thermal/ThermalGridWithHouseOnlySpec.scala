@@ -57,10 +57,11 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         Set.empty[ThermalStorageInput].asJava,
       )
     )
+    val initialGridState: ThermalGridState = ThermalGrid.startingState(thermalGrid)
 
     "requesting the starting state" should {
       "deliver proper results" in {
-        ThermalGrid.startingState(thermalGrid) match {
+        initialGridState match {
           case ThermalGridState(
                 Some(ThermalHouseState(tick, innerTemperature, thermalInfeed)),
                 None,
@@ -81,7 +82,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val state = HpState(
           10800, // after three hours
           testGridAmbientTemperature,
-          ThermalGrid.startingState(thermalGrid),
+          initialGridState,
           testGridAmbientTemperature,
         )
 
@@ -119,17 +120,14 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val state = HpState(
           0,
           testGridAmbientTemperature,
-          ThermalGrid.startingState(thermalGrid),
+          initialGridState,
           testGridAmbientTemperature,
         )
-        val gridState = ThermalGrid.startingState(thermalGrid)
         val externalQDot = zeroKW
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             state,
-            testGridAmbientTemperature,
-            gridState,
             externalQDot,
           )
 
@@ -152,16 +150,13 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val state = HpState(
           0,
           testGridAmbientTemperature,
-          ThermalGrid.startingState(thermalGrid),
+          initialGridState,
           testGridAmbientTemperature,
         )
-        val gridState = ThermalGrid.startingState(thermalGrid)
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             state,
-            testGridAmbientTemperature,
-            gridState,
             testGridQDotConsumption,
           )
 
@@ -191,16 +186,13 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val state = HpState(
           0,
           testGridAmbientTemperature,
-          ThermalGrid.startingState(thermalGrid),
+          initialGridState,
           testGridAmbientTemperature,
         )
-        val gridState = ThermalGrid.startingState(thermalGrid)
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
             state,
-            testGridAmbientTemperature,
-            gridState,
             isNotRunning,
             testGridQDotInfeed,
             onlyThermalDemandOfHouse,
@@ -226,7 +218,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       val relevantData = HpState(
         0,
         testGridAmbientTemperature,
-        startingState(thermalGrid),
+        initialGridState,
         testGridAmbientTemperature,
       )
       "deliver proper result, if energy is fed into the grid" in {

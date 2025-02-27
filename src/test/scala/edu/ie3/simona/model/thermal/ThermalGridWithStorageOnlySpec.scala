@@ -11,10 +11,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalStorageInput,
 }
 import edu.ie3.simona.model.participant2.HpModel.HpState
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalGridState,
-  startingState,
-}
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
@@ -35,7 +32,6 @@ class ThermalGridWithStorageOnlySpec
   implicit val tempTolerance: Temperature = Celsius(1e-3)
   implicit val powerTolerance: Power = Watts(1e-3)
   implicit val energyTolerance: Energy = WattHours(1e-3)
-
   "Testing thermal grid generation with only a storage" should {
     "instantiating correctly from input data" in new ThermalStorageTestData {
       val thermalGridInput =
@@ -62,10 +58,11 @@ class ThermalGridWithStorageOnlySpec
         Set[ThermalStorageInput](thermalStorageInput).asJava,
       )
     )
+    val initialGridState = ThermalGrid.startingState(thermalGrid)
 
     "requesting the starting state" should {
       "deliver proper results" in {
-        ThermalGrid.startingState(thermalGrid) match {
+        initialGridState match {
           case ThermalGridState(
                 None,
                 Some(ThermalStorageState(tick, storedEnergy, qDot)),
@@ -84,9 +81,9 @@ class ThermalGridWithStorageOnlySpec
     "determining the energy demand" should {
       "deliver the capabilities of the storage" in {
         val state = HpState(
-          0,
+          10800, // after three hours
           testGridAmbientTemperature,
-          startingState(thermalGrid),
+          initialGridState,
           testGridAmbientTemperature,
         )
         val (thermalDemands, updatedThermalGridState) =
@@ -107,10 +104,16 @@ class ThermalGridWithStorageOnlySpec
       }
 
       "deliver the capabilities of a half full storage" in {
+        val initialLoading = KilowattHours(575d)
+        val gridState = initialGridState.copy(storageState =
+          initialGridState.storageState.map(storageState =>
+            storageState.copy(storedEnergy = initialLoading)
+          )
+        )
         val state = HpState(
           10800, // after three hours
           testGridAmbientTemperature,
-          startingState(thermalGrid),
+          gridState,
           testGridAmbientTemperature,
         )
 
@@ -139,14 +142,7 @@ class ThermalGridWithStorageOnlySpec
         )
 
       "properly take the energy from storage" in {
-        val state = HpState(
-          0,
-          testGridAmbientTemperature,
-          startingState(thermalGrid),
-          testGridAmbientTemperature,
-        )
-        val gridState = ThermalGrid
-          .startingState(thermalGrid)
+        val gridState = initialGridState
           .copy(storageState =
             Some(
               ThermalStorageState(
@@ -156,12 +152,16 @@ class ThermalGridWithStorageOnlySpec
               )
             )
           )
+        val state = HpState(
+          0,
+          testGridAmbientTemperature,
+          gridState,
+          testGridAmbientTemperature,
+        )
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             state,
-            testGridAmbientTemperature,
-            gridState,
             testGridQDotConsumptionHigh,
           )
 
@@ -189,16 +189,13 @@ class ThermalGridWithStorageOnlySpec
         val state = HpState(
           0,
           testGridAmbientTemperature,
-          startingState(thermalGrid),
+          initialGridState,
           testGridAmbientTemperature,
         )
-        val gridState = ThermalGrid.startingState(thermalGrid)
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
             state,
-            testGridAmbientTemperature,
-            gridState,
             isRunning,
             testGridQDotInfeed,
             onlyThermalDemandOfHeatStorage,
@@ -218,14 +215,7 @@ class ThermalGridWithStorageOnlySpec
       }
 
       "properly take energy from storage" in {
-        val state = HpState(
-          0,
-          testGridAmbientTemperature,
-          startingState(thermalGrid),
-          testGridAmbientTemperature,
-        )
-        val gridState = ThermalGrid
-          .startingState(thermalGrid)
+        val gridState = initialGridState
           .copy(storageState =
             Some(
               ThermalStorageState(
@@ -235,12 +225,16 @@ class ThermalGridWithStorageOnlySpec
               )
             )
           )
+        val state = HpState(
+          0,
+          testGridAmbientTemperature,
+          gridState,
+          testGridAmbientTemperature,
+        )
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
             state,
-            testGridAmbientTemperature,
-            gridState,
             isNotRunning,
             testGridQDotInfeed,
             onlyThermalDemandOfHeatStorage,
@@ -262,13 +256,13 @@ class ThermalGridWithStorageOnlySpec
     }
 
     "updating the grid state dependent on the given thermal infeed" should {
-      val state = HpState(
-        0,
-        testGridAmbientTemperature,
-        startingState(thermalGrid),
-        testGridAmbientTemperature,
-      )
       "deliver proper result, if energy is fed into the grid" in {
+        val state = HpState(
+          0,
+          testGridAmbientTemperature,
+          initialGridState,
+          testGridAmbientTemperature,
+        )
         val (updatedState, nextThreshold) = thermalGrid.updateState(
           state,
           isRunning,
@@ -291,6 +285,19 @@ class ThermalGridWithStorageOnlySpec
       }
 
       "deliver proper result, if energy is consumed from the grid" in {
+        val initialLoading = KilowattHours(200d)
+        val gridState = initialGridState.copy(storageState =
+          initialGridState.storageState.map(storageState =>
+            storageState.copy(storedEnergy = initialLoading)
+          )
+        )
+        val state = HpState(
+          0,
+          testGridAmbientTemperature,
+          gridState,
+          testGridAmbientTemperature,
+        )
+
         thermalGrid.updateState(
           state,
           isRunning,
@@ -313,6 +320,12 @@ class ThermalGridWithStorageOnlySpec
       }
 
       "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
+        val state = HpState(
+          0,
+          testGridAmbientTemperature,
+          initialGridState,
+          testGridAmbientTemperature,
+        )
         val updatedState = thermalGrid.updateState(
           state,
           isRunning,
