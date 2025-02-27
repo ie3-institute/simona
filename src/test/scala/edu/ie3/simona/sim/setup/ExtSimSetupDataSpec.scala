@@ -113,7 +113,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val extSimSetupData = ExtSimSetupData()
 
       val resultConnection =
-        new ExtResultDataConnection(emptyMapResult, emptyMapResult)
+        new ExtResultDataConnection(emptyMapResult, emptyMapResult, emptyMapResult)
       val resultRef = TestProbe("result_service").ref
 
       val updated = extSimSetupData.update(resultConnection, resultRef)
@@ -137,7 +137,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val emRef = TestProbe("em_service").ref.toClassic
 
       val resultConnection =
-        new ExtResultDataConnection(emptyMapResult, emptyMapResult)
+        new ExtResultDataConnection(emptyMapResult, emptyMapResult, emptyMapResult)
       val resultRef = TestProbe("result_service").ref
 
       val updated = extSimSetupData

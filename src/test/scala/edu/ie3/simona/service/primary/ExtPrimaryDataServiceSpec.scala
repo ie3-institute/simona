@@ -8,22 +8,16 @@ package edu.ie3.simona.service.primary
 
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
-  DataProvision,
-  RegistrationSuccessfulMessage,
-}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{DataProvision, RegistrationSuccessfulMessage}
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
-import edu.ie3.simona.test.common.{TestKitWithShutdown, TestSpawnerClassic}
+import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
@@ -34,7 +28,7 @@ import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
 
 class ExtPrimaryDataServiceSpec
-    extends TestKitWithShutdown(
+    extends AgentSpec(
       ActorSystem(
         "ExtPrimaryDataServiceSpec",
         ConfigFactory
@@ -96,7 +90,7 @@ class ExtPrimaryDataServiceSpec
       )
 
     "refuse registration for wrong registration request" in {
-      serviceRef ! RegisterForWeatherMessage(51.4843281, 7.4116482)
+      serviceRef ! RegisterForWeatherMessage(self, 51.4843281, 7.4116482)
       expectNoMessage()
     }
 
