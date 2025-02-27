@@ -6,8 +6,7 @@ set -e  # Exit on error
 cd "$(dirname "$0")/.."
 
 PR_VERSION="${PR_VERSION}"
-#DEV_VERSION="${DEV_VERSION}"
-DEV_VERSION="3.0.0"
+DEV_VERSION="${DEV_VERSION}"
 MAIN_VERSION="${MAIN_VERSION}"
 BASE_BRANCH="${BASE_BRANCH}"
 
@@ -54,8 +53,7 @@ if [ "$BASE_BRANCH" = "dev" ]; then
   else
     if [ "$MAIN_VERSION" = "$DEV_VERSION" ]; then
       if semver_gt "$PR_VERSION" "$DEV_VERSION"; then
-        echo "Bumping dev"
-        ./gradlew incrementMinor
+        echo "Bump dev"
         exit 0
       else
         echo "FAIL: dev == main, but PR version is NOT greater than dev."
