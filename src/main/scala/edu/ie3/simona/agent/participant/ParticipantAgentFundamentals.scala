@@ -271,7 +271,7 @@ protected trait ParticipantAgentFundamentals[
     try {
       /* Register for services */
       val awaitRegistrationResponsesFrom =
-        registerForServices(inputModel.electricalInputModel, services)
+        registerForServices(inputModel.electricalInputModel, services, self)
 
       // register with EM if applicable
       maybeEmAgent.foreach { emAgent =>
