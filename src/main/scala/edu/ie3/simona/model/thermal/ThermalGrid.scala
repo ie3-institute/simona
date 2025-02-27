@@ -94,9 +94,9 @@ final case class ThermalGrid(
 
       storage
         .zip(state.lastThermalGridState.storageState)
-        .map { case (storage, state) =>
+        .map { case (storage, storageState) =>
           val (updatedStorageState, _) =
-            storage.updateState(state.tick, state.qDot, state)
+            storage.updateState(state.tick, storageState.qDot, storageState)
           val storedEnergy = updatedStorageState.storedEnergy
           val soc = storedEnergy / storage.getMaxEnergyThreshold
           val storageRequired = {
