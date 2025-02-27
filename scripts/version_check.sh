@@ -15,7 +15,7 @@ echo "DEV_VERSION=$DEV_VERSION"
 echo "MAIN_VERSION=$MAIN_VERSION"
 echo "BASE_BRANCH=$BASE_BRANCH"
 
-bash /scripts/branch_type.sh
+./branch_type.sh
 
 # Version Checking Logic
 if [ "$BASE_BRANCH" = "dev" ]; then
