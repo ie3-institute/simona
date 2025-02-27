@@ -7,12 +7,16 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
-import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
+}
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
+  ParticipantRefs,
+  SimulationParameters,
 }
 import edu.ie3.simona.config.RuntimeConfig.HpRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
@@ -31,6 +35,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   WeatherData,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -49,6 +54,7 @@ import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
+import squants.Each
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
@@ -66,14 +72,17 @@ class ThermalGridIT
     with EmInputTestData
     with MockitoSugar
     with DefaultTestData {
-  private implicit val classicSystem: ActorSystem = system.toClassic
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
-  private val resolution =
-    simonaConfig.simona.powerflow.resolution.toSeconds
+  private val simulationParams = SimulationParameters(
+    expectedPowerRequestTick = Long.MaxValue,
+    requestVoltageDeviationTolerance = Each(1e-14d),
+    simulationStart = simulationStartDate,
+    simulationEnd = simulationEndDate,
+  )
 
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
@@ -83,38 +92,34 @@ class ThermalGridIT
 
   "A Thermal Grid with thermal house, storage and heat pump not under the control of energy management" should {
     "be initialized correctly and run through some activations" in {
+      val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
+      val resultListener = TestProbe[ResultEvent]("ResultListener")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =
         TestProbe[ServiceMessage]("PrimaryServiceProxy")
 
       val weatherService = TestProbe[ServiceMessage]("WeatherService")
 
-      val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
+      val participantRefs = ParticipantRefs(
+        gridAgent = gridAgent.ref,
+        primaryServiceProxy = primaryServiceProxy.ref.toClassic,
+        services =
+          Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+        resultListener = Iterable(resultListener.ref),
+      )
 
-      val heatPumpAgent = TestActorRef(
-        new HpAgent(
-          scheduler = scheduler.ref.toClassic,
-          initStateData = ParticipantInitializeStateData(
-            typicalHpInputModel,
-            typicalThermalGrid,
-            HpRuntimeConfig(
-              calculateMissingReactivePowerWithModel = true,
-              1.0,
-              List.empty[String],
-            ),
-            primaryServiceProxy.ref.toClassic,
-            Iterable(ActorWeatherService(weatherService.ref.toClassic)),
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-            outputConfigOn,
-            None,
-          ),
-          listener = Iterable(resultListener.ref.toClassic),
+      val hpAgent = spawn(
+        ParticipantAgentInit(
+          typicalHpInputModel,
+          // typicalThermalGrid,
+          HpRuntimeConfig(),
+          outputConfigOn,
+          participantRefs,
+          simulationParams,
+          Left(scheduler.ref),
         ),
         "HeatPumpAgent1",
-      )
+      ).toClassic
 
       val pRunningHp = 0.0038.asMegaWatt
       val qRunningHp = 0.0012489995996796802.asMegaVar
@@ -123,33 +128,33 @@ class ThermalGridIT
 
       /* INIT */
       // heat pump
-      heatPumpAgent ! Activation(INIT_SIM_TICK)
+      hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
       primaryServiceProxy.expectMessage(
         PrimaryServiceRegistrationMessage(
-          heatPumpAgent.ref,
+          hpAgent,
           typicalHpInputModel.getUuid,
         )
       )
-      heatPumpAgent ! RegistrationFailedMessage(
+      hpAgent ! RegistrationFailedMessage(
         primaryServiceProxy.ref.toClassic
       )
 
       weatherService.expectMessage(
         RegisterForWeatherMessage(
-          heatPumpAgent.ref,
+          hpAgent,
           typicalHpInputModel.getNode.getGeoPosition.getY,
           typicalHpInputModel.getNode.getGeoPosition.getX,
         )
       )
 
-      heatPumpAgent ! RegistrationSuccessfulMessage(
+      hpAgent ! RegistrationSuccessfulMessage(
         weatherService.ref.toClassic,
         0,
       )
-      val weatherDependentAgents = Seq(heatPumpAgent)
+      val weatherDependentAgents = Seq(hpAgent)
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(0)))
+      scheduler.expectMessage(Completion(hpAgent, Some(0)))
 
       /* TICK 0
       Start of Simulation
@@ -158,7 +163,7 @@ class ThermalGridIT
       Heat pump: turned on - to serve the storage demand
        */
 
-      heatPumpAgent ! Activation(0)
+      hpAgent ! Activation(0)
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -217,7 +222,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(3417)))
+      scheduler.expectMessage(Completion(hpAgent, Some(3417)))
 
       /* TICK 3417
       Storage is fully heated up
@@ -226,7 +231,7 @@ class ThermalGridIT
       Heat pump: stays on since it was on and the house has possible demand
        */
 
-      heatPumpAgent ! Activation(3417)
+      hpAgent ! Activation(3417)
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
@@ -274,7 +279,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(7200)))
+      scheduler.expectMessage(Completion(hpAgent, Some(7200)))
 
       /* TICK 7200
       New weather data (unchanged) incoming
@@ -283,7 +288,7 @@ class ThermalGridIT
       Heat pump: stays on, we got triggered by incoming weather data. So we continue with same behaviour as before
        */
 
-      heatPumpAgent ! Activation(7200)
+      hpAgent ! Activation(7200)
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -344,7 +349,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(10798)))
+      scheduler.expectMessage(Completion(hpAgent, Some(10798)))
 
       /* TICK 10798
       House reaches upper temperature boundary
@@ -353,7 +358,7 @@ class ThermalGridIT
       Heat pump: turned off
        */
 
-      heatPumpAgent ! Activation(10798)
+      hpAgent ! Activation(10798)
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
@@ -398,7 +403,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(28800)))
+      scheduler.expectMessage(Completion(hpAgent, Some(28800)))
 
       /* TICK 28800
       House would reach lowerTempBoundary at tick 50797
@@ -408,7 +413,7 @@ class ThermalGridIT
       Heat pump: stays off
        */
 
-      heatPumpAgent ! Activation(28800)
+      hpAgent ! Activation(28800)
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -468,7 +473,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(41940)))
+      scheduler.expectMessage(Completion(hpAgent, Some(41940)))
 
       /* TICK 41940
       House reach lowerTemperatureBoundary
@@ -477,7 +482,7 @@ class ThermalGridIT
       Heat pump: stays off, demand should be covered by storage
        */
 
-      heatPumpAgent ! Activation(41940)
+      hpAgent ! Activation(41940)
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
@@ -522,7 +527,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(45000)))
+      scheduler.expectMessage(Completion(hpAgent, Some(45000)))
 
       /* TICK 45000
       Storage will be empty at tick 45540
@@ -532,7 +537,7 @@ class ThermalGridIT
       Heat pump: stays off
        */
 
-      heatPumpAgent ! Activation(45000)
+      hpAgent ! Activation(45000)
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -594,7 +599,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(45540)))
+      scheduler.expectMessage(Completion(hpAgent, Some(45540)))
 
       /* TICK 45540
       Storage will be empty
@@ -604,7 +609,7 @@ class ThermalGridIT
       Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
        */
 
-      heatPumpAgent ! Activation(45540)
+      hpAgent ! Activation(45540)
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
@@ -650,7 +655,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(57600)))
+      scheduler.expectMessage(Completion(hpAgent, Some(57600)))
 
       /* TICK 57600
       New weather data: it's getting warmer again
@@ -659,7 +664,7 @@ class ThermalGridIT
       Heat pump: stays on
        */
 
-      heatPumpAgent ! Activation(57600)
+      hpAgent ! Activation(57600)
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -715,7 +720,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(58256)))
+      scheduler.expectMessage(Completion(hpAgent, Some(58256)))
 
       /* TICK 58256
       House will reach the upperTemperatureBoundary
@@ -724,7 +729,7 @@ class ThermalGridIT
       Heat pump: stays on to refill the storage now
        */
 
-      heatPumpAgent ! Activation(58256)
+      hpAgent ! Activation(58256)
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
@@ -768,7 +773,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(61673)))
+      scheduler.expectMessage(Completion(hpAgent, Some(61673)))
 
       /* TICK 61673
       Storage will be fully charged
@@ -777,7 +782,7 @@ class ThermalGridIT
       Heat pump: turned off
        */
 
-      heatPumpAgent ! Activation(61673)
+      hpAgent ! Activation(61673)
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
@@ -821,7 +826,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(122555)))
+      scheduler.expectMessage(Completion(hpAgent, Some(122555)))
 
     }
   }
