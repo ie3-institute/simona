@@ -27,7 +27,6 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
-import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -40,7 +39,6 @@ import squants.{Each, Energy, Power}
 import squants.energy.{KilowattHours, Kilowatts}
 
 import java.time.ZonedDateTime
-import java.util.UUID
 
 class EvcsModelSpec
     extends ScalaTestWithActorTestKit
@@ -66,56 +64,6 @@ class EvcsModelSpec
     )
 
   "An EVCS model" should {
-
-    val ev1 = new MockEvModel(
-      UUID.fromString("0-0-0-1-1"),
-      "TestEv1",
-      5.0.asKiloWatt,
-      10.0.asKiloWatt,
-      10.0.asKiloWattHour,
-      5.0.asKiloWattHour,
-      18000L,
-    )
-
-    val ev2 = new MockEvModel(
-      UUID.fromString("0-0-0-1-2"),
-      "TestEv2",
-      5.0.asKiloWatt,
-      10.0.asKiloWatt,
-      10.0.asKiloWattHour,
-      7.5.asKiloWattHour,
-      18000L,
-    )
-
-    val ev3 = new MockEvModel(
-      UUID.fromString("0-0-0-1-3"),
-      "TestEv3",
-      10.0.asKiloWatt, // AC is relevant,
-      20.0.asKiloWatt, // DC is not
-      20.0.asKiloWattHour,
-      15.0.asKiloWattHour,
-      10800L,
-    )
-
-    val ev4 = new MockEvModel(
-      UUID.fromString("0-0-0-1-4"),
-      "TestEv4",
-      10.0.asKiloWatt, // AC is relevant,
-      20.0.asKiloWatt, // DC is not
-      10.0.asKiloWattHour,
-      0.0.asKiloWattHour,
-      10800L,
-    )
-
-    val ev5 = new MockEvModel(
-      UUID.fromString("0-0-0-1-5"),
-      "TestEv5",
-      5.0.asKiloWatt, // AC is relevant,
-      10.0.asKiloWatt, // DC is not
-      15.0.asKiloWattHour,
-      0.0.asKiloWattHour,
-      14400L,
-    )
 
     "calculate new schedules correctly" when {
 
