@@ -17,7 +17,11 @@ import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology.{
+  ProvideCurrentPrices,
+  ProvideDepartingEvs,
   ProvideEvcsFreeLots,
+  RequestCurrentPrices,
+  RequestDepartingEvs,
   RequestEvcsFreeLots,
 }
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
@@ -82,6 +86,10 @@ class EvcsModelIT
   )
 
   "An EVCS model with ExtEvDataService" should {
+
+    val evA = ev1.copyWithDeparture(9000)
+    val evB = ev2.copyWithDeparture(18000)
+    val evC = ev3.copyWithDeparture(14400)
 
     "handle a few requests and arrivals as expected" in {
 
@@ -170,27 +178,38 @@ class EvcsModelIT
 
       /* TICK 0 */
 
-      // Request free lots
-      extEvData.sendExtMsg(
-        new RequestEvcsFreeLots()
+      // Request prices (dummy implementation)
+      extEvData.sendExtMsg(new RequestCurrentPrices())
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
+
+      evService ! Activation(0)
+
+      extEvData.receiveTriggerQueue.take() shouldBe new ProvideCurrentPrices(
+        Map(evcsInputModel.getUuid -> double2Double(0.0)).asJava
       )
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      // Request free lots
+      extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
       evService ! Activation(0)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
+        // No EV connected
         Map(evcsInputModel.getUuid -> int2Integer(2)).asJava
       )
 
       scheduler.expectMessage(Completion(evService, None))
 
-      // Send arrivals
-      val arrivals = Map(
-        evcsInputModel.getUuid -> List[EvModel](ev1, ev2).asJava
-      ).asJava
+      resultListener.expectNoMessage()
 
+      // Send arrivals
       extEvData.provideArrivingEvs(
-        arrivals,
+        Map(
+          evcsInputModel.getUuid -> List[EvModel](evA, evB).asJava
+        ).asJava,
         Some(long2Long(9000)).toJava,
       )
       evService ! Activation(0)
@@ -205,12 +224,12 @@ class EvcsModelIT
           result
         }
         .foreach {
-          case evResult: EvResult if evResult.getInputModel == ev1.getUuid =>
+          case evResult: EvResult if evResult.getInputModel == evA.getUuid =>
             evResult.getTime shouldBe 0.toDateTime
             evResult.getP should beEquivalentTo(5.0.asKiloWatt)
             evResult.getQ should beEquivalentTo(0.0.asKiloVar)
             evResult.getSoc should beEquivalentTo(50.0.asPercent)
-          case evResult: EvResult if evResult.getInputModel == ev2.getUuid =>
+          case evResult: EvResult if evResult.getInputModel == evB.getUuid =>
             evResult.getTime shouldBe 0.toDateTime
             evResult.getP should beEquivalentTo(5.0.asKiloWatt)
             evResult.getQ should beEquivalentTo(0.0.asKiloVar)
@@ -224,11 +243,28 @@ class EvcsModelIT
             fail(s"Unexpected result $unexpected was found.")
         }
 
-      // ev2 is full at 1800
+      // evB is full at 1800
       scheduler.expectMessage(Completion(evcsActivation, Some(1800)))
 
       /* TICK 1800 */
 
+      // Request free lots
+      extEvData.sendExtMsg(new RequestEvcsFreeLots())
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
+
+      evService ! Activation(1800)
+
+      extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
+        // evA and evB connected
+        // Fully occupied EVCS are not included
+        Map.empty[UUID, java.lang.Integer].asJava
+      )
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      resultListener.expectNoMessage()
+
+      // EVCS activation without arrivals
       evcsActivation ! Activation(1800)
 
       resultListener
@@ -237,7 +273,7 @@ class EvcsModelIT
           result
         }
         .foreach {
-          case evResult: EvResult if evResult.getInputModel == ev2.getUuid =>
+          case evResult: EvResult if evResult.getInputModel == evB.getUuid =>
             evResult.getTime shouldBe 1800.toDateTime
             evResult.getP should beEquivalentTo(0.0.asKiloWatt)
             evResult.getQ should beEquivalentTo(0.0.asKiloVar)
@@ -251,7 +287,7 @@ class EvcsModelIT
             fail(s"Unexpected result $unexpected was found.")
         }
 
-      // ev1 is full at 3600
+      // evA is full at 3600
       scheduler.expectMessage(Completion(evcsActivation, Some(3600)))
 
       /* TICK 3600 */
@@ -264,7 +300,7 @@ class EvcsModelIT
           result
         }
         .foreach {
-          case evResult: EvResult if evResult.getInputModel == ev1.getUuid =>
+          case evResult: EvResult if evResult.getInputModel == evA.getUuid =>
             evResult.getTime shouldBe 3600.toDateTime
             evResult.getP should beEquivalentTo(0.0.asKiloWatt)
             evResult.getQ should beEquivalentTo(0.0.asKiloVar)
@@ -278,8 +314,247 @@ class EvcsModelIT
             fail(s"Unexpected result $unexpected was found.")
         }
 
-      // Next data at 18000
+      // evA is departing at 9000
       scheduler.expectMessage(Completion(evcsActivation, Some(9000)))
+
+      /* TICK 9000 */
+
+      // Request free lots
+      extEvData.sendExtMsg(new RequestEvcsFreeLots())
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
+
+      evService ! Activation(9000)
+
+      extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
+        // evB connected
+        // evA (departing at this tick) is not included
+        Map(evcsInputModel.getUuid -> int2Integer(1)).asJava
+      )
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      // Request departing EVs
+      extEvData.sendExtMsg(
+        new RequestDepartingEvs(
+          Map(evcsInputModel.getUuid -> List(evA.getUuid).asJava).asJava
+        )
+      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
+
+      evService ! Activation(9000)
+
+      extEvData.receiveTriggerQueue.take() shouldBe new ProvideDepartingEvs(
+        List[EvModel](evA.copyWith(10.0.asKiloWattHour)).asJava
+      )
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      // Send (empty) arrivals in order to update next tick
+      extEvData.provideArrivingEvs(
+        Map.empty[UUID, java.util.List[EvModel]].asJava,
+        Some(long2Long(10800)).toJava,
+      )
+      evService ! Activation(9000)
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      evcsActivation ! Activation(9000)
+
+      resultListener.expectNoMessage()
+
+      // Next data at 10800
+      scheduler.expectMessage(Completion(evcsActivation, Some(10800)))
+
+      /* TICK 10800 */
+
+      // Request free lots
+      extEvData.sendExtMsg(new RequestEvcsFreeLots())
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
+
+      evService ! Activation(10800)
+
+      extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
+        // evB connected
+        Map(evcsInputModel.getUuid -> int2Integer(1)).asJava
+      )
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      resultListener.expectNoMessage()
+
+      // Send arrivals
+      extEvData.provideArrivingEvs(
+        Map(
+          evcsInputModel.getUuid -> List[EvModel](evC).asJava
+        ).asJava,
+        Some(long2Long(14400)).toJava,
+      )
+      evService ! Activation(10800)
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      evcsActivation ! Activation(10800)
+
+      resultListener
+        .receiveMessages(2)
+        .map { case ParticipantResultEvent(result) =>
+          result
+        }
+        .foreach {
+          case evResult: EvResult if evResult.getInputModel == evC.getUuid =>
+            evResult.getTime shouldBe 10800.toDateTime
+            evResult.getP should beEquivalentTo(10.0.asKiloWatt)
+            evResult.getQ should beEquivalentTo(0.0.asKiloVar)
+            evResult.getSoc should beEquivalentTo(75.0.asPercent)
+          case evcsResult: EvcsResult =>
+            evcsResult.getInputModel shouldBe evcsInputModel.getUuid
+            evcsResult.getTime shouldBe 10800.toDateTime
+            evcsResult.getP should beEquivalentTo(10.0.asKiloWatt)
+            evcsResult.getQ should beEquivalentTo(0.0.asKiloVar)
+          case unexpected =>
+            fail(s"Unexpected result $unexpected was found.")
+        }
+
+      // evC is full at 12600
+      scheduler.expectMessage(Completion(evcsActivation, Some(12600)))
+
+      /* TICK 12600 */
+
+      // Request free lots
+      extEvData.sendExtMsg(new RequestEvcsFreeLots())
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
+
+      evService ! Activation(12600)
+
+      extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
+        // evB and evC connected
+        // Fully occupied EVCS are not included
+        Map.empty[UUID, java.lang.Integer].asJava
+      )
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      // EVCS activation
+      evcsActivation ! Activation(12600)
+
+      resultListener
+        .receiveMessages(2)
+        .map { case ParticipantResultEvent(result) =>
+          result
+        }
+        .foreach {
+          case evResult: EvResult if evResult.getInputModel == evC.getUuid =>
+            evResult.getTime shouldBe 12600.toDateTime
+            evResult.getP should beEquivalentTo(0.0.asKiloWatt)
+            evResult.getQ should beEquivalentTo(0.0.asKiloVar)
+            evResult.getSoc should beEquivalentTo(100.0.asPercent)
+          case evcsResult: EvcsResult =>
+            evcsResult.getInputModel shouldBe evcsInputModel.getUuid
+            evcsResult.getTime shouldBe 12600.toDateTime
+            evcsResult.getP should beEquivalentTo(0.0.asKiloWatt)
+            evcsResult.getQ should beEquivalentTo(0.0.asKiloVar)
+          case unexpected =>
+            fail(s"Unexpected result $unexpected was found.")
+        }
+
+      // evC is departing at 14400
+      scheduler.expectMessage(Completion(evcsActivation, Some(14400)))
+
+      /* TICK 14400 */
+
+      // Request free lots
+      extEvData.sendExtMsg(new RequestEvcsFreeLots())
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
+
+      evService ! Activation(14400)
+
+      extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
+        // evB connected
+        // evC (departing at this tick) is not included
+        Map(evcsInputModel.getUuid -> int2Integer(1)).asJava
+      )
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      // Request departing EVs
+      extEvData.sendExtMsg(
+        new RequestDepartingEvs(
+          Map(evcsInputModel.getUuid -> List(evC.getUuid).asJava).asJava
+        )
+      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
+
+      evService ! Activation(14400)
+
+      extEvData.receiveTriggerQueue.take() shouldBe new ProvideDepartingEvs(
+        List[EvModel](evC.copyWith(20.0.asKiloWattHour)).asJava
+      )
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      // Send (empty) arrivals in order to update next tick
+      extEvData.provideArrivingEvs(
+        Map.empty[UUID, java.util.List[EvModel]].asJava,
+        Some(long2Long(18000)).toJava,
+      )
+      evService ! Activation(14400)
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      evcsActivation ! Activation(14400)
+
+      resultListener.expectNoMessage()
+
+      // evB is departing at 18000
+      scheduler.expectMessage(Completion(evcsActivation, Some(18000)))
+
+      /* TICK 18000 */
+
+      // Request free lots
+      extEvData.sendExtMsg(new RequestEvcsFreeLots())
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
+
+      evService ! Activation(18000)
+
+      extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
+        // No EVs connected
+        // evB (departing at this tick) is not included
+        Map(evcsInputModel.getUuid -> int2Integer(2)).asJava
+      )
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      // Request departing EVs
+      extEvData.sendExtMsg(
+        new RequestDepartingEvs(
+          Map(evcsInputModel.getUuid -> List(evB.getUuid).asJava).asJava
+        )
+      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
+
+      evService ! Activation(18000)
+
+      extEvData.receiveTriggerQueue.take() shouldBe new ProvideDepartingEvs(
+        List[EvModel](evB.copyWith(10.0.asKiloWattHour)).asJava
+      )
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      // Send (empty) arrivals in order to update next tick
+      extEvData.provideArrivingEvs(
+        Map.empty[UUID, java.util.List[EvModel]].asJava,
+        None.toJava,
+      )
+      evService ! Activation(18000)
+
+      scheduler.expectMessage(Completion(evService, None))
+
+      evcsActivation ! Activation(18000)
+
+      resultListener.expectNoMessage()
+
+      // No future arrivals planned, next activation: end of simulation
+      scheduler.expectMessage(Completion(evcsActivation, Some(48 * 3600)))
 
     }
 
