@@ -356,17 +356,17 @@ class EvcsModel private (
   }
 
   /** Distributes some set power across given EVs, taking into consideration the
-    * maximum charging power of EVs and charging station
+    * maximum charging power of EVs and charging station.
     *
     * @param currentTick
-    *   The current tick
+    *   The current tick.
     * @param evs
-    *   The collection of EVs to assign charging power to
+    *   The collection of EVs to assign charging power to.
     * @param setPower
-    *   The remaining power to assign to given EVs
+    *   The remaining power to assign to given EVs.
     * @return
     *   A sequence of EV model and their charging power, as well as the
-    *   remaining power that could not be assigned to given EVs
+    *   remaining power that could not be assigned to given EVs.
     */
   private def distributeChargingPower(
       currentTick: Long,
@@ -435,36 +435,17 @@ class EvcsModel private (
     }
   }
 
-  /** Adds zero power values for EVs that have not been assigned any charging
-    * power yet.
-    *
-    * @param evs
-    *   The complete set of EVs currently connected to the charging station.
-    * @param chargingPowers
-    *   The charging powers that have been determined, which might not contain
-    *   values for all EVs.
-    * @return
-    *   Charging powers for all EVs.
-    */
-  private def addMissingZeroPowerEntries(
-      evs: Seq[EvModelWrapper],
-      chargingPowers: Map[UUID, Power],
-  ): Map[UUID, Power] =
-    evs.map { ev =>
-      ev.uuid -> chargingPowers.getOrElse(ev.uuid, zeroKW)
-    }.toMap
-
   /** Calculates the tick at which the target energy (e.g. full on charging or
     * empty on discharging) is reached.
     *
     * @param ev
-    *   The EV to charge/discharge
+    *   The EV to charge/discharge.
     * @param power
-    *   The charging/discharging power
+    *   The charging/discharging power.
     * @param currentTick
-    *   The current simulation tick
+    *   The current simulation tick.
     * @return
-    *   The tick wat which the target is reached
+    *   The tick at which the target is reached.
     */
   private def determineNextEvent(
       ev: EvModelWrapper,
@@ -491,17 +472,6 @@ class EvcsModel private (
     )
   }
 
-  /** Handling requests that are not part of the standard participant protocol
-    *
-    * @param state
-    *   The current state
-    * @param ctx
-    *   The actor context that can be used to send replies
-    * @param msg
-    *   The received request
-    * @return
-    *   An updated state, or the same state provided as parameter
-    */
   override def handleRequest(
       state: EvcsState,
       ctx: ActorContext[ParticipantAgent.Request],
@@ -543,6 +513,25 @@ class EvcsModel private (
 
   /* HELPER METHODS */
 
+  /** Adds zero power values for EVs that have not been assigned any charging
+    * power yet.
+    *
+    * @param evs
+    *   The complete set of EVs currently connected to the charging station.
+    * @param chargingPowers
+    *   The charging powers that have been determined, which might not contain
+    *   values for all EVs.
+    * @return
+    *   A complete map of charging powers for all connected EVs.
+    */
+  private def addMissingZeroPowerEntries(
+      evs: Seq[EvModelWrapper],
+      chargingPowers: Map[UUID, Power],
+  ): Map[UUID, Power] =
+    evs.map { ev =>
+      ev.uuid -> chargingPowers.getOrElse(ev.uuid, zeroKW)
+    }.toMap
+
   /** @param ev
     *   the ev whose stored energy is to be checked
     * @return
@@ -553,10 +542,10 @@ class EvcsModel private (
     ev.storedEnergy >= (ev.eStorage - calcToleranceMargin(ev))
 
   /** @param ev
-    *   the ev whose stored energy is to be checked
+    *   The ev whose stored energy is to be checked.
     * @return
-    *   whether the given ev's stored energy is less than the minimal charged
-    *   energy allowed (plus a tolerance margin)
+    *   Whether the given ev's stored energy is less than the minimal charged
+    *   energy allowed (plus a tolerance margin).
     */
   private def isEmpty(ev: EvModelWrapper): Boolean =
     ev.storedEnergy <= (
@@ -564,10 +553,10 @@ class EvcsModel private (
     )
 
   /** @param ev
-    *   the ev whose stored energy is to be checked
+    *   The ev whose stored energy is to be checked.
     * @return
-    *   whether the given ev's stored energy is within +- tolerance of the
-    *   minimal charged energy allowed
+    *   Whether the given ev's stored energy is within +- tolerance of the
+    *   minimal charged energy allowed.
     */
   private def isInLowerMargin(ev: EvModelWrapper): Boolean = {
     val toleranceMargin = calcToleranceMargin(ev)

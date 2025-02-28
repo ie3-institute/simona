@@ -61,6 +61,10 @@ import java.util.UUID
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
+/** Tests the combined functionality of
+  * [[edu.ie3.simona.agent.participant2.ParticipantAgent]] with an [[EvcsModel]]
+  * and [[ExtEvDataService]].
+  */
 class EvcsModelIT
     extends ScalaTestWithActorTestKit
     with UnitSpec

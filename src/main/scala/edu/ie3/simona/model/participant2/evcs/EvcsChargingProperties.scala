@@ -9,23 +9,30 @@ package edu.ie3.simona.model.participant2.evcs
 import edu.ie3.datamodel.models.ElectricCurrentType
 import squants.Power
 
+/** Provides some relevant EVCS properties to [[EvcsChargingStrategy]].
+  */
 trait EvcsChargingProperties {
 
-  /** Charging station rated power
+  /** The rated active power of the charging station.
     */
   protected val pRated: Power
 
+  /** The type of current used by the charging station.
+    */
   val currentType: ElectricCurrentType
 
+  /** The lowest allowed SOC of all connected EVs. Below this threshold,
+    * charging is mandatory.
+    */
   val lowestEvSoc: Double
 
   /** Returns the maximum available charging power for an EV, which depends on
-    * ev and charging station limits for AC and DC current
+    * EV and charging station limits for AC and DC current.
     *
     * @param ev
-    *   ev for which the max charging power should be returned
+    *   The EV for which the max charging power should be returned.
     * @return
-    *   maximum charging power for the EV at this charging station
+    *   The maximum charging power for the EV at this charging station.
     */
   def getMaxAvailableChargingPower(
       ev: EvModelWrapper
@@ -36,7 +43,7 @@ trait EvcsChargingProperties {
       case ElectricCurrentType.DC =>
         ev.pRatedDc
     }
-    /* Limit the charging power to the minimum of ev's and evcs' permissible power */
+    /* Limit the charging power to the minimum of EV's and EVCS' permissible power */
     evPower.min(pRated)
   }
 }
