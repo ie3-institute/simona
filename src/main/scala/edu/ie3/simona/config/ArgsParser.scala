@@ -21,8 +21,7 @@ object ArgsParser extends LazyLogging {
       mainArgs: Array[String],
       configLocation: Option[String] = None,
       config: Option[TypesafeConfig] = None,
-  ) {
-  }
+  ) {}
 
   // build the config parser using scopt library
   private def buildParser: scoptOptionParser[Arguments] = {
@@ -100,7 +99,6 @@ object ArgsParser extends LazyLogging {
       ConfigFactory.parseString(
         s"""config = "${parsedArgs.configLocation.get.replace("\\", "\\\\")}""""
       )
-
 
     // note: this overrides the default config values provided in the config file!
     // THE ORDER OF THE CALLS MATTERS -> the later the call, the more "fallback" -> first config is always the primary one!
