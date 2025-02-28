@@ -21,16 +21,7 @@ object ArgsParser extends LazyLogging {
       mainArgs: Array[String],
       configLocation: Option[String] = None,
       config: Option[TypesafeConfig] = None,
-      selectedSubgrids: Option[String] = None,
-      selectedVoltLvls: Option[String] = None,
-      clusterType: Option[ClusterType] = None,
-      nodeHost: Option[String] = None,
-      nodePort: Option[String] = None,
-      seedAddress: Option[String] = None,
-      useLocalWorker: Option[Boolean] = None,
-      tArgs: Map[String, String] = Map.empty,
   ) {
-    val useCluster: Boolean = clusterType.isDefined
   }
 
   // build the config parser using scopt library
@@ -49,72 +40,6 @@ object ArgsParser extends LazyLogging {
         )
         .text("Location of the simona config file")
         .minOccurs(1)
-      opt[Map[String, String]]("tArgs")
-        .action((x, c) => c.copy(tArgs = x))
-        .text(
-          "Comma separated list (no whitespaces!) of substitution arguments for simona config."
-        )
-      opt[String](name = "subnets")
-        .action((value, args) => args.copy(selectedSubgrids = Some(value)))
-        .text("Comma separated list (no whitespaces!) of selected subnets.")
-      opt[String](name = "voltlevels")
-        .action((value, args) => args.copy(selectedVoltLvls = Some(value)))
-        .text("Comma separated list (no whitespaces!) of selected volt levels.")
-      opt[String]("cluster-type")
-        .action((value, args) =>
-          args.copy(clusterType = value.trim.toLowerCase match {
-            case "master" => Some(MasterNode)
-            case "seed"   => Some(SeedNode)
-            case _        => None
-          })
-        )
-        .text("If running as a cluster, specify master or seed node.")
-      opt[String]("node-host")
-        .action((value, args) => args.copy(nodeHost = Option(value)))
-        .validate(value =>
-          if (value.trim.isEmpty) failure("node-host cannot be empty")
-          else success
-        )
-        .text("Host used to run the remote actor system")
-      opt[String]("node-port")
-        .action((value, args) => args.copy(nodePort = Option(value)))
-        .validate(value =>
-          if (value.trim.isEmpty) failure("node-port cannot be empty")
-          else success
-        )
-        .text("Port used to run the remote actor system")
-      opt[String]("seed-address")
-        .action((value, args) => args.copy(seedAddress = Option(value)))
-        .validate(value =>
-          if (value.trim.isEmpty) failure("seed-address cannot be empty")
-          else success
-        )
-        .text(
-          "Comma separated list (no whitespaces!) of initial addresses used for the rest of the cluster to bootstrap"
-        )
-      opt[Boolean]("use-local-worker")
-        .action((value, args) => args.copy(useLocalWorker = Some(value)))
-        .text(
-          "Boolean determining whether to use a local worker. " +
-            "If cluster is NOT enabled this defaults to true and cannot be false. " +
-            "If cluster is specified then this defaults to false and must be explicitly set to true. " +
-            "NOTE: For cluster, this will ONLY be checked if cluster-type=master"
-        )
-
-      checkConfig(args =>
-        if (
-          args.useCluster && (args.nodeHost.isEmpty || args.nodePort.isEmpty || args.seedAddress.isEmpty)
-        )
-          failure(
-            "If using the cluster then node-host, node-port, and seed-address are required"
-          )
-        else if (args.useCluster && !args.useLocalWorker.getOrElse(true))
-          failure(
-            "If using the cluster then use-local-worker MUST be true (or unprovided)"
-          )
-        else success
-      )
-
     }
   }
 
@@ -141,17 +66,6 @@ object ArgsParser extends LazyLogging {
           Map("simona.inputDirectory" -> file.getAbsoluteFile.getParent).asJava
         )
       )
-  }
-
-  // sealed trait for cluster type
-  sealed trait ClusterType
-
-  private case object MasterNode extends ClusterType {
-    override def toString = "master"
-  }
-
-  private case object SeedNode extends ClusterType {
-    override def toString = "worker"
   }
 
   /** Prepare the config by parsing the provided program arguments
@@ -184,23 +98,15 @@ object ArgsParser extends LazyLogging {
 
     val argsConfig =
       ConfigFactory.parseString(
-        s"""config = "${parsedArgs.configLocation.get.replace("\\", "\\\\")}"
-           |simona.runtime_configuration {
-           |  selectedSubgrids = [${parsedArgs.selectedSubgrids.getOrElse("")}]
-           |  selectedVoltLvls = [${parsedArgs.selectedVoltLvls
-            .getOrElse("")}]
-           |}
-           |""".stripMargin
+        s"""config = "${parsedArgs.configLocation.get.replace("\\", "\\\\")}""""
       )
 
-    val tArgsSubstitution = ConfigFactory.parseMap(parsedArgs.tArgs.asJava)
 
     // note: this overrides the default config values provided in the config file!
     // THE ORDER OF THE CALLS MATTERS -> the later the call, the more "fallback" -> first config is always the primary one!
     // hence if you add some more program arguments, you have to add them before(!) your default config!
     // see https://github.com/lightbend/config#merging-config-trees for details on merging configs
     val config = argsConfig
-      .withFallback(tArgsSubstitution)
       .withFallback(parsedArgsConfig)
       .resolve()
 
