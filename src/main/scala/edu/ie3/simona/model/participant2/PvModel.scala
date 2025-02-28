@@ -17,7 +17,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -95,22 +94,18 @@ class PvModel private (
       state: PvState,
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
-  ): PvState = {
-    val weatherData = receivedData
+  ): PvState =
+    receivedData
       .collectFirst { case weatherData: WeatherData =>
         weatherData
       }
-      .getOrElse {
-        throw new CriticalFailureException(
-          s"Expected WeatherData, got $receivedData"
+      .map(newData =>
+        state.copy(
+          diffIrradiance = newData.diffIrr,
+          dirIrradiance = newData.dirIrr,
         )
-      }
-
-    state.copy(
-      diffIrradiance = weatherData.diffIrr,
-      dirIrradiance = weatherData.dirIrr,
-    )
-  }
+      )
+      .getOrElse(state)
 
   /** Calculate the active power behaviour of the model.
     *
