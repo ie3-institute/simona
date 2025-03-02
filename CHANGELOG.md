@@ -54,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implementing consideration of `NotifierConfig` into new participant [#1200](https://github.com/ie3-institute/simona/issues/1200)
 - Replace `LoadModel` with its new implementation [#1150](https://github.com/ie3-institute/simona/issues/1150)
 - Replace `FixedFeedInModel` with its new implementation [#1152](https://github.com/ie3-institute/simona/issues/1152)
+- Replace `PvModel` with its new implementation [#1149](https://github.com/ie3-institute/simona/issues/1149)
+- Replace `WecModel` with its new implementation [#1154](https://github.com/ie3-institute/simona/issues/1154)
+- Replace `StorageModel` with its new implementation [#1153](https://github.com/ie3-institute/simona/issues/1153)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -191,7 +194,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Check for runningHp when handling infeed to thermalGrid [#1167](https://github.com/ie3-institute/simona/issues/1167)
 - Send `FlexResult` to EM [#1202](https://github.com/ie3-institute/simona/issues/1202)
 - Fix test timeouts for all tests [#1222](https://github.com/ie3-institute/simona/issues/1222)
+- Fix handling of states in `ParticipantModelShell` [#1228](https://github.com/ie3-institute/simona/issues/1228)
+- Fix input data handling in `ParticipantModel` [#1237](https://github.com/ie3-institute/simona/issues/1237)
 - Improve logging for missing direct solar irradiance data in WeatherSourceWrapper at night. [#984](https://github.com/ie3-institute/simona/issues/984)
+- Fix handling of states in `ParticipantModelShell` [#1228](https://github.com/ie3-institute/simona/issues/1228)
+- Fix input data handling in `ParticipantModel` [#1237](https://github.com/ie3-institute/simona/issues/1237)
+
+### Removed
+- Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
 
 ## [3.0.0] - 2023-08-07
 

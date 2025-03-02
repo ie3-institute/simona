@@ -18,10 +18,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
 }
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.hp.HpAgent
-import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.agent.participant.storage.StorageAgent
-import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
@@ -185,7 +182,7 @@ class GridAgentController(
     *
     * @param participantsConfig
     *   Configuration information for participant models
-    * @param outputConfig
+    * @param outputConfigUtil
     *   Configuration information for output behaviour
     * @param participants
     *   Set of system participants to create agents for
@@ -384,33 +381,27 @@ class GridAgentController(
           maybeControllingEm,
         )
       case input: PvInput =>
-        buildPv(
+        buildParticipant(
           input,
           participantConfigUtil.getOrDefault[PvRuntimeConfig](
             input.getUuid
           ),
-          environmentRefs.primaryServiceProxy,
-          environmentRefs.weather,
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
           outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: WecInput =>
-        buildWec(
+        buildParticipant(
           input,
           participantConfigUtil.getOrDefault[WecRuntimeConfig](
             input.getUuid
           ),
-          environmentRefs.primaryServiceProxy,
-          environmentRefs.weather,
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
           outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: EvcsInput =>
@@ -453,17 +444,15 @@ class GridAgentController(
             )
         }
       case input: StorageInput =>
-        buildStorage(
+        buildParticipant(
           input,
           participantConfigUtil.getOrDefault[StorageRuntimeConfig](
             input.getUuid
           ),
-          environmentRefs.primaryServiceProxy,
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
           outputConfigUtil.getOrDefault(NotifierIdentifier.Storage),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: SystemParticipantInput =>
@@ -501,70 +490,6 @@ class GridAgentController(
       ),
     )
     gridAgentContext.watch(participant)
-
-    participant
-  }
-
-  /** Creates a pv agent and determines the needed additional information for
-    * later initialization of the agent.
-    *
-    * @param pvInput
-    *   Pv input model to derive information from
-    * @param modelConfiguration
-    *   User-provided configuration for this specific load model
-    * @param primaryServiceProxy
-    *   Reference to the primary data service proxy
-    * @param weatherService
-    *   Reference to the weather service actor
-    * @param simulationStartDate
-    *   The simulation time at which the simulation starts
-    * @param simulationEndDate
-    *   The simulation time at which the simulation ends
-    * @param resolution
-    *   Frequency of power flow calculations
-    * @param requestVoltageDeviationThreshold
-    *   Maximum deviation in p.u. of request voltages to be considered equal
-    * @param outputConfig
-    *   Configuration of the output behavior
-    * @param maybeControllingEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   The [[PvAgent]] 's [[ActorRef]]
-    */
-  private def buildPv(
-      pvInput: PvInput,
-      modelConfiguration: PvRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantAgent.Request] = {
-    val participant = gridAgentContext.toClassic
-      .simonaActorOf(
-        PvAgent.props(
-          environmentRefs.scheduler.toClassic,
-          ParticipantInitializeStateData(
-            pvInput,
-            modelConfiguration,
-            primaryServiceProxy,
-            Iterable(ActorWeatherService(weatherService)),
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            requestVoltageDeviationThreshold,
-            outputConfig,
-            maybeControllingEm,
-          ),
-          listener.map(_.toClassic),
-        ),
-        pvInput.getId,
-      )
-      .toTyped
-    introduceAgentToEnvironment(participant)
 
     participant
   }
@@ -688,131 +613,6 @@ class GridAgentController(
           listener.map(_.toClassic),
         ),
         hpInput.getId,
-      )
-      .toTyped
-    introduceAgentToEnvironment(participant)
-
-    participant
-  }
-
-  /** Creates a wec agent and determines the needed additional information for
-    * later initialization of the agent.
-    *
-    * @param wecInput
-    *   WEC input model to derive information from
-    * @param modelConfiguration
-    *   User-provided configuration for this specific wec model
-    * @param primaryServiceProxy
-    *   Reference to the primary data service proxy
-    * @param weatherService
-    *   Reference to the weather service actor
-    * @param simulationStartDate
-    *   The simulation time at which the simulation starts
-    * @param simulationEndDate
-    *   The simulation time at which the simulation ends
-    * @param resolution
-    *   Frequency of power flow calculations
-    * @param requestVoltageDeviationThreshold
-    *   Maximum deviation in p.u. of request voltages to be considered equal
-    * @param outputConfig
-    *   Configuration of the output behavior
-    * @param maybeControllingEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   The [[WecAgent]] 's [[ActorRef]]
-    */
-  private def buildWec(
-      wecInput: WecInput,
-      modelConfiguration: WecRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantAgent.Request] = {
-    val participant = gridAgentContext.toClassic
-      .simonaActorOf(
-        WecAgent.props(
-          environmentRefs.scheduler.toClassic,
-          ParticipantInitializeStateData(
-            wecInput,
-            modelConfiguration,
-            primaryServiceProxy,
-            Iterable(ActorWeatherService(weatherService)),
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            requestVoltageDeviationThreshold,
-            outputConfig,
-            maybeControllingEm,
-          ),
-          listener.map(_.toClassic),
-        ),
-        wecInput.getId,
-      )
-      .toTyped
-    introduceAgentToEnvironment(participant)
-
-    participant
-  }
-
-  /** Creates a storage agent and determines the needed additional information
-    * for later initialization of the agent.
-    *
-    * @param storageInput
-    *   Storage input model to derive information from
-    * @param modelConfiguration
-    *   User-provided configuration for this specific storage model
-    * @param primaryServiceProxy
-    *   Reference to the primary data service proxy
-    * @param simulationStartDate
-    *   The simulation time at which the simulation starts
-    * @param simulationEndDate
-    *   The simulation time at which the simulation ends
-    * @param resolution
-    *   Frequency of power flow calculations
-    * @param requestVoltageDeviationThreshold
-    *   Maximum deviation in p.u. of request voltages to be considered equal
-    * @param outputConfig
-    *   Configuration of the output behavior
-    * @param maybeControllingEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   The [[StorageAgent]] 's [[ActorRef]]
-    */
-  private def buildStorage(
-      storageInput: StorageInput,
-      modelConfiguration: StorageRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
-  ): ActorRef[ParticipantAgent.Request] = {
-    val participant = gridAgentContext.toClassic
-      .simonaActorOf(
-        StorageAgent.props(
-          environmentRefs.scheduler.toClassic,
-          ParticipantInitializeStateData(
-            storageInput,
-            modelConfiguration,
-            primaryServiceProxy,
-            None,
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            requestVoltageDeviationThreshold,
-            outputConfig,
-            maybeControllingEm,
-          ),
-          listener.map(_.toClassic),
-        ),
-        storageInput.getId,
       )
       .toTyped
     introduceAgentToEnvironment(participant)
