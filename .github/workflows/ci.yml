@@ -57,7 +57,7 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
           source scripts/get_versions.sh
-          bash scripts/version_check.sh
+          source scripts/version_check.sh
 
       - name: Setup Java
         uses: actions/setup-java@v4
