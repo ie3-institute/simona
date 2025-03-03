@@ -55,7 +55,9 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         env:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
-        run: bash scripts/version_check.sh
+        run: |
+          source scripts/get_versions.sh
+          bash scripts/version_check.sh
 
       - name: Setup Java
         uses: actions/setup-java@v4
