@@ -19,8 +19,12 @@ get_branch_version() {
     BRANCH_VERSION=$(./gradlew -q currentVersion)
     cd ..
 
-    echo "${BRANCH_NAME^^}_VERSION=$BRANCH_VERSION"
-    echo "${BRANCH_NAME^^}_VERSION=$BRANCH_VERSION" >> "$GITHUB_ENV"
+    VAR_NAME="${BRANCH_NAME^^}_VERSION"
+    eval "$VAR_NAME='$BRANCH_VERSION'"
+    eval "export $VAR_NAME"
+
+    echo "$VAR_NAME=$BRANCH_VERSION"
+    echo "$VAR_NAME=$BRANCH_VERSION" >> "$GITHUB_ENV"
 
     rm -rf "$DIR_NAME"
 }
