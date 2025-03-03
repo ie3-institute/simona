@@ -174,6 +174,7 @@ object CylindricalThermalStorage {
     *
     * @param input
     *   instance of [[CylindricalStorageInput]] this storage should be built
+    *   from
     * @param initialStoredEnergy
     *   initial stored energy
     * @return
