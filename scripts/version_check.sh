@@ -1,19 +1,36 @@
 #!/bin/bash
-
 set -euo pipefail
 
-# Ensure the script is executed from the repository root
 cd "$(dirname "$0")/.."
 
-PR_VERSION="${PR_VERSION}"
-DEV_VERSION="${DEV_VERSION}"
-MAIN_VERSION="${MAIN_VERSION}"
-BASE_BRANCH="${BASE_BRANCH}"
-
+echo "Fetching current version of PR..."
+export PR_VERSION=$(./gradlew -q currentVersion)
 echo "PR_VERSION=$PR_VERSION"
-echo "DEV_VERSION=$DEV_VERSION"
-echo "MAIN_VERSION=$MAIN_VERSION"
-echo "BASE_BRANCH=$BASE_BRANCH"
+echo "PR_VERSION=$PR_VERSION" >> "$GITHUB_ENV"
+
+get_branch_version() {
+    local BRANCH_NAME=$1
+    local DIR_NAME="${BRANCH_NAME}-branch"
+
+    echo "Cloning $BRANCH_NAME branch..."
+    git clone --depth 1 --branch "$BRANCH_NAME" "$REPO_URL" "$DIR_NAME"
+    cd "$DIR_NAME"
+
+    echo "Fetching version from $BRANCH_NAME branch..."
+    export BRANCH_VERSION=$(./gradlew -q currentVersion)
+    cd ..
+
+    echo "${BRANCH_NAME^^}_VERSION=$BRANCH_VERSION"
+    echo "${BRANCH_NAME^^}_VERSION=$BRANCH_VERSION" >> "$GITHUB_ENV"
+
+    rm -rf "$DIR_NAME"
+}
+
+
+get_branch_version "dev"
+get_branch_version "main"
+
+echo "Get Versions: OK!"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/branch_type.sh"
