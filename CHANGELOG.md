@@ -199,6 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improve logging for missing direct solar irradiance data in WeatherSourceWrapper at night. [#984](https://github.com/ie3-institute/simona/issues/984)
 - Fix handling of states in `ParticipantModelShell` [#1228](https://github.com/ie3-institute/simona/issues/1228)
 - Fix input data handling in `ParticipantModel` [#1237](https://github.com/ie3-institute/simona/issues/1237)
+- Reduce log spamming during night time due to missing direct solar irradiance data [#984](https://github.com/ie3-institute/simona/issues/984)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
