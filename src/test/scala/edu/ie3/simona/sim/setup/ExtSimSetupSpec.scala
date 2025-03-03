@@ -29,7 +29,7 @@ class ExtSimSetupSpec extends UnitSpec {
       .toMap
 
     "validate primary data connections without duplicates correctly" in {
-      val extPrimaryDataConnection: Set[ExtPrimaryDataConnection] = Set(
+      val extPrimaryDataConnection: Seq[ExtPrimaryDataConnection] = Seq(
         new ExtPrimaryDataConnection(toMap(Set(uuid1, uuid2)).asJava),
         new ExtPrimaryDataConnection(toMap(Set(uuid3, uuid4)).asJava),
         new ExtPrimaryDataConnection(toMap(Set(uuid5, uuid6)).asJava),
@@ -41,7 +41,7 @@ class ExtSimSetupSpec extends UnitSpec {
     }
 
     "throw exception while validate primary data connections if duplicates are found" in {
-      val extPrimaryDataConnection: Set[ExtPrimaryDataConnection] = Set(
+      val extPrimaryDataConnection: Seq[ExtPrimaryDataConnection] = Seq(
         new ExtPrimaryDataConnection(toMap(Set(uuid1, uuid2)).asJava),
         new ExtPrimaryDataConnection(toMap(Set(uuid3, uuid4)).asJava),
         new ExtPrimaryDataConnection(toMap(Set(uuid4, uuid5, uuid6)).asJava),

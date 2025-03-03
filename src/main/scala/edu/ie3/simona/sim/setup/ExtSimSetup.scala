@@ -41,18 +41,19 @@ object ExtSimSetup {
   /** Method to set up all external simulations defined via the given
     * [[ExtLinkInterface]]s.
     * @param extLinks
-    *   interfaces that hold information regarding external simulations
+    *   Interfaces that hold information regarding external simulations.
     * @param args
-    *   the main args the simulation is started with
+    *   The main args the simulation is started with.
     * @param context
-    *   the actor context of this actor system
+    *   The actor context of this actor system.
     * @param scheduler
-    *   the scheduler of simona
+    *   The scheduler of simona.
     * @param simonaConfig
-    *   the config
+    *   The config.
     * @return
-    *   an [[ExtSimSetupData]] that holds information regarding the external
-    *   data connections as well as the actor references of the created services
+    *   An [[ExtSimSetupData]] that holds information regarding the external
+    *   data connections as well as the actor references of the created
+    *   services.
     */
   def setupExtSim(
       extLinks: List[ExtLinkInterface],
@@ -107,19 +108,19 @@ object ExtSimSetup {
 
   /** Method for connecting a given external simulation.
     * @param extSimulation
-    *   to connect
+    *   To connect.
     * @param extSimSetupData
-    *   that contains information about all external simulations
+    *   That contains information about all external simulations.
     * @param context
-    *   the actor context of this actor system
+    *   The actor context of this actor system.
     * @param scheduler
-    *   the scheduler of simona
+    *   The scheduler of simona.
     * @param extSimAdapterData
-    *   the adapter data for the external simulation
+    *   The adapter data for the external simulation.
     * @param simonaConfig
-    *   the config
+    *   The config.
     * @return
-    *   an updated [[ExtSimSetupData]]
+    *   An updated [[ExtSimSetupData]].
     */
   private[setup] def connect(
       extSimulation: ExtSimulation,
@@ -133,7 +134,7 @@ object ExtSimSetup {
     implicit val extSimAdapter: ClassicRef = extSimAdapterData.getAdapter
 
     // the data connections this external simulation provides
-    val connections = extSimulation.getDataConnections.asScala.toSet
+    val connections = extSimulation.getDataConnections.asScala
 
     log.info(
       s"Setting up external simulation `${extSimulation.getSimulationName}` with the following data connections: ${connections.map(_.getClass).mkString(",")}."
@@ -167,30 +168,30 @@ object ExtSimSetup {
     }
 
     // validate data
-    validatePrimaryData(updatedSetupData.extPrimaryDataServices.keySet)
+    validatePrimaryData(updatedSetupData.primaryDataConnections)
 
     updatedSetupData
   }
 
   /** Method for setting up an external service, that provides input data.
     * @param extInputDataConnection
-    *   the data connection
+    *   the data connection.
     * @param props
-    *   function to create the service
+    *   Function to create the service.
     * @param name
-    *   of the actor
+    *   Of the actor.
     * @param initData
-    *   data to initialize the service
+    *   Data to initialize the service.
     * @param context
-    *   the actor context of this actor system
+    *   The actor context of this actor system.
     * @param scheduler
-    *   the scheduler of simona
+    *   The scheduler of simona.
     * @param extSimAdapter
-    *   the adapter for the external simulation
+    *   The adapter for the external simulation.
     * @tparam T
-    *   type of [[ExtInputDataConnection]]
+    *   Type of [[ExtInputDataConnection]].
     * @return
-    *   the reference to the service
+    *   The reference to the service.
     */
   private[setup] def setupInputService[T <: ExtInputDataConnection](
       extInputDataConnection: T,
@@ -227,17 +228,17 @@ object ExtSimSetup {
 
   /** Method for validating the external primary data connections.
     * @param extPrimaryDataConnection
-    *   all external primary data connections
+    *   All external primary data connections.
     */
   private[setup] def validatePrimaryData(
-      extPrimaryDataConnection: Set[ExtPrimaryDataConnection]
+      extPrimaryDataConnection: Seq[ExtPrimaryDataConnection]
   ): Unit = {
     // check primary data for duplicate assets
     val duplicateAssets: Iterable[UUID] =
-      extPrimaryDataConnection.toSeq
+      extPrimaryDataConnection
         .flatMap(_.getPrimaryDataAssets.asScala)
         .groupBy(identity)
-        .collect { case (uuid, Seq(_, _, _*)) => uuid }
+        .collect { case (uuid, values) if values.size > 1 => uuid }
 
     if (duplicateAssets.nonEmpty) {
       throw ServiceException(
