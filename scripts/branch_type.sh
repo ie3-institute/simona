@@ -33,4 +33,5 @@ else
   exit 1
 fi
 
+echo "========================="
 echo "Branch type determined: $branch_type"

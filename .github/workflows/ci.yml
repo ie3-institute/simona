@@ -54,6 +54,8 @@ jobs:
           bash scripts/branch_type.sh
 
       - name: Get Versions
+        env:
+          REPO_URL: ${{ github.repositoryUrl }}
         if: ${{ github.event_name == 'pull_request' }}
         run: bash scripts/get_versions.sh
 
@@ -61,7 +63,6 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         env:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
-          REPO_URL: ${{ github.repositoryUrl }}
         run: bash scripts/version_check.sh
 
       - name: Setup Java
