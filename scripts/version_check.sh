@@ -66,3 +66,6 @@ else
   echo "Base branch is '$BASE_BRANCH'; version check skipped"
   exit 0
 fi
+
+rm -f versions.env
+echo "Version Check: OK!"
