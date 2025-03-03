@@ -54,10 +54,11 @@ jobs:
           bash scripts/branch_type.sh
 
       - name: Get Versions
-        env:
-          REPO_URL: ${{ github.repositoryUrl }}
         if: ${{ github.event_name == 'pull_request' }}
-        run: bash scripts/get_versions.sh
+        run: |
+          REPO_URL=$(git config --get remote.origin.url)
+          echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
+          bash scripts/get_versions.sh
 
       - name: Version Check
         if: ${{ github.event_name == 'pull_request' }}
