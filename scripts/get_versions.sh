@@ -6,7 +6,6 @@ cd "$(dirname "$0")/.."
 echo "Fetching current version of PR..."
 PR_VERSION=$(./gradlew -q currentVersion)
 echo "PR_VERSION=$PR_VERSION"
-echo "PR_VERSION=$PR_VERSION" >> versions.env
 echo "PR_VERSION=$PR_VERSION" >> "$GITHUB_ENV"
 
 get_branch_version() {
@@ -21,7 +20,6 @@ get_branch_version() {
     cd ..
 
     echo "${BRANCH_NAME^^}_VERSION=$BRANCH_VERSION"
-    echo "${BRANCH_NAME^^}_VERSION=$BRANCH_VERSION" >> versions.env
     echo "${BRANCH_NAME^^}_VERSION=$BRANCH_VERSION" >> "$GITHUB_ENV"
 
     rm -rf "$DIR_NAME"

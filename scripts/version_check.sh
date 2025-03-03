@@ -3,8 +3,13 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source "$SCRIPT_DIR/branch_type.sh"
+echo "========================="
+echo "LOADED ENV VARIABLES:"
+echo "PR_VERSION: $PR_VERSION"
+echo "DEV_VERSION: $DEV_VERSION"
+echo "MAIN_VERSION: $MAIN_VERSION"
+echo "BASE_BRANCH: $BASE_BRANCH"
+echo "========================="
 
 semver_gt() {
   IFS='.' read -r major1 minor1 patch1 <<< "$1"
@@ -67,5 +72,4 @@ else
   exit 0
 fi
 
-rm -f versions.env
 echo "Version Check: OK!"

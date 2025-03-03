@@ -51,14 +51,15 @@ jobs:
           
           echo "REPO_URL=$(git config --get remote.origin.url)" >> $GITHUB_ENV
 
+      - name: Get Versions
+        if: ${{ github.event_name == 'pull_request' }}
+        run: bash scripts/get_versions.sh
+
       - name: Version Check
         if: ${{ github.event_name == 'pull_request' }}
         env:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
-        run: |
-          bash scripts/get_versions.sh
-          source versions.env
-          bash scripts/version_check.sh
+        run: bash scripts/version_check.sh
 
       - name: Setup Java
         uses: actions/setup-java@v4
