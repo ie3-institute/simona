@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "Fetching current version of PR..."
-PR_VERSION=$(./gradlew -q currentVersion)
+export PR_VERSION=$(./gradlew -q currentVersion)
 echo "PR_VERSION=$PR_VERSION"
 echo "PR_VERSION=$PR_VERSION" >> "$GITHUB_ENV"
 
@@ -15,7 +15,7 @@ get_branch_version() {
     cd "$DIR_NAME"
 
     echo "Fetching version from $BRANCH_NAME branch..."
-    BRANCH_VERSION=$(./gradlew -q currentVersion)
+    export BRANCH_VERSION=$(./gradlew -q currentVersion)
     cd ..
 
     echo "${BRANCH_NAME^^}_VERSION=$BRANCH_VERSION"
