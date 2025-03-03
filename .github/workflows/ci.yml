@@ -49,38 +49,15 @@ jobs:
           
           ./gradlew checkBranchName -PbranchName="$branch_name"
 
-      - name: Get Versions
-        if: ${{ github.event_name == 'pull_request' }}
-        run: |
-          REPO_URL="https://github.com/ie3-institute/simona.git"
-          
-          PR_VERSION=$(./gradlew -q currentVersion)
-          echo "PR_VERSION=$PR_VERSION"
-          echo "PR_VERSION=$PR_VERSION" >> $GITHUB_ENV
-          
-          #DEV-Version
-          git clone --depth 1 --branch dev "$REPO_URL" dev-branch
-          cd dev-branch
-          DEV_VERSION=$(./gradlew -q currentVersion)
-          cd ..
-          echo "DEV_VERSION=$DEV_VERSION"
-          echo "DEV_VERSION=$DEV_VERSION" >> $GITHUB_ENV
-          rm -rf dev-branch
-          
-          #MAIN-Version
-          git clone --depth 1 --branch main "$REPO_URL" main-branch
-          cd main-branch
-          MAIN_VERSION=$(./gradlew -q currentVersion)
-          cd ..
-          echo "MAIN_VERSION=$MAIN_VERSION"
-          echo "MAIN_VERSION=$MAIN_VERSION" >> $GITHUB_ENV
-          rm -rf main-branch
-
       - name: Version Check
         if: ${{ github.event_name == 'pull_request' }}
         env:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
-        run: bash scripts/version_check.sh
+        run: |
+          echo "REPO_URL=$(git config --get remote.origin.url)" >> $GITHUB_ENV
+          
+          bash scripts/get_versions.sh
+          bash scripts/version_check.sh
 
       - name: Setup Java
         uses: actions/setup-java@v4

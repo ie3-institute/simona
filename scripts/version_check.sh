@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e  # Exit on error
+set -euo pipefail
 
 # Ensure the script is executed from the repository root
 cd "$(dirname "$0")/.."
