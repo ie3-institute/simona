@@ -261,8 +261,7 @@ class SimonaStandaloneSetup(
       )
 
   override def resultEventListener(
-      context: ActorContext[_],
-      extSimSetupData: ExtSimSetupData,
+      context: ActorContext[_]
   ): Seq[ActorRef[ResultEventListener.Request]] = {
     // append ResultEventListener as well to write raw output files
     Seq(
