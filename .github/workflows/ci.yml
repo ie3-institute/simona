@@ -45,6 +45,8 @@ jobs:
             branch_name="${branch_name#refs/heads/}"
           fi
           
+          export branch_name
+          
           echo "branch_name=$branch_name" >> $GITHUB_ENV
           
           ./gradlew checkBranchName -PbranchName="$branch_name"
