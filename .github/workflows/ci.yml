@@ -49,7 +49,7 @@ jobs:
           
           ./gradlew checkBranchName -PbranchName="$branch_name"
           
-          bash /scripts/branch_type.sh
+          bash scripts/branch_type.sh
 
       - name: Get Versions
         if: ${{ github.event_name == 'pull_request' }}
