@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import squants.{Energy, Power, Seconds}
 
 import java.util.UUID
@@ -26,11 +27,9 @@ import java.util.UUID
   *   Operation time
   * @param bus
   *   Thermal bus input
-  * @param minEnergyThreshold
-  *   Minimum permissible energy stored in the storage
   * @param maxEnergyThreshold
   *   Maximum permissible energy stored in the storage
-  * @param chargingPower
+  * @param pThermalMax
   *   Thermal power, that can be charged / discharged
   */
 abstract class ThermalStorage(
@@ -39,23 +38,20 @@ abstract class ThermalStorage(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-    minEnergyThreshold: Energy,
     maxEnergyThreshold: Energy,
-    chargingPower: Power,
+    pThermalMax: Power,
 ) {
 
   /** In order to avoid faulty flexibility options, we want to avoid offering
     * charging/discharging that could last less than one second.
     */
-  private val toleranceMargin = chargingPower * Seconds(1d)
+  private val toleranceMargin = pThermalMax * Seconds(1d)
 
   def getUuid: UUID = uuid
 
-  def getMinEnergyThreshold: Energy = minEnergyThreshold
-
   def getMaxEnergyThreshold: Energy = maxEnergyThreshold
 
-  def getChargingPower: Power = chargingPower
+  def getpThermalMax: Power = pThermalMax
 
   def startingState: ThermalStorageState
 
@@ -63,7 +59,7 @@ abstract class ThermalStorage(
     energy > (maxEnergyThreshold - toleranceMargin)
 
   def isEmpty(energy: Energy): Boolean =
-    energy < (minEnergyThreshold + toleranceMargin)
+    energy < (zeroKWh + toleranceMargin)
 
   def updateState(
       tick: Long,
