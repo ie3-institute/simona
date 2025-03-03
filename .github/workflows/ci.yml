@@ -57,6 +57,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: |
           REPO_URL=$(git config --get remote.origin.url)
+          export REPO_URL
           echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
           bash scripts/get_versions.sh
 
