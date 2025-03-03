@@ -48,14 +48,14 @@ jobs:
           echo "branch_name=$branch_name" >> $GITHUB_ENV
           
           ./gradlew checkBranchName -PbranchName="$branch_name"
+          
+          echo "REPO_URL=$(git config --get remote.origin.url)" >> $GITHUB_ENV
 
       - name: Version Check
         if: ${{ github.event_name == 'pull_request' }}
         env:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
-        run: |
-          echo "REPO_URL=$(git config --get remote.origin.url)" >> $GITHUB_ENV
-          
+        run: |          
           bash scripts/get_versions.sh
           bash scripts/version_check.sh
 
