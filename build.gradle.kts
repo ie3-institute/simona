@@ -1,189 +1,190 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer
 
 plugins {
-  id 'java' // java support
-  id 'scala' // scala support
-  id 'signing'
-  id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '6.25.0'// code format
-  id "com.github.ben-manes.versions" version '0.52.0'
-  id "de.undercouch.download" version "5.6.0" // downloads plugin
-  id "kr.motd.sphinx" version "2.10.1" // documentation generation
-  id "com.github.johnrengelman.shadow" version "8.1.1" // fat jar
-  id "org.sonarqube" version "6.0.1.5171" // sonarqube
-  id "org.scoverage" version "8.1" // scala code coverage scoverage
-  id 'org.hidetake.ssh' version '2.11.2'
-  id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
-  id "application"
+  id("java") // java support
+  id("scala") // scala support
+  id("signing")
+  id("maven-publish") // publish to a maven repo (local or mvn central, has to be defined)
+  id("com.diffplug.spotless") version "6.25.0"// code format
+  id("com.github.ben-manes.versions") version "0.52.0"
+  id("de.undercouch.download") version "5.6.0" // downloads plugin
+  id("kr.motd.sphinx") version "2.10.1" // documentation generation
+  id("com.github.johnrengelman.shadow") version "8.1.1" // fat jar
+  id("org.sonarqube") version "6.0.1.5171" // sonarqube
+  id("org.scoverage") version "8.1" // scala code coverage scoverage
+  id("org.hidetake.ssh") version "2.11.2"
+  id("net.thauvin.erik.gradle.semver") version "1.0.4" // semantic versioning
+  id("application")
 }
 
-ext {
-  //version (changing these should be considered thoroughly!)
-  javaVersion = JavaVersion.VERSION_17
+//version (changing these should be considered thoroughly!)
+extra["javaVersion"] = JavaVersion.VERSION_17
+val javaVersion: JavaVersion by extra
 
-  scalaVersion = '2.13'
-  scalaBinaryVersion = '2.13.16'
-  pekkoVersion = '1.1.3'
-  jtsVersion = '1.20.0'
-  confluentKafkaVersion = '7.4.0'
-  scapegoatVersion = '3.1.5'
+val scalaVersion = 2.13
+// Used in gradle/scripts/scoverage.gradle
+extra["scalaBinaryVersion"] = "2.13.16"
+val scalaBinaryVersion: String by extra
 
-  junitVersion = '1.12.0'
-  testContainerVersion = '0.41.8'
+val pekkoVersion = "1.1.3"
+val jtsVersion = "1.20.0"
+val confluentKafkaVersion = "7.4.0"
+val scapegoatVersion = "3.1.5"
 
-  scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
-}
+val junitVersion = "1.12.0"
+val testContainerVersion = "0.41.8"
 
-group = 'com.github.ie3-institute'
-description = 'simona'
+val scriptsLocation = "gradle" + File.separator + "scripts" + File.separator // location of script plugins
+
+group = "com.github.ie3-institute"
+description = "simona"
 
 java {
   sourceCompatibility = javaVersion
   targetCompatibility = javaVersion
 }
 
-apply from: scriptsLocation + 'spotless.gradle'
-apply from: scriptsLocation + 'checkJavaVersion.gradle'
-apply from: scriptsLocation + 'documentation.gradle' // documentation tasks + configuration
-apply from: scriptsLocation + 'tests.gradle' // tasks for tests
-apply from: scriptsLocation + 'sonarqube.gradle' // sonarqube config
-apply from: scriptsLocation + 'scoverage.gradle' // scoverage scala code coverage
-apply from: scriptsLocation + 'deploy.gradle'
-apply from: scriptsLocation + 'semVer.gradle'
-apply from: scriptsLocation + 'mavenCentralPublish.gradle'
-apply from: scriptsLocation + 'branchName.gradle' // checks naming scheme of branches
+apply(from = scriptsLocation + "spotless.gradle")
+apply(from = scriptsLocation + "checkJavaVersion.gradle")
+apply(from = scriptsLocation + "documentation.gradle") // documentation tasks + configuration
+apply(from = scriptsLocation + "tests.gradle") // tasks for tests
+apply(from = scriptsLocation + "sonarqube.gradle") // sonarqube config
+apply(from = scriptsLocation + "scoverage.gradle") // scoverage scala code coverage
+apply(from = scriptsLocation + "deploy.gradle")
+apply(from = scriptsLocation + "semVer.gradle")
+apply(from = scriptsLocation + "mavenCentralPublish.gradle")
+apply(from = scriptsLocation + "branchName.gradle") // checks naming scheme of branches
 
-configurations {
-  scalaCompilerPlugin
-}
+val scalaCompilerPlugin = configurations.create("scalaCompilerPlugin")
 
 repositories {
-  mavenCentral() // searches in Sonatype's central repository
-  maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots' } // sonatype snapshot repo
-  maven { url 'https://packages.confluent.io/maven' } // confluent repo (kafka)
+  mavenCentral() // searches in Sonatype"s central repository
+  maven("https://s01.oss.sonatype.org/content/repositories/snapshots") // sonatype snapshot repo
+  maven("https://packages.confluent.io/maven") // confluent repo (kafka)
 }
 
 dependencies {
 
   // ie³ internal repository
-  implementation('com.github.ie3-institute:PowerSystemUtils:2.2.1') {
-    exclude group: 'org.apache.logging.log4j'
-    exclude group: 'org.slf4j'
+  implementation("com.github.ie3-institute:PowerSystemUtils:2.2.1") {
+    exclude(group = "org.apache.logging.log4j")
+    exclude(group = "org.slf4j")
     /* Exclude our own nested dependencies */
-    exclude group: 'com.github.ie3-institute'
+    exclude(group = "com.github.ie3-institute")
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:5.1.0') {
-    exclude group: 'org.apache.logging.log4j'
-    exclude group: 'org.slf4j'
+  implementation("com.github.ie3-institute:PowerSystemDataModel:5.1.0") {
+    exclude(group = "org.apache.logging.log4j")
+    exclude(group = "org.slf4j")
     /* Exclude our own nested dependencies */
-    exclude group: 'com.github.ie3-institute'
+    exclude(group = "com.github.ie3-institute")
   }
-  implementation('com.github.ie3-institute:powerflow:0.2') {
-    exclude group: 'org.apache.logging.log4j'
-    exclude group: 'org.slf4j'
+  implementation("com.github.ie3-institute:powerflow:0.2") {
+    exclude(group = "org.apache.logging.log4j")
+    exclude(group = "org.slf4j")
     /* Exclude our own nested dependencies */
-    exclude group: 'edu.ie3'
+    exclude(group = "edu.ie3")
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.6.0') {
-    exclude group: 'org.apache.logging.log4j'
-    exclude group: 'org.slf4j'
+  implementation("com.github.ie3-institute:simonaAPI:0.6.0") {
+    exclude(group = "org.apache.logging.log4j")
+    exclude(group = "org.slf4j")
     /* Exclude our own nested dependencies */
-    exclude group: 'edu.ie3'
+    exclude(group = "edu.ie3")
   }
 
   /* logging */
-  implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.17"
+  implementation("com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5") // pekko scala logging
+  implementation("ch.qos.logback:logback-classic:1.5.17")
 
   /* testing */
   // scalatest & junit
-  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.19"
-  testImplementation "org.junit.platform:junit-platform-launcher:${junitVersion}"
-  testRuntimeOnly "org.junit.platform:junit-platform-engine:${junitVersion}"
-  testRuntimeOnly "org.scalatestplus:junit-5-11_${scalaVersion}:3.2.19.0"
+  testImplementation("org.scalatest:scalatest_${scalaVersion}:3.2.19")
+  testImplementation("org.junit.platform:junit-platform-launcher:${junitVersion}")
+  testRuntimeOnly("org.junit.platform:junit-platform-engine:${junitVersion}")
+  testRuntimeOnly("org.scalatestplus:junit-5-11_${scalaVersion}:3.2.19.0")
 
   // mocking framework
-  testImplementation 'org.mockito:mockito-core:5.15.2'
-  testImplementation "org.scalatestplus:mockito-3-4_${scalaVersion}:3.2.10.0"
+  testImplementation("org.mockito:mockito-core:5.15.2")
+  testImplementation("org.scalatestplus:mockito-3-4_${scalaVersion}:3.2.10.0")
 
   // pekko
-  testImplementation "org.apache.pekko:pekko-testkit_${scalaVersion}:${pekkoVersion}"
-  testImplementation "org.apache.pekko:pekko-actor-testkit-typed_${scalaVersion}:${pekkoVersion}"
+  testImplementation("org.apache.pekko:pekko-testkit_${scalaVersion}:${pekkoVersion}")
+  testImplementation("org.apache.pekko:pekko-actor-testkit-typed_${scalaVersion}:${pekkoVersion}")
 
   // testcontainers
-  testImplementation "com.dimafeng:testcontainers-scala-scalatest_${scalaVersion}:${testContainerVersion}"
-  testImplementation "com.dimafeng:testcontainers-scala-postgresql_${scalaVersion}:${testContainerVersion}"
-  testImplementation "com.dimafeng:testcontainers-scala-kafka_${scalaVersion}:${testContainerVersion}"
+  testImplementation("com.dimafeng:testcontainers-scala-scalatest_${scalaVersion}:${testContainerVersion}")
+  testImplementation("com.dimafeng:testcontainers-scala-postgresql_${scalaVersion}:${testContainerVersion}")
+  testImplementation("com.dimafeng:testcontainers-scala-kafka_${scalaVersion}:${testContainerVersion}")
 
   /* --- Scala libs --- */
   /* CORE Scala */
-  implementation "org.scala-lang:scala-library:${scalaBinaryVersion}"
+  implementation("org.scala-lang:scala-library:${scalaBinaryVersion}")
 
   /* CORE Pekko */
-  implementation "org.apache.pekko:pekko-actor_${scalaVersion}:${pekkoVersion}"
-  implementation "org.apache.pekko:pekko-actor-typed_${scalaVersion}:${pekkoVersion}"
-  implementation "org.apache.pekko:pekko-slf4j_${scalaVersion}:${pekkoVersion}"
+  implementation("org.apache.pekko:pekko-actor_${scalaVersion}:${pekkoVersion}")
+  implementation("org.apache.pekko:pekko-actor-typed_${scalaVersion}:${pekkoVersion}")
+  implementation("org.apache.pekko:pekko-slf4j_${scalaVersion}:${pekkoVersion}")
 
   /* config */
-  implementation 'com.typesafe:config:1.4.3'
-  implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
-  implementation "com.github.pureconfig:pureconfig_${scalaVersion}:0.17.8"
+  implementation("com.typesafe:config:1.4.3")
+  implementation("com.github.scopt:scopt_${scalaVersion}:4.1.0") // cmd args parser
+  implementation("com.github.pureconfig:pureconfig_${scalaVersion}:0.17.8")
 
   // JTS
   implementation ("org.locationtech.jts:jts-core:${jtsVersion}"){
-    exclude group: 'junit', module: 'junit'
+    exclude(group = "junit", module = "junit")
   }
-  implementation "org.locationtech.jts.io:jts-io-common:${jtsVersion}"
+  implementation("org.locationtech.jts.io:jts-io-common:${jtsVersion}")
 
   /* Scala compiler plugin for static code analysis */
-  implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
-  scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
+  implementation("com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}")
+  scalaCompilerPlugin("com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}")
 
   /* Kafka */
-  implementation "org.apache.kafka:kafka-clients:${confluentKafkaVersion}-ccs"
-  implementation "io.confluent:kafka-streams-avro-serde:${confluentKafkaVersion}"
-  implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:4.1.2"
+  implementation("org.apache.kafka:kafka-clients:${confluentKafkaVersion}-ccs")
+  implementation("io.confluent:kafka-streams-avro-serde:${confluentKafkaVersion}")
+  implementation("com.sksamuel.avro4s:avro4s-core_${scalaVersion}:4.1.2")
 
-  implementation 'org.apache.commons:commons-math3:3.6.1' // apache commons math3
-  implementation 'org.apache.poi:poi-ooxml:5.4.0' // used for FilenameUtils
-  implementation 'javax.measure:unit-api:2.2'
-  implementation 'tech.units:indriya:2.2.2' // quantities
-  implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
-  implementation 'org.apache.commons:commons-csv:1.13.0'
-  implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
-  implementation 'de.lmu.ifi.dbs.elki:elki:0.7.5' // Statistics (for random load model)
-  implementation 'org.jgrapht:jgrapht-core:1.5.2'
+  implementation("org.apache.commons:commons-math3:3.6.1") // apache commons math3
+  implementation("org.apache.poi:poi-ooxml:5.4.0") // used for FilenameUtils
+  implementation("javax.measure:unit-api:2.2")
+  implementation("tech.units:indriya:2.2.2") // quantities
+  implementation("org.typelevel:squants_${scalaVersion}:1.8.3")
+  implementation("org.apache.commons:commons-csv:1.13.0")
+  implementation("org.scalanlp:breeze_${scalaVersion}:2.1.0") // scientific calculations (http://www.scalanlp.org/)
+  implementation("de.lmu.ifi.dbs.elki:elki:0.7.5") // Statistics (for random load model)
+  implementation("org.jgrapht:jgrapht-core:1.5.2")
 }
 
-tasks.withType(JavaCompile) {
-  options.encoding = 'UTF-8'
+tasks.withType<JavaCompile> {
+  options.encoding = "UTF-8"
 }
 
-jar {
+val mainClass = "edu.ie3.simona.main.RunSimonaStandalone"
+tasks.jar {
   manifest {
-    attributes(
-        'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
-        )
+    attributes( "Main-Class" to mainClass )
   }
 }
 
-// Run with  ./gradlew run --args='--config /path/to/simona.conf'
+// Run with  ./gradlew run --args="--config /path/to/simona.conf"
 application {
-  mainClassName = jar.manifest.attributes.get('Main-Class')
+  mainClass = mainClass
 }
 
+
 //////////////////////////////////////////////////////////////////////
-// Build pekko'able fat jar using the gradle shadow plugin
+// Build pekko"able fat jar using the gradle shadow plugin
 // see http://www.sureshpw.com/2015/10/building-akka-bundle-with-all.html
 // and https://github.com/akka/akka/issues/24248
 //////////////////////////////////////////////////////////////////////
-shadowJar {
-  transform(AppendingTransformer) {
-    resource = 'reference.conf'
+tasks.withType<ShadowJar>() {
+  transform(AppendingTransformer::class.java) {
+    resource = "reference.conf"
   }
-  zip64 = true
-  archiveBaseName.set('simona')
+  isZip64 = true
+  archiveBaseName.set("simona")
 }
 
 
@@ -192,32 +193,32 @@ shadowJar {
 // https://github.com/sksamuel/scapegoat
 // using compileScala instead of tasks.withType(ScalaCompile) prevents applying scapegoat to scala test classes
 // see https://docs.gradle.org/current/userguide/scala_plugin.html#sec:configure_scala_classpath for details
-tasks.withType(ScalaCompile) {
-  scalaCompileOptions.additionalParameters = [
-    "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
+tasks.withType<ScalaCompile>() {
+  scalaCompileOptions.additionalParameters = listOf(
+    "-Xplugin:" + scalaCompilerPlugin.asPath,
     "-P:scapegoat:dataDir:" + buildDir + "/reports/scapegoat/src/",
     "-P:scapegoat:disabledInspections:VariableShadowing",
     "-P:scapegoat:ignoredFiles:.*/SimonaConfig.scala" // see scapegoat-sbt page for this param
-  ]
+  )
   // increasing stack size required for our pureconfig configuration
   // see: https://github.com/pureconfig/pureconfig/issues/481#issuecomment-647760554
-  scalaCompileOptions.forkOptions.jvmArgs = [
-    '-Xss2m',
-    '-XX:-UseGCOverheadLimit'
-  ]
+  scalaCompileOptions.forkOptions.jvmArgs = listOf(
+    "-Xss2m",
+    "-XX:-UseGCOverheadLimit"
+  )
 }
 
 // separate scapegoat report for test classes
-compileTestScala {
-  scalaCompileOptions.additionalParameters = [
-    "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
+tasks.withType<org.gradle.api.tasks.scala.ScalaCompile>().configureEach {
+  scalaCompileOptions.additionalParameters = listOf(
+    "-Xplugin:" + scalaCompilerPlugin.asPath,
     "-P:scapegoat:dataDir:" + buildDir + "/reports/scapegoat/testsrc/",
     "-P:scapegoat:disabledInspections:VariableShadowing"
-  ]
+  )
 }
 
-task printVersion {
+task("printVersion") {
   doLast {
-    println project.version
+    println(project.version)
   }
 }
