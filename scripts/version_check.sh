@@ -41,35 +41,35 @@ semver_gt() {
 if [ "$BASE_BRANCH" = "dev" ]; then
   echo "PR into dev => applying dev rules"
   if [ "$DEV_VERSION" = "$PR_VERSION" ]; then
-    echo "OK: dev version == PR version"
+    echo "OK: PR version ($PR_VERSION) matches the current dev version ($DEV_VERSION)."
     exit 0
   else
     if [ "$MAIN_VERSION" = "$DEV_VERSION" ]; then
       if semver_gt "$PR_VERSION" "$DEV_VERSION"; then
-        echo "Bump dev"
+        echo "OK: Increasing working version in dev from $DEV_VERSION to $PR_VERSION"
         exit 0
       else
-        echo "FAIL: dev == main, but PR version is NOT greater than dev."
+        echo "FAIL: Release and working version are $MAIN_VERSION, but PR is not increasing the working version in dev"
         exit 1
       fi
     else
-      echo "FAIL: dev != PR version, and dev != main."
+      echo "FAIL: PR version ($PR_VERSION) does not match the current dev version ($DEV_VERSION)."
+      echo "Regular PRs must not update the working version. The working version should only change in controlled updates."
       exit 1
     fi
   fi
 
 elif [ "$BASE_BRANCH" = "main" ]; then
   if semver_gt "$PR_VERSION" "$MAIN_VERSION"; then
-    echo "OK: PR version is greater than main version"
+    echo "OK: PR version ($PR_VERSION) is greater than the current main version ($MAIN_VERSION)."
     exit 0
   else
-    echo "FAIL: PR version is NOT greater than main version"
+    echo "FAIL: PR version ($PR_VERSION) is NOT greater than the current main version ($MAIN_VERSION)."
+    echo "A new release must have a higher version than the existing main version."
     exit 1
   fi
 
 else
-  echo "Base branch is '$BASE_BRANCH'; version check skipped"
+  echo "Skipping version check: Base branch is '$BASE_BRANCH'. No version enforcement required."
   exit 0
 fi
-
-echo "Version Check: OK!"
