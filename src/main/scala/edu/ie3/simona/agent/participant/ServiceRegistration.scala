@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant
 
 import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.models.input.system.{EvcsInput, SystemParticipantInput}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithComplexPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
@@ -17,7 +17,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorWeatherService,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
@@ -28,12 +28,12 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMess
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 
 trait ServiceRegistration[
-    PD <: PrimaryDataWithApparentPower[PD],
+    PD <: PrimaryDataWithComplexPower[PD],
     CD <: CalcRelevantData,
     MS <: ModelState,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
-    MC <: SimonaConfig.BaseRuntimeConfig,
+    MC <: BaseRuntimeConfig,
     M <: SystemParticipant[CD, PD, MS],
 ] {
   this: ParticipantAgent[PD, CD, MS, D, I, MC, M] =>
@@ -45,15 +45,18 @@ trait ServiceRegistration[
     *   Input model definition
     * @param services
     *   Definition of where to get what
+    * @param participantRef
+    *   Actor reference of the participant
     * @return
     *   an iterable of actor references to wait for responses
     */
   def registerForServices(
       inputModel: I,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
+      participantRef: ActorRef,
   ): Iterable[ActorRef] =
     services.flatMap(service =>
-      registerForSecondaryService(service, inputModel)
+      registerForSecondaryService(service, inputModel, participantRef)
     )
 
   /** Register for the distinct secondary service
@@ -62,6 +65,8 @@ trait ServiceRegistration[
     *   Definition of the service
     * @param inputModel
     *   Input model that is interested in the information
+    * @param participantRef
+    *   Actor reference of the participant
     * @tparam S
     *   Type of the secondary data, that is awaited
     * @return
@@ -73,6 +78,7 @@ trait ServiceRegistration[
   ](
       serviceDefinition: SecondaryDataService[S],
       inputModel: I,
+      participantRef: ActorRef,
   ): Option[ActorRef] = serviceDefinition match {
     case SecondaryDataService.ActorPriceService(_) =>
       log.debug(
@@ -81,7 +87,7 @@ trait ServiceRegistration[
       )
       None
     case ActorWeatherService(serviceRef) =>
-      registerForWeather(serviceRef, inputModel)
+      registerForWeather(serviceRef, participantRef, inputModel)
       Some(serviceRef)
     case ActorExtEvDataService(serviceRef) =>
       registerForEvData(serviceRef, inputModel)
@@ -90,14 +96,17 @@ trait ServiceRegistration[
 
   /** Register for the weather service
     *
-    * @param actorRef
+    * @param serviceRef
     *   Actor reference of the weather service
+    * @param participantRef
+    *   Actor reference of the participant
     * @param inputModel
     *   Input model of the simulation mode
     * @return
     */
   private def registerForWeather(
-      actorRef: ActorRef,
+      serviceRef: ActorRef,
+      participantRef: ActorRef,
       inputModel: I,
   ): Unit = {
     /* If we are asked to register for weather, determine the proper geo position */
@@ -113,7 +122,7 @@ trait ServiceRegistration[
               s"is invalid."
           )
       }
-    actorRef ! RegisterForWeatherMessage(lat, lon)
+    serviceRef ! RegisterForWeatherMessage(participantRef, lat, lon)
   }
 
   /** Register for the EV movement service

@@ -26,6 +26,8 @@ trait ThermalHouseTestData extends ThermalGridTestData {
     getQuantity(19d, Units.CELSIUS),
     getQuantity(21d, Units.CELSIUS),
     getQuantity(18d, Units.CELSIUS),
+    "house",
+    2.0,
   )
 
   protected val thermalHouse: ThermalHouse = ThermalHouse(thermalHouseInput)

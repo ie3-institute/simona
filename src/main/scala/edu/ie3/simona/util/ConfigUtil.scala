@@ -19,7 +19,8 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer3WResult,
 }
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, EmRuntimeConfig}
+import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
@@ -36,8 +37,42 @@ import scala.util.{Failure, Success, Try, Using}
 
 object ConfigUtil {
 
+  final case class EmConfigUtil private (
+      private val configs: Map[UUID, EmRuntimeConfig],
+      private val defaultConfigs: EmRuntimeConfig,
+  ) {
+
+    /** Queries for a [[EmRuntimeConfig]], that applies for the given uuid and
+      * either returns the config for the requested uuid or the default config.
+      *
+      * @param uuid
+      *   Identifier of the requested load model
+      * @return
+      *   the requested config or a default value
+      */
+    def getOrDefault(uuid: UUID): EmRuntimeConfig =
+      configs.getOrElse(uuid, defaultConfigs)
+  }
+
+  object EmConfigUtil {
+
+    /** Creates an em config utility from the given em configuration. It builds
+      * a map from uuid to individual em config for faster access.
+      *
+      * @param subConfig
+      *   Configuration subtree for the behaviour of ems
+      * @return
+      *   a matching config utility
+      */
+    def apply(subConfig: AssetConfigs[EmRuntimeConfig]): EmConfigUtil =
+      EmConfigUtil(
+        buildUuidMapping(subConfig.individualConfigs),
+        subConfig.defaultConfig,
+      )
+  }
+
   final case class ParticipantConfigUtil private (
-      private val configs: Map[UUID, SimonaConfig.BaseRuntimeConfig],
+      private val configs: Map[UUID, BaseRuntimeConfig],
       private val defaultConfigs: Map[Class[_], BaseRuntimeConfig],
   ) {
 
@@ -78,7 +113,7 @@ object ConfigUtil {
       *   a matching config utility
       */
     def apply(
-        subConfig: SimonaConfig.Simona.Runtime.Participant
+        subConfig: RuntimeConfig.Participant
     ): ParticipantConfigUtil = {
       ParticipantConfigUtil(
         buildUuidMapping(
@@ -89,7 +124,6 @@ object ConfigUtil {
             subConfig.evcs.individualConfigs,
             subConfig.wec.individualConfigs,
             subConfig.storage.individualConfigs,
-            subConfig.em.individualConfigs,
           ).flatten
         ),
         Seq(
@@ -100,20 +134,9 @@ object ConfigUtil {
           subConfig.wec.defaultConfig,
           subConfig.hp.defaultConfig,
           subConfig.storage.defaultConfig,
-          subConfig.em.defaultConfig,
         ).map { conf => conf.getClass -> conf }.toMap,
       )
     }
-
-    private def buildUuidMapping(
-        configs: Seq[BaseRuntimeConfig]
-    ): Map[UUID, BaseRuntimeConfig] =
-      configs
-        .flatMap(modelConfig =>
-          modelConfig.uuids
-            .map(UUID.fromString(_) -> modelConfig)
-        )
-        .toMap
 
   }
 
@@ -535,5 +558,15 @@ object ConfigUtil {
       }
     }
   }
+
+  private def buildUuidMapping[T <: BaseRuntimeConfig](
+      configs: Seq[T]
+  ): Map[UUID, T] =
+    configs
+      .flatMap(modelConfig =>
+        modelConfig.uuids
+          .map(UUID.fromString(_) -> modelConfig)
+      )
+      .toMap
 
 }
