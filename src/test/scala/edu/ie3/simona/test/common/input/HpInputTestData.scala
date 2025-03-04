@@ -61,11 +61,14 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     Quantities.getQuantity(21.0, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE),
+    "house",
+    2.0,
   )
 
   protected val defaultThermalGrid = new container.ThermalGrid(
     thermalBusInput,
     Seq(defaultThermalHouse).asJava,
+    Seq.empty[ThermalStorageInput].asJava,
     Seq.empty[ThermalStorageInput].asJava,
   )
 
@@ -78,6 +81,8 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(18.0, StandardUnits.TEMPERATURE),
+    "house",
+    2.0,
   )
 
   protected val typicalThermalStorage: CylindricalStorageInput =
@@ -86,17 +91,17 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       "thermal storage",
       thermalBusInput,
       Quantities.getQuantity(300.0, Units.LITRE),
-      Quantities.getQuantity(0.0, Units.LITRE),
       Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(30.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      Quantities.getQuantity(10.44, StandardUnits.ACTIVE_POWER_IN),
     )
 
   protected val typicalThermalGrid = new container.ThermalGrid(
     thermalBusInput,
     Seq(typicalThermalHouse).asJava,
     Set[ThermalStorageInput](typicalThermalStorage).asJava,
-    // Set.empty[ThermalStorageInput].asJava,
+    Set.empty[ThermalStorageInput].asJava,
   )
 
   protected val typicalHpTypeInput = new HpTypeInput(
@@ -146,6 +151,8 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       ),
       Quantities.getQuantity(upperTemperatureBoundary, Units.CELSIUS),
       Quantities.getQuantity(lowerTemperatureBoundary, Units.CELSIUS),
+      "house",
+      2.0,
     )
   )
 
@@ -155,7 +162,6 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     thermalBusInput,
-    KilowattHours(0d),
     KilowattHours(500d),
     Kilowatts(10d),
     KilowattHours(0d),

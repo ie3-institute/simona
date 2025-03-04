@@ -65,14 +65,14 @@ class ExtSimLoaderSpec extends UnitSpec {
   "An ExtSimLoader" should {
     "ignore irrelevant files" in {
       val dir = getResource(noJarsDir)
-      val jars = ExtSimLoader.scanInputFolder(dir)
+      val jars = ExtSimLoader.scanInputFolder(Some(dir.toPath))
 
       jars shouldBe empty
     }
 
     "find all jars in directory" in {
       val dir = getResource(jarsDir)
-      val jars = ExtSimLoader.scanInputFolder(dir)
+      val jars = ExtSimLoader.scanInputFolder(Some(dir.toPath))
 
       jars.size shouldBe 6
 

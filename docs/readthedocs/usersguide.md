@@ -152,8 +152,12 @@ Within the ``rawOutputData`` folder you can find the raw simulation results. For
 ## Setting up and running an external simulation
 
 SIMONA is capable of running an external sub-simulation by integration within the same time system (ticks) as SIMONA.
-The information flow between SIMONA and the external simulation is partitioned into a control stream (see ``edu.ie3.simona.api.ExtSimAdapter``) and a number of optional data streams.
-Currently, only a data stream transporting electric vehicle movement information is implemented (see ``edu.ie3.simona.service.ev.ExtEvDataService``).
+The information flow between SIMONA and the external simulation is partitioned into a control stream (see ``edu.ie3.simona.api.ExtSimAdapter``) and a number of optional data connections.
+Currently, available data connections are:
+- electric vehicle movement information (see ``edu.ie3.simona.service.ev.ExtEvDataService``)
+- energy management data (see ``edu.ie3.simona.service.em.ExtEmDataService``)
+- primary data (see ``edu.ie3.simona.service.primary.ExtPrimaryDataService``)
+- result data (see ``edu.ie3.simona.service.results.ExtResultDataProvider``)
 
 An external simulation has to depend on [SimonaAPI](https://github.com/ie3-institute/simonaAPI) and make use of some of its interfaces (see below).
 In order to run an external simulation, several requirements have to be fulfilled and a bunch of preparation steps have to be followed.
@@ -168,15 +172,16 @@ In order to run an external simulation, several requirements have to be fulfille
 
 - The external simulation should be implemented in its own project (repository).
 - The project should include the *shadowJar* gradle plugin (``id "com.github.johnrengelman.shadow" version "x.y.z"``).
-- A class (called *main class* here) needs to extend ``edu.ie3.simona.api.schedule.ExtSimulation`` and thus implement the two methods ``Optional<Long> initialize()`` and ``Optional<Long> doActivity(long tick)``. The method ``initialize`` is called when the external simulation needs to be initialized whereas the method ``doActivity`` is called when time step ``tick`` is triggered. ``initialize`` and ``doActivity`` can return a subsequent new tick that the sub simulation should be activated with next.
-- For each data stream, a sub-interface of ``edu.ie3.simona.api.data.ExtDataSimulation`` needs to be implemented, such as ``edu.ie3.simona.api.data.ev.ExtEvSimulation``, and all methods of the interface have to be implemented. The *main class* could be the implementing class here.
-- In order for SIMONA to use the external simulation, a class that extends ``edu.ie3.simona.api.ExtLinkInterface`` has to reside inside the project. The class has to implement the corresponding methods by returning the control stream and data stream implementations (could all be the same *main class*).
+- A class (called *main class* here) needs to extend ``edu.ie3.simona.api.schedule.ExtSimulation`` and thus implement the three methods ``Set<ExtDataConnection> getDataConnections()``, ``Optional<Long> initialize()`` and ``Optional<Long> doActivity(long tick)``. The method ``getDataConnections`` is called to return all data connection between the external simulation and SIMONA, ``initialize`` is called when the external simulation needs to be initialized whereas the method ``doActivity`` is called when time step ``tick`` is triggered. ``initialize`` and ``doActivity`` can return a subsequent new tick that the sub simulation should be activated with next.
+- For each data, that should be exchanged with SIMONA, a data connection (see ``edu.ie3.simona.api.data.ExtDataConnection``) needs to be created, such as ``edu.ie3.simona.api.data.ev.ExtEvDataConnection``. All data connections should be returned by the implementation of ``edu.ie3.simona.api.schedule.ExtSimulation``.
+- In order for SIMONA to use the external simulation, a class that extends ``edu.ie3.simona.api.ExtLinkInterface`` has to reside inside the project. The class has to implement the corresponding methods. One method is used to set up the external simulation with the provided ``edu.ie3.simona.api.simulation.ExtSimAdapterData``. The second method is called after the setup and returns the external simulation.
 - When loading the external simulations, SIMONA is looking for the corresponding service files of the class ``edu.ie3.simona.api.ExtLinkInterface``. Therefor every external simulation needs the following service file: ``src/main/resources/META-INF/services/edu.ie3.simona.api.ExtLinkInterface``. The service file needs to contain the relative path to the class that extends ``edu.ie3.simona.api.ExtLinkInterface``.
 - A <em>very simple</em> example for an external simulation can be found [here](https://github.com/ie3-institute/ExtSimSample)
 
 **SIMONA**
 
-- For EV simulation: The EVCS that are used by the external simulation have to be loaded by SIMONA from the according input data. EVCS are identified by their UUIDs.
+- The grid with all system participants that are either used in or receive data from external simulations have to be loaded by SIMONA.
+- The external data connections uses the UUIDs of the assets and participants to provide data or send results.
 
 
 ### Preparation
@@ -184,7 +189,7 @@ In order to run an external simulation, several requirements have to be fulfille
 These steps have to be performed each time updates to the external simulation need to be deployed.
 
 - Execute ``gradlew shadowJar`` inside the external simulation project.
-- Copy the resulting *jar* (usually placed inside ``<external project>/build/libs``) to ``./input/ext_sim/``.
+- Copy the resulting *jar* (usually placed inside ``<external project>/build/libs``) into the external simulation folder. This folder is set via the given config.
 
 Now, when a simulation with SIMONA is started (see {ref}`usersguide:running a standalone simulation`), the external simulation is triggered at each tick that it requested.
 
