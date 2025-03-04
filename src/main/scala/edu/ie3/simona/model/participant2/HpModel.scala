@@ -8,17 +8,30 @@ package edu.ie3.simona.model.participant2
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.HpInput
-import edu.ie3.datamodel.models.result.system.{HpResult, SystemParticipantResult}
+import edu.ie3.datamodel.models.result.system.{
+  HpResult,
+  SystemParticipantResult,
+}
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ComplexPowerAndHeat, PrimaryDataWithComplexPower}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ComplexPower,
+  ComplexPowerAndHeat,
+  PrimaryDataWithComplexPower,
+}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.HpModel.HpState
-import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
-import edu.ie3.simona.model.participant2.ParticipantModel.{ActivePowerOperatingPoint, ModelState}
+import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ActivePowerAndHeatOperatingPoint,
+  ModelState,
+  OperationChangeIndicator,
+}
 import edu.ie3.simona.model.thermal.ThermalGrid
-import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalDemandWrapper, ThermalGridState, startingState}
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
+  ThermalGridState,
+  startingState,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
@@ -46,10 +59,9 @@ class HpModel private (
     private val pThermal: Power,
     private val thermalGrid: ThermalGrid,
 ) extends ParticipantModel[
-      ActivePowerOperatingPoint,
+      ActivePowerAndHeatOperatingPoint,
       HpState,
     ]
-    with ParticipantSimpleFlexibility[HpState]
     with LazyLogging {
 
   override val initialState: (Long, ZonedDateTime) => HpState =
@@ -66,7 +78,7 @@ class HpModel private (
 
   override def determineState(
       lastState: HpState,
-      operatingPoint: ActivePowerOperatingPoint,
+      operatingPoint: ActivePowerAndHeatOperatingPoint,
       tick: Long,
       simulationTime: ZonedDateTime,
   ): HpState = {
@@ -118,58 +130,8 @@ class HpModel private (
     )
   }
 
-  /** Calculate the active power behaviour of the model.
-    *
-    * @param state
-    *   The current state including weather data.
-    * @return
-    *   The active power.
-    */
-  override def determineOperatingPoint(
-      state: HpState
-  ): (ActivePowerOperatingPoint, Option[Long]) = {
-    val (thermalDemandWrapper, currentThermalGridState) =
-      thermalGrid.energyDemandAndUpdatedState(
-        state
-      )
-
-    // These are basically the flexOptions, should / can we calc them also when we're not em controlled?
-    // Determining the operation point and limitations at this tick
-    val (turnOn, canOperate, canBeOutOfOperation) =
-      operatesInNextState(
-        currentThermalGridState,
-        thermalDemandWrapper,
-      )
-
-    val lastStateStorageQDot = state.lastThermalGridState.storageState
-      .map(_.qDot)
-      .getOrElse(zeroKW)
-
-    val (newActivePowerHp, _, qDotIntoGrid) = {
-      if (turnOn)
-        (pRated, pThermal, pThermal)
-      else if (lastStateStorageQDot < zeroKW)
-        (zeroKW, zeroKW, lastStateStorageQDot * (-1))
-      else if (
-        lastStateStorageQDot == zeroKW && (thermalDemandWrapper.houseDemand.hasRequiredDemand || thermalDemandWrapper.heatStorageDemand.hasRequiredDemand)
-      )
-        (
-          zeroKW,
-          zeroKW,
-          thermalGrid.heatStorage.map(_.getpThermalMax: squants.Power).get,
-        )
-      else (zeroKW, zeroKW, zeroKW)
-    }
-
-    /* Push thermal energy to the thermal grid and get its updated state in return */
-    val (thermalGridState, maybeThreshold) =
-      thermalGrid.updateState(state, turnOn, qDotIntoGrid, thermalDemandWrapper)
-
-    (ActivePowerOperatingPoint(newActivePowerHp), None)
-  }
-
-  override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
-    ActivePowerOperatingPoint.zero
+  override def zeroPowerOperatingPoint: ActivePowerAndHeatOperatingPoint =
+    ActivePowerAndHeatOperatingPoint.zero
 
   /** Depending on the input, this function decides whether the heat pump will
     * run in the next state or not. The heat pump is foreseen to operate in the
@@ -275,36 +237,102 @@ class HpModel private (
 
   override def createResults(
       state: HpState,
-      lastOperatingPoint: Option[ActivePowerOperatingPoint],
-      currentOperatingPoint: ActivePowerOperatingPoint,
-      complexPowerAndHeat: ComplexPowerAndHeat,
+      lastOperatingPoint: Option[ActivePowerAndHeatOperatingPoint],
+      currentOperatingPoint: ActivePowerAndHeatOperatingPoint,
+      complexPower: ComplexPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] =
     Iterable(
       new HpResult(
         dateTime,
         uuid,
-        complexPowerAndHeat.p.toMegawatts.asMegaWatt,
-        complexPowerAndHeat.q.toMegavars.asMegaVar,
-        complexPowerAndHeat.qDot.toMegawatts.asMegaWatt,
+        complexPower.p.toMegawatts.asMegaWatt,
+        complexPower.q.toMegavars.asMegaVar,
+        currentOperatingPoint.qDot
+          .getOrElse(
+            throw new RuntimeException(
+              s"currentOperatingPoint $currentOperatingPoint does not contain heat value but one is expected."
+            )
+          )
+          .toMegawatts
+          .asMegaWatt,
       )
     )
 
   override def createPrimaryDataResult(
-      data: ComplexPowerAndHeat,
+      data: PrimaryDataWithComplexPower[_],
       dateTime: ZonedDateTime,
-  ): SystemParticipantResult =
-    new HpResult(
-      dateTime,
-      uuid,
-      data.p.toMegawatts.asMegaWatt,
-      data.q.toMegavars.asMegaVar,
-      data.qDot.toMegawatts.asMegaWatt,
-    )
+  ): SystemParticipantResult = {
+    data match {
+      case result: ComplexPowerAndHeat =>
+        new HpResult(
+          dateTime,
+          uuid,
+          result.p.toMegawatts.asMegaWatt,
+          result.q.toMegavars.asMegaVar,
+          result.qDot.toMegawatts.asMegaWatt,
+        )
+    }
+  }
 
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable(ServiceType.WeatherService)
 
+  /** Calculate the active power behaviour of the model.
+    *
+    * @param state
+    *   The current state including weather data.
+    * @return
+    *   The active power.
+    */
+
+  override def determineOperatingPoint(
+      state: HpState
+  ): (ActivePowerAndHeatOperatingPoint, Option[Long]) = {
+    val (thermalDemandWrapper, currentThermalGridState) =
+      thermalGrid.energyDemandAndUpdatedState(
+        state
+      )
+
+    // These are basically the flexOptions, should / can we calc them also when we're not em controlled?
+    // Determining the operation point and limitations at this tick
+    val (turnOn, canOperate, canBeOutOfOperation) =
+      operatesInNextState(
+        currentThermalGridState,
+        thermalDemandWrapper,
+      )
+
+    val lastStateStorageQDot = state.lastThermalGridState.storageState
+      .map(_.qDot)
+      .getOrElse(zeroKW)
+
+    val (newActivePowerHp, _, qDotIntoGrid) = {
+      if (turnOn)
+        (pRated, pThermal, pThermal)
+      else if (lastStateStorageQDot < zeroKW)
+        (zeroKW, zeroKW, lastStateStorageQDot * (-1))
+      else if (
+        lastStateStorageQDot == zeroKW && (thermalDemandWrapper.houseDemand.hasRequiredDemand || thermalDemandWrapper.heatStorageDemand.hasRequiredDemand)
+      )
+        (
+          zeroKW,
+          zeroKW,
+          thermalGrid.heatStorage.map(_.getpThermalMax: squants.Power).get,
+        )
+      else (zeroKW, zeroKW, zeroKW)
+    }
+
+    /* Push thermal energy to the thermal grid and get its updated state in return */
+    val (thermalGridState, maybeThreshold) =
+      thermalGrid.updateState(state, turnOn, qDotIntoGrid, thermalDemandWrapper)
+
+    (ActivePowerAndHeatOperatingPoint(newActivePowerHp, Some(pThermal)), None)
+  }
+
+  override def determineOperatingPoint(
+      state: HpState,
+      setPower: Power,
+  ): (ActivePowerAndHeatOperatingPoint, OperationChangeIndicator) = ???
 }
 
 object HpModel {

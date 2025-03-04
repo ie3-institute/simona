@@ -221,15 +221,29 @@ object ParticipantModel {
       * the active-to-reactive-power function is used.
       */
     val reactivePower: Option[ReactivePower]
+    val qDot: Option[Power]
   }
 
   final case class ActivePowerOperatingPoint(override val activePower: Power)
       extends OperatingPoint {
     override val reactivePower: Option[ReactivePower] = None
+    override val qDot: Option[Power] = None
   }
 
   object ActivePowerOperatingPoint {
     def zero: ActivePowerOperatingPoint = ActivePowerOperatingPoint(zeroKW)
+  }
+
+  final case class ActivePowerAndHeatOperatingPoint(
+      override val activePower: Power,
+      override val qDot: Option[Power],
+  ) extends OperatingPoint {
+    override val reactivePower: Option[ReactivePower] = None
+  }
+
+  object ActivePowerAndHeatOperatingPoint {
+    def zero: ActivePowerAndHeatOperatingPoint =
+      ActivePowerAndHeatOperatingPoint(zeroKW, Some(zeroKW))
   }
 
   trait ModelState {
