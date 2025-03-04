@@ -27,7 +27,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Energy, Power, Temperature}
+import squants.{Energy, Power}
 
 import java.time.ZonedDateTime
 import scala.jdk.CollectionConverters.SetHasAsScala
@@ -96,7 +96,11 @@ final case class ThermalGrid(
         .zip(state.lastThermalGridState.storageState)
         .map { case (storage, heatStorageState) =>
           val (updatedStorageState, _) =
-            storage.updateState(state.tick, heatStorageState.qDot, heatStorageState)
+            storage.updateState(
+              state.tick,
+              heatStorageState.qDot,
+              heatStorageState,
+            )
           val storedEnergy = updatedStorageState.storedEnergy
           val soc = storedEnergy / storage.getMaxEnergyThreshold
           val storageRequired = {
