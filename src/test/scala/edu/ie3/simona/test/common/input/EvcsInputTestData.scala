@@ -30,7 +30,7 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     null,
     ChargingPointTypeUtils.ChargingStationType2,
     2,
-    0.95,
+    1,
     EvcsLocationType.HOME,
     true,
   )

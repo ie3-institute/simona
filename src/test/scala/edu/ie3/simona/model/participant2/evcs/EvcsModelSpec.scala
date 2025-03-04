@@ -68,7 +68,7 @@ class EvcsModelSpec
     "calculate new schedules correctly" when {
 
       "configured with max power charging" in {
-        val evcsModel = createModel("maxpower")
+        val evcsModel = createModel("maxPower")
 
         val evModel = EvModelWrapper(
           ev3.copyWith(5.0.asKiloWattHour)
@@ -91,7 +91,7 @@ class EvcsModelSpec
       }
 
       "configured with constant power charging" in {
-        val evcsModel = createModel("constantpower")
+        val evcsModel = createModel("constantPower")
 
         val evModel = EvModelWrapper(ev3)
 
@@ -114,7 +114,7 @@ class EvcsModelSpec
     "determining current state correctly" when {
 
       "being provided with a ChargingSchedule consisting of one entry" in {
-        val evcsModel = createModel("constantpower")
+        val evcsModel = createModel("constantPower")
 
         val cases = Table(
           (
@@ -189,7 +189,7 @@ class EvcsModelSpec
 
     "calculate results correctly" when {
 
-      val evcsModel = createModel("constantpower")
+      val evcsModel = createModel("constantPower")
 
       val evA = EvModelWrapper(ev1)
       val evB = EvModelWrapper(ev2)
@@ -209,7 +209,7 @@ class EvcsModelSpec
           state,
           None,
           currentOperatingPoint,
-          ComplexPower(Kilowatts(5), Kilovars(0.5)),
+          ComplexPower(Kilowatts(5), Kilovars(0.005)),
           dateTime,
         )
 
@@ -219,18 +219,18 @@ class EvcsModelSpec
           case evResult: EvResult if evResult.getInputModel == evA.uuid =>
             evResult.getTime shouldBe dateTime
             evResult.getP should beEquivalentTo(3.0.asKiloWatt)
-            evResult.getQ should beEquivalentTo(0.3.asKiloVar)
+            evResult.getQ should beEquivalentTo(0.003.asKiloVar)
             evResult.getSoc should beEquivalentTo(50.0.asPercent)
           case evResult: EvResult if evResult.getInputModel == evB.uuid =>
             evResult.getTime shouldBe dateTime
             evResult.getP should beEquivalentTo(2.0.asKiloWatt)
-            evResult.getQ should beEquivalentTo(0.2.asKiloVar)
+            evResult.getQ should beEquivalentTo(0.002.asKiloVar)
             evResult.getSoc should beEquivalentTo(75.0.asPercent)
           case evcsResult: EvcsResult =>
             evcsResult.getInputModel shouldBe evcsModel.uuid
             evcsResult.getTime shouldBe dateTime
             evcsResult.getP should beEquivalentTo(5.0.asKiloWatt)
-            evcsResult.getQ should beEquivalentTo(0.5.asKiloVar)
+            evcsResult.getQ should beEquivalentTo(0.005.asKiloVar)
           case unexpected =>
             fail(s"Unexpected result $unexpected was found.")
         }
@@ -258,7 +258,7 @@ class EvcsModelSpec
 
         forAll(cases) { (ev1P, ev2P, ev1Res, ev2Res, evcsRes) =>
           val evcsP = ev1P + ev2P
-          val evcsQ = evcsP / 10
+          val evcsQ = evcsP / 100
 
           val currentOperatingPoint = EvcsOperatingPoint(
             Map(evA.uuid -> Kilowatts(ev1P), evB.uuid -> Kilowatts(ev2P))
@@ -284,7 +284,7 @@ class EvcsModelSpec
             case evResult: EvResult =>
               evResult.getTime shouldBe dateTime
               evResult.getP should beEquivalentTo(ev1P.asKiloWatt)
-              evResult.getQ should beEquivalentTo((ev1P / 10).asKiloVar)
+              evResult.getQ should beEquivalentTo((ev1P / 100).asKiloVar)
               evResult.getSoc should beEquivalentTo(50.0.asPercent)
             case unexpected =>
               fail(s"Unexpected result $unexpected was found.")
@@ -296,7 +296,7 @@ class EvcsModelSpec
             case evResult: EvResult =>
               evResult.getTime shouldBe dateTime
               evResult.getP should beEquivalentTo(ev2P.asKiloWatt)
-              evResult.getQ should beEquivalentTo((ev2P / 10).asKiloVar)
+              evResult.getQ should beEquivalentTo((ev2P / 100).asKiloVar)
               evResult.getSoc should beEquivalentTo(75.0.asPercent)
             case unexpected =>
               fail(s"Unexpected result $unexpected was found.")
@@ -320,7 +320,7 @@ class EvcsModelSpec
     "calculate flex options correctly" when {
 
       "charging with constant power and allowing v2g" in {
-        val evcsModel = createModel("constantpower")
+        val evcsModel = createModel("constantPower")
 
         val currentTick = 7200L
 
@@ -418,7 +418,7 @@ class EvcsModelSpec
       }
 
       "charging with maximum power and allowing v2g" in {
-        val evcsModel = createModel("maxpower")
+        val evcsModel = createModel("maxPower")
 
         val currentTick = 7200L
 
@@ -514,7 +514,7 @@ class EvcsModelSpec
       }
 
       "disallowing v2g" in {
-        val evcsModel = createModel("constantpower", vehicle2Grid = false)
+        val evcsModel = createModel("constantPower", vehicle2Grid = false)
 
         val currentTick = 7200L
 
@@ -545,7 +545,7 @@ class EvcsModelSpec
     }
 
     "handle power control correctly" when {
-      val evcsModel = createModel("constantpower")
+      val evcsModel = createModel("constantPower")
 
       "dealing with two evs" in {
         val currentTick = 3600L
@@ -653,7 +653,7 @@ class EvcsModelSpec
     }
 
     "handle arrivals correctly" in {
-      val evcsModel = createModel("maxpower")
+      val evcsModel = createModel("maxPower")
 
       val state = EvcsState(
         Seq(EvModelWrapper(ev1)),
@@ -673,7 +673,7 @@ class EvcsModelSpec
     }
 
     "reply to requests" when {
-      val evcsModel = createModel("constantpower")
+      val evcsModel = createModel("constantPower")
 
       val evModel = EvModelWrapper(
         ev3.copyWith(5.0.asKiloWattHour)

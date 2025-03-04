@@ -231,7 +231,7 @@ class EvcsModel private (
     val preferredPowers =
       strategy.determineChargingPowers(state.evs, state.tick, this)
 
-    val (maxCharging, preferredPower, forcedCharging, maxDischarging) =
+    val (maxCharging, preferredPower, forcedCharging, minCharging) =
       state.evs.foldLeft(
         (zeroKW, zeroKW, zeroKW, zeroKW)
       ) {
@@ -270,16 +270,16 @@ class EvcsModel private (
       }
 
     // if we need to charge at least one EV, we cannot discharge any other
-    val (adaptedMaxDischarging, adaptedPreferred) =
+    val (adaptedPreferred, adaptedMinCharging) =
       if (forcedCharging > zeroKW)
-        (forcedCharging, preferredPower.max(forcedCharging))
+        (preferredPower.max(forcedCharging), forcedCharging)
       else
-        (maxDischarging, preferredPower)
+        (preferredPower, minCharging)
 
     ProvideMinMaxFlexOptions(
       uuid,
       adaptedPreferred,
-      adaptedMaxDischarging,
+      adaptedMinCharging,
       maxCharging,
     )
   }
@@ -479,6 +479,7 @@ class EvcsModel private (
   ): EvcsState = msg match {
     case freeLotsRequest: EvFreeLotsRequest =>
       val stayingEvsCount =
+        // freeLotsRequest.tick is the current tick
         state.evs.count(_.departureTick > freeLotsRequest.tick)
 
       freeLotsRequest.replyTo ! FreeLotsResponse(
