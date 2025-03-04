@@ -16,7 +16,7 @@ object ConfigParams {
 
   /** Sample parameters.
     * @param use
-    *   if sample parameters should be used (default: true)
+    *   If sample parameters should be used (default: true).
     */
   final case class SampleParams(
       use: Boolean = true
@@ -32,11 +32,11 @@ object ConfigParams {
 
   /** Basic csv parameters.
     * @param csvSep
-    *   the separator used
+    *   The separator used.
     * @param directoryPath
-    *   the path of the csv source
+    *   The path of the csv source.
     * @param isHierarchic
-    *   true, if a hierarchical structure is used
+    *   True, if a hierarchical structure is used.
     */
   final case class BaseCsvParams(
       override val csvSep: String,
@@ -46,13 +46,13 @@ object ConfigParams {
 
   /** Time stamped csv parameters.
     * @param csvSep
-    *   the separator used
+    *   The separator used.
     * @param directoryPath
-    *   the path of the csv source
+    *   The path of the csv source.
     * @param isHierarchic
-    *   true, if a hierarchical structure is used
+    *   True, if a hierarchical structure is used.
     * @param timePattern
-    *   used for the data (default: [[ConfigParams.defaultTimePattern]])
+    *   Used for the data (default: [[ConfigParams.defaultTimePattern]]).
     */
   final case class TimeStampedCsvParams(
       override val csvSep: String,
@@ -63,15 +63,15 @@ object ConfigParams {
 
   /** Csv parameters used by the [[edu.ie3.datamodel.io.sink.CsvFileSink]].
     * @param compressOutputs
-    *   if output files should be compressed (default: false)
+    *   If output files should be compressed (default: false).
     * @param fileFormat
-    *   that is used (default: .csv)
+    *   That is used (default: .csv).
     * @param filePrefix
-    *   additional file prefix (default: empty)
+    *   Additional file prefix (default: empty).
     * @param fileSuffix
-    *   additional file suffix (default: empty)
+    *   Additional file suffix (default: empty).
     * @param isHierarchic
-    *   true, if a hierarchical structure should be used
+    *   True, if a hierarchical structure should be used.
     */
   final case class PsdmSinkCsvParams(
       compressOutputs: Boolean = false,
@@ -91,11 +91,11 @@ object ConfigParams {
 
   /** Basic influxDb1x parameters.
     * @param database
-    *   to use
+    *   To use.
     * @param port
-    *   of the database
+    *   Of the database.
     * @param url
-    *   of the database
+    *   Of the database.
     */
   final case class BaseInfluxDb1xParams(
       override val database: String,
@@ -105,13 +105,13 @@ object ConfigParams {
 
   /** Time stamped influxDb1x parameters.
     * @param database
-    *   to use
+    *   To use.
     * @param port
-    *   of the database
+    *   Of the database.
     * @param timePattern
-    *   used for the data (default: [[ConfigParams.defaultTimePattern]])
+    *   Used for the data (default: [[ConfigParams.defaultTimePattern]]).
     * @param url
-    *   of the database
+    *   Of the database.
     */
   final case class TimeStampedInfluxDb1xParams(
       override val database: String,
@@ -132,15 +132,15 @@ object ConfigParams {
 
   /** Basic sql parameters.
     * @param jdbcUrl
-    *   to the database
+    *   To the database.
     * @param password
-    *   for login
+    *   For login.
     * @param schemaName
-    *   name of the schema (default: public)
+    *   Name of the schema (default: public).
     * @param tableName
-    *   name of the database table to use
+    *   Name of the database table to use.
     * @param userName
-    *   for login
+    *   For login.
     */
   final case class BaseSqlParams(
       override val jdbcUrl: String,
@@ -152,15 +152,15 @@ object ConfigParams {
 
   /** Time stamped sql parameters.
     * @param jdbcUrl
-    *   to the database
+    *   To the database.
     * @param password
-    *   for login
+    *   For login.
     * @param schemaName
-    *   name of the schema (default: public)
+    *   Name of the schema (default: public).
     * @param timePattern
-    *   used for the data (default: [[ConfigParams.defaultTimePattern]])
+    *   Used for the data (default: [[ConfigParams.defaultTimePattern]]).
     * @param userName
-    *   for login
+    *   For login.
     */
   final case class TimeStampedSqlParams(
       override val jdbcUrl: String,
@@ -172,19 +172,19 @@ object ConfigParams {
 
   /** Time stamped couchbase parameters.
     * @param bucketName
-    *   name of the specific bucket
+    *   Name of the specific bucket.
     * @param coordinateColumnName
-    *   name of the column containing coordinates
+    *   Name of the column containing coordinates.
     * @param keyPrefix
-    *   prefix for the key
+    *   Prefix for the key.
     * @param password
-    *   for login
+    *   For login.
     * @param timePattern
-    *   used for the data (default: [[ConfigParams.defaultTimePattern]])
+    *   Used for the data (default: [[ConfigParams.defaultTimePattern]]).
     * @param url
-    *   to the database
+    *   To the database.
     * @param userName
-    *   for login
+    *   For login.
     */
   final case class CouchbaseParams(
       bucketName: String,

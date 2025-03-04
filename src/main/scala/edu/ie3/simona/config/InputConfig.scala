@@ -10,14 +10,17 @@ import edu.ie3.simona.config.InputConfig.{Grid, Primary, Weather}
 import edu.ie3.simona.config.ConfigParams._
 
 /** Input configuration for simona.
+  * @param extSimDir
+  *   Option for the directory, where external simulation are placed in.
   * @param grid
-  *   mainly the source for grid data
+  *   Mainly the source for grid data.
   * @param primary
-  *   source for primary data (default: empty)
+  *   Source for primary data (default: empty).
   * @param weather
-  *   source for weather data (default: empty)
+  *   Source for weather data (default: empty).
   */
 final case class InputConfig(
+    extSimDir: Option[String],
     grid: Grid,
     primary: Primary = Primary.empty,
     weather: Weather = Weather.empty,
@@ -27,7 +30,7 @@ object InputConfig {
 
   /** Configuration for grid input.
     * @param datasource
-    *   with grid data
+    *   With grid data.
     */
   final case class Grid(
       datasource: GridDatasource
@@ -35,17 +38,17 @@ object InputConfig {
 
   /** Case class with options for primary data source parameters
     * @param couchbaseParams
-    *   used for [[edu.ie3.datamodel.io.connectors.CouchbaseConnector]]
-    *   (default: None)
+    *   Used for [[edu.ie3.datamodel.io.connectors.CouchbaseConnector]]
+    *   (default: None).
     * @param csvParams
-    *   used for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]] (default:
-    *   None)
+    *   Used for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]] (default:
+    *   None).
     * @param influxDb1xParams
-    *   used for [[edu.ie3.datamodel.io.connectors.InfluxDbConnector]] (default:
-    *   None)
+    *   Used for [[edu.ie3.datamodel.io.connectors.InfluxDbConnector]] (default:
+    *   None).
     * @param sqlParams
-    *   used for [[edu.ie3.datamodel.io.source.sql.SqlDataSource]] (default:
-    *   None)
+    *   Used for [[edu.ie3.datamodel.io.source.sql.SqlDataSource]] (default:
+    *   None).
     */
   final case class Primary(
       couchbaseParams: Option[CouchbaseParams] = None,
@@ -70,11 +73,11 @@ object InputConfig {
     def empty: Weather = Weather()
   }
 
-  /** Source containing the grid data
+  /** Source containing the grid data.
     * @param csvParams
-    *   parameters for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]]
+    *   Parameters for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]].
     * @param id
-    *   of the datasource
+    *   Of the datasource.
     */
   final case class GridDatasource(
       csvParams: Option[BaseCsvParams] = None,
@@ -83,31 +86,31 @@ object InputConfig {
 
   /** Case class with parameters for a weather source.
     * @param coordinateSource
-    *   source for the used coordinates
+    *   Source for the used coordinates.
     * @param couchbaseParams
-    *   used for [[edu.ie3.datamodel.io.connectors.CouchbaseConnector]]
-    *   (default: None)
+    *   Used for [[edu.ie3.datamodel.io.connectors.CouchbaseConnector]]
+    *   (default: None).
     * @param csvParams
-    *   used for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]] (default:
-    *   None)
+    *   Used for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]] (default:
+    *   None).
     * @param influxDb1xParams
-    *   used for [[edu.ie3.datamodel.io.connectors.InfluxDbConnector]] (default:
-    *   None)
+    *   Used for [[edu.ie3.datamodel.io.connectors.InfluxDbConnector]] (default:
+    *   None).
     * @param maxCoordinateDistance
-    *   maximal distance in meter to consider for data points (default: 50 km)
+    *   Maximal distance in meter to consider for data points (default: 50 km).
     * @param resolution
-    *   option for the time in seconds between data points (default: 3600
-    *   seconds)
+    *   Option for the time in seconds between data points (default: 3600
+    *   seconds).
     * @param sampleParams
-    *   sample parameters (default: None)
+    *   Sample parameters (default: None).
     * @param scheme
-    *   for the weather data (default: icon)
+    *   For the weather data (default: icon).
     * @param sqlParams
-    *   used for [[edu.ie3.datamodel.io.source.sql.SqlDataSource]] (default:
-    *   None)
+    *   Used for [[edu.ie3.datamodel.io.source.sql.SqlDataSource]] (default:
+    *   None).
     * @param timestampPattern
-    *   option for overriding the time pattern used for the source (default:
-    *   None)
+    *   Option for overriding the time pattern used for the source (default:
+    *   None).
     */
   final case class WeatherDatasource(
       coordinateSource: CoordinateSource = CoordinateSource.empty,
@@ -130,15 +133,15 @@ object InputConfig {
 
   /** Case class with options for coordinate source parameters.
     * @param csvParams
-    *   used for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]] (default:
-    *   None)
+    *   Used for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]] (default:
+    *   None).
     * @param gridModel
-    *   the model of the coordinate grid (default: icon)
+    *   The model of the coordinate grid (default: icon).
     * @param sampleParams
-    *   sample parameters (default: None)
+    *   Sample parameters (default: None).
     * @param sqlParams
-    *   used for [[edu.ie3.datamodel.io.source.sql.SqlDataSource]] (default:
-    *   None)
+    *   Used for [[edu.ie3.datamodel.io.source.sql.SqlDataSource]] (default:
+    *   None).
     */
   final case class CoordinateSource(
       csvParams: Option[BaseCsvParams] = None,
