@@ -12,7 +12,6 @@ import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -31,6 +30,7 @@ import org.apache.pekko.actor.{Props, ActorRef => ClassicRef}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
 import scala.util.{Failure, Success, Try}
 
@@ -48,8 +48,8 @@ object ExtSimSetup {
     *   The actor context of this actor system.
     * @param scheduler
     *   The scheduler of simona.
-    * @param simonaConfig
-    *   The config.
+    * @param resolution
+    *   The resolution of the power flow.
     * @return
     *   An [[ExtSimSetupData]] that holds information regarding the external
     *   data connections as well as the actor references of the created
@@ -61,7 +61,7 @@ object ExtSimSetup {
   )(implicit
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-      simonaConfig: SimonaConfig,
+      resolution: FiniteDuration,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData()) {
     case (extSimSetupData, (extLink, index)) =>
       // external simulation always needs at least an ExtSimAdapter
@@ -117,8 +117,8 @@ object ExtSimSetup {
     *   The scheduler of simona.
     * @param extSimAdapterData
     *   The adapter data for the external simulation.
-    * @param simonaConfig
-    *   The config.
+    * @param resolution
+    *   The resolution of the power flow.
     * @return
     *   An updated [[ExtSimSetupData]].
     */
@@ -129,7 +129,7 @@ object ExtSimSetup {
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
-      simonaConfig: SimonaConfig,
+      resolution: FiniteDuration,
   ): ExtSimSetupData = {
     implicit val extSimAdapter: ClassicRef = extSimAdapterData.getAdapter
 

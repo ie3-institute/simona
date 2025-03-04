@@ -209,7 +209,7 @@ class SimonaStandaloneSetup(
     setupExtSim(extLinks, args)(
       context,
       scheduler,
-      simonaConfig,
+      simonaConfig.simona.powerflow.resolution,
     )
   }
 
