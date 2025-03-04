@@ -34,4 +34,6 @@ else
 fi
 
 echo "========================="
-echo "Branch type determined: $branch_type"
+echo "Branch type: $branch_type"
+echo "branch_type=$branch_type" >> "$GITHUB_ENV"
+echo "========================="
