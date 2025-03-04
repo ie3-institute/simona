@@ -49,7 +49,7 @@ jobs:
           
           echo "branch_name=$branch_name" >> $GITHUB_ENV
           
-          ./gradlew checkBranchName -PbranchName="$branch_name"
+          ./gradlew checkBranchName -PbranchName="$branch_name" --warning-mode=none
           
           bash scripts/branch_type.sh
 
