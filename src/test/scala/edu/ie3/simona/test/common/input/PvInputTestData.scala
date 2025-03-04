@@ -91,8 +91,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvSouth2 = new PvInput(
@@ -111,8 +111,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvSouth3 = new PvInput(
@@ -131,8 +131,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvSouth4 = new PvInput(
@@ -151,8 +151,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvEast1 = new PvInput(
@@ -171,8 +171,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvEast2 = new PvInput(
@@ -191,8 +191,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvWest1 = new PvInput(
@@ -211,8 +211,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvWest2 = new PvInput(
@@ -231,8 +231,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvInputsTest: Set[PvInput] = Set(
