@@ -46,20 +46,10 @@ trait LoadInputTestData extends NodeInputTestData {
   private val operationTime: OperationTime =
     operationTimeBuilder.withOperationTime(interval).build()
 
-  protected val loadInputWithLimitedOperationTime =
-    new LoadInput(
-      UUID.fromString("62f4b2cb-76ee-4900-a908-5073c6c51fc7"),
-      "testLoadWithLimitedOperationTime",
-      OperatorInput.NO_OPERATOR_ASSIGNED,
-      operationTime,
-      nodeInputNoSlackNs04KvA,
-      new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-      null,
-      BdewStandardLoadProfile.H0,
-      false,
-      Quantities.getQuantity(3000d, KILOWATTHOUR),
-      Quantities.getQuantity(282.74d, VOLTAMPERE),
-      0.95,
-    )
-
+  protected val loadInputWithLimitedOperationTime = loadInput
+    .copy()
+    .uuid(UUID.fromString("62f4b2cb-76ee-4900-a908-5073c6c51fc7"))
+    .id("testLoadWithLimitedOperationTime")
+    .operationTime(operationTime)
+    .build()
 }

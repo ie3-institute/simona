@@ -67,24 +67,13 @@ trait PvInputTestData
   private val operationTime: OperationTime =
     operationTimeBuilder.withOperationTime(interval).build()
 
-  protected val pvInputWithQCharacteristicLimitedOperationTime = new PvInput(
-    UUID.randomUUID(),
-    "Dummy_PvModel_With_Q_Characteristic",
-    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
-    operationTime,
-    nodeInputNoSlackNs04KvA,
-    new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-    null,
-    0.2,
-    Quantities.getQuantity(12, StandardUnits.AZIMUTH),
-    Quantities.getQuantity(90, StandardUnits.EFFICIENCY),
-    Quantities.getQuantity(45, StandardUnits.SOLAR_ELEVATION_ANGLE),
-    0.9,
-    1.0,
-    false,
-    Quantities.getQuantity(10, StandardUnits.S_RATED),
-    0.95,
-  )
+  protected val pvInputWithQCharacteristicLimitedOperationTime = pvInput
+    .copy()
+    .uuid(UUID.randomUUID())
+    .id("Dummy_PvModel_With_Q_Characteristic")
+    .operationTime(operationTime)
+    .qCharacteristics(new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"))
+    .build()
 
   protected val pvSouth1 = new PvInput(
     UUID.fromString("7ac5bb15-36ee-42b0-902b-9cd520e241b3"),
