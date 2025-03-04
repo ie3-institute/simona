@@ -18,7 +18,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -86,22 +85,18 @@ class WecModel private (
       state: WecState,
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
-  ): WecState = {
-    val weatherData = receivedData
+  ): WecState =
+    receivedData
       .collectFirst { case weatherData: WeatherData =>
         weatherData
       }
-      .getOrElse {
-        throw new CriticalFailureException(
-          s"Expected WeatherData, got $receivedData"
+      .map(newData =>
+        state.copy(
+          windVelocity = newData.windVel,
+          temperature = newData.temp,
         )
-      }
-
-    state.copy(
-      windVelocity = weatherData.windVel,
-      temperature = weatherData.temp,
-    )
-  }
+      )
+      .getOrElse(state)
 
   override def determineOperatingPoint(
       state: WecState
