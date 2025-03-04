@@ -8,31 +8,18 @@ package edu.ie3.simona.model.participant2
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.HpInput
-import edu.ie3.datamodel.models.result.system.{
-  PvResult,
-  SystemParticipantResult,
-}
+import edu.ie3.datamodel.models.result.system.{HpResult, SystemParticipantResult}
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ComplexPower,
-  PrimaryDataWithComplexPower,
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ComplexPowerAndHeat, PrimaryDataWithComplexPower}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.HpModel.HpState
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ActivePowerOperatingPoint,
-  ModelState,
-}
+import edu.ie3.simona.model.participant2.ParticipantModel.{ActivePowerOperatingPoint, ModelState}
 import edu.ie3.simona.model.thermal.ThermalGrid
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalDemandWrapper,
-  ThermalGridState,
-  startingState,
-}
+import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalDemandWrapper, ThermalGridState, startingState}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
@@ -290,27 +277,29 @@ class HpModel private (
       state: HpState,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
-      complexPower: ComplexPower,
+      complexPowerAndHeat: ComplexPowerAndHeat,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] =
     Iterable(
-      new PvResult(
+      new HpResult(
         dateTime,
         uuid,
-        complexPower.p.toMegawatts.asMegaWatt,
-        complexPower.q.toMegavars.asMegaVar,
+        complexPowerAndHeat.p.toMegawatts.asMegaWatt,
+        complexPowerAndHeat.q.toMegavars.asMegaVar,
+        complexPowerAndHeat.qDot.toMegawatts.asMegaWatt,
       )
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: ComplexPowerAndHeat,
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
-    new PvResult(
+    new HpResult(
       dateTime,
       uuid,
       data.p.toMegawatts.asMegaWatt,
       data.q.toMegavars.asMegaVar,
+      data.qDot.toMegawatts.asMegaWatt,
     )
 
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
