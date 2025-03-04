@@ -169,7 +169,7 @@ class HpModel private (
         (
           zeroKW,
           zeroKW,
-          thermalGrid.storage.map(_.getChargingPower: squants.Power).get,
+          thermalGrid.heatStorage.map(_.getpThermalMax: squants.Power).get,
         )
       else (zeroKW, zeroKW, zeroKW)
     }
@@ -266,7 +266,7 @@ class HpModel private (
         (
           zeroKW,
           zeroKW,
-          thermalGrid.storage.map(_.getChargingPower: squants.Power).get,
+          thermalGrid.heatStorage.map(_.getpThermalMax: squants.Power).get,
         )
       else (zeroKW, zeroKW, zeroKW)
     }
