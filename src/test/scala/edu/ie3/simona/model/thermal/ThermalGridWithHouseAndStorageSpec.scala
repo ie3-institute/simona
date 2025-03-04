@@ -452,7 +452,8 @@ class ThermalGridWithHouseAndStorageSpec
             ThermalStorageState(
               relevantData.currentTick,
               KilowattHours(20d),
-              testGridQDotInfeed,
+              // just any Power, the stored energy is what we need here.
+              zeroKW,
             ),
             None,
           )
@@ -472,8 +473,8 @@ class ThermalGridWithHouseAndStorageSpec
         val formerStorageState = Some(
           ThermalStorageState(
             0L,
-            KilowattHours(70d),
-            Kilowatts(-50d),
+            KilowattHours(40d),
+            thermalStorage.pThermalMax * -1,
           )
         )
 
@@ -505,11 +506,11 @@ class ThermalGridWithHouseAndStorageSpec
 
             revisedQDotHouse should approximate(thermalStorage.pThermalMax)
             revisedQDotStorage should approximate(
-              thermalStorage.pThermalMax * (-1)
+              thermalStorage.pThermalMax * -1
             )
 
-            houseWarmTick shouldBe 13825L
-            storageEmptyTick shouldBe 10145L
+            houseWarmTick shouldBe 3646
+            storageEmptyTick shouldBe 7200
           case _ => fail("Revision of states failed")
         }
       }
