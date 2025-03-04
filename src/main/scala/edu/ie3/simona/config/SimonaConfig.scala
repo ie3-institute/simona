@@ -206,6 +206,7 @@ object SimonaConfig {
     )
 
     final case class Input(
+        extSimDir: Option[String],
         grid: Input.Grid,
         loadProfile: Input.LoadProfile = Input.LoadProfile(),
         primary: Input.Primary = Input.Primary(),
