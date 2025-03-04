@@ -16,24 +16,22 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 /** Case class that holds information regarding the external data connections as
-  * well as the actor references of the created services
+  * well as the actor references of the created services.
   *
   * @param extSimAdapters
-  *   all adapters to external simulations
+  *   All adapters to external simulations.
   * @param extPrimaryDataServices
-  *   map: external primary data connections to service references
+  *   Map: external primary data connections to service references.
   * @param extDataServices
-  *   map: external input data connection to service references
+  *   Map: external input data connection to service references.
   * @param extResultListeners
-  *   map: external result data connections to result data providers
+  *   Map: external result data connections to result data providers.
   */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ClassicRef],
-    extPrimaryDataServices: Map[ExtPrimaryDataConnection, ClassicRef],
-    extDataServices: Map[ExtInputDataConnection, ClassicRef],
-    extResultListeners: Map[ExtResultDataConnection, ActorRef[
-      ExtResultDataProvider.Request
-    ]],
+    extPrimaryDataServices: Seq[(ExtPrimaryDataConnection, ClassicRef)],
+    extDataServices: Seq[(ExtInputDataConnection, ClassicRef)],
+    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[_])],
 ) {
 
   private[setup] def update(
@@ -41,7 +39,7 @@ final case class ExtSimSetupData(
       ref: ClassicRef,
   ): ExtSimSetupData =
     copy(extPrimaryDataServices =
-      extPrimaryDataServices ++ Map(connection -> ref)
+      extPrimaryDataServices ++ Seq((connection, ref))
     )
 
   private[setup] def update(
@@ -51,14 +49,14 @@ final case class ExtSimSetupData(
     case primaryConnection: ExtPrimaryDataConnection =>
       update(primaryConnection, ref)
     case _ =>
-      copy(extDataServices = extDataServices ++ Map(connection -> ref))
+      copy(extDataServices = extDataServices ++ Seq((connection, ref)))
   }
 
   private[setup] def update(
       connection: ExtResultDataConnection,
       ref: ActorRef[ExtResultDataProvider.Request],
   ): ExtSimSetupData =
-    copy(extResultListeners = extResultListeners ++ Map(connection -> ref))
+    copy(extResultListeners = extResultListeners ++ Seq((connection, ref)))
 
   private[setup] def update(extSimAdapter: ClassicRef): ExtSimSetupData =
     copy(extSimAdapters = extSimAdapters ++ Set(extSimAdapter))
@@ -68,6 +66,10 @@ final case class ExtSimSetupData(
 
   def emDataService: Option[ClassicRef] =
     extDataServices.collectFirst { case (_: ExtEmDataConnection, ref) => ref }
+
+  def dataServices: Seq[ClassicRef] = extDataServices.map { case (_, ref) =>
+    ref
+  }
 
   def evDataConnection: Option[ExtEvDataConnection] =
     extDataServices.collectFirst { case (connection: ExtEvDataConnection, _) =>
@@ -79,11 +81,15 @@ final case class ExtSimSetupData(
       connection
     }
 
-  def primaryDataConnections: Set[ExtPrimaryDataConnection] =
-    extPrimaryDataServices.keySet
+  def primaryDataConnections: Seq[ExtPrimaryDataConnection] =
+    extPrimaryDataServices.map {
+      case (connection: ExtPrimaryDataConnection, _) => connection
+    }
 
-  def resultDataConnections: Set[ExtResultDataConnection] =
-    extResultListeners.keySet
+  def resultDataConnections: Seq[ExtResultDataConnection] =
+    extResultListeners.map { case (connection: ExtResultDataConnection, _) =>
+      connection
+    }
 }
 
 object ExtSimSetupData {
@@ -92,8 +98,8 @@ object ExtSimSetupData {
     */
   def apply(): ExtSimSetupData = ExtSimSetupData(
     Iterable.empty,
-    Map.empty,
-    Map.empty,
-    Map.empty,
+    Seq.empty,
+    Seq.empty,
+    Seq.empty,
   )
 }

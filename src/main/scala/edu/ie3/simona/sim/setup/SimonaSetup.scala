@@ -62,15 +62,11 @@ trait SimonaSetup {
     *
     * @param context
     *   Actor context to use
-    * @param extSimSetupData
-    *   that can contain external
-    *   [[edu.ie3.simona.api.data.results.ExtResultDataConnection]]
     * @return
     *   A sequence of actor references to result event listeners
     */
   def resultEventListener(
-      context: ActorContext[_],
-      extSimSetupData: ExtSimSetupData,
+      context: ActorContext[_]
   ): Seq[ActorRef[ResultEventListener.Request]]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask

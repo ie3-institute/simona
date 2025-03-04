@@ -71,6 +71,7 @@ object SimonaSim {
   ): Behavior[Request] =
     Behaviors
       .receivePartial[Request] { case (ctx, Start(_)) =>
+        val resultEventListeners = simonaSetup.resultEventListener(ctx)
         val runtimeEventListener = simonaSetup.runtimeEventListener(ctx)
 
         val timeAdvancer =
@@ -102,9 +103,6 @@ object SimonaSim {
           extSimulationData.evDataService,
         )
 
-        val resultEventListeners =
-          simonaSetup.resultEventListener(ctx, extSimulationData)
-
         /* start grid agents  */
         val gridAgents = simonaSetup.gridAgents(
           ctx,
@@ -119,14 +117,14 @@ object SimonaSim {
           weatherService.toTyped,
         ) ++
           gridAgents ++
-          extSimulationData.extDataServices.values.map(_.toTyped)
+          extSimulationData.dataServices.map(_.toTyped)
 
         /* watch all actors */
         resultEventListeners.foreach(ctx.watch)
         ctx.watch(runtimeEventListener)
-        extSimulationData.extResultListeners.values.foreach(ref =>
+        extSimulationData.extResultListeners.foreach { case (_, ref) =>
           ctx.watch(ref)
-        )
+        }
         extSimulationData.extSimAdapters.foreach(extSimAdapter =>
           ctx.watch(extSimAdapter.toTyped)
         )

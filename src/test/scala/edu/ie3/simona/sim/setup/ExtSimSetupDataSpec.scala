@@ -39,7 +39,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       )
 
       updated.extSimAdapters shouldBe empty
-      updated.extPrimaryDataServices shouldBe Map(connection -> primaryRef)
+      updated.extPrimaryDataServices shouldBe Seq((connection, primaryRef))
       updated.extDataServices shouldBe empty
       updated.extResultListeners shouldBe empty
     }
@@ -58,9 +58,9 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
         .update(connection2, primaryRef2)
 
       updated.extSimAdapters shouldBe empty
-      updated.extPrimaryDataServices shouldBe Map(
-        connection1 -> primaryRef1,
-        connection2 -> primaryRef2,
+      updated.extPrimaryDataServices shouldBe Seq(
+        (connection1, primaryRef1),
+        (connection2, primaryRef2),
       )
       updated.extDataServices shouldBe empty
       updated.extResultListeners shouldBe empty
@@ -84,18 +84,18 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
           primaryConnection,
           primaryRef,
           extSimSetupData.copy(extPrimaryDataServices =
-            Map(primaryConnection -> primaryRef)
+            Seq((primaryConnection, primaryRef))
           ),
         ),
         (
           evConnection,
           evRef,
-          extSimSetupData.copy(extDataServices = Map(evConnection -> evRef)),
+          extSimSetupData.copy(extDataServices = Seq((evConnection, evRef))),
         ),
         (
           emConnection,
           emRef,
-          extSimSetupData.copy(extDataServices = Map(emConnection -> emRef)),
+          extSimSetupData.copy(extDataServices = Seq((emConnection, emRef))),
         ),
       )
 
@@ -121,7 +121,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.extSimAdapters shouldBe empty
       updated.extPrimaryDataServices shouldBe empty
       updated.extDataServices shouldBe empty
-      updated.extResultListeners shouldBe Map(resultConnection -> resultRef)
+      updated.extResultListeners shouldBe Seq((resultConnection, resultRef))
     }
 
     "be updated with multiple different connections" in {
@@ -147,14 +147,17 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
         .update(resultConnection, resultRef)
 
       updated.extSimAdapters shouldBe empty
-      updated.extPrimaryDataServices shouldBe Map(
-        primaryConnection -> primaryRef
+      updated.extPrimaryDataServices shouldBe Seq(
+        (
+          primaryConnection,
+          primaryRef,
+        )
       )
-      updated.extDataServices shouldBe Map(
-        evConnection -> evRef,
-        emConnection -> emRef,
+      updated.extDataServices shouldBe Seq(
+        (evConnection, evRef),
+        (emConnection, emRef),
       )
-      updated.extResultListeners shouldBe Map(resultConnection -> resultRef)
+      updated.extResultListeners shouldBe Seq((resultConnection, resultRef))
     }
 
     "return evDataService correctly" in {

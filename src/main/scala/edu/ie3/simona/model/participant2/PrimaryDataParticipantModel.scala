@@ -79,21 +79,13 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
       state: PrimaryDataState[PD],
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
-  ): PrimaryDataState[PD] = {
-    val primaryData = receivedData
+  ): PrimaryDataState[PD] =
+    receivedData
       .collectFirst { case data: PD =>
         data
       }
-      .getOrElse {
-        throw new CriticalFailureException(
-          "Expected primary data of type " +
-            s"${implicitly[ClassTag[PD]].runtimeClass.getSimpleName}, " +
-            s"got $receivedData"
-        )
-      }
-
-    state.copy(data = primaryData)
-  }
+      .map(newData => state.copy(data = newData))
+      .getOrElse(state)
 
   override def determineOperatingPoint(
       state: PrimaryDataState[PD]
