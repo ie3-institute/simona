@@ -248,7 +248,7 @@ class EmAgentIT
               -0.00057340027059.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0000882855367033.asMegaVar
+              -0.0018318880807426897.asMegaVar
             )
         }
 
@@ -283,7 +283,9 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(
               0.0.asMegaWatt
             )
-            emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
+            emResult.getQ should equalWithTolerance(
+              -0.001132927019679857.asMegaVar
+            )
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(13247)))
@@ -305,7 +307,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(
               -0.0034468567291.asMegaWatt
             )
-            emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
+            emResult.getQ should equalWithTolerance(-0.001132927.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
@@ -341,7 +343,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(
               0.0.asMegaWatt
             )
-            emResult.getQ should equalWithTolerance(0.000088285536.asMegaVar)
+            emResult.getQ should equalWithTolerance(0.000065375.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
@@ -529,7 +531,7 @@ class EmAgentIT
               -0.0007234002705905523.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0010731200407782782.asMegaVar
+              -0.0008470535766677697.asMegaVar
             )
         }
 
@@ -567,7 +569,7 @@ class EmAgentIT
               0.0014031432709.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0010731200408.asMegaVar
+              -0.0001480925156.asMegaVar
             )
         }
 
@@ -606,7 +608,7 @@ class EmAgentIT
               0.0001988993578.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0000882855367.asMegaVar
+              0.000065375.asMegaVar
             )
         }
 
@@ -645,7 +647,7 @@ class EmAgentIT
               0.0002442471208.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0000882855367.asMegaVar
+              0.00008028014.asMegaVar
             )
         }
 
@@ -654,7 +656,7 @@ class EmAgentIT
     }
 
     "having a pv and a load agent connected" should {
-      "have correct power and reactive power on em level also for agents with limited operation time" in {
+      "have correct values also for agents with limited operation time" in {
         val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =

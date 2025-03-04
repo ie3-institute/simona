@@ -45,7 +45,7 @@ trait PvInputTestData
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
-    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
     null,
     0.2,
     Quantities.getQuantity(12, StandardUnits.AZIMUTH),
