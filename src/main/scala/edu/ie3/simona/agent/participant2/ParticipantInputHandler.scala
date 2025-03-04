@@ -23,16 +23,15 @@ import edu.ie3.simona.agent.participant2.ParticipantInputHandler.ReceivedData
   *   Map of service actor reference to the tick at which data is expected next.
   *   When data is received, the next tick is updated here.
   * @param receivedData
-  *   Map of service actor reference to received data. Here, the most recent
-  *   received data is saved, which might not always be data received at the
-  *   current tick.
+  *   Map of service actor reference to received data. Only data received at the
+  *   current tick is stored here.
   * @param activation
   *   The activation message with which the participant agent was activated, if
   *   applicable. This is emptied after each tick is completed.
   */
 final case class ParticipantInputHandler(
     expectedData: Map[ClassicRef, Long],
-    receivedData: Map[ClassicRef, Option[ReceivedData]],
+    receivedData: Map[ClassicRef, ReceivedData],
     activation: Option[ActivationRequest],
 ) {
 
@@ -54,7 +53,7 @@ final case class ParticipantInputHandler(
     *   An updated input handler.
     */
   def completeActivation(): ParticipantInputHandler =
-    copy(activation = None)
+    copy(activation = None, receivedData = Map.empty)
 
   /** Handles a received [[DataInputMessage]] by storing the message and
     * updating the expected data that remains to be received.
@@ -72,7 +71,7 @@ final case class ParticipantInputHandler(
       msg match {
         case DataProvision(tick, serviceRef, data, _) =>
           receivedData +
-            (serviceRef -> Some(ReceivedData(data, tick)))
+            (serviceRef -> ReceivedData(data, tick))
         case _: NoDataProvision =>
           receivedData
       }
@@ -113,7 +112,7 @@ final case class ParticipantInputHandler(
   def hasNewData: Boolean =
     activation.exists { activationMsg =>
       receivedData.values.exists(
-        _.exists(_.tick == activationMsg.tick)
+        _.tick == activationMsg.tick
       )
     }
 
@@ -141,7 +140,7 @@ final case class ParticipantInputHandler(
     *   The received data.
     */
   def getData: Seq[Data] =
-    receivedData.values.flatten.map(_.data).toSeq
+    receivedData.values.map(_.data).toSeq
 
 }
 

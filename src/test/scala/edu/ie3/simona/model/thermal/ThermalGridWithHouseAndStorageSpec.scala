@@ -44,6 +44,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalBusInput,
           Set(thermalHouseInput).asJava,
           Set[ThermalStorageInput](thermalStorageInput).asJava,
+          Set.empty[ThermalStorageInput].asJava,
         )
 
       ThermalGrid(thermalGridInput) match {
@@ -65,6 +66,7 @@ class ThermalGridWithHouseAndStorageSpec
         thermalBusInput,
         Set(thermalHouseInput).asJava,
         Set[ThermalStorageInput](thermalStorageInput).asJava,
+        Set.empty[ThermalStorageInput].asJava,
       )
     )
 
@@ -501,13 +503,13 @@ class ThermalGridWithHouseAndStorageSpec
             houseTick shouldBe relevantData.currentTick
             storageTick shouldBe relevantData.currentTick
 
-            revisedQDotHouse should approximate(thermalStorage.chargingPower)
+            revisedQDotHouse should approximate(thermalStorage.pThermalMax)
             revisedQDotStorage should approximate(
-              thermalStorage.chargingPower * (-1)
+              thermalStorage.pThermalMax * (-1)
             )
 
-            houseWarmTick shouldBe 3601
-            storageEmptyTick shouldBe 3663L
+            houseWarmTick shouldBe 13825L
+            storageEmptyTick shouldBe 10145L
           case _ => fail("Revision of states failed")
         }
       }

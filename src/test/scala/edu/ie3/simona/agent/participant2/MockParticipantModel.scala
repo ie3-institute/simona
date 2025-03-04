@@ -82,14 +82,17 @@ class MockParticipantModel(
       state: MockState,
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
-  ): MockState = {
-    val maybeAdditionalPower = receivedData.collectFirst {
-      case data: MockSecondaryData =>
-        data.additionalP
-    }
-
-    state.copy(additionalP = maybeAdditionalPower)
-  }
+  ): MockState =
+    receivedData
+      .collectFirst { case data: MockSecondaryData =>
+        data
+      }
+      .map(newData =>
+        state.copy(
+          additionalP = Some(newData.additionalP)
+        )
+      )
+      .getOrElse(state)
 
   override def determineOperatingPoint(
       state: MockState

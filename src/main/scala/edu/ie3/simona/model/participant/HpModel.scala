@@ -238,8 +238,8 @@ final case class HpModel(
     val currentEnergyOfThermalStorage = currentThermalGridState.storageState
       .map(_.storedEnergy)
       .getOrElse(zeroKWh)
-    val pThermalOfStorage = thermalGrid.storage
-      .map(_.getChargingPower: squants.Power)
+    val pThermalOfStorage = thermalGrid.heatStorage
+      .map(_.getpThermalMax: squants.Power)
       .getOrElse(zeroKW)
 
     val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {

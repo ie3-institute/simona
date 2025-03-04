@@ -343,6 +343,7 @@ final case class EvcsModel(
             .filterNot { case evUuid -> _ =>
               newActiveEntries.contains(evUuid)
             }
+            .toList
             .map { case evUuid -> _ =>
               val ev = evMap(evUuid)
 
