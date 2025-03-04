@@ -60,6 +60,7 @@ if [ "$BASE_BRANCH" = "dev" ]; then
   fi
 
 elif [ "$BASE_BRANCH" = "main" ]; then
+  echo "PR into main => applying main rules"
   if semver_gt "$PR_VERSION" "$MAIN_VERSION"; then
     echo "OK: PR version ($PR_VERSION) is greater than the current main version ($MAIN_VERSION)."
     exit 0
