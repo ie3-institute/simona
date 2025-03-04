@@ -158,7 +158,7 @@ class HpModel private (
       .map(_.qDot)
       .getOrElse(zeroKW)
 
-    val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
+    val (newActivePowerHp, _, qDotIntoGrid) = {
       if (turnOn)
         (pRated, pThermal, pThermal)
       else if (lastStateStorageQDot < zeroKW)
