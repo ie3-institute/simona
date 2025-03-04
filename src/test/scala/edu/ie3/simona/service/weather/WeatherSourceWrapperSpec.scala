@@ -259,6 +259,12 @@ object WeatherSourceWrapperSpec {
         new IconTimeBasedWeatherValueFactory(),
       ) {
 
+    override def getTimeKeysAfter(
+        zonedDateTime: ZonedDateTime
+    ): util.Map[Point, util.List[ZonedDateTime]] = {
+      new util.HashMap[Point, util.List[ZonedDateTime]]()
+    }
+
     private val dummyValues = Map(
       coordinate1a -> new WeatherValue(
         coordinate1a,
