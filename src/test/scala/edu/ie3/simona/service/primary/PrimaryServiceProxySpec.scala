@@ -253,7 +253,7 @@ class PrimaryServiceProxySpec
     InitPrimaryServiceProxyStateData(
       validPrimaryConfig,
       simulationStart,
-      Map.empty,
+      Seq.empty,
     )
   val proxyRef: TestActorRef[PrimaryServiceProxy] = TestActorRef(
     new PrimaryServiceProxy(scheduler.ref, initStateData, simulationStart)
