@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
@@ -27,7 +25,10 @@ import edu.ie3.simona.event.ResultEvent.{
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
@@ -44,13 +45,11 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
-import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter.{TypedActorRefOps, _}
-import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
@@ -124,11 +123,13 @@ class ThermalGridIT
       val pRunningHp = 0.0038.asMegaWatt
       val qRunningHp = 0.0012489995996796802.asMegaVar
 
-      scheduler.expectNoMessage()
+      val hpInitSchedule = scheduler.expectMessageType[ScheduleActivation]
+      hpInitSchedule.tick shouldBe INIT_SIM_TICK
+      val hpAgentActivation = hpInitSchedule.actor
 
       /* INIT */
-      // heat pump
-      hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+
+      hpAgentActivation ! Activation(INIT_SIM_TICK)
 
       primaryServiceProxy.expectMessage(
         PrimaryServiceRegistrationMessage(
@@ -136,13 +137,13 @@ class ThermalGridIT
           typicalHpInputModel.getUuid,
         )
       )
-      hpAgent ! RegistrationFailedMessage(
-        primaryServiceProxy.ref.toClassic
-      )
+
+      // heat pump
+      hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
       weatherService.expectMessage(
         RegisterForWeatherMessage(
-          hpAgent,
+          hpAgentActivation.toClassic,
           typicalHpInputModel.getNode.getGeoPosition.getY,
           typicalHpInputModel.getNode.getGeoPosition.getX,
         )
