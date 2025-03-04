@@ -9,32 +9,38 @@ package edu.ie3.simona.ontology.messages.services
 import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import org.apache.pekko.actor.ActorRef
 import squants.Power
 
 sealed trait LoadProfileMessage
 
 /** Declares all messages sent and received by the load profile service and load
-  * profile data provided through these messages
+  * profile data provided through these messages.
   */
 object LoadProfileMessage {
 
+  private[services] trait LoadProfileMessageInternal extends LoadProfileMessage
+
   /** Indicate the [[edu.ie3.simona.service.load.LoadProfileService]] that the
     * requested agent wants to receive
-    * [[edu.ie3.datamodel.models.value.PValue]]s for the provided load profile
+    * [[edu.ie3.datamodel.models.value.PValue]]s for the provided load profile.
+    * @param requestingActor
+    *   The actor requesting registration for load profile data.
     * @param loadProfile
-    *   of the
-    *   [[edu.ie3.datamodel.models.timeseries.repetitive.LoadProfileTimeSeries]]
+    *   Of the
+    *   [[edu.ie3.datamodel.models.timeseries.repetitive.LoadProfileTimeSeries]].
     */
   final case class RegisterForLoadProfileService(
-      loadProfile: LoadProfile
+      requestingActor: ActorRef,
+      loadProfile: LoadProfile,
   ) extends LoadProfileMessage
       with ServiceRegistrationMessage
 
   /** Container class for the load profile information at a certain point in
-    * time
+    * time.
     *
     * @param averagePower
-    *   the average power for the current interval
+    *   The average power for the current interval.
     */
   final case class LoadData(
       averagePower: Power

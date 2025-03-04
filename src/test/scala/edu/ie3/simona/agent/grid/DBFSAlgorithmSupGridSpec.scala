@@ -19,7 +19,10 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.{
+  LoadProfileMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
@@ -56,6 +59,8 @@ class DBFSAlgorithmSupGridSpec
   private val primaryService: TestProbe[ServiceMessage] =
     TestProbe("primaryService")
   private val weatherService = TestProbe("weatherService")
+  private val loadProfileService =
+    TestProbe[LoadProfileMessage]("loadProfileService")
   private val hvGrid: TestProbe[GridAgent.Request] = TestProbe("hvGrid")
 
   private val environmentRefs = EnvironmentRefs(
@@ -63,6 +68,7 @@ class DBFSAlgorithmSupGridSpec
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
     weather = weatherService.ref.toClassic,
+    loadProfiles = loadProfileService.ref,
     evDataService = None,
   )
 

@@ -6,7 +6,9 @@
 
 package edu.ie3.simona.service
 
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.typed.ActorRef
 
 trait ServiceStateData
 
@@ -17,6 +19,11 @@ object ServiceStateData {
   trait InitializeServiceStateData extends ServiceStateData
 
   trait ServiceBaseStateData extends ServiceStateData
+
+  case class ServiceConstantStateData(
+      scheduler: ActorRef[SchedulerMessage],
+      activationAdapter: ActorRef[Activation],
+  ) extends ServiceStateData
 
   /** Indicate that the service is initialized
     */

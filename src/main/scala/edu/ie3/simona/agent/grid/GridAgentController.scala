@@ -336,6 +336,9 @@ class GridAgentController(
     val serviceMap: Map[ServiceType, ClassicRef] =
       Seq(
         Some(ServiceType.WeatherService -> environmentRefs.weather),
+        Some(
+          ServiceType.LoadProfileService -> environmentRefs.loadProfiles.toClassic
+        ),
         environmentRefs.evDataService.map(ref =>
           ServiceType.EvMovementService -> ref
         ),

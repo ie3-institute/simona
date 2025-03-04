@@ -8,11 +8,13 @@ package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.io.source.LoadProfileSource
 import edu.ie3.datamodel.models.profile.LoadProfile
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.LoadProfile.Datasource
 import edu.ie3.simona.service.load.LoadProfileStore.{
   convertPower,
   defaultReferenceScalingFactor,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
+import org.slf4j.Logger
 import squants.energy.{KilowattHours, Kilowatts}
 import tech.units.indriya.ComparableQuantity
 
@@ -99,17 +101,25 @@ object LoadProfileStore {
   )
 
   def apply(
-      sources: Map[LoadProfile, LoadProfileSource[_, _]]
-  ): LoadProfileStore = {
+      sourceDefinition: Datasource
+  )(implicit log: Logger): LoadProfileStore = {
+
+    // build all additional sources
+    val additionalSources = LoadProfileSources.buildSources(sourceDefinition)
 
     val profileToSource = LoadProfileSource.getBdewLoadProfiles.asScala ++ Map(
       LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE -> LoadProfileSource.getRandomLoadProfile
-    ) ++ sources
+    ) ++ additionalSources
 
     new LoadProfileStore(profileToSource.toMap)
   }
 
-  def apply(): LoadProfileStore = LoadProfileStore(Map.empty)
+  def apply(): LoadProfileStore = {
+    val profileToSource = LoadProfileSource.getBdewLoadProfiles.asScala ++ Map(
+      LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE -> LoadProfileSource.getRandomLoadProfile
+    )
+    new LoadProfileStore(profileToSource.toMap)
+  }
 
   /** Converts an option for [[ComparableQuantity]] power to an option for
     * [[squants.Power]].

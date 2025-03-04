@@ -19,6 +19,7 @@ import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
@@ -438,6 +439,12 @@ object SimonaSimSpec {
         scheduler: ActorRef[SchedulerMessage],
     ): ClassicRef =
       context.spawn(empty, uniqueName("weatherService")).toClassic
+
+    override def loadProfileService(
+        context: ActorContext[_],
+        scheduler: ActorRef[SchedulerMessage],
+    ): ActorRef[LoadProfileMessage] =
+      context.spawn(empty, uniqueName("loadProfileService")).toClassic
 
     override def timeAdvancer(
         context: ActorContext[_],

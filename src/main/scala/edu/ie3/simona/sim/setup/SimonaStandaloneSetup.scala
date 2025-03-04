@@ -22,10 +22,16 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
+import edu.ie3.simona.ontology.messages.services.{
+  LoadProfileMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.service.load.LoadProfileService
+import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService
@@ -196,6 +202,32 @@ class SimonaStandaloneSetup(
     )
 
     weatherService
+  }
+
+  override def loadProfileService(
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ActorRef[LoadProfileMessage] = {
+    val loadProfileService = context.spawn(
+      LoadProfileService(scheduler),
+      "loadProfileService",
+    )
+
+    val cfg = simonaConfig.simona
+
+    loadProfileService ! ServiceMessage.Create(
+      InitLoadProfileServiceStateData(
+        cfg.input.loadProfile.datasource,
+        TimeUtil.withDefaults
+          .toZonedDateTime(cfg.time.startDateTime),
+        TimeUtil.withDefaults
+          .toZonedDateTime(cfg.time.endDateTime),
+        cfg.powerflow.resolution,
+      ),
+      ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+    )
+
+    loadProfileService
   }
 
   override def extSimulations(
