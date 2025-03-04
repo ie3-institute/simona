@@ -66,7 +66,8 @@ trait SimonaSetup {
     *   A sequence of actor references to result event listeners
     */
   def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[_],
+      extSimSetupData: ExtSimSetupData,
   ): Seq[ActorRef[ResultEventListener.Request]]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask

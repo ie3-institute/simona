@@ -9,7 +9,11 @@ package edu.ie3.simona.sim
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.listener.{DelayedStopHelper, RuntimeEventListener}
+import edu.ie3.simona.event.listener.{
+  DelayedStopHelper,
+  ResultEventListener,
+  RuntimeEventListener,
+}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.sim.setup.SimonaSetup
@@ -71,7 +75,6 @@ object SimonaSim {
   ): Behavior[Request] =
     Behaviors
       .receivePartial[Request] { case (ctx, Start(_)) =>
-        val resultEventListeners = simonaSetup.resultEventListener(ctx)
         val runtimeEventListener = simonaSetup.runtimeEventListener(ctx)
 
         val timeAdvancer =
@@ -85,6 +88,9 @@ object SimonaSim {
 
         val extSimulationData =
           simonaSetup.extSimulations(ctx, scheduler, extSimDir)
+
+        val resultEventListeners =
+          simonaSetup.resultEventListener(ctx, extSimulationData)
 
         /* start services */
         // primary service proxy

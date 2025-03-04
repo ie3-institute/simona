@@ -141,7 +141,7 @@ case class PrimaryServiceProxy(
   private def prepareStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
-      extSimulationData: Map[ExtPrimaryDataConnection, ActorRef],
+      extSimulationData: Seq[(ExtPrimaryDataConnection, ActorRef)],
   ): Try[PrimaryServiceStateData] = {
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
@@ -183,7 +183,7 @@ case class PrimaryServiceProxy(
             simulationStart,
             primaryConfig,
             mappingSource,
-            extSubscribersToService,
+            extSubscribersToService.toMap,
           )
         } else {
           PrimaryServiceStateData(
@@ -556,7 +556,7 @@ object PrimaryServiceProxy {
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
-      extSimulationData: Map[ExtPrimaryDataConnection, ActorRef],
+      extSimulationData: Seq[(ExtPrimaryDataConnection, ActorRef)],
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.

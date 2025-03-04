@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.results
 
-import edu.ie3.datamodel.models.result.ModelResultEntity
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.api.data.results.ontology.{
   ProvideResultEntities,
@@ -56,7 +56,7 @@ object ExtResultDataProvider {
 
   /** ResultEventListener -> ExtResultDataProvider */
   final case class ResultResponseMessage(
-      result: ModelResultEntity
+      result: ResultEntity
   ) extends Request {
     def tick(implicit startTime: ZonedDateTime): Long =
       TimeUtil.withDefaults.zonedDateTimeDifferenceInSeconds(
@@ -198,7 +198,7 @@ object ExtResultDataProvider {
                   currentTick
                 ) // Expected keys are for this tick scheduled and not scheduled
               val receiveDataMap =
-                ReceiveDataMap[UUID, ModelResultEntity](expectedKeys)
+                ReceiveDataMap[UUID, ResultEntity](expectedKeys)
               val updatedSchedule =
                 serviceStateData.extResultSchedule.handleActivation(currentTick)
 
@@ -349,8 +349,8 @@ object ExtResultDataProvider {
       currentTick: Long,
       extResultSchedule: ExtResultSchedule,
       extResultsMessage: Option[ResultDataMessageFromExt] = None,
-      resultStorage: Map[UUID, ModelResultEntity] = Map.empty,
-      receiveDataMap: Option[ReceiveDataMap[UUID, ModelResultEntity]] = None,
+      resultStorage: Map[UUID, ResultEntity] = Map.empty,
+      receiveDataMap: Option[ReceiveDataMap[UUID, ResultEntity]] = None,
   ) {
     def handleActivation(activation: Activation): ExtResultStateData = {
       copy(

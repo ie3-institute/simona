@@ -31,7 +31,9 @@ final case class ExtSimSetupData(
     extSimAdapters: Iterable[ClassicRef],
     extPrimaryDataServices: Seq[(ExtPrimaryDataConnection, ClassicRef)],
     extDataServices: Seq[(ExtInputDataConnection, ClassicRef)],
-    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[_])],
+    extResultListeners: Seq[
+      (ExtResultDataConnection, ActorRef[ExtResultDataProvider.Request])
+    ],
 ) {
 
   private[setup] def update(

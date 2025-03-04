@@ -45,6 +45,7 @@ import org.apache.pekko.actor.{Props, ActorRef => ClassicRef}
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
@@ -80,6 +81,7 @@ object ExtSimSetup {
   )(implicit
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      startTime: ZonedDateTime,
       resolution: FiniteDuration,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData()) {
     case (extSimSetupData, (extLink, index)) =>
@@ -148,6 +150,7 @@ object ExtSimSetup {
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
+      startTime: ZonedDateTime,
       resolution: FiniteDuration,
   ): ExtSimSetupData = {
     implicit val extSimAdapter: ClassicRef = extSimAdapterData.getAdapter
@@ -327,8 +330,10 @@ object ExtSimSetup {
     *   the scheduler of simona
     * @param extSimAdapter
     *   the adapter for the external simulation
-    * @param simonaConfig
-    *   the config
+    * @param startTime
+    *   Of the simulation.
+    * @param resolution
+    *   Of the power flow.
     * @return
     *   an updated [[ExtSimSetupData]]
     */
@@ -339,11 +344,12 @@ object ExtSimSetup {
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapter: ClassicRef,
-      simonaConfig: SimonaConfig,
+      startTime: ZonedDateTime,
+      resolution: FiniteDuration,
   ): ExtSimSetupData = {
     val extResultDataProvider =
       context.spawn(
-        ExtResultDataProvider(scheduler, simonaConfig.simona.time.startTime),
+        ExtResultDataProvider(scheduler, startTime),
         s"ExtResultDataProvider",
       )
 
@@ -369,8 +375,7 @@ object ExtSimSetup {
       extSimAdapter,
     )
 
-    val powerFlowResolution =
-      simonaConfig.simona.powerflow.resolution.toSeconds
+    val powerFlowResolution = resolution.toSeconds
 
     extResultDataProvider ! ExtResultDataProvider.Create(
       InitExtResultData(extResultDataConnection, powerFlowResolution),

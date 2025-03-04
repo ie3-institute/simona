@@ -210,6 +210,7 @@ class SimonaStandaloneSetup(
     setupExtSim(extLinks, args)(
       context,
       scheduler,
+      simonaConfig.simona.time.startTime,
       simonaConfig.simona.powerflow.resolution,
     )
   }
@@ -262,7 +263,8 @@ class SimonaStandaloneSetup(
       )
 
   override def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[_],
+      extSimSetupData: ExtSimSetupData,
   ): Seq[ActorRef[ResultEventListener.Request]] = {
     // append ResultEventListener as well to write raw output files
     Seq(
@@ -270,7 +272,7 @@ class SimonaStandaloneSetup(
         .spawn(
           ResultEventListener(
             resultFileHierarchy,
-            extSimSetupData.extResultListeners,
+            extSimSetupData.extResultListeners.toMap,
           ),
           ResultEventListener.getClass.getSimpleName,
         )

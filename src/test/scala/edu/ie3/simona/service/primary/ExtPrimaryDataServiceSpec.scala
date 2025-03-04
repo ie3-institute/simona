@@ -8,10 +8,16 @@ package edu.ie3.simona.service.primary
 
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{DataProvision, RegistrationSuccessfulMessage}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.scheduler.ScheduleLock

@@ -7,11 +7,7 @@
 package edu.ie3.simona.event.listener
 
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
-import edu.ie3.datamodel.models.result.{
-  ModelResultEntity,
-  NodeResult,
-  ResultEntity,
-}
+import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.event.ResultEvent.{
@@ -261,7 +257,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       extResultListeners: Iterable[ActorRef[ExtResultDataProvider.Request]],
   ): Unit = Try {
     resultEntity match {
-      case modelResultEntity: ModelResultEntity =>
+      case modelResultEntity: ResultEntity =>
         extResultListeners.foreach(
           _ ! ResultResponseMessage(modelResultEntity)
         )
