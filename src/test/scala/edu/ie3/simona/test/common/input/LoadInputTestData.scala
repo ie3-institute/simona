@@ -32,7 +32,6 @@ trait LoadInputTestData extends NodeInputTestData {
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
     null,
     BdewStandardLoadProfile.H0,
-    false,
     Quantities.getQuantity(3000d, KILOWATTHOUR),
     Quantities.getQuantity(282.74d, VOLTAMPERE),
     0.95,

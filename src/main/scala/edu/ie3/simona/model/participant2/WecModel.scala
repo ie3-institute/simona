@@ -18,12 +18,10 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  ModelInput,
   ModelState,
 }
 import edu.ie3.simona.model.participant2.WecModel.{
@@ -45,7 +43,7 @@ import squants.energy.Watts
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
 import squants.space.SquareMeters
-import squants.thermal.JoulesPerKelvin
+import squants.thermal.{Celsius, JoulesPerKelvin}
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
@@ -67,33 +65,38 @@ class WecModel private (
     with ParticipantSimpleFlexibility[WecState]
     with LazyLogging {
 
-  override val initialState: ModelInput => WecState = { input =>
-    val weatherData = getWeatherData(input.receivedData)
-    WecState(
-      input.currentTick,
-      weatherData.windVel,
-      weatherData.temp,
-      None,
-    )
-  }
+  override val initialState: (Long, ZonedDateTime) => WecState =
+    (tick, _) =>
+      WecState(
+        tick,
+        MetersPerSecond(0d),
+        Celsius(0d),
+        None,
+      )
 
   override def determineState(
       lastState: WecState,
       operatingPoint: ActivePowerOperatingPoint,
-      input: ModelInput,
-  ): WecState = initialState(input)
+      tick: Long,
+      simulationTime: ZonedDateTime,
+  ): WecState = lastState.copy(tick = tick)
 
-  private def getWeatherData(receivedData: Seq[Data]): WeatherData = {
+  override def handleInput(
+      state: WecState,
+      receivedData: Seq[Data],
+      nodalVoltage: Dimensionless,
+  ): WecState =
     receivedData
       .collectFirst { case weatherData: WeatherData =>
         weatherData
       }
-      .getOrElse {
-        throw new CriticalFailureException(
-          s"Expected WeatherData, got $receivedData"
+      .map(newData =>
+        state.copy(
+          windVelocity = newData.windVel,
+          temperature = newData.temp,
         )
-      }
-  }
+      )
+      .getOrElse(state)
 
   override def determineOperatingPoint(
       state: WecState

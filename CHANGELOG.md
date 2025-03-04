@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `FixedFeedInModel` with its new implementation [#1152](https://github.com/ie3-institute/simona/issues/1152)
 - Replace `PvModel` with its new implementation [#1149](https://github.com/ie3-institute/simona/issues/1149)
 - Replace `WecModel` with its new implementation [#1154](https://github.com/ie3-institute/simona/issues/1154)
+- Replace `StorageModel` with its new implementation [#1153](https://github.com/ie3-institute/simona/issues/1153)
 - Add test case to EmAgentIT to check for correct reactive power [#1185](https://github.com/ie3-institute/simona/issues/1185)
 
 ### Changed
@@ -144,6 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Typo and format of `ThermalGrid` and `ThermalHouse` ScalaDocs [#1196](https://github.com/ie3-institute/simona/issues/1196)
 - Refactor `EmRuntimeConfig` [#1181](https://github.com/ie3-institute/simona/issues/1181)
 - Based `PvModel` calculations on irradiance (power per area) instead of irradiation (energy per area) [#1212](https://github.com/ie3-institute/simona/issues/1212)
+- Updated to changes of PSDM release v6.0.0 [#1107](https://github.com/ie3-institute/simona/issues/1107)
+- Refactor external simulation setup [#1136](https://github.com/ie3-institute/simona/issues/1136)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -194,6 +197,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Check for runningHp when handling infeed to thermalGrid [#1167](https://github.com/ie3-institute/simona/issues/1167)
 - Send `FlexResult` to EM [#1202](https://github.com/ie3-institute/simona/issues/1202)
 - Fix test timeouts for all tests [#1222](https://github.com/ie3-institute/simona/issues/1222)
+- Fix handling of states in `ParticipantModelShell` [#1228](https://github.com/ie3-institute/simona/issues/1228)
+- Fix input data handling in `ParticipantModel` [#1237](https://github.com/ie3-institute/simona/issues/1237)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)

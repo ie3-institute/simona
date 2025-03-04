@@ -11,7 +11,6 @@ import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
@@ -157,26 +156,14 @@ class EmAgentIT
           ),
           "PvAgent",
         )
-        val storageAgent = TestActorRef(
-          new StorageAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              householdStorageInput,
-              StorageRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                uuids = List.empty,
-                targetSoc = None,
-              ),
-              primaryServiceProxy.ref.toClassic,
-              None,
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val storageAgent = spawn(
+          ParticipantAgentInit(
+            householdStorageInput,
+            StorageRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
           ),
           "StorageAgent",
         )
@@ -189,7 +176,7 @@ class EmAgentIT
 
         emAgentActivation ! Activation(INIT_SIM_TICK)
 
-        primaryServiceProxy.receiveMessages(2) should contain allOf (
+        primaryServiceProxy.receiveMessages(3) should contain allOf (
           PrimaryServiceRegistrationMessage(
             loadAgent.toClassic,
             loadInput.getUuid,
@@ -197,6 +184,10 @@ class EmAgentIT
           PrimaryServiceRegistrationMessage(
             pvAgent.toClassic,
             pvInput.getUuid,
+          ),
+          PrimaryServiceRegistrationMessage(
+            storageAgent.toClassic,
+            householdStorageInput.getUuid,
           )
         )
 
@@ -220,22 +211,12 @@ class EmAgentIT
           0L,
         )
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
-
         // storage
-        storageAgent ! Activation(INIT_SIM_TICK)
-
-        primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(
-            storageAgent.ref,
-            householdStorageInput.getUuid,
-          )
-        )
         storageAgent ! RegistrationFailedMessage(
           primaryServiceProxy.ref.toClassic
         )
 
-        scheduler.expectMessage(Completion(storageAgent))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
         /* TICK 0
          LOAD: 0.269 kW
@@ -356,7 +337,7 @@ class EmAgentIT
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
-            emResult.getTime shouldBe 14400L.toDateTime
+            emResult.getTime shouldBe 14400.toDateTime
             emResult.getP should equalWithTolerance(
               0.0.asMegaWatt
             )
