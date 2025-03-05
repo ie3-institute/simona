@@ -12,11 +12,11 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   RegistrationResponseMessage,
   RegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.em.ontology.{
   EmDataMessageFromExt,
   ProvideEmSetPointData,
 }
+import edu.ie3.simona.api.data.em.{ExtEmDataConnection, NoSetPointValue}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
@@ -25,11 +25,11 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssuePowerControl,
   SetPointFlexRequest,
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   DataResponseMessage,
   ExtEmDataServiceRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
@@ -222,9 +222,10 @@ final case class ExtEmDataService(
     val maybeNextTick = emDataMessage.maybeNextTick.toScala.map(Long2long)
 
     if (actorToEmData.nonEmpty) {
-      actorToEmData.foreach { case (actor, setPoint) =>
+      actorToEmData.foreach { case (actor, (controlSignal, setPoint)) =>
         actor ! SetPointFlexRequest(
           tick,
+          controlSignal,
           setPoint,
           maybeNextTick,
         )
@@ -238,8 +239,11 @@ final case class ExtEmDataService(
 
   private def convertToSetPoint(
       value: PValue
-  ): Power = {
-    Kilowatts(value.getP.get.getValue.doubleValue())
+  ): (Boolean, Power) = {
+    value match {
+      case _: NoSetPointValue => (false, Kilowatts(0.0))
+      case _ => (true, Kilowatts(value.getP.get.getValue.doubleValue()))
+    }
   }
 
   /** Handle a message from outside the simulation
