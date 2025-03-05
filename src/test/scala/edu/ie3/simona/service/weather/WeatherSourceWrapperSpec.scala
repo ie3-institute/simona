@@ -7,12 +7,21 @@
 package edu.ie3.simona.service.weather
 
 import edu.ie3.datamodel.io.factory.timeseries.IconTimeBasedWeatherValueFactory
-import edu.ie3.datamodel.io.source.{IdCoordinateSource, WeatherSource => PsdmWeatherSource}
+import edu.ie3.datamodel.io.source.{
+  IdCoordinateSource,
+  WeatherSource => PsdmWeatherSource,
+}
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.timeseries.individual.{IndividualTimeSeries, TimeBasedValue}
+import edu.ie3.datamodel.models.timeseries.individual.{
+  IndividualTimeSeries,
+  TimeBasedValue,
+}
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{EMPTY_WEATHER_DATA, WeightedCoordinates}
+import edu.ie3.simona.service.weather.WeatherSource.{
+  EMPTY_WEATHER_DATA,
+  WeightedCoordinates,
+}
 import edu.ie3.simona.service.weather.WeatherSourceSpec.DummyIdCoordinateSource
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec._
@@ -270,9 +279,12 @@ object WeatherSourceWrapperSpec {
     override def getTimeKeysAfter(
         zonedDateTime: ZonedDateTime
     ): util.Map[Point, util.List[ZonedDateTime]] = {
-      val startTime = ZonedDateTime.of(2021, 1, 15, 18, 0, 0, 0, ZoneId.of("UTC"))
+      val startTime =
+        ZonedDateTime.of(2021, 1, 15, 18, 0, 0, 0, ZoneId.of("UTC"))
 
-      val time = Range.inclusive(0, 3, 1).map(startTime.plusHours(_))
+      val time = Range
+        .inclusive(0, 3, 1)
+        .map(startTime.plusHours(_))
         .filter(_.isAfter(zonedDateTime))
         .asJava
 
