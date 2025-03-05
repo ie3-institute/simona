@@ -144,6 +144,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Typo and format of `ThermalGrid` and `ThermalHouse` ScalaDocs [#1196](https://github.com/ie3-institute/simona/issues/1196)
 - Refactor `EmRuntimeConfig` [#1181](https://github.com/ie3-institute/simona/issues/1181)
 - Based `PvModel` calculations on irradiance (power per area) instead of irradiation (energy per area) [#1212](https://github.com/ie3-institute/simona/issues/1212)
+- Updated to changes of PSDM release v6.0.0 [#1107](https://github.com/ie3-institute/simona/issues/1107)
+- Refactor external simulation setup [#1136](https://github.com/ie3-institute/simona/issues/1136)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)

@@ -17,9 +17,9 @@ trait RandomStorageState {
   private val seed: Long = -517L
 
   override def startingState: ThermalStorage.ThermalStorageState = {
-    def rnd: Double = new Random(seed).nextDouble()
+    def random: Double = new Random(seed).nextDouble()
     def storedEnergy: Energy =
-      getMinEnergyThreshold + (getMaxEnergyThreshold - getMinEnergyThreshold) * rnd
+      getMaxEnergyThreshold * random
 
     ThermalStorageState(
       -1L,
