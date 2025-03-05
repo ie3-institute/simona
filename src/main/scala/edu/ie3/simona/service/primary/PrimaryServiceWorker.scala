@@ -147,10 +147,8 @@ final case class PrimaryServiceWorker[V <: Value](
           .sorted
       ).pop
 
-      // todo: improve the get method
-      val previousOption = source.getTimeSeries
-        .getPreviousTimeBasedValue(simulationStart)
-        .toScala
+      val previousOption =
+        source.getPreviousTimeBasedValue(simulationStart).toScala
 
       (maybeNextTick, furtherActivationTicks, previousOption) match {
         case (Some(tick), _, _) if tick == 0L =>
@@ -193,7 +191,7 @@ final case class PrimaryServiceWorker[V <: Value](
           Success(initializedStateData, maybeNextTick)
 
         case (_, _, Some(value)) =>
-          /* We have data before, but after the start of the simulation */
+          /* We have data before, but not after the start of the simulation */
           log.debug(
             s"Only found data before the start of the simulation. Tick: ${value.getTime.toTick}"
           )
