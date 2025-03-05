@@ -21,7 +21,7 @@ object ArgsParser extends LazyLogging {
       mainArgs: Array[String],
       configLocation: Option[String] = None,
       config: Option[TypesafeConfig] = None,
-  ) {}
+  )
 
   // build the config parser using scopt library
   private def buildParser: scoptOptionParser[Arguments] = {
