@@ -47,6 +47,8 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.DoubleUtils.ImplicitDouble
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import squants.motion.MetersPerSecond
+import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
 
 import java.nio.file.Paths
@@ -142,13 +144,20 @@ private[weather] final case class WeatherSourceWrapper private (
             (averagedWeather.diffIrr + nonEmptyDiffIrr * weight, weight)
         }
 
-        val (dirIrradiance, dirIrrWeight) = currentWeather.dirIrr match {
-          case _ if currentWeather.dirIrr eq EMPTY_WEATHER_DATA.dirIrr =>
+        val (dirIrradiance, dirIrrWeight) = currentWeather match {
+          case WeatherData(
+                WattsPerSquareMeter(0d),
+                WattsPerSquareMeter(0d),
+                Kelvin(0d),
+                MetersPerSecond(0d),
+              ) =>
             logger.warn(s"Direct solar irradiance data is missing at $point.")
             (averagedWeather.dirIrr, 0d)
-          case WattsPerSquareMeter(0d) =>
+
+          case WeatherData(WattsPerSquareMeter(0d), _, _, _) =>
             (averagedWeather.dirIrr, weight)
-          case nonEmptyDirIrr =>
+
+          case WeatherData(nonEmptyDirIrr, _, _, _) =>
             (averagedWeather.dirIrr + nonEmptyDirIrr * weight, weight)
         }
 
