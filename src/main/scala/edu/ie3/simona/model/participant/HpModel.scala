@@ -148,9 +148,9 @@ final case class HpModel(
       )
 
     // Updating the HpState
-    val updatedState =
-      calcState(lastHpState, relevantData, turnOn)
-    (canOperate, canBeOutOfOperation, updatedState)
+    val updatedHpState =
+      calcState(lastHpState, relevantData, turnOn, thermalDemandWrapper)
+    (canOperate, canBeOutOfOperation, updatedHpState)
   }
 
   /** Depending on the input, this function decides whether the heat pump will
@@ -212,6 +212,8 @@ final case class HpModel(
     *   data of heat pump including state of the heat pump
     * @param isRunning
     *   determines whether the heat pump is running or not
+    * @param demandWrapper
+    *   holds the thermal demands of the thermal units (house, storage)
     * @return
     *   next [[HpState]]
     */
@@ -219,17 +221,27 @@ final case class HpModel(
       lastState: HpState,
       relevantData: HpRelevantData,
       isRunning: Boolean,
+      demandWrapper: ThermalDemandWrapper,
   ): HpState = {
     val lastStateStorageQDot = lastState.thermalGridState.storageState
       .map(_.qDot)
       .getOrElse(zeroKW)
 
-    val (newActivePower, newThermalPower) =
+    val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
       if (isRunning)
-        (pRated, pThermal)
+        (pRated, pThermal, pThermal)
       else if (lastStateStorageQDot < zeroKW)
-        (zeroKW, lastStateStorageQDot * -1)
-      else (zeroKW, zeroKW)
+        (zeroKW, zeroKW, lastStateStorageQDot * (-1))
+      else if (
+        lastStateStorageQDot == zeroKW && (demandWrapper.houseDemand.hasRequiredDemand || demandWrapper.heatStorageDemand.hasRequiredDemand)
+      )
+        (
+          zeroKW,
+          zeroKW,
+          thermalGrid.heatStorage.map(_.getpThermalMax: squants.Power).get,
+        )
+      else (zeroKW, zeroKW, zeroKW)
+    }
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
     val (thermalGridState, maybeThreshold) =
@@ -237,15 +249,17 @@ final case class HpModel(
         relevantData,
         lastState.thermalGridState,
         lastState.ambientTemperature.getOrElse(relevantData.ambientTemperature),
-        newThermalPower,
+        isRunning,
+        qDotIntoGrid,
+        demandWrapper,
       )
 
     HpState(
       isRunning,
       relevantData.currentTick,
       Some(relevantData.ambientTemperature),
-      newActivePower,
-      newThermalPower,
+      newActivePowerHp,
+      newThermalPowerHp,
       thermalGridState,
       maybeThreshold,
     )
@@ -285,7 +299,7 @@ final case class HpModel(
     * operating state and give back the next tick in which something will
     * change.
     *
-    * @param data
+    * @param relevantData
     *   Relevant data for model calculation
     * @param lastState
     *   The last known model state
@@ -296,17 +310,27 @@ final case class HpModel(
     *   options will change next
     */
   override def handleControlledPowerChange(
-      data: HpRelevantData,
+      relevantData: HpRelevantData,
       lastState: HpState,
       setPower: Power,
   ): (HpState, FlexChangeIndicator) = {
     /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
     val turnOn = setPower > (sRated.toActivePower(cosPhiRated) * 0.5)
 
+    val (
+      thermalDemandWrapper,
+      _,
+    ) =
+      thermalGrid.energyDemandAndUpdatedState(
+        relevantData,
+        lastState,
+      )
+
     val updatedHpState = calcState(
       lastState,
-      data,
+      relevantData,
       turnOn,
+      thermalDemandWrapper,
     )
 
     (
@@ -378,9 +402,9 @@ object HpModel {
     * @param ambientTemperature
     *   Optional ambient temperature, if available
     * @param activePower
-    *   result active power
+    *   result active power of heat pump
     * @param qDot
-    *   result heat power
+    *   result heat power of heat pump
     * @param thermalGridState
     *   applicable state of the thermal grid
     * @param maybeThermalThreshold

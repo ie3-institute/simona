@@ -8,8 +8,6 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.event.listener.SimonaListenerCompanion
-import edu.ie3.util.scala.ReflectionTools
 import scopt.{OptionParser => scoptOptionParser}
 
 import java.io.File
@@ -23,7 +21,7 @@ object ArgsParser extends LazyLogging {
       mainArgs: Array[String],
       configLocation: Option[String] = None,
       config: Option[TypesafeConfig] = None,
-      selectedSubnets: Option[String] = None,
+      selectedSubgrids: Option[String] = None,
       selectedVoltLvls: Option[String] = None,
       clusterType: Option[ClusterType] = None,
       nodeHost: Option[String] = None,
@@ -57,7 +55,7 @@ object ArgsParser extends LazyLogging {
           "Comma separated list (no whitespaces!) of substitution arguments for simona config."
         )
       opt[String](name = "subnets")
-        .action((value, args) => args.copy(selectedSubnets = Some(value)))
+        .action((value, args) => args.copy(selectedSubgrids = Some(value)))
         .text("Comma separated list (no whitespaces!) of selected subnets.")
       opt[String](name = "voltlevels")
         .action((value, args) => args.copy(selectedVoltLvls = Some(value)))
@@ -156,43 +154,6 @@ object ArgsParser extends LazyLogging {
     override def toString = "worker"
   }
 
-  /** Parses the given listener configuration tino a map of
-    * [[SimonaListenerCompanion]] to an optional list of it's regarding events
-    * to process
-    *
-    * @param listenerConfigOption
-    *   Option to a list of listener definitions from config
-    * @return
-    *   A mapping from [[SimonaListenerCompanion]] to an Option to a list of
-    *   events to process
-    */
-  def parseListenerConfigOption(
-      listenerConfigOption: Option[List[SimonaConfig.Simona.Event.Listener$Elm]]
-  ): Map[SimonaListenerCompanion, Option[List[String]]] = {
-    listenerConfigOption match {
-      case Some(listenerElems) =>
-        listenerElems.foldLeft(
-          Map.empty[SimonaListenerCompanion, Option[List[String]]]
-        )((listenerMap, listenerElem) =>
-          ReflectionTools
-            .resolveClassNameToCompanion(listenerElem.fullClassPath) match {
-            case Some(listener: SimonaListenerCompanion) =>
-              listenerMap + (listener -> listenerElem.eventsToProcess)
-            case nonListenerCompanion =>
-              logger.warn(
-                s"Invalid value ${nonListenerCompanion.getClass} for 'event.listener' config parameter!"
-              )
-              listenerMap
-          }
-        )
-      case None =>
-        logger.info(
-          "No listener assigned in configuration value 'event.listener'. No event are going to be processed!"
-        )
-        Map.empty[SimonaListenerCompanion, Option[List[String]]]
-    }
-  }
-
   /** Prepare the config by parsing the provided program arguments
     *
     * @param args
@@ -225,8 +186,8 @@ object ArgsParser extends LazyLogging {
       ConfigFactory.parseString(
         s"""config = "${parsedArgs.configLocation.get.replace("\\", "\\\\")}"
            |simona.runtime_configuration {
-           |  selected_subnets = [${parsedArgs.selectedSubnets.getOrElse("")}]
-           |  selected_volt_lvls = [${parsedArgs.selectedVoltLvls
+           |  selectedSubgrids = [${parsedArgs.selectedSubgrids.getOrElse("")}]
+           |  selectedVoltLvls = [${parsedArgs.selectedVoltLvls
             .getOrElse("")}]
            |}
            |""".stripMargin

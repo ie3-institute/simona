@@ -8,15 +8,16 @@ package edu.ie3.simona.service.weather
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -139,6 +140,7 @@ class WeatherServiceSpec
         )
         .intercept {
           weatherActor ! RegisterForWeatherMessage(
+            self,
             invalidCoordinate.latitude,
             invalidCoordinate.longitude,
           )
@@ -150,11 +152,12 @@ class WeatherServiceSpec
     "announce, that a valid coordinate is registered" in {
       /* The successful registration stems from the test above */
       weatherActor ! RegisterForWeatherMessage(
+        self,
         validCoordinate.latitude,
         validCoordinate.longitude,
       )
 
-      expectMsg(RegistrationSuccessfulMessage(weatherActor.ref, Some(0L)))
+      expectMsg(RegistrationSuccessfulMessage(weatherActor.ref, 0L))
     }
 
     "recognize, that a valid coordinate yet is registered" in {
@@ -166,6 +169,7 @@ class WeatherServiceSpec
         )
         .intercept {
           weatherActor ! RegisterForWeatherMessage(
+            self,
             validCoordinate.latitude,
             validCoordinate.longitude,
           )
@@ -180,7 +184,7 @@ class WeatherServiceSpec
       scheduler.expectMsg(Completion(weatherActor.toTyped, Some(3600)))
 
       expectMsg(
-        ProvideWeatherMessage(
+        DataProvision(
           0,
           weatherActor,
           WeatherData(
@@ -202,7 +206,7 @@ class WeatherServiceSpec
       scheduler.expectMsg(Completion(weatherActor.toTyped))
 
       expectMsg(
-        ProvideWeatherMessage(
+        DataProvision(
           3600,
           weatherActor,
           WeatherData(

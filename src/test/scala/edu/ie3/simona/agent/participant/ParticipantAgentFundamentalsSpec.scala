@@ -16,28 +16,16 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModel
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.exceptions.agent.{
-  AgentInitializationException,
-  InconsistentStateException,
-}
+import edu.ie3.simona.exceptions.agent.AgentInitializationException
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.SystemParticipant
-import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
-import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
-import edu.ie3.simona.model.participant.load.{FixedLoadModel, LoadReference}
 import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{
-  Kilovoltamperes,
-  Megavars,
-  ReactivePower,
-  Vars,
-}
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.apache.pekko.actor.ActorRef.noSender
 import org.apache.pekko.actor.{ActorRef, ActorSystem}
 import org.apache.pekko.testkit.TestFSMRef
@@ -46,8 +34,8 @@ import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3, TableFor5}
 import org.scalatestplus.mockito.MockitoSugar
-import squants.energy.{Kilowatts, Megawatts, Watts}
-import squants.{Each, Power}
+import squants.Power
+import squants.energy.{Megawatts, Watts}
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -72,13 +60,6 @@ class ParticipantAgentFundamentalsSpec
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
   private implicit val pTolerance: Power = Watts(0.1)
   private implicit val qTolerance: ReactivePower = Vars(0.1)
-
-  private val outputConfig: NotifierConfig =
-    NotifierConfig(
-      simulationResultInfo = false,
-      powerRequestReply = false,
-      flexResult = false,
-    )
 
   /* Get one instance of the mock for participant agent */
   private val mockAgentTestRef: TestFSMRef[AgentState, ParticipantStateData[
@@ -528,80 +509,6 @@ class ParticipantAgentFundamentalsSpec
     }
   }
 
-  "Determining the applicable nodal voltage" should {
-    "deliver the correct voltage" in {
-      val baseStateData = ParticipantModelBaseStateData[
-        ComplexPower,
-        FixedLoadRelevantData.type,
-        ConstantState.type,
-        FixedLoadModel,
-      ](
-        simulationStartDate,
-        simulationEndDate,
-        FixedLoadModel(
-          UUID.randomUUID(),
-          "test_load",
-          OperationInterval(0L, 1800L),
-          CosPhiFixed(0.95),
-          Kilovoltamperes(100.0),
-          0.95,
-          LoadReference.ActivePower(Kilowatts(95.0)),
-        ),
-        None,
-        outputConfig,
-        SortedSet(0L, 900L, 1800L),
-        Map.empty,
-        1e-12,
-        ValueStore.forVoltage(901L, Each(1.0)),
-        ValueStore(901L),
-        ValueStore(901L),
-        ValueStore(901L),
-        ValueStore(901L),
-        None,
-      )
-
-      ParticipantAgent.getAndCheckNodalVoltage(
-        baseStateData,
-        1000L,
-      ) shouldBe Each(1.0)
-    }
-
-    "throw an error, if no nodal voltage is available" in {
-      val baseStateData = ParticipantModelBaseStateData[
-        ComplexPower,
-        FixedLoadRelevantData.type,
-        ConstantState.type,
-        FixedLoadModel,
-      ](
-        simulationStartDate,
-        simulationEndDate,
-        FixedLoadModel(
-          UUID.randomUUID(),
-          "test_load",
-          OperationInterval(0L, 1800L),
-          CosPhiFixed(0.95),
-          Kilovoltamperes(100.0),
-          0.95,
-          LoadReference.ActivePower(Kilowatts(95.0)),
-        ),
-        None,
-        outputConfig,
-        SortedSet(0L, 900L, 1800L),
-        Map.empty,
-        1e-12,
-        ValueStore(901L),
-        ValueStore(901L),
-        ValueStore(901L),
-        ValueStore(901L),
-        ValueStore(901L),
-        None,
-      )
-
-      intercept[InconsistentStateException] {
-        ParticipantAgent.getAndCheckNodalVoltage(baseStateData, 1000L)
-      }.getMessage shouldBe "Not knowing any nodal voltage is not supposed to happen."
-    }
-  }
 }
 
 case object ParticipantAgentFundamentalsSpec extends MockitoSugar {

@@ -34,6 +34,7 @@ class GridAgentSetupSpec
       val testKit = BehaviorTestKit(Behaviors.setup[AnyRef] { ctx =>
         SimonaStandaloneSetup(
           typesafeConfig,
+          simonaConfig,
           mock[ResultFileHierarchy],
         ).buildSubGridToActorRefMap(
           gridContainer.getSubGridTopologyGraph,
@@ -60,6 +61,7 @@ class GridAgentSetupSpec
       val testKit = BehaviorTestKit(Behaviors.setup[AnyRef] { ctx =>
         SimonaStandaloneSetup(
           typesafeConfig,
+          simonaConfig,
           mock[ResultFileHierarchy],
         ).buildSubGridToActorRefMap(
           threeWindingTestGrid.getSubGridTopologyGraph,

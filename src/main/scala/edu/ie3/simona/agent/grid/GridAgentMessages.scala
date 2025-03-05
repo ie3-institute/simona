@@ -34,6 +34,7 @@ object GridAgentMessages {
   final case class CreateGridAgent(
       gridAgentInitData: GridAgentInitData,
       unlockKey: ScheduleKey,
+      onlyOneSubGrid: Boolean = false,
   ) extends GridAgent.InternalRequest
 
   /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
@@ -171,7 +172,7 @@ object GridAgentMessages {
   final case object FailedPowerFlow extends PowerResponse
 
   /** Provide power values as a reply to a
-    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
+    * [[edu.ie3.simona.agent.participant2.ParticipantAgent.RequestAssetPowerMessage]]
     *
     * @param p
     *   Unchanged active power
@@ -184,7 +185,7 @@ object GridAgentMessages {
   ) extends ProvidedPowerResponse
 
   /** Provide values as a reply to a
-    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]].
+    * [[edu.ie3.simona.agent.participant2.ParticipantAgent.RequestAssetPowerMessage]].
     * In contrast to [[AssetPowerChangedMessage]], this message indicates that
     * the same values for [[p]] and [[q]] has been sent again as in the previous
     * request

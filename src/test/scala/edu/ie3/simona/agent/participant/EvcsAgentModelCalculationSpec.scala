@@ -19,16 +19,21 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+  RequestAssetPowerMessage,
+}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
@@ -45,10 +50,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.{EvTestData, TestSpawnerClassic}
@@ -92,14 +93,7 @@ class EvcsAgentModelCalculationSpec
       flexResult = false,
     )
 
-  private val modelConfig =
-    EvcsRuntimeConfig.apply(
-      calculateMissingReactivePowerWithModel = false,
-      scaling = 1.0,
-      uuids = List("default"),
-      chargingStrategy = "maxPower",
-      lowestEvSoc = 0.2,
-    )
+  private val modelConfig = EvcsRuntimeConfig()
 
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
@@ -234,7 +228,7 @@ class EvcsAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(evcsInputModel.getUuid)
+        PrimaryServiceRegistrationMessage(evcsAgent.ref, evcsInputModel.getUuid)
       )
       /* State should be information handling and having correct state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -329,18 +323,18 @@ class EvcsAgentModelCalculationSpec
       /* Reply, that registration was successful */
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, None),
+        RegistrationSuccessfulMessage(evService.ref, 0),
       )
 
       /* Expect a completion message */
-      scheduler.expectMsg(Completion(evcsAgent.toTyped, None))
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(0)))
 
       /* ... as well as corresponding state and state data */
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
-          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> None)
+          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> Some(0))
         case _ =>
           fail(
             s"Did not find expected state data $ParticipantModelBaseStateData, but ${evcsAgent.stateData}"
@@ -370,7 +364,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(evService.ref, 900L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -383,6 +377,7 @@ class EvcsAgentModelCalculationSpec
         0L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -436,7 +431,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref, 0),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -450,7 +445,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0L,
           evService.ref,
           arrivingEvsData,
@@ -570,7 +565,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref, 0),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -612,7 +607,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0L,
           evService.ref,
           arrivingEvsData,
@@ -701,7 +696,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(10800)),
+        RegistrationSuccessfulMessage(evService.ref, 10800),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -712,6 +707,7 @@ class EvcsAgentModelCalculationSpec
         7200,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -746,7 +742,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref, 0),
       )
 
       /* I'm not interested in the content of the CompletionM */
@@ -771,7 +767,7 @@ class EvcsAgentModelCalculationSpec
       /* Send ev for this tick */
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0,
           evService.ref,
           ArrivingEvs(Seq(EvModelWrapper(evA))),
@@ -827,7 +823,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref, 0),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -837,7 +833,7 @@ class EvcsAgentModelCalculationSpec
       /* Send ev for this tick */
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0,
           evService.ref,
           ArrivingEvs(Seq(EvModelWrapper(evA))),
@@ -854,7 +850,7 @@ class EvcsAgentModelCalculationSpec
       /* Send empty EV list for this tick */
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           900,
           evService.ref,
           ArrivingEvs(Seq.empty),
@@ -905,7 +901,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref, 0),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -916,7 +912,7 @@ class EvcsAgentModelCalculationSpec
       /* ... for tick 0 */
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0,
           evService.ref,
           ArrivingEvs(
@@ -950,7 +946,7 @@ class EvcsAgentModelCalculationSpec
       // arrivals second
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           3600,
           evService.ref,
           ArrivingEvs(
@@ -984,7 +980,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           7200,
           evService.ref,
           ArrivingEvs(
@@ -1003,6 +999,7 @@ class EvcsAgentModelCalculationSpec
         7500L,
         Each(1.0),
         Each(0.0),
+        self.toTyped,
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -1020,6 +1017,7 @@ class EvcsAgentModelCalculationSpec
         7500L,
         Each(1.000000000000001d),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, that nothing has changed */
@@ -1036,6 +1034,7 @@ class EvcsAgentModelCalculationSpec
         7500L,
         Each(0.98),
         Each(0.0),
+        self.toTyped,
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
@@ -1078,7 +1077,10 @@ class EvcsAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(evcsInputModelQv.getUuid)
+        PrimaryServiceRegistrationMessage(
+          evcsAgent.ref,
+          evcsInputModelQv.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -1116,11 +1118,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
-          evcsInputModelQv.getUuid,
-          evcsAgent.toTyped,
-          evcsInputModelQv,
-        )
+        RegisterControlledAsset(evcsAgent.toTyped, evcsInputModelQv)
       )
       // only receive registration message. ScheduleFlexRequest after secondary service initialized
       emAgent.expectNoMessage()
@@ -1128,11 +1126,11 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsg(RegisterForEvDataMessage(evcsInputModelQv.getUuid))
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref, 0),
       )
 
       emAgent.expectMsg(
-        ScheduleFlexRequest(evcsInputModelQv.getUuid, 0)
+        ScheduleFlexActivation(evcsInputModelQv.getUuid, 0)
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped))
@@ -1216,7 +1214,10 @@ class EvcsAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(evcsInputModelQv.getUuid)
+        PrimaryServiceRegistrationMessage(
+          evcsAgent.ref,
+          evcsInputModelQv.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -1258,22 +1259,18 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
-          evcsInputModelQv.getUuid,
-          evcsAgent.toTyped,
-          evcsInputModelQv,
-        )
+        RegisterControlledAsset(evcsAgent.toTyped, evcsInputModelQv)
       )
       emAgent.expectNoMessage()
 
       evService.expectMsg(RegisterForEvDataMessage(evcsInputModelQv.getUuid))
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(900)),
+        RegistrationSuccessfulMessage(evService.ref, 900),
       )
 
       emAgent.expectMsg(
-        ScheduleFlexRequest(evcsInputModelQv.getUuid, 900)
+        ScheduleFlexActivation(evcsInputModelQv.getUuid, 900)
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped))
@@ -1337,7 +1334,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           900,
           evService.ref,
           ArrivingEvs(Seq(ev900)),
@@ -1363,9 +1360,9 @@ class EvcsAgentModelCalculationSpec
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe evcsInputModelQv.getUuid
         flexResult.getTime shouldBe 900.toDateTime
-        flexResult.getpRef should beEquivalentTo(ev900.unwrap().getSRatedAC)
-        flexResult.getpMin should beEquivalentTo(ev900.unwrap().getSRatedAC)
-        flexResult.getpMax should beEquivalentTo(ev900.unwrap().getSRatedAC)
+        flexResult.getpRef should beEquivalentTo(ev900.unwrap().getPRatedAC)
+        flexResult.getpMin should beEquivalentTo(ev900.unwrap().getPRatedAC)
+        flexResult.getpMax should beEquivalentTo(ev900.unwrap().getPRatedAC)
       }
 
       emAgent.send(evcsAgent, IssueNoControl(900))
@@ -1377,7 +1374,7 @@ class EvcsAgentModelCalculationSpec
           Kilowatts(
             ev900
               .unwrap()
-              .getSRatedAC
+              .getPRatedAC
               .to(PowerSystemUnits.KILOWATT)
               .getValue
               .doubleValue
@@ -1431,7 +1428,7 @@ class EvcsAgentModelCalculationSpec
           case ParticipantResultEvent(result: EvResult)
               if result.getTime.equals(900.toDateTime) =>
             result.getInputModel shouldBe ev900.uuid
-            result.getP should beEquivalentTo(ev900.unwrap().getSRatedAC)
+            result.getP should beEquivalentTo(ev900.unwrap().getPRatedAC)
             result.getQ should beEquivalentTo(0d.asMegaVar)
             result.getSoc should beEquivalentTo(0d.asPercent)
           case ParticipantResultEvent(result: EvResult)
@@ -1446,7 +1443,7 @@ class EvcsAgentModelCalculationSpec
         case ParticipantResultEvent(result: EvcsResult) =>
           result.getInputModel shouldBe evcsInputModelQv.getUuid
           result.getTime shouldBe 900.toDateTime
-          result.getP should beEquivalentTo(ev900.unwrap().getSRatedAC)
+          result.getP should beEquivalentTo(ev900.unwrap().getPRatedAC)
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
@@ -1454,7 +1451,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           4500,
           evService.ref,
           ArrivingEvs(Seq(ev4500)),
@@ -1480,9 +1477,9 @@ class EvcsAgentModelCalculationSpec
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe evcsInputModelQv.getUuid
         flexResult.getTime shouldBe 4500.toDateTime
-        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getSRatedAC)
-        flexResult.getpMin should beEquivalentTo(ev4500.unwrap().getSRatedAC)
-        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getSRatedAC)
+        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getPRatedAC)
+        flexResult.getpMin should beEquivalentTo(ev4500.unwrap().getPRatedAC)
+        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getPRatedAC)
       }
 
       emAgent.send(evcsAgent, IssueNoControl(4500))
@@ -1530,9 +1527,9 @@ class EvcsAgentModelCalculationSpec
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe evcsInputModelQv.getUuid
         flexResult.getTime shouldBe 9736.toDateTime
-        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getSRatedAC)
+        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getPRatedAC)
         flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
-        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getSRatedAC)
+        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getPRatedAC)
       }
 
       emAgent.send(evcsAgent, IssuePowerControl(9736, Kilowatts(10.0)))
@@ -1584,7 +1581,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           11700,
           evService.ref,
           ArrivingEvs(Seq(ev11700)),
@@ -1595,7 +1592,7 @@ class EvcsAgentModelCalculationSpec
       emAgent.send(evcsAgent, FlexActivation(11700))
 
       val combinedChargingPower =
-        ev11700.unwrap().getSRatedAC.add(ev4500.unwrap().getSRatedAC)
+        ev11700.unwrap().getPRatedAC.add(ev4500.unwrap().getPRatedAC)
       val combinedChargingPowerSq = Kilowatts(
         combinedChargingPower.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
       )
@@ -1620,7 +1617,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getTime shouldBe 11700.toDateTime
         flexResult.getpRef should beEquivalentTo(combinedChargingPower)
         flexResult.getpMin should beEquivalentTo(
-          ev4500.unwrap().getSRatedAC.multiply(-1)
+          ev4500.unwrap().getPRatedAC.multiply(-1)
         )
         flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
@@ -1772,7 +1769,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMin should beEquivalentTo(
           ev4500
             .unwrap()
-            .getSRatedAC
+            .getPRatedAC
             .multiply(
               -1
             )
@@ -1808,13 +1805,13 @@ class EvcsAgentModelCalculationSpec
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev4500.uuid =>
             result.getTime shouldBe 18000.toDateTime
-            result.getP should beEquivalentTo((-10d).asKiloWatt)
+            result.getP should beEquivalentTo(-10d.asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
             result.getSoc should beEquivalentTo(44.3194d.asPercent, 1e-2)
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev11700.uuid =>
             result.getTime shouldBe 18000.toDateTime
-            result.getP should beEquivalentTo((-10d).asKiloWatt)
+            result.getP should beEquivalentTo(-10d.asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
             result.getSoc should beEquivalentTo(44.137931034d.asPercent, 1e-6)
         }
@@ -1823,7 +1820,7 @@ class EvcsAgentModelCalculationSpec
         case ParticipantResultEvent(result: EvcsResult) =>
           result.getInputModel shouldBe evcsInputModelQv.getUuid
           result.getTime shouldBe 18000.toDateTime
-          result.getP should beEquivalentTo((-20d).asKiloWatt)
+          result.getP should beEquivalentTo(-20d.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
@@ -1880,7 +1877,7 @@ class EvcsAgentModelCalculationSpec
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev4500.uuid =>
             result.getTime shouldBe 23040.toDateTime
-            result.getP should beEquivalentTo((-10d).asKiloWatt)
+            result.getP should beEquivalentTo(-10d.asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
             result.getSoc should beEquivalentTo(26.819445d.asPercent, 1e-2)
           case ParticipantResultEvent(result: EvResult)
@@ -1895,7 +1892,7 @@ class EvcsAgentModelCalculationSpec
         case ParticipantResultEvent(result: EvcsResult) =>
           result.getInputModel shouldBe evcsInputModelQv.getUuid
           result.getTime shouldBe 23040.toDateTime
-          result.getP should beEquivalentTo((-10d).asKiloWatt)
+          result.getP should beEquivalentTo(-10d.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
@@ -1965,9 +1962,9 @@ class EvcsAgentModelCalculationSpec
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe evcsInputModelQv.getUuid
         flexResult.getTime shouldBe 36000.toDateTime
-        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getSRatedAC)
+        flexResult.getpRef should beEquivalentTo(ev4500.unwrap().getPRatedAC)
         flexResult.getpMin should beEquivalentTo(0.asKiloWatt)
-        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getSRatedAC)
+        flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getPRatedAC)
       }
 
       emAgent.send(evcsAgent, IssuePowerControl(36000, Kilowatts(4.0)))
@@ -2048,7 +2045,7 @@ class EvcsAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(inputModelUuid)
+        PrimaryServiceRegistrationMessage(evcsAgent.ref, inputModelUuid)
       )
       /* State should be information handling and having correct state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -2092,7 +2089,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref, 0),
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(0)))
@@ -2104,7 +2101,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           0,
           evService.ref,
           ArrivingEvs(Seq.empty),
@@ -2124,7 +2121,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           900,
           evService.ref,
           ArrivingEvs(Seq(ev900)),
@@ -2152,7 +2149,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           1800,
           evService.ref,
           ArrivingEvs(Seq(ev1800)),
@@ -2191,7 +2188,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
+        DataProvision(
           2700,
           evService.ref,
           ArrivingEvs(Seq(ev2700)),

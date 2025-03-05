@@ -16,20 +16,23 @@ import edu.ie3.datamodel.io.source.sql.SqlTimeSeriesSource
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  PrimaryRegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
+import edu.ie3.simona.exceptions.{
+  CriticalFailureException,
+  InitializationException,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData,
 }
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  PrimaryServiceInitializedStateData,
-  ProvidePrimaryDataMessage,
-}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.PrimaryServiceInitializedStateData
 import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
@@ -236,9 +239,14 @@ final case class PrimaryServiceWorker[V <: Value](
       serviceStateData: PrimaryServiceInitializedStateData[V]
   ): Try[PrimaryServiceInitializedStateData[V]] = registrationMessage match {
     case ServiceMessage.WorkerRegistrationMessage(requestingActor) =>
-      requestingActor ! RegistrationSuccessfulMessage(
+      requestingActor ! PrimaryRegistrationSuccessfulMessage(
         self,
-        serviceStateData.maybeNextActivationTick,
+        serviceStateData.maybeNextActivationTick.getOrElse(
+          throw new CriticalFailureException(
+            s"There is no primary data for $requestingActor"
+          )
+        ),
+        PrimaryData.getPrimaryDataExtra(valueClass),
       )
       val subscribers = serviceStateData.subscribers :+ requestingActor
       Success(serviceStateData.copy(subscribers = subscribers))
@@ -380,7 +388,7 @@ final case class PrimaryServiceWorker[V <: Value](
       )
 
     val provisionMessage =
-      ProvidePrimaryDataMessage(tick, self, primaryData, maybeNextTick)
+      DataProvision(tick, self, primaryData, maybeNextTick)
     serviceBaseStateData.subscribers.foreach(_ ! provisionMessage)
     (updatedStateData, maybeNextTick)
   }
@@ -491,19 +499,4 @@ object PrimaryServiceWorker {
       subscribers: Vector[ActorRef] = Vector.empty[ActorRef],
   ) extends ServiceActivationBaseStateData
 
-  /** Provide primary data to subscribes
-    *
-    * @param tick
-    *   Current tick
-    * @param data
-    *   The payload
-    * @param nextDataTick
-    *   The next tick, when data is available
-    */
-  final case class ProvidePrimaryDataMessage(
-      override val tick: Long,
-      override val serviceRef: ActorRef,
-      override val data: PrimaryData,
-      override val nextDataTick: Option[Long],
-  ) extends ServiceMessage.ProvisionMessage[PrimaryData]
 }

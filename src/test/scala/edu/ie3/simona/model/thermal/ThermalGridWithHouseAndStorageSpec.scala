@@ -12,7 +12,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached,
+  HouseTemperatureTargetOrUpperBoundaryReached,
 }
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
@@ -44,6 +44,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalBusInput,
           Set(thermalHouseInput).asJava,
           Set[ThermalStorageInput](thermalStorageInput).asJava,
+          Set.empty[ThermalStorageInput].asJava,
         )
 
       ThermalGrid(thermalGridInput) match {
@@ -65,6 +66,7 @@ class ThermalGridWithHouseAndStorageSpec
         thermalBusInput,
         Set(thermalHouseInput).asJava,
         Set[ThermalStorageInput](thermalStorageInput).asJava,
+        Set.empty[ThermalStorageInput].asJava,
       )
     )
 
@@ -239,7 +241,9 @@ class ThermalGridWithHouseAndStorageSpec
 
         updatedGridState match {
           case ThermalGridState(
-                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalHouseState(houseTick, innerTemperature, qDotHouse)
+                ),
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),
@@ -352,7 +356,7 @@ class ThermalGridWithHouseAndStorageSpec
               ),
               testGridQDotInfeed,
             ),
-            Some(HouseTemperatureUpperBoundaryReached(3600L)),
+            Some(HouseTemperatureTargetOrUpperBoundaryReached(3600L)),
           )
         )
         val maybeStorageState = Some(
@@ -486,7 +490,11 @@ class ThermalGridWithHouseAndStorageSpec
                 Some(
                   (
                     ThermalHouseState(houseTick, _, revisedQDotHouse),
-                    Some(HouseTemperatureUpperBoundaryReached(houseWarmTick)),
+                    Some(
+                      HouseTemperatureTargetOrUpperBoundaryReached(
+                        houseWarmTick
+                      )
+                    ),
                   )
                 ),
                 Some(
@@ -499,13 +507,13 @@ class ThermalGridWithHouseAndStorageSpec
             houseTick shouldBe relevantData.currentTick
             storageTick shouldBe relevantData.currentTick
 
-            revisedQDotHouse should approximate(thermalStorage.chargingPower)
+            revisedQDotHouse should approximate(thermalStorage.pThermalMax)
             revisedQDotStorage should approximate(
-              thermalStorage.chargingPower * (-1)
+              thermalStorage.pThermalMax * (-1)
             )
 
-            houseWarmTick shouldBe 3695L
-            storageEmptyTick shouldBe 3663L
+            houseWarmTick shouldBe 13825L
+            storageEmptyTick shouldBe 10145L
           case _ => fail("Revision of states failed")
         }
       }
@@ -530,12 +538,16 @@ class ThermalGridWithHouseAndStorageSpec
             relevantData,
             testGridAmbientTemperature,
             initialGridState,
+            isRunning,
             externalQDot,
+            onlyThermalDemandOfHouse,
           )
 
         updatedGridState match {
           case ThermalGridState(
-                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalHouseState(houseTick, innerTemperature, qDotHouse)
+                ),
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),
@@ -544,7 +556,7 @@ class ThermalGridWithHouseAndStorageSpec
             innerTemperature should approximate(Celsius(18.9999d))
             qDotHouse should approximate(externalQDot)
 
-            storageTick shouldBe -1L
+            storageTick shouldBe 0L
             storedEnergy should approximate(
               initialGridState.storageState
                 .map(_.storedEnergy)
@@ -556,7 +568,7 @@ class ThermalGridWithHouseAndStorageSpec
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureUpperBoundaryReached(7372L)
+          HouseTemperatureTargetOrUpperBoundaryReached(7372L)
         )
       }
 
@@ -578,12 +590,16 @@ class ThermalGridWithHouseAndStorageSpec
             relevantData,
             testGridAmbientTemperature,
             gridState,
+            isRunning,
             externalQDot,
+            onlyThermalDemandOfHeatStorage,
           )
 
         updatedGridState match {
           case ThermalGridState(
-                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalHouseState(houseTick, innerTemperature, qDotHouse)
+                ),
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),

@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
@@ -23,13 +22,13 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput,
 }
+import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
-import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
@@ -89,16 +88,10 @@ trait EmInputTestData
     householdStorageTypeInput,
   )
 
-  protected val simonaConfig: SimonaConfig =
-    createSimonaConfig(
-      LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(
-        Kilowatts(0.0)
-      ),
-    )
+  protected val simonaConfig: SimonaConfig = createSimonaConfig()
 
-  private val configUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+  private val configUtil = ConfigUtil.EmConfigUtil(
+    simonaConfig.simona.runtime.em
   )
 
   protected val defaultOutputConfig: NotifierConfig =
@@ -108,10 +101,8 @@ trait EmInputTestData
       simonaConfig.simona.output.participant.defaultConfig.flexResult,
     )
 
-  protected val modelConfig: SimonaConfig.EmRuntimeConfig =
-    configUtil.getOrDefault[SimonaConfig.EmRuntimeConfig](
-      emInput.getUuid
-    )
+  protected val modelConfig: EmRuntimeConfig =
+    configUtil.getOrDefault(emInput.getUuid)
 
   protected val adaptedTypeInput = new HpTypeInput(
     UUID.fromString("9802bf35-2a4e-4ff5-be9b-cd9e6a78dcd6"),
@@ -140,15 +131,18 @@ trait EmInputTestData
     UUID.fromString("91940626-bdd0-41cf-96dd-47c94c86b20e"),
     "thermal house",
     thermalBusInput,
-    Quantities.getQuantity(0.325, StandardUnits.THERMAL_TRANSMISSION),
+    Quantities.getQuantity(0.15, StandardUnits.THERMAL_TRANSMISSION),
     Quantities.getQuantity(75, StandardUnits.HEAT_CAPACITY),
     Quantities.getQuantity(20.3, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE),
+    "house",
+    2.0,
   )
   val adaptedThermalGrid = new ThermalGrid(
     thermalBusInput,
     Seq(adaptedThermalHouse).asJava,
+    Seq.empty[ThermalStorageInput].asJava,
     Seq.empty[ThermalStorageInput].asJava,
   )
 }
