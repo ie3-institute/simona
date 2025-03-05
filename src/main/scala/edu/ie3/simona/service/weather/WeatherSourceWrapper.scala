@@ -207,6 +207,7 @@ private[weather] final case class WeatherSourceWrapper private (
         timeKeys.asScala
       }
       .map(_.toTick)
+      .filter(_ <= requestFrameEnd)
       .toArray
   }
 }
