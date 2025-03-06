@@ -232,8 +232,7 @@ object ParticipantAgent {
       case (ctx, request: ParticipantRequest) =>
         // ParticipantRequests are always directly answered
         // without taking into account possible new input data
-        val updatedShell = modelShell
-          .handleRequest(ctx, request)
+        val updatedShell = modelShell.handleRequest(ctx, request)
 
         ParticipantAgent(
           updatedShell,

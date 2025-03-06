@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `PvModel` with its new implementation [#1149](https://github.com/ie3-institute/simona/issues/1149)
 - Replace `WecModel` with its new implementation [#1154](https://github.com/ie3-institute/simona/issues/1154)
 - Replace `StorageModel` with its new implementation [#1153](https://github.com/ie3-institute/simona/issues/1153)
+- Use ValidationUtils for ThermalGrids [#1117](https://github.com/ie3-institute/simona/issues/1117)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -144,6 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Typo and format of `ThermalGrid` and `ThermalHouse` ScalaDocs [#1196](https://github.com/ie3-institute/simona/issues/1196)
 - Refactor `EmRuntimeConfig` [#1181](https://github.com/ie3-institute/simona/issues/1181)
 - Based `PvModel` calculations on irradiance (power per area) instead of irradiation (energy per area) [#1212](https://github.com/ie3-institute/simona/issues/1212)
+- Updated to changes of PSDM release v6.0.0 [#1107](https://github.com/ie3-institute/simona/issues/1107)
+- Refactor external simulation setup [#1136](https://github.com/ie3-institute/simona/issues/1136)
 - Upgrated `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
 
 ### Fixed
@@ -196,9 +199,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Send `FlexResult` to EM [#1202](https://github.com/ie3-institute/simona/issues/1202)
 - Fix test timeouts for all tests [#1222](https://github.com/ie3-institute/simona/issues/1222)
 - Fix handling of states in `ParticipantModelShell` [#1228](https://github.com/ie3-institute/simona/issues/1228)
+- Fix input data handling in `ParticipantModel` [#1237](https://github.com/ie3-institute/simona/issues/1237)
+- Show full stacktrace of failing tests with `gradle test` [#1245](https://github.com/ie3-institute/simona/issues/1245)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
+- Removed unused parameters in `ArgsParser` [#1192](https://github.com/ie3-institute/simona/issues/1192), [#1178](https://github.com/ie3-institute/simona/issues/1178)
 
 ## [3.0.0] - 2023-08-07
 

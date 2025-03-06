@@ -26,7 +26,7 @@ ext {
   pekkoVersion = '1.1.2'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.4.0'
-  scapegoatVersion = '3.1.4'
+  scapegoatVersion = '3.1.5'
 
   junitVersion = '1.12.0'
   testContainerVersion = '0.41.8'
@@ -83,7 +83,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:5.1.0') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:6.0.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -115,7 +115,7 @@ dependencies {
   testRuntimeOnly "org.scalatestplus:junit-5-11_${scalaVersion}:3.2.19.0"
 
   // mocking framework
-  testImplementation 'org.mockito:mockito-core:5.15.2'
+  testImplementation 'org.mockito:mockito-core:5.16.0'
   testImplementation "org.scalatestplus:mockito-3-4_${scalaVersion}:3.2.10.0"
 
   // pekko

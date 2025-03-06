@@ -210,6 +210,7 @@ object SimonaConfig {
     ) derives ConfigConvert
 
     final case class Input(
+        extSimDir: Option[String],
         grid: Input.Grid,
         primary: Input.Primary = Input.Primary(),
         weather: Input.Weather = Input.Weather(),

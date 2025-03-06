@@ -238,8 +238,8 @@ final case class HpModel(
         (
           zeroKW,
           zeroKW,
-          thermalGrid.storage
-            .map(_.getChargingPower: squants.Power)
+          thermalGrid.heatStorage
+            .map(_.getpThermalMax: squants.Power)
             .getOrElse(zeroKW),
         )
       else (zeroKW, zeroKW, zeroKW)
