@@ -105,7 +105,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
     "Check build method" in {
 
       val thermalTestHouse = thermalHouse(18, 22)
-      val thermalHouseInput = defaultThermalHouse
+      val thermalHouseInput = defaultThermalHouseInput
 
       thermalTestHouse.id shouldBe thermalHouseInput.getId
       thermalTestHouse.operatorInput shouldBe thermalHouseInput.getOperator
