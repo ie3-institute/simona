@@ -457,7 +457,6 @@ trait HpAgentFundamentals
         s"Unable to initialize heat pump agent '${inputModel.electricalInputModel.getUuid}' without thermal grid model."
       )
     case WithHeatInputContainer(_, thermalGrid) =>
-      ValidationUtils.check(thermalGrid)
       /* Build the actual heat pump model */
       HpModel(
         inputModel.electricalInputModel,
