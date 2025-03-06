@@ -97,7 +97,9 @@ object ArgsParser extends LazyLogging {
 
     val argsConfig =
       ConfigFactory.parseString(
-        s"""config = "${parsedArgs.configLocation.getOrElse("").replace("\\", "\\\\")}""""
+        s"""config = "${parsedArgs.configLocation
+            .getOrElse("")
+            .replace("\\", "\\\\")}""""
       )
 
     // note: this overrides the default config values provided in the config file!

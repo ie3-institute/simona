@@ -36,7 +36,7 @@ import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
+import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.ActorSystem
@@ -63,11 +63,11 @@ class ThermalGridIT
     with ThermalHouseTestData
     with AnyWordSpecLike
     with should.Matchers
+    with QuantityMatchers
     with EmInputTestData
     with MockitoSugar
     with DefaultTestData {
   private implicit val classicSystem: ActorSystem = system.toClassic
-  private implicit val quantityTolerance: Double = 1e-3
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
   protected val simulationEndDate: ZonedDateTime =
