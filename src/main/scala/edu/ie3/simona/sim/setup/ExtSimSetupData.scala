@@ -30,7 +30,7 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ClassicRef],
     extPrimaryDataServices: Seq[(ExtPrimaryDataConnection, ClassicRef)],
-    extDataServices: Seq[(ExtInputDataConnection, ClassicRef)],
+    extDataServices: Seq[(ExtInputDataConnection[_], ClassicRef)],
     extResultListeners: Seq[
       (ExtResultDataConnection, ActorRef[ExtResultDataProvider.Request])
     ],
@@ -45,7 +45,7 @@ final case class ExtSimSetupData(
     )
 
   private[setup] def update(
-      connection: ExtInputDataConnection,
+      connection: ExtInputDataConnection[_],
       ref: ClassicRef,
   ): ExtSimSetupData = connection match {
     case primaryConnection: ExtPrimaryDataConnection =>

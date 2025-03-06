@@ -244,7 +244,7 @@ object ExtSimSetup {
     * @return
     *   The reference to the service.
     */
-  private[setup] def setupInputService[T <: ExtInputDataConnection](
+  private[setup] def setupInputService[T <: ExtInputDataConnection[_]](
       extInputDataConnection: T,
       props: ClassicRef => Props,
       name: String,
