@@ -29,6 +29,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
+  ThermalEnergyDemand,
   ThermalGridState,
   startingState,
 }
@@ -38,7 +39,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities._
 import squants._
 import squants.energy.Kilowatts
@@ -64,7 +65,13 @@ class HpModel private (
     ]
     with LazyLogging {
 
-  override val initialState: (Long, ZonedDateTime) => HpState =
+  override val initialState: (Long, ZonedDateTime) => HpState = {
+    // FIXME
+    val thermalDemands = ThermalDemandWrapper(
+      ThermalEnergyDemand(zeroKWh, zeroKWh),
+      ThermalEnergyDemand(zeroKWh, zeroKWh),
+    )
+
     (tick, _) =>
       HpState(
         tick,
@@ -74,20 +81,23 @@ class HpModel private (
           startingState(thermalGrid).storageState,
         ),
         Celsius(0d),
+        thermalDemands,
       )
+  }
 
   override def determineState(
-    state: HpState,
-    operatingPoint: ActivePowerAndHeatOperatingPoint,
-    tick: Long,
-    simulationTime: ZonedDateTime,
+      state: HpState,
+      operatingPoint: ActivePowerAndHeatOperatingPoint,
+      tick: Long,
+      simulationTime: ZonedDateTime,
   ): HpState = {
     val (_, currentThermalGridState) =
       thermalGrid.energyDemandAndUpdatedState(state)
 
-    state.copy(tick=tick,
-      lastThermalGridState = currentThermalGridState,
-      lastAmbientTemperature = state.ambientTemperature
+    state.copy(
+      tick = tick,
+      thermalGridState = currentThermalGridState,
+      lastAmbientTemperature = state.ambientTemperature,
     )
   }
 
@@ -185,61 +195,6 @@ class HpModel private (
     )
   }
 
-  /** Calculate state depending on whether heat pump is needed or not. Also
-    * calculate inner temperature change of thermal house and update its inner
-    * temperature.
-    *
-    * @param state
-    *   FIXME
-    * @param lastThermalGridState
-    *   state of the heat pump until this tick
-    * @param isRunning
-    *   determines whether the heat pump is running or not
-    * @param demandWrapper
-    *   holds the thermal demands of the thermal units (house, storage)
-    * @return
-    *   FIXME
-    */
-  private def calcState(
-      state: HpState,
-      isRunning: Boolean,
-      demandWrapper: ThermalDemandWrapper,
-  ): (Power, Power) = {
-    val lastStateStorageQDot = state.lastThermalGridState.storageState
-      .map(_.qDot)
-      .getOrElse(zeroKW)
-
-    val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
-      if (isRunning)
-        (pRated, pThermal, pThermal)
-      else if (lastStateStorageQDot < zeroKW)
-        (zeroKW, zeroKW, lastStateStorageQDot * (-1))
-      else if (
-        lastStateStorageQDot == zeroKW && (demandWrapper.houseDemand.hasRequiredDemand || demandWrapper.heatStorageDemand.hasRequiredDemand)
-      )
-        (
-          zeroKW,
-          zeroKW,
-          thermalGrid.heatStorage.map(_.getpThermalMax: squants.Power).get,
-        )
-      else (zeroKW, zeroKW, zeroKW)
-    }
-
-    /* Push thermal energy to the thermal grid and get its updated state in return */
-    val (thermalGridState, maybeThreshold) =
-      thermalGrid.updateState(
-        state,
-        isRunning,
-        qDotIntoGrid,
-        demandWrapper,
-      )
-
-    (
-      newActivePowerHp,
-      newThermalPowerHp,
-    )
-  }
-
   override def createResults(
       state: HpState,
       lastOperatingPoint: Option[ActivePowerAndHeatOperatingPoint],
@@ -294,20 +249,16 @@ class HpModel private (
   override def determineOperatingPoint(
       state: HpState
   ): (ActivePowerAndHeatOperatingPoint, Option[Long]) = {
-    val (thermalDemandWrapper, currentThermalGridState) =
-      thermalGrid.energyDemandAndUpdatedState(
-        state
-      )
 
     // These are basically the flexOptions, should / can we calc them also when we're not em controlled?
     // Determining the operation point and limitations at this tick
     val (turnOn, canOperate, canBeOutOfOperation) =
       operatesInNextState(
-        currentThermalGridState,
-        thermalDemandWrapper,
+        state.thermalGridState,
+        state.thermalDemands,
       )
 
-    val lastStateStorageQDot = state.lastThermalGridState.storageState
+    val lastStateStorageQDot = state.thermalGridState.storageState
       .map(_.qDot)
       .getOrElse(zeroKW)
 
@@ -317,7 +268,7 @@ class HpModel private (
       else if (lastStateStorageQDot < zeroKW)
         (zeroKW, zeroKW, lastStateStorageQDot * (-1))
       else if (
-        lastStateStorageQDot == zeroKW && (thermalDemandWrapper.houseDemand.hasRequiredDemand || thermalDemandWrapper.heatStorageDemand.hasRequiredDemand)
+        lastStateStorageQDot == zeroKW && (state.thermalDemands.houseDemand.hasRequiredDemand || state.thermalDemands.heatStorageDemand.hasRequiredDemand)
       )
         (
           zeroKW,
@@ -328,10 +279,20 @@ class HpModel private (
     }
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
-    val (thermalGridState, maybeThreshold) =
-      thermalGrid.updateState(state, turnOn, qDotIntoGrid, thermalDemandWrapper)
+    val (thermalGridState, maybeThreshold) = {
+      thermalGrid.updateState(state, turnOn, qDotIntoGrid, state.thermalDemands)
+      // FIXME we need to update state here as well
+    }
 
-    (ActivePowerAndHeatOperatingPoint(newActivePowerHp, Some(pThermal)), None)
+    val nextTick = maybeThreshold match {
+      case Some(threshold) => Some(threshold.tick)
+      case None            => None
+    }
+
+    (
+      ActivePowerAndHeatOperatingPoint(newActivePowerHp, Some(pThermal)),
+      nextTick,
+    )
   }
 
   override def determineOperatingPoint(
@@ -350,7 +311,7 @@ object HpModel {
     *   The date and time of the <b>ending</b> of time frame to calculate.
     * @param ambientTemperature
     *   The outside temperature.
-    * @param lastThermalGridState
+    * @param thermalGridState
     *   FIXME
     * @param lastAmbientTemperature
     *   The outside temperature of the lastState.
@@ -358,9 +319,9 @@ object HpModel {
   final case class HpState(
       override val tick: Long,
       ambientTemperature: Temperature,
-      // lastHpOperationState: HpOperationState,
-      lastThermalGridState: ThermalGridState,
+      thermalGridState: ThermalGridState,
       lastAmbientTemperature: Temperature,
+      thermalDemands: ThermalDemandWrapper,
   ) extends ModelState
 
   def apply(
