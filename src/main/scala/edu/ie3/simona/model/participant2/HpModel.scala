@@ -77,13 +77,18 @@ class HpModel private (
       )
 
   override def determineState(
-      lastState: HpState,
-      operatingPoint: ActivePowerAndHeatOperatingPoint,
-      tick: Long,
-      simulationTime: ZonedDateTime,
+    state: HpState,
+    operatingPoint: ActivePowerAndHeatOperatingPoint,
+    tick: Long,
+    simulationTime: ZonedDateTime,
   ): HpState = {
-    lastState.copy(tick = tick)
+    val (_, currentThermalGridState) =
+      thermalGrid.energyDemandAndUpdatedState(state)
 
+    state.copy(tick=tick,
+      lastThermalGridState = currentThermalGridState,
+      lastAmbientTemperature = state.ambientTemperature
+    )
   }
 
   override def handleInput(
