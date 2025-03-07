@@ -20,7 +20,7 @@ import edu.ie3.simona.exceptions.{
   InitializationException,
   ServiceException,
 }
-import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.service.ServiceStateData.{
@@ -110,8 +110,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): Try[ExtEvStateData] =
     registrationMessage match {
-      case RegisterForEvDataMessage(evcs) =>
-        Success(handleRegistrationRequest(sender(), evcs))
+      case RegisterForEvDataMessage(requestingActor, evcs) =>
+        Success(handleRegistrationRequest(requestingActor, evcs))
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
@@ -232,7 +232,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
     serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
-      evcsActor ! EvFreeLotsRequest(tick)
+      evcsActor ! EvFreeLotsRequest(tick, context.self)
     }
 
     val freeLots =
@@ -264,7 +264,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       requestedDepartingEvs.flatMap { case (evcs, departingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
           case Some(evcsActor) =>
-            evcsActor ! DepartingEvsRequest(tick, departingEvs)
+            evcsActor ! DepartingEvsRequest(tick, departingEvs, context.self)
 
             Some(evcs)
 
