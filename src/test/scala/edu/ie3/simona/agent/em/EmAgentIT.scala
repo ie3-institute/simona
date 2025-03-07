@@ -399,8 +399,7 @@ class EmAgentIT
         )
         val hpAgent = spawn(
           ParticipantAgentInit(
-            adaptedHpInputModel,
-            // adaptedThermalGrid,
+            adaptedWithHeatContainer,
             HpRuntimeConfig(),
             outputConfigOff,
             participantRefs,

@@ -120,6 +120,9 @@ trait EmInputTestData
     Quantities.getQuantity(7.5, StandardUnits.ACTIVE_POWER_IN),
   )
 
+  protected val adaptedWithHeatContainer =
+    WithHeatInputContainer(adaptedHpInputModel, adaptedThermalGrid)
+
   protected val adaptedHpInputModel = new HpInput(
     UUID.fromString("7832dea4-8703-4b37-8752-e67b86e957df"),
     "test hp",

@@ -580,6 +580,7 @@ object EvcsModel {
       evOperatingPoints.values.reduceOption(_ + _).getOrElse(zeroKW)
 
     override val reactivePower: Option[ReactivePower] = None
+    override val qDot: Option[Power] = None
   }
 
   object EvcsOperatingPoint {

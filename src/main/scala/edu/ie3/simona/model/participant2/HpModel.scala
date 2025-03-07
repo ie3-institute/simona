@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.participant2
 
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.models.input.container.{ThermalGrid => PsdmThermalGrid}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.result.system.{
   HpResult,
@@ -334,8 +335,7 @@ object HpModel {
 
   def apply(
       hpInput: HpInput,
-      // FIXME?
-      thermalGrid: ThermalGrid,
+      thermalGrid: PsdmThermalGrid,
   ): HpModel =
     new HpModel(
       hpInput.getUuid,
@@ -357,7 +357,7 @@ object HpModel {
           .getValue
           .doubleValue
       ),
-      thermalGrid,
+      ThermalGrid(thermalGrid),
     )
 
 }

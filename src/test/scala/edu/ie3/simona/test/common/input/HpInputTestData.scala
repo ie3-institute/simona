@@ -128,6 +128,9 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     typicalHpTypeInput,
   )
 
+  protected val typicalHpInputContainer =
+    WithHeatInputContainer(typicalHpInputModel, typicalThermalGrid)
+
   protected def thermalGrid(
       thermalHouse: ThermalHouse,
       thermalStorage: Option[ThermalStorage] = None,

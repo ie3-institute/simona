@@ -73,6 +73,19 @@ object ParticipantModelInit {
         FixedFeedInModel(input)
       case (input: LoadInput, config: LoadRuntimeConfig) =>
         LoadModel(input, config)
+      case (input: HpInput, _) =>
+        val thermalGrid = inputContainer match {
+          case heatInputContainer: WithHeatInputContainer[_] =>
+            heatInputContainer.thermalGrid
+
+          case other =>
+            throw new CriticalFailureException(
+              s"Handling the input model ${input.getClass.getSimpleName} and " +
+                s"model input container ${other.getClass.getSimpleName} is not implemented."
+            )
+        }
+
+        HpModel(input, thermalGrid)
       case (input: PvInput, _) =>
         PvModel(input)
       case (input: WecInput, _) =>

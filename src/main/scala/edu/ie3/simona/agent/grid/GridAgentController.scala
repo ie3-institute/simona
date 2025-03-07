@@ -414,18 +414,26 @@ class GridAgentController(
           environmentRefs.scheduler,
           maybeControllingEm,
         )
-      case hpInput: HpInput =>
-        buildParticipant(
-          hpInput,
-          participantConfigUtil.getOrDefault[HpRuntimeConfig](
-            hpInput.getUuid
-          ),
-          outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
-          participantRefs,
-          simParams,
-          environmentRefs.scheduler,
-          maybeControllingEm,
-        )
+      case input: HpInput =>
+        thermalIslandGridsByBusId.get(input.getThermalBus.getUuid) match {
+          case Some(thermalGrid) =>
+            buildParticipant(
+              WithHeatInputContainer(input, thermalGrid),
+              participantConfigUtil.getOrDefault[HpRuntimeConfig](
+                input.getUuid
+              ),
+              outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
+              participantRefs,
+              simParams,
+              environmentRefs.scheduler,
+              maybeControllingEm,
+            )
+          case None =>
+            throw new GridAgentInitializationException(
+              s"Unable to find thermal island grid for heat pump '${input.getUuid}' with thermal bus '${input.getThermalBus.getUuid}'."
+            )
+        }
+
       case input: StorageInput =>
         buildParticipant(
           SimpleInputContainer(input),
