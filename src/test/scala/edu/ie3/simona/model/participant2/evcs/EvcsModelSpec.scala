@@ -219,12 +219,12 @@ class EvcsModelSpec
           case evResult: EvResult if evResult.getInputModel == evA.uuid =>
             evResult.getTime shouldBe dateTime
             evResult.getP should beEquivalentTo(3.0.asKiloWatt)
-            evResult.getQ should beEquivalentTo(0.003.asKiloVar)
+            evResult.getQ should beEquivalentTo(0.0.asKiloVar)
             evResult.getSoc should beEquivalentTo(50.0.asPercent)
           case evResult: EvResult if evResult.getInputModel == evB.uuid =>
             evResult.getTime shouldBe dateTime
             evResult.getP should beEquivalentTo(2.0.asKiloWatt)
-            evResult.getQ should beEquivalentTo(0.002.asKiloVar)
+            evResult.getQ should beEquivalentTo(0.0.asKiloVar)
             evResult.getSoc should beEquivalentTo(75.0.asPercent)
           case evcsResult: EvcsResult =>
             evcsResult.getInputModel shouldBe evcsModel.uuid
@@ -284,7 +284,7 @@ class EvcsModelSpec
             case evResult: EvResult =>
               evResult.getTime shouldBe dateTime
               evResult.getP should beEquivalentTo(ev1P.asKiloWatt)
-              evResult.getQ should beEquivalentTo((ev1P / 100).asKiloVar)
+              evResult.getQ should beEquivalentTo(0.0.asKiloVar)
               evResult.getSoc should beEquivalentTo(50.0.asPercent)
             case unexpected =>
               fail(s"Unexpected result $unexpected was found.")
@@ -296,7 +296,7 @@ class EvcsModelSpec
             case evResult: EvResult =>
               evResult.getTime shouldBe dateTime
               evResult.getP should beEquivalentTo(ev2P.asKiloWatt)
-              evResult.getQ should beEquivalentTo((ev2P / 100).asKiloVar)
+              evResult.getQ should beEquivalentTo(0.0.asKiloVar)
               evResult.getSoc should beEquivalentTo(75.0.asPercent)
             case unexpected =>
               fail(s"Unexpected result $unexpected was found.")
