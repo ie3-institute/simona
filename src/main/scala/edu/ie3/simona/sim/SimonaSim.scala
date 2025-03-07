@@ -9,11 +9,7 @@ package edu.ie3.simona.sim
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.listener.{
-  DelayedStopHelper,
-  ResultEventListener,
-  RuntimeEventListener,
-}
+import edu.ie3.simona.event.listener.{DelayedStopHelper, RuntimeEventListener}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.sim.setup.SimonaSetup
@@ -106,6 +102,7 @@ object SimonaSim {
           runtimeEventListener.toClassic,
           primaryServiceProxy,
           weatherService,
+          extSimulationData.emDataService,
           extSimulationData.evDataService,
         )
 

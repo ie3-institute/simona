@@ -21,7 +21,7 @@ trait ExtDataSupport[
       val updatedStateData = handleDataMessage(extMsg)(stateData)
       context become idle(updatedStateData)
 
-    case extResponseMsg: EvResponseMessage =>
+    case extResponseMsg: DataResponseMessage =>
       val updatedStateData =
         handleDataResponseMessage(extResponseMsg)(stateData)
       context become idle(updatedStateData)

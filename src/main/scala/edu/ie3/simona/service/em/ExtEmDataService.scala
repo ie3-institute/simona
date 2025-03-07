@@ -6,29 +6,25 @@
 
 package edu.ie3.simona.service.em
 
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
-  RegistrationResponseMessage,
-  RegistrationSuccessfulMessage,
-}
-import edu.ie3.simona.api.data.em.ontology.{
-  EmDataMessageFromExt,
-  ProvideEmSetPointData,
-}
+import edu.ie3.simona.api.data.em.model.{EmSetPointResult, FlexOptionValue}
+import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.api.data.em.{ExtEmDataConnection, NoSetPointValue}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexRequest,
-  IssuePowerControl,
-  SetPointFlexRequest,
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.services.EmMessage.{
+  IssueFlexControlResponse,
+  SimonaFlexOptionsResponse,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   DataResponseMessage,
-  ExtEmDataServiceRegistrationMessage,
+  RegisterForEmDataService,
 }
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -37,17 +33,26 @@ import edu.ie3.simona.service.ServiceStateData.{
 import edu.ie3.simona.service.em.ExtEmDataService.{
   ExtEmDataStateData,
   InitExtEmData,
-  WrappedRegistrationResponse,
 }
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
+import edu.ie3.simona.util.ReceiveDataMap
+import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
+import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorContext, Props, ActorRef => ClassicRef}
 import squants.Power
 import squants.energy.Kilowatts
+import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsScala}
-import scala.jdk.OptionConverters.RichOptional
+import javax.measure.quantity.{Power => PsdmPower}
+import scala.jdk.CollectionConverters.{
+  ListHasAsScala,
+  MapHasAsJava,
+  MapHasAsScala,
+}
+import scala.jdk.OptionConverters.{RichOption, RichOptional}
 import scala.util.{Failure, Success, Try}
 
 object ExtEmDataService {
@@ -58,32 +63,37 @@ object ExtEmDataService {
     )
 
   final case class ExtEmDataStateData(
-      extEmData: ExtEmDataConnection,
-      subscribers: List[UUID] = List.empty,
-      uuidToActorRef: Map[UUID, ActorRef[EmAgent.Request]] =
-        Map.empty[UUID, ActorRef[EmAgent.Request]], // subscribers in SIMONA
-      uuidToAdapterRef: Map[UUID, ActorRef[FlexRequest]] =
-        Map.empty[UUID, ActorRef[FlexRequest]], // subscribers in SIMONA
+      extEmDataConnection: ExtEmDataConnection,
+      uuidToActorRef: Map[UUID, ActorRef[EmAgent.Request]] = Map.empty,
+      actorRefToUuid: Map[ActorRef[FlexResponse], UUID] = Map.empty,
+      uuidToAdapterRef: Map[UUID, ActorRef[FlexRequest]] = Map.empty,
+      flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
       extEmDataMessage: Option[EmDataMessageFromExt] = None,
+      flexOptionResponse: ReceiveDataMap[UUID, FlexOptionsResult] =
+        ReceiveDataMap.empty,
+      setPointResponse: ReceiveDataMap[UUID, EmSetPointResult] =
+        ReceiveDataMap.empty,
   ) extends ServiceBaseStateData
 
   case class InitExtEmData(
       extEmData: ExtEmDataConnection
   ) extends InitializeServiceStateData
-
-  final case class WrappedIssuePowerControl(
-      issuePowerControl: IssuePowerControl
-  ) extends EmAgent.Request
-
-  final case class WrappedRegistrationResponse(
-      registrationResponse: RegistrationResponseMessage
-  ) extends EmAgent.Request
 }
 
 final case class ExtEmDataService(
     override val scheduler: ClassicRef
 ) extends SimonaService[ExtEmDataStateData](scheduler)
     with ExtDataSupport[ExtEmDataStateData] {
+
+  implicit class SquantsToQuantity(private val value: Power) {
+    def toQuantity: ComparableQuantity[PsdmPower] = value.toKilowatts.asKiloWatt
+  }
+
+  implicit class quantityToSquants(
+      private val value: ComparableQuantity[PsdmPower]
+  ) {
+    def toSquants: Power = Kilowatts(value.to(KILOWATT).getValue.doubleValue())
+  }
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
@@ -102,11 +112,8 @@ final case class ExtEmDataService(
   override def init(
       initServiceData: InitializeServiceStateData
   ): Try[(ExtEmDataStateData, Option[Long])] = initServiceData match {
-    case InitExtEmData(extEmData) =>
-      val emDataInitializedStateData = ExtEmDataStateData(
-        extEmData,
-        subscribers = extEmData.getControlledEms.asScala.toList,
-      )
+    case InitExtEmData(extEmDataConnection) =>
+      val emDataInitializedStateData = ExtEmDataStateData(extEmDataConnection)
       Success(
         emDataInitializedStateData,
         None,
@@ -134,7 +141,7 @@ final case class ExtEmDataService(
       registrationMessage: ServiceMessage.ServiceRegistrationMessage
   )(implicit serviceStateData: ExtEmDataStateData): Try[ExtEmDataStateData] =
     registrationMessage match {
-      case ExtEmDataServiceRegistrationMessage(
+      case RegisterForEmDataService(
             modelUuid,
             requestingActor,
             flexAdapter,
@@ -145,7 +152,7 @@ final case class ExtEmDataService(
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
-            s"A primary service provider is not able to handle registration request '$invalidMessage'."
+            s"An external em service is not able to handle registration request '$invalidMessage'."
           )
         )
     }
@@ -153,22 +160,18 @@ final case class ExtEmDataService(
   private def handleEmRegistrationRequest(
       modelUuid: UUID,
       modelActorRef: ActorRef[EmAgent.Request],
-      flexAdapterRef: ActorRef[FlexRequest],
-  )(implicit serviceStateData: ExtEmDataStateData): ExtEmDataStateData = {
-    if (serviceStateData.subscribers.contains(modelUuid)) {
-      modelActorRef ! WrappedRegistrationResponse(
-        RegistrationSuccessfulMessage(self, 0L)
-      )
-      serviceStateData.copy(
-        uuidToActorRef =
-          serviceStateData.uuidToActorRef + (modelUuid -> modelActorRef),
-        uuidToAdapterRef =
-          serviceStateData.uuidToAdapterRef + (modelUuid -> flexAdapterRef),
-      )
-    } else {
-      serviceStateData
-    }
-  }
+      flexAdapter: ActorRef[FlexRequest],
+  )(implicit serviceStateData: ExtEmDataStateData): ExtEmDataStateData =
+    serviceStateData.copy(
+      uuidToActorRef =
+        serviceStateData.uuidToActorRef + (modelUuid -> modelActorRef),
+      actorRefToUuid =
+        serviceStateData.actorRefToUuid + (modelActorRef -> modelUuid),
+      uuidToAdapterRef =
+        serviceStateData.uuidToAdapterRef + (modelUuid -> flexAdapter),
+      flexAdapterToUuid =
+        serviceStateData.flexAdapterToUuid + (flexAdapter -> modelUuid),
+    )
 
   /** Send out the information to all registered recipients
     *
@@ -185,65 +188,89 @@ final case class ExtEmDataService(
       serviceStateData: ExtEmDataStateData,
       ctx: ActorContext,
   ): (ExtEmDataStateData, Option[Long]) = {
-    serviceStateData.extEmDataMessage.getOrElse(
+    val updatedStateData = serviceStateData.extEmDataMessage.getOrElse(
       throw ServiceException(
         "ExtPrimaryDataService was triggered without ExtEmDataMessage available"
       )
     ) match {
+      case requestEmFlexResults: RequestEmFlexResults =>
+        val uuids = requestEmFlexResults.emEntities().asScala.toSet
+
+        serviceStateData.copy(
+          extEmDataMessage = None,
+          flexOptionResponse = ReceiveDataMap(uuids),
+        )
+
+      case requestEmSetPoints: RequestEmSetPoints =>
+        val uuids = requestEmSetPoints.emEntities().asScala.toSet
+
+        serviceStateData.copy(
+          extEmDataMessage = None,
+          setPointResponse = ReceiveDataMap(uuids),
+        )
+
+      case provideFlexOptions: ProvideEmFlexOptionData =>
+        announceFlexOptions(provideFlexOptions)
+
       case providedEmData: ProvideEmSetPointData =>
-        announceEmData(tick, providedEmData)(
-          serviceStateData,
-          ctx,
-        )
+        announceEmSetPoints(tick, providedEmData)
     }
+
+    (updatedStateData, None)
   }
 
-  private def announceEmData(
-      tick: Long,
-      emDataMessage: ProvideEmSetPointData,
-  )(implicit serviceStateData: ExtEmDataStateData, ctx: ActorContext): (
-      ExtEmDataStateData,
-      Option[Long],
-  ) = {
-    val actorToEmData = emDataMessage.emData.asScala.flatMap {
-      case (agent, emDataPerAgent) =>
-        serviceStateData.uuidToAdapterRef
-          .get(agent)
-          .map((_, convertToSetPoint(emDataPerAgent)))
-          .orElse {
-            log.warning(
-              "A corresponding actor ref for UUID {} could not be found",
-              agent,
+  private def announceFlexOptions(
+      provideFlexOptions: ProvideEmFlexOptionData
+  )(implicit
+      serviceStateData: ExtEmDataStateData
+  ): ExtEmDataStateData = {
+    provideFlexOptions
+      .flexOptions()
+      .asScala
+      .foreach { case (agent, flexOption: FlexOptionValue) =>
+        serviceStateData.uuidToActorRef.get(agent) match {
+          case Some(receiver) =>
+            receiver ! ProvideMinMaxFlexOptions(
+              flexOption.sender,
+              flexOption.pRef.toSquants,
+              flexOption.pMin.toSquants,
+              flexOption.pMax.toSquants,
             )
-            None
-          }
-    }
 
-    val maybeNextTick = emDataMessage.maybeNextTick.toScala.map(Long2long)
-
-    if (actorToEmData.nonEmpty) {
-      actorToEmData.foreach { case (actor, (controlSignal, setPoint)) =>
-        actor ! SetPointFlexRequest(
-          tick,
-          controlSignal,
-          setPoint,
-          maybeNextTick,
-        )
+          case None =>
+            log.warning(s"No em agent with uuid '$agent' registered!")
+        }
       }
-    }
-    (
-      serviceStateData.copy(extEmDataMessage = None),
-      None,
-    )
+
+    serviceStateData.copy(extEmDataMessage = None)
   }
 
-  private def convertToSetPoint(
-      value: PValue
-  ): (Boolean, Power) = {
-    value match {
-      case _: NoSetPointValue => (false, Kilowatts(0.0))
-      case _ => (true, Kilowatts(value.getP.get.getValue.doubleValue()))
-    }
+  private def announceEmSetPoints(
+      tick: Long,
+      provideEmSetPointData: ProvideEmSetPointData,
+  )(implicit serviceStateData: ExtEmDataStateData): ExtEmDataStateData = {
+    provideEmSetPointData
+      .emData()
+      .asScala
+      .foreach { case (agent, emSetPoint) =>
+        serviceStateData.uuidToAdapterRef.get(agent) match {
+          case Some(receiver) =>
+            emSetPoint match {
+              case _: NoSetPointValue =>
+                receiver ! IssueNoControl(tick)
+              case _ =>
+                val power =
+                  emSetPoint.getP.toScala.map(_.toSquants).getOrElse(zeroKW)
+
+                receiver ! IssuePowerControl(tick, power)
+            }
+
+          case None =>
+            log.warning(s"No em agent with uuid '$agent' registered!")
+        }
+      }
+
+    serviceStateData.copy(extEmDataMessage = None)
   }
 
   /** Handle a message from outside the simulation
@@ -279,5 +306,55 @@ final case class ExtEmDataService(
       extResponseMsg: DataResponseMessage
   )(implicit
       serviceStateData: ExtEmDataStateData
-  ): ExtEmDataStateData = serviceStateData
+  ): ExtEmDataStateData = extResponseMsg match {
+    case SimonaFlexOptionsResponse(receiver, provideFlexOptions) =>
+      val uuid = serviceStateData.actorRefToUuid(receiver)
+      val updated =
+        serviceStateData.flexOptionResponse.addData(uuid, provideFlexOptions)
+
+      if (updated.nonComplete) {
+        // responses are still incomplete
+        serviceStateData.copy(
+          flexOptionResponse = updated
+        )
+      } else {
+        // all responses received, forward them to external simulation in a bundle
+        serviceStateData.extEmDataConnection.queueExtResponseMsg(
+          new FlexOptionsResponse(updated.receivedData.asJava)
+        )
+
+        serviceStateData.copy(
+          flexOptionResponse = ReceiveDataMap.empty
+        )
+      }
+
+    case IssueFlexControlResponse(receiver, time, model, setPoint) =>
+      val uuid = serviceStateData.flexAdapterToUuid(receiver)
+
+      val updated = serviceStateData.setPointResponse.addData(
+        uuid,
+        new EmSetPointResult(
+          time,
+          model,
+          setPoint.map(power => new PValue(power.toQuantity)).toJava,
+        ),
+      )
+
+      if (updated.nonComplete) {
+        // responses are still incomplete
+        serviceStateData.copy(
+          setPointResponse = updated
+        )
+      } else {
+        // all responses received, forward them to external simulation in a bundle
+        serviceStateData.extEmDataConnection.queueExtResponseMsg(
+          new EmSetPointDataResponse(updated.receivedData.asJava)
+        )
+
+        serviceStateData.copy(
+          setPointResponse = ReceiveDataMap.empty
+        )
+      }
+
+  }
 }

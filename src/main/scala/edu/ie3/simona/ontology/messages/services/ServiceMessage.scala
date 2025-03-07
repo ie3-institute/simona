@@ -7,13 +7,12 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.em.EmAgent
-
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
-import org.apache.pekko.actor.typed.ActorRef
-
-import java.util.UUID
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexRequest
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
+
+import java.util.UUID
 
 /** Collections of all messages, that are send to and from the different
   * services
@@ -50,7 +49,7 @@ object ServiceMessage {
   final case class WorkerRegistrationMessage(requestingActor: ClassicRef)
       extends ServiceRegistrationMessage
 
-  final case class ExtEmDataServiceRegistrationMessage(
+  final case class RegisterForEmDataService(
       modelUuid: UUID,
       requestingActor: ActorRef[EmAgent.Request],
       flexAdapter: ActorRef[FlexRequest],

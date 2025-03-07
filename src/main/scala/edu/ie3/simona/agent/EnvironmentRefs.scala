@@ -22,6 +22,8 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
   *   Reference to the primary service proxy
   * @param weather
   *   Reference to the service, that provides weather information
+  * @param emDataService
+  *   An energy management service.
   * @param evDataService
   *   Reference to the EV data service, if existing
   */
@@ -30,5 +32,6 @@ final case class EnvironmentRefs(
     runtimeEventListener: ActorRef[RuntimeEvent],
     primaryServiceProxy: ClassicRef,
     weather: ClassicRef,
+    emDataService: Option[ClassicRef],
     evDataService: Option[ClassicRef],
 )

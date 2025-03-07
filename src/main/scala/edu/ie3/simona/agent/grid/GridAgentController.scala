@@ -106,6 +106,7 @@ class GridAgentController(
       EmConfigUtil(emConfigs),
       outputConfigUtil,
       firstLevelEms,
+      emDataService = environmentRefs.emDataService,
     )
 
     /* Browse through all system participants, build actors and map their node's UUID to the actor references */
@@ -252,6 +253,8 @@ class GridAgentController(
     *   higher levels
     * @param previousLevelEms
     *   EMs that have been built by the previous recursion level
+    * @param emDataService
+    *   An energy management service.
     * @return
     *   Map from model UUID to EmAgent ActorRef
     */
@@ -260,6 +263,7 @@ class GridAgentController(
       outputConfigUtil: OutputConfigUtil,
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
+      emDataService: Option[ClassicRef],
   ): Map[UUID, ActorRef[FlexResponse]] = {
     // For the current level, split controlled and uncontrolled EMs.
     // Uncontrolled EMs can be built right away.
@@ -273,6 +277,7 @@ class GridAgentController(
             emConfigUtil.getOrDefault(uuid),
             outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
             maybeControllingEm = None,
+            emDataService,
           )
           Right(uuid -> actor)
         }
@@ -295,6 +300,7 @@ class GridAgentController(
         outputConfigUtil,
         controllingEms,
         previousLevelAndUncontrolledEms,
+        emDataService,
       )
 
       val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
@@ -314,6 +320,7 @@ class GridAgentController(
           emConfigUtil.getOrDefault(uuid),
           outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
           maybeControllingEm = controllingEm,
+          emDataService,
         )
       }.toMap
 
@@ -630,6 +637,8 @@ class GridAgentController(
     *   Configuration for output notification
     * @param maybeControllingEm
     *   The parent EmAgent, if applicable
+    * @param emDataService
+    *   An energy management service.
     * @return
     *   The [[EmAgent]] 's [[ActorRef]]
     */
@@ -638,6 +647,7 @@ class GridAgentController(
       modelConfiguration: EmRuntimeConfig,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
+      emDataService: Option[ClassicRef],
   ): ActorRef[FlexResponse] =
     gridAgentContext.spawn(
       EmAgent(
@@ -650,6 +660,7 @@ class GridAgentController(
           environmentRefs.scheduler
         ),
         listener,
+        emDataService,
       ),
       actorName(classOf[EmAgent.type], emInput.getId),
     )
