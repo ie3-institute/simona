@@ -239,11 +239,12 @@ final case class ThermalHouse(
     *   Updated state and the tick in which the next threshold is reached
     */
   def updateState(
+      tick: Long,
       state: HpState,
       thermalHouseState: ThermalHouseState,
       qDot: Power,
   ): (ThermalHouseState, Option[ThermalThreshold]) = {
-    val duration = Seconds(state.tick - thermalHouseState.tick)
+    val duration = Seconds(tick - thermalHouseState.tick)
     val updatedInnerTemperature = newInnerTemperature(
       thermalHouseState.qDot,
       duration,

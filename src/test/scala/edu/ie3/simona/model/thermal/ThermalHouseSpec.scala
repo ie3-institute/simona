@@ -83,13 +83,12 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         ambientTemperature,
         initialGridState,
         lastAmbientTemperature,
+        // FIXME
+        noThermalDemand,
       )
 
-      val (thermalHouseState, threshold) = house.updateState(
-        state,
-        initialHouseState,
-        zeroKW,
-      )
+      val (thermalHouseState, threshold) =
+        house.updateState(state.tick, state, initialHouseState, zeroKW)
 
       thermalHouseState match {
         case ThermalHouseState(tick, temperature, qDot) =>

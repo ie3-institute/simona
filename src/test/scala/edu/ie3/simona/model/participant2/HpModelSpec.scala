@@ -7,28 +7,89 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.simona.model.participant2.HpModel.HpState
+import edu.ie3.simona.model.participant2.ParticipantModel.ActivePowerAndHeatOperatingPoint
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.model.thermal.ThermalHouseTestData
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.Celsius
-import squants.{Energy, Power}
+import squants.{Energy, Kelvin, Power, Temperature}
 
-class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
+class HpModelSpec
+    extends UnitSpec
+    with Matchers
+    with HpInputTestData
+    with ThermalHouseTestData {
   implicit val powerTolerance: Power = Kilowatts(1e-10)
   implicit val energyTolerance: Energy = KilowattHours(1e-10)
+  implicit val tempTolerance: Temperature = Kelvin(1e-3)
 
   // build the HpModel
-  val grid = thermalGrid(defaultThermalHouse, Some(thermalStorage))
-  val hpModel: HpModel = HpModel(hpInputModel, grid)
+  val hpModel: HpModel = HpModel(hpInputModel, defaultThermalGrid)
 
   "StorageModel" should {
 
-    "Determine the current state" in {}
+    "Determine the current state" in {
+      val cases = Table(
+        (
+          "state",
+          "operatingPoint",
+          "expectedInnerTemperature",
+        ),
+        (
+          HpState(
+            0,
+            Celsius(10),
+            thermalState(Celsius(17d)),
+            Celsius(10),
+            noThermalDemand,
+          ),
+          ActivePowerAndHeatOperatingPoint(zeroKW, None),
+          15.6,
+        ),
+      )
+
+      forAll(cases) {
+        (
+            state,
+            operatingPoint,
+            expectedInnerTemperature,
+        ) =>
+          val expectedTick = 3600
+          val date = defaultSimulationStart
+
+          hpModel.determineState(
+            state,
+            operatingPoint,
+            expectedTick,
+            date,
+          ) match {
+            case HpState(
+                  tick,
+                  ambientTemperature,
+                  ThermalGridState(Some(thermalHouseState), _),
+                  lastAmbientTemperature,
+                  thermalDemands,
+                ) => {
+              tick shouldBe expectedTick
+              thermalHouseState.innerTemperature should approximate(
+                Celsius(
+                  expectedInnerTemperature
+                )
+              )
+              thermalDemands shouldBe noThermalDemand
+            }
+            case unexpected =>
+              fail(s"Expected a hp state but got none $unexpected.")
+          }
+      }
+    }
 
     "Calculate flex options" in {
       val testCases =
@@ -46,7 +107,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                 Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -63,6 +125,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                 ),
               ),
               Celsius(10d),
+              // FIXME?
+              noThermalDemand,
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -81,7 +145,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                   ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
                 ),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -97,7 +162,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                   ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
                 ),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -115,7 +181,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                   ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
                 ),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -131,7 +198,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                   ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
                 ),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -149,7 +217,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                   ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
                 ),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -165,7 +234,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                   ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
                 ),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -181,7 +251,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -195,7 +266,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -211,7 +283,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -225,7 +298,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -242,7 +316,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -256,7 +331,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -272,7 +348,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -287,7 +364,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -302,7 +380,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                   ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
                 ),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -318,7 +397,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                   ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
                 ),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (0.0, 0.0, 0.0),
           ),
@@ -333,7 +413,8 @@ class HpModelSpec extends UnitSpec with Matchers with HpInputTestData {
                   ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
                 ),
               ),
-              Celsius(10d),
+              Celsius(10d), // FIXME?
+              noThermalDemand,
             ),
             (0.0, 0.0, 0.0),
           ),

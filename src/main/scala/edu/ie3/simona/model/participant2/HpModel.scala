@@ -93,7 +93,7 @@ class HpModel private (
       simulationTime: ZonedDateTime,
   ): HpState = {
     val (_, currentThermalGridState) =
-      thermalGrid.energyDemandAndUpdatedState(state)
+      thermalGrid.energyDemandAndUpdatedState(tick, state)
 
     state.copy(
       tick = tick,
@@ -107,10 +107,9 @@ class HpModel private (
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
   ): HpState = {
+    // FIXME: Wird auch mit leeren Daten aufgerufen -> PV
     val weatherData = receivedData
-      .collectFirst { case weatherData: WeatherData =>
-        weatherData
-      }
+      .collectFirst { case weatherData: WeatherData => weatherData }
       .getOrElse {
         throw new CriticalFailureException(
           s"Expected WeatherData, got $receivedData"
@@ -133,16 +132,11 @@ class HpModel private (
       state.thermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
     val wasRunningLastState = ((lastHouseQDot + lastStorageQDot) > zeroKW)
 
-    val (thermalDemandWrapper, currentThermalGridState) =
-      thermalGrid.energyDemandAndUpdatedState(
-        state
-      )
-
     // Determining the operation point and limitations at this tick
     val (turnOn, canOperate, canBeOutOfOperation) =
       operatesInNextState(
-        currentThermalGridState,
-        thermalDemandWrapper,
+        state.thermalGridState,
+        state.thermalDemands,
         wasRunningLastState,
       )
 
@@ -179,11 +173,10 @@ class HpModel private (
 
     val demandHouse = thermalDemands.houseDemand
     val demandThermalStorage = thermalDemands.heatStorageDemand
-    val noThermalStorageOrThermalStorageIsEmpty =
-      thermalGridState.isThermalStorageEmpty
+    val noThermalStorageOrEmpty = thermalGridState.isThermalStorageEmpty
 
     val turnHpOn =
-      (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) ||
+      (demandHouse.hasRequiredDemand && noThermalStorageOrEmpty) ||
         (demandHouse.hasAdditionalDemand && wasRunningLastState ||
           demandThermalStorage.hasRequiredDemand ||
           (demandThermalStorage.hasAdditionalDemand && wasRunningLastState))
@@ -192,7 +185,7 @@ class HpModel private (
       demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
         demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasAdditionalDemand
     val canBeOutOfOperation =
-      !(demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty)
+      !(demandHouse.hasRequiredDemand && noThermalStorageOrEmpty)
 
     (
       turnHpOn,
@@ -260,7 +253,7 @@ class HpModel private (
       state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
     val lastStorageQDot =
       state.thermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
-    val wasRunningLastState = ((lastHouseQDot + lastStorageQDot) > zeroKW)
+    val wasRunningLastState = (lastHouseQDot + lastStorageQDot) > zeroKW
 
     // These are basically the flexOptions, should / can we calc them also when we're not em controlled?
     // Determining the operation point and limitations at this tick
@@ -275,33 +268,35 @@ class HpModel private (
       if (turnOn)
         (pRated, pThermal, pThermal)
       else if (lastStorageQDot < zeroKW)
-        (zeroKW, zeroKW, lastStorageQDot * (-1))
+        (zeroKW, zeroKW, lastStorageQDot * -1)
       else if (
         lastStorageQDot == zeroKW && (state.thermalDemands.houseDemand.hasRequiredDemand || state.thermalDemands.heatStorageDemand.hasRequiredDemand)
       )
-        (
-          zeroKW,
-          zeroKW,
-          thermalGrid.heatStorage.map(_.getpThermalMax: squants.Power).get,
-        )
+        (zeroKW, zeroKW, thermalGrid.heatStorage.map(_.getpThermalMax).get)
       else (zeroKW, zeroKW, zeroKW)
     }
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
     val (thermalGridState, maybeThreshold) = {
-      thermalGrid.updateState(state, turnOn, qDotIntoGrid, state.thermalDemands)
+      thermalGrid.updateState(
+        state.tick,
+        state,
+        turnOn,
+        qDotIntoGrid,
+        state.thermalDemands,
+      )
       // FIXME we need to update state here as well
     }
+
+    val operatingPoint =
+      ActivePowerAndHeatOperatingPoint(newActivePowerHp, Some(pThermal))
 
     val nextTick = maybeThreshold match {
       case Some(threshold) => Some(threshold.tick)
       case None            => None
     }
 
-    (
-      ActivePowerAndHeatOperatingPoint(newActivePowerHp, Some(pThermal)),
-      nextTick,
-    )
+    (operatingPoint, nextTick)
   }
 
   override def determineOperatingPoint(

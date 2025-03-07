@@ -8,7 +8,11 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
 import edu.ie3.simona.model.participant2.HpModel.HpState
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
@@ -101,16 +105,19 @@ class ThermalGridWithHouseAndStorageSpec
 
     "determining the energy demand" should {
       "deliver the house demand (no demand) with added flexibility by storage" in {
+
         val state = HpState(
           10800, // after three hours
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
+          noThermalDemand,
         )
 
         val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
-            state
+            state.tick,
+            state,
           )
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
@@ -139,12 +146,12 @@ class ThermalGridWithHouseAndStorageSpec
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
+          // FIXME
+          noThermalDemand,
         )
 
         val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(
-            state
-          )
+          thermalGrid.energyDemandAndUpdatedState(state.tick, state)
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
@@ -180,6 +187,8 @@ class ThermalGridWithHouseAndStorageSpec
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
+          // FIXME?
+          noThermalDemand,
         )
         val externalQDot = zeroKW
 
@@ -218,6 +227,8 @@ class ThermalGridWithHouseAndStorageSpec
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
+          // FIXME?
+          noThermalDemand,
         )
 
         val externalQDot = testGridQDotConsumption
@@ -257,6 +268,8 @@ class ThermalGridWithHouseAndStorageSpec
         testGridAmbientTemperature,
         initialGridState,
         testGridAmbientTemperature,
+        // FIXME?
+        noThermalDemand,
       )
       "hand back unaltered information if needed information is missing" in {
         val maybeHouseState = Some(
@@ -277,6 +290,7 @@ class ThermalGridWithHouseAndStorageSpec
         val maybeStorageState = None
 
         thermalGrid.reviseInfeedFromStorage(
+          state.tick,
           state,
           maybeHouseState,
           maybeStorageState,
@@ -316,6 +330,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         thermalGrid.reviseInfeedFromStorage(
+          state.tick,
           state,
           maybeHouseState,
           maybeStorageState,
@@ -355,6 +370,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         thermalGrid.reviseInfeedFromStorage(
+          state.tick,
           state,
           maybeHouseState,
           maybeStorageState,
@@ -396,6 +412,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         thermalGrid.reviseInfeedFromStorage(
+          state.tick,
           state,
           maybeHouseState,
           maybeStorageState,
@@ -423,6 +440,7 @@ class ThermalGridWithHouseAndStorageSpec
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
+          onlyThermalDemandOfHouse,
         )
 
         val maybeHouseState = Some(
@@ -454,6 +472,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         thermalGrid.reviseInfeedFromStorage(
+          state.tick,
           state,
           maybeHouseState,
           maybeStorageState,
@@ -505,6 +524,8 @@ class ThermalGridWithHouseAndStorageSpec
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
+          // FIXME?
+          noThermalDemand,
         )
         val externalQDot = testGridQDotInfeed
 
@@ -556,6 +577,8 @@ class ThermalGridWithHouseAndStorageSpec
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
+          // FIXME?
+          noThermalDemand,
         )
         val externalQDot = testGridQDotInfeed
 
