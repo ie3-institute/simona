@@ -24,6 +24,10 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  SimpleInputContainer,
+  WithHeatInputContainer,
+}
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -77,7 +81,9 @@ trait EmInputTestData
     Quantities.getQuantity(0.95, PU),
   )
 
-  protected val householdStorageInput = new StorageInput(
+  protected val storageInputContainer = SimpleInputContainer(storageInput)
+
+  protected val storageInput = new StorageInput(
     UUID.randomUUID(),
     "Dummy_Household_StorageInput",
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
