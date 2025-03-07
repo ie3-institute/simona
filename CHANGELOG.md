@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `PvModel` with its new implementation [#1149](https://github.com/ie3-institute/simona/issues/1149)
 - Replace `WecModel` with its new implementation [#1154](https://github.com/ie3-institute/simona/issues/1154)
 - Replace `StorageModel` with its new implementation [#1153](https://github.com/ie3-institute/simona/issues/1153)
+- Use ValidationUtils for ThermalGrids [#1117](https://github.com/ie3-institute/simona/issues/1117)
 - Fix determination of qDotIntoGrid in HpModel.calcState() in case heatStorage should feed the thermal grid [#1165](https://github.com/ie3-institute/simona/issues/1165)
 
 ### Changed
@@ -199,9 +200,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix test timeouts for all tests [#1222](https://github.com/ie3-institute/simona/issues/1222)
 - Fix handling of states in `ParticipantModelShell` [#1228](https://github.com/ie3-institute/simona/issues/1228)
 - Fix input data handling in `ParticipantModel` [#1237](https://github.com/ie3-institute/simona/issues/1237)
+- Show full stacktrace of failing tests with `gradle test` [#1245](https://github.com/ie3-institute/simona/issues/1245)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
+- Removed unused parameters in `ArgsParser` [#1192](https://github.com/ie3-institute/simona/issues/1192), [#1178](https://github.com/ie3-institute/simona/issues/1178)
 
 ## [3.0.0] - 2023-08-07
 
