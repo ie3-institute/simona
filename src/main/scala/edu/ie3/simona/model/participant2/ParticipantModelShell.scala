@@ -17,6 +17,7 @@ import edu.ie3.simona.agent.participant.data.Data.{
   PrimaryData,
   PrimaryDataExtra,
 }
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
@@ -476,8 +477,9 @@ object ParticipantModelShell {
   /** Creates a model shell receiving primary data using the given participant
     * input.
     *
-    * @param participantInput
-    *   The physical participant model.
+    * @param inputContainer
+    *   The input container holding the system participant model input that
+    *   represents the physical model at the core of the agent.
     * @param config
     *   Runtime configuration that has to match the participant type.
     * @param primaryDataExtra
@@ -492,20 +494,20 @@ object ParticipantModelShell {
     *   The constructed [[ParticipantModelShell]] with a primary data model.
     */
   def createForPrimaryData[PD <: PrimaryData: ClassTag](
-      participantInput: SystemParticipantInput,
+      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       config: BaseRuntimeConfig,
       primaryDataExtra: PrimaryDataExtra[PD],
       simulationStart: ZonedDateTime,
       simulationEnd: ZonedDateTime,
   ): ParticipantModelShell[_, _] = {
     val model = ParticipantModelInit.createPrimaryModel(
-      participantInput,
+      inputContainer,
       config,
       primaryDataExtra,
     )
     createShell(
       model,
-      participantInput,
+      inputContainer.electricalInputModel,
       simulationEnd,
       simulationStart,
     )
@@ -514,8 +516,9 @@ object ParticipantModelShell {
   /** Creates a model shell for a physical model using the given participant
     * input.
     *
-    * @param participantInput
-    *   The physical participant model.
+    * @param inputContainer
+    *   The input container holding the system participant model input that
+    *   represents the physical model at the core of the agent.
     * @param config
     *   Runtime configuration that has to match the participant type.
     * @param simulationStart
@@ -526,18 +529,18 @@ object ParticipantModelShell {
     *   The constructed [[ParticipantModelShell]] with a physical model.
     */
   def createForPhysicalModel(
-      participantInput: SystemParticipantInput,
+      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       config: BaseRuntimeConfig,
       simulationStart: ZonedDateTime,
       simulationEnd: ZonedDateTime,
   ): ParticipantModelShell[_, _] = {
     val model = ParticipantModelInit.createPhysicalModel(
-      participantInput,
+      inputContainer,
       config,
     )
     createShell(
       model,
-      participantInput,
+      inputContainer.electricalInputModel,
       simulationEnd,
       simulationStart,
     )

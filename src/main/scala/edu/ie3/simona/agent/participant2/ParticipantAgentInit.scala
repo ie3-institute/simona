@@ -8,6 +8,7 @@ package edu.ie3.simona.agent.participant2
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant2.ParticipantAgent._
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
@@ -81,9 +82,9 @@ object ParticipantAgentInit {
 
   /** Starts the initialization process of a [[ParticipantAgent]].
     *
-    * @param participantInput
-    *   The system participant model input that represents the physical model at
-    *   the core of the agent.
+    * @param inputContainer
+    *   The input container holding the system participant model input that
+    *   represents the physical model at the core of the agent.
     * @param runtimeConfig
     *   Runtime configuration that has to match the participant type.
     * @param notifierConfig
@@ -99,7 +100,7 @@ object ParticipantAgentInit {
     *   [[edu.ie3.simona.agent.em.EmAgent]].
     */
   def apply(
-      participantInput: SystemParticipantInput,
+      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
@@ -112,11 +113,11 @@ object ParticipantAgentInit {
 
         em ! RegisterControlledAsset(
           flexAdapter,
-          participantInput,
+          inputContainer.electricalInputModel,
         )
 
         em ! ScheduleFlexActivation(
-          participantInput.getUuid,
+          inputContainer.electricalInputModel.getUuid,
           INIT_SIM_TICK,
         )
 
@@ -139,7 +140,7 @@ object ParticipantAgentInit {
       }
 
     uninitialized(
-      participantInput,
+      inputContainer,
       runtimeConfig,
       notifierConfig,
       participantRefs,
@@ -151,7 +152,7 @@ object ParticipantAgentInit {
   /** Waiting for an [[Activation]] message to start the initialization.
     */
   private def uninitialized(
-      participantInput: SystemParticipantInput,
+      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
@@ -164,11 +165,11 @@ object ParticipantAgentInit {
       // first, check whether we're just supposed to replay primary data time series
       participantRefs.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
         ctx.self.toClassic,
-        participantInput.getUuid,
+        inputContainer.electricalInputModel.getUuid,
       )
 
       waitingForPrimaryProxy(
-        participantInput,
+        inputContainer,
         runtimeConfig,
         notifierConfig,
         participantRefs,
@@ -182,7 +183,7 @@ object ParticipantAgentInit {
     * participant uses model calculations or just replays primary data.
     */
   private def waitingForPrimaryProxy(
-      participantInput: SystemParticipantInput,
+      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
@@ -203,7 +204,7 @@ object ParticipantAgentInit {
 
       completeInitialization(
         ParticipantModelShell.createForPrimaryData(
-          participantInput,
+          inputContainer,
           runtimeConfig,
           primaryDataExtra,
           simulationParams.simulationStart,
@@ -219,7 +220,7 @@ object ParticipantAgentInit {
     case (ctx, RegistrationFailedMessage(_)) =>
       // we're _not_ supposed to replay primary data, thus initialize the physical model
       val modelShell = ParticipantModelShell.createForPhysicalModel(
-        participantInput,
+        inputContainer,
         runtimeConfig,
         simulationParams.simulationStart,
         simulationParams.simulationEnd,
@@ -252,7 +253,7 @@ object ParticipantAgentInit {
 
         requiredServices.foreach { case (serviceType, serviceRef) =>
           registerForService(
-            participantInput,
+            inputContainer.electricalInputModel,
             ctx.self,
             modelShell,
             serviceType,

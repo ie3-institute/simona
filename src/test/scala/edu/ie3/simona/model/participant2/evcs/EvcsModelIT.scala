@@ -135,7 +135,7 @@ class EvcsModelIT
 
       val evcsAgent = spawn(
         ParticipantAgentInit(
-          evcsInputModel,
+          evcsInputContainer,
           EvcsRuntimeConfig(),
           notifierConfig,
           participantRefs,

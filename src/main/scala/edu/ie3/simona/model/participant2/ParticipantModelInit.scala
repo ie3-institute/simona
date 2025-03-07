@@ -13,6 +13,10 @@ import edu.ie3.simona.agent.participant.data.Data.{
   PrimaryData,
   PrimaryDataExtra,
 }
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  InputModelContainer,
+  WithHeatInputContainer,
+}
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   EvcsRuntimeConfig,
@@ -40,26 +44,29 @@ object ParticipantModelInit {
     * [[SystemParticipantInput]]. The given [[BaseRuntimeConfig]] has to match
     * the participant input.
     *
-    * @param participantInput
-    *   The system participant model input.
+    * @param inputContainer
+    *   The input container holding the system participant model input that
+    *   represents the physical model at the core of the agent.
     * @param modelConfig
     *   The model runtime config.
     * @return
     *   The [[ParticipantModel]].
     */
   def createPhysicalModel(
-      participantInput: SystemParticipantInput,
+      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
   ): ParticipantModel[
     _ <: OperatingPoint,
     _ <: ModelState,
   ] = {
-
-    val scaledParticipantInput =
-      (participantInput.copy().scale(modelConfig.scaling) match {
+    val scaledParticipantInput = {
+      (inputContainer.electricalInputModel
+        .copy()
+        .scale(modelConfig.scaling) match {
         // matching needed because Scala has trouble recognizing the Java type parameter
         case copyBuilder: SystemParticipantInputCopyBuilder[_] => copyBuilder
       }).build()
+    }
 
     (scaledParticipantInput, modelConfig) match {
       case (input: FixedFeedInInput, _) =>
@@ -86,8 +93,9 @@ object ParticipantModelInit {
     * [[SystemParticipantInput]] and the given primary data. The given
     * [[BaseRuntimeConfig]] has to match the participant input.
     *
-    * @param participantInput
-    *   The system participant model input.
+    * @param inputContainer
+    *   The input container holding the system participant model input that
+    *   represents the physical model at the core of the agent.
     * @param modelConfig
     *   The model runtime config.
     * @param primaryDataExtra
@@ -96,13 +104,13 @@ object ParticipantModelInit {
     *   The [[PrimaryDataParticipantModel]].
     */
   def createPrimaryModel[PD <: PrimaryData: ClassTag](
-      participantInput: SystemParticipantInput,
+      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
       primaryDataExtra: PrimaryDataExtra[PD],
   ): PrimaryDataParticipantModel[PD] = {
     // Create a fitting physical model to extract parameters from
     val physicalModel = createPhysicalModel(
-      participantInput,
+      inputContainer,
       modelConfig,
     )
 

@@ -132,7 +132,7 @@ class EmAgentIT
 
         val loadAgent = spawn(
           ParticipantAgentInit(
-            loadInput,
+            loadInputContainer,
             LoadRuntimeConfig(),
             outputConfigOff,
             participantRefs,
@@ -143,7 +143,7 @@ class EmAgentIT
         )
         val pvAgent = spawn(
           ParticipantAgentInit(
-            pvInput,
+            pvInputContainer,
             PvRuntimeConfig(),
             outputConfigOff,
             participantRefs,
@@ -154,7 +154,7 @@ class EmAgentIT
         )
         val storageAgent = spawn(
           ParticipantAgentInit(
-            householdStorageInput,
+            storageInputContainer,
             StorageRuntimeConfig(),
             outputConfigOff,
             participantRefs,
@@ -183,7 +183,7 @@ class EmAgentIT
           ),
           PrimaryServiceRegistrationMessage(
             storageAgent.toClassic,
-            householdStorageInput.getUuid,
+            storageInput.getUuid,
           )
         )
 
@@ -377,7 +377,7 @@ class EmAgentIT
 
         val loadAgent = spawn(
           ParticipantAgentInit(
-            loadInput,
+            loadInputContainer,
             LoadRuntimeConfig(),
             outputConfigOff,
             participantRefs,
@@ -388,7 +388,7 @@ class EmAgentIT
         )
         val pvAgent = spawn(
           ParticipantAgentInit(
-            pvInput,
+            pvInputContainer,
             PvRuntimeConfig(),
             outputConfigOff,
             participantRefs,
