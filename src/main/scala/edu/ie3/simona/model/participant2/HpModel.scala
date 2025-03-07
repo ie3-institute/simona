@@ -92,13 +92,14 @@ class HpModel private (
       tick: Long,
       simulationTime: ZonedDateTime,
   ): HpState = {
-    val (_, currentThermalGridState) =
+    val (thermalDemands, thermalGridState) =
       thermalGrid.energyDemandAndUpdatedState(tick, state)
 
     state.copy(
       tick = tick,
-      thermalGridState = currentThermalGridState,
+      thermalGridState = thermalGridState,
       lastAmbientTemperature = state.ambientTemperature,
+      thermalDemands = thermalDemands
     )
   }
 

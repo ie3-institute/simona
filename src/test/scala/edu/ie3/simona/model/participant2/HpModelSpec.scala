@@ -15,7 +15,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.Celsius
@@ -31,7 +31,7 @@ class HpModelSpec
   implicit val tempTolerance: Temperature = Kelvin(1e-3)
 
   // build the HpModel
-  val hpModel: HpModel = HpModel(hpInputModel, defaultThermalGrid)
+  val hpModel: HpModel = HpModel(hpInputModel, hpModelSpecThermalGrid)
 
   "StorageModel" should {
 
@@ -39,8 +39,9 @@ class HpModelSpec
       val cases = Table(
         (
           "state",
-          "operatingPoint",
           "expectedInnerTemperature",
+          "exptHouseDemand",
+          "exptHeatStorageDemand",
         ),
         (
           HpState(
@@ -50,19 +51,132 @@ class HpModelSpec
             Celsius(10),
             noThermalDemand,
           ),
-          ActivePowerAndHeatOperatingPoint(zeroKW, None),
           15.6,
+          KilowattHours(44),
+          KilowattHours(64),
         ),
+           (
+          HpState(
+            0,
+            Celsius(10),
+            thermalState(Celsius(18)),
+            Celsius(10),
+            noThermalDemand,
+          ),
+          16.4,
+             zeroKWh,
+             zeroKWh,
+        ),
+        (
+          HpState(
+
+            0,
+            Celsius(10),
+            thermalState(Celsius(20)),
+            Celsius(10),
+            noThermalDemand,
+          ),
+          18.0,
+          zeroKWh,
+          zeroKWh,
+        ),
+        (
+          HpState(
+            0,
+            Celsius(10),
+            thermalState(Celsius(22)),
+            Celsius(10),
+            noThermalDemand,
+          ),
+          19.6,
+          zeroKWh,
+          zeroKWh,
+        ),
+        (
+          HpState(
+            0,
+            Celsius(10),
+            thermalState(Celsius(23)),
+            Celsius(10),
+            noThermalDemand,
+          ),
+          20.4,
+          zeroKWh,
+          zeroKWh,
+        ),
+        (
+          HpState(
+            0,
+            Celsius(10),
+            thermalState(Celsius(17), Kilowatts(80d)),
+            Celsius(10),
+            noThermalDemand,
+          ),
+          31.6,
+          zeroKWh,
+          zeroKWh,
+        ),
+        (
+          HpState(
+            0,
+            Celsius(10),
+            thermalState(Celsius(18), Kilowatts(80d)),
+            Celsius(10),
+            noThermalDemand,
+          ),
+          32.4,
+          zeroKWh,
+          zeroKWh,
+        ),
+        (
+          HpState(
+            0,
+            Celsius(10),
+            thermalState(Celsius(20), Kilowatts(80d)),
+            Celsius(10),
+            noThermalDemand,
+          ),
+          34.0,
+          zeroKWh,
+          zeroKWh,
+
+        ),
+        (
+          HpState(
+            0,
+            Celsius(10),
+            thermalState(Celsius(22), Kilowatts(80d)),
+            Celsius(10),
+            noThermalDemand,
+          ),
+          35.6,
+          zeroKWh,
+          zeroKWh,
+        ),
+        (
+          HpState(
+            0,
+            Celsius(10),
+            thermalState(Celsius(25), Kilowatts(80d)),
+            Celsius(10),
+            noThermalDemand,
+          ),
+          38.0,
+          zeroKWh,
+          zeroKWh,
+        )
       )
 
       forAll(cases) {
         (
             state,
-            operatingPoint,
             expectedInnerTemperature,
+            exptHouseDemand,
+            exptHeatStorageDemand,
         ) =>
-          val expectedTick = 3600
+          val expectedTick = 7200
           val date = defaultSimulationStart
+          val operatingPoint = ActivePowerAndHeatOperatingPoint(zeroKW, None)
 
           hpModel.determineState(
             state,
@@ -72,9 +186,9 @@ class HpModelSpec
           ) match {
             case HpState(
                   tick,
-                  ambientTemperature,
+                  _,
                   ThermalGridState(Some(thermalHouseState), _),
-                  lastAmbientTemperature,
+                  _,
                   thermalDemands,
                 ) => {
               tick shouldBe expectedTick
@@ -83,7 +197,9 @@ class HpModelSpec
                   expectedInnerTemperature
                 )
               )
-              thermalDemands shouldBe noThermalDemand
+
+              thermalDemands.houseDemand shouldBe exptHouseDemand
+                thermalDemands.heatStorageDemand shouldBe exptHeatStorageDemand
             }
             case unexpected =>
               fail(s"Expected a hp state but got none $unexpected.")
