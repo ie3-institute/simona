@@ -304,7 +304,10 @@ object ParticipantAgentInit {
         )
 
       case ServiceType.EvMovementService =>
-        serviceRef ! RegisterForEvDataMessage(modelShell.uuid)
+        serviceRef ! RegisterForEvDataMessage(
+          participantRef.toClassic,
+          modelShell.uuid,
+        )
     }
 
   /** Waiting for replies from secondary services. If all replies have been
