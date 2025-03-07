@@ -67,7 +67,7 @@ class HpModel private (
 
   override val initialState: (Long, ZonedDateTime) => HpState = {
     // FIXME
-    val thermalDemands = ThermalDemandWrapper(
+    val noThermalDemands = ThermalDemandWrapper(
       ThermalEnergyDemand(zeroKWh, zeroKWh),
       ThermalEnergyDemand(zeroKWh, zeroKWh),
     )
@@ -81,7 +81,7 @@ class HpModel private (
           startingState(thermalGrid).storageState,
         ),
         Celsius(0d),
-        thermalDemands,
+        noThermalDemands,
       )
   }
 
@@ -125,6 +125,13 @@ class HpModel private (
       state: HpState
   ): FlexibilityMessage.ProvideFlexOptions = {
     // Use state to update thermalGrid to the current tick
+
+    val lastHouseQDot =
+      state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
+    val lastStorageQDot =
+      state.thermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
+    val wasRunningLastState = ((lastHouseQDot + lastStorageQDot) > zeroKW)
+
     val (thermalDemandWrapper, currentThermalGridState) =
       thermalGrid.energyDemandAndUpdatedState(
         state
@@ -135,6 +142,7 @@ class HpModel private (
       operatesInNextState(
         currentThermalGridState,
         thermalDemandWrapper,
+        wasRunningLastState,
       )
 
     ProvideMinMaxFlexOptions(
@@ -163,24 +171,21 @@ class HpModel private (
     *   operation and can be out of operation
     */
   private def operatesInNextState(
-      currentThermalGridState: ThermalGridState,
+      thermalGridState: ThermalGridState,
       thermalDemands: ThermalDemandWrapper,
+      wasRunningLastState: Boolean,
   ): (Boolean, Boolean, Boolean) = {
 
     val demandHouse = thermalDemands.houseDemand
     val demandThermalStorage = thermalDemands.heatStorageDemand
     val noThermalStorageOrThermalStorageIsEmpty =
-      currentThermalGridState.isThermalStorageEmpty
+      thermalGridState.isThermalStorageEmpty
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) ||
-        (demandHouse.hasAdditionalDemand &&
-          // Fixme this should be something like state.lastOp.activePower > zeroKW)
-          zeroKW > zeroKW ||
+        (demandHouse.hasAdditionalDemand && wasRunningLastState ||
           demandThermalStorage.hasRequiredDemand ||
-          (demandThermalStorage.hasAdditionalDemand &&
-            // Fixme this should be something like state.lastOp.activePower > zeroKW)
-            zeroKW > zeroKW))
+          (demandThermalStorage.hasAdditionalDemand && wasRunningLastState))
 
     val canOperate =
       demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
@@ -250,25 +255,28 @@ class HpModel private (
       state: HpState
   ): (ActivePowerAndHeatOperatingPoint, Option[Long]) = {
 
+    val lastHouseQDot =
+      state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
+    val lastStorageQDot =
+      state.thermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
+    val wasRunningLastState = ((lastHouseQDot + lastStorageQDot) > zeroKW)
+
     // These are basically the flexOptions, should / can we calc them also when we're not em controlled?
     // Determining the operation point and limitations at this tick
     val (turnOn, canOperate, canBeOutOfOperation) =
       operatesInNextState(
         state.thermalGridState,
         state.thermalDemands,
+        wasRunningLastState,
       )
-
-    val lastStateStorageQDot = state.thermalGridState.storageState
-      .map(_.qDot)
-      .getOrElse(zeroKW)
 
     val (newActivePowerHp, _, qDotIntoGrid) = {
       if (turnOn)
         (pRated, pThermal, pThermal)
-      else if (lastStateStorageQDot < zeroKW)
-        (zeroKW, zeroKW, lastStateStorageQDot * (-1))
+      else if (lastStorageQDot < zeroKW)
+        (zeroKW, zeroKW, lastStorageQDot * (-1))
       else if (
-        lastStateStorageQDot == zeroKW && (state.thermalDemands.houseDemand.hasRequiredDemand || state.thermalDemands.heatStorageDemand.hasRequiredDemand)
+        lastStorageQDot == zeroKW && (state.thermalDemands.houseDemand.hasRequiredDemand || state.thermalDemands.heatStorageDemand.hasRequiredDemand)
       )
         (
           zeroKW,
