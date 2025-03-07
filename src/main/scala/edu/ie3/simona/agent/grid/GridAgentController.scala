@@ -12,10 +12,12 @@ import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
+import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   InputModelContainer,
+  ParticipantInitializeStateData,
   SimpleInputContainer,
-  WithHeatInputContainer,
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
   ParticipantRefs,
