@@ -100,8 +100,12 @@ object GridProvider extends LazyLogging {
               new FileNamingStrategy(),
             )
             .asScala
-            .map(thermalGrid => thermalGrid.bus() -> thermalGrid)
+            .map { thermalGrid =>
+              ValidationUtils.check(thermalGrid)
+              thermalGrid.bus() -> thermalGrid
+            }
             .toMap
+
         case None =>
           throw new RuntimeException(
             "CSVGridSource requires csv params to be set!"
