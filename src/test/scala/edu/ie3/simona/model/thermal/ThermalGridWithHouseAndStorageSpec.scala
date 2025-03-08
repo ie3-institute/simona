@@ -194,6 +194,7 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
+            state.tick,
             state,
             externalQDot,
           )
@@ -235,6 +236,7 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
+            state.tick,
             state,
             externalQDot,
           )
@@ -437,9 +439,9 @@ class ThermalGridWithHouseAndStorageSpec
         )
         val state = HpState(
           3600,
-          testGridAmbientTemperature,
+          Celsius(12),
           gridState,
-          testGridAmbientTemperature,
+          Celsius(14),
           onlyThermalDemandOfHouse,
         )
 
@@ -505,7 +507,7 @@ class ThermalGridWithHouseAndStorageSpec
             )
 
             houseWarmTick shouldBe 13825L
-            storageEmptyTick shouldBe 10145L
+            storageEmptyTick shouldBe 10141L
           case _ => fail("Revision of states failed")
         }
       }
@@ -531,6 +533,7 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
+            state.tick,
             state,
             isRunning,
             externalQDot,
@@ -584,6 +587,7 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
+            state.tick,
             state,
             isRunning,
             externalQDot,
