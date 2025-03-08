@@ -108,18 +108,16 @@ class HpModel private (
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
   ): HpState = {
-    // FIXME: Wird auch mit leeren Daten aufgerufen -> PV
-    val weatherData = receivedData
-      .collectFirst { case weatherData: WeatherData => weatherData }
-      .getOrElse {
-        throw new CriticalFailureException(
-          s"Expected WeatherData, got $receivedData"
-        )
+    receivedData
+      .collectFirst { case weatherData: WeatherData =>
+        weatherData
       }
-
-    state.copy(
-      ambientTemperature = weatherData.temp
-    )
+      .map(newData =>
+        state.copy(
+          ambientTemperature = newData.temp
+        )
+      )
+      .getOrElse(state)
   }
 
   override def determineFlexOptions(
