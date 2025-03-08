@@ -26,7 +26,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperationChangeIndicator,
 }
-import edu.ie3.simona.model.thermal.ThermalGrid
+import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalEnergyDemand,
@@ -243,6 +243,28 @@ class HpModel private (
 
   }
 
+  /** Some Scala Doc
+    */
+
+  private def pushQDotIntoThermalGrid(
+      state: HpState,
+      newActivePowerHp: Power,
+      qDotIntoGrid: Power,
+  ): Option[ThermalThreshold] = {
+    val (thermalGridState, maybeThreshold) =
+      thermalGrid.updateState(
+        state.tick,
+        state,
+        newActivePowerHp > zeroKW,
+        qDotIntoGrid,
+        state.thermalDemands,
+      )
+
+    state.copy(thermalGridState = thermalGridState)
+
+    maybeThreshold
+  }
+
   override def createResults(
       state: HpState,
       lastOperatingPoint: Option[ActivePowerAndHeatOperatingPoint],
@@ -301,16 +323,8 @@ class HpModel private (
     val (newActivePowerHp, qDotIntoGrid) = nextOperatingPoint(state, None)
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
-    val (thermalGridState, maybeThreshold) = {
-      thermalGrid.updateState(
-        state.tick,
-        state,
-        newActivePowerHp > zeroKW,
-        qDotIntoGrid,
-        state.thermalDemands,
-      )
-      // FIXME we need to update state here as well
-    }
+    val maybeThreshold =
+      pushQDotIntoThermalGrid(state, newActivePowerHp, qDotIntoGrid)
 
     val operatingPoint =
       ActivePowerAndHeatOperatingPoint(newActivePowerHp, Some(pThermal))
@@ -332,16 +346,8 @@ class HpModel private (
       nextOperatingPoint(state, Some(setPower))
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
-    val (thermalGridState, maybeThreshold) = {
-      thermalGrid.updateState(
-        state.tick,
-        state,
-        newActivePowerHp > zeroKW,
-        qDotIntoGrid,
-        state.thermalDemands,
-      )
-      // FIXME we need to update state here as well
-    }
+    val maybeThreshold =
+      pushQDotIntoThermalGrid(state, newActivePowerHp, qDotIntoGrid)
 
     val operatingPoint =
       ActivePowerAndHeatOperatingPoint(newActivePowerHp, Some(pThermal))
