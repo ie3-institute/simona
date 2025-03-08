@@ -99,7 +99,7 @@ class HpModel private (
       tick = tick,
       thermalGridState = thermalGridState,
       lastAmbientTemperature = state.ambientTemperature,
-      thermalDemands = thermalDemands
+      thermalDemands = thermalDemands,
     )
   }
 

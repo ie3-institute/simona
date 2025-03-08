@@ -70,7 +70,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
 
   protected val hpModelSpecThermalGrid = new container.ThermalGrid(
     thermalBusInput,
-    Seq(thermalHouseInput(18,22)).asJava,
+    Seq(thermalHouseInput(18, 22)).asJava,
     Seq.empty[ThermalStorageInput].asJava,
     Seq.empty[ThermalStorageInput].asJava,
   )

@@ -55,7 +55,7 @@ class HpModelSpec
           KilowattHours(44),
           KilowattHours(64),
         ),
-           (
+        (
           HpState(
             0,
             Celsius(10),
@@ -64,12 +64,11 @@ class HpModelSpec
             noThermalDemand,
           ),
           16.4,
-             zeroKWh,
-             zeroKWh,
+          zeroKWh,
+          zeroKWh,
         ),
         (
           HpState(
-
             0,
             Celsius(10),
             thermalState(Celsius(20)),
@@ -139,7 +138,6 @@ class HpModelSpec
           34.0,
           zeroKWh,
           zeroKWh,
-
         ),
         (
           HpState(
@@ -164,7 +162,7 @@ class HpModelSpec
           38.0,
           zeroKWh,
           zeroKWh,
-        )
+        ),
       )
 
       forAll(cases) {
@@ -199,7 +197,7 @@ class HpModelSpec
               )
 
               thermalDemands.houseDemand shouldBe exptHouseDemand
-                thermalDemands.heatStorageDemand shouldBe exptHeatStorageDemand
+              thermalDemands.heatStorageDemand shouldBe exptHeatStorageDemand
             }
             case unexpected =>
               fail(s"Expected a hp state but got none $unexpected.")
