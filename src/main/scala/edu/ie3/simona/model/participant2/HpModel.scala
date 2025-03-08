@@ -154,15 +154,15 @@ class HpModel private (
     * run in the next state or not. The heat pump is foreseen to operate in the
     * next interval, if the thermal grid either has a demand that needs to be
     * met or the heat pump currently is in operation and the grid is able to
-    * handle additional energy
+    * handle additional energy.
     *
-    * @param currentThermalGridState
-    *   to current tick updated state of the thermalGrid
+    * @param thermalGridState
+    *   State of the thermalGrid.
     * @param thermalDemands
-    *   ThermalEnergyDemand of the house and the thermal storage
+    *   ThermalEnergyDemand of the house and the thermal storage.
     * @return
-    *   boolean defining if heat pump runs in next time step, if it can be in
-    *   operation and can be out of operation
+    *   Boolean defining if heat pump runs in next time step, if it can be in
+    *   operation and can be out of operation.
     */
   private def operatesInNextState(
       thermalGridState: ThermalGridState,
