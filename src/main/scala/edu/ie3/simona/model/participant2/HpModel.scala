@@ -193,6 +193,48 @@ class HpModel private (
     )
   }
 
+  /** Some Scala Doc
+    */
+
+  private def nextOperatingPoint(
+      state: HpState,
+      setPower: Option[Power],
+  ): (Power, Power) = {
+
+    val lastHouseQDot =
+      state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
+    val lastStorageQDot =
+      state.thermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
+    val wasRunningLastState = (lastHouseQDot + lastStorageQDot) > zeroKW
+
+    val (turnOn, _, _) =
+      if (setPower.isDefined) {
+        /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
+        (setPower.get > (sRated.toActivePower(cosPhiRated) * 0.5), None, None)
+      } else {
+        operatesInNextState(
+          state.thermalGridState,
+          state.thermalDemands,
+          wasRunningLastState,
+        )
+      }
+
+    val (newActivePowerHp, _, qDotIntoGrid) = {
+      if (turnOn)
+        (pRated, pThermal, pThermal)
+      else if (lastStorageQDot < zeroKW)
+        (zeroKW, zeroKW, lastStorageQDot * -1)
+      else if (
+        lastStorageQDot == zeroKW && (state.thermalDemands.houseDemand.hasRequiredDemand || state.thermalDemands.heatStorageDemand.hasRequiredDemand)
+      )
+        (zeroKW, zeroKW, thermalGrid.heatStorage.map(_.getpThermalMax).get)
+      else (zeroKW, zeroKW, zeroKW)
+    }
+
+    (newActivePowerHp, qDotIntoGrid)
+
+  }
+
   override def createResults(
       state: HpState,
       lastOperatingPoint: Option[ActivePowerAndHeatOperatingPoint],
@@ -248,39 +290,14 @@ class HpModel private (
       state: HpState
   ): (ActivePowerAndHeatOperatingPoint, Option[Long]) = {
 
-    val lastHouseQDot =
-      state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
-    val lastStorageQDot =
-      state.thermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
-    val wasRunningLastState = (lastHouseQDot + lastStorageQDot) > zeroKW
-
-    // These are basically the flexOptions, should / can we calc them also when we're not em controlled?
-    // Determining the operation point and limitations at this tick
-    val (turnOn, canOperate, canBeOutOfOperation) =
-      operatesInNextState(
-        state.thermalGridState,
-        state.thermalDemands,
-        wasRunningLastState,
-      )
-
-    val (newActivePowerHp, _, qDotIntoGrid) = {
-      if (turnOn)
-        (pRated, pThermal, pThermal)
-      else if (lastStorageQDot < zeroKW)
-        (zeroKW, zeroKW, lastStorageQDot * -1)
-      else if (
-        lastStorageQDot == zeroKW && (state.thermalDemands.houseDemand.hasRequiredDemand || state.thermalDemands.heatStorageDemand.hasRequiredDemand)
-      )
-        (zeroKW, zeroKW, thermalGrid.heatStorage.map(_.getpThermalMax).get)
-      else (zeroKW, zeroKW, zeroKW)
-    }
+    val (newActivePowerHp, qDotIntoGrid) = nextOperatingPoint(state, None)
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
     val (thermalGridState, maybeThreshold) = {
       thermalGrid.updateState(
         state.tick,
         state,
-        turnOn,
+        newActivePowerHp > zeroKW,
         qDotIntoGrid,
         state.thermalDemands,
       )
@@ -301,7 +318,39 @@ class HpModel private (
   override def determineOperatingPoint(
       state: HpState,
       setPower: Power,
-  ): (ActivePowerAndHeatOperatingPoint, OperationChangeIndicator) = ???
+  ): (ActivePowerAndHeatOperatingPoint, OperationChangeIndicator) = {
+
+    val (newActivePowerHp, qDotIntoGrid) =
+      nextOperatingPoint(state, Some(setPower))
+
+    /* Push thermal energy to the thermal grid and get its updated state in return */
+    val (thermalGridState, maybeThreshold) = {
+      thermalGrid.updateState(
+        state.tick,
+        state,
+        newActivePowerHp > zeroKW,
+        qDotIntoGrid,
+        state.thermalDemands,
+      )
+      // FIXME we need to update state here as well
+    }
+
+    val operatingPoint =
+      ActivePowerAndHeatOperatingPoint(newActivePowerHp, Some(pThermal))
+
+    val nextTick = maybeThreshold match {
+      case Some(threshold) => Some(threshold.tick)
+      case None            => None
+    }
+
+    (
+      operatingPoint,
+      OperationChangeIndicator(
+        changesAtNextActivation = true,
+        changesAtTick = nextTick,
+      ),
+    )
+  }
 }
 
 object HpModel {
