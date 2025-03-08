@@ -19,7 +19,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPowerAndHeat,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.HpModel.HpState
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -66,24 +65,25 @@ class HpModel private (
     ]
     with LazyLogging {
 
-  override val initialState: (Long, ZonedDateTime) => HpState = {
-    // FIXME
-    val noThermalDemands = ThermalDemandWrapper(
-      ThermalEnergyDemand(zeroKWh, zeroKWh),
-      ThermalEnergyDemand(zeroKWh, zeroKWh),
+  override val initialState: (Long, ZonedDateTime) => HpState = { (tick, _) =>
+    val preHpState = HpState(
+      tick,
+      Celsius(0d),
+      ThermalGridState(
+        startingState(thermalGrid).houseState,
+        startingState(thermalGrid).storageState,
+      ),
+      Celsius(0d),
+      ThermalDemandWrapper(
+        ThermalEnergyDemand(zeroKWh, zeroKWh),
+        ThermalEnergyDemand(zeroKWh, zeroKWh),
+      ),
     )
 
-    (tick, _) =>
-      HpState(
-        tick,
-        Celsius(0d),
-        ThermalGridState(
-          startingState(thermalGrid).houseState,
-          startingState(thermalGrid).storageState,
-        ),
-        Celsius(0d),
-        noThermalDemands,
-      )
+    val (thermalDemands, _) =
+      thermalGrid.energyDemandAndUpdatedState(tick, preHpState)
+
+    preHpState.copy(thermalDemands = thermalDemands)
   }
 
   override def determineState(
