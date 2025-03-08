@@ -210,7 +210,15 @@ class HpModel private (
     val (turnOn, _, _) =
       if (setPower.isDefined) {
         /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
-        (setPower.get > (sRated.toActivePower(cosPhiRated) * 0.5), None, None)
+        (
+          setPower.getOrElse(
+            throw new RuntimeException(
+              s"setPower $setPower should be defined but couldn't accessed."
+            )
+          ) > (sRated.toActivePower(cosPhiRated) * 0.5),
+          None,
+          None,
+        )
       } else {
         operatesInNextState(
           state.thermalGridState,
