@@ -88,8 +88,7 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
-          // FIXME?
-          noThermalDemand,
+          onlyThermalDemandOfHeatStorage,
         )
         val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(state.tick, state)
@@ -118,8 +117,7 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
-          // FIXME?
-          noThermalDemand,
+          onlyAdditionalDemandOfHeatStorage,
         )
 
         val (thermalDemands, updatedThermalGridState) =
@@ -160,8 +158,7 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
-          // FIXME?
-          noThermalDemand,
+          onlyAdditionalDemandOfHeatStorage,
         )
 
         val (updatedGridState, reachedThreshold) =
@@ -197,8 +194,7 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
-          // FIXME?
-          noThermalDemand,
+          onlyThermalDemandOfHeatStorage,
         )
 
         val (updatedGridState, reachedThreshold) =
@@ -239,8 +235,7 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
-          // FIXME?
-          noThermalDemand,
+          onlyAdditionalDemandOfHeatStorage,
         )
 
         val (updatedGridState, reachedThreshold) =
@@ -274,8 +269,7 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
-          // FIXME?
-          noThermalDemand,
+          onlyThermalDemandOfHeatStorage,
         )
         val (updatedState, nextThreshold) = thermalGrid.updateState(
           state.tick,
@@ -311,8 +305,7 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
-          // FIXME?
-          noThermalDemand,
+          onlyAdditionalDemandOfHeatStorage,
         )
 
         thermalGrid.updateState(
@@ -343,8 +336,7 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
-          // FIXME?
-          noThermalDemand,
+          onlyThermalDemandOfHeatStorage,
         )
         val updatedState = thermalGrid.updateState(
           state.tick,

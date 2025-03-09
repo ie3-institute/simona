@@ -87,7 +87,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
-          // FIXME?
           noThermalDemand,
         )
 
@@ -152,7 +151,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
-          // FIXME?
           noThermalDemand,
         )
 
@@ -196,8 +194,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
-          // FIXME?
-          noThermalDemand,
+          onlyThermalDemandOfHouse,
         )
 
         val (updatedGridState, reachedThreshold) =
@@ -229,7 +226,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         testGridAmbientTemperature,
         initialGridState,
         testGridAmbientTemperature,
-        // FIXME?
         noThermalDemand,
       )
       "deliver proper result, if energy is fed into the grid" in {
