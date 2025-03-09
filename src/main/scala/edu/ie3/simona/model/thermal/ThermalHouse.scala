@@ -87,8 +87,8 @@ final case class ThermalHouse(
     *
     * @param state
     *   Data of heat pump including state of the heat pump.
-   * @param currentThermalHouseState
-   *   Most recent state, that is valid for this model.
+    * @param currentThermalHouseState
+    *   Most recent state, that is valid for this model.
     * @return
     *   The needed energy in the questioned tick.
     */

@@ -779,7 +779,7 @@ class ThermalGridIT
         Heat pump: stays on
        */
 
-      heatPumpAgent ! Activation(35358)
+      hpAgentActivation ! Activation(35358)
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
@@ -823,7 +823,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(35897)))
+      scheduler.expectMessage(Completion(hpAgentActivation, Some(35897)))
 
       /* TICK 35897
       Neither house nor storage have any demand
