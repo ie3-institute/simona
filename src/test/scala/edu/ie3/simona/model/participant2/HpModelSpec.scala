@@ -8,7 +8,11 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.simona.model.participant2.HpModel.HpState
 import edu.ie3.simona.model.participant2.ParticipantModel.ActivePowerAndHeatOperatingPoint
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
@@ -33,9 +37,18 @@ class HpModelSpec
   // build the HpModel
   val hpModel: HpModel = HpModel(hpInputModel, hpModelSpecThermalGrid)
 
-  "StorageModel" should {
+  "HpModel" should {
 
     "Determine the current state" in {
+      val defaultState = HpState(
+        0,
+        defaultSimulationStart,
+        Celsius(10),
+        thermalState(Celsius(17d)),
+        Celsius(10),
+        noThermalDemand,
+      )
+
       val cases = Table(
         (
           "state",
@@ -44,64 +57,42 @@ class HpModelSpec
           "exptHeatStorageDemand",
         ),
         (
-          HpState(
-            0,
-            Celsius(10),
-            thermalState(Celsius(17d)),
-            Celsius(10),
-            noThermalDemand,
-          ),
+          defaultState.copy(thermalGridState = thermalState(Celsius(17))),
           15.6,
-          KilowattHours(44),
-          KilowattHours(64),
+          (44.0, 44.0),
+          (0.0, 0.0),
         ),
         (
-          HpState(
-            0,
-            Celsius(10),
-            thermalState(Celsius(18)),
-            Celsius(10),
-            noThermalDemand,
-          ),
+          defaultState.copy(thermalGridState = thermalState(Celsius(18))),
           16.4,
-          zeroKWh,
-          zeroKWh,
+          (36.0, 36.0),
+          (0.0, 0.0),
         ),
         (
-          HpState(
-            0,
-            Celsius(10),
-            thermalState(Celsius(20)),
-            Celsius(10),
-            noThermalDemand,
+          defaultState.copy(thermalGridState = thermalState(Celsius(20))),
+          18.0,
+          (20.0, 20.0),
+          (0.0, 0.0),
+        ),
+        (
+          defaultState.copy(thermalGridState = thermalState(Celsius(22))),
+          19.6,
+          (0.0, 4.0),
+          (0.0, 0.0),
+        ),
+        (
+          defaultState.copy(thermalGridState = thermalState(Celsius(23))),
+          20.4,
+          (0.0, 0.0),
+          (0.0, 0.0),
+        ),
+        (
+          defaultState.copy(thermalGridState =
+            thermalState(Celsius(0), Kilowatts(80))
           ),
           18.0,
-          zeroKWh,
-          zeroKWh,
-        ),
-        (
-          HpState(
-            0,
-            Celsius(10),
-            thermalState(Celsius(22)),
-            Celsius(10),
-            noThermalDemand,
-          ),
-          19.6,
-          zeroKWh,
-          zeroKWh,
-        ),
-        (
-          HpState(
-            0,
-            Celsius(10),
-            thermalState(Celsius(23)),
-            Celsius(10),
-            noThermalDemand,
-          ),
-          20.4,
-          zeroKWh,
-          zeroKWh,
+          (20.0, 20.0),
+          (0.0, 0.0),
         ),
         (
           HpState(
@@ -112,56 +103,8 @@ class HpModelSpec
             noThermalDemand,
           ),
           31.6,
-          zeroKWh,
-          zeroKWh,
-        ),
-        (
-          HpState(
-            0,
-            Celsius(10),
-            thermalState(Celsius(18), Kilowatts(80d)),
-            Celsius(10),
-            noThermalDemand,
-          ),
-          32.4,
-          zeroKWh,
-          zeroKWh,
-        ),
-        (
-          HpState(
-            0,
-            Celsius(10),
-            thermalState(Celsius(20), Kilowatts(80d)),
-            Celsius(10),
-            noThermalDemand,
-          ),
-          34.0,
-          zeroKWh,
-          zeroKWh,
-        ),
-        (
-          HpState(
-            0,
-            Celsius(10),
-            thermalState(Celsius(22), Kilowatts(80d)),
-            Celsius(10),
-            noThermalDemand,
-          ),
-          35.6,
-          zeroKWh,
-          zeroKWh,
-        ),
-        (
-          HpState(
-            0,
-            Celsius(10),
-            thermalState(Celsius(25), Kilowatts(80d)),
-            Celsius(10),
-            noThermalDemand,
-          ),
-          38.0,
-          zeroKWh,
-          zeroKWh,
+          (0.0, 0.0),
+          (0.0, 0.0),
         ),
       )
 
@@ -175,29 +118,53 @@ class HpModelSpec
           val expectedTick = 7200
           val date = defaultSimulationStart
           val operatingPoint = ActivePowerAndHeatOperatingPoint(zeroKW, None)
+          val expectedDemand = ThermalDemandWrapper(
+            ThermalEnergyDemand(
+              KilowattHours(exptHouseDemand._1),
+              KilowattHours(exptHouseDemand._2),
+            ),
+            ThermalEnergyDemand(
+              KilowattHours(exptHeatStorageDemand._1),
+              KilowattHours(exptHeatStorageDemand._2),
+            ),
+          )
 
-          hpModel.determineState(
+          val updatedState = hpModel.determineState(
             state,
             operatingPoint,
             expectedTick,
             date,
-          ) match {
+          )
+
+          updatedState match {
             case HpState(
                   tick,
+                  _,
                   _,
                   ThermalGridState(Some(thermalHouseState), _),
                   _,
                   thermalDemands,
                 ) => {
               tick shouldBe expectedTick
+              thermalHouseState.tick shouldBe expectedTick
               thermalHouseState.innerTemperature should approximate(
                 Celsius(
                   expectedInnerTemperature
                 )
               )
 
-              thermalDemands.houseDemand shouldBe exptHouseDemand
-              thermalDemands.heatStorageDemand shouldBe exptHeatStorageDemand
+              thermalDemands.houseDemand.possible should approximate(
+                expectedDemand.houseDemand.possible
+              )
+              thermalDemands.houseDemand.required should approximate(
+                expectedDemand.houseDemand.required
+              )
+              thermalDemands.heatStorageDemand.possible should approximate(
+                expectedDemand.heatStorageDemand.possible
+              )
+              thermalDemands.heatStorageDemand.required should approximate(
+                expectedDemand.heatStorageDemand.required
+              )
             }
             case unexpected =>
               fail(s"Expected a hp state but got none $unexpected.")
