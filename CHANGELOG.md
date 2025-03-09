@@ -47,7 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for topologies without transformers and slack grids with multiple nodes [#1099](https://github.com/ie3-institute/simona/issues/1099)
 - Checking the number of slack nodes [#1122](https://github.com/ie3-institute/simona/issues/1122)
 - Enhance exception message in case of InvalidGridException [#1124](https://github.com/ie3-institute/simona/issues/1124)
-- Integration test for thermal grids [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Added `VoltageLimits` [#1133](https://github.com/ie3-institute/simona/issues/1133)
 - Introducing new ParticipantAgent and ParticipantModel [#1134](https://github.com/ie3-institute/simona/issues/1134)
 - Using new `ParticipantAgent.Request` messages everywhere [#1195](https://github.com/ie3-institute/simona/issues/1195)
@@ -59,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `StorageModel` with its new implementation [#1153](https://github.com/ie3-institute/simona/issues/1153)
 - Use ValidationUtils for ThermalGrids [#1117](https://github.com/ie3-institute/simona/issues/1117)
 - Replace `EvcsModel` with its new implementation [#1151](https://github.com/ie3-institute/simona/issues/1151)
+- Fix determination of qDotIntoGrid in HpModel.calcState() in case heatStorage should feed the thermal grid [#1165](https://github.com/ie3-institute/simona/issues/1165)
+- Integration test for thermal grids without Em [#1145](https://github.com/ie3-institute/simona/issues/1145)
+- Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)

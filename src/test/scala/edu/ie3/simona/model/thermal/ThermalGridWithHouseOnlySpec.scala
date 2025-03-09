@@ -14,8 +14,8 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
+  HouseTargetTemperatureReached,
   HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureTargetOrUpperBoundaryReached,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
@@ -91,19 +91,14 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           noThermalDemand,
         )
 
-        val expectedHouseDemand = thermalHouse.energyDemand(
-          state,
-          expectedHouseStartingState,
-        )
-
         val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(state.tick, state)
 
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
-        houseDemand.required should approximate(expectedHouseDemand.required)
-        houseDemand.possible should approximate(expectedHouseDemand.possible)
+        houseDemand.required should approximate(zeroKWh)
+        houseDemand.possible should approximate(KilowattHours(1.050097))
         storageDemand.required should approximate(zeroKWh)
         storageDemand.possible should approximate(zeroKWh)
         updatedThermalGridState.houseState shouldBe Some(
@@ -215,13 +210,11 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None,
               ) =>
             tick shouldBe 0L
-            innerTemperature should approximate(Celsius(18.9999d))
+            innerTemperature should approximate(Celsius(16.9999d))
             qDot should approximate(testGridQDotInfeed)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(
-          HouseTemperatureTargetOrUpperBoundaryReached(7372L)
-        )
+        reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7322L))
       }
     }
 
@@ -235,6 +228,10 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         noThermalDemand,
       )
       "deliver proper result, if energy is fed into the grid" in {
+        val gridState = ThermalGridState(
+          Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
+          None,
+        )
 
         thermalGrid.updateState(
           relevantData.tick,
@@ -248,14 +245,12 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),
                   None,
                 ),
-                Some(
-                  HouseTemperatureTargetOrUpperBoundaryReached(thresholdTick)
-                ),
+                Some(HouseTargetTemperatureReached(thresholdTick)),
               ) =>
             tick shouldBe 0L
-            innerTemperature should approximate(Celsius(18.9999d))
+            innerTemperature should approximate(Celsius(16.9999d))
             qDot should approximate(testGridQDotInfeed)
-            thresholdTick shouldBe 7372L
+            thresholdTick shouldBe 7322L
           case _ => fail("Thermal grid state updated failed")
         }
       }

@@ -60,7 +60,6 @@ final case class ThermalGrid(
       state: HpState,
   ): (ThermalDemandWrapper, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
-
     val (houseDemand, updatedHouseState) =
       house.zip(state.thermalGridState.houseState) match {
         case Some((thermalHouse, lastHouseState)) =>
@@ -72,8 +71,7 @@ final case class ThermalGrid(
               lastHouseState.qDot,
             )
           if (
-            updatedHouseState.innerTemperature < thermalHouse.targetTemperature |
-              (lastHouseState.qDot > zeroKW && updatedHouseState.innerTemperature < thermalHouse.upperBoundaryTemperature)
+            updatedHouseState.innerTemperature < thermalHouse.targetTemperature
           ) {
             (
               thermalHouse.energyDemand(
@@ -82,11 +80,9 @@ final case class ThermalGrid(
               ),
               Some(updatedHouseState),
             )
-
           } else {
             (ThermalEnergyDemand.noDemand, Some(updatedHouseState))
           }
-
         case None =>
           (ThermalEnergyDemand.noDemand, None)
       }
@@ -561,9 +557,8 @@ final case class ThermalGrid(
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>
-    * <li>the house has reached it's lower temperature boundary,</li> <li>there
-    * is no infeed from external and</li> <li>the storage is not empty
-    * itself</li> </ul>
+    * <li>there is no infeed from external and</li> <li>the storage is not empty
+    * itself.</li> </ul>
     *
     * @param state
     *   data of heat pump including state of the heat pump.
