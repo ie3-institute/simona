@@ -177,6 +177,21 @@ class HpModelSpec
     }
 
     "Calculate flex options" in {
+
+      // the exact demand doesn't matter
+      val noDemand = ThermalEnergyDemand(zeroKWh, zeroKWh)
+      val onlyAddDemand = ThermalEnergyDemand(zeroKWh, KilowattHours(1))
+      val demand = ThermalEnergyDemand(KilowattHours(1), KilowattHours(1))
+
+      val defaultState = HpState(
+        0,
+        defaultSimulationStart,
+        Celsius(10),
+        thermalState(Celsius(17d)),
+        Celsius(10),
+        noThermalDemand,
+      )
+
       val testCases =
         Table(
           ("state", "expectedValues"),
@@ -185,38 +200,24 @@ class HpModelSpec
           // Heat storage is empty
           // hp must be turned on(
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(15), zeroKW)),
                 Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(demand, demand),
             ),
             (95.0, 95.0, 95.0),
           ),
           // 2. Same as before but heat storage is NOT empty
           // should be possible to turn hp on
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(15), zeroKW)),
                 Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(demand, onlyAddDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -226,38 +227,24 @@ class HpModelSpec
           // Heat storage is empty
           // Hp must run because of house and storage
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(15), Kilowatts(1))),
                 Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(demand, demand),
             ),
             (95.0, 95.0, 95.0),
           ),
           // 4. Same as before but heat storage is NOT empty
           // Hp should not run because of storage but can be turned on
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(15), Kilowatts(1))),
                 Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(demand, onlyAddDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -266,38 +253,25 @@ class HpModelSpec
           // Heat storage is empty
           // Hp runs but can be turned off
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(19), Kilowatts(1))),
                 Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
             ),
             (95.0, 0.0, 95.0),
           ),
           // 6. Same as before but heat storage is NOT empty
           // should be possible to keep hp off
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(19), Kilowatts(1))),
                 Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-              ),
+              thermalDemands =
+                ThermalDemandWrapper(onlyAddDemand, onlyAddDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -306,38 +280,25 @@ class HpModelSpec
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(19), zeroKW)),
                 Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
             ),
             (95.0, 0.0, 95.0),
           ),
           // 8. Same as before but heat storage is NOT empty
           // Hp should be off but able to turn on
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(19), zeroKW)),
                 Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-              ),
+              thermalDemands =
+                ThermalDemandWrapper(onlyAddDemand, onlyAddDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -346,38 +307,24 @@ class HpModelSpec
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(20), Kilowatts(1))),
                 Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(noDemand, demand),
             ),
             (95.0, 0.0, 95.0),
           ),
           // 10. Same as before but storage is NOT empty
           // Hp should run but can be turned off
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(20), Kilowatts(1))),
                 Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -386,38 +333,24 @@ class HpModelSpec
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(20), zeroKW)),
                 Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(noDemand, demand),
             ),
             (95.0, 0.0, 95.0),
           ),
           // 12. Same as before but storage is NOT empty
           // Hp should not run but can be turned on for storage
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(20), zeroKW)),
                 Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -426,38 +359,24 @@ class HpModelSpec
           // Heat storage is empty
           // Hp will run because of storage but can be turned off
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(1))),
                 Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(noDemand, demand),
             ),
             (95.0, 0.0, 95.0),
           ),
           // 14. Same as before but storage is NOT empty
           // Hp should run but can be turned off
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(1))),
                 Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -466,116 +385,69 @@ class HpModelSpec
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(21), zeroKW)),
                 Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(noDemand, demand),
             ),
             (95.0, 0.0, 95.0),
           ),
           // 16. Same as before but storage is NOT empty
           // Hp should not run but can be turned on for storage
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(21), zeroKW)),
                 Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-              ),
+              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
           // Storage is full, House has capacity till upper boundary, Hp not running
           (
-            HpState(
-              0,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(19), zeroKW)),
                 Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-              ),
+              thermalDemands = ThermalDemandWrapper(onlyAddDemand, noDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
-
           // Storage is full, House has capacity till upper boundary, Hp is running
           (
-            HpState(
-              0,
-              defaultSimulationStart,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(19), Kilowatts(1))),
                 Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-              ),
+              thermalDemands = ThermalDemandWrapper(onlyAddDemand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
-
           // No capacity for flexibility at all because house is
           // at target temperature and storage is at max capacity
           (
-            HpState(
-              0,
-              defaultSimulationStart,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(20), zeroKW)),
                 Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-              ),
+              thermalDemands = ThermalDemandWrapper(noDemand, noDemand),
             ),
             (0.0, 0.0, 0.0),
           ),
           // No capacity for flexibility at all when storage is full and house has been (externally) heated up above target temperature
           (
-            HpState(
-              0,
-              defaultSimulationStart,
-              Celsius(10d),
-              ThermalGridState(
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(25), zeroKW)),
                 Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
               ),
-              Celsius(10d),
-              // the exact demand doesn't matter
-              ThermalDemandWrapper(
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-                ThermalEnergyDemand(zeroKWh, zeroKWh),
-              ),
+              thermalDemands = ThermalDemandWrapper(noDemand, noDemand),
             ),
             (0.0, 0.0, 0.0),
           ),
