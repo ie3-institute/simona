@@ -189,11 +189,15 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
-                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+                Some(ThermalHouseState(0L, Celsius(15), zeroKW)),
+                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+              ),
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -204,14 +208,15 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
-                ),
+                Some(ThermalHouseState(0L, Celsius(15), zeroKW)),
+                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
               Celsius(10d),
-              // FIXME?
-              noThermalDemand,
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+              ),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -225,13 +230,15 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
-                ),
+                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(1))),
+                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+              ),
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -242,15 +249,17 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
-                ),
+                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(1))),
+                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+              ),
             ),
-            (0.0, 0.0, 95.0),
+            (95.0, 0.0, 95.0),
           ),
           // 5. Hp actually running
           // House is between target temperature and lower temperature boundary
@@ -261,13 +270,15 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
-                ),
+                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(1))),
+                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -278,13 +289,15 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
-                ),
+                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(1))),
+                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -297,13 +310,15 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
-                ),
+                Some(ThermalHouseState(0L, Celsius(19), zeroKW)),
+                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -314,30 +329,36 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
-                ),
+                Some(ThermalHouseState(0L, Celsius(19), zeroKW)),
+                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+              ),
             ),
             (0.0, 0.0, 95.0),
           ),
           // 9. Hp actually running
-          // House is between target temperature and upper temperature boundary
+          // House is at target temperature boundary
           // Heat storage is empty
-          // Hp will run because of storage but can be turned off
+          // Hp should run because of storage but can be turned off
           (
             HpState(
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+                Some(ThermalHouseState(0L, Celsius(20), Kilowatts(1))),
+                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -348,16 +369,20 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                Some(ThermalHouseState(0L, Celsius(20), Kilowatts(1))),
+                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
           // 11. Hp actually not running
-          // House is between target temperature and upper temperature boundary
+          // House is at target temperature boundary
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
           (
@@ -365,44 +390,55 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+                Some(ThermalHouseState(0L, Celsius(20), zeroKW)),
+                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
           // 12. Same as before but storage is NOT empty
-          // Hp should not run but can be turned on for storage or house
+          // Hp should not run but can be turned on for storage
           (
             HpState(
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                Some(ThermalHouseState(0L, Celsius(20), zeroKW)),
+                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+              ),
             ),
             (0.0, 0.0, 95.0),
           ),
-
           // 13. Hp actually running
-          // House is at upper temperature boundary
+          // House is above target temperature
           // Heat storage is empty
-          // Hp should run because of storage but can be turned off
+          // Hp will run because of storage but can be turned off
           (
             HpState(
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(1))),
+                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -413,16 +449,20 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(1))),
+                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
           // 15. Hp actually not running
-          // House is at upper temperature boundary
+          // House is above target temperature
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
           (
@@ -430,15 +470,18 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+                Some(ThermalHouseState(0L, Celsius(21), zeroKW)),
+                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+                ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
-
           // 16. Same as before but storage is NOT empty
           // Hp should not run but can be turned on for storage
           (
@@ -446,60 +489,93 @@ class HpModelSpec
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                Some(ThermalHouseState(0L, Celsius(21), zeroKW)),
+                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+              ),
             ),
             (0.0, 0.0, 95.0),
           ),
-          // Storage is full, House has capacity till upper boundary
+          // Storage is full, House has capacity till upper boundary, Hp not running
           (
             HpState(
               0,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
-                ),
+                Some(ThermalHouseState(0L, Celsius(19), zeroKW)),
+                Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+              ),
             ),
             (0.0, 0.0, 95.0),
           ),
+
+          // Storage is full, House has capacity till upper boundary, Hp is running
+          (
+            HpState(
+              0,
+              defaultSimulationStart,
+              Celsius(10d),
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(1))),
+                Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
+              ),
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+              ),
+            ),
+            (95.0, 0.0, 95.0),
+          ),
+
           // No capacity for flexibility at all because house is
-          // at upperTempBoundary and storage is at max capacity
+          // at target temperature and storage is at max capacity
           (
             HpState(
               0,
+              defaultSimulationStart,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(22), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
-                ),
+                Some(ThermalHouseState(0L, Celsius(20), zeroKW)),
+                Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+              ),
             ),
             (0.0, 0.0, 0.0),
           ),
-          // No capacity for flexibility at all when storage is full and house has been (externally) heated up above upperTemperatureBoundary
+          // No capacity for flexibility at all when storage is full and house has been (externally) heated up above target temperature
           (
             HpState(
               0,
+              defaultSimulationStart,
               Celsius(10d),
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
-                ),
+                Some(ThermalHouseState(0L, Celsius(25), zeroKW)),
+                Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
               ),
-              Celsius(10d), // FIXME?
-              noThermalDemand,
+              Celsius(10d),
+              // the exact demand doesn't matter
+              ThermalDemandWrapper(
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+                ThermalEnergyDemand(zeroKWh, zeroKWh),
+              ),
             ),
             (0.0, 0.0, 0.0),
           ),
