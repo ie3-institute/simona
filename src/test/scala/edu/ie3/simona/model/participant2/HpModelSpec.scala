@@ -95,12 +95,16 @@ class HpModelSpec
           (0.0, 0.0),
         ),
         (
-          HpState(
-            0,
-            Celsius(10),
-            thermalState(Celsius(17), Kilowatts(80d)),
-            Celsius(10),
-            noThermalDemand,
+          defaultState.copy(thermalGridState =
+            thermalState(Celsius(2), Kilowatts(80))
+          ),
+          19.6,
+          (0.0, 4.0),
+          (0.0, 0.0),
+        ),
+        (
+          defaultState.copy(thermalGridState =
+            thermalState(Celsius(17), Kilowatts(80))
           ),
           31.6,
           (0.0, 0.0),
