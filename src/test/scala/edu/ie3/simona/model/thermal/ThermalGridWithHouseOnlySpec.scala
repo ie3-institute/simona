@@ -186,10 +186,15 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         )
 
       "solely heat up the house" in {
+        val gridState = ThermalGridState(
+          Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
+          None,
+        )
+
         val state = HpState(
           0,
           testGridAmbientTemperature,
-          initialGridState,
+          gridState,
           testGridAmbientTemperature,
           // FIXME?
           noThermalDemand,
@@ -219,7 +224,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     }
 
     "updating the grid state dependent on the given thermal infeed" should {
-      val relevantData = HpState(
+      val state = HpState(
         0,
         testGridAmbientTemperature,
         initialGridState,
@@ -232,10 +237,11 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
           None,
         )
+        val initState = state.copy(thermalGridState = gridState)
 
         thermalGrid.updateState(
-          relevantData.tick,
-          relevantData,
+          initState.tick,
+          initState,
           isRunning,
           testGridQDotInfeed,
           onlyThermalDemandOfHouse,
@@ -257,8 +263,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
       "deliver proper result, if energy is consumed from the grid" in {
         thermalGrid.updateState(
-          relevantData.tick,
-          relevantData,
+          state.tick,
+          state,
           isNotRunning,
           testGridQDotConsumption,
           onlyThermalDemandOfHouse,
@@ -280,8 +286,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
       "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
         thermalGrid.updateState(
-          relevantData.tick,
-          relevantData,
+          state.tick,
+          state,
           isNotRunning,
           zeroKW,
           onlyThermalDemandOfHouse,

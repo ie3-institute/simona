@@ -517,7 +517,10 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
       "heat the house, if the target temperature in the house is not reached" in {
-
+        val initialGridState = ThermalGridState(
+          Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
+          Some(expectedStorageStartingState),
+        )
         val state = HpState(
           0,
           testGridAmbientTemperature,
@@ -526,10 +529,7 @@ class ThermalGridWithHouseAndStorageSpec
           // FIXME?
           noThermalDemand,
         )
-        val initialGridState = ThermalGridState(
-          Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
-          Some(expectedStorageStartingState),
-        )
+
         val externalQDot = testGridQDotInfeed
 
         val (updatedGridState, reachedThreshold) =
@@ -569,10 +569,6 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "load the storage, if the target temperature in the house is reached" in {
-        val relevantData = HpRelevantData(
-          0L,
-          testGridAmbientTemperature,
-        )
         val initialGridState = ThermalGridState(
           Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
           Some(expectedStorageStartingState),
