@@ -234,7 +234,7 @@ final case class ThermalHouse(
     /* Calculate the next given threshold */
     val threshold =
       nextThreshold(
-        state.tick,
+        tick,
         qDot,
         updatedInnerTemperature,
         state.ambientTemperature,
@@ -242,7 +242,7 @@ final case class ThermalHouse(
 
     (
       thermalHouseState.copy(
-        tick = state.tick,
+        tick = tick,
         innerTemperature = updatedInnerTemperature,
         qDot = qDot,
       ),
