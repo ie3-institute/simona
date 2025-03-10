@@ -232,30 +232,29 @@ final case class HpModel(
       demandWrapper: ThermalDemandWrapper,
       currentThermalGridState: ThermalGridState,
   ): HpState = {
-    val qDotLastHouseState = lastState.thermalGridState.houseState
+    val lastHouseQDot = lastState.thermalGridState.houseState
       .map(_.qDot)
       .getOrElse(zeroKW)
-    val currentEnergyOfThermalStorage = currentThermalGridState.storageState
+    val currentStorageEnergy = currentThermalGridState.storageState
       .map(_.storedEnergy)
       .getOrElse(zeroKWh)
-    val pThermalOfStorage = thermalGrid.heatStorage
-      .map(_.getpThermalMax: squants.Power)
-      .getOrElse(zeroKW)
+    val currentStoragePThermal =
+      thermalGrid.heatStorage.map(_.getpThermalMax).getOrElse(zeroKW)
 
-    val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
+    val (newHpActivePower, newHpThermalPower, qDotIntoGrid) = {
       if (isRunning)
         (pRated, pThermal, pThermal)
-      // If the house has req. demand and storage isn't empty, we can heat the house from storage.
       else if (
-        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasRequiredDemand
+        currentStorageEnergy > zeroKWh && demandWrapper.houseDemand.hasRequiredDemand
       ) {
-        (zeroKW, zeroKW, pThermalOfStorage)
-        // Edge case when em controlled: If the house was heated last state by Hp and surplus energy is gone now,
-        // but house didn't reach target temperature yet. House can be heated from storage, if this one is not empty.
+        // If the house has req. demand and storage isn't empty, we can heat the house from storage.
+        (zeroKW, zeroKW, currentStoragePThermal)
       } else if (
-        currentEnergyOfThermalStorage > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand && qDotLastHouseState > zeroKW
+        currentStorageEnergy > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand && lastHouseQDot > zeroKW
       )
-        (zeroKW, zeroKW, pThermalOfStorage)
+        // Edge case when em controlled: If the house was heated last state by Hp and setPower is below turnOn condition now,
+        // but house didn't reach target or boundary temperature yet. House can be heated from storage, if this one is not empty.
+        (zeroKW, zeroKW, currentStoragePThermal)
       else (zeroKW, zeroKW, zeroKW)
     }
 
@@ -274,8 +273,8 @@ final case class HpModel(
       isRunning,
       relevantData.currentTick,
       Some(relevantData.ambientTemperature),
-      newActivePowerHp,
-      newThermalPowerHp,
+      newHpActivePower,
+      newHpThermalPower,
       thermalGridState,
       maybeThreshold,
     )
