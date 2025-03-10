@@ -90,6 +90,7 @@ class RandomLoadModelSpec
       val model = RandomLoadModel(
         loadInput,
         LoadRuntimeConfig(
+          uuids = List.empty,
           modelBehaviour = "random",
           reference = "energy",
         ),

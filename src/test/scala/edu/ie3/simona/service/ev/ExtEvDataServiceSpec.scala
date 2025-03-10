@@ -16,7 +16,7 @@ import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -100,7 +100,7 @@ class ExtEvDataServiceSpec
       val evcs1 = TestProbe("evcs1")
 
       // this one should be stashed
-      evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))
+      evcs1.send(evService, RegisterForEvDataMessage(evcs1.ref, evcs1UUID))
 
       evcs1.expectNoMessage()
       scheduler.expectNoMessage()
@@ -148,14 +148,14 @@ class ExtEvDataServiceSpec
       val evcs1 = TestProbe("evcs1")
       val evcs2 = TestProbe("evcs2")
 
-      evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))
+      evcs1.send(evService, RegisterForEvDataMessage(evcs1.ref, evcs1UUID))
       evcs1.expectNoMessage()
 
-      evcs2.send(evService, RegisterForEvDataMessage(evcs2UUID))
+      evcs2.send(evService, RegisterForEvDataMessage(evcs2.ref, evcs2UUID))
       evcs2.expectNoMessage()
 
       // register first one again
-      evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))
+      evcs1.send(evService, RegisterForEvDataMessage(evcs1.ref, evcs1UUID))
       evcs1.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -230,10 +230,10 @@ class ExtEvDataServiceSpec
       val evcs1 = TestProbe("evcs1")
       val evcs2 = TestProbe("evcs2")
 
-      evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))
+      evcs1.send(evService, RegisterForEvDataMessage(evcs1.ref, evcs1UUID))
       evcs1.expectNoMessage()
 
-      evcs2.send(evService, RegisterForEvDataMessage(evcs2UUID))
+      evcs2.send(evService, RegisterForEvDataMessage(evcs2.ref, evcs2UUID))
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -263,11 +263,11 @@ class ExtEvDataServiceSpec
       scheduler.send(evService, Activation(tick))
 
       evcs1.expectMsg(
-        EvFreeLotsRequest(tick)
+        EvFreeLotsRequest(tick, evService.ref)
       )
 
       evcs2.expectMsg(
-        EvFreeLotsRequest(tick)
+        EvFreeLotsRequest(tick, evService.ref)
       )
 
       scheduler.expectMsg(Completion(evService.toTyped))
@@ -332,10 +332,10 @@ class ExtEvDataServiceSpec
       val evcs1 = TestProbe("evcs1")
       val evcs2 = TestProbe("evcs2")
 
-      evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))
+      evcs1.send(evService, RegisterForEvDataMessage(evcs1.ref, evcs1UUID))
       evcs1.expectNoMessage()
 
-      evcs2.send(evService, RegisterForEvDataMessage(evcs2UUID))
+      evcs2.send(evService, RegisterForEvDataMessage(evcs2.ref, evcs2UUID))
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -452,10 +452,10 @@ class ExtEvDataServiceSpec
       val evcs1 = TestProbe("evcs1")
       val evcs2 = TestProbe("evcs1")
 
-      evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))
+      evcs1.send(evService, RegisterForEvDataMessage(evcs1.ref, evcs1UUID))
       evcs1.expectNoMessage()
 
-      evcs2.send(evService, RegisterForEvDataMessage(evcs2UUID))
+      evcs2.send(evService, RegisterForEvDataMessage(evcs2.ref, evcs2UUID))
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -490,10 +490,10 @@ class ExtEvDataServiceSpec
       scheduler.send(evService, Activation(tick))
 
       evcs1.expectMsg(
-        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evA.getUuid))
+        DepartingEvsRequest(tick, Seq(evA.getUuid), evService.ref)
       )
       evcs2.expectMsg(
-        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evB.getUuid))
+        DepartingEvsRequest(tick, Seq(evB.getUuid), evService.ref)
       )
 
       scheduler.expectMsg(Completion(evService.toTyped))
@@ -605,10 +605,10 @@ class ExtEvDataServiceSpec
       val evcs1 = TestProbe("evcs1")
       val evcs2 = TestProbe("evcs2")
 
-      evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))
+      evcs1.send(evService, RegisterForEvDataMessage(evcs1.ref, evcs1UUID))
       evcs1.expectNoMessage()
 
-      evcs2.send(evService, RegisterForEvDataMessage(evcs2UUID))
+      evcs2.send(evService, RegisterForEvDataMessage(evcs2.ref, evcs2UUID))
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -683,7 +683,7 @@ class ExtEvDataServiceSpec
 
       val evcs1 = TestProbe("evcs1")
 
-      evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))
+      evcs1.send(evService, RegisterForEvDataMessage(evcs1.ref, evcs1UUID))
       evcs1.expectNoMessage()
 
       extEvData.sendExtMsg(
