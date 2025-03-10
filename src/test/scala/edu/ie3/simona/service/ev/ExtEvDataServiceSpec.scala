@@ -15,7 +15,7 @@ import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
-import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -274,11 +274,11 @@ class ExtEvDataServiceSpec
       evService ! Activation(tick)
 
       evcs1.expectMessage(
-        EvFreeLotsRequest(tick)
+        EvFreeLotsRequest(tick, evService)
       )
 
       evcs2.expectMessage(
-        EvFreeLotsRequest(tick)
+        EvFreeLotsRequest(tick, evService)
       )
 
       scheduler.expectMessage(Completion(activationMsg.actor))
@@ -505,11 +505,11 @@ class ExtEvDataServiceSpec
 
       evcs1.expectMessage(
         10.seconds,
-        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evA.getUuid)),
+        DepartingEvsRequest(tick, Seq(evA.getUuid), evService),
       )
       evcs2.expectMessage(
         10.seconds,
-        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evB.getUuid)),
+        DepartingEvsRequest(tick, Seq(evB.getUuid), evService),
       )
 
       scheduler.expectMessage(Completion(activationMsg.actor))

@@ -7,12 +7,11 @@
 package edu.ie3.simona.agent.participant
 
 import org.apache.pekko.actor.ActorRef
-import edu.ie3.datamodel.models.input.system.{EvcsInput, SystemParticipantInput}
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithComplexPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
-  ActorExtEvDataService,
   ActorPriceService,
   ActorWeatherService,
 }
@@ -24,7 +23,6 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant,
 }
-import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 
@@ -90,9 +88,6 @@ trait ServiceRegistration[
     case ActorWeatherService(serviceRef) =>
       registerForWeather(serviceRef, participantRef, inputModel)
       Some(serviceRef)
-    case ActorExtEvDataService(serviceRef) =>
-      registerForEvData(serviceRef, inputModel)
-      Some(serviceRef)
   }
 
   /** Register for the weather service
@@ -124,29 +119,6 @@ trait ServiceRegistration[
           )
       }
     serviceRef ! RegisterForWeatherMessage(participantRef, lat, lon)
-  }
-
-  /** Register for the EV movement service
-    *
-    * @param serviceRef
-    *   Actor reference of the EV movements service
-    * @param inputModel
-    *   Input model of the simulation mode
-    * @return
-    */
-  private def registerForEvData(
-      serviceRef: ActorRef,
-      inputModel: I,
-  ): Unit = {
-    inputModel match {
-      case evcsInput: EvcsInput =>
-        serviceRef ! RegisterForEvDataMessage(self.toTyped, evcsInput.getUuid)
-      case _ =>
-        throw new ServiceRegistrationException(
-          s"Cannot register for EV movements information at node ${inputModel.getNode.getId} " +
-            s"(${inputModel.getNode.getUuid}) of type ${inputModel.getClass.getName}, because only Evcs can register for this."
-        )
-    }
   }
 
 }

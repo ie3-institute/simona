@@ -24,13 +24,13 @@ object EvMessage {
   /** Indicate the [[edu.ie3.simona.service.ev.ExtEvDataService]] that the
     * requesting agent wants to receive EV movements
     *
-    * @param actorRef
-    *   actor ref for the agent to be registered
+    * @param requestingActor
+    *   The actor requesting registration for ev data
     * @param evcs
     *   the charging station
     */
   final case class RegisterForEvDataMessage(
-      actorRef: ActorRef[ParticipantAgent.Request],
+      requestingActor: ActorRef[ParticipantAgent.Request],
       evcs: UUID,
   ) extends EvMessage
       with ServiceRegistrationMessage
@@ -41,10 +41,11 @@ object EvMessage {
     *
     * @param tick
     *   The latest tick that the data is requested for
+    * @param replyTo
+    *   The actor to receive the response
     */
-  final case class EvFreeLotsRequest(tick: Long)
-      extends EvMessage
-      with ParticipantRequest
+  final case class EvFreeLotsRequest(override val tick: Long, replyTo: ActorRef[ParticipantAgent.Request])
+      extends ParticipantRequest
 
   /** Requests EV models of departing EVs with given UUIDs
     *
@@ -52,10 +53,14 @@ object EvMessage {
     *   The latest tick that the data is requested for
     * @param departingEvs
     *   The UUIDs of EVs that are requested
+    * @param replyTo
+    *   The actor to receive the response
     */
-  final case class DepartingEvsRequest(tick: Long, departingEvs: Seq[UUID])
-      extends EvMessage
-      with ParticipantRequest
+  final case class DepartingEvsRequest(
+      override val tick: Long,
+      departingEvs: Seq[UUID],
+      replyTo: ActorRef[ParticipantAgent.Request],
+  ) extends ParticipantRequest
 
   /** Holds arrivals for one charging station
     *
@@ -64,7 +69,7 @@ object EvMessage {
     */
   final case class ArrivingEvs(
       arrivals: Seq[EvModelWrapper]
-  ) extends EvData {}
+  ) extends EvData
 
   trait EvResponseMessage extends EvMessage
 

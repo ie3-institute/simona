@@ -94,12 +94,14 @@ abstract class ParticipantModel[
   ): S
 
   /** Handles input data (primary or secondary) by integrating into the current
-    * mode state.
+    * mode state. Is only called with new input received data or an empty
+    * sequence as received data.
     *
     * @param state
     *   The current state
     * @param receivedData
-    *   The received primary or secondary data.
+    *   The currently received primary or secondary data. Sequence could be
+    *   empty, if no new data is available.
     * @param nodalVoltage
     *   The voltage at the node that we're connected to.
     * @return
