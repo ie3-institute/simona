@@ -19,7 +19,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
-import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
@@ -120,16 +119,10 @@ class EvcsModel private (
   override def determineOperatingPoint(
       state: EvcsState
   ): (EvcsOperatingPoint, Option[Long]) = {
-    // applicable evs can be charged, other evs cannot
-    // since V2G only applies when Em-controlled we don't have to consider discharging
-    val applicableEvs = state.evs.filter { ev =>
-      !isFull(ev)
-    }
-
     val chargingPowers =
-      strategy.determineChargingPowers(applicableEvs, state.tick, this)
+      strategy.determineChargingPowers(state.evs, state.tick, this)
 
-    val nextEvent = applicableEvs
+    val nextEvent = state.evs
       .flatMap { ev =>
         chargingPowers.get(ev.uuid).map((ev, _))
       }
