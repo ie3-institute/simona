@@ -17,7 +17,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,
   HouseTemperatureLowerBoundaryReached,
 }
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
 import squants.thermal.Celsius
@@ -25,7 +25,10 @@ import squants.{Energy, Kelvin, Power, Temperature}
 
 import scala.jdk.CollectionConverters._
 
-class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
+class ThermalGridWithHouseOnlySpec
+    extends UnitSpec
+    with ThermalHouseTestData
+    with DefaultTestData {
 
   implicit val tempTolerance: Temperature = Celsius(1e-3)
   implicit val powerTolerance: Power = Watts(1e-3)
@@ -84,6 +87,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "exactly be the demand of the house" in {
         val state = HpState(
           10800, // after three hours
+          defaultSimulationStart,
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
@@ -148,6 +152,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "not withdraw energy from the house, if actual consumption is given" in {
         val state = HpState(
           0,
+          defaultSimulationStart,
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
@@ -191,6 +196,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
         val state = HpState(
           0,
+          defaultSimulationStart,
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
@@ -223,6 +229,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     "updating the grid state dependent on the given thermal infeed" should {
       val state = HpState(
         0,
+        defaultSimulationStart,
         testGridAmbientTemperature,
         initialGridState,
         testGridAmbientTemperature,

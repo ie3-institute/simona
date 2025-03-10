@@ -19,6 +19,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPowerAndHeat,
   PrimaryDataWithComplexPower,
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.HpModel.HpState
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -26,13 +27,13 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperationChangeIndicator,
 }
-import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalEnergyDemand,
   ThermalGridState,
   startingState,
 }
+import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
@@ -65,25 +66,27 @@ class HpModel private (
     ]
     with LazyLogging {
 
-  override val initialState: (Long, ZonedDateTime) => HpState = { (tick, _) =>
-    val preHpState = HpState(
-      tick,
-      Celsius(0d),
-      ThermalGridState(
-        startingState(thermalGrid).houseState,
-        startingState(thermalGrid).storageState,
-      ),
-      Celsius(0d),
-      ThermalDemandWrapper(
-        ThermalEnergyDemand(zeroKWh, zeroKWh),
-        ThermalEnergyDemand(zeroKWh, zeroKWh),
-      ),
-    )
+  override val initialState: (Long, ZonedDateTime) => HpState = {
+    (tick, startTime) =>
+      val preHpState = HpState(
+        tick,
+        startTime,
+        Celsius(0d),
+        ThermalGridState(
+          startingState(thermalGrid).houseState,
+          startingState(thermalGrid).storageState,
+        ),
+        Celsius(0d),
+        ThermalDemandWrapper(
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+        ),
+      )
 
-    val (thermalDemands, _) =
-      thermalGrid.energyDemandAndUpdatedState(tick, preHpState)
+      val (thermalDemands, _) =
+        thermalGrid.energyDemandAndUpdatedState(tick, preHpState)
 
-    preHpState.copy(thermalDemands = thermalDemands)
+      preHpState.copy(thermalDemands = thermalDemands)
   }
 
   override def determineState(
@@ -260,6 +263,9 @@ class HpModel private (
         state.thermalDemands,
       )
 
+    // FIXME: this should be somehow in createResults() as some accompaniedResult
+    thermalGrid.results(state.tick, thermalGridState)(state.dateTime)
+
     state.copy(thermalGridState = thermalGridState)
 
     maybeThreshold
@@ -384,6 +390,7 @@ object HpModel {
     */
   final case class HpState(
       override val tick: Long,
+      dateTime: ZonedDateTime,
       ambientTemperature: Temperature,
       thermalGridState: ThermalGridState,
       lastAmbientTemperature: Temperature,
