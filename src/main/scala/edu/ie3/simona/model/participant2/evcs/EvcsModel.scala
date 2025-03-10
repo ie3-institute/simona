@@ -19,6 +19,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
@@ -119,10 +120,16 @@ class EvcsModel private (
   override def determineOperatingPoint(
       state: EvcsState
   ): (EvcsOperatingPoint, Option[Long]) = {
-    val chargingPowers =
-      strategy.determineChargingPowers(state.evs, state.tick, this)
+    // applicable evs can be charged, other evs cannot
+    // since V2G only applies when Em-controlled we don't have to consider discharging
+    val applicableEvs = state.evs.filter { ev =>
+      !isFull(ev)
+    }
 
-    val nextEvent = state.evs
+    val chargingPowers =
+      strategy.determineChargingPowers(applicableEvs, state.tick, this)
+
+    val nextEvent = applicableEvs
       .flatMap { ev =>
         chargingPowers.get(ev.uuid).map((ev, _))
       }
@@ -459,13 +466,20 @@ class EvcsModel private (
 
     val dischargingEnergyTarget = () => ev.eStorage * lowestEvSoc
 
-    ChargingHelper.calcNextEventTick(
+    val nextEvent = ChargingHelper.calcNextEventTick(
       ev.storedEnergy,
       power,
       currentTick,
       chargingEnergyTarget,
       dischargingEnergyTarget,
     )
+
+    if (nextEvent.getOrElse(-2) == currentTick)
+      throw new CriticalFailureException(
+        s"Next tick $nextEvent is same as currentTick $currentTick"
+      )
+
+    nextEvent
   }
 
   override def handleRequest(
