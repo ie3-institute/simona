@@ -6,56 +6,43 @@
 
 package edu.ie3.simona.service.em
 
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.em.model.FlexOptionValue
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.api.data.em.{ExtEmDataConnection, NoSetPointValue}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
+import edu.ie3.simona.exceptions.{CriticalFailureException, InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.EmMessage.{
-  WrappedFlexRequest,
-  WrappedFlexResponse,
-}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  DataResponseMessage,
-  RegisterForEmDataService,
-}
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
-import edu.ie3.simona.service.em.ExtEmDataService.{
-  ExtEmDataStateData,
-  InitExtEmData,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{DataResponseMessage, RegisterForEmDataService}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.service.em.ExtEmDataService.{ExtEmDataStateData, InitExtEmData}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
 import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.{
-  Behaviors,
-  ActorContext => TypedContext,
-}
+import org.apache.pekko.actor.typed.scaladsl.{Behaviors, ActorContext => TypedContext}
 import org.apache.pekko.actor.{ActorContext, Props, ActorRef => ClassicRef}
 import squants.Power
 import squants.energy.Kilowatts
 import tech.units.indriya.ComparableQuantity
 
+import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Power => PsdmPower}
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 object ExtEmDataService {
 
-  def props(scheduler: ClassicRef): Props =
+  def props(scheduler: ClassicRef)(implicit simulationStart: ZonedDateTime): Props =
     Props(
       new ExtEmDataService(scheduler: ClassicRef)
     )
@@ -63,6 +50,7 @@ object ExtEmDataService {
   def emServiceResponseAdapter(
       emService: ClassicRef,
       receiver: Option[ActorRef[FlexResponse]],
+      self: ActorRef[FlexResponse],
   )(implicit ctx: TypedContext[EmAgent.Request]): ActorRef[FlexResponse] = {
 
     val request = Behaviors.receiveMessagePartial[FlexResponse] {
@@ -70,6 +58,7 @@ object ExtEmDataService {
         emService ! WrappedFlexResponse(
           response,
           receiver,
+          Some(self)
         )
 
         Behaviors.same
@@ -101,7 +90,7 @@ object ExtEmDataService {
       uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]] = Map.empty,
       flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
       extEmDataMessage: Option[EmDataMessageFromExt] = None,
-      flexOptionResponse: ReceiveDataMap[UUID, ProvideFlexOptions] =
+      flexOptionResponse: ReceiveDataMap[UUID, FlexOptionsResult] =
         ReceiveDataMap.empty,
       setPointResponse: ReceiveDataMap[UUID, IssueFlexControl] =
         ReceiveDataMap.empty,
@@ -154,6 +143,8 @@ object ExtEmDataService {
 
 final case class ExtEmDataService(
     override val scheduler: ClassicRef
+                                 )(
+                                 implicit val simulationStart: ZonedDateTime,
 ) extends SimonaService[ExtEmDataStateData](scheduler)
     with ExtDataSupport[ExtEmDataStateData] {
 
@@ -275,8 +266,6 @@ final case class ExtEmDataService(
       serviceStateData: ExtEmDataStateData,
       ctx: ActorContext,
   ): (ExtEmDataStateData, Option[Long]) = {
-    println("Here!!!")
-
     val updatedStateData = serviceStateData.extEmDataMessage.getOrElse(
       throw ServiceException(
         "ExtEMDataService was triggered without ExtEmDataMessage available"
@@ -404,11 +393,29 @@ final case class ExtEmDataService(
   ): ExtEmDataStateData = extResponseMsg match {
     case WrappedFlexResponse(
           provideFlexOptions: ProvideFlexOptions,
-          Some(receiver),
+          receiver,
+          self
         ) =>
-      val uuid = serviceStateData.emHierarchy.refToControlled(receiver)
-      val updated =
-        serviceStateData.flexOptionResponse.addData(uuid, provideFlexOptions)
+
+      val ref = receiver.getOrElse(self.getOrElse(
+        throw new CriticalFailureException("No receiver defined!")
+      ))
+
+      val uuid = serviceStateData.emHierarchy.getUuid(ref)
+
+      val updated = provideFlexOptions match {
+        case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
+
+          serviceStateData.flexOptionResponse.addData(uuid, new FlexOptionsResult(
+            simulationStart, // TODO: Fix this
+            modelUuid,
+            min.toQuantity,
+            ref.toQuantity,
+            max.toQuantity,
+          ))
+      }
+
+
 
       if (updated.nonComplete) {
         // responses are still incomplete
@@ -418,7 +425,11 @@ final case class ExtEmDataService(
       } else {
         // all responses received, forward them to external simulation in a bundle
 
-        // serviceStateData.extEmDataConnection.queueExtResponseMsg(new FlexOptionsResponse(updated.receivedData.asJava))
+        serviceStateData.extEmDataConnection.queueExtResponseMsg(
+            new FlexOptionsResponse(
+              updated.receivedData.asJava
+            )
+          )
 
         serviceStateData.copy(
           flexOptionResponse = ReceiveDataMap.empty

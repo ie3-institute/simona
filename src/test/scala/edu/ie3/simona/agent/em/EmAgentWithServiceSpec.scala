@@ -211,6 +211,7 @@ class EmAgentWithServiceSpec
                 maxPower,
               ),
               receiver,
+              _,
             ) =>
           modelUuid shouldBe emInput.getUuid
           referencePower shouldBe Kilowatts(0)
@@ -262,7 +263,7 @@ class EmAgentWithServiceSpec
       }
 
       service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver) =>
+        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver, _) =>
           modelUuid shouldBe emInput.getUuid
           result.p should approximate(Kilowatts(6))
           result.q should approximate(Kilovars(.6))
@@ -317,7 +318,7 @@ class EmAgentWithServiceSpec
       }
 
       service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver) =>
+        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver, _) =>
           modelUuid shouldBe emInput.getUuid
           result.p should approximate(Kilowatts(0))
           result.q should approximate(Kilovars(0))
@@ -550,6 +551,7 @@ class EmAgentWithServiceSpec
                 maxPower,
               ),
               receiver,
+              _,
             ) =>
           modelUuid shouldBe updatedEmInput.getUuid
           referencePower shouldBe Kilowatts(0)
@@ -575,6 +577,7 @@ class EmAgentWithServiceSpec
                 maxPower,
               ),
               receiver,
+              _,
             ) =>
           modelUuid shouldBe parentEmInput.getUuid
           referencePower shouldBe Kilowatts(0)
@@ -642,7 +645,7 @@ class EmAgentWithServiceSpec
       }
 
       service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver) =>
+        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver, _) =>
           modelUuid shouldBe updatedEmInput.getUuid
           result.p should approximate(Kilowatts(6))
           result.q should approximate(Kilovars(.6))
@@ -710,7 +713,7 @@ class EmAgentWithServiceSpec
       }
 
       service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver) =>
+        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver, _) =>
           modelUuid shouldBe updatedEmInput.getUuid
           result.p should approximate(Kilowatts(0))
           result.q should approximate(Kilovars(0))

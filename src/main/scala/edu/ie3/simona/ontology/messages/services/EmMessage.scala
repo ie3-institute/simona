@@ -22,6 +22,7 @@ object EmMessage {
   final case class WrappedFlexResponse(
       flexResponse: FlexResponse,
       receiver: Option[ActorRef[FlexResponse]],
+      self: Option[ActorRef[FlexResponse]] = None,
   ) extends EmResponseMessage
 
   final case class WrappedFlexRequest(

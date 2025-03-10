@@ -138,6 +138,7 @@ object EmAgent {
           ExtEmDataService.emServiceResponseAdapter(
             service,
             parentOption,
+            ctx.self
           )(ctx)
 
         Right(FlexControlledData(serviceResponseAdapter, flexAdapter))
