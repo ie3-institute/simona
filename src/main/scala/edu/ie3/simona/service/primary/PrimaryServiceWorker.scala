@@ -149,8 +149,11 @@ final case class PrimaryServiceWorker[V <: Value](
           .map(_.toTick)
       ).pop
 
-      (maybeNextTick, furtherActivationTicks) match {
-        case (Some(tick), furtherActivationTicks) if tick == 0L =>
+      val previousOption =
+        source.getPreviousTimeBasedValue(simulationStart).toScala
+
+      (maybeNextTick, furtherActivationTicks, previousOption) match {
+        case (Some(tick), _, _) if tick == 0L =>
           /* Set up the state data and determine the next activation tick. */
           val initializedStateData =
             PrimaryServiceInitializedStateData(
@@ -158,23 +161,62 @@ final case class PrimaryServiceWorker[V <: Value](
               furtherActivationTicks,
               simulationStart,
               source,
+              None,
             )
 
           Success(initializedStateData, maybeNextTick)
 
-        case (Some(tick), _) if tick > 0L =>
-          /* The start of the data needs to be at the first tick of the simulation. */
+        case (Some(tick), _, None) if tick > 0L =>
+          /* We have data after the start of the simulation, but not data that can be used for tick 0 */
           Failure(
             new ServiceRegistrationException(
               s"The data for the timeseries '${source.getTimeSeries.getUuid}' starts after the start of this simulation (tick: $tick)! This is not allowed!"
             )
           )
 
+        case (Some(_), _, Some(value)) =>
+          /* We have data before and after the start of the simulation, but not at tick 0 */
+          log.debug(
+            s"No data at the start of the simulation. Use last know data for tick: ${value.getTime.toTick}"
+          )
+
+          /* Set up the state data. */
+          val initializedStateData =
+            PrimaryServiceInitializedStateData(
+              maybeNextTick,
+              furtherActivationTicks,
+              simulationStart,
+              source,
+              Some(value.getValue),
+            )
+
+          Success(initializedStateData, maybeNextTick)
+
+        case (_, _, Some(value)) =>
+          /* We have data before, but not after the start of the simulation */
+          log.debug(
+            s"Only found data before the start of the simulation. Tick: ${value.getTime.toTick}"
+          )
+
+          val maybeNextTick = Some(0L)
+
+          /* Set up the state data. */
+          val initializedStateData =
+            PrimaryServiceInitializedStateData(
+              maybeNextTick,
+              furtherActivationTicks,
+              simulationStart,
+              source,
+              Some(value.getValue),
+            )
+
+          Success(initializedStateData, maybeNextTick)
+
         case _ =>
           /* No data for the simulation. */
           Failure(
             new ServiceRegistrationException(
-              s"No appropriate data found within simulation time range in timeseries '${source.getTimeSeries.getUuid}'!"
+              s"No data found for timeseries '${source.getTimeSeries.getUuid}'!"
             )
           )
       }
@@ -243,13 +285,19 @@ final case class PrimaryServiceWorker[V <: Value](
       case Some(value) =>
         processDataAndAnnounce(tick, value, serviceBaseStateData)
       case None =>
-        /* There is no data available in the source. */
-        log.warning(
-          s"I expected to get data for tick '{}' ({}), but data is not available",
-          tick,
-          simulationTime,
-        )
-        updateStateDataAndBuildTriggerMessages(serviceBaseStateData)
+        /* Check for previous value option */
+        serviceBaseStateData.maybeValue match {
+          case Some(value) =>
+            processDataAndAnnounce(tick, value, serviceBaseStateData)
+          case None =>
+            /* There is no data available in the source. */
+            log.warning(
+              s"I expected to get data for tick '{}' ({}), but data is not available",
+              tick,
+              simulationTime,
+            )
+            updateStateDataAndBuildTriggerMessages(serviceBaseStateData)
+        }
     }
   }
 
@@ -434,6 +482,8 @@ object PrimaryServiceWorker {
     * @param source
     *   Implementation of [[TimeSeriesSource]] to use for actual acquisition of
     *   data
+    * @param maybeValue
+    *   option for previous value
     * @param subscribers
     *   Collection of interested actors
     * @tparam V
@@ -445,6 +495,7 @@ object PrimaryServiceWorker {
         SortedDistinctSeq.empty,
       startDateTime: ZonedDateTime,
       source: TimeSeriesSource[V],
+      maybeValue: Option[V],
       subscribers: Vector[ActorRef] = Vector.empty[ActorRef],
   ) extends ServiceActivationBaseStateData
 

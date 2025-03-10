@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
@@ -38,12 +35,16 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   PrimaryServiceInitializedStateData,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
-import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
+import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import squants.energy.{Kilowatts, Watts}
 import tech.units.indriya.quantity.Quantities
 
@@ -110,14 +111,16 @@ class PrimaryServiceWorkerSpec
       }
     }
 
-    "fail to init, if time series ends with delay before simulation start" in {
+    "fail to init, if time series has no data" in {
       val initData = validInitData.copy(
-        simulationStart = validInitData.simulationStart.plusHours(1)
+        timeSeriesUuid = uuidEmpty,
+        filePath = Paths.get("its_p_" + uuidEmpty),
+        simulationStart = validInitData.simulationStart.plusHours(1),
       )
 
       service.init(initData) match {
         case Failure(exception) =>
-          exception.getMessage shouldBe "No appropriate data found within simulation time range in timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5'!"
+          exception.getMessage shouldBe "No data found for timeseries 'b73a7e3f-9045-40cd-b518-c11a9a6a1025'!"
         case Success(_) =>
           fail("Initialisation with unsupported init data is meant to fail.")
       }
@@ -133,6 +136,36 @@ class PrimaryServiceWorkerSpec
           exception.getMessage shouldBe "The data for the timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5' starts after the start of this simulation (tick: 3600)! This is not allowed!"
         case Success(_) =>
           fail("Initialisation with unsupported init data is meant to fail.")
+      }
+    }
+
+    "init, if there is a value before the simulation start" in {
+      val initData = validInitData.copy(
+        simulationStart = validInitData.simulationStart.plusHours(1)
+      )
+
+      service.init(initData) match {
+        case Success((stateData, maybeNextTick)) =>
+          stateData.maybeValue shouldBe Some(new PValue(1500.asKiloWatt))
+          maybeNextTick shouldBe Some(0L)
+
+        case Failure(_) =>
+          fail("Initialisation with init data is meant to succeed.")
+      }
+    }
+
+    "init, if there are values before and after the simulation start" in {
+      val initData = validInitData.copy(
+        simulationStart = validInitData.simulationStart.plusMinutes(5)
+      )
+
+      service.init(initData) match {
+        case Success((stateData, maybeNextTick)) =>
+          stateData.maybeValue shouldBe Some(new PValue(1000.asKiloWatt))
+          maybeNextTick shouldBe Some(600L)
+
+        case Failure(_) =>
+          fail("Initialisation with init data is meant to succeed.")
       }
     }
 
@@ -169,6 +202,7 @@ class PrimaryServiceWorkerSpec
                   activationTicks,
                   simulationStart,
                   source,
+                  maybeValue,
                   subscribers,
                 ) =>
               nextActivationTick shouldBe Some(0L)
@@ -178,6 +212,7 @@ class PrimaryServiceWorkerSpec
               ) // The first tick should already been popped
               simulationStart shouldBe validInitData.simulationStart
               source.getClass shouldBe classOf[CsvTimeSeriesSource[PValue]]
+              maybeValue shouldBe None
               subscribers.isEmpty shouldBe true
           }
           /* We expect a request to be triggered in tick 0 */
@@ -240,6 +275,7 @@ class PrimaryServiceWorkerSpec
         classOf[PValue],
         new TimeBasedSimpleValueFactory[PValue](classOf[PValue]),
       ),
+      None,
       Vector(self),
     )
 
@@ -265,6 +301,7 @@ class PrimaryServiceWorkerSpec
             case PrimaryServiceInitializedStateData(
                   nextActivationTick,
                   activationTicks,
+                  _,
                   _,
                   _,
                   _,
@@ -318,6 +355,7 @@ class PrimaryServiceWorkerSpec
                 _,
                 _,
                 _,
+                _,
               ),
               maybeNextTick,
             ) =>
@@ -345,6 +383,7 @@ class PrimaryServiceWorkerSpec
             case PrimaryServiceInitializedStateData(
                   nextActivationTick,
                   activationTicks,
+                  _,
                   _,
                   _,
                   _,
