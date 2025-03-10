@@ -9,7 +9,10 @@ package edu.ie3.simona.ontology.messages.services
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{DataResponseMessage, ServiceRegistrationMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  DataResponseMessage,
+  ServiceRegistrationMessage,
+}
 import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID

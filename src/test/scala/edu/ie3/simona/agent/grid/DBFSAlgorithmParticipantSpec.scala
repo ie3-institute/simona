@@ -59,6 +59,7 @@ class DBFSAlgorithmParticipantSpec
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
     weather = weatherService.ref.toClassic,
+    emDataService = None,
     evDataService = None,
   )
 

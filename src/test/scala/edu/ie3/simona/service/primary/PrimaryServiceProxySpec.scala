@@ -275,7 +275,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         maliciousConfig,
         simulationStart,
-        Map.empty,
+        Seq.empty,
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -296,7 +296,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         maliciousConfig,
         simulationStart,
-        Map.empty,
+        Seq.empty,
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -310,7 +310,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         validPrimaryConfig,
         simulationStart,
-        Map.empty,
+        Seq.empty,
       ) match {
         case Success(
               PrimaryServiceStateData(
@@ -362,7 +362,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         validPrimaryConfig,
         simulationStart,
-        Map(extPrimaryDataConnection -> validExtPrimaryDataService),
+        Seq((extPrimaryDataConnection, validExtPrimaryDataService)),
       ) match {
         case Success(
               PrimaryServiceStateData(

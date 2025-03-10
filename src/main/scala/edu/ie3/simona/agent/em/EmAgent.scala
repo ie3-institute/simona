@@ -25,21 +25,18 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.EmMessage.{
-  IssueFlexControlResponse,
-  SimonaFlexOptionsResponse,
-}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.time.ZonedDateTime
-import java.util.UUID
+import scala.jdk.OptionConverters.RichOptional
 
 /** Energy management agent that receives flex options from and issues control
   * messages to connected agents
@@ -111,31 +108,66 @@ object EmAgent {
       listener: Iterable[ActorRef[ResultEvent]],
       emDataService: Option[ClassicRef],
   ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
+    val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
+
+    val parentData = emDataService match {
+      case Some(service) =>
+        // since we have a service, it will replace the default agent communication
+
+        val parentOption = parent.toOption
+
+        service ! RegisterForEmDataService(
+          inputModel.getUuid,
+          ctx.self,
+          flexAdapter,
+          parentOption,
+          inputModel.getControllingEm.toScala.map(_.getUuid),
+        )
+
+        val serviceRequestAdapter: ActorRef[FlexRequest] =
+          ExtEmDataService.emServiceRequestAdapter(
+            service,
+            flexAdapter,
+          )(ctx)
+
+        parentOption.foreach(
+          _ ! RegisterControlledAsset(serviceRequestAdapter, inputModel)
+        )
+
+        val serviceResponseAdapter: ActorRef[FlexResponse] =
+          ExtEmDataService.emServiceResponseAdapter(
+            service,
+            parentOption,
+          )(ctx)
+
+        Right(FlexControlledData(serviceResponseAdapter, flexAdapter))
+
+      case None =>
+        parent
+          .map { parentEm =>
+            parentEm ! RegisterControlledAsset(
+              flexAdapter,
+              inputModel,
+            )
+
+            FlexControlledData(parentEm, flexAdapter)
+          }
+          .left
+          .map { scheduler =>
+            {
+              val activationAdapter = ctx.messageAdapter[Activation] { msg =>
+                EmActivation(msg.tick)
+              }
+              SchedulerData(scheduler, activationAdapter)
+            }
+          }
+    }
+
     val constantData = EmData(
       outputConfig,
       simulationStartDate,
-      parent
-        .map { parentEm =>
-          val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
-
-          parentEm ! RegisterControlledAsset(
-            flexAdapter,
-            inputModel,
-          )
-
-          FlexControlledData(parentEm, flexAdapter)
-        }
-        .left
-        .map { scheduler =>
-          {
-            val activationAdapter = ctx.messageAdapter[Activation] { msg =>
-              EmActivation(msg.tick)
-            }
-            SchedulerData(scheduler, activationAdapter)
-          }
-        },
+      parentData,
       listener,
-      emDataService,
     )
 
     val modelShell = EmModelShell(
@@ -145,38 +177,10 @@ object EmAgent {
       modelConfig,
     )
 
-    // register for ext em service, if service is present
-    emDataService.foreach(service =>
-      registerForEmService(
-        service,
-        constantData,
-        modelShell.uuid,
-      )(ctx)
-    )
-
     inactive(
       constantData,
       modelShell,
       EmDataCore.create(simulationStartDate),
-    )
-  }
-
-  private def registerForEmService(
-      emDataService: ClassicRef,
-      emData: EmData,
-      uuid: UUID,
-  )(ctx: ActorContext[Request]): Unit = {
-    val flexAdapter = emData.parentData match {
-      case Left(_) =>
-        ctx.messageAdapter[FlexRequest](Flex)
-      case Right(value) =>
-        value.flexAdapter
-    }
-
-    emDataService ! RegisterForEmDataService(
-      uuid,
-      ctx.self,
-      flexAdapter,
     )
   }
 
@@ -261,8 +265,8 @@ object EmAgent {
       emData: EmData,
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
-  ): Behavior[Request] = Behaviors.receivePartial {
-    case (ctx, flexOptions: ProvideFlexOptions) =>
+  ): Behavior[Request] = Behaviors.receiveMessagePartial {
+    case flexOptions: ProvideFlexOptions =>
       val updatedCore = flexOptionsCore.handleFlexOptions(flexOptions)
 
       if (updatedCore.isComplete) {
@@ -272,22 +276,24 @@ object EmAgent {
         val (emRef, emMin, emMax) =
           modelShell.aggregateFlexOptions(allFlexOptions)
 
-        val flexResult = new FlexOptionsResult(
-          flexOptionsCore.activeTick.toDateTime(emData.simulationStartDate),
-          modelShell.uuid,
-          emRef.toMegawatts.asMegaWatt,
-          emMin.toMegawatts.asMegaWatt,
-          emMax.toMegawatts.asMegaWatt,
-        )
-
         if (emData.outputConfig.flexResult) {
+          val flexResult = new FlexOptionsResult(
+            flexOptionsCore.activeTick.toDateTime(
+              emData.simulationStartDate
+            ),
+            modelShell.uuid,
+            emRef.toMegawatts.asMegaWatt,
+            emMin.toMegawatts.asMegaWatt,
+            emMax.toMegawatts.asMegaWatt,
+          )
+
           emData.listener.foreach {
             _ ! FlexOptionsResultEvent(flexResult)
           }
         }
 
-        (emData.parentData, emData.emDataService) match {
-          case (Right(flexStateData), None) =>
+        emData.parentData match {
+          case Right(flexStateData) =>
             // provide aggregate flex options to parent
             val flexMessage = ProvideMinMaxFlexOptions(
               modelShell.uuid,
@@ -308,27 +314,7 @@ object EmAgent {
 
             awaitingFlexCtrl(updatedEmData, modelShell, updatedCore)
 
-          case (Right(flexStateData), Some(emService)) =>
-            // if we have an external data service, it will replace the default agent communication
-            emService ! SimonaFlexOptionsResponse(
-              flexStateData.emAgent,
-              flexResult,
-            )
-
-            awaitingFlexCtrlWithService(
-              emData,
-              emService,
-              ProvideMinMaxFlexOptions(
-                modelShell.uuid,
-                emRef,
-                emMin,
-                emMax,
-              ),
-              modelShell,
-              flexOptionsCore,
-            )
-
-          case (Left(_), None) =>
+          case Left(_) =>
             // We're not em-controlled ourselves,
             // always desire to come as close as possible to 0 kW
             val setPower = zeroKW
@@ -346,26 +332,6 @@ object EmAgent {
             }
 
             awaitingCompletions(emData, modelShell, newCore)
-
-          case (Left(_), Some(emService)) =>
-            // if we have an external data service, it will replace the default agent communication
-            emService ! SimonaFlexOptionsResponse(
-              ctx.self,
-              flexResult,
-            )
-
-            awaitingFlexCtrlWithService(
-              emData,
-              emService,
-              ProvideMinMaxFlexOptions(
-                modelShell.uuid,
-                emRef,
-                emMin,
-                emMax,
-              ),
-              modelShell,
-              flexOptionsCore,
-            )
         }
 
       } else {
@@ -425,56 +391,6 @@ object EmAgent {
 
       allFlexMsgs.foreach { case (actor, msg) =>
         actor ! msg
-      }
-
-      awaitingCompletions(emData, modelShell, newCore)
-  }
-
-  /** Behavior of an [[EmAgent]] waiting for a flex control message to be
-    * received in order to transition to the next behavior. This behavior should
-    * only be used by EmAgents that are themselves EM-controlled.
-    */
-  private def awaitingFlexCtrlWithService(
-      emData: EmData,
-      emService: ClassicRef,
-      ownFlexOptions: ProvideFlexOptions,
-      modelShell: EmModelShell,
-      flexOptionsCore: EmDataCore.AwaitingFlexOptions,
-  ): Behavior[Request] = Behaviors.receiveMessagePartial {
-    case Flex(flexCtrl: IssueFlexControl) =>
-      val setPointActivePower = EmTools.determineFlexPower(
-        ownFlexOptions,
-        flexCtrl,
-      )
-
-      // flex options calculated by connected agents
-      val receivedFlexOptions = flexOptionsCore.getFlexOptions
-
-      val ctrlSetPoints =
-        modelShell.determineFlexControl(
-          receivedFlexOptions,
-          setPointActivePower,
-        )
-
-      val (allFlexMsgs, newCore) = flexOptionsCore
-        .handleFlexCtrl(ctrlSetPoints)
-        .fillInMissingIssueCtrl()
-        .complete()
-
-      allFlexMsgs.foreach { case (receiver, msg) =>
-        val time = msg.tick.toDateTime(emData.simulationStartDate)
-
-        val setPoint = msg match {
-          case IssuePowerControl(_, setPower) => Some(setPower)
-          case _                              => None
-        }
-
-        emService ! IssueFlexControlResponse(
-          receiver,
-          time,
-          modelShell.uuid,
-          setPoint,
-        )
       }
 
       awaitingCompletions(emData, modelShell, newCore)
@@ -581,15 +497,12 @@ object EmAgent {
     *   em-controlled, or a [[Left]] with [[SchedulerData]]
     * @param listener
     *   A collection of result event listeners
-    * @param emDataService
-    *   An energy management service.
     */
   private final case class EmData(
       outputConfig: NotifierConfig,
       simulationStartDate: ZonedDateTime,
       parentData: Either[SchedulerData, FlexControlledData],
       listener: Iterable[ActorRef[ResultEvent]],
-      emDataService: Option[ClassicRef],
   )
 
   /** The existence of this data object indicates that the corresponding agent
