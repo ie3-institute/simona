@@ -149,6 +149,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated to changes of PSDM release v6.0.0 [#1107](https://github.com/ie3-institute/simona/issues/1107)
 - Refactor external simulation setup [#1136](https://github.com/ie3-institute/simona/issues/1136)
 - Use new tick retrieval methods from PSDM [#920](https://github.com/ie3-institute/simona/issues/920)
+- Use `Math.floor` when calcNextEventTick for charging entities [#1256](https://github.com/ie3-institute/simona/issues/1256) 
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
