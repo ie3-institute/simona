@@ -138,13 +138,15 @@ final case class PrimaryServiceWorker[V <: Value](
     }).flatMap { case (source, simulationStart) =>
       implicit val startDateTime: ZonedDateTime = simulationStart
 
+      // Note: because we want data for the start tick as well, we need to use any tick before the start tick
+      val intervalStart = simulationStart.minusSeconds(1)
+
       val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
-        // Note: The whole data set is used here, which might be inefficient depending on the source implementation.
-        source.getTimeSeries.getEntries.asScala
-          .map(timeBasedValue => timeBasedValue.getTime.toTick)
-          .filter(_ >= 0L)
+        source
+          .getTimeKeysAfter(intervalStart)
+          .asScala
           .toSeq
-          .sorted
+          .map(_.toTick)
       ).pop
 
       val previousOption =
