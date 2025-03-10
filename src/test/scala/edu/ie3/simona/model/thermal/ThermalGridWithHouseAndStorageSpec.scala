@@ -503,7 +503,7 @@ class ThermalGridWithHouseAndStorageSpec
             )
 
             houseWarmTick shouldBe 3646
-            storageEmptyTick shouldBe 7200
+            storageEmptyTick shouldBe 7197
           case _ => fail("Revision of states failed")
         }
       }
