@@ -466,20 +466,13 @@ class EvcsModel private (
 
     val dischargingEnergyTarget = () => ev.eStorage * lowestEvSoc
 
-    val nextEvent = ChargingHelper.calcNextEventTick(
+    ChargingHelper.calcNextEventTick(
       ev.storedEnergy,
       power,
       currentTick,
       chargingEnergyTarget,
       dischargingEnergyTarget,
     )
-
-    if (nextEvent.getOrElse(-2) == currentTick)
-      throw new CriticalFailureException(
-        s"Next tick $nextEvent is same as currentTick $currentTick"
-      )
-
-    nextEvent
   }
 
   override def handleRequest(
