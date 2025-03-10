@@ -27,6 +27,7 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
+import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -39,6 +40,7 @@ import squants.{Each, Energy, Power}
 import squants.energy.{KilowattHours, Kilowatts}
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 class EvcsModelSpec
     extends ScalaTestWithActorTestKit
@@ -108,6 +110,33 @@ class EvcsModelSpec
             Kilowatts(2.5)
         )
         nextEvent shouldBe Some(10800L)
+      }
+
+      "check for correct evOperatingPoint of fully charged Ev" in {
+        val evcsModel = createModel("maxPower")
+
+        val evModel = EvModelWrapper(
+          new MockEvModel(
+            UUID.randomUUID(),
+            "Test EV",
+            5.0.asKiloWatt,
+            10.0.asKiloWatt,
+            20.0.asKiloWattHour,
+            20.0.asKiloWattHour,
+            3600,
+          )
+        )
+
+        val (operatingPoint, nextEvent) = evcsModel.determineOperatingPoint(
+          EvcsState(
+            Seq(evModel),
+            1800L,
+          )
+        )
+        operatingPoint.evOperatingPoints shouldBe Map(
+          evModel.uuid -> Kilowatts(0.0)
+        )
+        nextEvent shouldBe None
       }
     }
 
