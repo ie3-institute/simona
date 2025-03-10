@@ -106,18 +106,18 @@ final case class BmModel(
   /** Calculates electrical output from usage and efficiency.
     *
     * @param usage
-    *   the usage
+    *   The usage.
     * @param eff
-    *   the efficiency
+    *   The efficiency.
     * @return
-    *   electrical output as Power
+    *   The electrical output power.
     */
   def calculateElOutput(
       usage: Double,
       eff: Double,
   ): Power = {
-    val currOpex = opex.divide(eff)
-    val avgOpex = (currOpex + opex).divide(2)
+    val currOpex = opex / eff
+    val avgOpex = (currOpex + opex) / 2
 
     if (
       isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
@@ -131,9 +131,9 @@ final case class BmModel(
   /** Applies the load gradient to the electrical output.
     *
     * @param pEl
-    *   electrical output
+    *   The electrical output.
     * @return
-    *   electrical output after load gradient has been applied
+    *   The electrical output after load gradient has been applied.
     */
   def applyLoadGradient(
       lastPEl: Option[Power],
@@ -192,7 +192,7 @@ final case class BmModel(
 
 object BmModel {
 
-  /** Data, that is needed for model calculations with the biomass model
+  /** Data, that is needed for model calculations with the biomass model.
     *
     * @param tick
     *   The current tick.
@@ -210,12 +210,12 @@ object BmModel {
       lastPEl: Option[Power],
   ) extends ModelState
 
-  /** Calculates first time-dependent factor for heat demand
+  /** Calculates first time-dependent factor for heat demand.
     *
     * @param time
-    *   the time
+    *   The date and time.
     * @return
-    *   factor k1
+    *   The factor k1.
     */
   def calculateK1(time: ZonedDateTime): Double = {
     val weekendCorr = Vector(0.98, 0.985, 0.982, 0.982, 0.97, 0.96, 0.95, 0.93,
@@ -231,11 +231,12 @@ object BmModel {
     }
   }
 
-  /** Calculates second time-dependent factor for heat demand
+  /** Calculates second time-dependent factor for heat demand.
+    *
     * @param time
-    *   the time
+    *   The date and time.
     * @return
-    *   factor k2
+    *   The factor k2
     */
   def calculateK2(time: ZonedDateTime): Double = {
     time.getDayOfYear match {
@@ -245,15 +246,16 @@ object BmModel {
     }
   }
 
-  /** Calculates heat demand
+  /** Calculates heat demand.
+    *
     * @param temp
-    *   the temperature
+    *   The temperature.
     * @param k1
-    *   factor k1
+    *   The factor k1.
     * @param k2
-    *   factor k2
+    *   The factor k2.
     * @return
-    *   heat demand in Megawatt
+    *   The heat demand.
     */
   def calculatePTh(
       temp: Temperature,
@@ -269,11 +271,12 @@ object BmModel {
     Megawatts(pTh)
   }
 
-  /** Calculates usage from heat demand, using fixed maximum heat
+  /** Calculates usage from heat demand, using fixed maximum heat.
+    *
     * @param pTh
-    *   heat demand
+    *   The heat demand.
     * @return
-    *   usage
+    *   The usage.
     */
   def calculateUsage(pTh: Power): Double = {
     // if demand exceeds capacity -> activate peak load boiler (no effect on electrical output)
@@ -284,11 +287,12 @@ object BmModel {
   }
 
   /** Calculates efficiency from usage. Efficiency is based on a regression
-    * which might lead to values > 1 -> valid cap (see docs for details)
+    * which might lead to values > 1 -> valid cap (see docs for details).
+    *
     * @param usage
-    *   the usage
+    *   The usage.
     * @return
-    *   efficiency
+    *   The efficiency.
     */
   def calculateEff(usage: Double): Double =
     min(0.18 * pow(usage, 3) - 0.595 * pow(usage, 2) + 0.692 * usage + 0.724, 1)

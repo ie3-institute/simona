@@ -4,11 +4,10 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant
+package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant2.BmModel
 import edu.ie3.simona.model.participant2.BmModel.BmState
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{EuroPerKilowatthour, Kilovoltamperes}
@@ -21,10 +20,10 @@ import java.time.ZonedDateTime
 import java.util.UUID
 
 /** Test class that tries to cover all special cases of the current
-  * implementation of the [[BmModel]]
+  * implementation of the [[BmModel]].
   *
   * Test results have been calculated on paper using equations from
-  * documentation.
+  * [[https://simona.readthedocs.io/en/latest/models/bm_model.html documentation]].
   */
 class BmModelSpec extends UnitSpec {
 
@@ -288,4 +287,5 @@ class BmModelSpec extends UnitSpec {
       }
     }
   }
+
 }
