@@ -120,10 +120,16 @@ class EvcsModel private (
   override def determineOperatingPoint(
       state: EvcsState
   ): (EvcsOperatingPoint, Option[Long]) = {
-    val chargingPowers =
-      strategy.determineChargingPowers(state.evs, state.tick, this)
+    // applicable evs can be charged, other evs cannot
+    // since V2G only applies when Em-controlled we don't have to consider empty batteries
+    val applicableEvs = state.evs.filter { ev =>
+      !isFull(ev)
+    }
 
-    val nextEvent = state.evs
+    val chargingPowers =
+      strategy.determineChargingPowers(applicableEvs, state.tick, this)
+
+    val nextEvent = applicableEvs
       .flatMap { ev =>
         chargingPowers.get(ev.uuid).map((ev, _))
       }
