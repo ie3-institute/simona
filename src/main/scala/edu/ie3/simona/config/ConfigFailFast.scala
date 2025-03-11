@@ -11,16 +11,9 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   LoadRuntimeConfig,
-  ParticipantRuntimeConfigs,
   StorageRuntimeConfig,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
-  CouchbaseParams,
-  InfluxDb1xParams,
-  SampleParams,
-  SqlParams,
-}
-import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
+import edu.ie3.simona.config.ConfigParams._
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -165,7 +158,7 @@ object ConfigFailFast extends LazyLogging {
     *   the output configuration that should be checked
     */
   private def checkOutputConfig(
-      outputConfig: SimonaConfig.Simona.Output
+      outputConfig: OutputConfig
   ): Unit = {
 
     /* check if at least one data sink is defined */
@@ -186,7 +179,7 @@ object ConfigFailFast extends LazyLogging {
     * @param sink
     *   the sink configuration that should be checked
     */
-  private def checkDataSink(sink: SimonaConfig.Simona.Output.Sink): Unit = {
+  private def checkDataSink(sink: OutputConfig.Sink): Unit = {
     // ensures failure if new output sinks are added to enforce adaptions of the check sink method as well
     val supportedSinks = Set("influxdb1x", "csv", "kafka")
     if (
@@ -223,7 +216,7 @@ object ConfigFailFast extends LazyLogging {
       )
 
     sinkConfigs.find(_.isDefined) match {
-      case Some(Some(influxDb1x: InfluxDb1x)) =>
+      case Some(Some(influxDb1x: InfluxDb1xParams)) =>
         checkInfluxDb1xParams(
           "Sink",
           ResultSinkType.buildInfluxDb1xUrl(influxDb1x),
@@ -562,7 +555,7 @@ object ConfigFailFast extends LazyLogging {
   }
 
   private def checkGridDataSource(
-      gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource
+      gridDataSource: InputConfig.GridDatasource
   ): Unit = {
 
     // grid source information provided?
@@ -593,12 +586,12 @@ object ConfigFailFast extends LazyLogging {
   }
 
   private def checkPrimaryDataSource(
-      primary: SimonaConfig.Simona.Input.Primary
+      primary: InputConfig.Primary
   ): Unit =
     PrimaryServiceProxy.checkConfig(primary)
 
   private def checkWeatherDataSource(
-      weatherDataSourceCfg: SimonaConfig.Simona.Input.Weather.Datasource
+      weatherDataSourceCfg: InputConfig.WeatherDatasource
   ): Unit = {
     // check coordinate source
     val definedCoordinateSource: String = checkCoordinateSource(
@@ -635,7 +628,7 @@ object ConfigFailFast extends LazyLogging {
         checkBaseCsvParams(baseCsvParams, "WeatherSource")
       case Some(params: CouchbaseParams) =>
         checkCouchbaseParams(params)
-      case Some(InfluxDb1xParams(database, _, url)) =>
+      case Some(BaseInfluxDb1xParams(database, _, url)) =>
         checkInfluxDb1xParams("WeatherSource", url, database)
       case Some(params: SqlParams) =>
         checkSqlParams(params)
@@ -668,7 +661,7 @@ object ConfigFailFast extends LazyLogging {
     *   [[edu.ie3.datamodel.io.source.IdCoordinateSource]]
     */
   private def checkCoordinateSource(
-      coordinateSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+      coordinateSourceConfig: InputConfig.CoordinateSource
   ): String = {
     val supportedCoordinateSources = Set("csv", "sql", "sample")
     val definedCoordSources = Vector(
@@ -700,9 +693,7 @@ object ConfigFailFast extends LazyLogging {
       case Some(sqlParams: SqlParams) =>
         checkSqlParams(sqlParams)
         "sql"
-      case Some(
-            _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
-          ) =>
+      case Some(_: SampleParams) =>
         "sample"
       case None | Some(_) =>
         throw new InvalidConfigParameterException(
@@ -719,7 +710,7 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkParticipantsOutputConfig(
-      subConfig: SimonaConfig.Simona.Output.Participant
+      subConfig: AssetConfigs[OutputConfig.ParticipantOutputConfig]
   ): Unit = {
 
     (subConfig.defaultConfig :: subConfig.individualConfigs).foreach(c =>
@@ -741,7 +732,7 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkThermalOutputConfig(
-      subConfig: SimonaConfig.Simona.Output.Thermal
+      subConfig: AssetConfigs[OutputConfig.SimpleOutputConfig]
   ): Unit = {
     implicit val elementType: String = "thermal"
     checkDefaultBaseOutputConfig(subConfig.defaultConfig)
@@ -754,7 +745,7 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for log
     */
   private def checkLogOutputConfig(
-      subConfig: SimonaConfig.Simona.Output.Log
+      subConfig: OutputConfig.Log
   ): Unit = {
     val validLogLevels = Seq("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
     if (!validLogLevels.contains(subConfig.level))
@@ -845,7 +836,7 @@ object ConfigFailFast extends LazyLogging {
     *   RuntimeConfig of Storages
     */
   private def checkStoragesConfig(
-      storageRuntimeConfig: ParticipantRuntimeConfigs[StorageRuntimeConfig]
+      storageRuntimeConfig: AssetConfigs[StorageRuntimeConfig]
   ): Unit = {
     if (
       storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
@@ -884,7 +875,7 @@ object ConfigFailFast extends LazyLogging {
     *   String that is meant to denote the default config
     */
   private def checkDefaultBaseOutputConfig(
-      config: SimonaConfig.BaseOutputConfig,
+      config: OutputConfig.BaseOutputConfig,
       defaultString: String = "default",
   )(implicit elementType: String): Unit = {
     if (
@@ -903,7 +894,7 @@ object ConfigFailFast extends LazyLogging {
     *   List of individual config entries
     */
   private def checkIndividualOutputConfigs(
-      configs: List[SimonaConfig.BaseOutputConfig]
+      configs: List[OutputConfig.BaseOutputConfig]
   )(implicit elementType: String): Unit = {
     val duplicateKeys = configs
       .map(config => StringUtils.cleanString(config.notifier).toLowerCase())
@@ -933,7 +924,7 @@ object ConfigFailFast extends LazyLogging {
     configs.foreach(checkBaseOutputConfig)
   }
 
-  /** Check the content of a [[BaseOutputConfig]]
+  /** Check the content of a [[OutputConfig.BaseOutputConfig]]
     *
     * @param config
     *   to be checked
@@ -941,7 +932,7 @@ object ConfigFailFast extends LazyLogging {
     *   a set of all valid identifiers
     */
   private def checkBaseOutputConfig(
-      config: BaseOutputConfig
+      config: OutputConfig.BaseOutputConfig
   )(implicit exceptedNotifiers: Set[NotifierIdentifier.Value]): Unit = {
     checkNotifierIdentifier(config.notifier, exceptedNotifiers)
   }
