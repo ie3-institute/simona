@@ -145,7 +145,7 @@ class HpModelSpec
             false,
             0,
             32.4,
-            Some(HouseTemperatureLowerBoundaryReached(30343)),
+            Some(HouseTemperatureLowerBoundaryReached(30342)),
           ),
           (
             HpState(
