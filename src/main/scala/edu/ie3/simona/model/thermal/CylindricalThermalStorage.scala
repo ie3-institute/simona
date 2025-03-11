@@ -106,14 +106,14 @@ final case class CylindricalThermalStorage(
     val nextThreshold =
       if (qDot > zeroKW) {
         val duration = (maxEnergyThreshold - updatedEnergy) / qDot
-        val durationInTicks = Math.round(duration.toSeconds)
+        val durationInTicks = Math.floor(duration.toSeconds).toLong
         if (durationInTicks <= 0L)
           None
         else
           Some(StorageFull(tick + durationInTicks))
       } else if (qDot < zeroKW) {
         val duration = updatedEnergy / qDot * (-1)
-        val durationInTicks = Math.round(duration.toSeconds)
+        val durationInTicks = Math.floor(duration.toSeconds).toLong
         if (durationInTicks <= 0L)
           None
         else
