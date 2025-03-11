@@ -18,7 +18,7 @@ import edu.ie3.simona.config.GridConfigParser.{
   ConfigRefSystems,
   ConfigVoltageLimits,
 }
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.{SimonaConfig, OutputConfig}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -268,18 +268,22 @@ object SetupHelper {
     *   Set of [[ResultEntity]] classes
     */
   private def allResultEntitiesToWrite(
-      outputConfig: SimonaConfig.Simona.Output
+      outputConfig: OutputConfig
   ): Set[Class[_ <: ResultEntity]] =
     GridOutputConfigUtil(
       outputConfig.grid
     ).simulationResultEntitiesToConsider ++
-      (OutputConfigUtil(
-        outputConfig.participant
-      ).simulationResultIdentifiersToConsider(thermal =
-        false
-      ) ++ OutputConfigUtil(
-        outputConfig.thermal
-      ).simulationResultIdentifiersToConsider(thermal = true))
+      (OutputConfigUtil
+        .participants(
+          outputConfig.participant
+        )
+        .simulationResultIdentifiersToConsider(thermal =
+          false
+        ) ++ OutputConfigUtil
+        .thermal(
+          outputConfig.thermal
+        )
+        .simulationResultIdentifiersToConsider(thermal = true))
         .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
       (if (outputConfig.flex) Seq(classOf[FlexOptionsResult]) else Seq.empty)
 }

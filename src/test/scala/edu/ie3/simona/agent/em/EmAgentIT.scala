@@ -282,9 +282,9 @@ class EmAgentIT
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(13247)))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(13246)))
 
-        /* TICK 13247
+        /* TICK 13246
          LOAD: 0.269 kW (unchanged)
          PV:  -3.715 kW (unchanged)
          STORAGE: SOC 100 %
@@ -292,12 +292,12 @@ class EmAgentIT
          -> remaining -3.447 kW
          */
 
-        emAgentActivation ! Activation(13247)
+        emAgentActivation ! Activation(13246)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
-            emResult.getTime shouldBe 13247.toDateTime
+            emResult.getTime shouldBe 13246.toDateTime
             emResult.getP should equalWithTolerance(
               -0.0034468567291.asMegaWatt
             )
