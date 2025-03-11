@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `PvModel` with its new implementation [#1149](https://github.com/ie3-institute/simona/issues/1149)
 - Replace `WecModel` with its new implementation [#1154](https://github.com/ie3-institute/simona/issues/1154)
 - Replace `StorageModel` with its new implementation [#1153](https://github.com/ie3-institute/simona/issues/1153)
+- Added `Version Check` to GitHub Actions Pipeline [#1067](https://github.com/ie3-institute/simona/issues/1067)
 - Use ValidationUtils for ThermalGrids [#1117](https://github.com/ie3-institute/simona/issues/1117)
 - Replace `EvcsModel` with its new implementation [#1151](https://github.com/ie3-institute/simona/issues/1151)
 - Fix determination of qDotIntoGrid in HpModel.calcState() in case heatStorage should feed the thermal grid [#1165](https://github.com/ie3-institute/simona/issues/1165)
@@ -207,6 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix input data handling in `ParticipantModel` [#1237](https://github.com/ie3-institute/simona/issues/1237)
 - Show full stacktrace of failing tests with `gradle test` [#1245](https://github.com/ie3-institute/simona/issues/1245)
 - Fix copernicus url in readthedocs [#1248](https://github.com/ie3-institute/simona/issues/1248)
+- Check for fully charged Evs when determine next OperationPoint of Evcs [#1253](https://github.com/ie3-institute/simona/issues/1253)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
