@@ -67,6 +67,7 @@ class HpModel private (
         tick,
         startTime,
         Celsius(0d),
+        ThermalFlowWrapper(zeroKW, zeroKW),
         ThermalGridState(
           startingState(thermalGrid).houseState,
           startingState(thermalGrid).storageState,
@@ -388,6 +389,7 @@ object HpModel {
       override val tick: Long,
       dateTime: ZonedDateTime,
       ambientTemperature: Temperature,
+      lastThermalFlows: ThermalFlowWrapper,
       thermalGridState: ThermalGridState,
       lastAmbientTemperature: Temperature,
       thermalDemands: ThermalDemandWrapper,

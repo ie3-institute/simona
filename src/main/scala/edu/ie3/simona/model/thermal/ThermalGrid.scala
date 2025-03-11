@@ -67,7 +67,7 @@ final case class ThermalGrid(
               tick,
               state,
               lastHouseState,
-              lastHouseState.qDot,
+              state.lastThermalFlows.house,
             )
           if (
             updatedHouseState.innerTemperature < thermalHouse.targetTemperature
@@ -95,7 +95,7 @@ final case class ThermalGrid(
           val (updatedStorageState, _) =
             storage.updateState(
               tick,
-              heatStorageState.qDot,
+              state.lastThermalFlows.heatStorage,
               heatStorageState,
             )
           val storedEnergy = updatedStorageState.storedEnergy
@@ -740,6 +740,19 @@ object ThermalGrid {
   final case class ThermalDemandWrapper private (
       houseDemand: ThermalEnergyDemand,
       heatStorageDemand: ThermalEnergyDemand,
+  )
+
+  // FIXME
+  /** Wraps the demand of thermal units (thermal house, thermal storage).
+    *
+    * @param houseDemand
+    *   The demand of the thermal house.
+    * @param heatStorageDemand
+    *   The demand of the thermal heat storage.
+    */
+  final case class ThermalFlowWrapper private (
+      house: Power,
+      heatStorage: Power,
   )
 
   /** Defines the thermal energy demand of a thermal grid. It comprises the
