@@ -19,7 +19,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull,
 }
-import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
 import squants.thermal.Celsius
@@ -31,8 +31,7 @@ import scala.jdk.CollectionConverters._
 class ThermalGridWithHouseAndStorageSpec
     extends UnitSpec
     with ThermalHouseTestData
-    with ThermalStorageTestData
-    with DefaultTestData {
+    with ThermalStorageTestData {
 
   implicit val tempTolerance: Temperature = Kelvin(1e-3)
   implicit val powerTolerance: Power = Watts(1e-3)
@@ -105,7 +104,6 @@ class ThermalGridWithHouseAndStorageSpec
 
         val state = HpState(
           10800, // after three hours
-          defaultSimulationStart,
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
@@ -141,7 +139,6 @@ class ThermalGridWithHouseAndStorageSpec
 
         val state = HpState(
           10800, // after three hours
-          defaultSimulationStart,
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
@@ -182,7 +179,6 @@ class ThermalGridWithHouseAndStorageSpec
 
         val state = HpState(
           0,
-          defaultSimulationStart,
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
@@ -223,7 +219,6 @@ class ThermalGridWithHouseAndStorageSpec
         )
         val state = HpState(
           0,
-          defaultSimulationStart,
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
@@ -265,7 +260,6 @@ class ThermalGridWithHouseAndStorageSpec
       val zeroInflux = zeroKW
       val state = HpState(
         3600,
-        defaultSimulationStart,
         testGridAmbientTemperature,
         initialGridState,
         testGridAmbientTemperature,
@@ -437,7 +431,6 @@ class ThermalGridWithHouseAndStorageSpec
         )
         val state = HpState(
           3600,
-          defaultSimulationStart,
           Celsius(12),
           gridState,
           Celsius(14),
@@ -522,7 +515,6 @@ class ThermalGridWithHouseAndStorageSpec
         )
         val state = HpState(
           0,
-          defaultSimulationStart,
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
@@ -579,7 +571,6 @@ class ThermalGridWithHouseAndStorageSpec
         )
         val state = HpState(
           0,
-          defaultSimulationStart,
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,

@@ -61,13 +61,11 @@ class HpModel private (
     ]
     with LazyLogging {
 
-  override val initialState: (Long, ZonedDateTime) => HpState = {
-    (tick, startTime) =>
-      val preHpState = HpState(
-        tick,
-        startTime,
-        Celsius(0d),
-        ThermalFlowWrapper(zeroKW, zeroKW),
+  override val initialState: (Long, ZonedDateTime) => HpState = { (tick, _) =>
+    val preHpState = HpState(
+      tick,
+      Celsius(0d),
+      ThermalFlowWrapper(zeroKW, zeroKW),
         ThermalGridState(
           startingState(thermalGrid).houseState,
           startingState(thermalGrid).storageState,
@@ -79,10 +77,10 @@ class HpModel private (
         ),
       )
 
-      val (thermalDemands, _) =
-        thermalGrid.energyDemandAndUpdatedState(tick, preHpState)
+    val (thermalDemands, _) =
+      thermalGrid.energyDemandAndUpdatedState(tick, preHpState)
 
-      preHpState.copy(thermalDemands = thermalDemands)
+    preHpState.copy(thermalDemands = thermalDemands)
   }
 
   override def determineState(
@@ -382,7 +380,6 @@ object HpModel {
     */
   final case class HpState(
       override val tick: Long,
-      dateTime: ZonedDateTime,
       ambientTemperature: Temperature,
       lastThermalFlows: ThermalFlowWrapper,
       thermalGridState: ThermalGridState,

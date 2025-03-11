@@ -85,7 +85,6 @@ class ThermalGridWithStorageOnlySpec
       "deliver the capabilities of the storage" in {
         val state = HpState(
           10800, // after three hours
-          defaultSimulationStart,
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
@@ -115,7 +114,6 @@ class ThermalGridWithStorageOnlySpec
         )
         val state = HpState(
           10800, // after three hours
-          defaultSimulationStart,
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
@@ -157,7 +155,6 @@ class ThermalGridWithStorageOnlySpec
           )
         val state = HpState(
           0,
-          defaultSimulationStart,
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
@@ -194,7 +191,6 @@ class ThermalGridWithStorageOnlySpec
       "properly put energy to storage" in {
         val state = HpState(
           0,
-          defaultSimulationStart,
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
@@ -236,7 +232,6 @@ class ThermalGridWithStorageOnlySpec
           )
         val state = HpState(
           0,
-          defaultSimulationStart,
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
@@ -271,7 +266,6 @@ class ThermalGridWithStorageOnlySpec
       "deliver proper result, if energy is fed into the grid" in {
         val state = HpState(
           0,
-          defaultSimulationStart,
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
@@ -308,7 +302,6 @@ class ThermalGridWithStorageOnlySpec
         )
         val state = HpState(
           0,
-          defaultSimulationStart,
           testGridAmbientTemperature,
           gridState,
           testGridAmbientTemperature,
@@ -340,7 +333,6 @@ class ThermalGridWithStorageOnlySpec
       "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
         val state = HpState(
           0,
-          defaultSimulationStart,
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
