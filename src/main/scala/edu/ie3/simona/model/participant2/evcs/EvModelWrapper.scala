@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.evcs
+package edu.ie3.simona.model.participant2.evcs
 
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.util.quantities.PowerSystemUnits._

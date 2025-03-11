@@ -42,8 +42,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 }
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
-import edu.ie3.simona.util.TickUtil
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.DoubleUtils.ImplicitDouble
 import edu.ie3.util.interval.ClosedInterval
 import tech.units.indriya.ComparableQuantity
@@ -52,7 +51,11 @@ import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.{
+  CollectionHasAsScala,
+  IterableHasAsJava,
+  MapHasAsScala,
+}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -193,8 +196,20 @@ private[weather] final case class WeatherSourceWrapper private (
   override def getDataTicks(
       requestFrameStart: Long,
       requestFrameEnd: Long,
-  ): Array[Long] =
-    TickUtil.getTicksInBetween(requestFrameStart, requestFrameEnd, resolution)
+  ): Array[Long] = {
+    // Note: because we want data for the start tick as well, we need to use any tick before the start tick
+    val intervalStart = requestFrameStart.toDateTime.minusSeconds(1)
+
+    source
+      .getTimeKeysAfter(intervalStart)
+      .asScala
+      .flatMap { case (_, timeKeys) =>
+        timeKeys.asScala
+      }
+      .map(_.toTick)
+      .filter(_ <= requestFrameEnd)
+      .toArray
+  }
 }
 
 private[weather] object WeatherSourceWrapper extends LazyLogging {
