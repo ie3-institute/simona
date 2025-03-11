@@ -150,7 +150,8 @@ object ConfigParams {
       override val userName: String,
   ) extends SqlParams
 
-  /** Time stamped sql parameters.
+  /** Time stamped sql parameters. The table name is not used with this,
+    * therefore, it is empty.
     * @param jdbcUrl
     *   To the database.
     * @param password
