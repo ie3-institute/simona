@@ -217,21 +217,21 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(3417)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(3416)))
 
-      /* TICK 3417
+      /* TICK 3416
       Storage is fully heated up
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 17.37 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on since it was on and the house has possible demand
        */
 
-      heatPumpAgent ! Activation(3417)
+      heatPumpAgent ! Activation(3416)
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-          hpResult.getTime shouldBe 3417.toDateTime
+          hpResult.getTime shouldBe 3416.toDateTime
           hpResult.getP should equalWithTolerance(pRunningHp)
           hpResult.getQ should equalWithTolerance(
             qRunningHp
@@ -251,10 +251,10 @@ class ThermalGridIT
                   indoorTemperature,
                 ) =>
               inputModel shouldBe typicalThermalHouse.getUuid
-              time shouldBe 3417.toDateTime
+              time shouldBe 3416.toDateTime
               qDot should equalWithTolerance(0.011.asMegaWatt)
               indoorTemperature should equalWithTolerance(
-                19.6835196903292.asDegreeCelsius
+                19.683612282578906.asDegreeCelsius
               )
 
             case CylindricalThermalStorageResult(
@@ -264,7 +264,7 @@ class ThermalGridIT
                   energy,
                 ) =>
               inputModel shouldBe typicalThermalStorage.getUuid
-              time shouldBe 3417.toDateTime
+              time shouldBe 3416.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
               energy should equalWithTolerance(0.01044.asMegaWattHour)
             case _ =>
@@ -325,7 +325,7 @@ class ThermalGridIT
               time shouldBe 7200.toDateTime
               qDot should equalWithTolerance(0.011.asMegaWatt)
               indoorTemperature should equalWithTolerance(
-                20.8788983755569.asDegreeCelsius
+                20.8793056571075.asDegreeCelsius
               )
             case CylindricalThermalStorageResult(
                   time,
