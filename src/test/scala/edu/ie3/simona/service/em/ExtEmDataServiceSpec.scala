@@ -273,8 +273,7 @@ class ExtEmDataServiceSpec
             Kilowatts(0),
             Kilowatts(10),
           ),
-          None,
-          Some(emAgent1.ref.toTyped),
+          Left(emAgent1UUID),
         ),
       )
 

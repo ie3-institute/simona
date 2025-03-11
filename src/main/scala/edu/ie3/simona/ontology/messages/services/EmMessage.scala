@@ -13,6 +13,8 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.DataResponseMessage
 import org.apache.pekko.actor.typed.ActorRef
 
+import java.util.UUID
+
 sealed trait EmMessage
 
 object EmMessage {
@@ -21,8 +23,7 @@ object EmMessage {
 
   final case class WrappedFlexResponse(
       flexResponse: FlexResponse,
-      receiver: Option[ActorRef[FlexResponse]],
-      self: Option[ActorRef[FlexResponse]] = None,
+      receiver: Either[UUID, ActorRef[FlexResponse]],
   ) extends EmResponseMessage
 
   final case class WrappedFlexRequest(

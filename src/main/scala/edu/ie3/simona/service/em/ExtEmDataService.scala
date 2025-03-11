@@ -14,11 +14,7 @@ import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.api.data.em.{ExtEmDataConnection, NoSetPointValue}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.{
-  CriticalFailureException,
-  InitializationException,
-  ServiceException,
-}
+import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EmMessage.{
@@ -77,15 +73,14 @@ object ExtEmDataService {
   def emServiceResponseAdapter(
       emService: ClassicRef,
       receiver: Option[ActorRef[FlexResponse]],
-      self: ActorRef[FlexResponse],
+      self: UUID,
   )(implicit ctx: TypedContext[EmAgent.Request]): ActorRef[FlexResponse] = {
 
     val request = Behaviors.receiveMessagePartial[FlexResponse] {
       case response: FlexResponse =>
         emService ! WrappedFlexResponse(
           response,
-          receiver,
-          Some(self),
+          receiver.map(Right(_)).getOrElse(Left(self)),
         )
 
         Behaviors.same
@@ -421,15 +416,13 @@ final case class ExtEmDataService(
     case WrappedFlexResponse(
           provideFlexOptions: ProvideFlexOptions,
           receiver,
-          self,
         ) =>
-      val ref = receiver.getOrElse(
-        self.getOrElse(
-          throw new CriticalFailureException("No receiver defined!")
-        )
-      )
-
-      val uuid = serviceStateData.emHierarchy.getUuid(ref)
+      val uuid = receiver match {
+        case Right(otherRef) =>
+          serviceStateData.emHierarchy.getUuid(otherRef)
+        case Left(self: UUID) =>
+          self
+      }
 
       val updated = provideFlexOptions match {
         case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>

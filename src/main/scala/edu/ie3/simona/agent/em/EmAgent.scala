@@ -138,7 +138,7 @@ object EmAgent {
           ExtEmDataService.emServiceResponseAdapter(
             service,
             parentOption,
-            ctx.self,
+            inputModel.getUuid,
           )(ctx)
 
         Right(FlexControlledData(serviceResponseAdapter, flexAdapter))

@@ -124,7 +124,7 @@ class EmAgentWithServiceSpec
       service.expectMessage(
         WrappedFlexResponse(
           ScheduleFlexActivation(emInput.getUuid, INIT_SIM_TICK),
-          Some(parentEmAgent.ref),
+          Right(parentEmAgent.ref),
         )
       )
 
@@ -164,7 +164,7 @@ class EmAgentWithServiceSpec
             modelUuid = emInput.getUuid,
             requestAtTick = Some(0),
           ),
-          Some(parentEmAgent.ref),
+          Right(parentEmAgent.ref),
         )
       )
 
@@ -210,15 +210,14 @@ class EmAgentWithServiceSpec
                 minPower,
                 maxPower,
               ),
-              receiver,
-              _,
+              Right(receiver),
             ) =>
           modelUuid shouldBe emInput.getUuid
           referencePower shouldBe Kilowatts(0)
           minPower shouldBe Kilowatts(-16)
           maxPower shouldBe Kilowatts(6) // hint: PV is not flexible
 
-          receiver shouldBe Some(parentEmAgent.ref)
+          receiver shouldBe parentEmAgent.ref
       }
 
       // issue power control and expect EmAgent to distribute it
@@ -263,12 +262,15 @@ class EmAgentWithServiceSpec
       }
 
       service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver, _) =>
+        case WrappedFlexResponse(
+              FlexResult(modelUuid, result),
+              Right(receiver),
+            ) =>
           modelUuid shouldBe emInput.getUuid
           result.p should approximate(Kilowatts(6))
           result.q should approximate(Kilovars(.6))
 
-          receiver shouldBe Some(parentEmAgent.ref)
+          receiver shouldBe parentEmAgent.ref
       }
 
       service.expectMessage(
@@ -277,7 +279,7 @@ class EmAgentWithServiceSpec
             modelUuid = emInput.getUuid,
             requestAtTick = Some(300),
           ),
-          Some(parentEmAgent.ref),
+          Right(parentEmAgent.ref),
         )
       )
 
@@ -318,12 +320,15 @@ class EmAgentWithServiceSpec
       }
 
       service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver, _) =>
+        case WrappedFlexResponse(
+              FlexResult(modelUuid, result),
+              Right(receiver),
+            ) =>
           modelUuid shouldBe emInput.getUuid
           result.p should approximate(Kilowatts(0))
           result.q should approximate(Kilovars(0))
 
-          receiver shouldBe Some(parentEmAgent.ref)
+          receiver shouldBe parentEmAgent.ref
       }
       service.expectMessage(
         WrappedFlexResponse(
@@ -331,7 +336,7 @@ class EmAgentWithServiceSpec
             modelUuid = emInput.getUuid,
             requestAtTick = Some(600),
           ),
-          Some(parentEmAgent.ref),
+          Right(parentEmAgent.ref),
         )
       )
 
@@ -419,7 +424,7 @@ class EmAgentWithServiceSpec
       service.expectMessage(
         WrappedFlexResponse(
           ScheduleFlexActivation(updatedEmInput.getUuid, INIT_SIM_TICK),
-          Some(parentEmAgent),
+          Right(parentEmAgent),
         )
       )
 
@@ -431,7 +436,7 @@ class EmAgentWithServiceSpec
       service.expectMessage(
         WrappedFlexResponse(
           ScheduleFlexActivation(parentEmInput.getUuid, INIT_SIM_TICK),
-          None,
+          Left(parentEmInput.getUuid),
         )
       )
 
@@ -480,7 +485,7 @@ class EmAgentWithServiceSpec
             modelUuid = updatedEmInput.getUuid,
             requestAtTick = Some(0),
           ),
-          Some(parentEmAgent),
+          Right(parentEmAgent),
         )
       )
 
@@ -495,7 +500,7 @@ class EmAgentWithServiceSpec
             modelUuid = parentEmInput.getUuid,
             requestAtTick = Some(0),
           ),
-          None,
+          Left(parentEmInput.getUuid),
         )
       )
 
@@ -550,15 +555,14 @@ class EmAgentWithServiceSpec
                 minPower,
                 maxPower,
               ),
-              receiver,
-              _,
+              Right(receiver),
             ) =>
           modelUuid shouldBe updatedEmInput.getUuid
           referencePower shouldBe Kilowatts(0)
           minPower shouldBe Kilowatts(-16)
           maxPower shouldBe Kilowatts(6) // hint: PV is not flexible
 
-          receiver shouldBe Some(parentEmAgent)
+          receiver shouldBe parentEmAgent
       }
 
       parentEmAgent ! ProvideMinMaxFlexOptions(
@@ -576,15 +580,14 @@ class EmAgentWithServiceSpec
                 minPower,
                 maxPower,
               ),
-              receiver,
-              _,
+              Left(self),
             ) =>
           modelUuid shouldBe parentEmInput.getUuid
           referencePower shouldBe Kilowatts(0)
           minPower shouldBe Kilowatts(-16)
           maxPower shouldBe Kilowatts(6) // hint: PV is not flexible
 
-          receiver shouldBe None
+          self shouldBe parentEmInput.getUuid
       }
 
       parentEmAgentFlex ! IssuePowerControl(0, Kilowatts(6))
@@ -645,12 +648,15 @@ class EmAgentWithServiceSpec
       }
 
       service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver, _) =>
+        case WrappedFlexResponse(
+              FlexResult(modelUuid, result),
+              Right(receiver),
+            ) =>
           modelUuid shouldBe updatedEmInput.getUuid
           result.p should approximate(Kilowatts(6))
           result.q should approximate(Kilovars(.6))
 
-          receiver shouldBe Some(parentEmAgent)
+          receiver shouldBe parentEmAgent
       }
 
       parentEmAgent ! FlexResult(
@@ -667,7 +673,7 @@ class EmAgentWithServiceSpec
             modelUuid = updatedEmInput.getUuid,
             requestAtTick = Some(300),
           ),
-          Some(parentEmAgent),
+          Right(parentEmAgent),
         )
       )
 
@@ -713,12 +719,15 @@ class EmAgentWithServiceSpec
       }
 
       service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(FlexResult(modelUuid, result), receiver, _) =>
+        case WrappedFlexResponse(
+              FlexResult(modelUuid, result),
+              Right(receiver),
+            ) =>
           modelUuid shouldBe updatedEmInput.getUuid
           result.p should approximate(Kilowatts(0))
           result.q should approximate(Kilovars(0))
 
-          receiver shouldBe Some(parentEmAgent)
+          receiver shouldBe parentEmAgent
       }
 
       parentEmAgent ! FlexResult(
@@ -732,7 +741,7 @@ class EmAgentWithServiceSpec
             modelUuid = updatedEmInput.getUuid,
             requestAtTick = Some(600),
           ),
-          Some(parentEmAgent),
+          Right(parentEmAgent),
         )
       )
     }
