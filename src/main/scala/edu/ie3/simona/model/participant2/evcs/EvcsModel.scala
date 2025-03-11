@@ -120,7 +120,7 @@ class EvcsModel private (
       state: EvcsState
   ): (EvcsOperatingPoint, Option[Long]) = {
     // applicable evs can be charged, other evs cannot
-    // since V2G only applies when Em-controlled we don't have to consider discharging
+    // since V2G only applies when Em-controlled we don't have to consider empty batteries
     val applicableEvs = state.evs.filter { ev =>
       !isFull(ev)
     }

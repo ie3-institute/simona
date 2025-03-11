@@ -200,9 +200,9 @@ final case class ParticipantModelShell[
       val (modelOp, modelNextTick) =
         model.determineOperatingPoint(currentState)
       // Sanity check
-      if (modelNextTick.contains(tick))
+      if (modelNextTick.exists(_ <= tick))
         throw new CriticalFailureException(
-          s"Next tick ($modelNextTick) is same as the current tick ($tick)."
+          s"Next tick ($modelNextTick) is same as or earlier than the current tick ($tick)."
         )
 
       val modelIndicator =
@@ -336,9 +336,9 @@ final case class ParticipantModelShell[
       determineOperatingPoint(modelOperatingPoint, currentTick)
 
     // Sanity check
-    if (newChangeIndicator.changesAtTick.contains(currentTick))
+    if (newChangeIndicator.changesAtTick.exists(_ <= currentTick))
       throw new CriticalFailureException(
-        s"Next tick (${newChangeIndicator.changesAtTick}) is same as the current tick ($currentTick)."
+        s"Next tick (${newChangeIndicator.changesAtTick}) is same as or earlier than the current tick ($currentTick)."
       )
 
     copy(

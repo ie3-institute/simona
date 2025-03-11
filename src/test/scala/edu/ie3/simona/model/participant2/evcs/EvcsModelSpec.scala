@@ -116,15 +116,7 @@ class EvcsModelSpec
         val evcsModel = createModel("maxPower")
 
         val evModel = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "Test EV",
-            5.0.asKiloWatt,
-            10.0.asKiloWatt,
-            20.0.asKiloWattHour,
-            20.0.asKiloWattHour,
-            3600,
-          )
+          ev1.copyWith(10.0.asKiloWattHour)
         )
 
         val (operatingPoint, nextEvent) = evcsModel.determineOperatingPoint(
