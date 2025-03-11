@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, ActorSystem, PoisonPill}
-import org.apache.pekko.testkit.{TestActorRef, TestProbe}
-import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
@@ -18,14 +14,12 @@ import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{SValue, Value}
 import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
-import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
+import edu.ie3.simona.config.ConfigParams.{
   CouchbaseParams,
-  InfluxDb1xParams,
+  TimeStampedCsvParams,
+  TimeStampedInfluxDb1xParams,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
-  Primary => PrimaryConfig
-}
+import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
 import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException,
@@ -53,6 +47,10 @@ import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, ActorSystem, PoisonPill}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import org.scalatest.PartialFunctionValues
 import org.scalatest.prop.TableDrivenPropertyChecks
 
@@ -93,7 +91,7 @@ class PrimaryServiceProxySpec
     PrimaryConfig(
       None,
       Some(
-        PrimaryDataCsvParams(
+        TimeStampedCsvParams(
           csvSep,
           baseDirectoryPath.toString,
           isHierarchic = false,
@@ -133,7 +131,7 @@ class PrimaryServiceProxySpec
     "lead to complaining about too much source definitions" in {
       val maliciousConfig = PrimaryConfig(
         Some(CouchbaseParams("", "", "", "", "", "", "")),
-        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "")),
+        Some(TimeStampedCsvParams("", "", isHierarchic = false, "")),
         None,
         None,
       )
@@ -175,7 +173,7 @@ class PrimaryServiceProxySpec
     "let csv parameters pass for mapping configuration" in {
       val mappingConfig = PrimaryConfig(
         None,
-        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "")),
+        Some(TimeStampedCsvParams("", "", isHierarchic = false, "")),
         None,
         None,
       )
@@ -189,20 +187,20 @@ class PrimaryServiceProxySpec
       val maliciousConfig = PrimaryConfig(
         None,
         None,
-        Some(InfluxDb1xParams("", 0, "", "")),
+        Some(TimeStampedInfluxDb1xParams("", 0, "", "")),
         None,
       )
 
       val exception = intercept[InvalidConfigParameterException](
         PrimaryServiceProxy.checkConfig(maliciousConfig)
       )
-      exception.getMessage shouldBe "Invalid configuration 'InfluxDb1xParams(,0,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
+      exception.getMessage shouldBe "Invalid configuration 'TimeStampedInfluxDb1xParams(,0,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
     }
 
     "fails on invalid time pattern with csv" in {
       val invalidTimePatternConfig = PrimaryConfig(
         None,
-        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "xYz")),
+        Some(TimeStampedCsvParams("", "", isHierarchic = false, "xYz")),
         None,
         None,
       )
@@ -218,7 +216,7 @@ class PrimaryServiceProxySpec
       val validTimePatternConfig = PrimaryConfig(
         None,
         Some(
-          PrimaryDataCsvParams(
+          TimeStampedCsvParams(
             "",
             "",
             isHierarchic = false,
@@ -273,7 +271,7 @@ class PrimaryServiceProxySpec
       val maliciousConfig = PrimaryConfig(
         None,
         None,
-        Some(InfluxDb1xParams("", -1, "", "")),
+        Some(TimeStampedInfluxDb1xParams("", -1, "", "")),
         None,
       )
 
@@ -285,7 +283,7 @@ class PrimaryServiceProxySpec
           fail("Building state data with missing config should fail")
         case Failure(exception) =>
           exception.getClass shouldBe classOf[IllegalArgumentException]
-          exception.getMessage shouldBe "Unsupported config for mapping source: 'InfluxDb1xParams(,-1,,)'"
+          exception.getMessage shouldBe "Unsupported config for mapping source: 'TimeStampedInfluxDb1xParams(,-1,,)'"
       }
     }
 
