@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant2
 
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
@@ -177,7 +178,7 @@ abstract class ParticipantModel[
       currentOperatingPoint: OP,
       complexPower: ComplexPower,
       dateTime: ZonedDateTime,
-  ): Iterable[SystemParticipantResult]
+  ): Iterable[ResultEntity]
 
   def createPrimaryDataResult(
       data: PrimaryDataWithComplexPower[_],

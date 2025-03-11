@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   FlexOptionsResult,
   SystemParticipantResult,
@@ -471,7 +472,7 @@ object ParticipantModelShell {
     */
   final case class ResultsContainer(
       totalPower: ComplexPower,
-      modelResults: Iterable[SystemParticipantResult],
+      modelResults: Iterable[ResultEntity],
   )
 
   /** Creates a model shell receiving primary data using the given participant

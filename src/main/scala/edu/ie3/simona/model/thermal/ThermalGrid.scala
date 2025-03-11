@@ -23,7 +23,6 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.{KilowattHours, Kilowatts}
@@ -621,29 +620,30 @@ final case class ThermalGrid(
   /** Convert the given state of the thermal grid into result models of its
     * constituent models.
     *
-    * @param currentTick
-    *   Actual simulation tick.
-    * @param thermalGridState
-    *   State to be converted.
+    * @param state
+    *   FIXME
     * @param startDateTime
     *   Start date time of the simulation.
     * @return
     *   A [[Seq]] of results of the constituent thermal model.
     */
-  def results(currentTick: Long, thermalGridState: ThermalGridState)(implicit
-      startDateTime: ZonedDateTime
+  def results(
+      state: HpState,
+      dateTime: ZonedDateTime,
   ): Seq[ResultEntity] = {
 
     val maybeHouseResult = house
-      .zip(thermalGridState.houseState)
-      .filter { case (_, state) => state.tick == currentTick }
+      .zip(state.thermalGridState.houseState)
+      .filter { case (_, thermalGridState) =>
+        thermalGridState.tick == state.tick
+      }
       .map {
         case (
               thermalHouse,
-              ThermalHouseState(tick, innerTemperature, thermalInfeed),
+              ThermalHouseState(_, innerTemperature, thermalInfeed),
             ) =>
           new ThermalHouseResult(
-            tick.toDateTime,
+            dateTime,
             thermalHouse.uuid,
             thermalInfeed.toMegawatts.asMegaWatt,
             innerTemperature.toKelvinScale.asKelvin,
@@ -651,15 +651,17 @@ final case class ThermalGrid(
       }
 
     val maybeStorageResult = heatStorage
-      .zip(thermalGridState.storageState)
-      .filter { case (_, state) => state.tick == currentTick }
+      .zip(state.thermalGridState.storageState)
+      .filter { case (_, thermalGridState) =>
+        thermalGridState.tick == state.tick
+      }
       .map {
         case (
               storage: CylindricalThermalStorage,
-              ThermalStorageState(tick, storedEnergy, qDot),
+              ThermalStorageState(_, storedEnergy, qDot),
             ) =>
           new CylindricalStorageResult(
-            tick.toDateTime,
+            dateTime,
             storage.uuid,
             storedEnergy.toMegawattHours.asMegaWattHour,
             qDot.toMegawatts.asMegaWatt,

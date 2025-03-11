@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant2
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.container.{ThermalGrid => PsdmThermalGrid}
 import edu.ie3.datamodel.models.input.system.HpInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   HpResult,
   SystemParticipantResult,
@@ -19,7 +20,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPowerAndHeat,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.HpModel.HpState
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -27,12 +27,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperationChangeIndicator,
 }
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalDemandWrapper,
-  ThermalEnergyDemand,
-  ThermalGridState,
-  startingState,
-}
+import edu.ie3.simona.model.thermal.ThermalGrid._
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -277,7 +272,7 @@ class HpModel private (
       currentOperatingPoint: ActivePowerAndHeatOperatingPoint,
       complexPower: ComplexPower,
       dateTime: ZonedDateTime,
-  ): Iterable[SystemParticipantResult] =
+  ): Iterable[ResultEntity] = {
     Iterable(
       new HpResult(
         dateTime,
@@ -293,7 +288,8 @@ class HpModel private (
           .toMegawatts
           .asMegaWatt,
       )
-    )
+    ) ++ thermalGrid.results(state, dateTime)
+  }
 
   override def createPrimaryDataResult(
       data: PrimaryDataWithComplexPower[_],
