@@ -113,7 +113,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "deliver the house state by just letting it cool down, if just no infeed is given" in {
         val state = HpState(
           0,
-          defaultSimulationStart,
           testGridAmbientTemperature,
           initialGridState,
           testGridAmbientTemperature,
