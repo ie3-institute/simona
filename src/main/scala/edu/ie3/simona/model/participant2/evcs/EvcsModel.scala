@@ -20,6 +20,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant2.HpModel.ThermalOpWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
@@ -580,7 +581,7 @@ object EvcsModel {
       evOperatingPoints.values.reduceOption(_ + _).getOrElse(zeroKW)
 
     override val reactivePower: Option[ReactivePower] = None
-    override val qDot: Option[Power] = None
+    override val thermalOps: Option[ThermalOpWrapper] = None
   }
 
   object EvcsOperatingPoint {

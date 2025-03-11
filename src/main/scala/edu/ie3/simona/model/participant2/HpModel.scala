@@ -21,14 +21,18 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant2.HpModel.HpState
+import edu.ie3.simona.model.participant2.HpModel.{
+  HpOperatingPoint,
+  HpState,
+  ThermalOpWrapper,
+}
 import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ActivePowerAndHeatOperatingPoint,
   ModelState,
+  OperatingPoint,
   OperationChangeIndicator,
 }
+import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.model.thermal.ThermalGrid._
-import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
@@ -56,7 +60,7 @@ class HpModel private (
     private val pThermal: Power,
     private val thermalGrid: ThermalGrid,
 ) extends ParticipantModel[
-      ActivePowerAndHeatOperatingPoint,
+      HpOperatingPoint,
       HpState,
     ]
     with LazyLogging {
@@ -77,6 +81,8 @@ class HpModel private (
         ),
       )
 
+    val preOperatingPoint = HpOperatingPoint(zeroKW, None)
+
     val (thermalDemands, _) =
       thermalGrid.energyDemandAndUpdatedState(tick, preHpState)
 
@@ -85,7 +91,7 @@ class HpModel private (
 
   override def determineState(
       state: HpState,
-      operatingPoint: ActivePowerAndHeatOperatingPoint,
+      operatingPoint: HpOperatingPoint,
       tick: Long,
       simulationTime: ZonedDateTime,
   ): HpState = {
@@ -144,8 +150,8 @@ class HpModel private (
     )
   }
 
-  override def zeroPowerOperatingPoint: ActivePowerAndHeatOperatingPoint =
-    ActivePowerAndHeatOperatingPoint.zero
+  override def zeroPowerOperatingPoint: HpOperatingPoint =
+    HpOperatingPoint.zero
 
   /** Depending on the input, this function decides whether the heat pump will
     * run in the next state or not. The heat pump is foreseen to operate in the
@@ -262,8 +268,8 @@ class HpModel private (
 
   override def createResults(
       state: HpState,
-      lastOperatingPoint: Option[ActivePowerAndHeatOperatingPoint],
-      currentOperatingPoint: ActivePowerAndHeatOperatingPoint,
+      lastOperatingPoint: Option[HpOperatingPoint],
+      currentOperatingPoint: HpOperatingPoint,
       complexPower: ComplexPower,
       dateTime: ZonedDateTime,
   ): Iterable[ResultEntity] = {
@@ -273,7 +279,8 @@ class HpModel private (
         uuid,
         complexPower.p.toMegawatts.asMegaWatt,
         complexPower.q.toMegavars.asMegaVar,
-        currentOperatingPoint.qDot
+        currentOperatingPoint.thermalOps
+          .map(_.qDotHp)
           .getOrElse(
             throw new RuntimeException(
               s"currentOperatingPoint $currentOperatingPoint does not contain heat value but one is expected."
@@ -314,7 +321,7 @@ class HpModel private (
 
   override def determineOperatingPoint(
       state: HpState
-  ): (ActivePowerAndHeatOperatingPoint, Option[Long]) = {
+  ): (HpOperatingPoint, Option[Long]) = {
 
     val (newActivePowerHp, qDotIntoGrid) = nextOperatingPoint(state, None)
 
@@ -323,7 +330,16 @@ class HpModel private (
       pushQDotIntoThermalGrid(state, newActivePowerHp, qDotIntoGrid)
 
     val operatingPoint =
-      ActivePowerAndHeatOperatingPoint(newActivePowerHp, Some(pThermal))
+      HpOperatingPoint(
+        newActivePowerHp,
+        Some(
+          ThermalOpWrapper(
+            qDotIntoGrid,
+            updateState.houseState.map(_.qDot).getOrElse(zeroKW),
+            updateState.storageState.map(_.qDot).getOrElse(zeroKW),
+          )
+        ),
+      )
 
     val nextTick = maybeThreshold match {
       case Some(threshold) => Some(threshold.tick)
@@ -336,7 +352,7 @@ class HpModel private (
   override def determineOperatingPoint(
       state: HpState,
       setPower: Power,
-  ): (ActivePowerAndHeatOperatingPoint, OperationChangeIndicator) = {
+  ): (HpOperatingPoint, OperationChangeIndicator) = {
 
     val (newActivePowerHp, qDotIntoGrid) =
       nextOperatingPoint(state, Some(setPower))
@@ -346,7 +362,16 @@ class HpModel private (
       pushQDotIntoThermalGrid(state, newActivePowerHp, qDotIntoGrid)
 
     val operatingPoint =
-      ActivePowerAndHeatOperatingPoint(newActivePowerHp, Some(pThermal))
+      HpOperatingPoint(
+        newActivePowerHp,
+        Some(
+          ThermalOpWrapper(
+            qDotIntoGrid,
+            updateState.houseState.map(_.qDot).getOrElse(zeroKW),
+            updateState.storageState.map(_.qDot).getOrElse(zeroKW),
+          )
+        ),
+      )
 
     val nextTick = maybeThreshold match {
       case Some(threshold) => Some(threshold.tick)
@@ -364,6 +389,32 @@ class HpModel private (
 }
 
 object HpModel {
+
+  final case class HpOperatingPoint(
+      override val activePower: Power,
+      override val thermalOps: Option[ThermalOpWrapper],
+  ) extends OperatingPoint {
+    override val reactivePower: Option[ReactivePower] = None
+  }
+
+  object HpOperatingPoint {
+    def zero: HpOperatingPoint =
+      HpOperatingPoint(zeroKW, None)
+  }
+
+  // FIXME
+  /** Wraps the demand of thermal units (thermal house, thermal storage).
+    *
+    * @param houseDemand
+    *   The demand of the thermal house.
+    * @param heatStorageDemand
+    *   The demand of the thermal heat storage.
+    */
+  final case class ThermalOpWrapper private (
+      qDotHp: Power,
+      qDotHouse: Power,
+      qDotHeatStorage: Power,
+  )
 
   /** Holds all relevant data for a hp model calculation.
     *

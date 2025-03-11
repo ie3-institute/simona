@@ -19,6 +19,7 @@ import edu.ie3.simona.agent.participant.data.Data.{
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant2.HpModel.ThermalOpWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
@@ -177,7 +178,7 @@ object PrimaryDataParticipantModel {
   ](override val data: PD)
       extends PrimaryOperatingPoint[PD] {
     override val reactivePower: Option[ReactivePower] = Some(data.q)
-    override val qDot: Option[Power] = None
+    override val thermalOps: Option[ThermalOpWrapper] = None
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
@@ -186,7 +187,7 @@ object PrimaryDataParticipantModel {
       override val data: PE
   ) extends PrimaryOperatingPoint[PE] {
     override val reactivePower: Option[ReactivePower] = None
-    override val qDot: Option[Power] = None
+    override val thermalOps: Option[ThermalOpWrapper] = None
   }
 
   /** Trait that provides functionality that can create the same result objects

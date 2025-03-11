@@ -15,7 +15,7 @@ import edu.ie3.datamodel.models.result.thermal.{
 }
 import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.model.participant2.HpModel.HpState
+import edu.ie3.simona.model.participant2.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalEnergyDemand,
@@ -57,7 +57,16 @@ final case class ThermalGrid(
   def energyDemandAndUpdatedState(
       tick: Long,
       state: HpState,
+      operatingPoint: HpOperatingPoint,
   ): (ThermalDemandWrapper, ThermalGridState) = {
+
+    val (_, lastHouseQDot, lastHeatStorageQDot) =
+      operatingPoint.thermalOps match {
+        case Some(thermalOp) =>
+          (thermalOp.qDotHp, thermalOp.qDotHouse, thermalOp.qDotHeatStorage)
+        case None => (zeroKW, zeroKW, zeroKW)
+      }
+
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
     val (houseDemand, updatedHouseState) =
       house.zip(state.thermalGridState.houseState) match {

@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant2.HpModel.ThermalOpWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
@@ -222,29 +223,17 @@ object ParticipantModel {
       * the active-to-reactive-power function is used.
       */
     val reactivePower: Option[ReactivePower]
-    val qDot: Option[Power]
+    val thermalOps: Option[ThermalOpWrapper]
   }
 
   final case class ActivePowerOperatingPoint(override val activePower: Power)
       extends OperatingPoint {
     override val reactivePower: Option[ReactivePower] = None
-    override val qDot: Option[Power] = None
+    override val thermalOps: Option[ThermalOpWrapper] = None
   }
 
   object ActivePowerOperatingPoint {
     def zero: ActivePowerOperatingPoint = ActivePowerOperatingPoint(zeroKW)
-  }
-
-  final case class ActivePowerAndHeatOperatingPoint(
-      override val activePower: Power,
-      override val qDot: Option[Power],
-  ) extends OperatingPoint {
-    override val reactivePower: Option[ReactivePower] = None
-  }
-
-  object ActivePowerAndHeatOperatingPoint {
-    def zero: ActivePowerAndHeatOperatingPoint =
-      ActivePowerAndHeatOperatingPoint(zeroKW, Some(zeroKW))
   }
 
   trait ModelState {

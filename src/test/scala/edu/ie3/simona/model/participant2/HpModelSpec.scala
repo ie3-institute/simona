@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.model.participant2
 
-import edu.ie3.simona.model.participant2.HpModel.HpState
-import edu.ie3.simona.model.participant2.ParticipantModel.ActivePowerAndHeatOperatingPoint
+import edu.ie3.simona.model.participant2.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalEnergyDemand,
+  ThermalFlowWrapper,
   ThermalGridState,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
@@ -121,7 +121,7 @@ class HpModelSpec
         ) =>
           val expectedTick = 7200
           val date = defaultSimulationStart
-          val operatingPoint = ActivePowerAndHeatOperatingPoint(zeroKW, None)
+          val operatingPoint = HpOperatingPoint(zeroKW, None)
           val expectedDemand = ThermalDemandWrapper(
             ThermalEnergyDemand(
               KilowattHours(exptHouseDemand._1),

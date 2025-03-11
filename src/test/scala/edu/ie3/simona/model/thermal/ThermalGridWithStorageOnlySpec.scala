@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput,
 }
-import edu.ie3.simona.model.participant2.HpModel.HpState
+import edu.ie3.simona.model.participant2.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
@@ -91,7 +91,11 @@ class ThermalGridWithStorageOnlySpec
           onlyThermalDemandOfHeatStorage,
         )
         val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(state.tick, state)
+          thermalGrid.energyDemandAndUpdatedState(
+            state.tick,
+            state,
+            HpOperatingPoint(zeroKW, None),
+          )
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
@@ -121,7 +125,11 @@ class ThermalGridWithStorageOnlySpec
         )
 
         val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(state.tick, state)
+          thermalGrid.energyDemandAndUpdatedState(
+            state.tick,
+            state,
+            HpOperatingPoint(zeroKW, None),
+          )
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
