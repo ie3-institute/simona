@@ -219,9 +219,13 @@ object ExtEvDataService
         case _: RequestCurrentPrices =>
           requestCurrentPrices()
         case _: RequestEvcsFreeLots =>
-          requestFreeLots(tick)
+          requestFreeLots(tick, ctx)
         case departingEvsRequest: RequestDepartingEvs =>
-          requestDepartingEvs(tick, asScala(departingEvsRequest.departures))
+          requestDepartingEvs(
+            tick,
+            asScala(departingEvsRequest.departures),
+            ctx,
+          )
         case arrivingEvsProvision: ProvideArrivingEvs =>
           handleArrivingEvs(
             tick,
@@ -259,11 +263,11 @@ object ExtEvDataService
     )
   }
 
-  private def requestFreeLots(tick: Long)(implicit
+  private def requestFreeLots(tick: Long, ctx: ActorContext[EvMessage])(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
     serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
-      evcsActor ! EvFreeLotsRequest(tick, context.self)
+      evcsActor ! EvFreeLotsRequest(tick, ctx.self)
     }
 
     val freeLots =
@@ -287,6 +291,7 @@ object ExtEvDataService
   private def requestDepartingEvs(
       tick: Long,
       requestedDepartingEvs: Map[UUID, Seq[UUID]],
+      ctx: ActorContext[EvMessage],
   )(implicit
       serviceStateData: ExtEvStateData,
       log: Logger,
@@ -296,7 +301,7 @@ object ExtEvDataService
       requestedDepartingEvs.flatMap { case (evcs, departingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
           case Some(evcsActor) =>
-            evcsActor ! DepartingEvsRequest(tick, departingEvs, context.self)
+            evcsActor ! DepartingEvsRequest(tick, departingEvs, ctx.self)
 
             Some(evcs)
 

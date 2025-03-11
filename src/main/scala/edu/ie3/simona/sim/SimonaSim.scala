@@ -117,7 +117,7 @@ object SimonaSim {
           weatherService.toTyped,
         ) ++
           gridAgents ++
-          extSimulationData.extDataServices.values
+          extSimulationData.extDataServices.map(_._2)
 
         /* watch all actors */
         resultEventListeners.foreach(ctx.watch)

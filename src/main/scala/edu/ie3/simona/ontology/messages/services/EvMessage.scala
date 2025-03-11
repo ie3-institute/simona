@@ -9,7 +9,11 @@ package edu.ie3.simona.ontology.messages.services
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.api.data.ontology.{
+  DataMessageFromExt,
+  DataResponseMessageToExt,
+}
+import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import org.apache.pekko.actor.typed.ActorRef
 
@@ -44,8 +48,10 @@ object EvMessage {
     * @param replyTo
     *   The actor to receive the response
     */
-  final case class EvFreeLotsRequest(override val tick: Long, replyTo: ActorRef[ParticipantAgent.Request])
-      extends ParticipantRequest
+  final case class EvFreeLotsRequest(
+      override val tick: Long,
+      replyTo: ActorRef[EvMessage],
+  ) extends ParticipantRequest
 
   /** Requests EV models of departing EVs with given UUIDs
     *
@@ -59,7 +65,7 @@ object EvMessage {
   final case class DepartingEvsRequest(
       override val tick: Long,
       departingEvs: Seq[UUID],
-      replyTo: ActorRef[ParticipantAgent.Request],
+      replyTo: ActorRef[EvMessage],
   ) extends ParticipantRequest
 
   /** Holds arrivals for one charging station
