@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ -z "${branch_name:-}" ]; then
-  echo "Error: branch_name variable is not set."
+if [ -z "${BRANCH_NAME:-}" ]; then
+  echo "Error: BRANCH_NAME variable is not set."
   exit 1
 fi
 
@@ -14,26 +14,26 @@ pattern_hotfix='.*hotfix/.*'
 pattern_main='.*main'
 pattern_feature='^[a-z]{2}/#[0-9]+(-.+)?$'
 
-branch_type="unknown"
+BRANCH_TYPE="unknown"
 
-if [[ "$branch_name" =~ $pattern_dev ]]; then
-  branch_type="dev"
-elif [[ "$branch_name" =~ $pattern_release ]]; then
-  branch_type="release"
-elif [[ "$branch_name" =~ $pattern_dependabot ]]; then
-  branch_type="dependabot"
-elif [[ "$branch_name" =~ $pattern_hotfix ]]; then
-  branch_type="hotfix"
-elif [[ "$branch_name" =~ $pattern_main ]]; then
-  branch_type="main"
-elif [[ "$branch_name" =~ $pattern_feature ]]; then
-  branch_type="feature"
+if [[ "$BRANCH_NAME" =~ $pattern_dev ]]; then
+  BRANCH_TYPE="dev"
+elif [[ "$BRANCH_NAME" =~ $pattern_release ]]; then
+  BRANCH_TYPE="release"
+elif [[ "$BRANCH_NAME" =~ $pattern_dependabot ]]; then
+  BRANCH_TYPE="dependabot"
+elif [[ "$BRANCH_NAME" =~ $pattern_hotfix ]]; then
+  BRANCH_TYPE="hotfix"
+elif [[ "$BRANCH_NAME" =~ $pattern_main ]]; then
+  BRANCH_TYPE="main"
+elif [[ "$BRANCH_NAME" =~ $pattern_feature ]]; then
+  BRANCH_TYPE="feature"
 else
-  echo "Error:'$branch_name' does not match any pattern."
+  echo "Error:'$BRANCH_NAME' does not match any pattern."
   exit 1
 fi
 
 echo "========================="
-echo "Branch type: $branch_type"
-echo "branch_type=$branch_type" >> "$GITHUB_ENV"
+echo "Branch type: $BRANCH_TYPE"
+echo "BRANCH_TYPE=$BRANCH_TYPE" >> "$GITHUB_ENV"
 echo "========================="

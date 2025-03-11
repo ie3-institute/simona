@@ -36,20 +36,20 @@ jobs:
       - name: Check Branch
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            branch_name="${{ github.head_ref }}"
+            BRANCH_NAME="${{ github.head_ref }}"
           else
-            branch_name="${{ github.ref_name }}"
+            BRANCH_NAME="${{ github.ref_name }}"
           fi
 
-          if [[ "$branch_name" == refs/heads/* ]]; then
-            branch_name="${branch_name#refs/heads/}"
+          if [[ "$BRANCH_NAME" == refs/heads/* ]]; then
+            BRANCH_NAME="${BRANCH_NAME#refs/heads/}"
           fi
           
-          export branch_name
+          export BRANCH_NAME
           
-          echo "branch_name=$branch_name" >> $GITHUB_ENV
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
           
-          ./gradlew checkBranchName -PbranchName="$branch_name" --warning-mode=none
+          ./gradlew checkBranchName -PbranchName="$BRANCH_NAME" --warning-mode=none
           
           bash scripts/branch_type.sh
 
