@@ -441,7 +441,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       operatingPoint.activePower should approximate(Kilowatts(-9d))
 
       changeIndicator.changesAtTick should be(
-        Some(tick + 10801L)
+        Some(tick + 10800L)
       )
       changeIndicator.changesAtNextActivation shouldBe true
     }
@@ -465,7 +465,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       operatingPoint.activePower should approximate(Kilowatts(5d))
 
       changeIndicator.changesAtTick should be(
-        Some(tick + 48002L)
+        Some(tick + 48001L)
       )
       changeIndicator.changesAtNextActivation shouldBe true
     }

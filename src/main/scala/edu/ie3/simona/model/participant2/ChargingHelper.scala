@@ -96,7 +96,7 @@ object ChargingHelper {
 
     // calculate the tick from time span
     maybeTimeSpan.map { timeSpan =>
-      val timeSpanTicks = Math.round(timeSpan.toSeconds)
+      val timeSpanTicks = Math.floor(timeSpan.toSeconds).toLong
       currentTick + timeSpanTicks
     }
   }
