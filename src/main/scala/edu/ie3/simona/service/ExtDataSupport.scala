@@ -7,11 +7,13 @@
 package edu.ie3.simona.service
 
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.ontology.messages.services.EvMessage.EvResponseMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.WrappedExternalMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ServiceResponseMessage,
+  WrappedExternalMessage,
+}
 import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
-import org.apache.pekko.actor.typed.Behavior
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 
 /** Trait that enables handling of external data.
@@ -23,6 +25,20 @@ trait ExtDataSupport[
 ] {
   this: TypedSimonaService[T] =>
 
+  /** Creates an adapter, that enables a service with [[ExtDataSupport]] to
+    * receive a [[DataMessageFromExt]] by wrapping it in an
+    * [[WrappedExternalMessage]].
+    * @param service
+    *   For which an adapter should be created
+    * @return
+    *   The behavior of the adapter.
+    */
+  def adapter(service: ActorRef[T]): Behavior[DataMessageFromExt] =
+    Behaviors.receiveMessagePartial[DataMessageFromExt] { extMsg =>
+      service ! WrappedExternalMessage(extMsg)
+      Behaviors.same
+    }
+
   override private[service] def idleExternal(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
@@ -33,7 +49,7 @@ trait ExtDataSupport[
 
       buffer.unstashAll(idle(updatedStateData, constantData, buffer))
 
-    case (_, extResponseMsg: EvResponseMessage) =>
+    case (_, extResponseMsg: ServiceResponseMessage) =>
       val updatedStateData =
         handleDataResponseMessage(extResponseMsg)(stateData)
 
@@ -68,6 +84,6 @@ trait ExtDataSupport[
     *   the updated state data
     */
   protected def handleDataResponseMessage(
-      extResponseMsg: EvResponseMessage
+      extResponseMsg: ServiceResponseMessage
   )(implicit serviceStateData: S): S
 }

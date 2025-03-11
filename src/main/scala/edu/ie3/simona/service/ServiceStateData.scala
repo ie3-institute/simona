@@ -20,7 +20,7 @@ object ServiceStateData {
 
   trait ServiceBaseStateData extends ServiceStateData
 
-  case class ServiceConstantStateData(
+  final case class ServiceConstantStateData(
       scheduler: ActorRef[SchedulerMessage],
       activationAdapter: ActorRef[Activation],
   ) extends ServiceStateData

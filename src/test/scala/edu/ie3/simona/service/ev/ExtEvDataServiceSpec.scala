@@ -23,6 +23,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   Create,
+  RegisterForEvDataMessage,
   WrappedActivation,
   WrappedExternalMessage,
 }
@@ -205,6 +206,9 @@ class ExtEvDataServiceSpec
       // we trigger ev service and expect an exception
       evService ! Activation(0)
       scheduler.expectNoMessage()
+
+      val deathWatch = createTestProbe("deathWatch")
+      deathWatch.expectTerminated(evService.ref)
     }
 
     "handle free lots requests correctly and forward them to the correct evcs" in {
@@ -274,11 +278,13 @@ class ExtEvDataServiceSpec
       evService ! Activation(tick)
 
       evcs1.expectMessage(
-        EvFreeLotsRequest(tick, evService)
+        10.seconds,
+        EvFreeLotsRequest(tick, evService),
       )
 
       evcs2.expectMessage(
-        EvFreeLotsRequest(tick, evService)
+        10.seconds,
+        EvFreeLotsRequest(tick, evService),
       )
 
       scheduler.expectMessage(Completion(activationMsg.actor))
@@ -424,7 +430,10 @@ class ExtEvDataServiceSpec
       // we trigger ev service
       evService ! Activation(tick)
 
-      scheduler.expectMessage(Completion(activationMsg.actor))
+      scheduler.expectMessage(
+        10.seconds,
+        Completion(activationMsg.actor),
+      )
 
       // ev service should send ProvideEvcsFreeLots right away
       awaitCond(

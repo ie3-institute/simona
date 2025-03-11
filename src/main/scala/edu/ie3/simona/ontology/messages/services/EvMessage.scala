@@ -7,14 +7,9 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.api.data.ontology.{
-  DataMessageFromExt,
-  DataResponseMessageToExt,
-}
 import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceResponseMessage
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -24,20 +19,6 @@ sealed trait EvMessage
 object EvMessage {
 
   private[services] trait EvInternal extends EvMessage
-
-  /** Indicate the [[edu.ie3.simona.service.ev.ExtEvDataService]] that the
-    * requesting agent wants to receive EV movements
-    *
-    * @param requestingActor
-    *   The actor requesting registration for ev data
-    * @param evcs
-    *   the charging station
-    */
-  final case class RegisterForEvDataMessage(
-      requestingActor: ActorRef[ParticipantAgent.Request],
-      evcs: UUID,
-  ) extends EvMessage
-      with ServiceRegistrationMessage
 
   trait EvData extends SecondaryData
 
@@ -77,16 +58,14 @@ object EvMessage {
       arrivals: Seq[EvModelWrapper]
   ) extends EvData
 
-  trait EvResponseMessage extends EvMessage
-
   final case class FreeLotsResponse(
       evcs: UUID,
       freeLots: Int,
-  ) extends EvResponseMessage
+  ) extends ServiceResponseMessage
 
   final case class DepartingEvsResponse(
       evcs: UUID,
       evModels: Seq[EvModelWrapper],
-  ) extends EvResponseMessage
+  ) extends ServiceResponseMessage
 
 }
