@@ -112,7 +112,7 @@ class EvcsModelSpec
         nextEvent shouldBe Some(10800L)
       }
 
-      "check for correct evOperatingPoint of fully charged Ev" in {
+      "Ev is fully charged" in {
         val evcsModel = createModel("maxPower")
 
         val evModel = EvModelWrapper(
