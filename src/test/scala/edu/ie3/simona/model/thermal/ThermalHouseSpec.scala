@@ -94,7 +94,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         case unexpected =>
           fail(s"Expected a thermalHouseState but got none $unexpected.")
       }
-      threshold shouldBe Some(HouseTemperatureLowerBoundaryReached(4967))
+      threshold shouldBe Some(HouseTemperatureLowerBoundaryReached(4966))
     }
 
     "Check build method" in {

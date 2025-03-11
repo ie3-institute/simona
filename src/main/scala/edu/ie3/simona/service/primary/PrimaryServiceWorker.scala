@@ -20,13 +20,13 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   PrimaryRegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
+import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.exceptions.{
   CriticalFailureException,
   InitializationException,
 }
+import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
+import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -100,7 +100,7 @@ final case class PrimaryServiceWorker[V <: Value](
       case PrimaryServiceWorker.SqlInitPrimaryServiceStateData(
             timeSeriesUuid: UUID,
             simulationStart: ZonedDateTime,
-            sqlParams: SqlParams,
+            sqlParams: TimeStampedSqlParams,
             namingStrategy: DatabaseNamingStrategy,
           ) =>
         Try {
@@ -419,7 +419,7 @@ object PrimaryServiceWorker {
   final case class SqlInitPrimaryServiceStateData(
       override val timeSeriesUuid: UUID,
       override val simulationStart: ZonedDateTime,
-      sqlParams: SqlParams,
+      sqlParams: TimeStampedSqlParams,
       databaseNamingStrategy: DatabaseNamingStrategy,
   ) extends InitPrimaryServiceStateData
 
