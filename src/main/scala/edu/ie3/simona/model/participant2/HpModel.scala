@@ -249,7 +249,7 @@ class HpModel private (
       state: HpState,
       newActivePowerHp: Power,
       qDotIntoGrid: Power,
-  ): Option[ThermalThreshold] = {
+  ): (HpState, Option[ThermalThreshold]) = {
     val (thermalGridState, maybeThreshold) =
       thermalGrid.updateState(
         state.tick,
@@ -259,12 +259,7 @@ class HpModel private (
         state.thermalDemands,
       )
 
-    // FIXME: this should be somehow in createResults() as some accompaniedResult
-    thermalGrid.results(state.tick, thermalGridState)(state.dateTime)
-
-    state.copy(thermalGridState = thermalGridState)
-
-    maybeThreshold
+    (state.copy(thermalGridState = thermalGridState), maybeThreshold)
   }
 
   override def createResults(
@@ -326,7 +321,7 @@ class HpModel private (
     val (newActivePowerHp, qDotIntoGrid) = nextOperatingPoint(state, None)
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
-    val maybeThreshold =
+    val (updateState, maybeThreshold) =
       pushQDotIntoThermalGrid(state, newActivePowerHp, qDotIntoGrid)
 
     val operatingPoint =
@@ -349,7 +344,7 @@ class HpModel private (
       nextOperatingPoint(state, Some(setPower))
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
-    val maybeThreshold =
+    val (updateState, maybeThreshold) =
       pushQDotIntoThermalGrid(state, newActivePowerHp, qDotIntoGrid)
 
     val operatingPoint =
