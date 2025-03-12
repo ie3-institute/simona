@@ -66,27 +66,33 @@ class HpModel private (
     with LazyLogging {
 
   override val initialState: (Long, ZonedDateTime) => HpState = { (tick, _) =>
+    val preOperatingPoint = HpOperatingPoint(zeroKW, None)
     val preHpState = HpState(
       tick,
       Celsius(0d),
-      ThermalFlowWrapper(zeroKW, zeroKW),
-        ThermalGridState(
-          startingState(thermalGrid).houseState,
-          startingState(thermalGrid).storageState,
-        ),
-        Celsius(0d),
-        ThermalDemandWrapper(
-          ThermalEnergyDemand(zeroKWh, zeroKWh),
-          ThermalEnergyDemand(zeroKWh, zeroKWh),
-        ),
+      ThermalGridState(
+        startingState(thermalGrid).houseState,
+        startingState(thermalGrid).storageState,
+      ),
+      preOperatingPoint,
+      Celsius(0d),
+      ThermalDemandWrapper(
+        ThermalEnergyDemand(zeroKWh, zeroKWh),
+        ThermalEnergyDemand(zeroKWh, zeroKWh),
+      ),
+    )
+
+    val (thermalDemands, thermalGridState) =
+      thermalGrid.energyDemandAndUpdatedState(
+        tick,
+        preHpState,
+        preOperatingPoint,
       )
 
-    val preOperatingPoint = HpOperatingPoint(zeroKW, None)
-
-    val (thermalDemands, _) =
-      thermalGrid.energyDemandAndUpdatedState(tick, preHpState)
-
-    preHpState.copy(thermalDemands = thermalDemands)
+    preHpState.copy(
+      thermalDemands = thermalDemands,
+      thermalGridState = thermalGridState,
+    )
   }
 
   override def determineState(
@@ -95,13 +101,22 @@ class HpModel private (
       tick: Long,
       simulationTime: ZonedDateTime,
   ): HpState = {
-    val (thermalDemands, thermalGridState) =
-      thermalGrid.energyDemandAndUpdatedState(tick, state)
 
-    state.copy(
+    // state.lastStateAmbientTemperature is now the temperature from over lastState, thus we have to update here
+    val updatedHpState =
+      state.copy(lastStateAmbientTemperature = state.ambientTemperature)
+
+    val (thermalDemands, thermalGridState) =
+      thermalGrid.energyDemandAndUpdatedState(
+        tick,
+        updatedHpState,
+        operatingPoint,
+      )
+
+    updatedHpState.copy(
       tick = tick,
       thermalGridState = thermalGridState,
-      lastAmbientTemperature = state.ambientTemperature,
+      lastHpOperatingPoint = operatingPoint,
       thermalDemands = thermalDemands,
     )
   }
@@ -117,7 +132,8 @@ class HpModel private (
       }
       .map(newData =>
         state.copy(
-          ambientTemperature = newData.temp
+          ambientTemperature = newData.temp,
+          lastStateAmbientTemperature = state.ambientTemperature,
         )
       )
       .getOrElse(state)
@@ -205,10 +221,17 @@ class HpModel private (
   ): (Power, Power) = {
 
     val lastHouseQDot =
-      state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
+      state.lastHpOperatingPoint.thermalOps.map(_.qDotHouse).getOrElse(zeroKW)
     val lastStorageQDot =
-      state.thermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
+      state.lastHpOperatingPoint.thermalOps
+        .map(_.qDotHeatStorage)
+        .getOrElse(zeroKW)
     val wasRunningLastState = (lastHouseQDot + lastStorageQDot) > zeroKW
+
+    val currentStorageEnergy =
+      state.thermalGridState.storageState.map(_.storedEnergy).getOrElse(zeroKWh)
+    val storagePThermal =
+      thermalGrid.heatStorage.map(_.getpThermalMax).getOrElse(zeroKW)
 
     val (turnOn, _, _) =
       if (setPower.isDefined) {
@@ -247,28 +270,7 @@ class HpModel private (
       else (zeroKW, zeroKW, zeroKW)
     }
 
-    (newActivePowerHp, qDotIntoGrid)
-
-  }
-
-  /** Some Scala Doc
-    */
-
-  private def pushQDotIntoThermalGrid(
-      state: HpState,
-      newActivePowerHp: Power,
-      qDotIntoGrid: Power,
-  ): (HpState, Option[ThermalThreshold]) = {
-    val (thermalGridState, maybeThreshold) =
-      thermalGrid.updateState(
-        state.tick,
-        state,
-        newActivePowerHp > zeroKW,
-        qDotIntoGrid,
-        state.thermalDemands,
-      )
-
-    (state.copy(thermalGridState = thermalGridState), maybeThreshold)
+    (newHpActivePower, qDotIntoGrid)
   }
 
   override def createResults(
@@ -294,7 +296,7 @@ class HpModel private (
           .toMegawatts
           .asMegaWatt,
       )
-    ) ++ thermalGrid.results(state, dateTime)
+    ) ++ thermalGrid.results(state, currentOperatingPoint, dateTime)
   }
 
   override def createPrimaryDataResult(
@@ -331,8 +333,13 @@ class HpModel private (
     val (newActivePowerHp, qDotIntoGrid) = nextOperatingPoint(state, None)
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
-    val (updateState, maybeThreshold) =
-      pushQDotIntoThermalGrid(state, newActivePowerHp, qDotIntoGrid)
+    val (updateState, maybeThreshold) = thermalGrid.updateState(
+      state.tick,
+      state,
+      newActivePowerHp > zeroKW,
+      qDotIntoGrid,
+      state.thermalDemands,
+    )
 
     val operatingPoint =
       HpOperatingPoint(
@@ -363,8 +370,13 @@ class HpModel private (
       nextOperatingPoint(state, Some(setPower))
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
-    val (updateState, maybeThreshold) =
-      pushQDotIntoThermalGrid(state, newActivePowerHp, qDotIntoGrid)
+    val (updateState, maybeThreshold) = thermalGrid.updateState(
+      state.tick,
+      state,
+      newActivePowerHp > zeroKW,
+      qDotIntoGrid,
+      state.thermalDemands,
+    )
 
     val operatingPoint =
       HpOperatingPoint(
@@ -437,9 +449,9 @@ object HpModel {
   final case class HpState(
       override val tick: Long,
       ambientTemperature: Temperature,
-      lastThermalFlows: ThermalFlowWrapper,
       thermalGridState: ThermalGridState,
-      lastAmbientTemperature: Temperature,
+      lastHpOperatingPoint: HpOperatingPoint,
+      lastStateAmbientTemperature: Temperature,
       thermalDemands: ThermalDemandWrapper,
   ) extends ModelState
 
