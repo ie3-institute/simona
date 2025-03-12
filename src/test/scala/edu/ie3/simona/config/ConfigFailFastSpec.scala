@@ -8,18 +8,20 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
-  CoordinateSource,
+import edu.ie3.simona.config.InputConfig.WeatherDatasource
+import edu.ie3.simona.config.InputConfig.CoordinateSource
+import edu.ie3.simona.config.OutputConfig.Sink
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  BaseInfluxDb1xParams,
+  PsdmSinkCsvParams,
+  ResultKafkaParams,
   SampleParams,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
-import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
 import edu.ie3.simona.config.SimonaConfig.{
-  BaseCsvParams,
-  ResultKafkaParams,
+  AssetConfigs,
   TransformerControlGroup,
 }
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
@@ -842,19 +844,19 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "let distinct configs pass" in {
           val validInput = List(
-            SimonaConfig.ParticipantBaseOutputConfig(
+            OutputConfig.ParticipantOutputConfig(
               notifier = "load",
               powerRequestReply = true,
               simulationResult = false,
               flexResult = false,
             ),
-            SimonaConfig.ParticipantBaseOutputConfig(
+            OutputConfig.ParticipantOutputConfig(
               notifier = "pv",
               powerRequestReply = true,
               simulationResult = false,
               flexResult = false,
             ),
-            SimonaConfig.ParticipantBaseOutputConfig(
+            OutputConfig.ParticipantOutputConfig(
               notifier = "chp",
               powerRequestReply = true,
               simulationResult = false,
@@ -872,19 +874,19 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an exception, when there is a duplicate entry for the same model type" in {
           val invalidInput = List(
-            SimonaConfig.ParticipantBaseOutputConfig(
+            OutputConfig.ParticipantOutputConfig(
               notifier = "load",
               powerRequestReply = true,
               simulationResult = false,
               flexResult = false,
             ),
-            SimonaConfig.ParticipantBaseOutputConfig(
+            OutputConfig.ParticipantOutputConfig(
               notifier = "pv",
               powerRequestReply = true,
               simulationResult = false,
               flexResult = false,
             ),
-            SimonaConfig.ParticipantBaseOutputConfig(
+            OutputConfig.ParticipantOutputConfig(
               notifier = "load",
               powerRequestReply = false,
               simulationResult = true,
@@ -932,11 +934,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "let distinct configs pass" in {
           val validInput = List(
-            SimonaConfig.SimpleOutputConfig(
+            OutputConfig.SimpleOutputConfig(
               notifier = "house",
               simulationResult = false,
             ),
-            SimonaConfig.SimpleOutputConfig(
+            OutputConfig.SimpleOutputConfig(
               notifier = "cylindricalstorage",
               simulationResult = false,
             ),
@@ -952,15 +954,15 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an exception, when there is a duplicate entry for the same model type" in {
           val invalidInput = List(
-            SimonaConfig.SimpleOutputConfig(
+            OutputConfig.SimpleOutputConfig(
               notifier = "house",
               simulationResult = false,
             ),
-            SimonaConfig.SimpleOutputConfig(
+            OutputConfig.SimpleOutputConfig(
               notifier = "cylindricalstorage",
               simulationResult = false,
             ),
-            SimonaConfig.SimpleOutputConfig(
+            OutputConfig.SimpleOutputConfig(
               notifier = "house",
               simulationResult = false,
             ),
@@ -990,9 +992,15 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkDataSink(
               Sink(
                 Some(
-                  Csv(compressOutputs = false, "", "", "", isHierarchic = false)
+                  PsdmSinkCsvParams(
+                    compressOutputs = false,
+                    "",
+                    "",
+                    "",
+                    isHierarchic = false,
+                  )
                 ),
-                Some(InfluxDb1x("", 0, "")),
+                Some(BaseInfluxDb1xParams("", 0, "")),
                 None,
               )
             )
@@ -1003,7 +1011,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "throw an exception if an influxDb1x is configured, but not accessible" in {
           intercept[java.lang.IllegalArgumentException] {
             ConfigFailFast invokePrivate checkDataSink(
-              Sink(None, Some(InfluxDb1x("", 0, "")), None)
+              Sink(None, Some(BaseInfluxDb1xParams("", 0, "")), None)
             )
           }.getLocalizedMessage shouldBe "Unable to reach configured influxDb1x with url ':0' for 'Sink' configuration and database ''. " +
             "Exception: java.lang.IllegalArgumentException: Unable to parse url: :0"
@@ -1035,7 +1043,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           PrivateMethod[Unit](Symbol("checkLogOutputConfig"))
 
         "identify an unknown log level" in {
-          val invalidLogConfig = SimonaConfig.Simona.Output.Log("INVALID")
+          val invalidLogConfig = OutputConfig.Log("INVALID")
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkLogOutputConfig(invalidLogConfig)
@@ -1043,7 +1051,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
 
         "let valid log output configuration pass" in {
-          val validLogConfig = SimonaConfig.Simona.Output.Log("WARN")
+          val validLogConfig = OutputConfig.Log("WARN")
 
           noException shouldBe thrownBy {
             ConfigFailFast invokePrivate checkLogOutputConfig(validLogConfig)
@@ -1117,7 +1125,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           PrivateMethod[Unit](Symbol("checkGridDataSource"))
 
         "identify grid data source with empty id" in {
-          val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
+          val gridDataSource = InputConfig.GridDatasource(
             Some(
               BaseCsvParams(",", "inputData/vn_simona", isHierarchic = false)
             ),
@@ -1130,7 +1138,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
 
         "identify unsupported id" in {
-          val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
+          val gridDataSource = InputConfig.GridDatasource(
             None,
             id = "someWhereUndefined",
           )
@@ -1141,7 +1149,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
 
         "identify missing csv parameters" in {
-          val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
+          val gridDataSource = InputConfig.GridDatasource(
             None,
             id = "csv",
           )
@@ -1153,7 +1161,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
 
         "let valid csv grid data source definition pass" in {
-          val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
+          val gridDataSource = InputConfig.GridDatasource(
             Some(
               BaseCsvParams(
                 ",",
@@ -1178,23 +1186,20 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         val csv: BaseCsvParams =
           BaseCsvParams(",", "input", isHierarchic = false)
-        val sample = new SampleParams(true)
+        val sample = SampleParams(true)
 
-        val weatherDataSource = Datasource(
+        val weatherDataSource = WeatherDatasource(
           CoordinateSource(
             None,
             "icon",
-            Some(
-              SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
-                .SampleParams(true)
-            ),
+            Some(SampleParams(true)),
             None,
           ),
           None,
           None,
           None,
           50000d,
-          Some(360L),
+          360L,
           None,
           "icon",
           None,
@@ -1338,8 +1343,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             -0.5,
             Some(0.8),
           )
-        val storageConfig =
-          RuntimeConfig.ParticipantRuntimeConfigs(defaultConfig, List.empty)
+        val storageConfig = AssetConfigs(defaultConfig, List.empty)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1355,8 +1359,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             0.5,
             Some(-0.8),
           )
-        val storageConfig =
-          RuntimeConfig.ParticipantRuntimeConfigs(defaultConfig, List.empty)
+        val storageConfig = AssetConfigs(defaultConfig, List.empty)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1382,10 +1385,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(0.8),
           )
         )
-        val storageConfig = RuntimeConfig.ParticipantRuntimeConfigs(
-          defaultConfig,
-          individualConfig,
-        )
+        val storageConfig = AssetConfigs(defaultConfig, individualConfig)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1411,10 +1411,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(-0.8),
           )
         )
-        val storageConfig = RuntimeConfig.ParticipantRuntimeConfigs(
-          defaultConfig,
-          individualConfig,
-        )
+        val storageConfig = AssetConfigs(defaultConfig, individualConfig)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1439,10 +1436,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(0.8),
           )
         )
-        val storageConfig = RuntimeConfig.ParticipantRuntimeConfigs(
-          defaultConfig,
-          individualConfig,
-        )
+        val storageConfig = AssetConfigs(defaultConfig, individualConfig)
 
         noException should be thrownBy {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1458,10 +1452,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "input",
         isHierarchic = false,
       )
-      val sampleParams =
-        new SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams(
-          true
-        )
+      val sampleParams = SampleParams(true)
 
       val coordinateSource = new CoordinateSource(
         csvParams = None,

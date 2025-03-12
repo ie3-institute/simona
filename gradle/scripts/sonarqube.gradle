@@ -21,11 +21,6 @@ sonarqube {
       "build/reports/scapegoat/testsrc/scapegoat-scalastyle.xml"] // Comma-delimited list of paths to Scapegoat reports in the Scalastyle format
     // scala specific stuff
     property 'sonar.scala.coverage.reportPaths', 'build/reports/scoverageTest/scoverage.xml'
-
-    // remove auto generated SimonaConfig file from analysis
-    property 'sonar.exclusions', [
-      "src/main/scala/edu/ie3/simona/config/SimonaConfig.scala"
-    ]
   }
 }
 
