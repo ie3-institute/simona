@@ -26,5 +26,4 @@ object MaximumPowerCharging extends EvcsChargingStrategy {
       ev.uuid -> chargingProps.getMaxAvailableChargingPower(ev)
     }
     .toMap
-
 }
