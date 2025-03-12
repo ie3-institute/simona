@@ -41,14 +41,13 @@ import scala.util.{Failure, Success, Try}
   *
   * @tparam T
   *   the type of messages this service accepts
+  * @tparam S
+  *   The service specific type of the [[ServiceBaseStateData]]
   */
 abstract class TypedSimonaService[
-    T >: ServiceMessage
+    T >: ServiceMessage,
+    S <: ServiceBaseStateData,
 ] {
-
-  /** The service specific type of the [[ServiceStateData]]
-    */
-  type S <: ServiceBaseStateData
 
   def apply(
       scheduler: ActorRef[SchedulerMessage],

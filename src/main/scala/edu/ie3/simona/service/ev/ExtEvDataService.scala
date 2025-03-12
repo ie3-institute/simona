@@ -29,10 +29,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ServiceRegistrationMessage,
   ServiceResponseMessage,
 }
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
+import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.{
   ExtDataSupport,
   ServiceStateData,
@@ -51,19 +48,8 @@ import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success, Try}
 
 object ExtEvDataService
-    extends TypedSimonaService[EvMessage]
-    with ExtDataSupport[EvMessage] {
-
-  override type S = ExtEvStateData
-
-  final case class ExtEvStateData(
-      extEvData: ExtEvDataConnection,
-      uuidToActorRef: Map[UUID, ActorRef[ParticipantAgent.Request]] = Map.empty,
-      extEvMessage: Option[EvDataMessageFromExt] = None,
-      freeLots: ReceiveDataMap[UUID, Int] = ReceiveDataMap.empty,
-      departingEvResponses: ReceiveDataMap[UUID, Seq[EvModelWrapper]] =
-        ReceiveDataMap.empty,
-  ) extends ServiceBaseStateData
+    extends TypedSimonaService[EvMessage, ExtEvStateData]
+    with ExtDataSupport[EvMessage, ExtEvStateData] {
 
   final case class InitExtEvData(
       extEvData: ExtEvDataConnection
@@ -99,9 +85,9 @@ object ExtEvDataService
   override def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
   )(implicit
-      serviceStateData: S,
+      serviceStateData: ExtEvStateData,
       ctx: ActorContext[EvMessage],
-  ): Try[S] =
+  ): Try[ExtEvStateData] =
     registrationMessage match {
       case RegisterForEvDataMessage(requestingActor, evcs) =>
         Success(handleRegistrationRequest(requestingActor, evcs))
@@ -162,10 +148,10 @@ object ExtEvDataService
   override protected def announceInformation(
       tick: Long
   )(implicit
-      serviceStateData: S,
+      serviceStateData: ExtEvStateData,
       ctx: ActorContext[EvMessage],
   ): (
-      S,
+      ExtEvStateData,
       Option[Long],
   ) = {
     def asScala[E]
@@ -340,7 +326,7 @@ object ExtEvDataService
 
   override protected def handleDataMessage(
       extMsg: DataMessageFromExt
-  )(implicit serviceStateData: S): S =
+  )(implicit serviceStateData: ExtEvStateData): ExtEvStateData =
     extMsg match {
       case extEvMessage: EvDataMessageFromExt =>
         serviceStateData.copy(

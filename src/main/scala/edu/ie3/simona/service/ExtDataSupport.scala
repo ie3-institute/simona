@@ -12,7 +12,10 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ServiceResponseMessage,
   WrappedExternalMessage,
 }
-import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
+import edu.ie3.simona.service.ServiceStateData.{
+  ServiceBaseStateData,
+  ServiceConstantStateData,
+}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 
@@ -21,9 +24,10 @@ import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
   *   the type of messages this service accepts
   */
 trait ExtDataSupport[
-    T >: ServiceMessage
+    T >: ServiceMessage,
+    S <: ServiceBaseStateData,
 ] {
-  this: TypedSimonaService[T] =>
+  this: TypedSimonaService[T, S] =>
 
   /** Creates an adapter, that enables a service with [[ExtDataSupport]] to
     * receive a [[DataMessageFromExt]] by wrapping it in an
