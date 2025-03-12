@@ -206,12 +206,14 @@ final case class ThermalHouse(
 
   /** Update the current state of the house.
     *
-    * @param state
-    *   Data of heat pump including state of the heat pump.
+   * @param tick
+   *   The tick that the houseState should updated to.
     * @param thermalHouseState
-    *   Currently applicable state
+    *   The applicable state of thermalHouse until this tick.
+   * @param currentAmbientTemperature
+   *   Ambient temperature valid from the current tick on.
     * @param lastAmbientTemperature
-    *   Ambient temperature valid up until (not including) the current tick
+    *   Ambient temperature valid up until (not including) the current tick.
     * @param qDot
     *   New thermal influx
     * @return
@@ -219,16 +221,17 @@ final case class ThermalHouse(
     */
   def updateState(
       tick: Long,
-      state: HpState,
       thermalHouseState: ThermalHouseState,
+      currentAmbientTemperature: Temperature,
+      lastAmbientTemperature: Temperature,
       qDot: Power,
   ): (ThermalHouseState, Option[ThermalThreshold]) = {
     val duration = Seconds(tick - thermalHouseState.tick)
     val updatedInnerTemperature = newInnerTemperature(
-      thermalHouseState.qDot,
+      qDot,
       duration,
       thermalHouseState.innerTemperature,
-      state.lastAmbientTemperature,
+      lastAmbientTemperature,
     )
 
     /* Calculate the next given threshold */
@@ -237,7 +240,7 @@ final case class ThermalHouse(
         tick,
         qDot,
         updatedInnerTemperature,
-        state.ambientTemperature,
+        currentAmbientTemperature,
       )
 
     (

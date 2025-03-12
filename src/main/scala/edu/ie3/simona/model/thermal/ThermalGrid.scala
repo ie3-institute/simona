@@ -74,9 +74,10 @@ final case class ThermalGrid(
           val (updatedHouseState, _) =
             thermalHouse.updateState(
               tick,
-              state,
               lastHouseState,
-              state.lastThermalFlows.house,
+              state.ambientTemperature,
+              state.lastAmbientTemperature,
+              lastHouseQDot,
             )
           if (
             updatedHouseState.innerTemperature < thermalHouse.targetTemperature
@@ -431,8 +432,9 @@ final case class ThermalGrid(
       case (Some(thermalHouse), Some(lastHouseState)) =>
         val (newState, threshold) = thermalHouse.updateState(
           tick,
-          state,
           lastHouseState,
+          state.ambientTemperature,
+          state.lastAmbientTemperature,
           qDotHouse,
         )
         /* Check if house can handle the thermal feed in */
@@ -444,8 +446,9 @@ final case class ThermalGrid(
           val (fullHouseState, maybeFullHouseThreshold) =
             thermalHouse.updateState(
               tick,
-              state,
               lastHouseState,
+              state.ambientTemperature,
+              state.lastAmbientTemperature,
               zeroKW,
             )
           (Some(fullHouseState), maybeFullHouseThreshold, qDotHouse)
@@ -528,8 +531,9 @@ final case class ThermalGrid(
         case (thermalHouse, houseState) =>
           thermalHouse.updateState(
             tick,
-            state,
             houseState,
+            state.ambientTemperature,
+            state.lastAmbientTemperature,
             zeroMW,
           )
       }
@@ -614,12 +618,13 @@ final case class ThermalGrid(
       )
       val revisedHouseState = thermalHouse.updateState(
         tick,
-        state,
         state.thermalGridState.houseState.getOrElse(
           throw new InconsistentStateException(
             "Impossible to find no house state"
           )
         ),
+        state.ambientTemperature,
+        state.lastAmbientTemperature,
         thermalStorage.getpThermalMax,
       )
       (Some(revisedHouseState), Some(revisedStorageState))
