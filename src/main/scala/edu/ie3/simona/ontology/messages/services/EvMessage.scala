@@ -9,8 +9,8 @@ package edu.ie3.simona.ontology.messages.services
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
-import org.apache.pekko.actor.ActorRef
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceResponseMessage
+import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
 
@@ -18,19 +18,7 @@ sealed trait EvMessage
 
 object EvMessage {
 
-  /** Indicate the [[edu.ie3.simona.service.ev.ExtEvDataService]] that the
-    * requesting agent wants to receive EV movements
-    *
-    * @param requestingActor
-    *   The actor requesting registration for weather data
-    * @param evcs
-    *   the charging station
-    */
-  final case class RegisterForEvDataMessage(
-      requestingActor: ActorRef,
-      evcs: UUID,
-  ) extends EvMessage
-      with ServiceRegistrationMessage
+  private[services] trait EvInternal extends EvMessage
 
   trait EvData extends SecondaryData
 
@@ -41,8 +29,10 @@ object EvMessage {
     * @param replyTo
     *   The actor to receive the response
     */
-  final case class EvFreeLotsRequest(override val tick: Long, replyTo: ActorRef)
-      extends ParticipantRequest
+  final case class EvFreeLotsRequest(
+      override val tick: Long,
+      replyTo: ActorRef[EvMessage],
+  ) extends ParticipantRequest
 
   /** Requests EV models of departing EVs with given UUIDs
     *
@@ -56,7 +46,7 @@ object EvMessage {
   final case class DepartingEvsRequest(
       override val tick: Long,
       departingEvs: Seq[UUID],
-      replyTo: ActorRef,
+      replyTo: ActorRef[EvMessage],
   ) extends ParticipantRequest
 
   /** Holds arrivals for one charging station
@@ -68,16 +58,14 @@ object EvMessage {
       arrivals: Seq[EvModelWrapper]
   ) extends EvData
 
-  trait EvResponseMessage extends EvMessage
-
   final case class FreeLotsResponse(
       evcs: UUID,
       freeLots: Int,
-  ) extends EvResponseMessage
+  ) extends ServiceResponseMessage
 
   final case class DepartingEvsResponse(
       evcs: UUID,
       evModels: Seq[EvModelWrapper],
-  ) extends EvResponseMessage
+  ) extends ServiceResponseMessage
 
 }
