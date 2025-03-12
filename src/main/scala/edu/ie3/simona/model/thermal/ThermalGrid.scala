@@ -643,42 +643,49 @@ final case class ThermalGrid(
     */
   def results(
       state: HpState,
+      currentOperatingPoint: HpOperatingPoint,
       dateTime: ZonedDateTime,
   ): Seq[ResultEntity] = {
 
+    val (_, currentThermalGridState) =
+      energyDemandAndUpdatedState(state.tick, state, currentOperatingPoint)
+
+    // FIXME? We would only write results if there is a change, which would only be the case if there is an actual Op.
+    val currentOp = currentOperatingPoint.thermalOps match {
+      case Some(op) => op
+      case _ =>
+        throw new CriticalFailureException(
+          s"There should be an OperatingPoint at this step, but there isn't one: $currentOperatingPoint"
+        )
+    }
+
     val maybeHouseResult = house
-      .zip(state.thermalGridState.houseState)
-      .filter { case (_, thermalGridState) =>
-        thermalGridState.tick == state.tick
-      }
+      .zip(currentThermalGridState.houseState)
       .map {
         case (
               thermalHouse,
-              ThermalHouseState(_, innerTemperature, thermalInfeed),
+              ThermalHouseState(_, innerTemperature, _),
             ) =>
           new ThermalHouseResult(
             dateTime,
             thermalHouse.uuid,
-            thermalInfeed.toMegawatts.asMegaWatt,
+            currentOp.qDotHouse.toMegawatts.asMegaWatt,
             innerTemperature.toKelvinScale.asKelvin,
           )
       }
 
     val maybeStorageResult = heatStorage
-      .zip(state.thermalGridState.storageState)
-      .filter { case (_, thermalGridState) =>
-        thermalGridState.tick == state.tick
-      }
+      .zip(currentThermalGridState.storageState)
       .map {
         case (
               storage: CylindricalThermalStorage,
-              ThermalStorageState(_, storedEnergy, qDot),
+              ThermalStorageState(_, storedEnergy, _),
             ) =>
           new CylindricalStorageResult(
             dateTime,
             storage.uuid,
             storedEnergy.toMegawattHours.asMegaWattHour,
-            qDot.toMegawatts.asMegaWatt,
+            currentOp.qDotHeatStorage.toMegawatts.asMegaWatt,
             (storedEnergy / storage.maxEnergyThreshold).asPu,
           )
         case _ =>
