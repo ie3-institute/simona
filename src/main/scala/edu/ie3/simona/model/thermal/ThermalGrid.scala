@@ -13,8 +13,11 @@ import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
   ThermalHouseResult,
 }
-import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
+import edu.ie3.simona.exceptions.{
+  CriticalFailureException,
+  InvalidParameterException,
+}
 import edu.ie3.simona.model.participant2.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
@@ -74,9 +77,9 @@ final case class ThermalGrid(
           val (updatedHouseState, _) =
             thermalHouse.updateState(
               tick,
-              lastHouseState,
+              lastHouseState.copy(qDot = lastHouseQDot),
               state.ambientTemperature,
-              state.lastAmbientTemperature,
+              state.lastStateAmbientTemperature,
               lastHouseQDot,
             )
           if (
@@ -105,8 +108,8 @@ final case class ThermalGrid(
           val (updatedStorageState, _) =
             storage.updateState(
               tick,
-              state.lastThermalFlows.heatStorage,
-              heatStorageState,
+              lastHeatStorageQDot,
+              heatStorageState.copy(qDot = lastHeatStorageQDot),
             )
           val storedEnergy = updatedStorageState.storedEnergy
           val soc = storedEnergy / storage.getMaxEnergyThreshold
@@ -220,9 +223,11 @@ final case class ThermalGrid(
 
     /* Consider the action in the last state */
     val qDotHouseLastState =
-      state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
+      state.lastHpOperatingPoint.thermalOps.map(_.qDotHouse).getOrElse(zeroKW)
     val qDotStorageLastState =
-      state.thermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
+      state.lastHpOperatingPoint.thermalOps
+        .map(_.qDotHeatStorage)
+        .getOrElse(zeroKW)
 
     // We can use the qDots from lastState to keep continuity. If...
     if (
@@ -434,7 +439,7 @@ final case class ThermalGrid(
           tick,
           lastHouseState,
           state.ambientTemperature,
-          state.lastAmbientTemperature,
+          state.lastStateAmbientTemperature,
           qDotHouse,
         )
         /* Check if house can handle the thermal feed in */
@@ -448,7 +453,7 @@ final case class ThermalGrid(
               tick,
               lastHouseState,
               state.ambientTemperature,
-              state.lastAmbientTemperature,
+              state.lastStateAmbientTemperature,
               zeroKW,
             )
           (Some(fullHouseState), maybeFullHouseThreshold, qDotHouse)
@@ -523,6 +528,7 @@ final case class ThermalGrid(
   private def handleConsumption(
       tick: Long,
       state: HpState,
+      // FIXME do we need this qDot here?
       qDot: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
@@ -533,7 +539,7 @@ final case class ThermalGrid(
             tick,
             houseState,
             state.ambientTemperature,
-            state.lastAmbientTemperature,
+            state.lastStateAmbientTemperature,
             zeroMW,
           )
       }
@@ -542,7 +548,11 @@ final case class ThermalGrid(
     val maybeUpdatedStorageState =
       heatStorage.zip(state.thermalGridState.storageState).map {
         case (storage, storageState) =>
-          storage.updateState(state.tick, qDot, storageState)
+          storage.updateState(
+            state.tick,
+            qDot, // Fixme: this should always be zeroKW, right?
+            storageState,
+          )
       }
 
     val (revisedHouseState, revisedStorageState) =
@@ -551,7 +561,7 @@ final case class ThermalGrid(
         state,
         maybeUpdatedHouseState,
         maybeUpdatedStorageState,
-        qDot,
+        qDot, // Fixme: this should always be zeroKW, right?
       )
 
     val nextThreshold = determineMostRecentThreshold(
@@ -624,7 +634,7 @@ final case class ThermalGrid(
           )
         ),
         state.ambientTemperature,
-        state.lastAmbientTemperature,
+        state.lastStateAmbientTemperature,
         thermalStorage.getpThermalMax,
       )
       (Some(revisedHouseState), Some(revisedStorageState))
