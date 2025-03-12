@@ -42,9 +42,9 @@ class HpModelSpec
     "Determine the current state" in {
       val defaultState = HpState(
         0,
-        defaultSimulationStart,
         Celsius(10),
         thermalState(Celsius(17d)),
+        HpOperatingPoint(zeroKW, None),
         Celsius(10),
         noThermalDemand,
       )
@@ -144,8 +144,8 @@ class HpModelSpec
             case HpState(
                   tick,
                   _,
-                  _,
                   ThermalGridState(Some(thermalHouseState), _),
+                  _,
                   _,
                   thermalDemands,
                 ) => {
@@ -185,9 +185,9 @@ class HpModelSpec
 
       val defaultState = HpState(
         0,
-        defaultSimulationStart,
         Celsius(10),
         thermalState(Celsius(17d)),
+        HpOperatingPoint(zeroKW, None),
         Celsius(10),
         noThermalDemand,
       )
