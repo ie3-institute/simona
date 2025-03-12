@@ -6,11 +6,14 @@
 
 package edu.ie3.simona.model.participant2
 
-import edu.ie3.simona.model.participant2.HpModel.{HpOperatingPoint, HpState}
+import edu.ie3.simona.model.participant2.HpModel.{
+  HpOperatingPoint,
+  HpState,
+  ThermalOpWrapper,
+}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalEnergyDemand,
-  ThermalFlowWrapper,
   ThermalGridState,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
@@ -121,7 +124,15 @@ class HpModelSpec
         ) =>
           val expectedTick = 7200
           val date = defaultSimulationStart
-          val operatingPoint = HpOperatingPoint(zeroKW, None)
+          val operatingPoint = state.lastHpOperatingPoint.copy(thermalOps =
+            Some(
+              ThermalOpWrapper(
+                zeroKW,
+                state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW),
+                zeroKW,
+              )
+            )
+          )
           val expectedDemand = ThermalDemandWrapper(
             ThermalEnergyDemand(
               KilowattHours(exptHouseDemand._1),
