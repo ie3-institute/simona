@@ -54,7 +54,7 @@ class ExtEvDataServiceSpec
     with EvTestData
     with TestSpawnerTyped {
 
-  private val messageTimeout: FiniteDuration = 30.seconds
+  private val messageTimeout: FiniteDuration = 10.seconds
 
   implicit def wrap(msg: Activation): WrappedActivation =
     WrappedActivation(msg)
