@@ -732,10 +732,11 @@ class ExtEvDataServiceSpec
         new ScheduleDataServiceMessage(adapter.toClassic)
       )
       evService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(activationMsg.actor))
+      scheduler.expectMessage(messageTimeout, Completion(activationMsg.actor))
 
       evcs1.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
+        messageTimeout,
+        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L),
       )
 
       val arrivals = Map(
@@ -756,13 +757,14 @@ class ExtEvDataServiceSpec
       // we trigger ev service
       evService ! Activation(tick)
 
-      val evsMessage1 = evcs1.expectMessageType[DataProvision[EvData]]
+      val evsMessage1 =
+        evcs1.expectMessageType[DataProvision[EvData]](messageTimeout)
       evsMessage1.tick shouldBe tick
       evsMessage1.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evA))
       )
 
-      scheduler.expectMessage(Completion(activationMsg.actor))
+      scheduler.expectMessage(messageTimeout, Completion(activationMsg.actor))
 
       // no response expected
       extEvData.receiveTriggerQueue shouldBe empty
