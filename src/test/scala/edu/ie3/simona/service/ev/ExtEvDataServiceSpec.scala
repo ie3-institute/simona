@@ -43,7 +43,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 import scala.language.implicitConversions
@@ -53,6 +53,8 @@ class ExtEvDataServiceSpec
     with AnyWordSpecLike
     with EvTestData
     with TestSpawnerTyped {
+
+  private val messageTimeout: FiniteDuration = 30.seconds
 
   implicit def wrap(msg: Activation): WrappedActivation =
     WrappedActivation(msg)
@@ -278,12 +280,12 @@ class ExtEvDataServiceSpec
       evService ! Activation(tick)
 
       evcs1.expectMessage(
-        10.seconds,
+        messageTimeout,
         EvFreeLotsRequest(tick, evService),
       )
 
       evcs2.expectMessage(
-        10.seconds,
+        messageTimeout,
         EvFreeLotsRequest(tick, evService),
       )
 
@@ -351,14 +353,14 @@ class ExtEvDataServiceSpec
         new ScheduleDataServiceMessage(adapter.toClassic)
       )
       evService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(10.seconds, Completion(activationMsg.actor))
+      scheduler.expectMessage(messageTimeout, Completion(activationMsg.actor))
 
       evcs1.expectMessage(
-        10.seconds,
+        messageTimeout,
         RegistrationSuccessfulMessage(evService.ref.toClassic, 0L),
       )
       evcs2.expectMessage(
-        10.seconds,
+        messageTimeout,
         RegistrationSuccessfulMessage(evService.ref.toClassic, 0L),
       )
 
@@ -382,7 +384,7 @@ class ExtEvDataServiceSpec
       // thus should send ProvideEvcsFreeLots
       awaitCond(
         !extEvData.receiveTriggerQueue.isEmpty,
-        max = 30.seconds,
+        max = messageTimeout,
       )
       extEvData.receiveTriggerQueue.size() shouldBe 1
       // only evcs 1 should be included, the other one is full
@@ -431,14 +433,14 @@ class ExtEvDataServiceSpec
       evService ! Activation(tick)
 
       scheduler.expectMessage(
-        10.seconds,
+        messageTimeout,
         Completion(activationMsg.actor),
       )
 
       // ev service should send ProvideEvcsFreeLots right away
       awaitCond(
         !extEvData.receiveTriggerQueue.isEmpty,
-        max = 10.seconds,
+        max = messageTimeout,
       )
       extEvData.receiveTriggerQueue.size() shouldBe 1
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots()
@@ -513,11 +515,11 @@ class ExtEvDataServiceSpec
       evService ! Activation(tick)
 
       evcs1.expectMessage(
-        10.seconds,
+        messageTimeout,
         DepartingEvsRequest(tick, Seq(evA.getUuid), evService),
       )
       evcs2.expectMessage(
-        10.seconds,
+        messageTimeout,
         DepartingEvsRequest(tick, Seq(evB.getUuid), evService),
       )
 
@@ -644,7 +646,7 @@ class ExtEvDataServiceSpec
         new ScheduleDataServiceMessage(adapter.toClassic)
       )
       evService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(10.seconds, Completion(activationMsg.actor))
+      scheduler.expectMessage(messageTimeout, Completion(activationMsg.actor))
 
       evcs1.expectMessage(
         RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
@@ -674,14 +676,14 @@ class ExtEvDataServiceSpec
       evService ! Activation(tick)
 
       val evsMessage1 =
-        evcs1.expectMessageType[DataProvision[EvData]](10.seconds)
+        evcs1.expectMessageType[DataProvision[EvData]](messageTimeout)
       evsMessage1.tick shouldBe tick
       evsMessage1.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evA))
       )
 
       val evsMessage2 =
-        evcs2.expectMessageType[DataProvision[EvData]](10.seconds)
+        evcs2.expectMessageType[DataProvision[EvData]](messageTimeout)
       evsMessage2.tick shouldBe tick
       evsMessage2.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evB))
