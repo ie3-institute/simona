@@ -206,12 +206,12 @@ final case class ThermalHouse(
 
   /** Update the current state of the house.
     *
-   * @param tick
-   *   The tick that the houseState should updated to.
+    * @param tick
+    *   The tick that the houseState should updated to.
     * @param thermalHouseState
     *   The applicable state of thermalHouse until this tick.
-   * @param currentAmbientTemperature
-   *   Ambient temperature valid from the current tick on.
+    * @param currentAmbientTemperature
+    *   Ambient temperature valid from the current tick on.
     * @param lastAmbientTemperature
     *   Ambient temperature valid up until (not including) the current tick.
     * @param qDot
@@ -228,7 +228,7 @@ final case class ThermalHouse(
   ): (ThermalHouseState, Option[ThermalThreshold]) = {
     val duration = Seconds(tick - thermalHouseState.tick)
     val updatedInnerTemperature = newInnerTemperature(
-      qDot,
+      thermalHouseState.qDot,
       duration,
       thermalHouseState.innerTemperature,
       lastAmbientTemperature,
