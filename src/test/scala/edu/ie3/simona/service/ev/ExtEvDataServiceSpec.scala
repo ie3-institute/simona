@@ -485,13 +485,15 @@ class ExtEvDataServiceSpec
         new ScheduleDataServiceMessage(adapter.toClassic)
       )
       evService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(activationMsg.actor))
+      scheduler.expectMessage(messageTimeout, Completion(activationMsg.actor))
 
       evcs1.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
+        messageTimeout,
+        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L),
       )
       evcs2.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
+        messageTimeout,
+        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L),
       )
 
       val departures = Map(
@@ -523,7 +525,7 @@ class ExtEvDataServiceSpec
         DepartingEvsRequest(tick, Seq(evB.getUuid), evService),
       )
 
-      scheduler.expectMessage(Completion(activationMsg.actor))
+      scheduler.expectMessage(messageTimeout, Completion(activationMsg.actor))
 
       // return evs to ev service
       val updatedEvA = evA.copyWith(
@@ -551,7 +553,7 @@ class ExtEvDataServiceSpec
       // thus should send ProvideDepartingEvs
       awaitCond(
         !extEvData.receiveTriggerQueue.isEmpty,
-        max = 3.seconds,
+        max = messageTimeout,
       )
       extEvData.receiveTriggerQueue.size() shouldBe 1
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideDepartingEvs(
