@@ -72,15 +72,14 @@ class ExtEvDataServiceSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
-      val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
-      val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
+      val evService = spawn(ExtEvDataService(scheduler.ref))
+      val adapter = spawn(ExtEvDataService.adapter(evService))
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(InitExtEvData(extEvData), key)
 
@@ -96,8 +95,8 @@ class ExtEvDataServiceSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
-      val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
-      val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
+      val evService = spawn(ExtEvDataService(scheduler.ref))
+      val adapter = spawn(ExtEvDataService.adapter(evService))
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
@@ -109,10 +108,9 @@ class ExtEvDataServiceSpec
       evcs1.expectNoMessage()
       scheduler.expectNoMessage()
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(InitExtEvData(extEvData), key)
 
@@ -131,15 +129,14 @@ class ExtEvDataServiceSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
-      val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
-      val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
+      val evService = spawn(ExtEvDataService(scheduler.ref))
+      val adapter = spawn(ExtEvDataService.adapter(evService))
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(InitExtEvData(extEvData), key)
       val activationMsg = scheduler.expectMessageType[ScheduleActivation]
@@ -186,15 +183,14 @@ class ExtEvDataServiceSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
-      val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
-      val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
+      val evService = spawn(ExtEvDataService(scheduler.ref))
+      val adapter = spawn(ExtEvDataService.adapter(evService))
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(InitExtEvData(extEvData), key)
 
@@ -217,15 +213,14 @@ class ExtEvDataServiceSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
-      val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
-      val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
+      val evService = spawn(ExtEvDataService(scheduler.ref))
+      val adapter = spawn(ExtEvDataService.adapter(evService))
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(InitExtEvData(extEvData), key)
       val activationMsg = scheduler.expectMessageType[ScheduleActivation]
@@ -318,15 +313,14 @@ class ExtEvDataServiceSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
-      val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
-      val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
+      val evService = spawn(ExtEvDataService(scheduler.ref))
+      val adapter = spawn(ExtEvDataService.adapter(evService))
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(InitExtEvData(extEvData), key)
       val activationMsg = scheduler.expectMessageType[ScheduleActivation]
@@ -402,15 +396,14 @@ class ExtEvDataServiceSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
-      val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
-      val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
+      val evService = spawn(ExtEvDataService(scheduler.ref))
+      val adapter = spawn(ExtEvDataService.adapter(evService))
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(InitExtEvData(extEvData), key)
 
@@ -450,15 +443,14 @@ class ExtEvDataServiceSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
-      val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
-      val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
+      val evService = spawn(ExtEvDataService(scheduler.ref))
+      val adapter = spawn(ExtEvDataService.adapter(evService))
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(InitExtEvData(extEvData), key)
       val activationMsg = scheduler.expectMessageType[ScheduleActivation]
@@ -565,15 +557,14 @@ class ExtEvDataServiceSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
-      val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
-      val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
+      val evService = spawn(ExtEvDataService(scheduler.ref))
+      val adapter = spawn(ExtEvDataService.adapter(evService))
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(InitExtEvData(extEvData), key)
       val activationMsg = scheduler.expectMessageType[ScheduleActivation]
@@ -613,15 +604,14 @@ class ExtEvDataServiceSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
-      val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
-      val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
+      val evService = spawn(ExtEvDataService(scheduler.ref))
+      val adapter = spawn(ExtEvDataService.adapter(evService))
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(InitExtEvData(extEvData), key)
       val activationMsg = scheduler.expectMessageType[ScheduleActivation]
@@ -701,15 +691,14 @@ class ExtEvDataServiceSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val extSimAdapter = TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
 
-      val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
-      val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
+      val evService = spawn(ExtEvDataService(scheduler.ref))
+      val adapter = spawn(ExtEvDataService.adapter(evService))
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(InitExtEvData(extEvData), key)
       val activationMsg = scheduler.expectMessageType[ScheduleActivation]
