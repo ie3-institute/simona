@@ -187,8 +187,6 @@ abstract class TypedSimonaService[
             "Error during registration.",
             exception,
           )
-
-          Behaviors.stopped
       }
 
     case (_, ScheduleServiceActivation(tick, unlockKey)) =>
