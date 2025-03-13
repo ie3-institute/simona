@@ -4,27 +4,21 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.evcs.uncontrolled
+package edu.ie3.simona.model.participant2.evcs
 
-import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.model.participant.evcs.EvcsModel.ScheduleEntry
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.Kilowatts
 
 import java.util.UUID
-import scala.collection.immutable.SortedSet
 
-class MaximumPowerChargingSpec
+class ConstantPowerChargingSpec
     extends UnitSpec
-    with TableDrivenPropertyChecks
-    with EvcsInputTestData {
+    with TableDrivenPropertyChecks {
 
-  "Calculating maximum power charging schedules" should {
-    val evcsModel = evcsStandardModel
+  "Calculating constant power charging schedules" should {
 
     "not charge evs if they are fully charged" in {
       val ev = EvModelWrapper(
@@ -35,13 +29,14 @@ class MaximumPowerChargingSpec
           10.0.asKiloWatt,
           20.0.asKiloWattHour,
           20.0.asKiloWattHour,
-          3600,
+          3600L,
         )
       )
 
-      val actualSchedule = evcsModel.chargeWithMaximumPower(
-        1800L,
+      val actualSchedule = ConstantPowerCharging.determineChargingPowers(
         Seq(ev),
+        1800L,
+        MockEvcsChargingProperties,
       )
 
       actualSchedule shouldBe Map.empty
@@ -51,18 +46,20 @@ class MaximumPowerChargingSpec
       val offset = 1800L
 
       val cases = Table(
-        ("stayingTicks", "storedEnergy", "expectedDuration"),
+        ("stayingTicks", "storedEnergy", "expectedPower"),
         // empty battery
-        (3600L, 0.0, 3600L), // stay shorter than full
-        (7200L, 0.0, 7200L), // exactly full
-        (14400L, 0.0, 7200L), // full before end of stay
+        (3600L, 0.0, 5.0), // more than max power, limited
+        (7200L, 0.0, 5.0), // exactly max power
+        (14400L, 0.0, 2.5), // less than max power
+        (360000L, 0.0, 0.1), // long stay: 100 hours
         // half full battery
-        (1800L, 5.0, 1800L), // stay shorter than full
-        (3600L, 5.0, 3600L), // exactly full
-        (14400L, 5.0, 3600L), // full before end of stay
+        (1800L, 5.0, 5.0), // more than max power, limited
+        (3600L, 5.0, 5.0), // exactly max power
+        (7200L, 5.0, 2.5), // less than max power
+        (180000L, 5.0, 0.1), // long stay: 100 hours
       )
 
-      forAll(cases) { (stayingTicks, storedEnergy, expectedDuration) =>
+      forAll(cases) { (stayingTicks, storedEnergy, expectedPower) =>
         val ev = EvModelWrapper(
           new MockEvModel(
             UUID.randomUUID(),
@@ -75,19 +72,14 @@ class MaximumPowerChargingSpec
           )
         )
 
-        val chargingMap = evcsModel.chargeWithMaximumPower(
-          offset,
+        val chargingMap = ConstantPowerCharging.determineChargingPowers(
           Seq(ev),
+          offset,
+          MockEvcsChargingProperties,
         )
 
         chargingMap shouldBe Map(
-          ev.uuid -> SortedSet(
-            ScheduleEntry(
-              offset,
-              offset + expectedDuration,
-              ev.pRatedAc,
-            )
-          )
+          ev.uuid -> Kilowatts(expectedPower)
         )
       }
 
@@ -97,18 +89,20 @@ class MaximumPowerChargingSpec
       val offset = 3600L
 
       val cases = Table(
-        ("stayingTicks", "storedEnergy", "expectedDuration"),
+        ("stayingTicks", "storedEnergy", "expectedPower"),
         // empty battery
-        (3600L, 0.0, 3600L), // stay shorter than full
-        (7200L, 0.0, 7200L), // exactly full
-        (14400L, 0.0, 7200L), // full before end of stay
+        (3600L, 0.0, 5.0), // more than max power, limited
+        (7200L, 0.0, 5.0), // exactly max power
+        (14400L, 0.0, 2.5), // less than max power
+        (360000L, 0.0, 0.1), // long stay: 100 hours
         // half full battery
-        (1800L, 5.0, 1800L), // stay shorter than full
-        (3600L, 5.0, 3600L), // exactly full
-        (14400L, 5.0, 3600L), // full before end of stay
+        (1800L, 5.0, 5.0), // more than max power, limited
+        (3600L, 5.0, 5.0), // exactly max power
+        (7200L, 5.0, 2.5), // less than max power
+        (180000L, 5.0, 0.1), // long stay: 100 hours
       )
 
-      forAll(cases) { (stayingTicks, storedEnergy, expectedDuration) =>
+      forAll(cases) { (stayingTicks, storedEnergy, expectedPower) =>
         val givenEv = EvModelWrapper(
           new MockEvModel(
             UUID.randomUUID(),
@@ -133,29 +127,19 @@ class MaximumPowerChargingSpec
           )
         )
 
-        val chargingMap = evcsModel.chargeWithMaximumPower(
-          offset,
+        val chargingMap = ConstantPowerCharging.determineChargingPowers(
           Seq(givenEv, ev),
+          offset,
+          MockEvcsChargingProperties,
         )
 
         chargingMap shouldBe Map(
-          givenEv.uuid -> SortedSet(
-            ScheduleEntry(
-              offset,
-              offset + 3600L,
-              Kilowatts(5.0),
-            )
-          ),
-          ev.uuid -> SortedSet(
-            ScheduleEntry(
-              offset,
-              offset + expectedDuration,
-              Kilowatts(5.0),
-            )
-          ),
+          givenEv.uuid -> Kilowatts(5.0),
+          ev.uuid -> Kilowatts(expectedPower),
         )
       }
 
     }
   }
+
 }

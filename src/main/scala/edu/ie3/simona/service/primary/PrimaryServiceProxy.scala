@@ -29,11 +29,12 @@ import edu.ie3.datamodel.io.source.{
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
-import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
-  Primary => PrimaryConfig
+import edu.ie3.simona.config.ConfigParams.{
+  SqlParams,
+  TimeStampedCsvParams,
+  TimeStampedSqlParams,
 }
+import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
 import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException,
@@ -311,7 +312,7 @@ object PrimaryServiceProxy {
       primaryConfig.csvParams,
       primaryConfig.couchbaseParams,
     ).filter(_.isDefined).flatten.headOption match {
-      case Some(PrimaryDataCsvParams(csvSep, directoryPath, _, _)) =>
+      case Some(TimeStampedCsvParams(csvSep, directoryPath, _, _)) =>
         val fileNamingStrategy = new FileNamingStrategy()
         Success(
           new CsvTimeSeriesMappingSource(
@@ -544,7 +545,7 @@ object PrimaryServiceProxy {
     primaryConfig match {
       case PrimaryConfig(
             None,
-            Some(PrimaryDataCsvParams(csvSep, directoryPath, _, timePattern)),
+            Some(TimeStampedCsvParams(csvSep, directoryPath, _, timePattern)),
             None,
             None,
           ) =>

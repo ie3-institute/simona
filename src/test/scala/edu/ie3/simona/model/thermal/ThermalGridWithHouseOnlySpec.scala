@@ -35,6 +35,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           thermalBusInput,
           Set(thermalHouseInput).asJava,
           Set.empty[ThermalStorageInput].asJava,
+          Set.empty[ThermalStorageInput].asJava,
         )
 
       ThermalGrid(thermalGridInput) match {
@@ -51,6 +52,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       new edu.ie3.datamodel.models.input.container.ThermalGrid(
         thermalBusInput,
         Set(thermalHouseInput).asJava,
+        Set.empty[ThermalStorageInput].asJava,
         Set.empty[ThermalStorageInput].asJava,
       )
     )
@@ -147,7 +149,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(154285L)
+          HouseTemperatureLowerBoundaryReached(154284L)
         )
       }
 
@@ -177,7 +179,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(154285L)
+          HouseTemperatureLowerBoundaryReached(154284L)
         )
       }
     }
@@ -269,7 +271,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             tick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
             qDot should approximate(zeroKW)
-            thresholdTick shouldBe 154285L
+            thresholdTick shouldBe 154284L
           case _ => fail("Thermal grid state updated failed")
         }
       }
@@ -293,7 +295,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             tick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
             qDot should approximate(zeroKW)
-            thresholdTick shouldBe 154285L
+            thresholdTick shouldBe 154284L
           case _ => fail("Thermal grid state updated failed")
         }
       }

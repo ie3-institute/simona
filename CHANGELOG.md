@@ -56,6 +56,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `FixedFeedInModel` with its new implementation [#1152](https://github.com/ie3-institute/simona/issues/1152)
 - Replace `PvModel` with its new implementation [#1149](https://github.com/ie3-institute/simona/issues/1149)
 - Replace `WecModel` with its new implementation [#1154](https://github.com/ie3-institute/simona/issues/1154)
+- Replace `StorageModel` with its new implementation [#1153](https://github.com/ie3-institute/simona/issues/1153)
+- Added `Version Check` to GitHub Actions Pipeline [#1067](https://github.com/ie3-institute/simona/issues/1067)
+- Use ValidationUtils for ThermalGrids [#1117](https://github.com/ie3-institute/simona/issues/1117)
+- Replace `EvcsModel` with its new implementation [#1151](https://github.com/ie3-institute/simona/issues/1151)
+- Fix determination of qDotIntoGrid in HpModel.calcState() in case heatStorage should feed the thermal grid [#1165](https://github.com/ie3-institute/simona/issues/1165)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -143,6 +148,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Typo and format of `ThermalGrid` and `ThermalHouse` ScalaDocs [#1196](https://github.com/ie3-institute/simona/issues/1196)
 - Refactor `EmRuntimeConfig` [#1181](https://github.com/ie3-institute/simona/issues/1181)
 - Based `PvModel` calculations on irradiance (power per area) instead of irradiation (energy per area) [#1212](https://github.com/ie3-institute/simona/issues/1212)
+- Updated to changes of PSDM release v6.0.0 [#1107](https://github.com/ie3-institute/simona/issues/1107)
+- Refactor external simulation setup [#1136](https://github.com/ie3-institute/simona/issues/1136)
+- Use new tick retrieval methods from PSDM [#920](https://github.com/ie3-institute/simona/issues/920)
+- Refactor input and output configs [#1175](https://github.com/ie3-institute/simona/issues/1175)
+- Use `Math.floor` when calcNextEventTick for charging entities [#1256](https://github.com/ie3-institute/simona/issues/1256) 
+- Removed Jenkinsfile to begin with using GitHub Actions[#1260](https://github.com/ie3-institute/simona/issues/1260)
+- Sequential test execution for (hopefully) more reliability [#1262](https://github.com/ie3-institute/simona/issues/1262)
 - Converting `ExtEvDataService` to pekko typed [#1214](https://github.com/ie3-institute/simona/issues/1214)
 - Converting `PrimaryServiceWorker` to pekko typed [#1229](https://github.com/ie3-institute/simona/issues/1229)
 - Converting `PrimaryServiceProxy` to pekko typed [#1230](https://github.com/ie3-institute/simona/issues/1230)
@@ -196,9 +208,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Check for runningHp when handling infeed to thermalGrid [#1167](https://github.com/ie3-institute/simona/issues/1167)
 - Send `FlexResult` to EM [#1202](https://github.com/ie3-institute/simona/issues/1202)
 - Fix test timeouts for all tests [#1222](https://github.com/ie3-institute/simona/issues/1222)
+- Fix handling of states in `ParticipantModelShell` [#1228](https://github.com/ie3-institute/simona/issues/1228)
+- Fix input data handling in `ParticipantModel` [#1237](https://github.com/ie3-institute/simona/issues/1237)
+- Show full stacktrace of failing tests with `gradle test` [#1245](https://github.com/ie3-institute/simona/issues/1245)
+- Fix copernicus url in readthedocs [#1248](https://github.com/ie3-institute/simona/issues/1248)
+- Check for fully charged Evs when determine next OperationPoint of Evcs [#1253](https://github.com/ie3-institute/simona/issues/1253)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
+- Removed unused parameters in `ArgsParser` [#1192](https://github.com/ie3-institute/simona/issues/1192), [#1178](https://github.com/ie3-institute/simona/issues/1178)
 
 ## [3.0.0] - 2023-08-07
 

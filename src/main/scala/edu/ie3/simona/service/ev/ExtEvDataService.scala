@@ -21,12 +21,13 @@ import edu.ie3.simona.exceptions.{
   InitializationException,
   ServiceException,
 }
-import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.EvMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  RegisterForEvDataMessage,
   ServiceRegistrationMessage,
-  WrappedExternalMessage,
+  ServiceResponseMessage,
 }
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -39,9 +40,9 @@ import edu.ie3.simona.service.{
 }
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
 
 import java.util.UUID
@@ -68,26 +69,6 @@ object ExtEvDataService
       extEvData: ExtEvDataConnection
   ) extends InitializeServiceStateData
 
-  def adapter(evService: ActorRef[EvMessage]): Behavior[DataMessageFromExt] =
-    Behaviors.receiveMessagePartial { extMsg =>
-      evService ! WrappedExternalMessage(extMsg)
-      Behaviors.same
-    }
-
-  /** Initialize the concrete service implementation using the provided
-    * initialization data. This method should perform all heavyweight tasks
-    * before the actor becomes ready. The return values are a) the state data of
-    * the initialized service and b) optional triggers that should be sent to
-    * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
-    * message that is sent in response to the trigger that is sent to start the
-    * initialization process
-    *
-    * @param initServiceData
-    *   the data that should be used for initialization
-    * @return
-    *   the state data of this service and optional tick that should be included
-    *   in the completion message
-    */
   override def init(
       initServiceData: ServiceStateData.InitializeServiceStateData
   ): Try[
@@ -115,16 +96,6 @@ object ExtEvDataService
         )
     }
 
-  /** Handle a request to register for information from this service
-    *
-    * @param registrationMessage
-    *   registration message to handle
-    * @param serviceStateData
-    *   current state data of the actor
-    * @return
-    *   the service stata data that should be used in the next state (normally
-    *   with updated values)
-    */
   override def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
   )(implicit
@@ -132,8 +103,8 @@ object ExtEvDataService
       ctx: ActorContext[EvMessage],
   ): Try[S] =
     registrationMessage match {
-      case RegisterForEvDataMessage(actorRef, evcs) =>
-        Success(handleRegistrationRequest(actorRef, evcs))
+      case RegisterForEvDataMessage(requestingActor, evcs) =>
+        Success(handleRegistrationRequest(requestingActor, evcs))
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
@@ -188,17 +159,6 @@ object ExtEvDataService
     }
   }
 
-  /** Send out the information to all registered recipients
-    *
-    * @param tick
-    *   current tick data should be announced for
-    * @param serviceStateData
-    *   the current state data of this service
-    * @return
-    *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the <completion> message that is sent
-    *   in response to the trigger that was sent to start this announcement
-    */
   override protected def announceInformation(
       tick: Long
   )(implicit
@@ -219,9 +179,13 @@ object ExtEvDataService
         case _: RequestCurrentPrices =>
           requestCurrentPrices()
         case _: RequestEvcsFreeLots =>
-          requestFreeLots(tick)
+          requestFreeLots(tick, ctx)
         case departingEvsRequest: RequestDepartingEvs =>
-          requestDepartingEvs(tick, asScala(departingEvsRequest.departures))
+          requestDepartingEvs(
+            tick,
+            asScala(departingEvsRequest.departures),
+            ctx,
+          )
         case arrivingEvsProvision: ProvideArrivingEvs =>
           handleArrivingEvs(
             tick,
@@ -259,11 +223,11 @@ object ExtEvDataService
     )
   }
 
-  private def requestFreeLots(tick: Long)(implicit
+  private def requestFreeLots(tick: Long, ctx: ActorContext[EvMessage])(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
     serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
-      evcsActor ! EvFreeLotsRequest(tick)
+      evcsActor ! EvFreeLotsRequest(tick, ctx.self)
     }
 
     val freeLots =
@@ -287,6 +251,7 @@ object ExtEvDataService
   private def requestDepartingEvs(
       tick: Long,
       requestedDepartingEvs: Map[UUID, Seq[UUID]],
+      ctx: ActorContext[EvMessage],
   )(implicit
       serviceStateData: ExtEvStateData,
       log: Logger,
@@ -296,7 +261,7 @@ object ExtEvDataService
       requestedDepartingEvs.flatMap { case (evcs, departingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
           case Some(evcsActor) =>
-            evcsActor ! DepartingEvsRequest(tick, departingEvs)
+            evcsActor ! DepartingEvsRequest(tick, departingEvs, ctx.self)
 
             Some(evcs)
 
@@ -334,6 +299,8 @@ object ExtEvDataService
   ): (ExtEvStateData, Option[Long]) = {
 
     if (tick == INIT_SIM_TICK) {
+      // During initialization, an empty ProvideArrivingEvs message
+      // is sent, which includes the first relevant tick
 
       val nextTick = maybeNextTick.getOrElse(
         throw new CriticalFailureException(
@@ -382,7 +349,7 @@ object ExtEvDataService
     }
 
   override protected def handleDataResponseMessage(
-      extResponseMsg: EvResponseMessage
+      extResponseMsg: ServiceResponseMessage
   )(implicit serviceStateData: ExtEvStateData): ExtEvStateData = {
     extResponseMsg match {
       case DepartingEvsResponse(evcs, evModels) =>

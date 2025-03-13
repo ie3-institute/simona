@@ -25,11 +25,11 @@ import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
   WeatherSource => PsdmWeatherSource,
 }
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
+import edu.ie3.simona.config.InputConfig
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  BaseInfluxDb1xParams,
   CouchbaseParams,
-  InfluxDb1xParams,
   SqlParams,
 }
 import edu.ie3.simona.exceptions.InitializationException
@@ -42,8 +42,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 }
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
-import edu.ie3.simona.util.TickUtil
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.DoubleUtils.ImplicitDouble
 import edu.ie3.util.interval.ClosedInterval
 import tech.units.indriya.ComparableQuantity
@@ -52,7 +51,11 @@ import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.{
+  CollectionHasAsScala,
+  IterableHasAsJava,
+  MapHasAsScala,
+}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -193,8 +196,20 @@ private[weather] final case class WeatherSourceWrapper private (
   override def getDataTicks(
       requestFrameStart: Long,
       requestFrameEnd: Long,
-  ): Array[Long] =
-    TickUtil.getTicksInBetween(requestFrameStart, requestFrameEnd, resolution)
+  ): Array[Long] = {
+    // Note: because we want data for the start tick as well, we need to use any tick before the start tick
+    val intervalStart = requestFrameStart.toDateTime.minusSeconds(1)
+
+    source
+      .getTimeKeysAfter(intervalStart)
+      .asScala
+      .flatMap { case (_, timeKeys) =>
+        timeKeys.asScala
+      }
+      .map(_.toTick)
+      .filter(_ <= requestFrameEnd)
+      .toArray
+  }
 }
 
 private[weather] object WeatherSourceWrapper extends LazyLogging {
@@ -205,19 +220,19 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
   )(implicit
       simulationStart: ZonedDateTime,
       idCoordinateSource: IdCoordinateSource,
-      resolution: Option[Long],
+      resolution: Long,
       distance: ComparableQuantity[Length],
   ): WeatherSourceWrapper = {
     WeatherSourceWrapper(
       source,
       idCoordinateSource,
-      resolution.getOrElse(DEFAULT_RESOLUTION),
+      resolution,
       distance,
     )
   }
 
   private[weather] def buildPSDMSource(
-      cfgParams: SimonaConfig.Simona.Input.Weather.Datasource,
+      cfgParams: InputConfig.WeatherDatasource,
       definedWeatherSources: Option[Serializable],
   )(implicit
       idCoordinateSource: IdCoordinateSource
@@ -258,7 +273,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
             "yyyy-MM-dd'T'HH:mm:ssxxx",
           )
         )
-      case InfluxDb1xParams(database, _, url) =>
+      case BaseInfluxDb1xParams(database, _, url) =>
         // initializing an influxDb weather source
         val influxDb1xConnector =
           new InfluxDbConnector(url, database)

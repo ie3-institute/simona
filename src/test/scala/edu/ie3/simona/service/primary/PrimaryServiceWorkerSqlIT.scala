@@ -20,7 +20,8 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   PrimaryRegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
+import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -141,7 +142,7 @@ class PrimaryServiceWorkerSqlIT
             uuid,
             simulationStart,
             valueClass,
-            SqlParams(
+            TimeStampedSqlParams(
               jdbcUrl = container.jdbcUrl,
               userName = container.username,
               password = container.password,

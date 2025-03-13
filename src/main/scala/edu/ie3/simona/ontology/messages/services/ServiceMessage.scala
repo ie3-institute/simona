@@ -35,8 +35,8 @@ object ServiceMessage {
     * [[edu.ie3.simona.service.ev.ExtEvDataService]]). Thus, we need an extra
     * initialization message.
     */
-  final case class Create[+I <: InitializeServiceStateData](
-      initializeStateData: I,
+  final case class Create(
+      initializeStateData: InitializeServiceStateData,
       unlockKey: ScheduleKey,
   ) extends ServiceMessage
 
@@ -44,6 +44,10 @@ object ServiceMessage {
       tick: Long,
       unlockKey: ScheduleKey,
   ) extends ServiceMessage
+
+  /** Message used in response to a service request.
+    */
+  trait ServiceResponseMessage extends ServiceMessage
 
   /** Message used to register for a service
     */
@@ -71,4 +75,18 @@ object ServiceMessage {
   final case class WorkerRegistrationMessage(
       agentToBeRegistered: ActorRef[ParticipantAgent.Request]
   ) extends ServiceRegistrationMessage
+
+  /** Indicate the [[edu.ie3.simona.service.ev.ExtEvDataService]] that the
+    * requesting agent wants to receive EV movements
+    *
+    * @param requestingActor
+    *   The actor requesting registration for ev data
+    * @param evcs
+    *   the charging station
+    */
+  final case class RegisterForEvDataMessage(
+      requestingActor: ActorRef[ParticipantAgent.Request],
+      evcs: UUID,
+  ) extends ServiceRegistrationMessage
+
 }
