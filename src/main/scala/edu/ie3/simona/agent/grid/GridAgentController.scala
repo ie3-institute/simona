@@ -523,19 +523,4 @@ class GridAgentController(
       actorName(classOf[EmAgent.type], emInput.getId),
     )
 
-  /** Introduces the given agent to scheduler
-    *
-    * @param actorRef
-    *   Reference to the actor to add to the environment
-    */
-  private def introduceAgentToEnvironment(
-      actorRef: ActorRef[ParticipantAgent.Request]
-  ): Unit = {
-    gridAgentContext.watch(actorRef)
-    environmentRefs.scheduler ! ScheduleActivation(
-      actorRef.toClassic.toTyped,
-      INIT_SIM_TICK,
-    )
-  }
-
 }
