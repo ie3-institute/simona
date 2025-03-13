@@ -55,8 +55,6 @@ class HpModel private (
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    private val lat: Angle,
-    private val lon: Angle,
     private val pThermal: Power,
     private val thermalGrid: ThermalGrid,
 ) extends ParticipantModel[
@@ -69,13 +67,13 @@ class HpModel private (
     val preOperatingPoint = HpOperatingPoint(zeroKW, None)
     val preHpState = HpState(
       tick,
-      Celsius(0d),
+      Celsius(20d),
       ThermalGridState(
         startingState(thermalGrid).houseState,
         startingState(thermalGrid).storageState,
       ),
       preOperatingPoint,
-      Celsius(0d),
+      Celsius(20d),
       ThermalDemandWrapper(
         ThermalEnergyDemand(zeroKWh, zeroKWh),
         ThermalEnergyDemand(zeroKWh, zeroKWh),
@@ -142,20 +140,18 @@ class HpModel private (
   override def determineFlexOptions(
       state: HpState
   ): FlexibilityMessage.ProvideFlexOptions = {
-    // Use state to update thermalGrid to the current tick
-
     val lastHouseQDot =
       state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
     val lastStorageQDot =
       state.thermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
-    val wasRunningLastState = ((lastHouseQDot + lastStorageQDot) > zeroKW)
+    val wasRunningLastPeriod = (lastHouseQDot + lastStorageQDot) > zeroKW
 
     // Determining the operation point and limitations at this tick
     val (turnOn, canOperate, canBeOutOfOperation) =
       operatesInNextState(
         state.thermalGridState,
         state.thermalDemands,
-        wasRunningLastState,
+        wasRunningLastPeriod,
       )
 
     ProvideMinMaxFlexOptions(
@@ -179,6 +175,8 @@ class HpModel private (
     *   State of the thermalGrid.
     * @param thermalDemands
     *   ThermalEnergyDemand of the house and the thermal storage.
+    * @param wasRunningLastPeriod
+    *   Indicates if the Hp was running till this tick.
     * @return
     *   Boolean defining if heat pump runs in next time step, if it can be in
     *   operation and can be out of operation.
@@ -186,7 +184,7 @@ class HpModel private (
   private def operatesInNextState(
       thermalGridState: ThermalGridState,
       thermalDemands: ThermalDemandWrapper,
-      wasRunningLastState: Boolean,
+      wasRunningLastPeriod: Boolean,
   ): (Boolean, Boolean, Boolean) = {
 
     val demandHouse = thermalDemands.houseDemand
@@ -195,9 +193,9 @@ class HpModel private (
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && noThermalStorageOrEmpty) ||
-        (demandHouse.hasAdditionalDemand && wasRunningLastState ||
+        (demandHouse.hasAdditionalDemand && wasRunningLastPeriod ||
           demandThermalStorage.hasRequiredDemand ||
-          (demandThermalStorage.hasAdditionalDemand && wasRunningLastState))
+          (demandThermalStorage.hasAdditionalDemand && wasRunningLastPeriod))
 
     val canOperate =
       demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
@@ -212,7 +210,17 @@ class HpModel private (
     )
   }
 
-  /** Some Scala Doc
+  /** Depending on the input, this function calculates the next operating point
+    * of the heat pump by determine the active power and thermal power (qDot)
+    * provided by the heat pump.
+    *
+    * @param state
+    *   Currently applicable HpState.
+    * @param setPower
+    *   The setPower from Em, if there is some.
+    * @return
+    *   The new active power of the heat pump and the thermal power (qDot) from
+    *   the heat pump, feed into the thermal grid.
     */
 
   private def nextOperatingPoint(
@@ -222,11 +230,10 @@ class HpModel private (
 
     val lastHouseQDot =
       state.lastHpOperatingPoint.thermalOps.map(_.qDotHouse).getOrElse(zeroKW)
-    val lastStorageQDot =
-      state.lastHpOperatingPoint.thermalOps
-        .map(_.qDotHeatStorage)
-        .getOrElse(zeroKW)
-    val wasRunningLastState = (lastHouseQDot + lastStorageQDot) > zeroKW
+    val lastStorageQDot = state.lastHpOperatingPoint.thermalOps
+      .map(_.qDotHeatStorage)
+      .getOrElse(zeroKW)
+    val wasRunningLastPeriod = (lastHouseQDot + lastStorageQDot) > zeroKW
 
     val currentStorageEnergy =
       state.thermalGridState.storageState.map(_.storedEnergy).getOrElse(zeroKWh)
@@ -234,23 +241,20 @@ class HpModel private (
       thermalGrid.heatStorage.map(_.getpThermalMax).getOrElse(zeroKW)
 
     val (turnOn, _, _) =
-      if (setPower.isDefined) {
-        /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
-        (
-          setPower.getOrElse(
-            throw new RuntimeException(
-              s"setPower $setPower should be defined but couldn't accessed."
-            )
-          ) > (sRated.toActivePower(cosPhiRated) * 0.5),
-          None,
-          None,
-        )
-      } else {
-        operatesInNextState(
-          state.thermalGridState,
-          state.thermalDemands,
-          wasRunningLastState,
-        )
+      setPower match {
+        case Some(value) =>
+          /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
+          (
+            value > (sRated.toActivePower(cosPhiRated) * 0.5),
+            None,
+            None,
+          )
+        case None =>
+          operatesInNextState(
+            state.thermalGridState,
+            state.thermalDemands,
+            wasRunningLastPeriod,
+          )
       }
 
     val (newHpActivePower, _, qDotIntoGrid) = {
@@ -419,13 +423,14 @@ object HpModel {
       HpOperatingPoint(zeroKW, None)
   }
 
-  // FIXME
-  /** Wraps the demand of thermal units (thermal house, thermal storage).
+  /** Wraps the thermal powers of the [[HpOperationPoint]].
     *
-    * @param houseDemand
-    *   The demand of the thermal house.
-    * @param heatStorageDemand
-    *   The demand of the thermal heat storage.
+    * @param qDotHp
+    *   The thermal power output of the heat pump.
+    * @param qDotHouse
+    *   The thermal power input of the [[ThermalHouse]].
+    * @param qDotHeatStorage
+    *   The thermal power input of the [[ThermalStorage]].
     */
   final case class ThermalOpWrapper private (
       qDotHp: Power,
@@ -437,14 +442,17 @@ object HpModel {
     *
     * @param tick
     *   The current tick.
-    * @param dateTime
-    *   The date and time of the <b>ending</b> of time frame to calculate.
     * @param ambientTemperature
-    *   The outside temperature.
+    *   The actual outside temperature.
     * @param thermalGridState
-    *   FIXME
+    *   The applicable state of the [[ThermalGrid]].
+    * @param lastHpOperatingPoint
+    *   The last [[HpOperatingPoint]] of the heat pump.
     * @param lastAmbientTemperature
-    *   The outside temperature of the lastState.
+    *   The outside temperature at the lastState.
+    * @param thermalDemands
+    *   The actual thermal demands of the thermal grid elements (house,
+    *   storage).
     */
   final case class HpState(
       override val tick: Long,
@@ -470,8 +478,6 @@ object HpModel {
       ),
       hpInput.getType.getCosPhiRated,
       QControl(hpInput.getqCharacteristics),
-      Degrees(hpInput.getNode.getGeoPosition.getY),
-      Degrees(hpInput.getNode.getGeoPosition.getX),
       Kilowatts(
         hpInput.getType
           .getpThermal()
@@ -481,5 +487,4 @@ object HpModel {
       ),
       ThermalGrid(thermalGrid),
     )
-
 }
