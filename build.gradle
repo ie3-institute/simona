@@ -193,7 +193,7 @@ shadowJar {
 tasks.withType(ScalaCompile).configureEach {
   scalaCompileOptions.additionalParameters = [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-    "-P:scapegoat:dataDir:" + getLayout().getBuildDirectory() + "/reports/scapegoat/src/",
+    "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/src/",
     "-P:scapegoat:disabledInspections:VariableShadowing",
     "-P:scapegoat:ignoredFiles:.*/SimonaConfig.scala" // see scapegoat-sbt page for this param
   ]
@@ -207,7 +207,7 @@ tasks.withType(ScalaCompile).configureEach {
 compileTestScala {
   scalaCompileOptions.additionalParameters = [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-    "-P:scapegoat:dataDir:" + getLayout().getBuildDirectory() + "/reports/scapegoat/testsrc/",
+    "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/",
     "-P:scapegoat:disabledInspections:VariableShadowing"
   ]
 }
