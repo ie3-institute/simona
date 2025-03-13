@@ -7,8 +7,8 @@
  * Configuring the sphinx plugin
  */
 sphinx {
-  description 'Generate high level HTML documentation output.'
-  group 'Documentation'
+  description = 'Generate high level HTML documentation output.'
+  group = 'Documentation'
 
   sourceDirectory = "${project.projectDir}/docs/readthedocs"
   outputDirectory = (project.hasProperty('sphinxOutput')) ? project.getProperty('sphinxOutput') : "${project.rootDir}/build/docs/readthedocs"
@@ -18,8 +18,8 @@ sphinx {
  * Task to generate the JavaDoc
  */
 tasks.javadoc {
-  description 'Generates java API doc at the correct place.'
-  group 'Documentation'
+  description = 'Generates java API doc at the correct place.'
+  group = 'Documentation'
 
   source = sourceSets.main.allJava
   destinationDir = file("${project.projectDir}/docs/javadoc")
@@ -30,8 +30,8 @@ tasks.javadoc {
  * Task to generate the ScalaDoc
  */
 tasks.scaladoc {
-  description 'Generates scala API doc at the correct place.'
-  group 'Documentation'
+  description = 'Generates scala API doc at the correct place.'
+  group = 'Documentation'
 
   source = sourceSets.main.allSource
   destinationDir = file("${project.projectDir}/docs/scaladoc")
