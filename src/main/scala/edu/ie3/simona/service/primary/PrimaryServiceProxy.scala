@@ -175,11 +175,11 @@ object PrimaryServiceProxy {
       )
     else {
       sourceConfigs.headOption match {
-        case Some(csvParams: PrimaryDataCsvParams) =>
+        case Some(csvParams: TimeStampedCsvParams) =>
           // note: if inheritance is supported by tscfg,
           // the following method should be called for all different supported sources!
           checkTimePattern(csvParams.timePattern)
-        case Some(sqlParams: SqlParams) =>
+        case Some(sqlParams: TimeStampedSqlParams) =>
           checkTimePattern(sqlParams.timePattern)
         case Some(x) =>
           throw new InvalidConfigParameterException(

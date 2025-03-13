@@ -108,7 +108,7 @@ class PrimaryServiceWorkerSpec
     val systemParticipant = TestProbe[Any]("dummySystemParticipant")
 
     implicit val serviceRef: ActorRef[ServiceMessage] =
-      testKit.spawn(PrimaryServiceWorker(scheduler.ref))
+      spawn(PrimaryServiceWorker(scheduler.ref))
     implicit val log: Logger =
       LoggerFactory.getLogger(classOf[PrimaryServiceWorkerSpec])
 
@@ -218,12 +218,26 @@ class PrimaryServiceWorkerSpec
     }
 
     "refuse registration for wrong registration request" in {
-      serviceRef ! RegisterForWeatherMessage(
+      val schedulerProbe = TestProbe[SchedulerMessage]("schedulerProbe")
+
+      // we need to create another service, since we want to continue using the other in later tests
+      val service = spawn(PrimaryServiceWorker(schedulerProbe.ref))
+
+      val key =
+        ScheduleLock.singleKey(TSpawner, schedulerProbe.ref, INIT_SIM_TICK)
+
+      service ! Create(validInitData, key)
+
+      service ! Activation(INIT_SIM_TICK)
+
+      service ! RegisterForWeatherMessage(
         systemParticipant.ref.toClassic,
         51.4843281,
         7.4116482,
       )
-      systemParticipant.expectNoMessage()
+
+      val deathWatch = createTestProbe("deathWatch")
+      deathWatch.expectTerminated(service.ref)
     }
 
     "correctly register a forwarded request" in {

@@ -12,6 +12,12 @@ import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.SValue
 import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
+import edu.ie3.simona.config.ConfigParams.{
+  CouchbaseParams,
+  TimeStampedCsvParams,
+  TimeStampedInfluxDb1xParams,
+}
+import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
 import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException,
@@ -456,7 +462,7 @@ class PrimaryServiceProxySpec
         initStateData.primaryConfig,
       )(constantData, context)
 
-      inside(worker.expectMessageType[Create[_]]) {
+      inside(worker.expectMessageType[Create]) {
         case Create(
               CsvInitPrimaryServiceStateData(
                 actualTimeSeriesUuid,

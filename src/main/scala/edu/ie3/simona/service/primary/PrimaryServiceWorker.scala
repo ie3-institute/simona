@@ -22,12 +22,12 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   PrimaryRegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
+import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
+import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
 import edu.ie3.simona.exceptions.{
   CriticalFailureException,
   InitializationException,
 }
-import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ServiceRegistrationMessage,
@@ -125,7 +125,7 @@ object PrimaryServiceWorker extends TypedSimonaService[ServiceMessage] {
       override val timeSeriesUuid: UUID,
       override val simulationStart: ZonedDateTime,
       override val valueClass: Class[V],
-      sqlParams: SqlParams,
+      sqlParams: TimeStampedSqlParams,
       databaseNamingStrategy: DatabaseNamingStrategy,
   ) extends InitPrimaryServiceStateData[V]
 

@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
 }
 import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.config.InputConfig.Primary
-import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -24,7 +24,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WrappedActivation,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.test.common.{AgentTypedSpec, TestSpawnerTyped}
 import edu.ie3.simona.test.helper.TestContainerHelper
