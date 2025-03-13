@@ -8,30 +8,17 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{DataProvision, RegistrationFailedMessage, RegistrationSuccessfulMessage}
 import edu.ie3.simona.agent.participant2.ParticipantAgentInit
-import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
-  ParticipantRefs,
-  SimulationParameters,
-}
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{ParticipantRefs, SimulationParameters}
 import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  RegisterForWeatherMessage,
-  WeatherData,
-}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{RegisterForWeatherMessage, WeatherData}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.test.common.input.EmInputTestData
@@ -42,10 +29,7 @@ import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -55,6 +39,7 @@ import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
+import scala.concurrent.duration.{FiniteDuration, SECONDS}
 
 class EmAgentIT
     extends ScalaTestWithActorTestKit
@@ -409,10 +394,9 @@ class EmAgentIT
         val emAgentActivation = emInitSchedule.actor
 
         /* INIT */
-
         emAgentActivation ! Activation(INIT_SIM_TICK)
 
-        primaryServiceProxy.receiveMessages(3) should contain allOf (
+        primaryServiceProxy.receiveMessages(3, FiniteDuration(10,SECONDS)) should contain allOf (
           PrimaryServiceRegistrationMessage(
             hpAgent.toClassic,
             adaptedHpInputModel.getUuid,
