@@ -2099,7 +2099,7 @@ class ThermalGridIT
                 time shouldBe 30710.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                 20.asDegreeCelsius
+                  20.asDegreeCelsius
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
@@ -2437,7 +2437,7 @@ class ThermalGridIT
                 time shouldBe 55765.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-               20.asDegreeCelsius
+                  20.asDegreeCelsius
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
