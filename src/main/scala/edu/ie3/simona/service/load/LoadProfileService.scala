@@ -12,7 +12,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.LoadProfile.Datasource
+import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{
   CriticalFailureException,
@@ -37,7 +37,6 @@ import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
-import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -105,8 +104,6 @@ object LoadProfileService extends TypedSimonaService[LoadProfileMessage] {
     */
   override def init(
       initServiceData: InitializeServiceStateData
-  )(implicit
-      log: Logger
   ): Try[(LoadProfileInitializedStateData, Option[Long])] =
     initServiceData match {
       case InitLoadProfileServiceStateData(

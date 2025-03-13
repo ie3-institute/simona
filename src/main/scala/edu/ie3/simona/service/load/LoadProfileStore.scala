@@ -8,13 +8,12 @@ package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.io.source.LoadProfileSource
 import edu.ie3.datamodel.models.profile.LoadProfile
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.LoadProfile.Datasource
+import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.service.load.LoadProfileStore.{
   convertPower,
   defaultReferenceScalingFactor,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
-import org.slf4j.Logger
 import squants.energy.{KilowattHours, Kilowatts}
 import tech.units.indriya.ComparableQuantity
 
@@ -102,7 +101,7 @@ object LoadProfileStore {
 
   def apply(
       sourceDefinition: Datasource
-  )(implicit log: Logger): LoadProfileStore = {
+  ): LoadProfileStore = {
 
     // build all additional sources
     val additionalSources = LoadProfileSources.buildSources(sourceDefinition)

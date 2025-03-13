@@ -37,12 +37,9 @@ import edu.ie3.datamodel.models.value.load.{
   LoadValues,
   RandomLoadValues,
 }
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.LoadProfile.Datasource.SqlParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.LoadProfile.{
-  Datasource => ConfigSource
-}
-import org.slf4j.Logger
+import edu.ie3.simona.config.ConfigParams.{BaseCsvParams, BaseSqlParams}
+import edu.ie3.simona.config.InputConfig
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.nio.file.Path
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -51,6 +48,8 @@ import scala.util.Try
 /** Utility methods for loading csv and sql load profile sources.
   */
 object LoadProfileSources {
+
+  private val log: Logger = LoggerFactory.getLogger(LoadProfileSources.getClass)
 
   /** Initializes the load profile sources.
     *
@@ -62,8 +61,8 @@ object LoadProfileSources {
     *   load profile to source
     */
   def buildSources(
-      sourceDefinition: ConfigSource
-  )(implicit log: Logger): Map[LoadProfile, LoadProfileSource[_, _]] = {
+      sourceDefinition: InputConfig.LoadProfile.Datasource
+  ): Map[LoadProfile, LoadProfileSource[_, _]] = {
     val definedSources = Vector(
       sourceDefinition.csvParams,
       sourceDefinition.sqlParams,
@@ -85,7 +84,7 @@ object LoadProfileSources {
 
         Some((csvDataSource, metaInformationSource))
 
-      case Some(SqlParams(jdbcUrl, password, schemaName, _, userName)) =>
+      case Some(BaseSqlParams(jdbcUrl, password, schemaName, _, userName)) =>
         val sqlConnector = new SqlConnector(
           jdbcUrl,
           userName,
@@ -146,13 +145,11 @@ object LoadProfileSources {
     *   That have been built.
     * @param expectedProfiles
     *   That are expected.
-    * @param log
-    *   Logger.
     */
   private def checkSources(
       profiles: Set[LoadProfile],
       expectedProfiles: Set[String],
-  )(implicit log: Logger): Unit = {
+  ): Unit = {
     if (profiles.size != expectedProfiles.size) {
       expectedProfiles
         .diff(profiles.map(_.getKey))
