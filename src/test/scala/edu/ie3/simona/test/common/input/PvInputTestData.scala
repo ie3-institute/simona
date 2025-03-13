@@ -37,8 +37,6 @@ trait PvInputTestData
   when(pvInputModel04Kv.getId).thenReturn("TestPvInputModel_0.4_kV")
   when(pvInputModel04Kv.getNode).thenReturn(nodeInputNoSlackNs04KvA)
 
-  protected val pvInputContainer = SimpleInputContainer(pvInput)
-
   protected val pvInput = new PvInput(
     UUID.randomUUID(),
     "Dummy_PvModel",

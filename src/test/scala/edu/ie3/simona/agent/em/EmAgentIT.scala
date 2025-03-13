@@ -68,9 +68,6 @@ class EmAgentIT
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
-  private val resolution =
-    simonaConfig.simona.powerflow.resolution.toSeconds
-
   private val simulationParams = SimulationParameters(
     expectedPowerRequestTick = Long.MaxValue,
     requestVoltageDeviationTolerance = Each(1e-14d),
@@ -96,8 +93,6 @@ class EmAgentIT
   )
 
   private implicit val quantityTolerance: Double = 1e-10d
-
-  private implicit val classicSystem: ActorSystem = system.toClassic
 
   "An em agent" when {
     "having load, pv and storage agents connected" should {

@@ -21,8 +21,6 @@ import java.util.UUID
 
 trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
 
-  protected val evcsInputContainer = SimpleInputContainer(evcsInputModel)
-
   protected val evcsInputModel = new EvcsInput(
     UUID.randomUUID(),
     "Dummy_EvcsModel",

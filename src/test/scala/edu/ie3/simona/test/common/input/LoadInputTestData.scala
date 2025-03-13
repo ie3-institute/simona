@@ -20,8 +20,6 @@ import tech.units.indriya.quantity.Quantities
   */
 trait LoadInputTestData extends NodeInputTestData {
 
-  protected val loadInputContainer = SimpleInputContainer(loadInput)
-
   protected val loadInput = new LoadInput(
     UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
     "testLoad",
