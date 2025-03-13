@@ -509,7 +509,7 @@ class ThermalGridWithHouseAndStorageSpec
               thermalStorage.pThermalMax * -1
             )
 
-            houseWarmTick shouldBe 3646
+            houseWarmTick shouldBe 3645
             storageEmptyTick shouldBe 7200
           case _ => fail("Revision of states failed")
         }
