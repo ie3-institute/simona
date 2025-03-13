@@ -1,13 +1,14 @@
 /* Maven publish - start */
 
-task sourcesJar(type: Jar) {
-  archiveClassifier = "sources"
+tasks.register("sourcesJar", Jar) {
+  archiveClassifier.set("sources")
   from sourceSets.main.allJava
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
-  archiveClassifier = "javadoc"
-  from javadoc.destinationDir
+tasks.register("javadocJar", Jar) {
+  dependsOn tasks.javadoc
+  archiveClassifier.set("javadoc")
+  from tasks.javadoc.get().destinationDir
 }
 
 if (project.hasProperty('user') && project.hasProperty('password') && project.hasProperty('deployVersion')) {
@@ -66,8 +67,8 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
         version versionString
 
         from components.java
-        artifact sourcesJar
-        artifact javadocJar
+        artifact tasks.named("sourcesJar")
+        artifact tasks.named("javadocJar")
       }
     }
     repositories {
@@ -90,10 +91,8 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
     }
   }
 
-  model {
-    tasks.generatePomFileForMavenJavaPublication {
-      destination = file("$buildDir/generated-pom.xml")
-    }
+  tasks.named("generatePomFileForMavenJavaPublication") {
+    destination = layout.buildDirectory.file("generated-pom.xml").get().asFile
   }
 }
 
