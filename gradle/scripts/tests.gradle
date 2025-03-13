@@ -2,8 +2,8 @@ tasks.named("test", Test) {
   useJUnitPlatform {
     includeEngines("scalatest")
     testLogging {
-      events = ["skipped", "failed"]
-      exceptionFormat = "full"
+      events("skipped", "failed")
+      exceptionFormat("full")
     }
   }
 }
