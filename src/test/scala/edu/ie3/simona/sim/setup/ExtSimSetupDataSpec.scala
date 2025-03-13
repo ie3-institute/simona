@@ -28,10 +28,10 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     val emptyMapResult = Map.empty[UUID, String].asJava
 
     "be updated with an ExtPrimaryDataConnection correctly" in {
-      val extSimSetupData = ExtSimSetupData()
+      val extSimSetupData = ExtSimSetupData.apply
 
       val connection = new ExtPrimaryDataConnection(emptyMapInput)
-      val primaryRef = TestProbe("primary_service").ref.toClassic
+      val primaryRef = TestProbe("primary_service").ref
 
       val updated = extSimSetupData.update(
         connection,
@@ -45,13 +45,13 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "be updated with multiple ExtPrimaryDataConnection correctly" in {
-      val extSimSetupData = ExtSimSetupData()
+      val extSimSetupData = ExtSimSetupData.apply
 
       val connection1 = new ExtPrimaryDataConnection(emptyMapInput)
-      val primaryRef1 = TestProbe("primary_service1").ref.toClassic
+      val primaryRef1 = TestProbe("primary_service1").ref
 
       val connection2 = new ExtPrimaryDataConnection(emptyMapInput)
-      val primaryRef2 = TestProbe("primary_service2").ref.toClassic
+      val primaryRef2 = TestProbe("primary_service2").ref
 
       val updated = extSimSetupData
         .update(connection1, primaryRef1)
@@ -67,16 +67,16 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "be updated with an ExtInputDataConnection correctly" in {
-      val extSimSetupData = ExtSimSetupData()
+      val extSimSetupData = ExtSimSetupData.apply
 
       val primaryConnection = new ExtPrimaryDataConnection(emptyMapInput)
-      val primaryRef = TestProbe("primary_service").ref.toClassic
+      val primaryRef = TestProbe("primary_service").ref
 
       val evConnection = new ExtEvDataConnection()
-      val evRef = TestProbe("ev_service").ref.toClassic
+      val evRef = TestProbe("ev_service").ref
 
       val emConnection = new ExtEmDataConnection(emptyMapInput)
-      val emRef = TestProbe("em_service").ref.toClassic
+      val emRef = TestProbe("em_service").ref
 
       val cases = Table(
         ("connection", "serviceRef", "expected"),
@@ -110,7 +110,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "be updated with an ExtResultDataConnection correctly" in {
-      val extSimSetupData = ExtSimSetupData()
+      val extSimSetupData = ExtSimSetupData.apply
 
       val resultConnection =
         new ExtResultDataConnection(
@@ -129,16 +129,16 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "be updated with multiple different connections" in {
-      val extSimSetupData = ExtSimSetupData()
+      val extSimSetupData = ExtSimSetupData.apply
 
       val primaryConnection = new ExtPrimaryDataConnection(emptyMapInput)
-      val primaryRef = TestProbe("primary_service").ref.toClassic
+      val primaryRef = TestProbe("primary_service").ref
 
       val evConnection = new ExtEvDataConnection()
-      val evRef = TestProbe("ev_service").ref.toClassic
+      val evRef = TestProbe("ev_service").ref
 
       val emConnection = new ExtEmDataConnection(emptyMapInput)
-      val emRef = TestProbe("em_service").ref.toClassic
+      val emRef = TestProbe("em_service").ref
 
       val resultConnection =
         new ExtResultDataConnection(
@@ -170,16 +170,16 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
     "return evDataService correctly" in {
       val evConnection = new ExtEvDataConnection()
-      val evRef = TestProbe("ev_service").ref.toClassic
+      val evRef = TestProbe("ev_service").ref
 
       val cases = Table(
         ("extSimSetupData", "expectedConnection", "expectedService"),
         (
-          ExtSimSetupData().update(evConnection, evRef),
+          ExtSimSetupData.apply.update(evConnection, evRef),
           Some(evConnection),
           Some(evRef),
         ),
-        (ExtSimSetupData(), None, None),
+        (ExtSimSetupData.apply, None, None),
       )
 
       forAll(cases) { (extSimSetupData, expectedConnection, expectedService) =>
@@ -190,21 +190,21 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
     "return emDataService correctly" in {
       val emConnection = new ExtEmDataConnection(emptyMapInput)
-      val emRef = TestProbe("em_service").ref.toClassic
+      val emRef = TestProbe("em_service").ref
 
       val cases = Table(
         ("extSimSetupData", "expectedConnection", "expectedService"),
         (
-          ExtSimSetupData().update(emConnection, emRef),
+          ExtSimSetupData.apply.update(emConnection, emRef),
           Some(emConnection),
           Some(emRef),
         ),
-        (ExtSimSetupData(), None, None),
+        (ExtSimSetupData.apply, None, None),
       )
 
       forAll(cases) { (extSimSetupData, expectedConnection, expectedService) =>
         extSimSetupData.emDataConnection shouldBe expectedConnection
-        extSimSetupData.emDataService shouldBe expectedService
+        extSimSetupData.emDataService shouldBe expectedService.map(_.toClassic)
       }
     }
 
