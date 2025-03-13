@@ -84,9 +84,9 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
     }
     signing {
       useInMemoryPgpKeys(
-              findProperty('signingKey') as String,
-              findProperty('signingPassword') as String
-      )
+          findProperty('signingKey') as String,
+          findProperty('signingPassword') as String
+          )
       sign publications.mavenJava
     }
   }
