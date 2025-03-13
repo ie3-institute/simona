@@ -26,7 +26,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeath
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
@@ -260,7 +260,7 @@ object ParticipantAgentInit {
             modelShell,
             serviceType,
             serviceRef,
-          )(ctx)
+          )
         }
 
         waitingForServices(
@@ -280,7 +280,7 @@ object ParticipantAgentInit {
       modelShell: ParticipantModelShell[_, _],
       serviceType: ServiceType,
       serviceRef: ClassicRef,
-  )(implicit ctx: ActorContext[ParticipantAgent.Request]): Unit =
+  ): Unit =
     serviceType match {
       case ServiceType.WeatherService =>
         val geoPosition = participantInput.getNode.getGeoPosition
@@ -303,7 +303,10 @@ object ParticipantAgentInit {
         )
 
       case ServiceType.EvMovementService =>
-        serviceRef ! RegisterForEvDataMessage(ctx.self, modelShell.uuid)
+        serviceRef ! RegisterForEvDataMessage(
+          participantRef,
+          modelShell.uuid,
+        )
     }
 
   /** Waiting for replies from secondary services. If all replies have been

@@ -12,14 +12,9 @@ import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
-  ActorExtEvDataService,
-  ActorWeatherService,
-}
-import edu.ie3.simona.agent.participant.evcs.EvcsAgent
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
@@ -28,8 +23,8 @@ import edu.ie3.simona.agent.participant2.{
   ParticipantAgent,
   ParticipantAgentInit,
 }
+import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
 import edu.ie3.simona.config.RuntimeConfig._
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.AssetConfigs
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -38,11 +33,6 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
-import edu.ie3.simona.ontology.messages.services.{
-  EvMessage,
-  ServiceMessage,
-  WeatherMessage,
-}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
@@ -88,7 +78,7 @@ class GridAgentController(
     simulationEndDate: ZonedDateTime,
     emConfigs: AssetConfigs[EmRuntimeConfig],
     participantsConfig: Participant,
-    outputConfig: SimonaConfig.Simona.Output.Participant,
+    outputConfig: AssetConfigs[ParticipantOutputConfig],
     resolution: Long,
     listener: Iterable[ActorRef[ResultEvent]],
     log: Logger,
@@ -101,7 +91,8 @@ class GridAgentController(
     val systemParticipants =
       filterSysParts(subGridContainer, environmentRefs)
 
-    val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
+    val outputConfigUtil =
+      ConfigUtil.OutputConfigUtil.participants(outputConfig)
 
     // ems that control at least one participant directly
     val firstLevelEms = systemParticipants.flatMap {
@@ -188,8 +179,10 @@ class GridAgentController(
     *
     * @param participantsConfig
     *   Configuration information for participant models
+    * @param emAgents
+    *   mapping: em uuid to agent
     * @param outputConfigUtil
-    *   Configuration information for output behaviour
+    *   Containing configuration information for output behaviour
     * @param participants
     *   Set of system participants to create agents for
     * @param thermalIslandGridsByBusId
@@ -411,22 +404,15 @@ class GridAgentController(
           maybeControllingEm,
         )
       case input: EvcsInput =>
-        buildEvcs(
+        buildParticipant(
           input,
           participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
             input.getUuid
           ),
-          environmentRefs.primaryServiceProxy,
-          environmentRefs.evDataService.getOrElse(
-            throw new GridAgentInitializationException(
-              "EvMovementsService required for setting up evcs."
-            )
-          ),
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
           outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case hpInput: HpInput =>
@@ -450,17 +436,15 @@ class GridAgentController(
             )
         }
       case input: StorageInput =>
-        buildStorage(
+        buildParticipant(
           input,
           participantConfigUtil.getOrDefault[StorageRuntimeConfig](
             input.getUuid
           ),
-          environmentRefs.primaryServiceProxy,
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
           outputConfigUtil.getOrDefault(NotifierIdentifier.Storage),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: SystemParticipantInput =>
@@ -498,74 +482,6 @@ class GridAgentController(
       ),
     )
     gridAgentContext.watch(participant)
-
-    participant
-  }
-
-  /** Creates an Evcs agent and determines the needed additional information for
-    * later initialization of the agent.
-    *
-    * @param evcsInput
-    *   Evcs input model to derive information from
-    * @param modelConfiguration
-    *   User-provided configuration for this specific load model
-    * @param primaryServiceProxy
-    *   Reference to the primary data service proxy
-    * @param evMovementsService
-    *   Reference to the ev movements service actor
-    * @param simulationStartDate
-    *   The simulation time at which the simulation starts
-    * @param simulationEndDate
-    *   The simulation time at which the simulation ends
-    * @param resolution
-    *   Frequency of power flow calculations
-    * @param requestVoltageDeviationThreshold
-    *   Maximum deviation in p.u. of request voltages to be considered equal
-    * @param outputConfig
-    *   Configuration of the output behavior
-    * @param maybeControllingEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   The [[EvcsAgent]] 's [[ActorRef]]
-    */
-  private def buildEvcs(
-      evcsInput: EvcsInput,
-      modelConfiguration: EvcsRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      evMovementsService: ActorRef[EvMessage],
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantAgent.Request] = {
-    val participant = gridAgentContext.toClassic
-      .simonaActorOf(
-        EvcsAgent.props(
-          environmentRefs.scheduler.toClassic,
-          ParticipantInitializeStateData(
-            evcsInput,
-            modelConfiguration,
-            primaryServiceProxy,
-            Iterable(
-              ActorExtEvDataService(
-                evMovementsService.toClassic
-              )
-            ),
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            requestVoltageDeviationThreshold,
-            outputConfig,
-            maybeControllingEm,
-          ),
-          listener.map(_.toClassic),
-        ),
-        evcsInput.getId,
-      )
-      .toTyped
-    introduceAgentToEnvironment(participant)
 
     participant
   }
@@ -621,67 +537,6 @@ class GridAgentController(
           listener.map(_.toClassic),
         ),
         hpInput.getId,
-      )
-      .toTyped
-    introduceAgentToEnvironment(participant)
-
-    participant
-  }
-
-  /** Creates a storage agent and determines the needed additional information
-    * for later initialization of the agent.
-    *
-    * @param storageInput
-    *   Storage input model to derive information from
-    * @param modelConfiguration
-    *   User-provided configuration for this specific storage model
-    * @param primaryServiceProxy
-    *   Reference to the primary data service proxy
-    * @param simulationStartDate
-    *   The simulation time at which the simulation starts
-    * @param simulationEndDate
-    *   The simulation time at which the simulation ends
-    * @param resolution
-    *   Frequency of power flow calculations
-    * @param requestVoltageDeviationThreshold
-    *   Maximum deviation in p.u. of request voltages to be considered equal
-    * @param outputConfig
-    *   Configuration of the output behavior
-    * @param maybeControllingEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   The [[StorageAgent]] 's [[ActorRef]]
-    */
-  private def buildStorage(
-      storageInput: StorageInput,
-      modelConfiguration: StorageRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
-  ): ActorRef[ParticipantAgent.Request] = {
-    val participant = gridAgentContext.toClassic
-      .simonaActorOf(
-        StorageAgent.props(
-          environmentRefs.scheduler.toClassic,
-          ParticipantInitializeStateData(
-            storageInput,
-            modelConfiguration,
-            primaryServiceProxy,
-            None,
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            requestVoltageDeviationThreshold,
-            outputConfig,
-            maybeControllingEm,
-          ),
-          listener.map(_.toClassic),
-        ),
-        storageInput.getId,
       )
       .toTyped
     introduceAgentToEnvironment(participant)

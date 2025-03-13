@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service
 
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -126,7 +127,12 @@ abstract class TypedSimonaService[
             initializeStateData,
             exception,
           )
-          throw exception // if a service fails startup we don't want to go on with the simulation
+
+          // if a service fails startup we don't want to go on with the simulation
+          throw new CriticalFailureException(
+            "Error during service initialization.",
+            exception,
+          )
       }
 
     // not ready yet to handle registrations, stash request away
@@ -176,7 +182,11 @@ abstract class TypedSimonaService[
             registrationMsg,
             exception,
           )
-          Behaviors.unhandled
+
+          throw new CriticalFailureException(
+            "Error during registration.",
+            exception,
+          )
       }
 
     case (_, ScheduleServiceActivation(tick, unlockKey)) =>

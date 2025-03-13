@@ -20,13 +20,13 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   PrimaryRegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
+import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.exceptions.{
   CriticalFailureException,
   InitializationException,
 }
+import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
+import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -100,7 +100,7 @@ final case class PrimaryServiceWorker[V <: Value](
       case PrimaryServiceWorker.SqlInitPrimaryServiceStateData(
             timeSeriesUuid: UUID,
             simulationStart: ZonedDateTime,
-            sqlParams: SqlParams,
+            sqlParams: TimeStampedSqlParams,
             namingStrategy: DatabaseNamingStrategy,
           ) =>
         Try {
@@ -138,13 +138,15 @@ final case class PrimaryServiceWorker[V <: Value](
     }).flatMap { case (source, simulationStart) =>
       implicit val startDateTime: ZonedDateTime = simulationStart
 
+      // Note: because we want data for the start tick as well, we need to use any tick before the start tick
+      val intervalStart = simulationStart.minusSeconds(1)
+
       val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
-        // Note: The whole data set is used here, which might be inefficient depending on the source implementation.
-        source.getTimeSeries.getEntries.asScala
-          .map(timeBasedValue => timeBasedValue.getTime.toTick)
-          .filter(_ >= 0L)
+        source
+          .getTimeKeysAfter(intervalStart)
+          .asScala
           .toSeq
-          .sorted
+          .map(_.toTick)
       ).pop
 
       (maybeNextTick, furtherActivationTicks) match {
@@ -417,7 +419,7 @@ object PrimaryServiceWorker {
   final case class SqlInitPrimaryServiceStateData(
       override val timeSeriesUuid: UUID,
       override val simulationStart: ZonedDateTime,
-      sqlParams: SqlParams,
+      sqlParams: TimeStampedSqlParams,
       databaseNamingStrategy: DatabaseNamingStrategy,
   ) extends InitPrimaryServiceStateData
 

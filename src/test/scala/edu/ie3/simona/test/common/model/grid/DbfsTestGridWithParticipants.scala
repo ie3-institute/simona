@@ -104,7 +104,6 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
     null,
     LoadProfile.DefaultLoadProfiles.NO_LOAD_PROFILE,
-    false,
     Quantities.getQuantity(300000, KILOWATTHOUR): ComparableQuantity[Energy],
     Quantities.getQuantity(150, MEGAVOLTAMPERE): ComparableQuantity[Power],
     0.9,
