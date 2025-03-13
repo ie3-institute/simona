@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
-import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
+import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.{
   Done,
