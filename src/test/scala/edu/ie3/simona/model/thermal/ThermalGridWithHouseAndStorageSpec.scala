@@ -213,7 +213,7 @@ class ThermalGridWithHouseAndStorageSpec
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(154285L)
+          HouseTemperatureLowerBoundaryReached(154284L)
         )
       }
 
@@ -257,7 +257,7 @@ class ThermalGridWithHouseAndStorageSpec
             qDotStorage should approximate(externalQDot)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(StorageEmpty(17143L))
+        reachedThreshold shouldBe Some(StorageEmpty(17142L))
       }
     }
 

@@ -315,9 +315,11 @@ final case class ThermalHouse(
     if (flexibleEnergy < zeroMWh)
       None
     else {
-      val duration = Math.round(
-        (flexibleEnergy / (qDot * math.signum(qDot.toWatts))).toSeconds
-      )
+      val duration = Math
+        .floor(
+          (flexibleEnergy / (qDot * math.signum(qDot.toWatts))).toSeconds
+        )
+        .toLong
       Some(tick + duration)
     }
   }

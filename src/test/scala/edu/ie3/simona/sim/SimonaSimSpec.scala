@@ -467,6 +467,6 @@ object SimonaSimSpec {
         scheduler: ActorRef[SchedulerMessage],
         extSimPath: Option[Path],
     ): ExtSimSetupData =
-      ExtSimSetupData()
+      ExtSimSetupData.apply
   }
 }
