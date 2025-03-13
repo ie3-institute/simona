@@ -17,16 +17,11 @@ import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsState,
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  ArrivingEvs,
-  DepartingEvsRequest,
-  DepartingEvsResponse,
-  EvFreeLotsRequest,
-  EvResponseMessage,
-  FreeLotsResponse,
-}
+import edu.ie3.simona.ontology.messages.services.EvMessage
+import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
+import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -34,11 +29,11 @@ import edu.ie3.util.scala.quantities.Kilovars
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import squants.{Each, Energy, Power}
 import squants.energy.{KilowattHours, Kilowatts}
+import squants.{Each, Energy, Power}
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 class EvcsModelSpec
     extends ScalaTestWithActorTestKit
@@ -108,6 +103,25 @@ class EvcsModelSpec
             Kilowatts(2.5)
         )
         nextEvent shouldBe Some(10800L)
+      }
+
+      "Ev is fully charged" in {
+        val evcsModel = createModel("maxPower")
+
+        val evModel = EvModelWrapper(
+          ev1.copyWith(10.0.asKiloWattHour)
+        )
+
+        val (operatingPoint, nextEvent) = evcsModel.determineOperatingPoint(
+          EvcsState(
+            Seq(evModel),
+            1800L,
+          )
+        )
+        operatingPoint.evOperatingPoints shouldBe Map(
+          evModel.uuid -> Kilowatts(0.0)
+        )
+        nextEvent shouldBe None
       }
     }
 
@@ -694,50 +708,50 @@ class EvcsModelSpec
       }
 
       "no EVs are parked" in {
-        val service = createTestProbe[EvResponseMessage]()
+        val service = createTestProbe[EvMessage]()
         val currentTick = 0L
 
         val startingState = EvcsState(Seq.empty, currentTick)
         val agent = spawn(testAgent(evcsModel, startingState))
 
-        agent ! EvFreeLotsRequest(currentTick, service.ref.toClassic)
+        agent ! EvFreeLotsRequest(currentTick, service.ref)
         service.expectMessage(FreeLotsResponse(evcsModel.uuid, 2))
       }
 
       "one EV is parked, departing later" in {
-        val service = createTestProbe[EvResponseMessage]()
+        val service = createTestProbe[EvMessage]()
         val currentTick = 0L
 
         val startingState = EvcsState(Seq(evModel), currentTick)
         val agent = spawn(testAgent(evcsModel, startingState))
 
-        agent ! EvFreeLotsRequest(currentTick, service.ref.toClassic)
+        agent ! EvFreeLotsRequest(currentTick, service.ref)
         service.expectMessage(FreeLotsResponse(evcsModel.uuid, 1))
 
         // ev is supposed to be departing later, but we collect it here for testing purposes
         agent ! DepartingEvsRequest(
           currentTick,
           Seq(evModel.uuid),
-          service.ref.toClassic,
+          service.ref,
         )
         service.expectMessage(
           DepartingEvsResponse(evcsModel.uuid, Seq(evModel))
         )
 
-        agent ! EvFreeLotsRequest(currentTick, service.ref.toClassic)
+        agent ! EvFreeLotsRequest(currentTick, service.ref)
         // now, ev should be gone
         service.expectMessage(FreeLotsResponse(evcsModel.uuid, 2))
       }
 
       "one EV is parked, departing now" in {
-        val service = createTestProbe[EvResponseMessage]()
+        val service = createTestProbe[EvMessage]()
         // ev is supposed to be departing at this tick
         val currentTick = 10800L
 
         val startingState = EvcsState(Seq(evModel), currentTick)
         val agent = spawn(testAgent(evcsModel, startingState))
 
-        agent ! EvFreeLotsRequest(currentTick, service.ref.toClassic)
+        agent ! EvFreeLotsRequest(currentTick, service.ref)
         // ev should not count, since it is departing now
         service.expectMessage(FreeLotsResponse(evcsModel.uuid, 2))
       }

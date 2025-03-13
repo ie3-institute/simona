@@ -19,8 +19,10 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  RegisterForEvDataMessage,
+}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.ServiceType
@@ -305,7 +307,7 @@ object ParticipantAgentInit {
 
       case ServiceType.EvMovementService =>
         serviceRef ! RegisterForEvDataMessage(
-          participantRef.toClassic,
+          participantRef,
           modelShell.uuid,
         )
     }

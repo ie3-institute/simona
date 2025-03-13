@@ -18,9 +18,12 @@ import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.{CsvDataSource, CsvIdCoordinateSource}
 import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.value.WeatherValue
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
+import edu.ie3.simona.config.InputConfig
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  BaseSqlParams,
+  SampleParams,
+}
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
@@ -247,7 +250,7 @@ trait WeatherSource {
 object WeatherSource {
 
   def apply(
-      weatherDataSourceCfg: SimonaConfig.Simona.Input.Weather.Datasource
+      weatherDataSourceCfg: InputConfig.WeatherDatasource
   )(implicit simulationStart: ZonedDateTime): WeatherSource = {
     // get coordinate source
     implicit val coordinateSourceFunction: IdCoordinateSource =
@@ -268,7 +271,7 @@ object WeatherSource {
       )
     }
 
-    implicit val resolution: Option[Long] = weatherDataSourceCfg.resolution
+    implicit val resolution: Long = weatherDataSourceCfg.resolution
     implicit val distance: ComparableQuantity[Length] =
       Quantities.getQuantity(
         weatherDataSourceCfg.maxCoordinateDistance,
@@ -292,7 +295,7 @@ object WeatherSource {
     *   id data source
     */
   private def buildCoordinateSource(
-      coordinateSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+      coordinateSourceConfig: InputConfig.CoordinateSource
   ): IdCoordinateSource = {
     val definedCoordSources = Vector(
       coordinateSourceConfig.sampleParams,
@@ -319,12 +322,12 @@ object WeatherSource {
           ),
         )
       case Some(
-            SqlParams(
+            BaseSqlParams(
               jdbcUrl,
-              userName,
               password,
               schemaName,
               tableName,
+              userName,
             )
           ) =>
         new SqlIdCoordinateSource(
@@ -333,9 +336,7 @@ object WeatherSource {
           tableName,
           new SqlIdCoordinateFactory(),
         )
-      case Some(
-            _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
-          ) =>
+      case Some(_: SampleParams) =>
         // sample coordinates, no check required
         SampleWeatherSource.SampleIdCoordinateSource
       case None =>

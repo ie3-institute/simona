@@ -23,8 +23,8 @@ import edu.ie3.simona.agent.participant2.{
   ParticipantAgent,
   ParticipantAgentInit,
 }
+import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
 import edu.ie3.simona.config.RuntimeConfig._
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.AssetConfigs
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -78,7 +78,7 @@ class GridAgentController(
     simulationEndDate: ZonedDateTime,
     emConfigs: AssetConfigs[EmRuntimeConfig],
     participantsConfig: Participant,
-    outputConfig: SimonaConfig.Simona.Output.Participant,
+    outputConfig: AssetConfigs[ParticipantOutputConfig],
     resolution: Long,
     listener: Iterable[ActorRef[ResultEvent]],
     log: Logger,
@@ -91,7 +91,8 @@ class GridAgentController(
     val systemParticipants =
       filterSysParts(subGridContainer, environmentRefs)
 
-    val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
+    val outputConfigUtil =
+      ConfigUtil.OutputConfigUtil.participants(outputConfig)
 
     // ems that control at least one participant directly
     val firstLevelEms = systemParticipants.flatMap {
@@ -178,8 +179,10 @@ class GridAgentController(
     *
     * @param participantsConfig
     *   Configuration information for participant models
+    * @param emAgents
+    *   mapping: em uuid to agent
     * @param outputConfigUtil
-    *   Configuration information for output behaviour
+    *   Containing configuration information for output behaviour
     * @param participants
     *   Set of system participants to create agents for
     * @param thermalIslandGridsByBusId
@@ -336,7 +339,7 @@ class GridAgentController(
           ServiceType.LoadProfileService -> environmentRefs.loadProfiles.toClassic
         ),
         environmentRefs.evDataService.map(ref =>
-          ServiceType.EvMovementService -> ref
+          ServiceType.EvMovementService -> ref.toClassic
         ),
       ).flatten.toMap
 
