@@ -502,7 +502,6 @@ final case class ThermalGrid(
   private def handleConsumption(
       tick: Long,
       state: HpState,
-      // FIXME do we need this qDot here?
       qDot: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
@@ -524,7 +523,7 @@ final case class ThermalGrid(
         case (storage, storageState) =>
           storage.updateState(
             state.tick,
-            qDot, // Fixme: this should always be zeroKW, right?
+            qDot,
             storageState,
           )
       }
@@ -535,7 +534,7 @@ final case class ThermalGrid(
         state,
         maybeUpdatedHouseState,
         maybeUpdatedStorageState,
-        qDot, // Fixme: this should always be zeroKW, right?
+        qDot,
       )
 
     val nextThreshold = determineMostRecentThreshold(
