@@ -86,7 +86,7 @@ final case class ThermalHouse(
     * the thermal demand, a change in external infeed will take place.
     *
     * @param state
-    *   Data of heat pump including state of the heat pump.
+    *   Last state of the heat pump.
     * @param currentThermalHouseState
     *   Most recent state, that is valid for this model.
     * @return
@@ -138,7 +138,7 @@ final case class ThermalHouse(
     ethCapa * temperatureDiff
   }
 
-  /** Check if inner temperature is higher than preferred maximum temperature
+  /** Check if inner temperature is higher than preferred maximum temperature.
     * @param innerTemperature
     *   The inner temperature of the house.
     * @param boundaryTemperature
@@ -154,8 +154,12 @@ final case class ThermalHouse(
       boundaryTemperature - temperatureTolerance
     )
 
-  /** Check if inner temperature is lower than preferred minimum temperature
+  /** Check if inner temperature is lower than preferred minimum temperature.
     *
+    * @param innerTemperature
+    *   The inner temperature of the house.
+    * @param boundaryTemperature
+    *   The applied boundary temperature to check against.
     * @return
     *   true, if inner temperature is too low
     */
@@ -207,7 +211,7 @@ final case class ThermalHouse(
   /** Update the current state of the house.
     *
     * @param tick
-    *   The tick that the houseState should updated to.
+    *   The tick that the houseState should be updated to.
     * @param thermalHouseState
     *   The applicable state of thermalHouse until this tick.
     * @param currentAmbientTemperature
@@ -215,9 +219,9 @@ final case class ThermalHouse(
     * @param lastAmbientTemperature
     *   Ambient temperature valid up until (not including) the current tick.
     * @param qDot
-    *   New thermal influx
+    *   New thermal influx.
     * @return
-    *   Updated state and the tick in which the next threshold is reached
+    *   Updated state and the tick in which the next threshold is reached.
     */
   def updateState(
       tick: Long,
