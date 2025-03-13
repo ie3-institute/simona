@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use ValidationUtils for ThermalGrids [#1117](https://github.com/ie3-institute/simona/issues/1117)
 - Replace `EvcsModel` with its new implementation [#1151](https://github.com/ie3-institute/simona/issues/1151)
 - Fix determination of qDotIntoGrid in HpModel.calcState() in case heatStorage should feed the thermal grid [#1165](https://github.com/ie3-institute/simona/issues/1165)
+- Replace `BmModel` with its new implementation [#1157](https://github.com/ie3-institute/simona/issues/1157)
 - Integration test for thermal grids without Em [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
 
@@ -154,6 +155,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use new tick retrieval methods from PSDM [#920](https://github.com/ie3-institute/simona/issues/920)
 - Refactor input and output configs [#1175](https://github.com/ie3-institute/simona/issues/1175)
 - Use `Math.floor` when calcNextEventTick for charging entities [#1256](https://github.com/ie3-institute/simona/issues/1256) 
+- Removed Jenkinsfile to begin with using GitHub Actions[#1260](https://github.com/ie3-institute/simona/issues/1260)
+- Sequential test execution for (hopefully) more reliability [#1262](https://github.com/ie3-institute/simona/issues/1262)
+- Converting `ExtEvDataService` to pekko typed [#1214](https://github.com/ie3-institute/simona/issues/1214)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
