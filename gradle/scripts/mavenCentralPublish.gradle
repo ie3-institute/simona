@@ -6,9 +6,9 @@ tasks.register("sourcesJar", Jar) {
 }
 
 tasks.register("javadocJar", Jar) {
-  dependsOn tasks.javadoc
+  dependsOn tasks.named("javadoc", Javadoc)
   archiveClassifier.set("javadoc")
-  from tasks.javadoc.get().destinationDir
+  from { tasks.named("javadoc", Javadoc).get().destinationDir }
 }
 
 if (project.hasProperty('user') && project.hasProperty('password') && project.hasProperty('deployVersion')) {
@@ -19,7 +19,7 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
 
   publishing {
     publications {
-      mavenJava(MavenPublication) {
+      create("mavenJava", MavenPublication) {
 
         versionMapping {
           // resolves dynamic versioning to current version number
@@ -62,8 +62,8 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
         }
 
         removeTestDependenciesFromPom(pom)
-        groupId group
-        artifactId 'simona'
+        groupId.set(group)
+        artifactId.set('simona')
         version versionString
 
         from components.java
@@ -84,10 +84,10 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
     }
     signing {
       useInMemoryPgpKeys(
-          findProperty('signingKey'),
-          findProperty('signingPassword')
-          )
-      sign publishing.publications.mavenJava
+              findProperty('signingKey') as String,
+              findProperty('signingPassword') as String
+      )
+      sign publications.mavenJava
     }
   }
 
