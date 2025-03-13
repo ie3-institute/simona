@@ -69,14 +69,14 @@ jobs:
         run: ./gradlew --refresh-dependencies clean assemble spotlessCheck
 
       - name: Run Tests
-        run: ./gradlew test --warning-mode all reportScoverage checkScoverage
+        run: ./gradlew test reportScoverage checkScoverage
 
       - name: Build Scala-Docs
         run: ./gradlew scaladoc
 
       - name: SonarQube
         run: |
-          ./gradlew sonar --warning-mode all \
+          ./gradlew sonar \
           -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
           -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
