@@ -338,7 +338,7 @@ class GridAgentController(
       Seq(
         Some(ServiceType.WeatherService -> environmentRefs.weather),
         environmentRefs.evDataService.map(ref =>
-          ServiceType.EvMovementService -> ref
+          ServiceType.EvMovementService -> ref.toClassic
         ),
       ).flatten.toMap
 
