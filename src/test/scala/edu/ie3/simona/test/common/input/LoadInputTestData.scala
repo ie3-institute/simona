@@ -36,4 +36,5 @@ trait LoadInputTestData extends NodeInputTestData {
     0.95,
   )
 
+  protected val loadInputContainer = SimpleInputContainer(loadInput)
 }

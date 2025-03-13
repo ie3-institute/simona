@@ -81,8 +81,6 @@ trait EmInputTestData
     Quantities.getQuantity(0.95, PU),
   )
 
-  protected val storageInputContainer = SimpleInputContainer(storageInput)
-
   protected val storageInput = new StorageInput(
     UUID.randomUUID(),
     "Dummy_Household_StorageInput",
@@ -93,6 +91,8 @@ trait EmInputTestData
     emInput,
     householdStorageTypeInput,
   )
+
+  protected val storageInputContainer = SimpleInputContainer(storageInput)
 
   protected val simonaConfig: SimonaConfig = createSimonaConfig()
 

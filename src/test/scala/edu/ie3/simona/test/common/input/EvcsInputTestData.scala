@@ -38,6 +38,8 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     true,
   )
 
+  protected val evcsInputContainer = SimpleInputContainer(evcsInputModel)
+
   protected val ev1 = new MockEvModel(
     UUID.fromString("0-0-0-1-1"),
     "TestEv1",
