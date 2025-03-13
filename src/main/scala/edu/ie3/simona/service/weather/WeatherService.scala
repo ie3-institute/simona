@@ -12,6 +12,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
+import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
@@ -31,7 +32,7 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.{ActorContext, ActorRef}
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 
 import java.time.ZonedDateTime
 import scala.util.{Failure, Success, Try}

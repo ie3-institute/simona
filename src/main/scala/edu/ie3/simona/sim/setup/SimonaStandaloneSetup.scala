@@ -34,6 +34,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProx
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
+import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime

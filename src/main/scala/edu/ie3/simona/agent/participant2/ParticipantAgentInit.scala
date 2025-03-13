@@ -19,9 +19,11 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  RegisterForEvDataMessage,
+}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.ServiceType
@@ -287,7 +289,7 @@ object ParticipantAgentInit {
 
         Option(geoPosition.getY).zip(Option(geoPosition.getX)) match {
           case Some((lat, lon)) =>
-            serviceRef ! RegisterForWeatherMessage(ctx.self, lat, lon)
+            serviceRef ! RegisterForWeatherMessage(participantRef, lat, lon)
           case _ =>
             throw new CriticalFailureException(
               s"${modelShell.identifier} cannot register for weather information at " +

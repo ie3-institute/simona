@@ -24,6 +24,7 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 
 trait ServiceRegistration[
     PD <: PrimaryDataWithComplexPower[PD],
