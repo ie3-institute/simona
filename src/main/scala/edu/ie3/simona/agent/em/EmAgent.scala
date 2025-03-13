@@ -25,6 +25,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.services.EmMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.em.ExtEmDataService
@@ -33,7 +34,6 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.time.ZonedDateTime
 import scala.jdk.OptionConverters.RichOptional
@@ -106,7 +106,7 @@ object EmAgent {
       simulationStartDate: ZonedDateTime,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
       listener: Iterable[ActorRef[ResultEvent]],
-      emDataService: Option[ClassicRef],
+      emDataService: Option[ActorRef[EmMessage]],
   ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
     val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
 

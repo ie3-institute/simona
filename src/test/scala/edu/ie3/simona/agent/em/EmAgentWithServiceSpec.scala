@@ -18,6 +18,7 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.services.EmMessage
 import edu.ie3.simona.ontology.messages.services.EmMessage.{
   WrappedFlexRequest,
   WrappedFlexResponse,
@@ -80,8 +81,8 @@ class EmAgentWithServiceSpec
 
       val parentEmAgent = TestProbe[FlexResponse]("ParentEmAgent")
 
-      val service = TestProbe[Any]("emService")
-      val serviceRef = service.ref.toClassic
+      val service = TestProbe[EmMessage]("emService")
+      val serviceRef = service.ref
 
       val emAgent = spawn(
         EmAgent(
@@ -346,8 +347,8 @@ class EmAgentWithServiceSpec
       val resultListener = TestProbe[ResultEvent]("ResultListener")
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
-      val service = TestProbe[Any]("emService")
-      val serviceRef = service.ref.toClassic
+      val service = TestProbe[EmMessage]("emService")
+      val serviceRef = service.ref
 
       val parentEmInput = emInput
         .copy()

@@ -33,6 +33,7 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
+import edu.ie3.simona.ontology.messages.services.EmMessage
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
@@ -262,7 +263,7 @@ class GridAgentController(
       outputConfigUtil: OutputConfigUtil,
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
-      emDataService: Option[ClassicRef],
+      emDataService: Option[ActorRef[EmMessage]],
   ): Map[UUID, ActorRef[FlexResponse]] = {
     // For the current level, split controlled and uncontrolled EMs.
     // Uncontrolled EMs can be built right away.
@@ -571,7 +572,7 @@ class GridAgentController(
       modelConfiguration: EmRuntimeConfig,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-      emDataService: Option[ClassicRef],
+      emDataService: Option[ActorRef[EmMessage]],
   ): ActorRef[FlexResponse] =
     gridAgentContext.spawn(
       EmAgent(

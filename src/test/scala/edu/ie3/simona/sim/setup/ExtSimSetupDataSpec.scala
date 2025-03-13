@@ -128,7 +128,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.extResultListeners shouldBe Seq((resultConnection, resultRef))
     }
 
-    "be updated with multiple different connections" in {
+    "be updated with multiple different connections correctly" in {
       val extSimSetupData = ExtSimSetupData.apply
 
       val primaryConnection = new ExtPrimaryDataConnection(emptyMapInput)
@@ -168,6 +168,26 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.extResultListeners shouldBe Seq((resultConnection, resultRef))
     }
 
+    "return emDataService correctly" in {
+      val emConnection = new ExtEmDataConnection(emptyMapInput)
+      val emRef = TestProbe("em_service").ref
+
+      val cases = Table(
+        ("extSimSetupData", "expectedConnection", "expectedService"),
+        (
+          ExtSimSetupData.apply.update(emConnection, emRef),
+          Some(emConnection),
+          Some(emRef),
+        ),
+        (ExtSimSetupData.apply, None, None),
+      )
+
+      forAll(cases) { (extSimSetupData, expectedConnection, expectedService) =>
+        extSimSetupData.emDataConnection shouldBe expectedConnection
+        extSimSetupData.emDataService shouldBe expectedService
+      }
+    }
+
     "return evDataService correctly" in {
       val evConnection = new ExtEvDataConnection()
       val evRef = TestProbe("ev_service").ref
@@ -185,26 +205,6 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       forAll(cases) { (extSimSetupData, expectedConnection, expectedService) =>
         extSimSetupData.evDataConnection shouldBe expectedConnection
         extSimSetupData.evDataService shouldBe expectedService
-      }
-    }
-
-    "return emDataService correctly" in {
-      val emConnection = new ExtEmDataConnection(emptyMapInput)
-      val emRef = TestProbe("em_service").ref
-
-      val cases = Table(
-        ("extSimSetupData", "expectedConnection", "expectedService"),
-        (
-          ExtSimSetupData.apply.update(emConnection, emRef),
-          Some(emConnection),
-          Some(emRef),
-        ),
-        (ExtSimSetupData.apply, None, None),
-      )
-
-      forAll(cases) { (extSimSetupData, expectedConnection, expectedService) =>
-        extSimSetupData.emDataConnection shouldBe expectedConnection
-        extSimSetupData.emDataService shouldBe expectedService.map(_.toClassic)
       }
     }
 

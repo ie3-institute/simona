@@ -22,31 +22,32 @@ import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequ
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  DataResponseMessage,
   PrimaryServiceRegistrationMessage,
+  ServiceResponseMessage,
 }
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.primary.ExtPrimaryDataService.{
-  ExtPrimaryDataStateData,
-  InitExtPrimaryData,
+import edu.ie3.simona.service.{
+  ExtDataSupport,
+  ServiceStateData,
+  TypedSimonaService,
 }
-import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
-object ExtPrimaryDataService {
+object ExtPrimaryDataService
+    extends TypedSimonaService[ServiceMessage]
+    with ExtDataSupport[ServiceMessage] {
 
-  def props(scheduler: ActorRef): Props =
-    Props(
-      new ExtPrimaryDataService(scheduler: ActorRef)
-    )
+  override type S = ExtPrimaryDataStateData
 
   final case class ExtPrimaryDataStateData(
       extPrimaryData: ExtPrimaryDataConnection,
@@ -60,12 +61,6 @@ object ExtPrimaryDataService {
   case class InitExtPrimaryData(
       extPrimaryData: ExtPrimaryDataConnection
   ) extends InitializeServiceStateData
-
-}
-final case class ExtPrimaryDataService(
-    override val scheduler: ActorRef
-) extends SimonaService[ExtPrimaryDataStateData](scheduler)
-    with ExtDataSupport[ExtPrimaryDataStateData] {
 
   override def init(
       initServiceData: ServiceStateData.InitializeServiceStateData
@@ -90,7 +85,8 @@ final case class ExtPrimaryDataService(
   override protected def handleRegistrationRequest(
       registrationMessage: ServiceMessage.ServiceRegistrationMessage
   )(implicit
-      serviceStateData: ExtPrimaryDataStateData
+      serviceStateData: ExtPrimaryDataStateData,
+      ctx: ActorContext[ServiceMessage],
   ): Try[ExtPrimaryDataStateData] = registrationMessage match {
     case PrimaryServiceRegistrationMessage(
           requestingActor,
@@ -109,7 +105,8 @@ final case class ExtPrimaryDataService(
       agentToBeRegistered: ActorRef,
       agentUUID: UUID,
   )(implicit
-      serviceStateData: ExtPrimaryDataStateData
+      serviceStateData: ExtPrimaryDataStateData,
+      ctx: ActorContext[ServiceMessage],
   ): ExtPrimaryDataStateData = {
     serviceStateData.uuidToActorRef.get(agentUUID) match {
       case None =>
@@ -124,11 +121,11 @@ final case class ExtPrimaryDataService(
           )
 
         agentToBeRegistered ! PrimaryRegistrationSuccessfulMessage(
-          self,
+          ctx.self.toClassic,
           0L,
           PrimaryData.getPrimaryDataExtra(valueClass),
         )
-        log.info(s"Successful registration for $agentUUID")
+        ctx.log.info(s"Successful registration for $agentUUID")
 
         serviceStateData.copy(
           subscribers = serviceStateData.subscribers :+ agentUUID,
@@ -138,7 +135,7 @@ final case class ExtPrimaryDataService(
 
       case Some(_) =>
         // actor is already registered, do nothing
-        log.warning(
+        ctx.log.warn(
           "Sending actor {} is already registered",
           agentToBeRegistered,
         )
@@ -161,7 +158,7 @@ final case class ExtPrimaryDataService(
       tick: Long
   )(implicit
       serviceStateData: ExtPrimaryDataStateData,
-      ctx: ActorContext,
+      ctx: ActorContext[ServiceMessage],
   ): (ExtPrimaryDataStateData, Option[Long]) = { // We got activated for this tick, so we expect incoming primary data
     serviceStateData.extPrimaryDataMessage.getOrElse(
       throw ServiceException(
@@ -181,19 +178,21 @@ final case class ExtPrimaryDataService(
       primaryDataMessage: ProvidePrimaryData,
   )(implicit
       serviceStateData: ExtPrimaryDataStateData,
-      ctx: ActorContext,
+      ctx: ActorContext[ServiceMessage],
   ): (
       ExtPrimaryDataStateData,
       Option[Long],
   ) = {
-    log.debug(s"Got activation to distribute primaryData = $primaryDataMessage")
+    ctx.log.debug(
+      s"Got activation to distribute primaryData = $primaryDataMessage"
+    )
     val actorToPrimaryData = primaryDataMessage.primaryData.asScala.flatMap {
       case (agent, primaryDataPerAgent) =>
         serviceStateData.uuidToActorRef
           .get(agent)
           .map((_, primaryDataPerAgent))
           .orElse {
-            log.warning(
+            ctx.log.warn(
               "A corresponding actor ref for UUID {} could not be found",
               agent,
             )
@@ -210,13 +209,13 @@ final case class ExtPrimaryDataService(
           case Success(primaryData) =>
             actor ! DataProvision(
               tick,
-              self,
+              ctx.self.toClassic,
               primaryData,
               maybeNextTick,
             )
           case Failure(exception) =>
             /* Processing of data failed */
-            log.warning(
+            ctx.log.warn(
               "Unable to convert received value to primary data. Skipped that data." +
                 "\nException: {}",
               exception,
@@ -245,7 +244,7 @@ final case class ExtPrimaryDataService(
   }
 
   override protected def handleDataResponseMessage(
-      extResponseMsg: DataResponseMessage
+      extResponseMsg: ServiceResponseMessage
   )(implicit
       serviceStateData: ExtPrimaryDataStateData
   ): ExtPrimaryDataStateData = serviceStateData

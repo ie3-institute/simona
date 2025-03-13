@@ -10,7 +10,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.DataResponseMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceResponseMessage
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -19,16 +19,16 @@ sealed trait EmMessage
 
 object EmMessage {
 
-  trait EmResponseMessage extends EmMessage with DataResponseMessage
+  private[services] trait EmInternal extends EmMessage
 
   final case class WrappedFlexResponse(
       flexResponse: FlexResponse,
       receiver: Either[UUID, ActorRef[FlexResponse]],
-  ) extends EmResponseMessage
+  ) extends ServiceResponseMessage
 
   final case class WrappedFlexRequest(
       flexRequest: FlexRequest,
       receiver: ActorRef[FlexRequest],
-  ) extends EmResponseMessage
+  ) extends ServiceResponseMessage
 
 }

@@ -17,35 +17,28 @@ import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequ
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.services.EmMessage
 import edu.ie3.simona.ontology.messages.services.EmMessage.{
   WrappedFlexRequest,
   WrappedFlexResponse,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  DataResponseMessage,
   RegisterForEmDataService,
+  ServiceRegistrationMessage,
+  ServiceResponseMessage,
 }
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.em.ExtEmDataService.{
-  ExtEmDataStateData,
-  InitExtEmData,
-}
-import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
+import edu.ie3.simona.service.{ExtDataSupport, TypedSimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
 import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.{
-  Behaviors,
-  ActorContext => TypedContext,
-}
-import org.apache.pekko.actor.{ActorContext, Props, ActorRef => ClassicRef}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import squants.Power
 import squants.energy.Kilowatts
 import tech.units.indriya.ComparableQuantity
@@ -61,20 +54,27 @@ import scala.jdk.CollectionConverters.{
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 import scala.util.{Failure, Success, Try}
 
-object ExtEmDataService {
+object ExtEmDataService
+    extends TypedSimonaService[EmMessage]
+    with ExtDataSupport[EmMessage] {
 
-  def props(scheduler: ClassicRef)(implicit
-      simulationStart: ZonedDateTime
-  ): Props =
-    Props(
-      new ExtEmDataService(scheduler: ClassicRef)
-    )
+  override type S = ExtEmDataStateData
+
+  implicit class SquantsToQuantity(private val value: Power) {
+    def toQuantity: ComparableQuantity[PsdmPower] = value.toKilowatts.asKiloWatt
+  }
+
+  implicit class quantityToSquants(
+      private val value: ComparableQuantity[PsdmPower]
+  ) {
+    def toSquants: Power = Kilowatts(value.to(KILOWATT).getValue.doubleValue())
+  }
 
   def emServiceResponseAdapter(
-      emService: ClassicRef,
+      emService: ActorRef[EmMessage],
       receiver: Option[ActorRef[FlexResponse]],
       self: UUID,
-  )(implicit ctx: TypedContext[EmAgent.Request]): ActorRef[FlexResponse] = {
+  )(implicit ctx: ActorContext[EmAgent.Request]): ActorRef[FlexResponse] = {
 
     val request = Behaviors.receiveMessagePartial[FlexResponse] {
       case response: FlexResponse =>
@@ -90,9 +90,9 @@ object ExtEmDataService {
   }
 
   def emServiceRequestAdapter(
-      emService: ClassicRef,
+      emService: ActorRef[EmMessage],
       receiver: ActorRef[FlexRequest],
-  )(implicit ctx: TypedContext[EmAgent.Request]): ActorRef[FlexRequest] = {
+  )(implicit ctx: ActorContext[EmAgent.Request]): ActorRef[FlexRequest] = {
     val response = Behaviors.receiveMessagePartial[FlexRequest] {
       case request: FlexRequest =>
         emService ! WrappedFlexRequest(
@@ -108,6 +108,7 @@ object ExtEmDataService {
 
   final case class ExtEmDataStateData(
       extEmDataConnection: ExtEmDataConnection,
+      startTime: ZonedDateTime,
       emHierarchy: EmHierarchy = EmHierarchy(),
       uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]] = Map.empty,
       flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
@@ -159,26 +160,9 @@ object ExtEmDataService {
   }
 
   case class InitExtEmData(
-      extEmData: ExtEmDataConnection
+      extEmData: ExtEmDataConnection,
+      startTime: ZonedDateTime,
   ) extends InitializeServiceStateData
-}
-
-final case class ExtEmDataService(
-    override val scheduler: ClassicRef
-)(implicit
-    val simulationStart: ZonedDateTime
-) extends SimonaService[ExtEmDataStateData](scheduler)
-    with ExtDataSupport[ExtEmDataStateData] {
-
-  implicit class SquantsToQuantity(private val value: Power) {
-    def toQuantity: ComparableQuantity[PsdmPower] = value.toKilowatts.asKiloWatt
-  }
-
-  implicit class quantityToSquants(
-      private val value: ComparableQuantity[PsdmPower]
-  ) {
-    def toSquants: Power = Kilowatts(value.to(KILOWATT).getValue.doubleValue())
-  }
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
@@ -197,8 +181,9 @@ final case class ExtEmDataService(
   override def init(
       initServiceData: InitializeServiceStateData
   ): Try[(ExtEmDataStateData, Option[Long])] = initServiceData match {
-    case InitExtEmData(extEmDataConnection) =>
-      val emDataInitializedStateData = ExtEmDataStateData(extEmDataConnection)
+    case InitExtEmData(extEmDataConnection, startTime) =>
+      val emDataInitializedStateData =
+        ExtEmDataStateData(extEmDataConnection, startTime)
       Success(
         emDataInitializedStateData,
         None,
@@ -223,8 +208,11 @@ final case class ExtEmDataService(
     *   with updated values)
     */
   override protected def handleRegistrationRequest(
-      registrationMessage: ServiceMessage.ServiceRegistrationMessage
-  )(implicit serviceStateData: ExtEmDataStateData): Try[ExtEmDataStateData] =
+      registrationMessage: ServiceRegistrationMessage
+  )(implicit
+      serviceStateData: ExtEmDataStateData,
+      ctx: ActorContext[EmMessage],
+  ): Try[ExtEmDataStateData] =
     registrationMessage match {
       case RegisterForEmDataService(
             modelUuid,
@@ -286,7 +274,7 @@ final case class ExtEmDataService(
     */
   override protected def announceInformation(tick: Long)(implicit
       serviceStateData: ExtEmDataStateData,
-      ctx: ActorContext,
+      ctx: ActorContext[EmMessage],
   ): (ExtEmDataStateData, Option[Long]) = {
     val updatedStateData = serviceStateData.extEmDataMessage.getOrElse(
       throw ServiceException(
@@ -325,7 +313,8 @@ final case class ExtEmDataService(
   private def announceFlexOptions(
       provideFlexOptions: ProvideEmFlexOptionData
   )(implicit
-      serviceStateData: ExtEmDataStateData
+      serviceStateData: ExtEmDataStateData,
+      ctx: ActorContext[EmMessage],
   ): ExtEmDataStateData = {
     val hierarchy = serviceStateData.emHierarchy
 
@@ -343,7 +332,7 @@ final case class ExtEmDataService(
             )
 
           case None =>
-            log.warning(s"No em agent with uuid '$agent' registered!")
+            ctx.log.warn(s"No em agent with uuid '$agent' registered!")
         }
       }
 
@@ -353,7 +342,10 @@ final case class ExtEmDataService(
   private def announceEmSetPoints(
       tick: Long,
       provideEmSetPointData: ProvideEmSetPointData,
-  )(implicit serviceStateData: ExtEmDataStateData): ExtEmDataStateData = {
+  )(implicit
+      serviceStateData: ExtEmDataStateData,
+      ctx: ActorContext[EmMessage],
+  ): ExtEmDataStateData = {
 
     provideEmSetPointData
       .emData()
@@ -372,7 +364,7 @@ final case class ExtEmDataService(
             }
 
           case None =>
-            log.warning(s"No em agent with uuid '$agent' registered!")
+            ctx.log.warn(s"No em agent with uuid '$agent' registered!")
         }
       }
 
@@ -390,7 +382,9 @@ final case class ExtEmDataService(
     */
   override protected def handleDataMessage(
       extMsg: DataMessageFromExt
-  )(implicit serviceStateData: ExtEmDataStateData): ExtEmDataStateData = {
+  )(implicit
+      serviceStateData: ExtEmDataStateData
+  ): ExtEmDataStateData = {
     extMsg match {
       case extEmDataMessage: EmDataMessageFromExt =>
         serviceStateData.copy(
@@ -409,7 +403,7 @@ final case class ExtEmDataService(
     *   the updated state data
     */
   override protected def handleDataResponseMessage(
-      extResponseMsg: DataResponseMessage
+      extResponseMsg: ServiceResponseMessage
   )(implicit
       serviceStateData: ExtEmDataStateData
   ): ExtEmDataStateData = extResponseMsg match {
@@ -429,7 +423,7 @@ final case class ExtEmDataService(
           serviceStateData.flexOptionResponse.addData(
             uuid,
             new FlexOptionsResult(
-              simulationStart, // TODO: Fix this
+              serviceStateData.startTime, // TODO: Fix this
               modelUuid,
               min.toQuantity,
               ref.toQuantity,
@@ -465,7 +459,7 @@ final case class ExtEmDataService(
           serviceStateData.setPointResponse.addData(
             uuid,
             new EmSetPointResult(
-              tick.toDateTime,
+              tick.toDateTime(serviceStateData.startTime),
               uuid,
               None.toJava,
             ),
@@ -475,7 +469,7 @@ final case class ExtEmDataService(
           serviceStateData.setPointResponse.addData(
             uuid,
             new EmSetPointResult(
-              tick.toDateTime,
+              tick.toDateTime(serviceStateData.startTime),
               uuid,
               Some(new PValue(setPower.toQuantity)).toJava,
             ),

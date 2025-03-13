@@ -6,21 +6,18 @@
 
 package edu.ie3.simona.ontology.messages.services
 
+import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.services.EvMessage.EvInternal
-import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse,
 }
+import edu.ie3.simona.ontology.messages.services.EmMessage.EmInternal
+import edu.ie3.simona.ontology.messages.services.EvMessage.EvInternal
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
-import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
-
-import java.util.UUID
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
@@ -29,7 +26,7 @@ import java.util.UUID
 /** Collections of all messages, that are send to and from the different
   * services
   */
-sealed trait ServiceMessage extends EvInternal
+sealed trait ServiceMessage extends EmInternal with EvInternal
 
 object ServiceMessage {
 
@@ -62,8 +59,6 @@ object ServiceMessage {
   /** Message used to register for a service
     */
   trait ServiceRegistrationMessage extends ServiceMessage
-
-  trait DataResponseMessage extends ServiceMessage
 
   /** Message to register with a primary data service.
     *

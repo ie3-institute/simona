@@ -42,6 +42,7 @@ import edu.ie3.simona.exceptions.{
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage,
@@ -62,6 +63,7 @@ import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
+import org.apache.pekko.actor.typed.{ActorRef => TypedRef}
 
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
@@ -142,7 +144,9 @@ case class PrimaryServiceProxy(
   private def prepareStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
-      extSimulationData: Seq[(ExtPrimaryDataConnection, ActorRef)],
+      extSimulationData: Seq[
+        (ExtPrimaryDataConnection, TypedRef[ServiceMessage])
+      ],
   ): Try[PrimaryServiceStateData] = {
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
@@ -557,7 +561,9 @@ object PrimaryServiceProxy {
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
-      extSimulationData: Seq[(ExtPrimaryDataConnection, ActorRef)],
+      extSimulationData: Seq[
+        (ExtPrimaryDataConnection, TypedRef[ServiceMessage])
+      ],
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.
@@ -579,7 +585,7 @@ object PrimaryServiceProxy {
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
       mappingSource: TimeSeriesMappingSource,
-      extSubscribersToService: Map[UUID, ActorRef] = Map.empty,
+      extSubscribersToService: Map[UUID, TypedRef[ServiceMessage]] = Map.empty,
   ) extends ServiceStateData
 
   /** Giving reference to the target time series and source worker.

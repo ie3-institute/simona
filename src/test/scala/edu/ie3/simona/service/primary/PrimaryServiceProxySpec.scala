@@ -129,9 +129,9 @@ class PrimaryServiceProxySpec
 
   private val scheduler: TestProbe = TestProbe("scheduler")
 
-  private val validExtPrimaryDataService = TestActorRef(
-    new ExtPrimaryDataService(
-      scheduler.ref
+  private val validExtPrimaryDataService = TSpawner.spawn(
+    ExtPrimaryDataService.apply(
+      scheduler.ref.toTyped
     )
   )
 
