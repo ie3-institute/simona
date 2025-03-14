@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.SimpleInputContainer
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATTHOUR, VOLTAMPERE}
 import tech.units.indriya.quantity.Quantities
 
@@ -37,6 +38,7 @@ trait LoadInputTestData extends NodeInputTestData {
     0.95,
   )
 
+  protected val loadInputContainer = SimpleInputContainer(loadInput)
   private val operationTimeBuilder = OperationTime.builder()
 
   private val interval = new ClosedInterval[ZonedDateTime](

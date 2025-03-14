@@ -158,6 +158,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed Jenkinsfile to begin with using GitHub Actions[#1260](https://github.com/ie3-institute/simona/issues/1260)
 - Sequential test execution for (hopefully) more reliability [#1262](https://github.com/ie3-institute/simona/issues/1262)
 - Converting `ExtEvDataService` to pekko typed [#1214](https://github.com/ie3-institute/simona/issues/1214)
+- Updated Gradle to version 8.13 and removed deprecated syntax [#1286](https://github.com/ie3-institute/PowerSystemDataModel/issues/1286)
+- Consider inputContainer when initialize participant models [#1251](https://github.com/ie3-institute/simona/issues/1251) 
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -213,6 +215,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Show full stacktrace of failing tests with `gradle test` [#1245](https://github.com/ie3-institute/simona/issues/1245)
 - Fix copernicus url in readthedocs [#1248](https://github.com/ie3-institute/simona/issues/1248)
 - Check for fully charged Evs when determine next OperationPoint of Evcs [#1253](https://github.com/ie3-institute/simona/issues/1253)
+- Fix bug in `ExtDataSupport.adapter` that leads to an exception while scheduling the service [#1273](https://github.com/ie3-institute/simona/issues/1273)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
