@@ -65,7 +65,7 @@ trait EmInputTestData
     true,
   )
 
-  protected val householdStorageTypeInput = new StorageTypeInput(
+  protected val storageTypeInput = new StorageTypeInput(
     UUID.randomUUID(),
     "Dummy_StorageTypeInput",
     Quantities.getQuantity(4000d, EURO),
@@ -86,7 +86,7 @@ trait EmInputTestData
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
     emInput,
-    householdStorageTypeInput,
+    storageTypeInput,
   )
 
   protected val storageInputContainer = SimpleInputContainer(storageInput)
