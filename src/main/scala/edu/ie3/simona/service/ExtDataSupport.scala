@@ -9,6 +9,7 @@ package edu.ie3.simona.service
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ScheduleServiceActivation,
   ServiceResponseMessage,
   WrappedExternalMessage,
 }
@@ -34,9 +35,15 @@ trait ExtDataSupport[
     *   The behavior of the adapter.
     */
   def adapter(service: ActorRef[T]): Behavior[DataMessageFromExt] =
-    Behaviors.receiveMessagePartial[DataMessageFromExt] { extMsg =>
-      service ! WrappedExternalMessage(extMsg)
-      Behaviors.same
+    Behaviors.receiveMessagePartial[DataMessageFromExt] {
+      case scheduleServiceActivation: ScheduleServiceActivation =>
+        // TODO: Refactor this with scala3
+        service ! scheduleServiceActivation
+        Behaviors.same
+
+      case extMsg =>
+        service ! WrappedExternalMessage(extMsg)
+        Behaviors.same
     }
 
   override private[service] def idleExternal(implicit
