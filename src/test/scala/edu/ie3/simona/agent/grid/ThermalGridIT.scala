@@ -940,7 +940,7 @@ class ThermalGridIT
 
       val pvAgent = spawn(
         ParticipantAgentInit(
-          pvInput,
+          pvInputContainer,
           PvRuntimeConfig(calculateMissingReactivePowerWithModel = true),
           outputConfigOff,
           participantRefs,
