@@ -455,7 +455,7 @@ object HpModel {
     * [[HpInput]]
     *
     * @param hpInput
-    *   instance of [[HpInput]] this chp model should be built from
+    *   instance of [[HpInput]] this hp model should be built from
     * @param simulationStartDate
     *   Simulation time at which the simulation starts
     * @param simulationEndDate
