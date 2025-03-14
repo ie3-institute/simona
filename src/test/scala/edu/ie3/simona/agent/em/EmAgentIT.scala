@@ -686,7 +686,7 @@ class EmAgentIT
         )
         val pvAgent = spawn(
           ParticipantAgentInit(
-            pvInputWithQCharacteristicLimitedOperationTime,
+            pvInputContainerWithQCharacteristicLimitedOperationTime,
             PvRuntimeConfig(calculateMissingReactivePowerWithModel = true),
             outputConfigOff,
             participantRefs,
@@ -698,7 +698,7 @@ class EmAgentIT
 
         val loadAgent = spawn(
           ParticipantAgentInit(
-            loadInputWithLimitedOperationTime,
+            loadInputContainerWithLimitedOperationTime,
             LoadRuntimeConfig(calculateMissingReactivePowerWithModel = true),
             outputConfigOff,
             participantRefs,

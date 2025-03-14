@@ -39,6 +39,7 @@ trait LoadInputTestData extends NodeInputTestData {
   )
 
   protected val loadInputContainer = SimpleInputContainer(loadInput)
+
   private val operationTimeBuilder = OperationTime.builder()
 
   private val interval = new ClosedInterval[ZonedDateTime](
@@ -54,4 +55,7 @@ trait LoadInputTestData extends NodeInputTestData {
     .id("testLoadWithLimitedOperationTime")
     .operationTime(operationTime)
     .build()
+
+  protected val loadInputContainerWithLimitedOperationTime =
+    SimpleInputContainer(loadInputWithLimitedOperationTime)
 }
