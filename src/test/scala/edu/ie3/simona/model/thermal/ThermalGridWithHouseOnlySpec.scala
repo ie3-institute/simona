@@ -14,11 +14,9 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalGridState,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureLowerBoundaryReached
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull,
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
+  HouseTargetTemperatureReached,
+  HouseTemperatureLowerBoundaryReached,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
@@ -146,8 +144,8 @@ class ThermalGridWithHouseOnlySpec
         val domesticHotWaterDemand =
           thermalDemands.domesticHotWaterStorageDemand
 
-        houseDemand.required should approximate(expectedHouseDemand.required)
-        houseDemand.possible should approximate(expectedHouseDemand.possible)
+        houseDemand.required should approximate(zeroKWh)
+        houseDemand.possible should approximate(KilowattHours(1.050097))
         storageDemand.required should approximate(zeroKWh)
         storageDemand.possible should approximate(zeroKWh)
         domesticHotWaterDemand.required should approximate(zeroKWh)
@@ -398,7 +396,10 @@ class ThermalGridWithHouseOnlySpec
           ThermalEnergyDemand(zeroKWh, zeroKWh),
           ThermalEnergyDemand(zeroKWh, zeroKWh),
         )
-        val initialGridState = ThermalGrid.startingState(thermalGrid)
+        val initialGridState = ThermalGridState(
+          Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
+          None,
+        )
         val gridState = initialGridState.copy(
           houseState =
             initialGridState.houseState.map(_.copy(qDot = testGridQDotInfeed)),
@@ -432,7 +433,7 @@ class ThermalGridWithHouseOnlySpec
               ) =>
             tickHouse shouldBe 0L
             tickDomesticHotWaterStorage shouldBe 0L
-            innerTemperature should approximate(Celsius(18.9999d))
+            innerTemperature should approximate(Celsius(16.9999d))
             energyDomesticHotWaterStorage should approximate(
               KilowattHours(0.06744526)
             )

@@ -56,7 +56,7 @@ class HpModelSpec
             true,
             95,
             15.6,
-            Some(HouseTargetTemperatureReached(31710)),
+            Some(HouseTargetTemperatureReached(24051)),
           ),
           (
             HpState(
@@ -71,7 +71,7 @@ class HpModelSpec
             true,
             95,
             16.4,
-            Some(HouseTargetTemperatureReached(30641)),
+            Some(HouseTargetTemperatureReached(22269)),
           ),
           (
             HpState(
@@ -86,7 +86,7 @@ class HpModelSpec
             true,
             95,
             18.0,
-            Some(HouseTargetTemperatureReached(27771)),
+            Some(HouseTargetTemperatureReached(17485)),
           ),
           (
             HpState(

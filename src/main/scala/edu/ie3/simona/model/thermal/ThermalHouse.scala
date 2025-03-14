@@ -37,72 +37,72 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 /** A thermal house model
-  *
-  * @param uuid
-  *   the element's uuid
-  * @param id
-  *   the element's human-readable id
-  * @param operatorInput
-  *   Operator input
-  * @param operationTime
-  *   Operation time
-  * @param bus
-  *   Thermal bus input
-  * @param ethLosses
-  *   transmission coefficient of heat storage, usually in [kW/K]
-  * @param ethCapa
-  *   heat energy storage capability of thermal house, usually in [kWh/K]
-  * @param targetTemperature
-  *   Target room temperature [K]
-  * @param lowerBoundaryTemperature
-  *   Lower temperature boundary [K]
-  * @param upperBoundaryTemperature
-  *   Upper boundary temperature [K]
-  * @param housingType
-  *   type of house, either `house` or `flat`
-  * @param houseInhabitants
-  *   number of people living in the building
-  */
+ *
+ * @param uuid
+ *   the element's uuid
+ * @param id
+ *   the element's human-readable id
+ * @param operatorInput
+ *   Operator input
+ * @param operationTime
+ *   Operation time
+ * @param bus
+ *   Thermal bus input
+ * @param ethLosses
+ *   transmission coefficient of heat storage, usually in [kW/K]
+ * @param ethCapa
+ *   heat energy storage capability of thermal house, usually in [kWh/K]
+ * @param targetTemperature
+ *   Target room temperature [K]
+ * @param lowerBoundaryTemperature
+ *   Lower temperature boundary [K]
+ * @param upperBoundaryTemperature
+ *   Upper boundary temperature [K]
+ * @param housingType
+ *   type of house, either `house` or `flat`
+ * @param houseInhabitants
+ *   number of people living in the building
+ */
 final case class ThermalHouse(
-    uuid: UUID,
-    id: String,
-    operatorInput: OperatorInput,
-    operationTime: OperationTime,
-    bus: ThermalBusInput,
-    ethLosses: ThermalConductance,
-    ethCapa: ThermalCapacity,
-    targetTemperature: Temperature,
-    lowerBoundaryTemperature: Temperature,
-    upperBoundaryTemperature: Temperature,
-    housingType: String,
-    houseInhabitants: Double,
-) extends ThermalSink(
-      uuid,
-      id,
-      operatorInput,
-      operationTime,
-      bus,
-    ) {
+                               uuid: UUID,
+                               id: String,
+                               operatorInput: OperatorInput,
+                               operationTime: OperationTime,
+                               bus: ThermalBusInput,
+                               ethLosses: ThermalConductance,
+                               ethCapa: ThermalCapacity,
+                               targetTemperature: Temperature,
+                               lowerBoundaryTemperature: Temperature,
+                               upperBoundaryTemperature: Temperature,
+                               housingType: String,
+                               houseInhabitants: Double,
+                             ) extends ThermalSink(
+  uuid,
+  id,
+  operatorInput,
+  operationTime,
+  bus,
+) {
 
   /** Calculate the energy demand for heating at the instance in question. If
-    * the inner temperature is at or above the lower boundary temperature, there
-    * is no demand. If it is below the target temperature, the demand is the
-    * energy needed to heat up the house to the maximum temperature. The current
-    * (external) thermal infeed is not accounted for, as we assume, that after
-    * determining the thermal demand, a change in external infeed will take
-    * place.
-    *
-    * @param relevantData
-    *   Data of heat pump including state of the heat pump.
-    * @param state
-    *   Most recent state, that is valid for this model.
-    * @return
-    *   The needed energy for heating in the questioned tick.
-    */
+   * the inner temperature is at or above the lower boundary temperature, there
+   * is no demand. If it is below the target temperature, the demand is the
+   * energy needed to heat up the house to the maximum temperature. The current
+   * (external) thermal infeed is not accounted for, as we assume, that after
+   * determining the thermal demand, a change in external infeed will take
+   * place.
+   *
+   * @param relevantData
+   *   Data of heat pump including state of the heat pump.
+   * @param state
+   *   Most recent state, that is valid for this model.
+   * @return
+   *   The needed energy for heating in the questioned tick.
+   */
   def energyDemandHeating(
-      relevantData: HpRelevantData,
-      state: ThermalHouseState,
-  ): ThermalEnergyDemand = {
+                           relevantData: HpRelevantData,
+                           state: ThermalHouseState,
+                         ): ThermalEnergyDemand = {
     /* Calculate the inner temperature of the house, at the questioned instance in time */
     val duration = Seconds(relevantData.currentTick - state.tick)
     val currentInnerTemp = newInnerTemperature(
@@ -116,7 +116,7 @@ final case class ThermalHouse(
     val temperatureToTriggerRequiredEnergy =
       if (
         currentInnerTemp <= state.innerTemperature &&
-        state.qDot <= zeroKW
+          state.qDot <= zeroKW
       ) {
         // temperature has been decreasing and heat source has been turned off
         // => we have reached target temp before and are now targeting lower temp
@@ -143,19 +143,19 @@ final case class ThermalHouse(
   }
 
   /** Calculate the energy demand for warm water at the instance in question.
-    *
-    * @param relevantData
-    *   data of heat pump including state of the heat pump
-    * @param state
-    *   most recent state, that is valid for this model
-    * @return
-    *   the needed energy for heating in the questioned tick
-    */
+   *
+   * @param relevantData
+   *   data of heat pump including state of the heat pump
+   * @param state
+   *   most recent state, that is valid for this model
+   * @return
+   *   the needed energy for heating in the questioned tick
+   */
 
   def energyDemandDomesticHotWater(
-      relevantData: HpRelevantData,
-      state: Option[ThermalHouseState],
-  ): ThermalEnergyDemand = {
+                                    relevantData: HpRelevantData,
+                                    state: Option[ThermalHouseState],
+                                  ): ThermalEnergyDemand = {
     val tick = relevantData.currentTick
     val simulationStart = relevantData.simulationStart
     val houseInhabitants = relevantData.houseInhabitants
@@ -208,23 +208,23 @@ final case class ThermalHouse(
   }
 
   /** Calculate the energy required to heat up a given volume of water from a
-    * start to an end temperature
-    *
-    * @param waterDemand
-    *   water volume to get heated up
-    * @param startTemperature
-    *   starting Temperature
-    * @param endTemperature
-    *   end Temperature
-    * @return
-    *   the needed energy
-    */
+   * start to an end temperature
+   *
+   * @param waterDemand
+   *   water volume to get heated up
+   * @param startTemperature
+   *   starting Temperature
+   * @param endTemperature
+   *   end Temperature
+   * @return
+   *   the needed energy
+   */
 
   private def thermalEnergyDemandWater(
-      waterDemand: Volume,
-      startTemperature: Temperature,
-      endTemperature: Temperature,
-  ): Energy = {
+                                        waterDemand: Volume,
+                                        startTemperature: Temperature,
+                                        endTemperature: Temperature,
+                                      ): Energy = {
     if (endTemperature < startTemperature)
       throw new RuntimeException(
         s"End temperature of $endTemperature is lower than the start temperature $startTemperature for the water heating system."
@@ -236,26 +236,26 @@ final case class ThermalHouse(
   }
 
   /** Provides water demand of an building (house or flat) for a given hour of
-    * the day based on the housingType and the number of inhabitants
-    *
-    * @param tick
-    *   actual simulation tick
-    * @param simulationStart
-    *   simulations start time as ZonedDateTime
-    * @param noPersonsInHoushold
-    *   number of persons living in the building
-    * @param housingType
-    *   type of the building, either `house` or `flat`
-    * @return
-    *   the needed energy
-    */
+   * the day based on the housingType and the number of inhabitants
+   *
+   * @param tick
+   *   actual simulation tick
+   * @param simulationStart
+   *   simulations start time as ZonedDateTime
+   * @param noPersonsInHoushold
+   *   number of persons living in the building
+   * @param housingType
+   *   type of the building, either `house` or `flat`
+   * @return
+   *   the needed energy
+   */
 
   private def waterDemandOfHour(
-      tick: Long,
-      simulationStart: ZonedDateTime,
-      noPersonsInHoushold: Double,
-      housingType: String,
-  ): Volume = {
+                                 tick: Long,
+                                 simulationStart: ZonedDateTime,
+                                 noPersonsInHoushold: Double,
+                                 housingType: String,
+                               ): Volume = {
 
     // Volume => VDI 2067 Blatt 12
     // Time series relative => DIN EN 12831-3 Table B.2 for single family houses and for flats
@@ -340,23 +340,23 @@ final case class ThermalHouse(
   }
 
   /** Calculate the needed energy to change from start temperature to target
-    * temperature.
-    *
-    * In edge cases, i.e. within the tolerance margin of target temperatures,
-    * the temperature difference can be negative. For these cases we set the
-    * temperature difference to zero, resulting in an energy demand of 0 kWh.
-    *
-    * @param targetTemperature
-    *   The target temperature to reach.
-    * @param startTemperature
-    *   The starting temperature.
-    * @return
-    *   The needed energy to change.
-    */
+   * temperature.
+   *
+   * In edge cases, i.e. within the tolerance margin of target temperatures,
+   * the temperature difference can be negative. For these cases we set the
+   * temperature difference to zero, resulting in an energy demand of 0 kWh.
+   *
+   * @param targetTemperature
+   *   The target temperature to reach.
+   * @param startTemperature
+   *   The starting temperature.
+   * @return
+   *   The needed energy to change.
+   */
   private def energy(
-      targetTemperature: Temperature,
-      startTemperature: Temperature,
-  ): Energy = {
+                      targetTemperature: Temperature,
+                      startTemperature: Temperature,
+                    ): Energy = {
     val temperatureDiff =
       Kelvin(targetTemperature.toKelvinScale - startTemperature.toKelvinScale)
         .max(Kelvin(0))
@@ -365,54 +365,54 @@ final case class ThermalHouse(
   }
 
   /** Check if inner temperature is higher than preferred maximum temperature
-    * @param innerTemperature
-    *   The inner temperature of the house
-    * @param boundaryTemperature
-    *   The applied boundary temperature to check against
-    *
-    * @return
-    *   True, if inner temperature is too high.
-    */
+   * @param innerTemperature
+   *   The inner temperature of the house
+   * @param boundaryTemperature
+   *   The applied boundary temperature to check against
+   *
+   * @return
+   *   True, if inner temperature is too high.
+   */
   def isInnerTemperatureTooHigh(
-      innerTemperature: Temperature,
-      boundaryTemperature: Temperature = upperBoundaryTemperature,
-  ): Boolean =
+                                 innerTemperature: Temperature,
+                                 boundaryTemperature: Temperature = upperBoundaryTemperature,
+                               ): Boolean =
     innerTemperature > (
       boundaryTemperature - temperatureTolerance
-    )
+      )
 
   /** Check if inner temperature is lower than preferred minimum temperature
-    *
-    * @return
-    *   true, if inner temperature is too low
-    */
+   *
+   * @return
+   *   true, if inner temperature is too low
+   */
   def isInnerTemperatureTooLow(
-      innerTemperature: Temperature,
-      boundaryTemperature: Temperature = lowerBoundaryTemperature,
-  ): Boolean =
+                                innerTemperature: Temperature,
+                                boundaryTemperature: Temperature = lowerBoundaryTemperature,
+                              ): Boolean =
     innerTemperature < (
       boundaryTemperature + temperatureTolerance
-    )
+      )
 
   /** Calculate the new inner temperature of the thermal house.
-    *
-    * @param thermalPower
-    *   added thermal power (e.g. of heat pump)
-    * @param duration
-    *   time step length
-    * @param currentInnerTemperature
-    *   current inner temperature
-    * @param ambientTemperature
-    *   ambient temperature of thermal house
-    * @return
-    *   new inner temperature
-    */
+   *
+   * @param thermalPower
+   *   added thermal power (e.g. of heat pump)
+   * @param duration
+   *   time step length
+   * @param currentInnerTemperature
+   *   current inner temperature
+   * @param ambientTemperature
+   *   ambient temperature of thermal house
+   * @return
+   *   new inner temperature
+   */
   def newInnerTemperature(
-      thermalPower: Power,
-      duration: Time,
-      currentInnerTemperature: Temperature,
-      ambientTemperature: Temperature,
-  ): Temperature = {
+                           thermalPower: Power,
+                           duration: Time,
+                           currentInnerTemperature: Temperature,
+                           ambientTemperature: Temperature,
+                         ): Temperature = {
     val thermalEnergyGain = thermalPower * duration
 
     // thermal energy loss due to the deviation between outside and inside temperature
@@ -432,24 +432,24 @@ final case class ThermalHouse(
   }
 
   /** Update the current state of the house.
-    *
-    * @param relevantData
-    *   Data of heat pump including state of the heat pump.
-    * @param state
-    *   Currently applicable state
-    * @param lastAmbientTemperature
-    *   Ambient temperature valid up until (not including) the current tick
-    * @param qDot
-    *   New thermal influx
-    * @return
-    *   Updated state and the tick in which the next threshold is reached
-    */
+   *
+   * @param relevantData
+   *   Data of heat pump including state of the heat pump.
+   * @param state
+   *   Currently applicable state
+   * @param lastAmbientTemperature
+   *   Ambient temperature valid up until (not including) the current tick
+   * @param qDot
+   *   New thermal influx
+   * @return
+   *   Updated state and the tick in which the next threshold is reached
+   */
   def updateState(
-      relevantData: HpRelevantData,
-      state: ThermalHouseState,
-      lastAmbientTemperature: Temperature,
-      qDot: Power,
-  ): (ThermalHouseState, Option[ThermalThreshold]) = {
+                   relevantData: HpRelevantData,
+                   state: ThermalHouseState,
+                   lastAmbientTemperature: Temperature,
+                   qDot: Power,
+                 ): (ThermalHouseState, Option[ThermalThreshold]) = {
     val duration = Seconds(relevantData.currentTick - state.tick)
     val updatedInnerTemperature = newInnerTemperature(
       state.qDot,
@@ -478,23 +478,23 @@ final case class ThermalHouse(
   }
 
   /** Determine the next threshold, that will be reached.
-    * @param tick
-    *   The current tick.
-    * @param qDotExternal
-    *   The external influx
-    * @param innerTemperature
-    *   The inner temperature
-    * @param ambientTemperature
-    *   The ambient temperature
-    * @return
-    *   The next threshold, that will be reached
-    */
+   * @param tick
+   *   The current tick.
+   * @param qDotExternal
+   *   The external influx
+   * @param innerTemperature
+   *   The inner temperature
+   * @param ambientTemperature
+   *   The ambient temperature
+   * @return
+   *   The next threshold, that will be reached
+   */
   private def nextThreshold(
-      tick: Long,
-      qDotExternal: Power,
-      innerTemperature: Temperature,
-      ambientTemperature: Temperature,
-  ): Option[ThermalThreshold] = {
+                             tick: Long,
+                             qDotExternal: Power,
+                             innerTemperature: Temperature,
+                             ambientTemperature: Temperature,
+                           ): Option[ThermalThreshold] = {
     val artificialDuration = Hours(1d)
     val loss = ethLosses.calcThermalEnergyChange(
       innerTemperature,
@@ -533,11 +533,11 @@ final case class ThermalHouse(
   }
 
   private def nextActivation(
-      tick: Long,
-      higherTemperature: Temperature,
-      lowerTemperature: Temperature,
-      qDot: Power,
-  ): Option[Long] = {
+                              tick: Long,
+                              higherTemperature: Temperature,
+                              lowerTemperature: Temperature,
+                              qDot: Power,
+                            ): Option[Long] = {
     val flexibleEnergy = energy(higherTemperature, lowerTemperature)
     if (flexibleEnergy < zeroKWh)
       None
@@ -588,19 +588,19 @@ object ThermalHouse {
   )
 
   /** State of a thermal house
-    *
-    * @param tick
-    *   Last tick of temperature change
-    * @param innerTemperature
-    *   Inner temperature of the house
-    * @param qDot
-    *   Continuous external infeed of thermal energy since the given tick
-    */
+   *
+   * @param tick
+   *   Last tick of temperature change
+   * @param innerTemperature
+   *   Inner temperature of the house
+   * @param qDot
+   *   Continuous external infeed of thermal energy since the given tick
+   */
   final case class ThermalHouseState(
-      tick: Long,
-      innerTemperature: Temperature,
-      qDot: Power,
-  )
+                                      tick: Long,
+                                      innerTemperature: Temperature,
+                                      qDot: Power,
+                                    )
 
   def startingState(house: ThermalHouse): ThermalHouseState =
     ThermalHouseState(
@@ -611,10 +611,10 @@ object ThermalHouse {
 
   object ThermalHouseThreshold {
     final case class HouseTemperatureLowerBoundaryReached(
-        override val tick: Long
-    ) extends ThermalThreshold
+                                                           override val tick: Long
+                                                         ) extends ThermalThreshold
     final case class HouseTargetTemperatureReached(
-        override val tick: Long
-    ) extends ThermalThreshold
+                                                    override val tick: Long
+                                                  ) extends ThermalThreshold
   }
 }
