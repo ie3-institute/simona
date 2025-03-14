@@ -32,10 +32,11 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   WeatherData,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
 import edu.ie3.simona.test.common.input.EmInputTestData
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
@@ -67,10 +68,11 @@ class ThermalGridIT
     with should.Matchers
     with EmInputTestData
     with MockitoSugar
-    with DefaultTestData {
+    with DefaultTestData
+    with TestSpawnerTyped {
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
-  protected implicit val temperatureTolerance = 0.01
+  protected implicit val temperatureTolerance: Double = 0.01
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
@@ -108,6 +110,10 @@ class ThermalGridIT
         resultListener = Iterable(resultListener.ref),
       )
 
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+
       val hpAgent = spawn(
         ParticipantAgentInit(
           typicalHpInputContainer,
@@ -116,6 +122,7 @@ class ThermalGridIT
           participantRefs,
           simulationParams,
           Left(scheduler.ref),
+          key,
         ),
         "HeatPumpAgent1",
       )

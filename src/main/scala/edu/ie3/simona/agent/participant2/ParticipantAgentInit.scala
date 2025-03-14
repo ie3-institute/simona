@@ -26,6 +26,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
@@ -108,6 +109,7 @@ object ParticipantAgentInit {
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
+      scheduleKey: ScheduleKey,
   ): Behavior[Request] = Behaviors.setup { ctx =>
     val parentData = parent
       .map { em =>
@@ -121,6 +123,7 @@ object ParticipantAgentInit {
         em ! ScheduleFlexActivation(
           inputContainer.electricalInputModel.getUuid,
           INIT_SIM_TICK,
+          Some(scheduleKey),
         )
 
         FlexControlledData(em, flexAdapter)
@@ -135,6 +138,7 @@ object ParticipantAgentInit {
           scheduler ! ScheduleActivation(
             activationAdapter,
             INIT_SIM_TICK,
+            Some(scheduleKey),
           )
 
           SchedulerData(scheduler, activationAdapter)
