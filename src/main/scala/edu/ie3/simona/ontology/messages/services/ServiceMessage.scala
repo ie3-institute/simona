@@ -45,6 +45,7 @@ object ServiceMessage {
       tick: Long,
       unlockKey: ScheduleKey,
   ) extends ServiceMessage
+      with DataMessageFromExt
 
   /** Message used in response to a service request.
     */

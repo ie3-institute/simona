@@ -24,6 +24,7 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.SimpleInputContainer
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -64,9 +65,9 @@ trait EmInputTestData
     true,
   )
 
-  protected val householdStorageTypeInput = new StorageTypeInput(
+  protected val storageTypeInput = new StorageTypeInput(
     UUID.randomUUID(),
-    "Dummy_Household_StorageTypeInput",
+    "Dummy_StorageTypeInput",
     Quantities.getQuantity(4000d, EURO),
     Quantities.getQuantity(0.05d, EURO_PER_MEGAWATTHOUR),
     Quantities.getQuantity(15d, KILOWATTHOUR),
@@ -77,16 +78,18 @@ trait EmInputTestData
     Quantities.getQuantity(0.95, PU),
   )
 
-  protected val householdStorageInput = new StorageInput(
+  protected val storageInput = new StorageInput(
     UUID.randomUUID(),
-    "Dummy_Household_StorageInput",
+    "Dummy_StorageInput",
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
     emInput,
-    householdStorageTypeInput,
+    storageTypeInput,
   )
+
+  protected val storageInputContainer = SimpleInputContainer(storageInput)
 
   protected val simonaConfig: SimonaConfig = createSimonaConfig()
 
