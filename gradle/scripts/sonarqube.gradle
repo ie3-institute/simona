@@ -25,6 +25,8 @@ sonarqube {
 }
 
 // sonarqube task dependencies
-project.tasks["sonarqube"].dependsOn "test"
-project.tasks["sonarqube"].dependsOn "reportScoverage"
-project.tasks["sonarqube"].dependsOn "checkScoverage"
+tasks.named("sonarqube") {
+  dependsOn(tasks.named("test"))
+  dependsOn(tasks.named("reportScoverage"))
+  dependsOn(tasks.named("checkScoverage"))
+}

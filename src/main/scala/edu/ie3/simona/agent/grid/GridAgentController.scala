@@ -14,7 +14,11 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  InputModelContainer,
+  ParticipantInitializeStateData,
+  SimpleInputContainer,
+}
 import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
@@ -365,7 +369,7 @@ class GridAgentController(
     participantInputModel match {
       case input: FixedFeedInInput =>
         buildParticipant(
-          input,
+          SimpleInputContainer(input),
           participantConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
             input.getUuid
           ),
@@ -377,7 +381,7 @@ class GridAgentController(
         )
       case input: LoadInput =>
         buildParticipant(
-          input,
+          SimpleInputContainer(input),
           participantConfigUtil.getOrDefault[LoadRuntimeConfig](
             input.getUuid
           ),
@@ -389,7 +393,7 @@ class GridAgentController(
         )
       case input: PvInput =>
         buildParticipant(
-          input,
+          SimpleInputContainer(input),
           participantConfigUtil.getOrDefault[PvRuntimeConfig](
             input.getUuid
           ),
@@ -401,7 +405,7 @@ class GridAgentController(
         )
       case input: WecInput =>
         buildParticipant(
-          input,
+          SimpleInputContainer(input),
           participantConfigUtil.getOrDefault[WecRuntimeConfig](
             input.getUuid
           ),
@@ -413,7 +417,7 @@ class GridAgentController(
         )
       case input: EvcsInput =>
         buildParticipant(
-          input,
+          SimpleInputContainer(input),
           participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
             input.getUuid
           ),
@@ -445,7 +449,7 @@ class GridAgentController(
         }
       case input: StorageInput =>
         buildParticipant(
-          input,
+          SimpleInputContainer(input),
           participantConfigUtil.getOrDefault[StorageRuntimeConfig](
             input.getUuid
           ),
@@ -467,7 +471,7 @@ class GridAgentController(
   }
 
   private def buildParticipant(
-      participantInput: SystemParticipantInput,
+      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
@@ -477,7 +481,7 @@ class GridAgentController(
   ): ActorRef[ParticipantAgent.Request] = {
     val participant = gridAgentContext.spawn(
       ParticipantAgentInit(
-        participantInput,
+        inputContainer,
         runtimeConfig,
         notifierConfig,
         participantRefs,
@@ -485,8 +489,9 @@ class GridAgentController(
         maybeControllingEm.toRight(scheduler),
       ),
       name = actorName(
-        participantInput.getClass.getSimpleName.replace("Input", ""),
-        participantInput.getId,
+        inputContainer.electricalInputModel.getClass.getSimpleName
+          .replace("Input", ""),
+        inputContainer.electricalInputModel.getId,
       ),
     )
     gridAgentContext.watch(participant)
