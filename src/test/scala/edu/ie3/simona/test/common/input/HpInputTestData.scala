@@ -131,7 +131,7 @@ trait HpInputTestData
       Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(30.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
-      Quantities.getQuantity(11.0, PowerSystemUnits.KILOWATT),
+      Quantities.getQuantity(10.44, PowerSystemUnits.KILOWATT),
     )
 
   protected val typicalThermalGrid = new container.ThermalGrid(

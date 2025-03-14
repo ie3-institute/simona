@@ -698,9 +698,9 @@ class ThermalGridWithHouseAndStorageSpec
             houseTick shouldBe relevantData.currentTick
             storageTick shouldBe relevantData.currentTick
 
-            revisedQDotHouse should approximate(thermalStorage.chargingPower)
+            revisedQDotHouse should approximate(thermalStorage.pThermalMax)
             revisedQDotStorage should approximate(
-              thermalStorage.chargingPower * (-1)
+              thermalStorage.pThermalMax * (-1)
             )
 
             houseWarmTick shouldBe 13825L

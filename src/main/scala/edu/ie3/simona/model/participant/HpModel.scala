@@ -149,7 +149,13 @@ final case class HpModel(
 
     // Updating the HpState
     val updatedHpState =
-      calcState(lastHpState, relevantData, turnOn, thermalDemandWrapper)
+      calcState(
+        lastHpState,
+        relevantData,
+        turnOn,
+        thermalDemandWrapper,
+        currentThermalGridState,
+      )
     (canOperate, canBeOutOfOperation, updatedHpState)
   }
 
@@ -222,6 +228,8 @@ final case class HpModel(
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, heatStorage,
     *   hotDomesticWaterStorage)
+    * @param currentThermalGridState
+    *   Current state of the thermalGrid
     * @return
     *   next [[HpState]]
     */
@@ -230,24 +238,31 @@ final case class HpModel(
       relevantData: HpRelevantData,
       isRunning: Boolean,
       thermalDemands: ThermalDemandWrapper,
+      currentThermalGridState: ThermalGridState,
   ): HpState = {
-    val lastStateStorageQDot = lastState.thermalGridState.storageState
+    val lastHouseQDot = lastState.thermalGridState.houseState
       .map(_.qDot)
       .getOrElse(zeroKW)
+    val currentStorageEnergy = currentThermalGridState.storageState
+      .map(_.storedEnergy)
+      .getOrElse(zeroKWh)
+    val currentStoragePThermal =
+      thermalGrid.heatStorage.map(_.getpThermalMax).getOrElse(zeroKW)
 
-    val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
+    val (newHpActivePower, newHpThermalPower, qDotIntoGrid) = {
       if (isRunning)
         (pRated, pThermal, pThermal)
-      else if (lastStateStorageQDot < zeroKW)
-        (zeroKW, zeroKW, lastStateStorageQDot * (-1))
       else if (
-        lastStateStorageQDot == zeroKW && (thermalDemands.houseDemand.hasRequiredDemand || thermalDemands.heatStorageDemand.hasRequiredDemand)
+        currentStorageEnergy > zeroKWh && demandWrapper.houseDemand.hasRequiredDemand
+      ) {
+        // If the house has req. demand and storage isn't empty, we can heat the house from storage.
+        (zeroKW, zeroKW, currentStoragePThermal)
+      } else if (
+        currentStorageEnergy > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand && lastHouseQDot > zeroKW
       )
-        (
-          zeroKW,
-          zeroKW,
-          thermalGrid.heatStorage.map(_.getChargingPower: squants.Power).get,
-        )
+        // Edge case when em controlled: If the house was heated last state by Hp and setPower is below turnOn condition now,
+        // but house didn't reach target or boundary temperature yet. House can be heated from storage, if this one is not empty.
+        (zeroKW, zeroKW, currentStoragePThermal)
       else (zeroKW, zeroKW, zeroKW)
     }
 
@@ -266,8 +281,8 @@ final case class HpModel(
       isRunning,
       relevantData.currentTick,
       Some(relevantData.ambientTemperature),
-      newActivePowerHp,
-      newThermalPowerHp,
+      newHpActivePower,
+      newHpThermalPower,
       thermalGridState,
       maybeThreshold,
     )
@@ -327,7 +342,7 @@ final case class HpModel(
 
     val (
       thermalDemands,
-      _,
+      updatedThermalGridState,
     ) =
       thermalGrid.energyDemandAndUpdatedState(
         relevantData,
@@ -339,6 +354,7 @@ final case class HpModel(
       relevantData,
       turnOn,
       thermalDemands,
+      updatedThermalGridState,
     )
 
     (

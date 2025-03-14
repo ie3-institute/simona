@@ -21,6 +21,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
 import squants.energy.Kilowatts
+import squants.energy.Kilowatts
 import squants.space.CubicMeters
 import squants.thermal.Celsius
 import squants.time.Seconds
@@ -45,7 +46,7 @@ import java.util.UUID
   *   Thermal bus input
   * @param maxEnergyThreshold
   *   Maximum permissible energy stored in the storage
-  * @param chargingPower
+  * @param pThermalMax
   *   Thermal power, that can be charged / discharged
   */
 final case class CylindricalThermalStorage(
@@ -55,7 +56,7 @@ final case class CylindricalThermalStorage(
     operationTime: OperationTime,
     bus: ThermalBusInput,
     maxEnergyThreshold: Energy,
-    chargingPower: Power,
+    pThermalMax: Power,
     override var _storedEnergy: Energy,
 ) extends ThermalStorage(
       uuid,
@@ -64,7 +65,7 @@ final case class CylindricalThermalStorage(
       operationTime,
       bus,
       maxEnergyThreshold,
-      chargingPower,
+      pThermalMax,
     )
     with MutableStorage
     with ThermalStorageCalculations {
@@ -103,14 +104,14 @@ final case class CylindricalThermalStorage(
     val nextThreshold =
       if (qDot > zeroKW) {
         val duration = (maxEnergyThreshold - updatedEnergy) / qDot
-        val durationInTicks = Math.round(duration.toSeconds)
+        val durationInTicks = Math.floor(duration.toSeconds).toLong
         if (durationInTicks <= 0L)
           None
         else
           Some(StorageFull(tick + durationInTicks))
       } else if (qDot < zeroKW) {
         val duration = updatedEnergy / qDot * (-1)
-        val durationInTicks = Math.round(duration.toSeconds)
+        val durationInTicks = Math.floor(duration.toSeconds).toLong
         if (durationInTicks <= 0L)
           None
         else
@@ -171,6 +172,7 @@ object CylindricalThermalStorage extends ThermalStorageCalculations {
     *
     * @param input
     *   instance of [[CylindricalStorageInput]] this storage should be built
+    *   from
     * @param initialStoredEnergy
     *   initial stored energy
     * @return
@@ -196,7 +198,7 @@ object CylindricalThermalStorage extends ThermalStorageCalculations {
       Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue),
     )
 
-    val chargingPower = Kilowatts(
+    val pThermalMax = Kilowatts(
       input
         .getpThermalMax()
         .to(PowerSystemUnits.KILOWATT)
@@ -211,7 +213,7 @@ object CylindricalThermalStorage extends ThermalStorageCalculations {
       input.getOperationTime,
       input.getThermalBus,
       maxEnergyThreshold,
-      chargingPower,
+      pThermalMax,
       initialStoredEnergy,
     )
   }

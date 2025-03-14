@@ -141,7 +141,7 @@ class CylindricalThermalStorageSpec
           3600L,
           42.0,
           260.0,
-          ThermalStorage.ThermalStorageThreshold.StorageFull(79886L),
+          ThermalStorage.ThermalStorageThreshold.StorageFull(79885L),
         ),
         (
           0L,
@@ -173,10 +173,10 @@ class CylindricalThermalStorageSpec
         (
           0L,
           1000.0,
-          149.0,
+          148.6,
           3600L,
           5000.0,
-          1149.0,
+          1148.6,
           ThermalStorage.ThermalStorageThreshold.StorageFull(3601L),
         ),
         (
@@ -184,7 +184,7 @@ class CylindricalThermalStorageSpec
           10.0,
           -9.0,
           3600L,
-          -5000.0,
+          -3600.0,
           1.0,
           ThermalStorage.ThermalStorageThreshold.StorageEmpty(3601L),
         ),
