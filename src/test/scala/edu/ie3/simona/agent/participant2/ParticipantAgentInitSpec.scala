@@ -36,10 +36,11 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
@@ -55,7 +56,8 @@ class ParticipantAgentInitSpec
     extends ScalaTestWithActorTestKit
     with UnitSpec
     with LoadInputTestData
-    with PvInputTestData {
+    with PvInputTestData
+    with TestSpawnerTyped {
 
   private implicit val simulationStart: ZonedDateTime = defaultSimulationStart
 
@@ -99,6 +101,10 @@ class ParticipantAgentInitSpec
           resultListener = Iterable(resultListener.ref),
         )
 
+        val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+        // lock activation scheduled
+        scheduler.expectMessageType[ScheduleActivation]
+
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
@@ -107,11 +113,13 @@ class ParticipantAgentInitSpec
             refs,
             simulationParams,
             Left(scheduler.ref),
+            key,
           )
         )
 
         val scheduleMsg = scheduler.expectMessageType[ScheduleActivation]
         scheduleMsg.tick shouldBe INIT_SIM_TICK
+        scheduleMsg.unlockKey shouldBe Some(key)
         val activationRef = scheduleMsg.actor
 
         activationRef ! Activation(INIT_SIM_TICK)
@@ -146,6 +154,10 @@ class ParticipantAgentInitSpec
           resultListener = Iterable(resultListener.ref),
         )
 
+        val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+        // lock activation scheduled
+        scheduler.expectMessageType[ScheduleActivation]
+
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
@@ -154,11 +166,13 @@ class ParticipantAgentInitSpec
             refs,
             simulationParams,
             Left(scheduler.ref),
+            key,
           )
         )
 
         val scheduleMsg = scheduler.expectMessageType[ScheduleActivation]
         scheduleMsg.tick shouldBe INIT_SIM_TICK
+        scheduleMsg.unlockKey shouldBe Some(key)
         val activationRef = scheduleMsg.actor
 
         activationRef ! Activation(INIT_SIM_TICK)
@@ -186,6 +200,7 @@ class ParticipantAgentInitSpec
 
       "initialize correctly when not replaying primary data" in {
 
+        val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
         val gridAgent = createTestProbe[GridAgent.Request]()
@@ -199,6 +214,10 @@ class ParticipantAgentInitSpec
           resultListener = Iterable(resultListener.ref),
         )
 
+        val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+        // lock activation scheduled
+        scheduler.expectMessageType[ScheduleActivation]
+
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
@@ -207,6 +226,7 @@ class ParticipantAgentInitSpec
             refs,
             simulationParams,
             Right(em.ref),
+            key,
           )
         )
 
@@ -219,6 +239,7 @@ class ParticipantAgentInitSpec
           ScheduleFlexActivation(
             mockInput.electricalInputModel.getUuid,
             INIT_SIM_TICK,
+            Some(key),
           )
         )
 
@@ -246,6 +267,7 @@ class ParticipantAgentInitSpec
 
       "initialize correctly when replaying primary data" in {
 
+        val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
         val gridAgent = createTestProbe[GridAgent.Request]()
@@ -259,6 +281,10 @@ class ParticipantAgentInitSpec
           resultListener = Iterable(resultListener.ref),
         )
 
+        val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+        // lock activation scheduled
+        scheduler.expectMessageType[ScheduleActivation]
+
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
@@ -267,6 +293,7 @@ class ParticipantAgentInitSpec
             refs,
             simulationParams,
             Right(em.ref),
+            key,
           )
         )
 
@@ -279,6 +306,7 @@ class ParticipantAgentInitSpec
           ScheduleFlexActivation(
             mockInput.electricalInputModel.getUuid,
             INIT_SIM_TICK,
+            Some(key),
           )
         )
 
@@ -343,6 +371,10 @@ class ParticipantAgentInitSpec
           resultListener = Iterable(resultListener.ref),
         )
 
+        val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+        // lock activation scheduled
+        scheduler.expectMessageType[ScheduleActivation]
+
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
@@ -351,11 +383,13 @@ class ParticipantAgentInitSpec
             refs,
             simulationParams,
             Left(scheduler.ref),
+            key,
           )
         )
 
         val scheduleMsg = scheduler.expectMessageType[ScheduleActivation]
         scheduleMsg.tick shouldBe INIT_SIM_TICK
+        scheduleMsg.unlockKey shouldBe Some(key)
         val activationRef = scheduleMsg.actor
 
         activationRef ! Activation(INIT_SIM_TICK)
@@ -404,6 +438,10 @@ class ParticipantAgentInitSpec
           resultListener = Iterable(resultListener.ref),
         )
 
+        val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+        // lock activation scheduled
+        scheduler.expectMessageType[ScheduleActivation]
+
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
@@ -412,11 +450,13 @@ class ParticipantAgentInitSpec
             refs,
             simulationParams,
             Left(scheduler.ref),
+            key,
           )
         )
 
         val scheduleMsg = scheduler.expectMessageType[ScheduleActivation]
         scheduleMsg.tick shouldBe INIT_SIM_TICK
+        scheduleMsg.unlockKey shouldBe Some(key)
         val activationRef = scheduleMsg.actor
 
         activationRef ! Activation(INIT_SIM_TICK)
@@ -448,6 +488,7 @@ class ParticipantAgentInitSpec
 
       "initialize correctly when not replaying primary data" in {
 
+        val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
         val gridAgent = createTestProbe[GridAgent.Request]()
@@ -462,6 +503,10 @@ class ParticipantAgentInitSpec
           resultListener = Iterable(resultListener.ref),
         )
 
+        val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+        // lock activation scheduled
+        scheduler.expectMessageType[ScheduleActivation]
+
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
@@ -470,6 +515,7 @@ class ParticipantAgentInitSpec
             refs,
             simulationParams,
             Right(em.ref),
+            key,
           )
         )
 
@@ -482,6 +528,7 @@ class ParticipantAgentInitSpec
           ScheduleFlexActivation(
             mockInput.electricalInputModel.getUuid,
             INIT_SIM_TICK,
+            Some(key),
           )
         )
 
@@ -521,6 +568,7 @@ class ParticipantAgentInitSpec
 
       "initialize correctly when replaying primary data" in {
 
+        val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
         val gridAgent = createTestProbe[GridAgent.Request]()
@@ -535,6 +583,10 @@ class ParticipantAgentInitSpec
           resultListener = Iterable(resultListener.ref),
         )
 
+        val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+        // lock activation scheduled
+        scheduler.expectMessageType[ScheduleActivation]
+
         val participantAgent = spawn(
           ParticipantAgentInit(
             mockInput,
@@ -543,6 +595,7 @@ class ParticipantAgentInitSpec
             refs,
             simulationParams,
             Right(em.ref),
+            key,
           )
         )
 
@@ -555,6 +608,7 @@ class ParticipantAgentInitSpec
           ScheduleFlexActivation(
             mockInput.electricalInputModel.getUuid,
             INIT_SIM_TICK,
+            Some(key),
           )
         )
 

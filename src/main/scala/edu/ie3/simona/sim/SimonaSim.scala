@@ -11,8 +11,9 @@ import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{DelayedStopHelper, RuntimeEventListener}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
-import edu.ie3.simona.scheduler.TimeAdvancer
+import edu.ie3.simona.scheduler.{ScheduleLock, TimeAdvancer}
 import edu.ie3.simona.sim.setup.SimonaSetup
+import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -78,6 +79,9 @@ object SimonaSim {
           simonaSetup.timeAdvancer(ctx, ctx.self, runtimeEventListener)
         val scheduler = simonaSetup.scheduler(ctx, timeAdvancer)
 
+        // Lock the scheduler at PRE_INIT_TICK so that initialization does not start yet
+        val preInitKey = ScheduleLock.singleKey(ctx, scheduler, PRE_INIT_TICK)
+
         // External simulations have to be scheduled for initialization first,
         // so that the phase switch permanently activates them first
         val extSimDir =
@@ -129,6 +133,9 @@ object SimonaSim {
           ctx.watch(extSimAdapter.toTyped)
         )
         otherActors.foreach(ctx.watch)
+
+        // End pre-initialization phase
+        preInitKey.unlock()
 
         // Start simulation
         timeAdvancer ! TimeAdvancer.Start()
