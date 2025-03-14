@@ -62,9 +62,9 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
         }
 
         removeTestDependenciesFromPom(pom)
-        groupId.set(group)
-        artifactId.set('simona')
-        version versionString
+        groupId = group
+        artifactId = 'simona'
+        version = versionString
 
         from components.java
         artifact tasks.named("sourcesJar")
