@@ -420,8 +420,8 @@ final case class ThermalGrid(
               relevantData,
               lastAmbientTemperature,
               gridState,
-              heatStorage.map(_.getChargingPower).getOrElse(zeroKW),
-              heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
+              heatStorage.map(_.getpThermalMax).getOrElse(zeroKW),
+              heatStorage.map(_.getpThermalMax).getOrElse(zeroKW) * (-1),
               qDot,
             )
           // else split qDot into house and domesticHotWaterStorage
@@ -445,8 +445,8 @@ final case class ThermalGrid(
               relevantData,
               lastAmbientTemperature,
               gridState,
-              heatStorage.map(_.getChargingPower).getOrElse(zeroKW),
-              heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
+              heatStorage.map(_.getpThermalMax).getOrElse(zeroKW),
+              heatStorage.map(_.getpThermalMax).getOrElse(zeroKW) * (-1),
               zeroKW,
             )
           case _ =>
@@ -789,11 +789,11 @@ final case class ThermalGrid(
     val qDotDomesticHotWaterStorage: Power =
       if (
         (qDot / 2) > domesticHotWaterStorage
-          .map(_.getChargingPower)
+          .map(_.getpThermalMax)
           .getOrElse(Kilowatts(0d))
       ) {
         domesticHotWaterStorage
-          .map(_.getChargingPower)
+          .map(_.getpThermalMax)
           .getOrElse(Kilowatts(0d))
       } else {
         qDot / 2
@@ -1192,7 +1192,7 @@ final case class ThermalGrid(
 
     if (domesticHotWaterDemand.required > zeroKWh) {
       val chargingPower = domesticHotWaterStorage
-        .map(_.getChargingPower)
+        .map(_.getpThermalMax)
         .getOrElse(
           throw new RuntimeException(
             s"Trying to get the chargingPower of domesticHotWaterStorage was not possible"

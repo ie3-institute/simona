@@ -11,11 +11,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalStorageInput,
 }
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalDemandWrapper,
-  ThermalEnergyDemand,
-  ThermalGridState,
-}
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
@@ -265,7 +261,7 @@ class ThermalGridWithStorageOnlySpec
 
       "properly take energy from storage" in {
         val relevantData = HpRelevantData(
-          0L,
+          0,
           testGridAmbientTemperature,
           defaultSimulationStart,
           houseInhabitants,
@@ -282,22 +278,23 @@ class ThermalGridWithStorageOnlySpec
         val gridState = ThermalGrid
           .startingState(thermalGridWithHouseAndStorage)
           .copy(
-            houseState = Some(ThermalHouseState(0L, Celsius(18), zeroKW)),
+            houseState = Some(ThermalHouseState(0L, Celsius(15), zeroKW)),
             storageState = Some(
               ThermalStorageState(
                 0L,
-                KilowattHours(11d),
+                KilowattHours(20d),
                 zeroKW,
               )
             ),
           )
+
         val (updatedGridState, reachedThreshold) =
           thermalGridWithHouseAndStorage invokePrivate handleInfeed(
             relevantData,
             testGridAmbientTemperature,
             gridState,
             isNotRunning,
-            Kilowatts(11),
+            zeroKW,
             onlyThermalDemandOfHouse,
           )
 
@@ -308,35 +305,29 @@ class ThermalGridWithStorageOnlySpec
                 None,
               ) =>
             tick shouldBe 0L
-            storedEnergy should approximate(KilowattHours(11d))
-            qDot should approximate(Kilowatts(-11))
+            storedEnergy should approximate(KilowattHours(20d))
+            qDot should approximate(Kilowatts(-20))
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(StorageEmpty(3600))
       }
-
     }
 
     "updating the grid state dependent on the given thermal infeed" should {
+      val relevantData = HpRelevantData(
+        0,
+        testGridAmbientTemperature,
+        defaultSimulationStart,
+        houseInhabitants,
+      )
       "deliver proper result, if energy is fed into the grid" in {
-        val relevantData = HpRelevantData(
-          0L,
-          testGridAmbientTemperature,
-          defaultSimulationStart,
-          houseInhabitants,
-        )
-        val thermalDemands = ThermalDemandWrapper(
-          ThermalEnergyDemand(zeroKWh, zeroKWh),
-          ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
-          ThermalEnergyDemand(zeroKWh, zeroKWh),
-        )
         val (updatedState, nextThreshold) = thermalGrid.updateState(
           relevantData,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
           isRunning,
           testGridQDotInfeed,
-          thermalDemands,
+          onlyThermalDemandOfHeatStorage,
         )
 
         nextThreshold shouldBe Some(StorageFull(276000L))
@@ -355,17 +346,6 @@ class ThermalGridWithStorageOnlySpec
       }
 
       "deliver proper result, if energy is consumed from the grid" in {
-        val relevantData = HpRelevantData(
-          0L,
-          testGridAmbientTemperature,
-          defaultSimulationStart,
-          houseInhabitants,
-        )
-        val thermalDemands = ThermalDemandWrapper(
-          ThermalEnergyDemand(zeroKWh, zeroKWh),
-          ThermalEnergyDemand(zeroKWh, zeroKWh),
-          ThermalEnergyDemand(zeroKWh, zeroKWh),
-        )
         thermalGrid.updateState(
           relevantData,
           ThermalGrid
@@ -382,7 +362,7 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           isRunning,
           testGridQDotConsumptionHigh,
-          thermalDemands,
+          onlyThermalDemandOfHouse,
         ) match {
           case (
                 ThermalGridState(
@@ -401,24 +381,13 @@ class ThermalGridWithStorageOnlySpec
       }
 
       "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
-        val relevantData = HpRelevantData(
-          0L,
-          testGridAmbientTemperature,
-          defaultSimulationStart,
-          houseInhabitants,
-        )
-        val thermalDemands = ThermalDemandWrapper(
-          ThermalEnergyDemand(zeroKWh, zeroKWh),
-          ThermalEnergyDemand(zeroKWh, zeroKWh),
-          ThermalEnergyDemand(zeroKWh, zeroKWh),
-        )
         val updatedState = thermalGrid.updateState(
           relevantData,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
           isRunning,
           zeroKW,
-          thermalDemands,
+          noThermalDemand,
         )
         updatedState match {
           case (

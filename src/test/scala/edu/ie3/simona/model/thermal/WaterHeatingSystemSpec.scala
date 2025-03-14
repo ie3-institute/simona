@@ -7,10 +7,10 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.simona.test.common.UnitSpec
-import squants.{Energy, Volume}
 import squants.energy.KilowattHours
 import squants.space.Litres
 import squants.thermal.Celsius
+import squants.{Energy, Volume}
 
 import java.time.ZonedDateTime
 

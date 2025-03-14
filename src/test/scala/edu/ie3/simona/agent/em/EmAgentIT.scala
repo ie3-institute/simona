@@ -611,7 +611,9 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7353.toDateTime
-            emResult.getP should equalWithTolerance(0.001326681391.asMegaWatt)
+            emResult.getP should equalWithTolerance(
+              0.0014031432709125343.asMegaWatt
+            )
             emResult.getQ should equalWithTolerance(0.001073120041.asMegaVar)
         }
 

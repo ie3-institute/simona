@@ -253,12 +253,12 @@ final case class HpModel(
       if (isRunning)
         (pRated, pThermal, pThermal)
       else if (
-        currentStorageEnergy > zeroKWh && demandWrapper.houseDemand.hasRequiredDemand
+        currentStorageEnergy > zeroKWh && thermalDemands.houseDemand.hasRequiredDemand
       ) {
         // If the house has req. demand and storage isn't empty, we can heat the house from storage.
         (zeroKW, zeroKW, currentStoragePThermal)
       } else if (
-        currentStorageEnergy > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand && lastHouseQDot > zeroKW
+        currentStorageEnergy > zeroKWh && thermalDemands.houseDemand.hasAdditionalDemand && lastHouseQDot > zeroKW
       )
         // Edge case when em controlled: If the house was heated last state by Hp and setPower is below turnOn condition now,
         // but house didn't reach target or boundary temperature yet. House can be heated from storage, if this one is not empty.

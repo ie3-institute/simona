@@ -196,7 +196,7 @@ trait HpInputTestData
   )
 
   protected def thermalStorage: ThermalStorage = CylindricalThermalStorage(
-    UUID.fromString("12341234-48bd-4c59-babf-330c7ba71a74"),
+    UUID.fromString("d57ddc54-48bd-4c59-babf-330c7ba71a74"),
     "thermal storage",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
@@ -208,7 +208,7 @@ trait HpInputTestData
 
   protected def domesticHotWaterStorage: ThermalStorage =
     DomesticHotWaterStorage(
-      UUID.fromString("56785678-48bd-4c59-babf-330c7ba71a74"),
+      UUID.fromString("8cb8a2ca-493d-4be8-b318-0a249de63ff4"),
       "domestic hot water storage",
       OperatorInput.NO_OPERATOR_ASSIGNED,
       OperationTime.notLimited(),
