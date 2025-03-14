@@ -157,6 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed Jenkinsfile to begin with using GitHub Actions[#1260](https://github.com/ie3-institute/simona/issues/1260)
 - Sequential test execution for (hopefully) more reliability [#1262](https://github.com/ie3-institute/simona/issues/1262)
 - Converting `ExtEvDataService` to pekko typed [#1214](https://github.com/ie3-institute/simona/issues/1214)
+- Updated Gradle to version 8.13 and removed deprecated syntax [#1286](https://github.com/ie3-institute/PowerSystemDataModel/issues/1286)
 - Consider inputContainer when initialize participant models [#1251](https://github.com/ie3-institute/simona/issues/1251) 
 
 ### Fixed
