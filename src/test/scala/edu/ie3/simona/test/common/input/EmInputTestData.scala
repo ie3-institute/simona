@@ -83,7 +83,7 @@ trait EmInputTestData
 
   protected val storageInput = new StorageInput(
     UUID.randomUUID(),
-    "Dummy_Household_StorageInput",
+    "Dummy_StorageInput",
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
