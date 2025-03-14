@@ -7,7 +7,7 @@
 package edu.ie3.simona.event.listener
 
 import com.typesafe.config.ConfigValueFactory
-import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
+import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.event.RuntimeEvent.{
   CheckWindowPassed,
   Done,

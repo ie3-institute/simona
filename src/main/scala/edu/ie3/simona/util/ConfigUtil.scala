@@ -19,9 +19,20 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer3WResult,
 }
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  CouchbaseParams,
+  KafkaParams,
+  SqlParams,
+}
+import edu.ie3.simona.config.OutputConfig.{
+  GridOutputConfig,
+  ParticipantOutputConfig,
+  SimpleOutputConfig,
+}
+import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, EmRuntimeConfig}
-import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.SimonaConfig.AssetConfigs
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
@@ -205,11 +216,11 @@ object ConfigUtil {
   }
 
   object OutputConfigUtil {
-    def apply(
-        subConfig: SimonaConfig.Simona.Output.Participant
+    def participants(
+        subConfig: AssetConfigs[ParticipantOutputConfig]
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
-        case ParticipantBaseOutputConfig(
+        case ParticipantOutputConfig(
               _,
               simulationResult,
               flexResult,
@@ -218,7 +229,7 @@ object ConfigUtil {
           NotifierConfig(simulationResult, powerRequestReply, flexResult)
       }
       val configMap = subConfig.individualConfigs.map {
-        case ParticipantBaseOutputConfig(
+        case ParticipantOutputConfig(
               notifier,
               simulationResult,
               flexResult,
@@ -242,8 +253,8 @@ object ConfigUtil {
       new OutputConfigUtil(defaultConfig, configMap)
     }
 
-    def apply(
-        subConfig: SimonaConfig.Simona.Output.Thermal
+    def thermal(
+        subConfig: AssetConfigs[SimpleOutputConfig]
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case SimpleOutputConfig(_, simulationResult) =>
@@ -340,7 +351,7 @@ object ConfigUtil {
       *   descriptive exception messages)
       */
     def checkBaseCsvParams(
-        params: SimonaConfig.BaseCsvParams,
+        params: BaseCsvParams,
         csvParamsName: String,
     ): Unit = params match {
       case BaseCsvParams(csvSep, directoryPath, _) =>
@@ -380,7 +391,7 @@ object ConfigUtil {
   object DatabaseConfigUtil extends LazyLogging {
 
     def checkSqlParams(
-        sql: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
+        sql: SqlParams
     ): Unit = {
       if (!sql.jdbcUrl.trim.startsWith("jdbc:")) {
         throw new InvalidConfigParameterException(
@@ -433,7 +444,7 @@ object ConfigUtil {
     }
 
     def checkCouchbaseParams(
-        couchbase: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams
+        couchbase: CouchbaseParams
     ): Unit = {
       if (couchbase.url.isEmpty)
         throw new InvalidConfigParameterException(
