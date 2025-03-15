@@ -43,8 +43,6 @@ final case class RuntimeNotifier(
     * tick
     * @param tick
     *   Tick that the simulation has started or continued with
-    * @param pauseTick
-    *   Next tick that the simulation pauses (if applicable)
     * @param endTick
     *   Last tick of the simulation
     * @return
@@ -52,17 +50,14 @@ final case class RuntimeNotifier(
     */
   def starting(
       tick: Long,
-      pauseTick: Option[Long],
       endTick: Long,
   ): RuntimeNotifier = {
     val nowTime = now()
 
-    val pauseOrEndTick = pauseTick.map(math.min(_, endTick)).getOrElse(endTick)
-
     notify(tick match {
       case INIT_SIM_TICK => Initializing
       case _ =>
-        Simulating(tick, pauseOrEndTick)
+        Simulating(tick, endTick)
     })
 
     if (simStartTime.nonEmpty)
@@ -74,18 +69,6 @@ final case class RuntimeNotifier(
         lastStartTime = Some(nowTime),
         lastCheckWindowTime = Some(nowTime),
       )
-  }
-
-  /** Notifier listeners that simulation is pausing at given tick
-    * @param pauseTick
-    *   Last tick before simulation pauses or ends
-    * @return
-    *   Updated notifier
-    */
-  def pausing(pauseTick: Long): RuntimeNotifier = {
-    notify(Ready(pauseTick, duration(simStartTime)))
-
-    this
   }
 
   /** Notifier listeners that simulation has completed the given tick. This
