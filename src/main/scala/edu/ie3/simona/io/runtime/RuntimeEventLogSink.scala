@@ -47,11 +47,6 @@ final case class RuntimeEventLogSink(
           s"******* Simulation until ${calcTime(tick)} completed. ${durationAndMemoryString(duration)} ******"
         )
 
-      case Ready(tick, duration) =>
-        log.info(
-          s"******* Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(tick)}. ${durationAndMemoryString(duration)}  ******"
-        )
-
       case Simulating(startTick, endTick) =>
         log.info(
           s"******* Simulating from ${calcTime(startTick)} until ${calcTime(endTick)}. *******"
