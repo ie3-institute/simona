@@ -138,7 +138,7 @@ object SimonaSim {
         preInitKey.unlock()
 
         // Start simulation
-        timeAdvancer ! TimeAdvancer.Start()
+        timeAdvancer ! TimeAdvancer.Start
 
         val delayedActors = resultEventListeners.appended(runtimeEventListener)
 

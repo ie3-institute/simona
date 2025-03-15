@@ -85,7 +85,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         simonaSim ! SimonaSim.Start(starter.ref)
 
         // Initialization has started, mock actors are being created
-        timeAdvancer.expectMessage(TimeAdvancer.Start())
+        timeAdvancer.expectMessage(TimeAdvancer.Start)
 
         // Simulation should still "run" at this point
         starter.expectNoMessage()
@@ -153,7 +153,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // Initialization has started, mock actors are being created
         val throwingActor =
           receiveThrowingActor.expectMessageType[ActorRef[Any]]
-        timeAdvancer.expectMessage(TimeAdvancer.Start())
+        timeAdvancer.expectMessage(TimeAdvancer.Start)
 
         // Simulation should still "run" at this point
         starter.expectNoMessage()
@@ -218,7 +218,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // Initialization has started, mock actors are being created
         val stoppingActor =
           receiveStoppingActor.expectMessageType[ActorRef[Any]]
-        timeAdvancer.expectMessage(TimeAdvancer.Start())
+        timeAdvancer.expectMessage(TimeAdvancer.Start)
 
         // Simulation should still "run" at this point
         starter.expectNoMessage()
@@ -283,7 +283,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val throwingActor =
           receiveThrowingActor
             .expectMessageType[ActorRef[RuntimeEventListener.Request]]
-        timeAdvancer.expectMessage(TimeAdvancer.Start())
+        timeAdvancer.expectMessage(TimeAdvancer.Start)
 
         // Simulation should still "run" at this point
         starter.expectNoMessage()
