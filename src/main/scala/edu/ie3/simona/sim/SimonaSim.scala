@@ -131,7 +131,7 @@ object SimonaSim {
         otherActors.foreach(ctx.watch)
 
         // Start simulation
-        timeAdvancer ! TimeAdvancer.Start()
+        timeAdvancer ! TimeAdvancer.Start
 
         val delayedActors = resultEventListeners.appended(runtimeEventListener)
 

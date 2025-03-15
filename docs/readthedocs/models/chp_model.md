@@ -2,11 +2,19 @@
 
 # Combined Heat and Power Plant Model
 
-This page documents the functionality of the CHP Model (combined heat and power plant model) available in SIMONA. This model is part of the SIMONA simulation framework and represented by an agent. In the current model, it is feasible to simulate nano- and micro-CHP units. As it is a cross-sector agent heat/electricity) the usage of a house-heat-model is mandatory.  In the following, the CHP unit model and its controller unit is described. The controller unit is necessary to ensure, that different kinds of heat models can be applied.
+This page describes the functionality of a CHP model (combined heat and power plant model).
+**This model is currently not part of SIMONA [(removal)](https://github.com/ie3-institute/simona/pull/1279).**
+
+With this model, it is feasible to simulate nano- and micro-CHP units.
+As it is a cross-sector agent heat/electricity) the usage of a house-heat-model is mandatory.
+In the following, the CHP unit model and its controller unit is described.
+The controller unit is necessary to ensure, that different kinds of heat models can be applied.
 
 ## Assumptions
 
-The CHP unit is able to operate either at full load or not at all. Uncovered heat demand of former time-steps is not considered in the following steps, as the CHP unit does not possess a memory. Losses of the heat storage are not considered.
+The CHP unit is able to operate either at full load or not at all. 
+Uncovered heat demand of former time-steps is not considered in the following steps, as the CHP unit does not possess a memory.
+Losses of the heat storage are not considered.
 
 ## Parameters
 
