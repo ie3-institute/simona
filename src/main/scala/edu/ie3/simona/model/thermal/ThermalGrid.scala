@@ -90,7 +90,7 @@ final case class ThermalGrid(
           ) {
             (
               thermalHouse.energyDemand(
-                updatedHouseState,
+                updatedHouseState
               ),
               Some(updatedHouseState),
             )
