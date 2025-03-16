@@ -221,6 +221,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
 - Removed unused parameters in `ArgsParser` [#1192](https://github.com/ie3-institute/simona/issues/1192), [#1178](https://github.com/ie3-institute/simona/issues/1178)
 - Remove pausing/continuing functionality from TimeAdvancer [#1271](https://github.com/ie3-institute/simona/issues/1271)
+- Remove `ChpModel` [#1156](https://github.com/ie3-institute/simona/issues/1156)
+- Remove `MutableStorage` [#1280](https://github.com/ie3-institute/simona/issues/1280)
 
 ## [3.0.0] - 2023-08-07
 
