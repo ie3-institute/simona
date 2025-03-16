@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `BmModel` with its new implementation [#1157](https://github.com/ie3-institute/simona/issues/1157)
 - Integration test for thermal grids without Em [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
+- Introducing warm water heating to `ThermalHouse` [#856](https://github.com/ie3-institute/simona/issues/856)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
