@@ -80,11 +80,6 @@ class ThermalGridIT
     with DefaultTestData
     with TestSpawnerTyped {
   private implicit val classicSystem: ActorSystem = system.toClassic
-  protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
-  protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
-  protected implicit val temperatureTolerance = 0.01
 
   private val resolution =
     simonaConfig.simona.powerflow.resolution.toSeconds
