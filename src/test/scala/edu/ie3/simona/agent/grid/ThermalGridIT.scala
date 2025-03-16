@@ -39,7 +39,10 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
-import edu.ie3.simona.test.common.input.ThermalGridITInputTestData
+import edu.ie3.simona.test.common.input.{
+  EmInputTestData,
+  ThermalGridITInputTestData,
+}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
@@ -72,6 +75,7 @@ class ThermalGridIT
     with AnyWordSpecLike
     with should.Matchers
     with ThermalGridITInputTestData
+    with EmInputTestData
     with MockitoSugar
     with DefaultTestData
     with TestSpawnerTyped {
