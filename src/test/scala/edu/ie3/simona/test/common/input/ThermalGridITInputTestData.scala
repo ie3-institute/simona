@@ -25,16 +25,9 @@ trait ThermalGridITInputTestData
     extends NodeInputTestData
     with PvInputTestData
     with LoadInputTestData
-    with HpInputTestData {
+    with HpInputTestData
+    with EmInputTestData {
 
-  protected val simonaConfig: SimonaConfig = createSimonaConfig()
-
-  protected val defaultOutputConfig: NotifierConfig =
-    NotifierConfig(
-      simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-      simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
-      simonaConfig.simona.output.participant.defaultConfig.flexResult,
-    )
 
   protected val littleDomesticHotWaterStorageInput =
     new DomesticHotWaterStorageInput(
