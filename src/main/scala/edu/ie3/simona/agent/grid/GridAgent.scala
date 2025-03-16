@@ -24,7 +24,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -53,8 +52,6 @@ object GridAgent extends DBFSAlgorithm {
       val activationAdapter: ActorRef[Activation] =
         context.messageAdapter[Activation](msg => WrappedActivation(msg))
 
-      // val initialization
-
       // this determines the agents regular time bin it wants to be triggered e.g. one hour
       val resolution: Long = simonaConfig.simona.powerflow.resolution.toSeconds
 
@@ -78,26 +75,11 @@ object GridAgent extends DBFSAlgorithm {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Request],
       simonaConfig: SimonaConfig,
-  ): Behavior[Request] =
-    Behaviors.receiveMessagePartial {
-      case CreateGridAgent(gridAgentInitData, unlockKey, onlyOneSubGrid) =>
-        constantData.environmentRefs.scheduler ! ScheduleActivation(
-          constantData.activationAdapter,
-          INIT_SIM_TICK,
-          Some(unlockKey),
-        )
-        initializing(gridAgentInitData, simonaConfig, onlyOneSubGrid)
-    }
-
-  private def initializing(
-      gridAgentInitData: GridAgentInitData,
-      simonaConfig: SimonaConfig,
-      onlyOneSubGrid: Boolean,
-  )(implicit
-      constantData: GridAgentConstantData,
-      buffer: StashBuffer[Request],
   ): Behavior[Request] = Behaviors.receivePartial {
-    case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
+    case (
+          ctx,
+          CreateGridAgent(gridAgentInitData, unlockKey, onlyOneSubGrid),
+        ) =>
       // fail fast sanity checks
       failFast(
         gridAgentInitData,
@@ -106,18 +88,16 @@ object GridAgent extends DBFSAlgorithm {
       )
 
       ctx.log.debug(
-        s"Inferior Subnets: {}; Inferior Subnet Nodes: {}",
+        s"Inferior sub grids: {}; Inferior sub grid nodes: {}",
         gridAgentInitData.inferiorGridIds,
         gridAgentInitData.inferiorGridNodeUuids,
       )
 
       ctx.log.debug(
-        s"Superior Subnets: {}; Superior Subnet Nodes: {}",
+        s"Superior sub grids: {}; Superior sub grid nodes: {}",
         gridAgentInitData.superiorGridIds,
         gridAgentInitData.superiorGridNodeUuids,
       )
-
-      ctx.log.debug("Received InitializeTrigger.")
 
       // build the assets concurrently
       val subGridContainer = gridAgentInitData.subGridContainer
@@ -141,25 +121,24 @@ object GridAgent extends DBFSAlgorithm {
         simonaConfig,
       )
 
-      val gridAgentController =
-        new GridAgentController(
-          ctx,
-          constantData.environmentRefs,
-          constantData.simStartTime,
-          TimeUtil.withDefaults
-            .toZonedDateTime(constantData.simonaConfig.simona.time.endDateTime),
-          constantData.simonaConfig.simona.runtime.em,
-          constantData.simonaConfig.simona.runtime.participant,
-          constantData.simonaConfig.simona.output.participant,
-          constantData.resolution,
-          constantData.listener,
-          ctx.log,
-        )
+      val gridAgentBuilder = new GridAgentBuilder(
+        ctx,
+        constantData.environmentRefs,
+        constantData.simStartTime,
+        TimeUtil.withDefaults
+          .toZonedDateTime(constantData.simonaConfig.simona.time.endDateTime),
+        constantData.simonaConfig.simona.runtime.em,
+        constantData.simonaConfig.simona.runtime.participant,
+        constantData.simonaConfig.simona.output.participant,
+        constantData.resolution,
+        constantData.listener,
+        ctx.log,
+      )
 
       /* Reassure, that there are also calculation models for the given uuids */
       val nodeToAssetAgentsMap
           : Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
-        gridAgentController
+        gridAgentBuilder
           .buildSystemParticipants(subGridContainer, thermalGridsByBusId)
           .map { case (uuid: UUID, actorSet) =>
             val nodeUuid = gridModel.gridComponents.nodes
@@ -190,11 +169,10 @@ object GridAgent extends DBFSAlgorithm {
         SimonaActorNaming.actorName(ctx.self),
       )
 
-      ctx.log.debug("Je suis initialized")
-
-      constantData.environmentRefs.scheduler ! Completion(
+      constantData.environmentRefs.scheduler ! ScheduleActivation(
         constantData.activationAdapter,
-        Some(constantData.resolution),
+        constantData.resolution,
+        Some(unlockKey),
       )
 
       idle(gridAgentBaseData)

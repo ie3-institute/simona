@@ -36,9 +36,11 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   WeatherData,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
@@ -51,6 +53,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.testkit.TestActorRef
+import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
@@ -65,7 +68,8 @@ class EmAgentIT
     with AnyWordSpecLike
     with should.Matchers
     with EmInputTestData
-    with MockitoSugar {
+    with MockitoSugar
+    with TestSpawnerTyped {
   // start a bit later so the sun is up
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T10:00:00Z")
@@ -121,6 +125,13 @@ class EmAgentIT
           resultListener = Iterable(resultListener.ref),
         )
 
+        val keys = ScheduleLock
+          .multiKey(TSpawner, scheduler.ref, PRE_INIT_TICK, 3)
+          .iterator
+        val lockActivation =
+          scheduler.expectMessageType[ScheduleActivation].actor
+        lockActivation ! Activation(PRE_INIT_TICK)
+
         val emAgent = spawn(
           EmAgent(
             emInput,
@@ -142,6 +153,7 @@ class EmAgentIT
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "LoadAgent",
         )
@@ -153,6 +165,7 @@ class EmAgentIT
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "PvAgent",
         )
@@ -164,6 +177,7 @@ class EmAgentIT
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "StorageAgent",
         )
@@ -171,6 +185,11 @@ class EmAgentIT
         val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
         emInitSchedule.tick shouldBe INIT_SIM_TICK
         val emAgentActivation = emInitSchedule.actor
+
+        scheduler.expectNoMessage()
+
+        emInitSchedule.unlockKey.value.unlock()
+        scheduler.expectMessage(Completion(lockActivation))
 
         /* INIT */
 
@@ -366,6 +385,13 @@ class EmAgentIT
           resultListener = Iterable(resultListener.ref),
         )
 
+        val keys = ScheduleLock
+          .multiKey(TSpawner, scheduler.ref, PRE_INIT_TICK, 2)
+          .iterator
+        val lockActivation =
+          scheduler.expectMessageType[ScheduleActivation].actor
+        lockActivation ! Activation(PRE_INIT_TICK)
+
         val emAgent = spawn(
           EmAgent(
             emInput,
@@ -387,6 +413,7 @@ class EmAgentIT
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "LoadAgent1",
         )
@@ -398,6 +425,7 @@ class EmAgentIT
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "PvAgent1",
         )
@@ -429,6 +457,11 @@ class EmAgentIT
         val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
         emInitSchedule.tick shouldBe INIT_SIM_TICK
         val emAgentActivation = emInitSchedule.actor
+
+        scheduler.expectNoMessage()
+
+        emInitSchedule.unlockKey.value.unlock()
+        scheduler.expectMessage(Completion(lockActivation))
 
         /* INIT */
 
