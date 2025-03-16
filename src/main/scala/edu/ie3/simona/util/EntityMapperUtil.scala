@@ -26,7 +26,6 @@ object EntityMapperUtil {
     BioMassPlant -> classOf[BmResult],
     Ev -> classOf[EvResult],
     Evcs -> classOf[EvcsResult],
-    ChpPlant -> classOf[ChpResult],
     Storage -> classOf[StorageResult],
     Em -> classOf[EmResult],
     Hp -> classOf[HpResult],

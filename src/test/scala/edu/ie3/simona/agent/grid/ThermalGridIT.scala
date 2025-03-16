@@ -27,7 +27,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   WeatherData,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
 import edu.ie3.simona.test.common.input.ThermalGridITInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -61,7 +61,8 @@ class ThermalGridIT
     with should.Matchers
     with ThermalGridITInputTestData
     with MockitoSugar
-    with DefaultTestData {
+    with DefaultTestData
+    with TestSpawnerTyped {
   private implicit val classicSystem: ActorSystem = system.toClassic
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")

@@ -25,24 +25,18 @@ object TimeAdvancer {
 
   trait Request
 
-  /** Starts simulation by activating the next (or first) tick
-    *
-    * @param pauseTick
-    *   Last tick that can be activated or completed before the simulation is
-    *   paused
+  /** Starts simulation by activating the first tick.
     */
-  final case class Start(
-      pauseTick: Option[Long] = None
-  ) extends Request
+  final case object Start extends Request
 
   /** @param simulation
-    *   The root actor of the simulation
+    *   The root actor of the simulation.
     * @param eventListener
-    *   listener that receives runtime events
+    *   The listener that receives runtime events.
     * @param checkWindow
-    *   interval in which check window messages are sent
+    *   The interval in which check window messages are sent.
     * @param endTick
-    *   last tick of the simulation
+    *   The last tick of the simulation.
     */
   def apply(
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
@@ -55,93 +49,66 @@ object TimeAdvancer {
         TimeAdvancerData(simulation, actor, endTick),
         eventListener.map(RuntimeNotifier(_, checkWindow)),
         tick,
-        tick,
       )
   }
 
-  /** TimeAdvancer is inactive and waiting for a StartScheduleMessage to start
-    * or continue
+  /** [[TimeAdvancer]] is inactive and waiting for the Start message to start
+    * simulation.
+    *
     * @param data
-    *   constant time advancer data
+    *   The constant time advancer data.
     * @param notifier
-    *   notifier for runtime events
-    * @param startingTick
-    *   tick that the simulation continues with at the beginning/after the last
-    *   pause
-    * @param nextActiveTick
-    *   tick that the schedulee wants to be activated for next
+    *   The notifier for runtime events.
+    * @param firstTick
+    *   The tick that the simulation starts with.
     */
   private def inactive(
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier],
-      startingTick: Long,
-      nextActiveTick: Long,
-  ): Behavior[Request] = Behaviors.receivePartial {
-    case (_, Start(pauseTick)) =>
-      val updatedNotifier = notifier.map {
-        _.starting(
-          startingTick,
-          pauseTick,
-          data.endTick,
-        )
-      }
-
-      data.schedulee ! Activation(nextActiveTick)
-
-      active(
-        data,
-        updatedNotifier,
-        nextActiveTick,
-        pauseTick,
+      firstTick: Long,
+  ): Behavior[Request] = Behaviors.receivePartial { case (_, Start) =>
+    val updatedNotifier = notifier.map {
+      _.starting(
+        firstTick,
+        data.endTick,
       )
+    }
+
+    data.schedulee ! Activation(firstTick)
+
+    active(
+      data,
+      updatedNotifier,
+      firstTick,
+    )
   }
 
-  /** TimeAdvancer is active and waiting for the current activation of the
-    * schedulee to complete
+  /** [[TimeAdvancer]] is active and waiting for the current activation of the
+    * schedulee to complete.
     *
     * @param data
-    *   constant time advancer data
+    *   The constant time advancer data.
     * @param notifier
-    *   notifier for runtime events
+    *   The notifier for runtime events.
     * @param activeTick
-    *   tick that is currently active
-    * @param pauseTick
-    *   the tick that we should pause at (if applicable)
+    *   The tick that is currently active.
     */
   private def active(
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier],
       activeTick: Long,
-      pauseTick: Option[Long],
   ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, Completion(_, maybeNewTick)) =>
       checkCompletion(activeTick, maybeNewTick)
         .map(endWithFailure(ctx, notifier, activeTick, _))
         .getOrElse {
 
-          (maybeNewTick, pauseTick) match {
-            case (Some(newTick), _) if newTick > data.endTick =>
+          maybeNewTick match {
+            case Some(newTick) if newTick > data.endTick =>
               // next tick is after endTick, finish simulation
               endSuccessfully(data, notifier)
 
-            case (Some(newTick), Some(pauseTick)) if newTick > pauseTick =>
-              // next tick is after pause tick, pause sim
-              val updatedNotifier = notifier.map {
-                _.completing(
-                  math.min(newTick - 1, pauseTick)
-                )
-                  .pausing(pauseTick)
-              }
-
-              // pause, inactivate
-              inactive(
-                data,
-                updatedNotifier,
-                pauseTick + 1,
-                newTick,
-              )
-
-            case (Some(newTick), _) =>
+            case Some(newTick) =>
               // next tick is ok, continue
               val updatedNotifier = notifier.map { notifier =>
                 val notifierCompleted =
@@ -150,7 +117,6 @@ object TimeAdvancer {
                 if (activeTick == INIT_SIM_TICK)
                   notifierCompleted.starting(
                     newTick,
-                    pauseTick,
                     data.endTick,
                   )
                 else
@@ -163,10 +129,9 @@ object TimeAdvancer {
                 data,
                 updatedNotifier,
                 newTick,
-                pauseTick,
               )
 
-            case (None, _) =>
+            case None =>
               // there is no next tick, finish
               ctx.log.info("No next tick supplied, stopping simulation.")
               endSuccessfully(data, notifier)
