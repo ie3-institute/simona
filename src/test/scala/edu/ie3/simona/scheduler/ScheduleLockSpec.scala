@@ -31,7 +31,7 @@ class ScheduleLockSpec
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
 
       val scheduleLocks =
-        ScheduleLock.multiKey(TSpawner, scheduler.ref, 300, 2).toSeq
+        ScheduleLock.multiKey(TSpawner, scheduler.ref, 300, 2).toIndexedSeq
 
       val sa = scheduler.expectMessageType[ScheduleActivation]
       sa.tick shouldBe 300

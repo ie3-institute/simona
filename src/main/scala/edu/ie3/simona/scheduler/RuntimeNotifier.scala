@@ -10,7 +10,7 @@ import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
 import edu.ie3.simona.scheduler.RuntimeNotifier._
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 
 /** Determines runtime events at different stages of the simulation and notifies
   * listeners
@@ -55,7 +55,7 @@ final case class RuntimeNotifier(
     val nowTime = now()
 
     notify(tick match {
-      case INIT_SIM_TICK => Initializing
+      case PRE_INIT_TICK | INIT_SIM_TICK => Initializing
       case _ =>
         Simulating(tick, endTick)
     })

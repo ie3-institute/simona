@@ -37,7 +37,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -72,7 +72,8 @@ class ThermalGridIT
     with should.Matchers
     with EmInputTestData
     with MockitoSugar
-    with DefaultTestData {
+    with DefaultTestData
+    with TestSpawnerTyped {
   private implicit val classicSystem: ActorSystem = system.toClassic
   protected implicit val temperatureTolerance = 0.01
   private val resolution =
