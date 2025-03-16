@@ -88,16 +88,13 @@ final case class ThermalHouse(
     * accounted for, as we assume, that after determining the thermal demand, a
     * change in external infeed will take place.
     *
-    * @param state
-    *   Last state of the heat pump.
     * @param currentThermalHouseState
     *   Most recent state, that is valid for this model.
     * @return
     *   The needed energy in the questioned tick.
     */
   def energyDemand(
-      state: HpState,
-      currentThermalHouseState: ThermalHouseState,
+      currentThermalHouseState: ThermalHouseState
   ): ThermalEnergyDemand = {
     // Since we updated the state before, we can directly take the innerTemperature
     val currentInnerTemp = currentThermalHouseState.innerTemperature
