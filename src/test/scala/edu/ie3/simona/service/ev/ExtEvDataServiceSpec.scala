@@ -43,7 +43,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{DurationInt, FiniteDuration, SECONDS}
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 import scala.language.implicitConversions
@@ -338,6 +338,8 @@ class ExtEvDataServiceSpec
       extSimAdapter.expectMessage(
         new ScheduleDataServiceMessage(adapter.toClassic)
       )
+
+      activationMsg.unlockKey.map(_.unlock())
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 
