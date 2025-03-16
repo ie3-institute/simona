@@ -22,6 +22,7 @@ import edu.ie3.datamodel.models.result.thermal.{
   ThermalHouseResult,
   ThermalUnitResult,
 }
+import edu.ie3.datamodel.models.result.system.{EmResult, HpResult}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.listener.ResultEventListener
 import tech.units.indriya.ComparableQuantity
@@ -45,6 +46,44 @@ object ResultEvent {
   final case class ParticipantResultEvent(
       systemParticipantResult: SystemParticipantResult
   ) extends ResultEvent
+
+  object HpResult {
+    def unapply(result: HpResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Power],
+      )
+    ] =
+      Option(result).map { result =>
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getP,
+          result.getQ,
+        )
+      }
+  }
+
+  object EmResult {
+    def unapply(result: EmResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Power],
+      )
+    ] =
+      Option(result).map { result =>
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getP,
+          result.getQ,
+        )
+      }
+  }
 
   /** Event, that is triggered every time a thermal model has a new result
     * @param thermalResult
