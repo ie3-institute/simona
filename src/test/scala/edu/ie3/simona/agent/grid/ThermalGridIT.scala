@@ -1426,7 +1426,6 @@ Heat pump: ?
     }
   }
 
-
   "A Thermal Grid with thermal house, thermal storage and heat pump that is controlled by an energy management" should {
     "be initialized correctly and run through some activations" in {
       implicit val simulationStartWithPv: ZonedDateTime =
@@ -1634,11 +1633,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -1647,11 +1646,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -1711,11 +1710,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 1800.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -1724,11 +1723,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 1800.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -1774,11 +1773,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 5216.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -1787,11 +1786,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 5216.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -1849,11 +1848,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 5400.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
@@ -1862,11 +1861,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 5400.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
@@ -1910,11 +1909,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 6829.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -1923,11 +1922,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 6829.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -1989,11 +1988,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 9200.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2002,11 +2001,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 9200.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -2056,11 +2055,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 10556.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -2069,11 +2068,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 10556.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -2121,11 +2120,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 11644.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2134,11 +2133,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 11644.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -2201,11 +2200,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 12000.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -2214,11 +2213,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 12000.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2266,11 +2265,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 12138.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2279,11 +2278,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 12138.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -2344,11 +2343,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 12500.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -2357,11 +2356,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 12500.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -2409,11 +2408,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 24153.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
@@ -2422,11 +2421,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 24153.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
@@ -2486,11 +2485,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -2499,11 +2498,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -2564,11 +2563,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 27500.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -2577,11 +2576,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 27500.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2630,11 +2629,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 30710.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2643,11 +2642,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 30710.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -2708,11 +2707,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 31000.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2721,11 +2720,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 31000.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2773,11 +2772,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 40690.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
@@ -2786,11 +2785,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 40690.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
@@ -2842,11 +2841,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 43548.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2855,11 +2854,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 43548.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -2905,11 +2904,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 46292.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -2918,11 +2917,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 46292.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2968,11 +2967,11 @@ Heat pump: ?
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 55765.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2981,11 +2980,11 @@ Heat pump: ?
                 )(temperatureTolerance)
 
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 55765.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
@@ -2997,6 +2996,4 @@ Heat pump: ?
 
     }
   }
-}
-
 }
