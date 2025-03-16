@@ -856,12 +856,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               simulationResult = false,
               flexResult = false,
             ),
-            OutputConfig.ParticipantOutputConfig(
-              notifier = "chp",
-              powerRequestReply = true,
-              simulationResult = false,
-              flexResult = false,
-            ),
           )
 
           noException shouldBe thrownBy {
