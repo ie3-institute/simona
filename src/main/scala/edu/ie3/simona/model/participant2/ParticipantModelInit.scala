@@ -13,7 +13,10 @@ import edu.ie3.simona.agent.participant.data.Data.{
   PrimaryData,
   PrimaryDataExtra,
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  InputModelContainer,
+  WithHeatInputContainer,
+}
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   EvcsRuntimeConfig,
