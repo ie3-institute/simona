@@ -23,6 +23,27 @@ import java.util.UUID
   * some actors, we need to prevent simulation time from advancing until
   * scheduling all of them has finished. Locks with one or multiple keys can be
   * created, for which all created keys are required for unlocking the lock.
+  *
+  * In order to demonstrate this functionality, let's take an example of a
+  * scheduler and actors A and B. A has been activated for a tick t and sends
+  * out two messages. The first of the two messages goes to B, which in turn now
+  * wants to schedule itself for tick t+1. The second message by A is a
+  * Completion message and goes back to the scheduler, completing the current
+  * activation of A. Here, we get into a race condition: If the scheduling
+  * message by B is received first by the scheduler, all is fine. If the
+  * completion message by A is received first though, simulation time might
+  * advance to a tick beyond t+1, which means that the scheduling message by B
+  * is received too late and causes the simulation to fail.
+  *
+  * {{{
+  *       A         B     Scheduler
+  *  1.   | ------> | ------> |
+  *  2.   | ----------------> |
+  * }}}
+  *
+  * This is where the [[ScheduleLock]] comes into play: If A is including a
+  * schedule lock with the message sent to B, which can then be forwarded within
+  * the scheduling message sent to the scheduler, the race condition is solved.
   */
 object ScheduleLock {
   sealed trait LockMsg
