@@ -141,7 +141,7 @@ final case class ThermalHouse(
     ethCapa * temperatureDiff
   }
 
-  /** Check if inner temperature is higher than preferred maximum temperature
+  /** Check if inner temperature is higher than preferred maximum temperature.
     * @param innerTemperature
     *   The inner temperature of the house.
     * @param boundaryTemperature
@@ -157,8 +157,12 @@ final case class ThermalHouse(
       boundaryTemperature - temperatureTolerance
     )
 
-  /** Check if inner temperature is lower than preferred minimum temperature
+  /** Check if inner temperature is lower than preferred minimum temperature.
     *
+    * @param innerTemperature
+    *   The inner temperature of the house.
+    * @param boundaryTemperature
+    *   The applied boundary temperature to check against.
     * @return
     *   true, if inner temperature is too low
     */
