@@ -69,8 +69,7 @@ final case class CylindricalThermalStorage(
       bus,
       maxEnergyThreshold,
       pThermalMax,
-    )
-    {
+    ) {
 
   /** Updates the given last state. Based on the then set thermal influx, the
     * current state is calculated. Positive values of influx are consider to
