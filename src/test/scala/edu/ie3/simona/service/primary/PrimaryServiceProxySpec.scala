@@ -519,12 +519,13 @@ class PrimaryServiceProxySpec
               timePattern shouldBe TimeUtil.withDefaults.getDateTimeFormatter.toString
           }
 
-          // receiving schedule activation, don't know why but ok...
-          scheduler.expectMsgType[ScheduleActivation]
+          // receiving schedule activation of schedule lock
+          scheduler.expectMsgType[ScheduleActivation] match {
+            case ScheduleActivation(_, tick, key) =>
+              tick shouldBe INIT_SIM_TICK
+              key shouldBe None
+          }
 
-          /* Kill the worker aka. test probe */
-          workerRef ! PoisonPill
-          succeed
         case Failure(exception) =>
           fail(
             "Spinning off a worker with correct input data should be successful, but failed with:",
