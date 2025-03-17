@@ -9,6 +9,7 @@ package edu.ie3.simona.service
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  RegisterForEvDataMessage,
   ScheduleServiceActivation,
   ServiceResponseMessage,
   WrappedExternalMessage,
@@ -16,6 +17,8 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
+
+import scala.util.{Failure, Success}
 
 /** Trait that enables handling of external data.
   * @tparam T
@@ -61,6 +64,17 @@ trait ExtDataSupport[
         handleDataResponseMessage(extResponseMsg)(stateData)
 
       buffer.unstashAll(idle(updatedStateData, constantData, buffer))
+
+    case (ctx, msg: RegisterForEvDataMessage) =>
+      handleRegistrationRequest(msg)(stateData, ctx) match {
+        case Success(updatedStateData) =>
+          buffer.unstashAll(idle(updatedStateData, constantData, buffer))
+        case Failure(exception) =>
+          ctx.log.error(
+            s"Failed to handle registration request: ${exception.getMessage}"
+          )
+          buffer.unstashAll(idle(stateData, constantData, buffer))
+      }
 
     case (ctx, unsupported) =>
       ctx.log.warn(s"Received unsupported message: $unsupported!")
