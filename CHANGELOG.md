@@ -216,6 +216,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix copernicus url in readthedocs [#1248](https://github.com/ie3-institute/simona/issues/1248)
 - Check for fully charged Evs when determine next OperationPoint of Evcs [#1253](https://github.com/ie3-institute/simona/issues/1253)
 - Fix bug in `ExtDataSupport.adapter` that leads to an exception while scheduling the service [#1273](https://github.com/ie3-institute/simona/issues/1273)
+- Fixed CI inconsistency after removing deprecations of Gradle [#1275](https://github.com/ie3-institute/simona/issues/1275)
 - Fix initialization by using ScheduleLocks [#1272](https://github.com/ie3-institute/simona/issues/1272)
 
 ### Removed
