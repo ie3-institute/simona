@@ -218,7 +218,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix bug in `ExtDataSupport.adapter` that leads to an exception while scheduling the service [#1273](https://github.com/ie3-institute/simona/issues/1273)
 - Fixed CI inconsistency after removing deprecations of Gradle [#1275](https://github.com/ie3-institute/simona/issues/1275)
 - Fix initialization by using ScheduleLocks [#1272](https://github.com/ie3-institute/simona/issues/1272)
-- Fix vn_simona time series mapping [#1288](https://github.com/ie3-institute/simona/issues/1288)
 - Fix schedule lock in PrimaryServiceProxy [#1289](https://github.com/ie3-institute/simona/issues/1289)
 
 ### Removed
