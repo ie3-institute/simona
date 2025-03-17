@@ -159,6 +159,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converting `ExtEvDataService` to pekko typed [#1214](https://github.com/ie3-institute/simona/issues/1214)
 - Updated Gradle to version 8.13 and removed deprecated syntax [#1286](https://github.com/ie3-institute/PowerSystemDataModel/issues/1286)
 - Consider inputContainer when initialize participant models [#1251](https://github.com/ie3-institute/simona/issues/1251) 
+- Change logging level for unsupported messages from ExtDataSupport [#1286](https://github.com/ie3-institute/simona/issues/1286)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
