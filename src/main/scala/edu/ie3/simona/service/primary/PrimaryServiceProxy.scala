@@ -52,7 +52,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -63,10 +62,13 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   InitPrimaryServiceStateData,
   SqlInitPrimaryServiceStateData,
 }
-import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.scaladsl.{
+  ActorContext,
+  Behaviors,
+  StashBuffer,
+}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
 
@@ -200,22 +202,25 @@ object PrimaryServiceProxy {
   def apply(
       scheduler: ActorRef[SchedulerMessage],
       initStateData: InitPrimaryServiceProxyStateData,
-  ): Behavior[ServiceMessage] = Behaviors.setup { ctx =>
-    val activationAdapter: ActorRef[Activation] =
-      ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
+      bufferSize: Int = 10000,
+  ): Behavior[ServiceMessage] = Behaviors.withStash(bufferSize) { buffer =>
+    Behaviors.setup { ctx =>
+      val activationAdapter: ActorRef[Activation] =
+        ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
 
-    implicit val constantData: ServiceConstantStateData =
-      ServiceConstantStateData(
-        scheduler,
+      val constantData: ServiceConstantStateData =
+        ServiceConstantStateData(
+          scheduler,
+          activationAdapter,
+        )
+
+      scheduler ! ScheduleActivation(
         activationAdapter,
+        INIT_SIM_TICK,
       )
 
-    scheduler ! ScheduleActivation(
-      activationAdapter,
-      INIT_SIM_TICK,
-    )
-
-    uninitialized(initStateData)
+      uninitialized(initStateData)(constantData, buffer)
+    }
   }
 
   /** Handle all messages, when the actor isn't initialized, yet.
@@ -226,7 +231,8 @@ object PrimaryServiceProxy {
   private def uninitialized(
       initStateData: InitPrimaryServiceProxyStateData
   )(implicit
-      constantData: ServiceConstantStateData
+      constantData: ServiceConstantStateData,
+      buffer: StashBuffer[ServiceMessage],
   ): Behavior[ServiceMessage] = Behaviors.receive {
     case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
       /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
@@ -237,8 +243,7 @@ object PrimaryServiceProxy {
       )(ctx.log) match {
         case Success(stateData) =>
           constantData.scheduler ! Completion(constantData.activationAdapter)
-          unstashAll()
-          onMessage(stateData)
+          buffer.unstashAll(onMessage(stateData))
         case Failure(exception) =>
           ctx.log.error(
             s"Unable to initialize the ${ctx.self.path}. Shut it down.",
@@ -248,8 +253,9 @@ object PrimaryServiceProxy {
           Behaviors.stopped
       }
 
-    case _ =>
-      stash()
+    case (_, msg) =>
+      buffer.stash(msg)
+      Behaviors.same
   }
 
   /** Prepare the needed state data by building a

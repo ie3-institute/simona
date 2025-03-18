@@ -133,7 +133,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   context: ActorContext[_],
                   scheduler: ActorRef[SchedulerMessage],
                   extSimSetupData: ExtSimSetupData,
-              ): ClassicRef = {
+              ): ActorRef[ServiceMessage] = {
                 val throwingActor = context
                   .spawn[Any](
                     throwOnMessage,
@@ -141,7 +141,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   )
                 // Send ref to the outside to make it accessible
                 receiveThrowingActor.ref ! throwingActor
-                throwingActor.toClassic
+                throwingActor
               }
 
             }
@@ -199,7 +199,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   context: ActorContext[_],
                   scheduler: ActorRef[SchedulerMessage],
                   extSimSetupData: ExtSimSetupData,
-              ): ClassicRef = {
+              ): ActorRef[ServiceMessage] = {
                 val stoppingActor =
                   context.spawn[Any](
                     stopOnMessage,
