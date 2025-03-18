@@ -20,7 +20,7 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   TypedActorContextOps,
@@ -83,7 +83,7 @@ object ExtSimSetup {
         // send init data right away, init activation is scheduled
         extSimAdapter ! ExtSimAdapter.Create(
           extSimAdapterData,
-          ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+          ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
         )
 
         // setup data services that belong to this external simulation
@@ -220,7 +220,7 @@ object ExtSimSetup {
       ScheduleLock.singleKey(
         context,
         scheduler,
-        INIT_SIM_TICK,
+        PRE_INIT_TICK,
       ),
     )
 

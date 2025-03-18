@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
   Transformer3WResult,
 }
-import edu.ie3.datamodel.models.result.system.{ChpResult, LoadResult}
+import edu.ie3.datamodel.models.result.system.LoadResult
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.ConfigParams.ResultKafkaParams
 import edu.ie3.simona.config.RuntimeConfig._
@@ -317,7 +317,6 @@ class ConfigUtilSpec
           1.3,
           List("49f250fa-41ff-4434-a083-79c98d260a76"),
           "profile",
-          "power",
         )
       actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
@@ -624,7 +623,6 @@ class ConfigUtilSpec
           1.0,
           List("default"),
           "profile",
-          "power",
         )
 
       // return default if a request for pv is done, but fixed feed is found
@@ -692,29 +690,14 @@ class ConfigUtilSpec
   "The participant model output config util" should {
     val validInput = AssetConfigs(
       OutputConfig.ParticipantOutputConfig(
-        notifier = "default",
-        powerRequestReply = false,
-        simulationResult = false,
-        flexResult = false,
+        notifier = "default"
       ),
       List(
         OutputConfig.ParticipantOutputConfig(
-          notifier = "load",
-          powerRequestReply = false,
-          simulationResult = false,
-          flexResult = false,
+          notifier = "load"
         ),
         OutputConfig.ParticipantOutputConfig(
-          notifier = "pv",
-          powerRequestReply = false,
-          simulationResult = false,
-          flexResult = false,
-        ),
-        OutputConfig.ParticipantOutputConfig(
-          notifier = "chp",
-          powerRequestReply = false,
-          simulationResult = false,
-          flexResult = false,
+          notifier = "pv"
         ),
       ),
     )
@@ -734,11 +717,6 @@ class ConfigUtilSpec
             flexResult = false,
           ),
           PvPlant -> NotifierConfig(
-            simulationResultInfo = false,
-            powerRequestReply = false,
-            flexResult = false,
-          ),
-          ChpPlant -> NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false,
             flexResult = false,
@@ -769,28 +747,17 @@ class ConfigUtilSpec
       val inputConfig = AssetConfigs(
         OutputConfig.ParticipantOutputConfig(
           notifier = "default",
-          powerRequestReply = false,
           simulationResult = true,
-          flexResult = false,
         ),
         List(
           OutputConfig.ParticipantOutputConfig(
             notifier = "load",
             powerRequestReply = true,
             simulationResult = true,
-            flexResult = false,
           ),
           OutputConfig.ParticipantOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
-            simulationResult = false,
-            flexResult = false,
-          ),
-          OutputConfig.ParticipantOutputConfig(
-            notifier = "chp",
-            powerRequestReply = true,
-            simulationResult = true,
-            flexResult = false,
           ),
         ),
       )
@@ -808,35 +775,22 @@ class ConfigUtilSpec
     "return the correct notifier identifiers when the default is to NOT inform about new simulation results" in {
       val inputConfig = AssetConfigs(
         OutputConfig.ParticipantOutputConfig(
-          notifier = "default",
-          powerRequestReply = false,
-          simulationResult = false,
-          flexResult = false,
+          notifier = "default"
         ),
         List(
           OutputConfig.ParticipantOutputConfig(
             notifier = "load",
             powerRequestReply = true,
             simulationResult = true,
-            flexResult = false,
           ),
           OutputConfig.ParticipantOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
-            simulationResult = false,
-            flexResult = false,
-          ),
-          OutputConfig.ParticipantOutputConfig(
-            notifier = "chp",
-            powerRequestReply = true,
-            simulationResult = true,
-            flexResult = false,
           ),
         ),
       )
       val configUtil = OutputConfigUtil.participants(inputConfig)
-      val expectedResult: Set[Value] =
-        Set(NotifierIdentifier.Load, NotifierIdentifier.ChpPlant)
+      val expectedResult: Set[Value] = Set(NotifierIdentifier.Load)
 
       configUtil.simulationResultIdentifiersToConsider(
         false
@@ -846,35 +800,22 @@ class ConfigUtilSpec
     "return the correct result entity classes to be considered " in {
       val inputConfig = AssetConfigs(
         OutputConfig.ParticipantOutputConfig(
-          notifier = "default",
-          powerRequestReply = false,
-          simulationResult = false,
-          flexResult = false,
+          notifier = "default"
         ),
         List(
           OutputConfig.ParticipantOutputConfig(
             notifier = "load",
             powerRequestReply = true,
             simulationResult = true,
-            flexResult = false,
           ),
           OutputConfig.ParticipantOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
-            simulationResult = false,
-            flexResult = false,
-          ),
-          OutputConfig.ParticipantOutputConfig(
-            notifier = "chp",
-            powerRequestReply = true,
-            simulationResult = true,
-            flexResult = false,
           ),
         ),
       )
       val configUtil = OutputConfigUtil.participants(inputConfig)
-      val expectedResult: Set[Class[_ <: ResultEntity]] =
-        Set[Class[_ <: ResultEntity]](classOf[LoadResult], classOf[ChpResult])
+      val expectedResult = Set[Class[_ <: ResultEntity]](classOf[LoadResult])
 
       configUtil.simulationResultEntitiesToConsider(
         false

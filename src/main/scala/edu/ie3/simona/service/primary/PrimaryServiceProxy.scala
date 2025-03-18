@@ -52,6 +52,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -62,6 +63,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   InitPrimaryServiceStateData,
   SqlInitPrimaryServiceStateData,
 }
+import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -235,6 +237,7 @@ object PrimaryServiceProxy {
       )(ctx.log) match {
         case Success(stateData) =>
           constantData.scheduler ! Completion(constantData.activationAdapter)
+          unstashAll()
           onMessage(stateData)
         case Failure(exception) =>
           ctx.log.error(
@@ -245,10 +248,8 @@ object PrimaryServiceProxy {
           Behaviors.stopped
       }
 
-    case (ctx, x) =>
-      /* Unhandled message */
-      ctx.log.error("Received unhandled message: {}", x)
-      Behaviors.same
+    case _ =>
+      stash()
   }
 
   /** Prepare the needed state data by building a

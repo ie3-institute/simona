@@ -9,12 +9,13 @@ package edu.ie3.simona.service
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ScheduleServiceActivation,
   ServiceResponseMessage,
   WrappedExternalMessage,
 }
 import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 
 /** Trait that enables handling of external data.
   * @tparam T
@@ -34,31 +35,38 @@ trait ExtDataSupport[
     *   The behavior of the adapter.
     */
   def adapter(service: ActorRef[T]): Behavior[DataMessageFromExt] =
-    Behaviors.receiveMessagePartial[DataMessageFromExt] { extMsg =>
-      service ! WrappedExternalMessage(extMsg)
-      Behaviors.same
+    Behaviors.receiveMessagePartial[DataMessageFromExt] {
+      case scheduleServiceActivation: ScheduleServiceActivation =>
+        // TODO: Refactor this with scala3
+        service ! scheduleServiceActivation
+        Behaviors.same
+
+      case extMsg =>
+        service ! WrappedExternalMessage(extMsg)
+        Behaviors.same
     }
 
   override private[service] def idleExternal(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[T],
   ): Behavior[T] = Behaviors.receive {
     case (_, WrappedExternalMessage(extMsg)) =>
       val updatedStateData = handleDataMessage(extMsg)(stateData)
 
-      buffer.unstashAll(idle(updatedStateData, constantData, buffer))
+      idle(updatedStateData, constantData)
 
     case (_, extResponseMsg: ServiceResponseMessage) =>
       val updatedStateData =
         handleDataResponseMessage(extResponseMsg)(stateData)
 
-      buffer.unstashAll(idle(updatedStateData, constantData, buffer))
+      idle(updatedStateData, constantData)
 
     case (ctx, unsupported) =>
-      ctx.log.warn(s"Received unsupported message: $unsupported!")
-      buffer.stash(unsupported)
-      buffer.unstashAll(idleInternal)
+      ctx.log.debug(
+        s"Received unsupported message: $unsupported! Message forwarded to be handled internally."
+      )
+      ctx.self ! unsupported
+      idleInternal
   }
 
   /** Handle a message from outside the simulation

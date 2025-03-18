@@ -488,8 +488,12 @@ class PrimaryServiceProxySpec
           timePattern shouldBe TimeUtil.withDefaults.getDateTimeFormatter.toString
       }
 
-      // receiving schedule activation, don't know why but ok...
-      scheduler.expectMessageType[ScheduleActivation]
+      // receiving schedule activation of schedule lock
+      scheduler.expectMessageType[ScheduleActivation] match {
+        case ScheduleActivation(_, tick, key) =>
+          tick shouldBe INIT_SIM_TICK
+          key shouldBe None
+      }
     }
   }
 
