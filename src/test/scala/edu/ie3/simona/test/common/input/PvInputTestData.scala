@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.SimpleInputContainer
 import edu.ie3.simona.test.common.DefaultTestData
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
@@ -54,6 +55,8 @@ trait PvInputTestData
     Quantities.getQuantity(10, StandardUnits.S_RATED),
     0.95,
   )
+
+  protected val pvInputContainer = SimpleInputContainer(pvInput)
 
   protected val pvSouth1 = new PvInput(
     UUID.fromString("7ac5bb15-36ee-42b0-902b-9cd520e241b3"),

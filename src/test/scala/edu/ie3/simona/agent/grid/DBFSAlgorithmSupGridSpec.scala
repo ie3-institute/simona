@@ -102,12 +102,8 @@ class DBFSAlgorithmSupGridSpec
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
-      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.tick shouldBe 3600
       scheduleActivationMsg.unlockKey shouldBe Some(key)
-      val gridAgentActivation = scheduleActivationMsg.actor
-
-      superiorGridAgentFSM ! WrappedActivation(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {

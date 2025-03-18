@@ -38,7 +38,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -111,20 +111,20 @@ class EvcsModelIT
         adapterToExt.toClassic,
         extSimAdapter.ref.toClassic,
       )
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       evService ! Create(
         InitExtEvData(extEvData),
-        key,
+        serviceKey,
       )
 
-      val msg = scheduler.expectMessageType[ScheduleActivation]
-      msg.tick shouldBe INIT_SIM_TICK
-      msg.unlockKey shouldBe Some(key)
-      val serviceActivation = msg.actor
+      val scheduleServiceMsg = scheduler.expectMessageType[ScheduleActivation]
+      scheduleServiceMsg.tick shouldBe INIT_SIM_TICK
+      scheduleServiceMsg.unlockKey shouldBe Some(serviceKey)
+      val serviceActivation = scheduleServiceMsg.actor
 
       /* Create ParticipantAgent with EvcsModel */
       val participantRefs = ParticipantRefs(
@@ -134,20 +134,27 @@ class EvcsModelIT
         resultListener = Iterable(resultListener.ref),
       )
 
+      val evcsKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+
       val evcsAgent = spawn(
         ParticipantAgentInit(
-          evcsInputModel,
+          evcsInputContainer,
           EvcsRuntimeConfig(),
           notifierConfig,
           participantRefs,
           simulationParams,
           Left(scheduler.ref),
+          evcsKey,
         )
       )
 
-      val scheduleMsg = scheduler.expectMessageType[ScheduleActivation]
-      scheduleMsg.tick shouldBe INIT_SIM_TICK
-      val evcsActivation = scheduleMsg.actor
+      val scheduleEvcsMsg = scheduler.expectMessageType[ScheduleActivation]
+      scheduleEvcsMsg.tick shouldBe INIT_SIM_TICK
+      scheduleEvcsMsg.unlockKey shouldBe Some(evcsKey)
+      val evcsActivation = scheduleEvcsMsg.actor
 
       /* INIT */
 

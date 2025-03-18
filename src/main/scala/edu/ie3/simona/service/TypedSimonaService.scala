@@ -117,7 +117,7 @@ abstract class TypedSimonaService[
             constantData.activationAdapter,
             maybeNewTick,
           )
-          buffer.unstashAll(idle(serviceStateData, constantData, buffer))
+          buffer.unstashAll(idle(serviceStateData, constantData))
         case Failure(exception) =>
           // initialize service trigger with invalid data
           ctx.log.error(
@@ -161,19 +161,17 @@ abstract class TypedSimonaService[
   final protected def idle(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[T],
   ): Behavior[T] = idleExternal
 
   private[service] def idleInternal(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[T],
   ): Behavior[T] = Behaviors.receive {
     // agent registration process
     case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
       handleRegistrationRequest(registrationMsg)(stateData, ctx) match {
-        case Success(stateData) => idle(stateData, constantData, buffer)
+        case Success(stateData) => idle(stateData, constantData)
         case Failure(exception) =>
           ctx.log.error(
             "Error during registration." +
@@ -196,7 +194,7 @@ abstract class TypedSimonaService[
         Some(unlockKey),
       )
 
-      buffer.unstashAll(idleInternal)
+      idle
 
     // activity start trigger for this service
     case (ctx, WrappedActivation(Activation(tick))) =>
@@ -208,7 +206,7 @@ abstract class TypedSimonaService[
         maybeNewTriggers,
       )
 
-      buffer.unstashAll(idle(updatedStateData, constantData, buffer))
+      idle(updatedStateData, constantData)
 
     // unhandled message
     case (ctx, x) =>
@@ -228,7 +226,6 @@ abstract class TypedSimonaService[
   private[service] def idleExternal(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[T],
   ): Behavior[T] = idleInternal
 
   /** Initialize the concrete service implementation using the provided

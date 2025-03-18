@@ -316,7 +316,6 @@ object ConfigUtil {
     */
   object NotifierIdentifier extends ParsableEnumeration {
     val BioMassPlant: Value = Value("bm")
-    val ChpPlant: Value = Value("chp")
     val Em: Value = Value("em")
     val Ev: Value = Value("ev")
     val Evcs: Value = Value("evcs")
