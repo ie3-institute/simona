@@ -505,7 +505,7 @@ object ParticipantModelShell {
     * @return
     *   The constructed [[ParticipantModelShell]] with a primary data model.
     */
-  def createForPrimaryData[PD <: PrimaryData: ClassTag](
+  def createForPrimaryData[PD <: PrimaryData](
       inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       config: BaseRuntimeConfig,
       primaryDataExtra: PrimaryDataExtra[PD],

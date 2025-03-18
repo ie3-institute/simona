@@ -390,11 +390,11 @@ object ConfigUtil {
   object DatabaseConfigUtil extends LazyLogging {
 
     def checkSqlParams(
-        jdbcUrl: java.lang.String,
-        password: java.lang.String,
-        schemaName: java.lang.String,
-        tableName: java.lang.String,
-        userName: java.lang.String,
+        jdbcUrl: String,
+        password: String,
+        schemaName: String,
+        tableName: String,
+        userName: String,
     ): Unit = {
       if (!jdbcUrl.trim.startsWith("jdbc:")) {
         throw new InvalidConfigParameterException(

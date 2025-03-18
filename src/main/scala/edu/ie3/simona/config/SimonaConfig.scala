@@ -8,10 +8,10 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.Config
 import edu.ie3.simona.exceptions.CriticalFailureException
-import pureconfig.{*, ConfigObjectSource, ConfigSource}
-import pureconfig.error.{*, CannotParse, CannotRead, ConvertFailure, ThrowableFailure}
-import pureconfig.generic.*
+import pureconfig.error._
+import pureconfig.generic._
 import pureconfig.generic.semiauto.deriveConvert
+import pureconfig._
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.deriving.Mirror

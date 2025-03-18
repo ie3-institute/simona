@@ -8,6 +8,11 @@ package edu.ie3.simona.config
 
 import edu.ie3.simona.config.InputConfig.{Grid, Primary, Weather}
 import edu.ie3.simona.config.ConfigParams._
+import pureconfig.generic.ProductHint
+import pureconfig.generic.semiauto.deriveConvert
+import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
+
+import scala.deriving.Mirror
 
 /** Input configuration for simona.
   * @param extSimDir
@@ -24,9 +29,15 @@ final case class InputConfig(
     grid: Grid,
     primary: Primary = Primary.empty,
     weather: Weather = Weather.empty,
-)
+) derives ConfigConvert
 
 object InputConfig {
+  implicit def productHint[T]: ProductHint[T] =
+    ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  extension (c: ConfigConvert.type)
+    private inline def derived[A](using m: Mirror.Of[A]): ConfigConvert[A] =
+      deriveConvert[A]
 
   /** Configuration for grid input.
     * @param datasource
@@ -34,7 +45,7 @@ object InputConfig {
     */
   final case class Grid(
       datasource: GridDatasource
-  )
+  ) derives ConfigConvert
 
   /** Case class with options for primary data source parameters
     * @param couchbaseParams
@@ -55,7 +66,7 @@ object InputConfig {
       csvParams: Option[TimeStampedCsvParams] = None,
       influxDb1xParams: Option[TimeStampedInfluxDb1xParams] = None,
       sqlParams: Option[TimeStampedSqlParams] = None,
-  )
+  ) derives ConfigConvert
   object Primary {
 
     /** Returns an empty [[Primary]] with default params.
@@ -65,7 +76,7 @@ object InputConfig {
 
   final case class Weather(
       datasource: WeatherDatasource = WeatherDatasource.empty
-  )
+  ) derives ConfigConvert
   object Weather {
 
     /** Returns an empty [[Weather]] with default params.
@@ -82,7 +93,7 @@ object InputConfig {
   final case class GridDatasource(
       csvParams: Option[BaseCsvParams] = None,
       id: String,
-  )
+  ) derives ConfigConvert
 
   /** Case class with parameters for a weather source.
     * @param coordinateSource
@@ -123,7 +134,7 @@ object InputConfig {
       scheme: String = "icon",
       sqlParams: Option[BaseSqlParams] = None,
       timestampPattern: Option[String] = None,
-  )
+  ) derives ConfigConvert
   object WeatherDatasource {
 
     /** Returns an empty [[WeatherDatasource]] with default params.
@@ -148,7 +159,7 @@ object InputConfig {
       gridModel: String = "icon",
       sampleParams: Option[SampleParams] = None,
       sqlParams: Option[BaseSqlParams] = None,
-  )
+  ) derives ConfigConvert
   object CoordinateSource {
 
     /** Returns an empty [[CoordinateSource]] with default params.

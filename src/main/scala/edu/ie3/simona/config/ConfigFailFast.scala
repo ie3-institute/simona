@@ -631,7 +631,7 @@ object ConfigFailFast extends LazyLogging {
       case Some(BaseInfluxDb1xParams(database, _, url)) =>
         checkInfluxDb1xParams("WeatherSource", url, database)
       case Some(
-            SqlParams(jdbcUrl, password, schemaName, tableName, userName)
+            BaseSqlParams(jdbcUrl, password, schemaName, tableName, userName)
           ) =>
         checkSqlParams(jdbcUrl, password, schemaName, tableName, userName)
       case Some(_: SampleParams) =>
@@ -693,7 +693,7 @@ object ConfigFailFast extends LazyLogging {
 
         "csv"
       case Some(
-            CoordinateSource.SqlParams(
+            BaseSqlParams(
               jdbcUrl,
               password,
               schemaName,
