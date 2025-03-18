@@ -272,7 +272,7 @@ class SimonaStandaloneSetup(
         .spawn(
           ResultEventListener(
             resultFileHierarchy,
-            extSimSetupData.extResultListeners.toMap,
+            extSimSetupData.resultDataServices,
           ),
           ResultEventListener.getClass.getSimpleName,
         )

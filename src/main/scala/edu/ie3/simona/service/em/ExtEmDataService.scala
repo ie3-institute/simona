@@ -18,27 +18,19 @@ import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EmMessage
-import edu.ie3.simona.ontology.messages.services.EmMessage.{
-  WrappedFlexRequest,
-  WrappedFlexResponse,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  RegisterForEmDataService,
-  ServiceRegistrationMessage,
-  ServiceResponseMessage,
-}
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{RegisterForEmDataService, ServiceRegistrationMessage, ServiceResponseMessage}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.service.{ExtDataSupport, TypedSimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
 import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.slf4j.{Logger, LoggerFactory}
 import squants.Power
 import squants.energy.Kilowatts
 import tech.units.indriya.ComparableQuantity
@@ -46,17 +38,15 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Power => PsdmPower}
-import scala.jdk.CollectionConverters.{
-  ListHasAsScala,
-  MapHasAsJava,
-  MapHasAsScala,
-}
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 import scala.util.{Failure, Success, Try}
 
 object ExtEmDataService
     extends TypedSimonaService[EmMessage]
     with ExtDataSupport[EmMessage] {
+
+  private val log: Logger = LoggerFactory.getLogger(ExtEmDataService.getClass)
 
   override type S = ExtEmDataStateData
 
@@ -109,10 +99,12 @@ object ExtEmDataService
   final case class ExtEmDataStateData(
       extEmDataConnection: ExtEmDataConnection,
       startTime: ZonedDateTime,
+      tick: Long = INIT_SIM_TICK,
       emHierarchy: EmHierarchy = EmHierarchy(),
       uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]] = Map.empty,
       flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
       extEmDataMessage: Option[EmDataMessageFromExt] = None,
+      toSchedule: Map[UUID, ScheduleFlexActivation] = Map.empty,
       flexOptionResponse: ReceiveDataMap[UUID, FlexOptionsResult] =
         ReceiveDataMap.empty,
       setPointResponse: ReceiveDataMap[UUID, EmSetPointResult] =
@@ -124,7 +116,7 @@ object ExtEmDataService
       refToUncontrolled: Map[ActorRef[FlexResponse], UUID] = Map.empty,
       controlledToRef: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
       refToControlled: Map[ActorRef[FlexResponse], UUID] = Map.empty,
-      parentToControlled: Map[ActorRef[FlexResponse], List[UUID]] = Map.empty,
+      parentRef: Map[ActorRef[FlexResponse], ActorRef[EmAgent.Request]] = Map.empty
   ) {
     def add(model: UUID, ref: ActorRef[EmAgent.Request]): EmHierarchy = copy(
       uncontrolledToRef = uncontrolledToRef + (model -> ref),
@@ -136,13 +128,11 @@ object ExtEmDataService
         ref: ActorRef[EmAgent.Request],
         parent: ActorRef[FlexResponse],
     ): EmHierarchy = {
-      val hierarchy = parentToControlled.getOrElse(parent, List.empty)
 
       copy(
         controlledToRef = controlledToRef + (model -> ref),
         refToControlled = refToControlled + (ref -> model),
-        parentToControlled =
-          parentToControlled + (parent -> (hierarchy ++ List(model))),
+        parentRef = parentRef + (parent -> ref),
       )
     }
 
@@ -156,6 +146,7 @@ object ExtEmDataService
         case None =>
           controlledToRef.get(uuid)
       }
+
 
   }
 
@@ -407,10 +398,46 @@ object ExtEmDataService
   )(implicit
       serviceStateData: ExtEmDataStateData
   ): ExtEmDataStateData = extResponseMsg match {
-    case WrappedFlexResponse(
-          provideFlexOptions: ProvideFlexOptions,
-          receiver,
-        ) =>
+    case WrappedFlexResponse(flexResponse, receiver) =>
+      flexResponse match {
+        case scheduleFlexActivation: ScheduleFlexActivation =>
+          handleScheduleFlexActivation(scheduleFlexActivation, receiver)
+
+        case options: ProvideFlexOptions =>
+          handleFlexProvision(options, receiver)
+
+        case msg: FlexCompletion =>
+          log.warn(s"$msg")
+
+          serviceStateData
+      }
+
+    case WrappedFlexRequest(issueFlexControl: IssueFlexControl, receiver) =>
+      handleFlexControl(issueFlexControl, receiver)
+
+    case WrappedFlexRequest(flexActivation: FlexActivation, receiver) =>
+      handleFlexActivation(flexActivation, receiver)
+  }
+
+  private def handleFlexProvision(
+      provideFlexOptions: ProvideFlexOptions,
+      receiver: Either[UUID, ActorRef[FlexResponse]],
+  )(implicit
+      serviceStateData: ExtEmDataStateData
+  ): ExtEmDataStateData = {
+
+    if (serviceStateData.tick == INIT_SIM_TICK) {
+      receiver match {
+        case Right(otherRef) =>
+          otherRef ! provideFlexOptions
+
+        case Left(self: UUID) =>
+          serviceStateData.uuidToFlexAdapter(self) ! IssuePowerControl(INIT_SIM_TICK, zeroKW)
+      }
+
+      serviceStateData
+    } else {
+
       val uuid = receiver match {
         case Right(otherRef) =>
           serviceStateData.emHierarchy.getUuid(otherRef)
@@ -450,8 +477,63 @@ object ExtEmDataService
           flexOptionResponse = ReceiveDataMap.empty
         )
       }
+    }
+  }
 
-    case WrappedFlexRequest(issueFlexControl: IssueFlexControl, receiver) =>
+  private def handleScheduleFlexActivation(
+      scheduleFlexActivation: ScheduleFlexActivation,
+      receiver: Either[UUID, ActorRef[FlexResponse]],
+  )(implicit
+      serviceStateData: ExtEmDataStateData
+  ): ExtEmDataStateData = {
+    log.warn(s"$scheduleFlexActivation")
+
+    receiver match {
+      case Right(ref) =>
+
+        if (scheduleFlexActivation.tick == INIT_SIM_TICK) {
+          ref ! scheduleFlexActivation
+        }
+
+
+      case Left(uuid) =>
+
+        if (scheduleFlexActivation.tick == INIT_SIM_TICK) {
+          serviceStateData.uuidToFlexAdapter(uuid) ! FlexActivation(INIT_SIM_TICK)
+        }
+    }
+
+
+    serviceStateData
+  }
+
+  private def handleFlexActivation(
+                                  flexActivation: FlexActivation,
+                                  receiver: ActorRef[FlexRequest],
+                                  )(implicit
+                                    serviceStateData: ExtEmDataStateData
+                                  ): ExtEmDataStateData = {
+
+    if (flexActivation.tick == INIT_SIM_TICK) {
+      receiver ! flexActivation
+    }
+
+    serviceStateData
+  }
+
+
+  private def handleFlexControl(
+      issueFlexControl: IssueFlexControl,
+      receiver: ActorRef[FlexRequest],
+  )(implicit
+      serviceStateData: ExtEmDataStateData
+  ): ExtEmDataStateData = {
+    if (issueFlexControl.tick == INIT_SIM_TICK) {
+
+      receiver ! issueFlexControl
+      serviceStateData
+
+    } else {
       val uuid = serviceStateData.flexAdapterToUuid(receiver)
 
       val updated = issueFlexControl match {
@@ -492,6 +574,6 @@ object ExtEmDataService
           setPointResponse = ReceiveDataMap.empty
         )
       }
-
+    }
   }
 }

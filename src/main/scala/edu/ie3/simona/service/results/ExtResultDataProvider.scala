@@ -6,7 +6,12 @@
 
 package edu.ie3.simona.service.results
 
-import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.connector.LineResult
+import edu.ie3.datamodel.models.result.system.{
+  FlexOptionsResult,
+  SystemParticipantResult,
+}
+import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.api.data.results.ontology.{
   ProvideResultEntities,
@@ -80,7 +85,7 @@ object ExtResultDataProvider {
   def apply(
       scheduler: ActorRef[SchedulerMessage],
       startTime: ZonedDateTime,
-  ): Behavior[Request] = Behaviors.withStash(5000) { buffer =>
+  ): Behavior[Request] = Behaviors.withStash(5000000) { buffer =>
     Behaviors.setup[Request] { ctx =>
       val activationAdapter: ActorRef[Activation] =
         ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
@@ -149,10 +154,12 @@ object ExtResultDataProvider {
           initServiceData.extResultData.getGridResultDataAssets.asScala.toList
         val initParticipantSubscribers =
           initServiceData.extResultData.getParticipantResultDataAssets.asScala.toList
+        val initFlexOptionSubscribers =
+          initServiceData.extResultData.getFlexOptionAssets.asScala.toList
 
         var initResultScheduleMap = Map.empty[Long, Set[UUID]]
         initResultScheduleMap =
-          initResultScheduleMap + (0L -> initParticipantSubscribers.toSet) // First result for system participants expected for tick 0
+          initResultScheduleMap + (0L -> (initParticipantSubscribers ++ initFlexOptionSubscribers).toSet) // First result for system participants expected for tick 0
         initResultScheduleMap =
           initResultScheduleMap + (initServiceData.powerFlowResolution -> initGridSubscribers.toSet) // First result for grid expected for tick powerflowresolution
 
@@ -193,30 +200,51 @@ object ExtResultDataProvider {
             // ctx.log.info(s"[${updatedStateData.currentTick}] [requestResults] resultStorage = ${updatedStateData.resultStorage}\n extResultScheduler ${updatedStateData.extResultScheduler}")
             val currentTick = updatedStateData.currentTick
             if (msg.tick == currentTick) { // check, if we are in the right tick
-              val expectedKeys =
-                serviceStateData.extResultSchedule.getExpectedKeys(
+              // ctx.log.info(s"[${updatedStateData.currentTick}] RequestResultEntities with message = $msg")
+              // ctx.log.info(s"[${updatedStateData.currentTick}] RequestResultEntities for ${msg.requestedResults()}")
+
+              // Search for too old schedules
+              val shiftedSchedule =
+                serviceStateData.extResultSchedule.shiftPastTicksToCurrentTick(
                   currentTick
-                ) // Expected keys are for this tick scheduled and not scheduled
+                )
+
+              val requestedKeys = msg.requestedResults().asScala
+              val expectedKeys = shiftedSchedule
+                .getExpectedKeys(
+                  currentTick
+                )
+                .intersect(msg.requestedResults().asScala.toSet)
+              // ctx.log.info(s"[${updatedStateData.currentTick}] [requestResults] Expected Keys = $expectedKeys")
               val receiveDataMap =
                 ReceiveDataMap[UUID, ResultEntity](expectedKeys)
               val updatedSchedule =
-                serviceStateData.extResultSchedule.handleActivation(currentTick)
+                shiftedSchedule.handleActivationWithRequest(
+                  currentTick,
+                  msg.requestedResults().asScala,
+                )
 
               // ctx.log.info(s"[${updatedStateData.currentTick}] [requestResults] updatedSchedule = $updatedSchedule \n receiveDataMap = $receiveDataMap")
 
               if (receiveDataMap.isComplete) {
                 // --- There are no expected results for this tick! Send the send right away!
-                // ctx.log.info(s"[requestResults] tick ${msg.tick} -> ReceiveDataMap is complete -> send it right away: ${serviceStateData.resultStorage}")
+                // ctx.log.info(s"[requestResults] tick ${msg.tick} -> ReceiveDataMap is complete \n requestedKeys = $requestedKeys -> send it right away: \n ${serviceStateData.resultStorage}")
+                val filteredStorage =
+                  serviceStateData.resultStorage.filter(entry =>
+                    requestedKeys.toSet.contains(entry._1)
+                  )
+                // ctx.log.info(s"\u001b[0;34m[${serviceStateData.currentTick}] receiveDataMap = $receiveDataMap,\nexpectedKeys = ${receiveDataMap.receivedData.keySet},\nfilteredStorage = $filteredStorage\u001b[0;0m")
 
                 serviceStateData.extResultData.queueExtResponseMsg(
                   new ProvideResultEntities(
-                    serviceStateData.resultStorage.asJava
+                    filteredStorage.asJava
                   )
                 )
                 updatedStateData = updatedStateData.copy(
                   extResultsMessage = None,
                   receiveDataMap = None,
                   extResultSchedule = updatedSchedule,
+                  extRequestedResultKeys = List.empty,
                 )
                 scheduler ! Completion(activationAdapter, None)
               } else {
@@ -227,6 +255,7 @@ object ExtResultDataProvider {
                   extResultsMessage = None,
                   receiveDataMap = Some(receiveDataMap),
                   extResultSchedule = updatedSchedule,
+                  extRequestedResultKeys = requestedKeys,
                 )
               }
             } else {
@@ -332,15 +361,48 @@ object ExtResultDataProvider {
         }
 
       case (
-            _,
-            _: ResultRequestMessage,
+            ctx,
+            msg: ResultRequestMessage,
           ) => // Received internal result request -> unstash messages
-        // ctx.log.info(s"[handleDataResponseMessage] Received ResultRequestMessage $msg -> Now unstash all buffered messages!")
+        ctx.self ! msg
         buffer.unstashAll(idle(serviceStateData))
 
       case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
         DelayedStopHelper.handleMsg((ctx, msg))
     }
+
+  private def checkResultType(
+      result: ResultEntity,
+      serviceStateData: ExtResultStateData,
+  ): Boolean = {
+    val uuid = result.getInputModel
+    result match {
+      case _: FlexOptionsResult =>
+        if (serviceStateData.extResultData.getFlexOptionAssets.contains(uuid)) {
+          true
+        } else {
+          false
+        }
+      case _: SystemParticipantResult =>
+        if (
+          serviceStateData.extResultData.getParticipantResultDataAssets
+            .contains(uuid)
+        ) {
+          true
+        } else {
+          false
+        }
+      case _: NodeResult | _: LineResult =>
+        if (
+          serviceStateData.extResultData.getGridResultDataAssets.contains(uuid)
+        ) {
+          true
+        } else {
+          false
+        }
+      case _ => false
+    }
+  }
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   final case class ExtResultStateData(
@@ -351,6 +413,7 @@ object ExtResultDataProvider {
       extResultsMessage: Option[ResultDataMessageFromExt] = None,
       resultStorage: Map[UUID, ResultEntity] = Map.empty,
       receiveDataMap: Option[ReceiveDataMap[UUID, ResultEntity]] = None,
+      extRequestedResultKeys: Iterable[UUID] = List.empty,
   ) {
     def handleActivation(activation: Activation): ExtResultStateData = {
       copy(
@@ -367,6 +430,29 @@ object ExtResultDataProvider {
       scheduleMap: Map[Long, Set[UUID]] = Map.empty,
       unscheduledList: Set[UUID] = Set.empty,
   ) {
+    def shiftPastTicksToCurrentTick(
+        currentTick: Long
+    ): ExtResultSchedule = {
+      // Sammle alle Sets von Keys, deren Schlüssel kleiner als currentTick
+      val (toMerge, remaining) = scheduleMap.partition { case (tick, _) =>
+        tick < currentTick
+      }
+
+      // Kombiniere die Sets zu einem einzigen Set
+      val mergedSet = toMerge.values.flatten.toSet
+
+      // Aktualisiere den scheduleMap mit dem neuen Set für currentTick
+      val updatedScheduleMap = remaining.updated(
+        currentTick,
+        scheduleMap.getOrElse(currentTick, Set.empty) ++ mergedSet,
+      )
+
+      // Rückgabe eines neuen ExtResultSchedule mit dem aktualisierten scheduleMap
+      copy(
+        scheduleMap = updatedScheduleMap
+      )
+    }
+
     def getExpectedKeys(tick: Long): Set[UUID] = {
       scheduleMap.getOrElse(
         tick,
@@ -382,6 +468,23 @@ object ExtResultDataProvider {
       copy(
         scheduleMap = scheduleMap.-(tick)
       )
+    }
+
+    def handleActivationWithRequest(
+        tick: Long,
+        keys: Iterable[UUID],
+    ): ExtResultSchedule = {
+      val remainingKeys =
+        scheduleMap.get(tick).map(_.diff(keys.toSet)).getOrElse(Set.empty)
+      if (remainingKeys.isEmpty) {
+        copy(
+          scheduleMap = scheduleMap.-(tick)
+        )
+      } else {
+        copy(
+          scheduleMap = scheduleMap.updated(tick, remainingKeys)
+        )
+      }
     }
 
     def handleResult(

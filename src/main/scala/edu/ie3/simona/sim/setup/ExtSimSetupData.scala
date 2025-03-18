@@ -83,6 +83,9 @@ final case class ExtSimSetupData(
         ref
     }
 
+  def resultDataServices: Iterable[ActorRef[ExtResultDataProvider.Request]] =
+    extResultListeners.map { case (_, ref) => ref }
+
   def evDataConnection: Option[ExtEvDataConnection] =
     extDataServices.collectFirst { case (connection: ExtEvDataConnection, _) =>
       connection
