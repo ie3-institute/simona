@@ -36,10 +36,12 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   WeatherData,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.test.matchers.QuantityMatchers
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -51,6 +53,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.testkit.TestActorRef
+import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
@@ -66,6 +69,7 @@ class EmAgentIT
     with should.Matchers
     with EmInputTestData
     with MockitoSugar
+    with TestSpawnerTyped
     with QuantityMatchers {
 
   // start a bit later so the sun is up
@@ -123,6 +127,13 @@ class EmAgentIT
           resultListener = Iterable(resultListener.ref),
         )
 
+        val keys = ScheduleLock
+          .multiKey(TSpawner, scheduler.ref, PRE_INIT_TICK, 3)
+          .iterator
+        val lockActivation =
+          scheduler.expectMessageType[ScheduleActivation].actor
+        lockActivation ! Activation(PRE_INIT_TICK)
+
         val emAgent = spawn(
           EmAgent(
             emInput,
@@ -138,34 +149,37 @@ class EmAgentIT
 
         val loadAgent = spawn(
           ParticipantAgentInit(
-            loadInput,
+            loadInputContainer,
             LoadRuntimeConfig(),
             outputConfigOff,
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "LoadAgent",
         )
         val pvAgent = spawn(
           ParticipantAgentInit(
-            pvInput,
+            pvInputContainer,
             PvRuntimeConfig(),
             outputConfigOff,
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "PvAgent",
         )
         val storageAgent = spawn(
           ParticipantAgentInit(
-            householdStorageInput,
+            storageInputContainer,
             StorageRuntimeConfig(),
             outputConfigOff,
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "StorageAgent",
         )
@@ -173,6 +187,11 @@ class EmAgentIT
         val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
         emInitSchedule.tick shouldBe INIT_SIM_TICK
         val emAgentActivation = emInitSchedule.actor
+
+        scheduler.expectNoMessage()
+
+        emInitSchedule.unlockKey.value.unlock()
+        scheduler.expectMessage(Completion(lockActivation))
 
         /* INIT */
 
@@ -189,7 +208,7 @@ class EmAgentIT
           ),
           PrimaryServiceRegistrationMessage(
             storageAgent.toClassic,
-            householdStorageInput.getUuid,
+            storageInput.getUuid,
           )
         )
 
@@ -288,9 +307,9 @@ class EmAgentIT
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(13247)))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(13246)))
 
-        /* TICK 13247
+        /* TICK 13246
          LOAD: 0.269 kW (unchanged)
          PV:  -3.715 kW (unchanged)
          STORAGE: SOC 100 %
@@ -298,12 +317,12 @@ class EmAgentIT
          -> remaining -3.447 kW
          */
 
-        emAgentActivation ! Activation(13247)
+        emAgentActivation ! Activation(13246)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
-            emResult.getTime shouldBe 13247.toDateTime
+            emResult.getTime shouldBe 13246.toDateTime
             emResult.getP should equalWithTolerance(
               -0.0034468567291.asMegaWatt
             )
@@ -368,6 +387,13 @@ class EmAgentIT
           resultListener = Iterable(resultListener.ref),
         )
 
+        val keys = ScheduleLock
+          .multiKey(TSpawner, scheduler.ref, PRE_INIT_TICK, 2)
+          .iterator
+        val lockActivation =
+          scheduler.expectMessageType[ScheduleActivation].actor
+        lockActivation ! Activation(PRE_INIT_TICK)
+
         val emAgent = spawn(
           EmAgent(
             emInput,
@@ -383,23 +409,25 @@ class EmAgentIT
 
         val loadAgent = spawn(
           ParticipantAgentInit(
-            loadInput,
+            loadInputContainer,
             LoadRuntimeConfig(),
             outputConfigOff,
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "LoadAgent1",
         )
         val pvAgent = spawn(
           ParticipantAgentInit(
-            pvInput,
+            pvInputContainer,
             PvRuntimeConfig(),
             outputConfigOff,
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "PvAgent1",
         )
@@ -431,6 +459,11 @@ class EmAgentIT
         val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
         emInitSchedule.tick shouldBe INIT_SIM_TICK
         val emAgentActivation = emInitSchedule.actor
+
+        scheduler.expectNoMessage()
+
+        emInitSchedule.unlockKey.value.unlock()
+        scheduler.expectMessage(Completion(lockActivation))
 
         /* INIT */
 

@@ -25,11 +25,11 @@ import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
   WeatherSource => PsdmWeatherSource,
 }
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
+import edu.ie3.simona.config.InputConfig
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  BaseInfluxDb1xParams,
   CouchbaseParams,
-  InfluxDb1xParams,
   SqlParams,
 }
 import edu.ie3.simona.exceptions.InitializationException
@@ -220,19 +220,19 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
   )(implicit
       simulationStart: ZonedDateTime,
       idCoordinateSource: IdCoordinateSource,
-      resolution: Option[Long],
+      resolution: Long,
       distance: ComparableQuantity[Length],
   ): WeatherSourceWrapper = {
     WeatherSourceWrapper(
       source,
       idCoordinateSource,
-      resolution.getOrElse(DEFAULT_RESOLUTION),
+      resolution,
       distance,
     )
   }
 
   private[weather] def buildPSDMSource(
-      cfgParams: SimonaConfig.Simona.Input.Weather.Datasource,
+      cfgParams: InputConfig.WeatherDatasource,
       definedWeatherSources: Option[Serializable],
   )(implicit
       idCoordinateSource: IdCoordinateSource
@@ -273,7 +273,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
             "yyyy-MM-dd'T'HH:mm:ssxxx",
           )
         )
-      case InfluxDb1xParams(database, _, url) =>
+      case BaseInfluxDb1xParams(database, _, url) =>
         // initializing an influxDb weather source
         val influxDb1xConnector =
           new InfluxDbConnector(url, database)

@@ -9,24 +9,25 @@ package edu.ie3.simona.sim.setup
 import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.api.data.ExtInputDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
+import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
-import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.ActorRef
+import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   TypedActorContextOps,
   TypedActorRefOps,
 }
-import org.apache.pekko.actor.{Props, ActorRef => ClassicRef}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -62,7 +63,7 @@ object ExtSimSetup {
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       resolution: FiniteDuration,
-  ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData()) {
+  ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
       // external simulation always needs at least an ExtSimAdapter
       val extSimAdapter = context.toClassic.simonaActorOf(
@@ -82,7 +83,7 @@ object ExtSimSetup {
         // send init data right away, init activation is scheduled
         extSimAdapter ! ExtSimAdapter.Create(
           extSimAdapterData,
-          ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+          ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
         )
 
         // setup data services that belong to this external simulation
@@ -152,7 +153,8 @@ object ExtSimSetup {
 
             val serviceRef = setupInputService(
               extEvDataConnection,
-              ExtEvDataService.props,
+              ExtEvDataService.apply(scheduler),
+              ExtEvDataService.adapter,
               "ExtEvDataService",
               InitExtEvData,
             )
@@ -174,10 +176,11 @@ object ExtSimSetup {
   }
 
   /** Method for setting up an external service, that provides input data.
+    *
     * @param extInputDataConnection
     *   the data connection.
-    * @param props
-    *   Function to create the service.
+    * @param behavior
+    *   The initial behavior of the service.
     * @param name
     *   Of the actor.
     * @param initData
@@ -193,33 +196,41 @@ object ExtSimSetup {
     * @return
     *   The reference to the service.
     */
-  private[setup] def setupInputService[T <: ExtInputDataConnection](
+  private[setup] def setupInputService[
+      T <: ExtInputDataConnection,
+      M >: ServiceMessage,
+  ](
       extInputDataConnection: T,
-      props: ClassicRef => Props,
+      behavior: Behavior[M],
+      adapterToExt: ActorRef[M] => Behavior[DataMessageFromExt],
       name: String,
       initData: T => InitializeServiceStateData,
   )(implicit
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapter: ClassicRef,
-  ): ClassicRef = {
-
-    val extDataService = context.toClassic.simonaActorOf(
-      props(scheduler.toClassic),
+  ): ActorRef[M] = {
+    val extDataService = context.spawn(
+      behavior,
       name,
     )
 
-    extDataService ! SimonaService.Create(
+    extDataService ! ServiceMessage.Create(
       initData(extInputDataConnection),
       ScheduleLock.singleKey(
         context,
         scheduler,
-        INIT_SIM_TICK,
+        PRE_INIT_TICK,
       ),
     )
 
+    val adapter = context.spawn(
+      adapterToExt(extDataService),
+      s"$name-adapter-to-external",
+    )
+
     extInputDataConnection.setActorRefs(
-      extDataService,
+      adapter.toClassic,
       extSimAdapter,
     )
 

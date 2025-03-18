@@ -60,7 +60,7 @@ final case class CylindricalThermalStorage(
     bus: ThermalBusInput,
     maxEnergyThreshold: Energy,
     pThermalMax: Power,
-    protected var _storedEnergy: Energy,
+    storedEnergy: Energy,
 ) extends ThermalStorage(
       uuid,
       id,
@@ -69,8 +69,7 @@ final case class CylindricalThermalStorage(
       bus,
       maxEnergyThreshold,
       pThermalMax,
-    )
-    with MutableStorage {
+    ) {
 
   /** Updates the given last state. Based on the then set thermal influx, the
     * current state is calculated. Positive values of influx are consider to
@@ -106,14 +105,14 @@ final case class CylindricalThermalStorage(
     val nextThreshold =
       if (qDot > zeroKW) {
         val duration = (maxEnergyThreshold - updatedEnergy) / qDot
-        val durationInTicks = Math.round(duration.toSeconds)
+        val durationInTicks = Math.floor(duration.toSeconds).toLong
         if (durationInTicks <= 0L)
           None
         else
           Some(StorageFull(tick + durationInTicks))
       } else if (qDot < zeroKW) {
         val duration = updatedEnergy / qDot * (-1)
-        val durationInTicks = Math.round(duration.toSeconds)
+        val durationInTicks = Math.floor(duration.toSeconds).toLong
         if (durationInTicks <= 0L)
           None
         else
@@ -130,44 +129,6 @@ final case class CylindricalThermalStorage(
     zeroKWh,
     zeroKW,
   )
-
-  @deprecated("Use thermal storage state instead")
-  override def getStoredEnergy: Energy = _storedEnergy
-
-  @deprecated("Use thermal storage state instead")
-  override def usableThermalEnergy: Energy =
-    _storedEnergy
-
-  @deprecated("Use thermal storage state instead")
-  override def tryToStoreAndReturnRemainder(
-      addedEnergy: Energy
-  ): Option[Energy] = {
-    if (addedEnergy > zeroKWh) {
-      _storedEnergy = _storedEnergy + addedEnergy
-      if (_storedEnergy > maxEnergyThreshold) {
-        val surplus = _storedEnergy - maxEnergyThreshold
-        _storedEnergy = maxEnergyThreshold
-        return Option(surplus)
-      }
-    }
-    Option.empty
-  }
-
-  @deprecated("Use thermal storage state instead")
-  override def tryToTakeAndReturnLack(
-      takenEnergy: Energy
-  ): Option[Energy] = {
-    if (takenEnergy > zeroKWh) {
-      _storedEnergy = _storedEnergy - takenEnergy
-      if (_storedEnergy < zeroKWh) {
-        val lack = zeroKWh - _storedEnergy
-        _storedEnergy = zeroKWh
-        return Some(lack)
-      }
-    }
-    None
-  }
-
 }
 
 object CylindricalThermalStorage {

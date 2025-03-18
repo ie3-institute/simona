@@ -8,7 +8,7 @@ package edu.ie3.simona.event.listener
 
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import com.sksamuel.avro4s.RecordFormat
-import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
+import edu.ie3.simona.config.{ConfigParams, RuntimeConfig}
 import edu.ie3.simona.event.RuntimeEvent.{Done, Error, PowerFlowFailed}
 import edu.ie3.simona.io.runtime.RuntimeEventKafkaSink.SimonaEndMessage
 import edu.ie3.simona.test.KafkaSpecLike
@@ -85,7 +85,7 @@ class RuntimeEventListenerKafkaSpec
           RuntimeConfig.Listener(
             None,
             Some(
-              SimonaConfig.RuntimeKafkaParams(
+              ConfigParams.RuntimeKafkaParams(
                 bootstrapServers = kafka.bootstrapServers,
                 linger = 0,
                 runId = runId.toString,

@@ -57,8 +57,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `PvModel` with its new implementation [#1149](https://github.com/ie3-institute/simona/issues/1149)
 - Replace `WecModel` with its new implementation [#1154](https://github.com/ie3-institute/simona/issues/1154)
 - Replace `StorageModel` with its new implementation [#1153](https://github.com/ie3-institute/simona/issues/1153)
+- Added `Version Check` to GitHub Actions Pipeline [#1067](https://github.com/ie3-institute/simona/issues/1067)
 - Use ValidationUtils for ThermalGrids [#1117](https://github.com/ie3-institute/simona/issues/1117)
 - Replace `EvcsModel` with its new implementation [#1151](https://github.com/ie3-institute/simona/issues/1151)
+- Fix determination of qDotIntoGrid in HpModel.calcState() in case heatStorage should feed the thermal grid [#1165](https://github.com/ie3-institute/simona/issues/1165)
+- Replace `BmModel` with its new implementation [#1157](https://github.com/ie3-institute/simona/issues/1157)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -149,7 +152,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated to changes of PSDM release v6.0.0 [#1107](https://github.com/ie3-institute/simona/issues/1107)
 - Refactor external simulation setup [#1136](https://github.com/ie3-institute/simona/issues/1136)
 - Use new tick retrieval methods from PSDM [#920](https://github.com/ie3-institute/simona/issues/920)
-- Upgrated `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
+- Refactor input and output configs [#1175](https://github.com/ie3-institute/simona/issues/1175)
+- Use `Math.floor` when calcNextEventTick for charging entities [#1256](https://github.com/ie3-institute/simona/issues/1256) 
+- Removed Jenkinsfile to begin with using GitHub Actions[#1260](https://github.com/ie3-institute/simona/issues/1260)
+- Sequential test execution for (hopefully) more reliability [#1262](https://github.com/ie3-institute/simona/issues/1262)
+- Converting `ExtEvDataService` to pekko typed [#1214](https://github.com/ie3-institute/simona/issues/1214)
+- Updated Gradle to version 8.13 and removed deprecated syntax [#1286](https://github.com/ie3-institute/PowerSystemDataModel/issues/1286)
+- Consider inputContainer when initialize participant models [#1251](https://github.com/ie3-institute/simona/issues/1251) 
+- Change logging level for unsupported messages from ExtDataSupport [#1286](https://github.com/ie3-institute/simona/issues/1286)
+- Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -204,10 +215,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix input data handling in `ParticipantModel` [#1237](https://github.com/ie3-institute/simona/issues/1237)
 - Show full stacktrace of failing tests with `gradle test` [#1245](https://github.com/ie3-institute/simona/issues/1245)
 - Fix copernicus url in readthedocs [#1248](https://github.com/ie3-institute/simona/issues/1248)
+- Check for fully charged Evs when determine next OperationPoint of Evcs [#1253](https://github.com/ie3-institute/simona/issues/1253)
+- Fix bug in `ExtDataSupport.adapter` that leads to an exception while scheduling the service [#1273](https://github.com/ie3-institute/simona/issues/1273)
+- Fixed CI inconsistency after removing deprecations of Gradle [#1275](https://github.com/ie3-institute/simona/issues/1275)
+- Fix initialization by using ScheduleLocks [#1272](https://github.com/ie3-institute/simona/issues/1272)
+- Fix schedule lock in PrimaryServiceProxy [#1289](https://github.com/ie3-institute/simona/issues/1289)
+- Fix vn_simona time series mapping [#1288](https://github.com/ie3-institute/simona/issues/1288)
+- Fix hierarchical em structures leading to exception while initializing [#1293](https://github.com/ie3-institute/simona/issues/1293)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
 - Removed unused parameters in `ArgsParser` [#1192](https://github.com/ie3-institute/simona/issues/1192), [#1178](https://github.com/ie3-institute/simona/issues/1178)
+- Remove pausing/continuing functionality from TimeAdvancer [#1271](https://github.com/ie3-institute/simona/issues/1271)
+- Remove `ChpModel` [#1156](https://github.com/ie3-institute/simona/issues/1156)
+- Remove `MutableStorage` [#1280](https://github.com/ie3-institute/simona/issues/1280)
 
 ## [3.0.0] - 2023-08-07
 

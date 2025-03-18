@@ -11,20 +11,19 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
+import edu.ie3.simona.config.InputConfig
+import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{
   CriticalFailureException,
   InitializationException,
 }
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
-import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData,
 }
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.weather.WeatherService.{
   InitWeatherServiceStateData,
   WeatherInitializedStateData,
@@ -36,6 +35,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
 import java.time.ZonedDateTime
 import scala.util.{Failure, Success, Try}
@@ -88,7 +88,7 @@ object WeatherService {
     *   the definition of the source to use
     */
   final case class InitWeatherServiceStateData(
-      sourceDefinition: SimonaConfig.Simona.Input.Weather.Datasource
+      sourceDefinition: InputConfig.WeatherDatasource
   ) extends InitializeServiceStateData
 
 }

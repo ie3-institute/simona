@@ -6,14 +6,9 @@
 
 package edu.ie3.simona.config
 
+import edu.ie3.simona.config.ConfigParams.RuntimeKafkaParams
 import edu.ie3.simona.config.RuntimeConfig._
-import edu.ie3.simona.config.SimonaConfig.{
-  AssetConfigs,
-  RuntimeKafkaParams,
-  VoltLvlConfig,
-}
-import edu.ie3.simona.config.RuntimeConfig.*
-import edu.ie3.simona.config.SimonaConfig.{RuntimeKafkaParams, VoltLvlConfig}
+import edu.ie3.simona.config.SimonaConfig.{AssetConfigs, VoltLvlConfig}
 import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto.deriveConvert
 import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
@@ -55,12 +50,10 @@ object RuntimeConfig {
     * @tparam T
     *   type of config
     * @return
-    *   a [[ParticipantRuntimeConfigs]]
+    *   a [[AssetConfigs]]
     */
-  implicit def wrap[T <: BaseRuntimeConfig](
-      config: T
-  ): ParticipantRuntimeConfigs[T] =
-    ParticipantRuntimeConfigs(config)
+  implicit def wrap[T <: BaseRuntimeConfig](config: T): AssetConfigs[T] =
+    AssetConfigs(config)
 
   final case class Listener(
       eventsToProcess: Option[List[String]] = None,
@@ -86,14 +79,14 @@ object RuntimeConfig {
     *   runtime configs for wind energy converters
     */
   final case class Participant(
-      evcs: ParticipantRuntimeConfigs[EvcsRuntimeConfig],
-      fixedFeedIn: ParticipantRuntimeConfigs[FixedFeedInRuntimeConfig],
-      hp: ParticipantRuntimeConfigs[HpRuntimeConfig],
-      load: ParticipantRuntimeConfigs[LoadRuntimeConfig],
-      pv: ParticipantRuntimeConfigs[PvRuntimeConfig],
+      evcs: AssetConfigs[EvcsRuntimeConfig],
+      fixedFeedIn: AssetConfigs[FixedFeedInRuntimeConfig],
+      hp: AssetConfigs[HpRuntimeConfig],
+      load: AssetConfigs[LoadRuntimeConfig],
+      pv: AssetConfigs[PvRuntimeConfig],
       requestVoltageDeviationThreshold: Double = 1e-14,
-      storage: ParticipantRuntimeConfigs[StorageRuntimeConfig],
-      wec: ParticipantRuntimeConfigs[WecRuntimeConfig],
+      storage: AssetConfigs[StorageRuntimeConfig],
+      wec: AssetConfigs[WecRuntimeConfig],
   ) derives ConfigConvert
 
   object Participant {
@@ -110,19 +103,6 @@ object RuntimeConfig {
       wec = WecRuntimeConfig(),
     )
   }
-
-  /** Case class contains default and individual configs for simulation runtime.
-    * @param defaultConfig
-    *   to use
-    * @param individualConfigs
-    *   specific configs, that are used instead of the [[defaultConfig]]
-    * @tparam T
-    *   type of runtime config
-    */
-  final case class ParticipantRuntimeConfigs[T <: BaseRuntimeConfig](
-      defaultConfig: T,
-      individualConfigs: List[T] = List.empty[T],
-  ) derives ConfigConvert
 
   /** Basic trait for all runtime configs.
     */
