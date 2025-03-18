@@ -293,8 +293,8 @@ class GridAgentBuilder(
       // For controlled EMs at the current level, more EMs
       // might need to be built at the next recursion level.
       val controllingEms = controlledEmInputs.toMap.flatMap {
-        case (uuid, emInput) =>
-          emInput.getControllingEm.toScala.map(uuid -> _)
+        case (_, emInput) =>
+          emInput.getControllingEm.toScala.map(em => em.getUuid -> em)
       }
 
       // Return value includes previous level and uncontrolled EMs of this level

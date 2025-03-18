@@ -221,6 +221,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix initialization by using ScheduleLocks [#1272](https://github.com/ie3-institute/simona/issues/1272)
 - Fix schedule lock in PrimaryServiceProxy [#1289](https://github.com/ie3-institute/simona/issues/1289)
 - Fix vn_simona time series mapping [#1288](https://github.com/ie3-institute/simona/issues/1288)
+- Fix hierarchical em structures leading to exception while initializing [#1293](https://github.com/ie3-institute/simona/issues/1293)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
