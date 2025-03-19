@@ -18,9 +18,19 @@ import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EmMessage
-import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{RegisterForEmDataService, ServiceRegistrationMessage, ServiceResponseMessage}
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{
+  WrappedFlexRequest,
+  WrappedFlexResponse,
+}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  RegisterForEmDataService,
+  ServiceRegistrationMessage,
+  ServiceResponseMessage,
+}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceBaseStateData,
+}
 import edu.ie3.simona.service.{ExtDataSupport, TypedSimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -38,7 +48,11 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Power => PsdmPower}
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.{
+  ListHasAsScala,
+  MapHasAsJava,
+  MapHasAsScala,
+}
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 import scala.util.{Failure, Success, Try}
 
@@ -116,7 +130,8 @@ object ExtEmDataService
       refToUncontrolled: Map[ActorRef[FlexResponse], UUID] = Map.empty,
       controlledToRef: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
       refToControlled: Map[ActorRef[FlexResponse], UUID] = Map.empty,
-      parentRef: Map[ActorRef[FlexResponse], ActorRef[EmAgent.Request]] = Map.empty
+      parentRef: Map[ActorRef[FlexResponse], ActorRef[EmAgent.Request]] =
+        Map.empty,
   ) {
     def add(model: UUID, ref: ActorRef[EmAgent.Request]): EmHierarchy = copy(
       uncontrolledToRef = uncontrolledToRef + (model -> ref),
@@ -146,14 +161,22 @@ object ExtEmDataService
         case None =>
           controlledToRef.get(uuid)
       }
-
-
   }
 
   case class InitExtEmData(
       extEmData: ExtEmDataConnection,
       startTime: ZonedDateTime,
   ) extends InitializeServiceStateData
+
+  override protected def handleServiceResponse(
+      serviceResponse: ServiceResponseMessage
+  ): Unit = serviceResponse match {
+    case WrappedFlexResponse(
+          scheduleFlexActivation: ScheduleFlexActivation,
+          _,
+        ) =>
+      scheduleFlexActivation.scheduleKey.foreach(_.unlock())
+  }
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
@@ -243,6 +266,8 @@ object ExtEmDataService
         hierarchy.add(modelUuid, modelActorRef)
     }
 
+    flexAdapter ! FlexActivation(INIT_SIM_TICK)
+
     serviceStateData.copy(
       emHierarchy = updatedHierarchy,
       uuidToFlexAdapter =
@@ -267,35 +292,50 @@ object ExtEmDataService
       serviceStateData: ExtEmDataStateData,
       ctx: ActorContext[EmMessage],
   ): (ExtEmDataStateData, Option[Long]) = {
+    val updatedTick = serviceStateData.copy(tick = tick)
+
     val updatedStateData = serviceStateData.extEmDataMessage.getOrElse(
       throw ServiceException(
         "ExtEMDataService was triggered without ExtEmDataMessage available"
       )
     ) match {
       case requestEmFlexResults: RequestEmFlexResults =>
-        val uuids = requestEmFlexResults.emEntities().asScala.toSet
+        ctx.log.warn(s"$requestEmFlexResults")
+
+        // TODO: Fix this
+        val uuids =
+          requestEmFlexResults.emEntities().asScala.flatMap(_._2.asScala).toSet
 
         val uuidToRef = serviceStateData.uuidToFlexAdapter
-        uuids.map(uuidToRef).foreach(_ ! FlexActivation(tick))
+        val refs = uuids.map(uuidToRef)
 
-        serviceStateData.copy(
+        log.warn(s"$refs")
+        refs.foreach(_ ! FlexActivation(tick))
+
+        updatedTick.copy(
           extEmDataMessage = None,
           flexOptionResponse = ReceiveDataMap(uuids),
         )
 
       case requestEmSetPoints: RequestEmSetPoints =>
+        ctx.log.warn(s"$requestEmSetPoints")
+
         val uuids = requestEmSetPoints.emEntities().asScala.toSet
 
-        serviceStateData.copy(
+        updatedTick.copy(
           extEmDataMessage = None,
           setPointResponse = ReceiveDataMap(uuids),
         )
 
       case provideFlexOptions: ProvideEmFlexOptionData =>
-        announceFlexOptions(provideFlexOptions)
+        ctx.log.warn(s"$provideFlexOptions")
+
+        announceFlexOptions(provideFlexOptions)(updatedTick, ctx)
 
       case providedEmData: ProvideEmSetPointData =>
-        announceEmSetPoints(tick, providedEmData)
+        ctx.log.warn(s"$providedEmData")
+
+        announceEmSetPoints(tick, providedEmData)(updatedTick, ctx)
     }
 
     (updatedStateData, None)
@@ -432,7 +472,10 @@ object ExtEmDataService
           otherRef ! provideFlexOptions
 
         case Left(self: UUID) =>
-          serviceStateData.uuidToFlexAdapter(self) ! IssuePowerControl(INIT_SIM_TICK, zeroKW)
+          serviceStateData.uuidToFlexAdapter(self) ! IssuePowerControl(
+            INIT_SIM_TICK,
+            zeroKW,
+          )
       }
 
       serviceStateData
@@ -457,7 +500,12 @@ object ExtEmDataService
               max.toQuantity,
             ),
           )
+
+        case _ =>
+          serviceStateData.flexOptionResponse
       }
+
+      log.warn(s"$updated")
 
       if (updated.nonComplete) {
         // responses are still incomplete
@@ -490,29 +538,31 @@ object ExtEmDataService
 
     receiver match {
       case Right(ref) =>
-
         if (scheduleFlexActivation.tick == INIT_SIM_TICK) {
           ref ! scheduleFlexActivation
+        } else {
+          log.warn(s"$scheduleFlexActivation not handled!")
         }
-
 
       case Left(uuid) =>
-
         if (scheduleFlexActivation.tick == INIT_SIM_TICK) {
-          serviceStateData.uuidToFlexAdapter(uuid) ! FlexActivation(INIT_SIM_TICK)
+          serviceStateData.uuidToFlexAdapter(uuid) ! FlexActivation(
+            INIT_SIM_TICK
+          )
+        } else {
+          log.warn(s"$scheduleFlexActivation not handled!")
         }
     }
-
 
     serviceStateData
   }
 
   private def handleFlexActivation(
-                                  flexActivation: FlexActivation,
-                                  receiver: ActorRef[FlexRequest],
-                                  )(implicit
-                                    serviceStateData: ExtEmDataStateData
-                                  ): ExtEmDataStateData = {
+      flexActivation: FlexActivation,
+      receiver: ActorRef[FlexRequest],
+  )(implicit
+      serviceStateData: ExtEmDataStateData
+  ): ExtEmDataStateData = {
 
     if (flexActivation.tick == INIT_SIM_TICK) {
       receiver ! flexActivation
@@ -520,7 +570,6 @@ object ExtEmDataService
 
     serviceStateData
   }
-
 
   private def handleFlexControl(
       issueFlexControl: IssueFlexControl,

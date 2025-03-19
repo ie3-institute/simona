@@ -16,6 +16,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   Create,
   ScheduleServiceActivation,
   ServiceRegistrationMessage,
+  ServiceResponseMessage,
   WrappedActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
@@ -144,6 +145,10 @@ abstract class TypedSimonaService[
       buffer.stash(msg)
       Behaviors.same
 
+    case (_, msg: ServiceResponseMessage) =>
+      handleServiceResponse(msg)
+      Behaviors.same
+
     // unhandled message
     case (ctx, x) =>
       ctx.log.error(s"Received unhandled message: $x")
@@ -227,6 +232,10 @@ abstract class TypedSimonaService[
       stateData: S,
       constantData: ServiceConstantStateData,
   ): Behavior[T] = idleInternal
+
+  protected def handleServiceResponse(
+      serviceResponse: ServiceResponseMessage
+  ): Unit = {}
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks

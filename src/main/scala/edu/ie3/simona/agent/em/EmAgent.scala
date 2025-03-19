@@ -231,6 +231,8 @@ object EmAgent {
       inactive(emData, modelShell, newCore)
 
     case (ctx, msg: ActivationRequest) =>
+      ctx.log.warn(s"$msg")
+
       val flexOptionsCore = core.activate(msg.tick)
 
       msg match {
@@ -266,9 +268,11 @@ object EmAgent {
       emData: EmData,
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
-  ): Behavior[Request] = Behaviors.receiveMessagePartial {
-    case flexOptions: ProvideFlexOptions =>
+  ): Behavior[Request] = Behaviors.receivePartial {
+    case (ctx, flexOptions: ProvideFlexOptions) =>
       val updatedCore = flexOptionsCore.handleFlexOptions(flexOptions)
+
+      ctx.log.warn(s"$updatedCore")
 
       if (updatedCore.isComplete) {
 

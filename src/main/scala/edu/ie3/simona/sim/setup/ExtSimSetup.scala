@@ -360,7 +360,7 @@ object ExtSimSetup {
       ScheduleLock.singleKey(
         context,
         scheduler,
-        INIT_SIM_TICK,
+        PRE_INIT_TICK,
       ),
     )
 
