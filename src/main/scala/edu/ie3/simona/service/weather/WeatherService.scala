@@ -198,7 +198,7 @@ object WeatherService extends TypedSimonaService[WeatherMessage] {
   ): WeatherInitializedStateData = {
     ctx.log.debug(
       "Received weather registration from {} for [Lat:{}, Long:{}]",
-      agentToBeRegistered,
+      agentToBeRegistered.path.name,
       latitude,
       longitude,
     )
@@ -209,12 +209,9 @@ object WeatherService extends TypedSimonaService[WeatherMessage] {
       longitude,
     )
 
-    val RegistrationMessage = serviceStateData.maybeNextActivationTick match {
-      case Some(nextActivationTick) =>
-        RegistrationSuccessfulMessage(_, nextActivationTick)
-      case None =>
-        RegistrationFailedMessage
-    }
+    val registrationResponse = serviceStateData.maybeNextActivationTick
+      .map(RegistrationSuccessfulMessage(ctx.self.toClassic, _))
+      .getOrElse(RegistrationFailedMessage(ctx.self.toClassic))
 
     serviceStateData.coordsToActorRefMap.get(agentCoord) match {
       case None =>
@@ -224,7 +221,7 @@ object WeatherService extends TypedSimonaService[WeatherMessage] {
           serviceStateData.amountOfInterpolationCoords,
         ) match {
           case Success(weightedCoordinates) =>
-            agentToBeRegistered ! RegistrationMessage(ctx.self.toClassic)
+            agentToBeRegistered ! registrationResponse
 
             /* Enhance the mapping from agent coordinate to requesting actor's ActorRef as well as the necessary
              * weather coordinates for later averaging. */
@@ -247,7 +244,7 @@ object WeatherService extends TypedSimonaService[WeatherMessage] {
 
       case Some(actorRefs) if !actorRefs.contains(agentToBeRegistered) =>
         // coordinate is already known (= we have data for it), but this actor is not registered yet
-        agentToBeRegistered ! RegistrationMessage(ctx.self.toClassic)
+        agentToBeRegistered ! registrationResponse
 
         serviceStateData.copy(
           coordsToActorRefMap =
