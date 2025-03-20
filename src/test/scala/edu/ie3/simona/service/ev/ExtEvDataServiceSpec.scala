@@ -339,15 +339,13 @@ class ExtEvDataServiceSpec
         new ScheduleDataServiceMessage(adapter.toClassic)
       )
       evService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(10.seconds, Completion(activationMsg.actor))
+      scheduler.expectMessage(Completion(activationMsg.actor))
 
       evcs1.expectMessage(
-        10.seconds,
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L),
+        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
       )
       evcs2.expectMessage(
-        10.seconds,
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L),
+        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
       )
 
       extEvData.sendExtMsg(new RequestCurrentPrices())
@@ -370,7 +368,7 @@ class ExtEvDataServiceSpec
       // thus should send ProvideEvcsFreeLots
       awaitCond(
         !extEvData.receiveTriggerQueue.isEmpty,
-        max = 30.seconds,
+        max = 10.seconds,
       )
       extEvData.receiveTriggerQueue.size() shouldBe 1
       // only evcs 1 should be included, the other one is full
