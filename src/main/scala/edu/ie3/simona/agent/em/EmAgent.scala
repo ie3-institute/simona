@@ -270,9 +270,11 @@ object EmAgent {
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
   ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, flexOptions: ProvideFlexOptions) =>
+      ctx.log.warn(s"Core: $flexOptionsCore")
+
       val updatedCore = flexOptionsCore.handleFlexOptions(flexOptions)
 
-      ctx.log.warn(s"$updatedCore")
+      ctx.log.warn(s"Updated core: $updatedCore")
 
       if (updatedCore.isComplete) {
 

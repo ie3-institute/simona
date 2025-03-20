@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.em.ExtEmDataConnection
-import edu.ie3.simona.api.data.em.model.{EmSetPointResult, FlexOptionValue}
+import edu.ie3.simona.api.data.em.model.{EmSetPointResult, FlexOptions}
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -374,7 +374,7 @@ class ExtEmDataServiceSpec
         new ProvideEmFlexOptionData(
           0,
           Map(
-            emAgent2UUID -> new FlexOptionValue(
+            emAgent2UUID -> new FlexOptions(
               emAgent1UUID,
               -3.asKiloWatt,
               -1.asKiloWatt,

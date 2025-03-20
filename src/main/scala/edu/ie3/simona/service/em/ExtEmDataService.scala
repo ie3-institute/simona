@@ -9,7 +9,7 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.model.{EmSetPointResult, FlexOptionValue}
+import edu.ie3.simona.api.data.em.model.EmSetPointResult
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.api.data.em.{ExtEmDataConnection, NoSetPointValue}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
@@ -18,23 +18,13 @@ import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EmMessage
-import edu.ie3.simona.ontology.messages.services.EmMessage.{
-  WrappedFlexRequest,
-  WrappedFlexResponse,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  RegisterForEmDataService,
-  ServiceRegistrationMessage,
-  ServiceResponseMessage,
-}
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{RegisterForEmDataService, ServiceRegistrationMessage, ServiceResponseMessage}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.service.{ExtDataSupport, TypedSimonaService}
-import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
 import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
@@ -48,11 +38,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Power => PsdmPower}
-import scala.jdk.CollectionConverters.{
-  ListHasAsScala,
-  MapHasAsJava,
-  MapHasAsScala,
-}
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 import scala.util.{Failure, Success, Try}
 
@@ -119,8 +105,8 @@ object ExtEmDataService
       flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
       extEmDataMessage: Option[EmDataMessageFromExt] = None,
       toSchedule: Map[UUID, ScheduleFlexActivation] = Map.empty,
-      flexOptionResponse: ReceiveDataMap[UUID, FlexOptionsResult] =
-        ReceiveDataMap.empty,
+      flexOptionResponse: ReceiveMultiDataMap[UUID, FlexOptionsResult] =
+        ReceiveMultiDataMap.empty,
       setPointResponse: ReceiveDataMap[UUID, EmSetPointResult] =
         ReceiveDataMap.empty,
   ) extends ServiceBaseStateData
@@ -302,19 +288,25 @@ object ExtEmDataService
       case requestEmFlexResults: RequestEmFlexResults =>
         ctx.log.warn(s"$requestEmFlexResults")
 
-        // TODO: Fix this
-        val uuids =
-          requestEmFlexResults.emEntities().asScala.flatMap(_._2.asScala).toSet
+        val (flexOptionResponse, allInferior) = requestEmFlexResults
+          .emEntities()
+          .asScala
+          .foldLeft(Map.empty[UUID, Set[UUID]], Set.empty[UUID]) {
+            case ((dataMap, allInferior), (key, inferior)) =>
+              val inferiorKeys = inferior.asScala.toSet
+
+              (dataMap.updated(key, inferiorKeys), allInferior ++ inferiorKeys)
+          }
 
         val uuidToRef = serviceStateData.uuidToFlexAdapter
-        val refs = uuids.map(uuidToRef)
+        val refs = allInferior.map(uuidToRef)
 
         log.warn(s"$refs")
         refs.foreach(_ ! FlexActivation(tick))
 
         updatedTick.copy(
           extEmDataMessage = None,
-          flexOptionResponse = ReceiveDataMap(uuids),
+          flexOptionResponse = ReceiveMultiDataMap(flexOptionResponse),
         )
 
       case requestEmSetPoints: RequestEmSetPoints =>
@@ -352,15 +344,21 @@ object ExtEmDataService
     provideFlexOptions
       .flexOptions()
       .asScala
-      .foreach { case (agent, flexOption: FlexOptionValue) =>
+      .map { case (agent, value) =>
+        agent -> value.flexOptions.asScala
+      }
+      .foreach { case (agent, flexOptions) =>
         hierarchy.getResponseRef(agent) match {
           case Some(receiver) =>
-            receiver ! ProvideMinMaxFlexOptions(
-              flexOption.sender,
-              flexOption.pRef.toSquants,
-              flexOption.pMin.toSquants,
-              flexOption.pMax.toSquants,
-            )
+
+            flexOptions.foreach { flexOption =>
+              receiver ! ProvideMinMaxFlexOptions(
+                flexOption.sender,
+                flexOption.pRef.toSquants,
+                flexOption.pMin.toSquants,
+                flexOption.pMax.toSquants,
+              )
+            }
 
           case None =>
             ctx.log.warn(s"No em agent with uuid '$agent' registered!")
@@ -492,6 +490,7 @@ object ExtEmDataService
         case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
           serviceStateData.flexOptionResponse.addData(
             uuid,
+            modelUuid,
             new FlexOptionsResult(
               serviceStateData.startTime, // TODO: Fix this
               modelUuid,
@@ -515,14 +514,16 @@ object ExtEmDataService
       } else {
         // all responses received, forward them to external simulation in a bundle
 
+        val (data, updatedFlexOptionResponse) = updated.removeLastFinished()
+
         serviceStateData.extEmDataConnection.queueExtResponseMsg(
           new FlexOptionsResponse(
-            updated.receivedData.asJava
+            data.map { case (k, v) => k -> v.asJava }.asJava
           )
         )
 
         serviceStateData.copy(
-          flexOptionResponse = ReceiveDataMap.empty
+          flexOptionResponse = updatedFlexOptionResponse
         )
       }
     }
