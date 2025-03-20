@@ -21,7 +21,7 @@ As the storage is initialised as empty, the heat source will start charging the 
 
 ### Behaviour under EM control
 
-Currently not fully supported
+Currently, not fully supported. Will be fixed by [PR #1159](https://github.com/ie3-institute/simona/pull/1159)
 
 ## Attributes, Units and Remarks
 
