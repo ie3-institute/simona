@@ -52,7 +52,7 @@ abstract class TypedSimonaService[
 
   def apply(
       scheduler: ActorRef[SchedulerMessage],
-      bufferSize: Int = 100,
+      bufferSize: Int = 10000,
   ): Behavior[T] = Behaviors.withStash(bufferSize) { buffer =>
     Behaviors.setup { ctx =>
       val activationAdapter: ActorRef[Activation] =
