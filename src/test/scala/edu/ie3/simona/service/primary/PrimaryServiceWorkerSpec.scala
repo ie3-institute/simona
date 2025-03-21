@@ -205,7 +205,12 @@ class PrimaryServiceWorkerSpec
     }
 
     "refuse registration for wrong registration request" in {
-      serviceRef ! RegisterForWeatherMessage(self, 51.4843281, 7.4116482)
+      val agent = TestProbe()
+      serviceRef ! RegisterForWeatherMessage(
+        agent.ref.toTyped,
+        51.4843281,
+        7.4116482,
+      )
       expectNoMessage()
     }
 

@@ -551,8 +551,9 @@ final case class ThermalGrid(
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>
-    * <li>there is no infeed from external and</li> <li>the storage is not empty
-    * itself.</li> </ul>
+    * <li>the house has reached it's lower temperature boundary,</li> <li>there
+    * is no infeed from external and</li> <li>the storage is not empty
+    * itself</li> </ul>
     *
     * @param tick
     *   The actual tick of simulation.

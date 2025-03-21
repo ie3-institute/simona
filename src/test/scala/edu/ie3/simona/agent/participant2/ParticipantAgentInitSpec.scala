@@ -37,6 +37,7 @@ import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.Each
 
@@ -361,7 +362,7 @@ class ParticipantAgentInitSpec
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref.toClassic,
-          services = Map(ServiceType.WeatherService -> service.ref.toClassic),
+          services = Map(ServiceType.WeatherService -> service.ref),
           resultListener = Iterable(resultListener.ref),
         )
 
@@ -401,7 +402,7 @@ class ParticipantAgentInitSpec
 
         service.expectMessage(
           RegisterForWeatherMessage(
-            participantAgent.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getNode.getGeoPosition.getY,
             mockInput.electricalInputModel.getNode.getGeoPosition.getX,
           )
@@ -428,7 +429,7 @@ class ParticipantAgentInitSpec
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref.toClassic,
-          services = Map(ServiceType.WeatherService -> service.ref.toClassic),
+          services = Map(ServiceType.WeatherService -> service.ref),
           resultListener = Iterable(resultListener.ref),
         )
 
@@ -493,7 +494,7 @@ class ParticipantAgentInitSpec
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref.toClassic,
-          services = Map(ServiceType.WeatherService -> service.ref.toClassic),
+          services = Map(ServiceType.WeatherService -> service.ref),
           resultListener = Iterable(resultListener.ref),
         )
 
@@ -541,7 +542,7 @@ class ParticipantAgentInitSpec
 
         service.expectMessage(
           RegisterForWeatherMessage(
-            participantAgent.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getNode.getGeoPosition.getY,
             mockInput.electricalInputModel.getNode.getGeoPosition.getX,
           )
@@ -573,7 +574,7 @@ class ParticipantAgentInitSpec
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref.toClassic,
-          services = Map(ServiceType.WeatherService -> service.ref.toClassic),
+          services = Map(ServiceType.WeatherService -> service.ref),
           resultListener = Iterable(resultListener.ref),
         )
 
