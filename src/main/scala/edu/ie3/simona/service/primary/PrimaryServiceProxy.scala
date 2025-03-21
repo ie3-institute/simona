@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
@@ -48,7 +46,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   WorkerRegistrationMessage,
 }
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
@@ -60,7 +57,10 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   InitPrimaryServiceStateData,
   SqlInitPrimaryServiceStateData,
 }
+import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props, Stash}
 
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
@@ -87,6 +87,7 @@ case class PrimaryServiceProxy(
     initStateData: InitPrimaryServiceProxyStateData,
     private implicit val startDateTime: ZonedDateTime,
 ) extends Actor
+    with Stash
     with SimonaActorLogging {
 
   /** Start receiving without knowing specifics about myself
@@ -111,6 +112,7 @@ case class PrimaryServiceProxy(
       ) match {
         case Success(stateData) =>
           scheduler ! Completion(self.toTyped)
+          unstashAll()
           context become onMessage(stateData)
         case Failure(exception) =>
           log.error(
@@ -120,10 +122,8 @@ case class PrimaryServiceProxy(
           self ! PoisonPill
       }
 
-    case x =>
-      /* Unhandled message */
-      log.error("Received unhandled message: {}", x)
-      unhandled(x)
+    case _ =>
+      stash()
   }
 
   /** Prepare the needed state data by building a

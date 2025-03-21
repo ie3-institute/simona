@@ -20,12 +20,14 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   RegisterForEvDataMessage,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
@@ -58,7 +60,7 @@ object ParticipantAgentInit {
   final case class ParticipantRefs(
       gridAgent: ActorRef[GridAgent.Request],
       primaryServiceProxy: ClassicRef,
-      services: Map[ServiceType, ClassicRef],
+      services: Map[ServiceType, ActorRef[_ >: ServiceMessage]],
       resultListener: Iterable[ActorRef[ResultEvent]],
   )
 
@@ -108,6 +110,7 @@ object ParticipantAgentInit {
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
+      scheduleKey: ScheduleKey,
   ): Behavior[Request] = Behaviors.setup { ctx =>
     val parentData = parent
       .map { em =>
@@ -121,6 +124,7 @@ object ParticipantAgentInit {
         em ! ScheduleFlexActivation(
           inputContainer.electricalInputModel.getUuid,
           INIT_SIM_TICK,
+          Some(scheduleKey),
         )
 
         FlexControlledData(em, flexAdapter)
@@ -135,6 +139,7 @@ object ParticipantAgentInit {
           scheduler ! ScheduleActivation(
             activationAdapter,
             INIT_SIM_TICK,
+            Some(scheduleKey),
           )
 
           SchedulerData(scheduler, activationAdapter)
@@ -244,12 +249,14 @@ object ParticipantAgentInit {
         // requiring at least one secondary service, thus send out registrations and wait for replies
         val requiredServices = requiredServiceTypes
           .map(serviceType =>
-            serviceType -> participantRefs.services.getOrElse(
-              serviceType,
-              throw new CriticalFailureException(
-                s"${modelShell.identifier}: Service of type $serviceType is not available."
-              ),
-            )
+            serviceType -> participantRefs.services
+              .getOrElse(
+                serviceType,
+                throw new CriticalFailureException(
+                  s"${modelShell.identifier}: Service of type $serviceType is not available."
+                ),
+              )
+              .toClassic
           )
           .toMap
 
@@ -287,11 +294,7 @@ object ParticipantAgentInit {
 
         Option(geoPosition.getY).zip(Option(geoPosition.getX)) match {
           case Some((lat, lon)) =>
-            serviceRef ! RegisterForWeatherMessage(
-              participantRef.toClassic,
-              lat,
-              lon,
-            )
+            serviceRef ! RegisterForWeatherMessage(participantRef, lat, lon)
           case _ =>
             throw new CriticalFailureException(
               s"${modelShell.identifier} cannot register for weather information at " +

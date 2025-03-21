@@ -28,7 +28,7 @@ ext {
   confluentKafkaVersion = '7.9.0'
   scapegoatVersion = '3.1.6'
 
-  junitVersion = '1.12.0'
+  junitVersion = '1.12.1'
   testContainerVersion = '0.43.0'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
@@ -94,7 +94,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.17"
+  implementation "ch.qos.logback:logback-classic:1.5.18"
 
   /* testing */
   // scalatest & junit
@@ -104,7 +104,7 @@ dependencies {
   testRuntimeOnly "org.scalatestplus:junit-5-11_${scalaVersion}:3.2.19.0"
 
   // mocking framework
-  testImplementation 'org.mockito:mockito-core:5.16.0'
+  testImplementation 'org.mockito:mockito-core:5.16.1'
   testImplementation "org.scalatestplus:mockito-3-4_${scalaVersion}:3.2.10.0"
 
   // pekko
@@ -150,7 +150,7 @@ dependencies {
   implementation 'javax.measure:unit-api:2.2'
   implementation 'tech.units:indriya:2.2.2' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
-  implementation 'org.apache.commons:commons-csv:1.13.0'
+  implementation 'org.apache.commons:commons-csv:1.14.0'
   implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
   implementation 'de.lmu.ifi.dbs.elki:elki:0.7.5' // Statistics (for random load model)
   implementation 'org.jgrapht:jgrapht-core:1.5.2'

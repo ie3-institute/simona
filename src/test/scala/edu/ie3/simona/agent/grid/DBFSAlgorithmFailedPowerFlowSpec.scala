@@ -20,6 +20,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
@@ -49,7 +50,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
   private val runtimeEvents: TestProbe[RuntimeEvent] =
     TestProbe("runtimeEvents")
   private val primaryService = TestProbe("primaryService")
-  private val weatherService = TestProbe("weatherService")
+  private val weatherService = TestProbe[WeatherMessage]("weatherService")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
@@ -63,7 +64,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
-    weather = weatherService.ref.toClassic,
+    weather = weatherService.ref,
     evDataService = None,
   )
 
@@ -115,12 +116,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
-      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.tick shouldBe 3600
       scheduleActivationMsg.unlockKey shouldBe Some(key)
-      val gridAgentActivation = scheduleActivationMsg.actor
-
-      centerGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
 
       // send init data to agent
       centerGridAgent ! WrappedActivation(Activation(3600))
@@ -325,12 +322,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
-      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.tick shouldBe 3600
       scheduleActivationMsg.unlockKey shouldBe Some(key)
-      val gridAgentActivation = scheduleActivationMsg.actor
-
-      slackGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
 
       // send init data to agent
       slackGridAgent ! WrappedActivation(Activation(3600))

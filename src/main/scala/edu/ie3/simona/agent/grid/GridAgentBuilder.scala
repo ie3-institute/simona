@@ -37,10 +37,15 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.ontology.messages.services.{
+  ServiceMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter._
@@ -75,7 +80,7 @@ import scala.jdk.OptionConverters.RichOptional
   *   The logging adapter to use here
   * @since 2019-07-18
   */
-class GridAgentController(
+class GridAgentBuilder(
     gridAgentContext: ActorContext[GridAgent.Request],
     environmentRefs: EnvironmentRefs,
     simulationStartDate: ZonedDateTime,
@@ -288,8 +293,8 @@ class GridAgentController(
       // For controlled EMs at the current level, more EMs
       // might need to be built at the next recursion level.
       val controllingEms = controlledEmInputs.toMap.flatMap {
-        case (uuid, emInput) =>
-          emInput.getControllingEm.toScala.map(uuid -> _)
+        case (_, emInput) =>
+          emInput.getControllingEm.toScala.map(em => em.getUuid -> em)
       }
 
       // Return value includes previous level and uncontrolled EMs of this level
@@ -336,11 +341,11 @@ class GridAgentController(
       maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantAgent.Request] = {
 
-    val serviceMap: Map[ServiceType, ClassicRef] =
+    val serviceMap: Map[ServiceType, ActorRef[_ >: ServiceMessage]] =
       Seq(
         Some(ServiceType.WeatherService -> environmentRefs.weather),
         environmentRefs.evDataService.map(ref =>
-          ServiceType.EvMovementService -> ref.toClassic
+          ServiceType.EvMovementService -> ref
         ),
       ).flatten.toMap
 
@@ -471,6 +476,9 @@ class GridAgentController(
       scheduler: ActorRef[SchedulerMessage],
       maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantAgent.Request] = {
+
+    val key = ScheduleLock.singleKey(gridAgentContext, scheduler, PRE_INIT_TICK)
+
     val participant = gridAgentContext.spawn(
       ParticipantAgentInit(
         inputContainer,
@@ -479,6 +487,7 @@ class GridAgentController(
         participantRefs,
         simParams,
         maybeControllingEm.toRight(scheduler),
+        key,
       ),
       name = actorName(
         inputContainer.electricalInputModel.getClass.getSimpleName
@@ -517,7 +526,7 @@ class GridAgentController(
       thermalGrid: ThermalGrid,
       modelConfiguration: HpRuntimeConfig,
       primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
+      weatherService: ActorRef[WeatherMessage],
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
@@ -531,7 +540,7 @@ class GridAgentController(
             thermalGrid,
             modelConfiguration,
             primaryServiceProxy,
-            Iterable(ActorWeatherService(weatherService)),
+            Iterable(ActorWeatherService(weatherService.toClassic)),
             simulationStartDate,
             simulationEndDate,
             resolution,

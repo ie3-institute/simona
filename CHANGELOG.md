@@ -47,7 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for topologies without transformers and slack grids with multiple nodes [#1099](https://github.com/ie3-institute/simona/issues/1099)
 - Checking the number of slack nodes [#1122](https://github.com/ie3-institute/simona/issues/1122)
 - Enhance exception message in case of InvalidGridException [#1124](https://github.com/ie3-institute/simona/issues/1124)
-- Integration test for thermal grids [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Added `VoltageLimits` [#1133](https://github.com/ie3-institute/simona/issues/1133)
 - Introducing new ParticipantAgent and ParticipantModel [#1134](https://github.com/ie3-institute/simona/issues/1134)
 - Using new `ParticipantAgent.Request` messages everywhere [#1195](https://github.com/ie3-institute/simona/issues/1195)
@@ -62,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `EvcsModel` with its new implementation [#1151](https://github.com/ie3-institute/simona/issues/1151)
 - Fix determination of qDotIntoGrid in HpModel.calcState() in case heatStorage should feed the thermal grid [#1165](https://github.com/ie3-institute/simona/issues/1165)
 - Replace `BmModel` with its new implementation [#1157](https://github.com/ie3-institute/simona/issues/1157)
+- Integration test for thermal grids without Em [#1145](https://github.com/ie3-institute/simona/issues/1145)
+- Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
 - Add test case to EmAgentIT to check for correct reactive power [#1185](https://github.com/ie3-institute/simona/issues/1185)
 
 ### Changed
@@ -160,6 +161,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converting `ExtEvDataService` to pekko typed [#1214](https://github.com/ie3-institute/simona/issues/1214)
 - Updated Gradle to version 8.13 and removed deprecated syntax [#1286](https://github.com/ie3-institute/PowerSystemDataModel/issues/1286)
 - Consider inputContainer when initialize participant models [#1251](https://github.com/ie3-institute/simona/issues/1251) 
+- Change logging level for unsupported messages from ExtDataSupport [#1286](https://github.com/ie3-institute/simona/issues/1286)
+- Converting `WeatherService` to pekko typed [#1216](https://github.com/ie3-institute/simona/issues/1216)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -216,11 +219,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix copernicus url in readthedocs [#1248](https://github.com/ie3-institute/simona/issues/1248)
 - Check for fully charged Evs when determine next OperationPoint of Evcs [#1253](https://github.com/ie3-institute/simona/issues/1253)
 - Fix bug in `ExtDataSupport.adapter` that leads to an exception while scheduling the service [#1273](https://github.com/ie3-institute/simona/issues/1273)
+- Fixed CI inconsistency after removing deprecations of Gradle [#1275](https://github.com/ie3-institute/simona/issues/1275)
+- Fix initialization by using ScheduleLocks [#1272](https://github.com/ie3-institute/simona/issues/1272)
+- Fix schedule lock in PrimaryServiceProxy [#1289](https://github.com/ie3-institute/simona/issues/1289)
+- Fix vn_simona time series mapping [#1288](https://github.com/ie3-institute/simona/issues/1288)
+- Fix hierarchical em structures leading to exception while initializing [#1293](https://github.com/ie3-institute/simona/issues/1293)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
 - Removed unused parameters in `ArgsParser` [#1192](https://github.com/ie3-institute/simona/issues/1192), [#1178](https://github.com/ie3-institute/simona/issues/1178)
 - Remove pausing/continuing functionality from TimeAdvancer [#1271](https://github.com/ie3-institute/simona/issues/1271)
+- Remove `ChpModel` [#1156](https://github.com/ie3-institute/simona/issues/1156)
+- Remove `MutableStorage` [#1280](https://github.com/ie3-institute/simona/issues/1280)
 
 ## [3.0.0] - 2023-08-07
 
