@@ -619,7 +619,6 @@ class ThermalGridIT
         Storage will be empty
         House demand heating : requiredDemand = 0.0kWh, possibleDemand = 11.87 kWh
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
-        DomesticWaterStorage : tba
         Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
        */
 
@@ -1061,9 +1060,7 @@ class ThermalGridIT
         Start of Simulation, No sun at the moment.
         PV: 0.0 kW
         House demand heating : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
-        House demand water   : tba
         ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-        DomesticWaterStorage : tba
         Heat pump: stays out - since requiredDemand of ThermalStorage not necessarily demand hp operation.
        */
 
@@ -1136,9 +1133,7 @@ class ThermalGridIT
         New Weather: The sun comes out, PV will produce.
         PV: -6.3 kW
         House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 1.25 kWh
-        House demand water   : tba
         ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-        DomesticWaterStorage : tba
         Heat pump: turns on - since now we have flexibility potential available which can be used by hp to serve the reqDemand of ThermalStorage
        */
 
@@ -1213,9 +1208,7 @@ class ThermalGridIT
       Storage is fully heated up, meanwhile house cooled a bit.
       PV: -6.3 kW
       House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 3.6 kWh
-      House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : tba
       Heat pump: stays on since it was on and the house has additional demand
        */
 
@@ -1276,9 +1269,7 @@ class ThermalGridIT
       PV: 0.0 kW
       New weather data, sun is gone again, thus we should now heat the house by storage.
       House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 3.17 kWh
-      House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : tba
       Heat pump: turns off
        */
 
@@ -1351,9 +1342,7 @@ class ThermalGridIT
      The house reaches target temperature
      PV: 0.0 kW
      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-     House demand water   : tba
      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 4.15 kWh
-     DomesticWaterStorage : tba
      Heat pump: stays off
        */
 
@@ -1412,9 +1401,7 @@ class ThermalGridIT
      The sun is back again, storage first.
      PV: -5.2 kW
      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 1.64 kWh
-     House demand water   : tba
      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 4.15 kWh
-     DomesticWaterStorage : tba
      Heat pump: turned off
        */
 
@@ -1493,9 +1480,7 @@ class ThermalGridIT
       Storage is full, now heating the house till target temperature.
       PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 2.58 kWh
-      House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : tba
       Heat pump: stays on
        */
 
@@ -1558,9 +1543,7 @@ class ThermalGridIT
       House reaches target temperature boundary.
       PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : tba
       Heat pump: stays on
        */
 
@@ -1624,9 +1607,7 @@ class ThermalGridIT
       but now it's getting colder which should decrease inner temp of house faster, but the sun is still there.
       PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.25 kWh
-      House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : tba
       Heat pump: turned on, since there is additionalDemand and setPower is 3800 W which is > 0.5 sRated of Hp
        */
 
@@ -1846,9 +1827,7 @@ class ThermalGridIT
         House reaches lower boundary, since we haven't surplus energy from pv we would use the energy from storage to heat the house.
         PV: 0.0 kW
         House demand heating : requiredDemand = 15.0 kWh, additionalDemand = 15.0 kWh
-        House demand water   : tba
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-        DomesticWaterStorage : tba
         Heat pump: stays off
        */
 
@@ -2069,7 +2048,6 @@ class ThermalGridIT
         PV: -3.9 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 3.04 kWh
-        DomesticWaterStorage : tba
         Heat pump: stays on - to serve the remaining heat demand of the storage.
        */
 
