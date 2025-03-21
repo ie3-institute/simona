@@ -18,19 +18,9 @@ import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EmMessage
-import edu.ie3.simona.ontology.messages.services.EmMessage.{
-  WrappedFlexRequest,
-  WrappedFlexResponse,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  RegisterForEmDataService,
-  ServiceRegistrationMessage,
-  ServiceResponseMessage,
-}
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{RegisterForEmDataService, ServiceRegistrationMessage, ServiceResponseMessage}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.service.{ExtDataSupport, TypedSimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -48,11 +38,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Power => PsdmPower}
-import scala.jdk.CollectionConverters.{
-  ListHasAsScala,
-  MapHasAsJava,
-  MapHasAsScala,
-}
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 import scala.util.{Failure, Success, Try}
 
@@ -119,23 +105,23 @@ object ExtEmDataService
       flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
       extEmDataMessage: Option[EmDataMessageFromExt] = None,
       toSchedule: Map[UUID, ScheduleFlexActivation] = Map.empty,
-      flexOptionResponse: ReceiveMultiDataMap[UUID, FlexOptionsResult] =
+      flexOptionResponse: ReceiveMultiDataMap[UUID, (UUID, FlexOptionsResult)] =
         ReceiveMultiDataMap.empty,
       setPointResponse: ReceiveDataMap[UUID, EmSetPointResult] =
         ReceiveDataMap.empty,
   ) extends ServiceBaseStateData
 
   final case class EmHierarchy(
-      uncontrolledToRef: Map[UUID, ActorRef[EmAgent.Request]] = Map.empty,
-      refToUncontrolled: Map[ActorRef[FlexResponse], UUID] = Map.empty,
-      controlledToRef: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
-      refToControlled: Map[ActorRef[FlexResponse], UUID] = Map.empty,
-      parentRef: Map[ActorRef[FlexResponse], ActorRef[EmAgent.Request]] =
+      refToUuid: Map[ActorRef[EmAgent.Request], UUID] = Map.empty,
+      uuidToRef: Map[UUID, ActorRef[EmAgent.Request]] = Map.empty,
+      uuidToFlexResponse: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
+      flexResponseToUuid: Map[ActorRef[FlexResponse], UUID] = Map.empty,
+      parentRefToRef: Map[ActorRef[FlexResponse], ActorRef[EmAgent.Request]] =
         Map.empty,
   ) {
     def add(model: UUID, ref: ActorRef[EmAgent.Request]): EmHierarchy = copy(
-      uncontrolledToRef = uncontrolledToRef + (model -> ref),
-      refToUncontrolled = refToUncontrolled + (ref -> model),
+      uuidToRef = uuidToRef + (model -> ref),
+      refToUuid = refToUuid + (ref -> model),
     )
 
     def add(
@@ -145,22 +131,24 @@ object ExtEmDataService
     ): EmHierarchy = {
 
       copy(
-        controlledToRef = controlledToRef + (model -> ref),
-        refToControlled = refToControlled + (ref -> model),
-        parentRef = parentRef + (parent -> ref),
+        uuidToRef = uuidToRef + (model -> ref),
+        refToUuid = refToUuid + (ref -> model),
+        uuidToFlexResponse = uuidToFlexResponse + (model -> parent),
+        flexResponseToUuid = flexResponseToUuid + (parent -> model),
+        parentRefToRef = parentRefToRef + (parent -> ref),
       )
     }
 
+    def getInferiors(uuids: Set[UUID]): Set[UUID] =
+      uuids.flatMap(uuidToFlexResponse.get)
+        .flatMap(parentRefToRef.get)
+        .map(refToUuid)
+
     def getUuid(ref: ActorRef[FlexResponse]): UUID =
-      refToUncontrolled.getOrElse(ref, refToControlled(ref))
+      flexResponseToUuid(ref)
 
     def getResponseRef(uuid: UUID): Option[ActorRef[FlexResponse]] =
-      uncontrolledToRef.get(uuid) match {
-        case Some(value) =>
-          Some(value)
-        case None =>
-          controlledToRef.get(uuid)
-      }
+      uuidToFlexResponse.get(uuid)
   }
 
   case class InitExtEmData(
@@ -302,25 +290,20 @@ object ExtEmDataService
       case requestEmFlexResults: RequestEmFlexResults =>
         ctx.log.warn(s"$requestEmFlexResults")
 
-        val (flexOptionResponse, allInferior) = requestEmFlexResults
-          .emEntities()
-          .asScala
-          .foldLeft(Map.empty[UUID, Set[UUID]], Set.empty[UUID]) {
-            case ((dataMap, allInferior), (key, inferior)) =>
-              val inferiorKeys = inferior.asScala.toSet
+        // entities for which flex options are requested
+        val emEntities: Set[UUID] = requestEmFlexResults.emEntities().asScala.keys.toSet
 
-              (dataMap.updated(key, inferiorKeys), allInferior ++ inferiorKeys)
-          }
+        val inferior = serviceStateData.emHierarchy.getInferiors(emEntities)
 
         val uuidToRef = serviceStateData.uuidToFlexAdapter
-        val refs = allInferior.map(uuidToRef)
+        val refs = emEntities.map(uuidToRef)
 
         log.warn(s"$refs")
         refs.foreach(_ ! FlexActivation(tick))
 
         updatedTick.copy(
           extEmDataMessage = None,
-          flexOptionResponse = ReceiveMultiDataMap(flexOptionResponse),
+          flexOptionResponse = ReceiveMultiDataMap(emEntities),
         )
 
       case requestEmSetPoints: RequestEmSetPoints =>
@@ -499,15 +482,14 @@ object ExtEmDataService
       val updated = provideFlexOptions match {
         case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
           serviceStateData.flexOptionResponse.addData(
-            uuid,
             modelUuid,
-            new FlexOptionsResult(
+            (uuid, new FlexOptionsResult(
               serviceStateData.startTime, // TODO: Fix this
               modelUuid,
               min.toQuantity,
               ref.toQuantity,
               max.toQuantity,
-            ),
+            )),
           )
 
         case _ =>
@@ -528,7 +510,7 @@ object ExtEmDataService
 
         serviceStateData.extEmDataConnection.queueExtResponseMsg(
           new FlexOptionsResponse(
-            data.values.flatten.toMap.asJava
+            data.map { case (entity, (_, value)) => entity -> value }.asJava
           )
         )
 

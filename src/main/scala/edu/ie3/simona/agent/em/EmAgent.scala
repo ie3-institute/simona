@@ -231,13 +231,16 @@ object EmAgent {
       inactive(emData, modelShell, newCore)
 
     case (ctx, msg: ActivationRequest) =>
-      ctx.log.warn(s"$msg")
+      ctx.log.warn(s"${ctx.self}: $msg")
 
       val flexOptionsCore = core.activate(msg.tick)
 
       msg match {
         case Flex(_: FlexActivation) | EmActivation(_) =>
           val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
+
+          ctx.log.warn(s"${ctx.self} -> $toActivate")
+
           toActivate.foreach {
             _ ! FlexActivation(msg.tick)
           }
@@ -270,11 +273,9 @@ object EmAgent {
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
   ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, flexOptions: ProvideFlexOptions) =>
-      ctx.log.warn(s"Core: $flexOptionsCore")
+      ctx.log.warn(s"${ctx.self} from: ${flexOptions.modelUuid}")
 
       val updatedCore = flexOptionsCore.handleFlexOptions(flexOptions)
-
-      ctx.log.warn(s"Updated core: $updatedCore")
 
       if (updatedCore.isComplete) {
 
