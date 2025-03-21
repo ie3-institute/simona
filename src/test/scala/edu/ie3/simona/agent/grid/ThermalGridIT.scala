@@ -1620,14 +1620,14 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(12000)))
 
       /* TICK 12000
-      House would reach lowerTempBoundary at tick xyz, FIXME
+      House would reach lowerTempBoundary at tick 23809,
       but now it's getting colder which should decrease inner temp of house faster, but the sun is still there.
       PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.25 kWh
       House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       DomesticWaterStorage : tba
-      Heat pump: turned on
+      Heat pump: turned on, since there is additionalDemand and setPower is 3800 W which is > 0.5 sRated of Hp
        */
 
       emAgentActivation ! Activation(12000)
