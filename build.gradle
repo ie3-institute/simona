@@ -105,7 +105,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.17"
+  implementation "ch.qos.logback:logback-classic:1.5.18"
 
   /* testing */
   // scalatest & junit
@@ -162,7 +162,7 @@ dependencies {
   implementation 'javax.measure:unit-api:2.2'
   implementation 'tech.units:indriya:2.2.2' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
-  implementation 'org.apache.commons:commons-csv:1.13.0'
+  implementation 'org.apache.commons:commons-csv:1.14.0'
   implementation "org.scalanlp:breeze_2.13:2.1.0"
   //implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
   implementation 'de.lmu.ifi.dbs.elki:elki:0.7.5' // Statistics (for random load model)
