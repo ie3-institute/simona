@@ -564,7 +564,7 @@ class EmAgentIT
               -0.0055734002705905523.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.000088285536703358.asMegaVar
+              -0.0018318880807426897.asMegaVar
             )
         }
 
@@ -640,7 +640,7 @@ class EmAgentIT
               0.0011098586291537654.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0010731200408.asMegaVar
+             -0.00024449051564412135.asMegaVar
             )
         }
 
@@ -679,7 +679,7 @@ class EmAgentIT
               0.00021037894.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.000065375.asMegaVar
+              0.0000691482.asMegaVar
             )
         }
 
@@ -718,7 +718,7 @@ class EmAgentIT
               0.000135052481.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.00008028014.asMegaVar
+              0.0000443896038.asMegaVar
             )
         }
 
@@ -743,6 +743,13 @@ class EmAgentIT
           resultListener = Iterable(resultListener.ref),
         )
 
+        val keys = ScheduleLock
+          .multiKey(TSpawner, scheduler.ref, PRE_INIT_TICK, 2)
+          .iterator
+        val lockActivation =
+          scheduler.expectMessageType[ScheduleActivation].actor
+        lockActivation ! Activation(PRE_INIT_TICK)
+
         val emAgent = spawn(
           EmAgent(
             emInput,
@@ -763,6 +770,7 @@ class EmAgentIT
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "PvAgentReactivePower",
         )
@@ -775,6 +783,7 @@ class EmAgentIT
             participantRefs,
             simulationParams,
             Right(emAgent),
+            keys.next(),
           ),
           "LoadAgentReactivePower",
         )
@@ -782,6 +791,11 @@ class EmAgentIT
         val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
         emInitSchedule.tick shouldBe INIT_SIM_TICK
         val emAgentActivation = emInitSchedule.actor
+
+        scheduler.expectNoMessage()
+
+        emInitSchedule.unlockKey.value.unlock()
+        scheduler.expectMessage(Completion(lockActivation))
 
         /* INIT */
 
