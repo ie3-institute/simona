@@ -24,7 +24,7 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 trait ExtDataSupport[
     T >: ServiceMessage
 ] {
-  this: TypedSimonaService[T] =>
+  this: SimonaService[T] =>
 
   /** Creates an adapter, that enables a service with [[ExtDataSupport]] to
     * receive a [[DataMessageFromExt]] by wrapping it in an

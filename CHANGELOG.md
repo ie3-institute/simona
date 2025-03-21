@@ -232,6 +232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove pausing/continuing functionality from TimeAdvancer [#1271](https://github.com/ie3-institute/simona/issues/1271)
 - Remove `ChpModel` [#1156](https://github.com/ie3-institute/simona/issues/1156)
 - Remove `MutableStorage` [#1280](https://github.com/ie3-institute/simona/issues/1280)
+- Removed untyped simona service [#1298](https://github.com/ie3-institute/simona/issues/1298)
 
 ## [3.0.0] - 2023-08-07
 

@@ -6,57 +6,67 @@
 
 package edu.ie3.simona.service
 
-import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  Create,
   ScheduleServiceActivation,
   ServiceRegistrationMessage,
+  WrappedActivation,
 }
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
+  ServiceConstantStateData,
 }
-import edu.ie3.simona.service.SimonaService.Create
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
-
-import scala.util.{Failure, Success, Try}
-
-object SimonaService {
-
-  /** Service initialization data can sometimes only be constructed once the
-    * service actor is created (e.g.
-    * [[edu.ie3.simona.service.ev.ExtEvDataService]]). Thus, we need an extra
-    * initialization message.
-    */
-  final case class Create[+I <: InitializeServiceStateData](
-      initializeStateData: I,
-      unlockKey: ScheduleKey,
-  )
+import org.apache.pekko.actor.typed.scaladsl.{
+  ActorContext,
+  Behaviors,
+  StashBuffer,
 }
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+
+import scala.language.implicitConversions
+import scala.util.{Failure, Success, Try}
 
 /** Abstract description of a service agent, that is able to announce new
   * information to registered participants
   *
-  * @param scheduler
-  *   actor reference of the scheduler
-  * @tparam S
-  *   the service specific type of the [[ServiceStateData]]
+  * @tparam T
+  *   the type of messages this service accepts
   */
 abstract class SimonaService[
-    S <: ServiceBaseStateData
-](protected val scheduler: ActorRef)
-    extends Actor
-    with Stash
-    with SimonaActorLogging {
+    T >: ServiceMessage
+] {
 
-  override def receive: Receive = uninitialized
+  /** The service specific type of the [[ServiceStateData]]
+    */
+  type S <: ServiceBaseStateData
+
+  def apply(
+      scheduler: ActorRef[SchedulerMessage],
+      bufferSize: Int = 10000,
+  ): Behavior[T] = Behaviors.withStash(bufferSize) { buffer =>
+    Behaviors.setup { ctx =>
+      val activationAdapter: ActorRef[Activation] =
+        ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
+
+      val constantData: ServiceConstantStateData =
+        ServiceConstantStateData(
+          scheduler,
+          activationAdapter,
+        )
+
+      uninitialized(constantData, buffer)
+    }
+  }
 
   /** Receive method that is used before the service is initialized. Represents
     * the state "Uninitialized".
@@ -64,61 +74,80 @@ abstract class SimonaService[
     * @return
     *   idleInternal methods for the uninitialized state
     */
-  private def uninitialized: Receive = {
-
-    case Create(
-          initializeStateData: InitializeServiceStateData,
-          unlockKey: ScheduleKey,
+  def uninitialized(implicit
+      constantData: ServiceConstantStateData,
+      buffer: StashBuffer[T],
+  ): Behavior[T] = Behaviors.receive {
+    case (
+          _,
+          Create(
+            initializeStateData: InitializeServiceStateData,
+            unlockKey: ScheduleKey,
+          ),
         ) =>
-      scheduler ! ScheduleActivation(
-        self.toTyped,
+      constantData.scheduler ! ScheduleActivation(
+        constantData.activationAdapter,
         INIT_SIM_TICK,
         Some(unlockKey),
       )
 
-      context become initializing(initializeStateData)
+      initializing(initializeStateData)
 
     // not ready yet to handle registrations, stash request away
-    case _: ServiceRegistrationMessage =>
-      stash()
+    case (_, msg: ServiceRegistrationMessage) =>
+      buffer.stash(msg)
+      Behaviors.same
 
   }
 
   private def initializing(
       initializeStateData: InitializeServiceStateData
-  ): Receive = {
-
-    case Activation(INIT_SIM_TICK) =>
+  )(implicit
+      constantData: ServiceConstantStateData,
+      buffer: StashBuffer[T],
+  ): Behavior[T] = Behaviors.receive {
+    case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
       // init might take some time and could go wrong if invalid initialize service data is received
       // execute complete and unstash only if init is carried out successfully
       init(
         initializeStateData
       ) match {
         case Success((serviceStateData, maybeNewTick)) =>
-          scheduler ! Completion(self.toTyped, maybeNewTick)
-          unstashAll()
-          context become idle(serviceStateData)
+          constantData.scheduler ! Completion(
+            constantData.activationAdapter,
+            maybeNewTick,
+          )
+          buffer.unstashAll(idle(serviceStateData, constantData))
         case Failure(exception) =>
           // initialize service trigger with invalid data
-          log.error(
+          ctx.log.error(
             "Error during service initialization." +
               s"\nReceivedData: {}" +
               s"\nException: {}",
             initializeStateData,
             exception,
           )
-          throw exception // if a service fails startup we don't want to go on with the simulation
+
+          // if a service fails startup we don't want to go on with the simulation
+          throw new CriticalFailureException(
+            "Error during service initialization.",
+            exception,
+          )
       }
 
     // not ready yet to handle registrations, stash request away
-    case _: ServiceRegistrationMessage | _: Activation =>
-      stash()
+    case (_, msg: ServiceRegistrationMessage) =>
+      buffer.stash(msg)
+      Behaviors.same
+
+    case (_, msg: WrappedActivation) =>
+      buffer.stash(msg)
+      Behaviors.same
 
     // unhandled message
-    case x =>
-      log.error(s"Received unhandled message: $x")
-      unhandled(x)
-
+    case (ctx, x) =>
+      ctx.log.error(s"Received unhandled message: $x")
+      Behaviors.unhandled
   }
 
   /** Default receive method when the service is initialized. Requires the
@@ -129,45 +158,60 @@ abstract class SimonaService[
     * @return
     *   default idleInternal method when the service is initialized
     */
-  final protected def idle(implicit stateData: S): Receive =
-    idleExternal.applyOrElse(_, idleInternal(stateData))
+  final protected def idle(implicit
+      stateData: S,
+      constantData: ServiceConstantStateData,
+  ): Behavior[T] = idleExternal
 
-  private def idleInternal(implicit stateData: S): Receive = {
+  private[service] def idleInternal(implicit
+      stateData: S,
+      constantData: ServiceConstantStateData,
+  ): Behavior[T] = Behaviors.receive {
     // agent registration process
-    case registrationMsg: ServiceRegistrationMessage =>
+    case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
-      handleRegistrationRequest(registrationMsg) match {
-        case Success(stateData) => context become idle(stateData)
+      handleRegistrationRequest(registrationMsg)(stateData, ctx) match {
+        case Success(stateData) => idle(stateData, constantData)
         case Failure(exception) =>
-          log.error(
+          ctx.log.error(
             "Error during registration." +
               "\nMsg: {}" +
               "\nException: {}",
             registrationMsg,
             exception,
           )
-          unhandled(registrationMsg)
+
+          throw new CriticalFailureException(
+            "Error during registration.",
+            exception,
+          )
       }
 
-    case ScheduleServiceActivation(tick, unlockKey) =>
-      scheduler ! ScheduleActivation(
-        self.toTyped,
+    case (_, ScheduleServiceActivation(tick, unlockKey)) =>
+      constantData.scheduler ! ScheduleActivation(
+        constantData.activationAdapter,
         tick,
         Some(unlockKey),
       )
 
+      idle
+
     // activity start trigger for this service
-    case Activation(tick) =>
+    case (ctx, WrappedActivation(Activation(tick))) =>
       /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
       val (updatedStateData, maybeNewTriggers) =
-        announceInformation(tick)(stateData, context)
-      scheduler ! Completion(self.toTyped, maybeNewTriggers)
-      context become idle(updatedStateData)
+        announceInformation(tick)(stateData, ctx)
+      constantData.scheduler ! Completion(
+        constantData.activationAdapter,
+        maybeNewTriggers,
+      )
+
+      idle(updatedStateData, constantData)
 
     // unhandled message
-    case x =>
-      log.error("Unhandled message received:{}", x)
-      unhandled(x)
+    case (ctx, x) =>
+      ctx.log.error("Unhandled message received:{}", x)
+      Behaviors.unhandled
   }
 
   /** Internal api method that allows handling incoming messages from external
@@ -176,10 +220,13 @@ abstract class SimonaService[
     * @param stateData
     *   the state data of this service
     * @return
-    *   empty behavior to ensure it only is called if it is overridden
+    *   the [[idleExternal()]] behavior as default, to override extend
+    *   [[ExtDataSupport]]
     */
-  private[service] def idleExternal(implicit stateData: S): Receive =
-    Actor.emptyBehavior
+  private[service] def idleExternal(implicit
+      stateData: S,
+      constantData: ServiceConstantStateData,
+  ): Behavior[T] = idleInternal
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
@@ -212,7 +259,8 @@ abstract class SimonaService[
   protected def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
   )(implicit
-      serviceStateData: S
+      serviceStateData: S,
+      ctx: ActorContext[T],
   ): Try[S]
 
   /** Send out the information to all registered recipients
@@ -228,7 +276,7 @@ abstract class SimonaService[
     */
   protected def announceInformation(tick: Long)(implicit
       serviceStateData: S,
-      ctx: ActorContext,
+      ctx: ActorContext[T],
   ): (S, Option[Long])
 
 }

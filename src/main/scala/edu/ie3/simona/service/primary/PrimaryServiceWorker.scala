@@ -37,7 +37,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData,
 }
-import edu.ie3.simona.service.TypedSimonaService
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
@@ -53,7 +53,7 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
-object PrimaryServiceWorker extends TypedSimonaService[ServiceMessage] {
+object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
 
   override type S = PrimaryServiceInitializedStateData[Value]
 

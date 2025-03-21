@@ -33,11 +33,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.{
-  ExtDataSupport,
-  ServiceStateData,
-  TypedSimonaService,
-}
+import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -51,7 +47,7 @@ import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success, Try}
 
 object ExtEvDataService
-    extends TypedSimonaService[EvMessage]
+    extends SimonaService[EvMessage]
     with ExtDataSupport[EvMessage] {
 
   override type S = ExtEvStateData

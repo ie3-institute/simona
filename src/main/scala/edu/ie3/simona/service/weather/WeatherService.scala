@@ -22,7 +22,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.TypedSimonaService
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates,
@@ -43,7 +43,7 @@ import scala.util.{Failure, Success, Try}
   * @version 0.1
   * @since 2019-07-28
   */
-object WeatherService extends TypedSimonaService[WeatherMessage] {
+object WeatherService extends SimonaService[WeatherMessage] {
 
   override type S = WeatherInitializedStateData
 
