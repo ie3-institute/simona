@@ -640,7 +640,7 @@ class EmAgentIT
               0.0011098586291537654.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-             -0.00024449051564412135.asMegaVar
+              -0.00024449051564412135.asMegaVar
             )
         }
 
