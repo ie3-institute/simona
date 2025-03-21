@@ -231,7 +231,7 @@ class PrimaryServiceWorkerSpec
       service ! Activation(INIT_SIM_TICK)
 
       service ! RegisterForWeatherMessage(
-        systemParticipant.ref.toClassic,
+        systemParticipant.ref,
         51.4843281,
         7.4116482,
       )
