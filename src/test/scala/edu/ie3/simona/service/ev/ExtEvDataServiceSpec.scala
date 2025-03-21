@@ -338,6 +338,8 @@ class ExtEvDataServiceSpec
       extSimAdapter.expectMessage(
         new ScheduleDataServiceMessage(adapter.toClassic)
       )
+
+      activationMsg.unlockKey.map(_.unlock())
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 
