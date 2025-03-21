@@ -21,6 +21,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
@@ -56,7 +57,7 @@ class DBFSAlgorithmCenGridSpec
   private val runtimeEvents: TestProbe[RuntimeEvent] =
     TestProbe("runtimeEvents")
   private val primaryService = TestProbe("primaryService")
-  private val weatherService = TestProbe("weatherService")
+  private val weatherService = TestProbe[WeatherMessage]("weatherService")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
@@ -78,7 +79,7 @@ class DBFSAlgorithmCenGridSpec
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
-    weather = weatherService.ref.toClassic,
+    weather = weatherService.ref,
     emDataService = None,
     evDataService = None,
   )

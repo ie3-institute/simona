@@ -16,6 +16,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 }
 import edu.ie3.simona.ontology.messages.services.EmMessage.EmInternal
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvInternal
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherInternal
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import org.apache.pekko.actor.typed.ActorRef
@@ -26,7 +27,7 @@ import java.util.UUID
 /** Collections of all messages, that are send to and from the different
   * services
   */
-sealed trait ServiceMessage extends EmInternal with EvInternal
+sealed trait ServiceMessage extends EmInternal with EvInternal with WeatherInternal
 
 object ServiceMessage {
 

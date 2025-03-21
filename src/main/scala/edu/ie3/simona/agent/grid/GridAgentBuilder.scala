@@ -39,6 +39,10 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
 import edu.ie3.simona.ontology.messages.services.EmMessage
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.ontology.messages.services.{
+  ServiceMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
@@ -345,11 +349,11 @@ class GridAgentBuilder(
       maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantAgent.Request] = {
 
-    val serviceMap: Map[ServiceType, ClassicRef] =
+    val serviceMap: Map[ServiceType, ActorRef[_ >: ServiceMessage]] =
       Seq(
         Some(ServiceType.WeatherService -> environmentRefs.weather),
         environmentRefs.evDataService.map(ref =>
-          ServiceType.EvMovementService -> ref.toClassic
+          ServiceType.EvMovementService -> ref
         ),
       ).flatten.toMap
 
@@ -530,7 +534,7 @@ class GridAgentBuilder(
       thermalGrid: ThermalGrid,
       modelConfiguration: HpRuntimeConfig,
       primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
+      weatherService: ActorRef[WeatherMessage],
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
@@ -544,7 +548,7 @@ class GridAgentBuilder(
             thermalGrid,
             modelConfiguration,
             primaryServiceProxy,
-            Iterable(ActorWeatherService(weatherService)),
+            Iterable(ActorWeatherService(weatherService.toClassic)),
             simulationStartDate,
             simulationEndDate,
             resolution,
