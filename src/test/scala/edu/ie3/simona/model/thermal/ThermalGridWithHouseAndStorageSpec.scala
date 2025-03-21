@@ -581,10 +581,10 @@ class ThermalGridWithHouseAndStorageSpec
         )
         val gridState = initialGridState.copy(houseState =
           initialGridState.houseState.map(
-            _.copy(innerTemperature = thermalHouse.upperBoundaryTemperature)
+            _.copy(innerTemperature = thermalHouse.targetTemperature)
           )
         )
-        val externalQDot = testGridQDotInfeed
+        val externalQDot = testGridQDotInfeed * 10
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
@@ -606,7 +606,7 @@ class ThermalGridWithHouseAndStorageSpec
                 ),
               ) =>
             houseTick shouldBe 0L
-            innerTemperature should approximate(Celsius(20.99999167d))
+            innerTemperature should approximate(Celsius(18.99999167d))
             qDotHouse should approximate(zeroKW)
 
             storageTick shouldBe 0L
@@ -619,7 +619,7 @@ class ThermalGridWithHouseAndStorageSpec
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          StorageFull(276000L)
+          StorageFull(27600L)
         )
       }
     }

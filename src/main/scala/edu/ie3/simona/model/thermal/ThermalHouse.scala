@@ -75,15 +75,18 @@ final case class ThermalHouse(
       bus,
     ) {
 
-  /** Calculate the energy demand at the instance in question by calculating the
-    * energy needed to reach target temperature from actual inner temperature.
-    * In case the inner temperature is at or below the lower boundary
-    * temperature, this energy demand is interpreted as required energy. Else,
-    * required energy will be zero. In case the inner temperature is not at or
-    * above the target temperature, the demand is interpreted as additional
-    * energy. Else, additional energy will be zero. The current (external)
-    * thermal infeed is not accounted for, as we assume, that after determining
-    * the thermal demand, a change in external infeed will take place.
+  /** Calculates the energy demand at the instance in question by calculating
+    * the [[ThermalEnergyDemand]] to reach target temperature from actual inner
+    * temperature. Since [[ThermalEnergyDemand]] is two parted, requiredEnergy
+    * and possibleEnergy, both have to be determined. RequiredEnergy: In case
+    * the inner temperature is at or below the lower boundary temperature, the
+    * energy demand till target temperature is interpreted as requiredEnergy.
+    * Otherwise, the required energy will be zero. PossibleEnergy: In case the
+    * inner temperature is not at or above the target temperature, the energy
+    * demand to reach targetTemperature is interpreted as possible energy.
+    * Otherwise, it will be zero. The current (external) thermal infeed is not
+    * accounted for, as we assume, that after determining the thermal demand, a
+    * change in external infeed will take place.
     *
     * @param relevantData
     *   Data of heat pump including state of the heat pump.
@@ -138,7 +141,7 @@ final case class ThermalHouse(
     ethCapa * temperatureDiff
   }
 
-  /** Check if inner temperature is higher than preferred maximum temperature
+  /** Check if inner temperature is higher than preferred maximum temperature.
     * @param innerTemperature
     *   The inner temperature of the house.
     * @param boundaryTemperature
@@ -154,8 +157,12 @@ final case class ThermalHouse(
       boundaryTemperature - temperatureTolerance
     )
 
-  /** Check if inner temperature is lower than preferred minimum temperature
+  /** Check if inner temperature is lower than preferred minimum temperature.
     *
+    * @param innerTemperature
+    *   The inner temperature of the house.
+    * @param boundaryTemperature
+    *   The applied boundary temperature to check against.
     * @return
     *   true, if inner temperature is too low
     */

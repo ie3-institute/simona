@@ -219,7 +219,7 @@ class EmAgentIT
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
-            pvAgent.toClassic,
+            pvAgent,
             pvInput.getNode.getGeoPosition.getY,
             pvInput.getNode.getGeoPosition.getX,
           )
@@ -487,7 +487,7 @@ class EmAgentIT
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
-            pvAgent.toClassic,
+            pvAgent,
             pvInput.getNode.getGeoPosition.getY,
             pvInput.getNode.getGeoPosition.getX,
           )
@@ -534,7 +534,7 @@ class EmAgentIT
          LOAD: 0.269 kW
          PV:  -5.842 kW
          Heat pump: off, can be turned on or stay off
-         -> set point = 0 kW: stays of
+         -> set point = 0 kW: stays off
          -> remaining -5.573 kW
          */
 

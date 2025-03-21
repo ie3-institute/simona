@@ -36,8 +36,8 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   WeatherData,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -76,7 +76,12 @@ class ThermalGridIT
     with DefaultTestData
     with TestSpawnerTyped {
   private implicit val classicSystem: ActorSystem = system.toClassic
+  protected implicit val simulationStartDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
   protected implicit val temperatureTolerance = 0.01
+  protected val simulationEndDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
+
   private val resolution =
     simonaConfig.simona.powerflow.resolution.toSeconds
 
@@ -363,7 +368,7 @@ class ThermalGridIT
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(4417)))
 
-      /* TICK 4417
+      /* TICK 4419
       House reaches upper temperature boundary
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -603,7 +608,7 @@ class ThermalGridIT
               time shouldBe 25000.toDateTime
               qDot should equalWithTolerance(-0.01044.asMegaWatt)
               energy should equalWithTolerance(
-                0.0049445.asMegaWattHour
+                0.0049387.asMegaWattHour
               )
             case _ =>
               fail(
