@@ -344,14 +344,11 @@ object ExtEmDataService
     provideFlexOptions
       .flexOptions()
       .asScala
-      .map { case (agent, value) =>
-        agent -> value.flexOptions.asScala
-      }
       .foreach { case (agent, flexOptions) =>
         hierarchy.getResponseRef(agent) match {
           case Some(receiver) =>
 
-            flexOptions.foreach { flexOption =>
+            flexOptions.asScala.foreach { flexOption =>
               receiver ! ProvideMinMaxFlexOptions(
                 flexOption.sender,
                 flexOption.pRef.toSquants,
