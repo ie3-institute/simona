@@ -118,7 +118,7 @@ object SimonaSim {
           timeAdvancer,
           scheduler,
           primaryServiceProxy,
-          weatherService.toTyped,
+          weatherService,
         ) ++
           gridAgents ++
           extSimulationData.extDataServices.map(_._2)

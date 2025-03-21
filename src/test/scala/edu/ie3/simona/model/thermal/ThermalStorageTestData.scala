@@ -29,7 +29,7 @@ trait ThermalStorageTestData extends ThermalGridTestData {
       getQuantity(30, StandardUnits.TEMPERATURE),
       getQuantity(40, StandardUnits.TEMPERATURE),
       getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY),
-      getQuantity(11.0, PowerSystemUnits.KILOWATT),
+      getQuantity(20.0, PowerSystemUnits.KILOWATT),
     )
 
   protected val thermalStorage: CylindricalThermalStorage =
