@@ -161,12 +161,16 @@ abstract class TypedSimonaService[
   final protected def idle(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): Behavior[T] = idleExternal
+  ): Behavior[T] = Behaviors.receive[T] { case (ctx, msg) =>
+    idleInternal
+      .orElse(idleExternal)
+      .applyOrElse((ctx, msg), unhandled.tupled)
+  }
 
-  private[service] def idleInternal(implicit
+  private def idleInternal(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): Behavior[T] = Behaviors.receive {
+  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = {
     // agent registration process
     case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
@@ -207,26 +211,27 @@ abstract class TypedSimonaService[
       )
 
       idle(updatedStateData, constantData)
+  }
 
-    // unhandled message
-    case (ctx, x) =>
-      ctx.log.error("Unhandled message received:{}", x)
+  private def unhandled: (ActorContext[T], T) => Behavior[T] = {
+    case (ctx, msg) =>
+      ctx.log.error("Unhandled message received:{}", msg)
       Behaviors.unhandled
   }
 
   /** Internal api method that allows handling incoming messages from external
-    * simulations
+    * simulations.
     *
     * @param stateData
-    *   the state data of this service
+    *   The state data of this service.
     * @return
-    *   the [[idleExternal()]] behavior as default, to override extend
-    *   [[ExtDataSupport]]
+    *   Empty partial function as default. To override, extend
+    *   [[ExtDataSupport]].
     */
-  private[service] def idleExternal(implicit
+  protected def idleExternal(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): Behavior[T] = idleInternal
+  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = PartialFunction.empty
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
