@@ -17,12 +17,12 @@ package edu.ie3.simona.util
   *   The type of the value
   */
 final case class ReceiveMultiDataMap[K, V](
-                                            private val maxTime: Int,
-                                            private val lastFinished: Option[Int],
-                                            private val unfinishedTimes: Set[Int],
-                                            private val finished: Set[Int],
-                                            private val keyToTime: Map[K, Int],
-                                            private val keyToInferior: Map[K, ReceiveDataMap[K, V]],
+    private val maxTime: Int,
+    private val lastFinished: Option[Int],
+    private val unfinishedTimes: Set[Int],
+    private val finished: Set[Int],
+    private val keyToTime: Map[K, Int],
+    private val keyToInferior: Map[K, ReceiveDataMap[K, V]],
 ) {
   def isComplete: Boolean = lastFinished.isDefined
 
@@ -39,8 +39,9 @@ final case class ReceiveMultiDataMap[K, V](
     val time = maxTime + 1
     val updatedKeyToTime = keyToTime ++ keyMap.keySet.map(_ -> time)
 
-    val updated: Map[K, ReceiveDataMap[K, V]] = keyMap.map { case (key, inferiorKeys) =>
-      key -> ReceiveDataMap(inferiorKeys)
+    val updated: Map[K, ReceiveDataMap[K, V]] = keyMap.map {
+      case (key, inferiorKeys) =>
+        key -> ReceiveDataMap(inferiorKeys)
     }
 
     copy(
@@ -81,11 +82,12 @@ final case class ReceiveMultiDataMap[K, V](
   }
 
   def removeLastFinished(): (Map[K, Map[K, V]], ReceiveMultiDataMap[K, V]) = {
-    val map = keyToInferior.filter { case (_, map) => map.isComplete }.map { case (k, v) => k -> v.receivedData }
+    val map = keyToInferior.filter { case (_, map) => map.isComplete }.map {
+      case (k, v) => k -> v.receivedData
+    }
 
     (map, copy(keyToInferior = keyToInferior.removedAll(map.keySet)))
   }
-
 
   def getExpectedKeys(key: K): Set[K] =
     keyToInferior.get(key).map(_.getExpectedKeys).getOrElse(Set.empty)

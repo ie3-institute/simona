@@ -18,9 +18,19 @@ import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EmMessage
-import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{RegisterForEmDataService, ServiceRegistrationMessage, ServiceResponseMessage}
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{
+  WrappedFlexRequest,
+  WrappedFlexResponse,
+}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  RegisterForEmDataService,
+  ServiceRegistrationMessage,
+  ServiceResponseMessage,
+}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceBaseStateData,
+}
 import edu.ie3.simona.service.{ExtDataSupport, TypedSimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -38,7 +48,11 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Power => PsdmPower}
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.{
+  ListHasAsScala,
+  MapHasAsJava,
+  MapHasAsScala,
+}
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 import scala.util.{Failure, Success, Try}
 
@@ -347,7 +361,6 @@ object ExtEmDataService
       .foreach { case (agent, flexOptions) =>
         hierarchy.getResponseRef(agent) match {
           case Some(receiver) =>
-
             flexOptions.asScala.foreach { flexOption =>
               receiver ! ProvideMinMaxFlexOptions(
                 flexOption.sender,
@@ -515,7 +528,7 @@ object ExtEmDataService
 
         serviceStateData.extEmDataConnection.queueExtResponseMsg(
           new FlexOptionsResponse(
-            data.map { case (k, v) => k -> v.asJava }.asJava
+            data.values.flatten.toMap.asJava
           )
         )
 
