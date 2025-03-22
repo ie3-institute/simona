@@ -61,14 +61,12 @@ trait PvInputTestData
 
   protected val pvInputContainer = SimpleInputContainer(pvInput)
 
-  private val operationTimeBuilder = OperationTime.builder()
-
-  private val interval = new ClosedInterval[ZonedDateTime](
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T11:00:00Z"),
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T14:00:00Z"),
-  )
   private val operationTime: OperationTime =
-    operationTimeBuilder.withOperationTime(interval).build()
+    OperationTime
+      .builder()
+      .withStart(TimeUtil.withDefaults.toZonedDateTime("2020-01-01T11:00:00Z"))
+      .withEnd(TimeUtil.withDefaults.toZonedDateTime("2020-01-01T14:00:00Z"))
+      .build()
 
   protected val pvInputWithQCharacteristicLimitedOperationTime = pvInput
     .copy()
