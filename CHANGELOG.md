@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `BmModel` with its new implementation [#1157](https://github.com/ie3-institute/simona/issues/1157)
 - Integration test for thermal grids without Em [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
+- Add test case to EmAgentIT to check for correct reactive power [#1185](https://github.com/ie3-institute/simona/issues/1185)
 - Integration test for thermal grids with Em [#1146](https://github.com/ie3-institute/simona/issues/1146)
 
 ### Changed
