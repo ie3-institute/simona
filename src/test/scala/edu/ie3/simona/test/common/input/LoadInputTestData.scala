@@ -40,14 +40,12 @@ trait LoadInputTestData extends NodeInputTestData {
 
   protected val loadInputContainer = SimpleInputContainer(loadInput)
 
-  private val operationTimeBuilder = OperationTime.builder()
-
-  private val interval = new ClosedInterval[ZonedDateTime](
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T10:00:00Z"),
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T13:00:00Z"),
-  )
   private val operationTime: OperationTime =
-    operationTimeBuilder.withOperationTime(interval).build()
+    OperationTime
+      .builder()
+      .withStart(TimeUtil.withDefaults.toZonedDateTime("2020-01-01T10:00:00Z"))
+      .withEnd(TimeUtil.withDefaults.toZonedDateTime("2020-01-01T13:00:00Z"))
+      .build()
 
   protected val loadInputWithLimitedOperationTime = loadInput
     .copy()
