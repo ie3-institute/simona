@@ -764,7 +764,7 @@ class EmAgentIT
         )
         val pvAgent = spawn(
           ParticipantAgentInit(
-            pvInputContainerWithQCharacteristicLimitedOperationTime,
+            pvInputContainerLimitedOperationTime,
             PvRuntimeConfig(calculateMissingReactivePowerWithModel = true),
             outputConfigOff,
             participantRefs,
@@ -814,7 +814,7 @@ class EmAgentIT
           ),
           PrimaryServiceRegistrationMessage(
             pvAgent.toClassic,
-            pvInputWithQCharacteristicLimitedOperationTime.getUuid,
+            pvInputLimitedOperationTime.getUuid,
           )
         )
 
@@ -828,8 +828,8 @@ class EmAgentIT
         weatherService.expectMessage(
           RegisterForWeatherMessage(
             pvAgent.toClassic,
-            pvInputWithQCharacteristicLimitedOperationTime.getNode.getGeoPosition.getY,
-            pvInputWithQCharacteristicLimitedOperationTime.getNode.getGeoPosition.getX,
+            pvInputLimitedOperationTime.getNode.getGeoPosition.getY,
+            pvInputLimitedOperationTime.getNode.getGeoPosition.getX,
           )
         )
 

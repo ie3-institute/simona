@@ -8,17 +8,15 @@ package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.datamodel.models.input.system.characteristic.{CosPhiFixed, QV}
+import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.SimpleInputContainer
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.interval.ClosedInterval
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import tech.units.indriya.quantity.Quantities
 
-import java.time.ZonedDateTime
 import java.util.UUID
 
 /** Simple test data to be used in tests for PvModel. Should be extended as
@@ -59,7 +57,8 @@ trait PvInputTestData
     0.95,
   )
 
-  protected val pvInputContainer = SimpleInputContainer(pvInput)
+  protected val pvInputContainer: SimpleInputContainer[PvInput] =
+    SimpleInputContainer(pvInput)
 
   private val operationTime: OperationTime =
     OperationTime
@@ -68,16 +67,16 @@ trait PvInputTestData
       .withEnd(TimeUtil.withDefaults.toZonedDateTime("2020-01-01T14:00:00Z"))
       .build()
 
-  protected val pvInputWithQCharacteristicLimitedOperationTime = pvInput
+  protected val pvInputLimitedOperationTime: PvInput = pvInput
     .copy()
     .uuid(UUID.randomUUID())
-    .id("Dummy_PvModel_With_Q_Characteristic")
+    .id("Dummy_PvModel_With_Limited_Operation_Timec")
     .operationTime(operationTime)
-    .qCharacteristics(new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"))
     .build()
 
-  protected val pvInputContainerWithQCharacteristicLimitedOperationTime =
-    SimpleInputContainer(pvInputWithQCharacteristicLimitedOperationTime)
+  protected val pvInputContainerLimitedOperationTime
+      : SimpleInputContainer[PvInput] =
+    SimpleInputContainer(pvInputLimitedOperationTime)
 
   protected val pvSouth1 = new PvInput(
     UUID.fromString("7ac5bb15-36ee-42b0-902b-9cd520e241b3"),
