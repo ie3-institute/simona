@@ -515,68 +515,28 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         (43d, -14d, -22.5d, 45d, 15d,
           35.176193345578606393727080835951995075234213360724d), // Duffie
         (
-          51.516667d,
-          +18.4557514d,
-          -15.00225713d,
-          30d,
-          +0d,
-          14.420271449960715d,
+          51.516667d, +18.4557514d, -15.00225713d, 30d, +0d, 14.420271449960715d,
         ), // Iqbal
         (
-          51.516667d,
-          +18.4557514d,
-          -15.00225713d,
-          90d,
-          +0d,
-          58.65287310017624d,
+          51.516667d, +18.4557514d, -15.00225713d, 90d, +0d, 58.65287310017624d,
         ), // Iqbal
         (
-          35.0d,
-          +23.2320597d,
-          +30.00053311d,
-          45d,
-          10d,
-          39.62841449023577d,
+          35.0d, +23.2320597d, +30.00053311d, 45d, 10d, 39.62841449023577d,
         ), // Kalogirou - Solar Energy Engineering Example 2.7  ISBN 978-0-12-374501-9; DOI https://doi.org/10.1016/B978-0-12-374501-9.X0001-5
         (
-          35.0d,
-          +23.2320597d,
-          +30.00053311d,
-          45d,
-          90d,
-          18.946300807438607d,
+          35.0d, +23.2320597d, +30.00053311d, 45d, 90d, 18.946300807438607d,
         ), // Kalogirou - Solar Energy Engineering Example 2.7 changed to 90° panel azimuth to WEST
         (
-          35.0d,
-          +23.2320597d,
-          +74.648850625d,
-          45d,
-          90d,
-          21.95480347380729d,
+          35.0d, +23.2320597d, +74.648850625d, 45d, 90d, 21.95480347380729d,
         ), // Kalogirou - Solar Energy Engineering Example 2.7  90° panel azimuth to WEST at 17:00
         (
-          35.0d,
-          +23.2320597d,
-          +74.648850625d,
-          45d,
-          -90d,
-          109.00780288303966d,
+          35.0d, +23.2320597d, +74.648850625d, 45d, -90d, 109.00780288303966d,
         ), // Kalogirou - Solar Energy Engineering Example 2.7  90° panel azimuth to EAST at 17:00
         (
-          27.96d,
-          -17.51d,
-          -11.1d,
-          30d,
-          +10d,
-          22.384603601536398d,
+          27.96d, -17.51d, -11.1d, 30d, +10d, 22.384603601536398d,
         ), // Goswami Principles of Solar Engineering Example 2.7a
         (
-          -35.3d,
-          -17.51d,
-          -4.2d,
-          30d,
-          +170d,
-          14.882390116876563d,
+          -35.3d, -17.51d, -4.2d, 30d, +170d, 14.882390116876563d,
         ), // Goswami Principles of Solar Engineering Example 2.7b
         (40d, -11.6d, 82.5d, 60d, 0d, 79.11011928744357d),
         (40d, -11.6d, -82.5d, 60d, 0d,
