@@ -21,11 +21,11 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import squants.{Dimensionless, Each}
 
 import scala.reflect.ClassTag
@@ -69,13 +69,13 @@ object ParticipantAgent {
   /** Messages that are sent by services as responses to registration requests.
     */
   sealed trait RegistrationResponseMessage extends Request {
-    val serviceRef: ClassicRef
+    val serviceRef: ActorRef[_ >: ServiceMessage]
   }
 
   /** Message confirming a successful registration with a secondary service.
     */
   final case class RegistrationSuccessfulMessage(
-      override val serviceRef: ClassicRef,
+      override val serviceRef: ActorRef[_ >: ServiceMessage],
       firstDataTick: Long,
   ) extends RegistrationResponseMessage
 
@@ -91,7 +91,7 @@ object ParticipantAgent {
   final case class PrimaryRegistrationSuccessfulMessage[
       P <: PrimaryData
   ](
-      override val serviceRef: ClassicRef,
+      override val serviceRef: ActorRef[_ >: ServiceMessage],
       firstDataTick: Long,
       primaryDataExtra: PrimaryDataExtra[P],
   ) extends RegistrationResponseMessage
@@ -99,7 +99,7 @@ object ParticipantAgent {
   /** Message announcing a failed registration.
     */
   final case class RegistrationFailedMessage(
-      override val serviceRef: ClassicRef
+      override val serviceRef: ActorRef[_ >: ServiceMessage]
   ) extends RegistrationResponseMessage
 
   /** Data provision messages sent by data services.
@@ -112,7 +112,7 @@ object ParticipantAgent {
 
     /** The sending service actor ref.
       */
-    val serviceRef: ClassicRef
+    val serviceRef: ActorRef[_ >: ServiceMessage]
 
     /** Next tick at which data could arrive. If None, no data is expected for
       * the rest of the simulation.
@@ -129,7 +129,7 @@ object ParticipantAgent {
     */
   final case class DataProvision[D <: Data](
       override val tick: Long,
-      override val serviceRef: ClassicRef,
+      override val serviceRef: ActorRef[_ >: ServiceMessage],
       data: D,
       override val nextDataTick: Option[Long],
   ) extends DataInputMessage
@@ -141,7 +141,7 @@ object ParticipantAgent {
     */
   final case class NoDataProvision(
       override val tick: Long,
-      override val serviceRef: ClassicRef,
+      override val serviceRef: ActorRef[_ >: ServiceMessage],
       override val nextDataTick: Option[Long],
   ) extends DataInputMessage
 

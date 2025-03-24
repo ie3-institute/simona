@@ -14,7 +14,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   WrappedExternalMessage,
 }
 import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 /** Trait that enables handling of external data.
@@ -24,7 +24,7 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 trait ExtDataSupport[
     T >: ServiceMessage
 ] {
-  this: TypedSimonaService[T] =>
+  this: SimonaService[T] =>
 
   /** Creates an adapter, that enables a service with [[ExtDataSupport]] to
     * receive a [[DataMessageFromExt]] by wrapping it in an
@@ -46,10 +46,10 @@ trait ExtDataSupport[
         Behaviors.same
     }
 
-  override private[service] def idleExternal(implicit
+  override protected def idleExternal(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): Behavior[T] = Behaviors.receive {
+  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = {
     case (_, WrappedExternalMessage(extMsg)) =>
       val updatedStateData = handleDataMessage(extMsg)(stateData)
 
@@ -60,13 +60,6 @@ trait ExtDataSupport[
         handleDataResponseMessage(extResponseMsg)(stateData)
 
       idle(updatedStateData, constantData)
-
-    case (ctx, unsupported) =>
-      ctx.log.debug(
-        s"Received unsupported message: $unsupported! Message forwarded to be handled internally."
-      )
-      ctx.self ! unsupported
-      idleInternal
   }
 
   /** Handle a message from outside the simulation

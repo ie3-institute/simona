@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `BmModel` with its new implementation [#1157](https://github.com/ie3-institute/simona/issues/1157)
 - Integration test for thermal grids without Em [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
+- Add test case to EmAgentIT to check for correct reactive power [#1185](https://github.com/ie3-institute/simona/issues/1185)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -162,6 +163,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Consider inputContainer when initialize participant models [#1251](https://github.com/ie3-institute/simona/issues/1251) 
 - Change logging level for unsupported messages from ExtDataSupport [#1286](https://github.com/ie3-institute/simona/issues/1286)
 - Converting `WeatherService` to pekko typed [#1216](https://github.com/ie3-institute/simona/issues/1216)
+- Converting `PrimaryServiceWorker` to pekko typed [#1229](https://github.com/ie3-institute/simona/issues/1229)
+- Converting `PrimaryServiceProxy` to pekko typed [#1230](https://github.com/ie3-institute/simona/issues/1230)
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
 
 ### Fixed
@@ -224,6 +227,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix schedule lock in PrimaryServiceProxy [#1289](https://github.com/ie3-institute/simona/issues/1289)
 - Fix vn_simona time series mapping [#1288](https://github.com/ie3-institute/simona/issues/1288)
 - Fix hierarchical em structures leading to exception while initializing [#1293](https://github.com/ie3-institute/simona/issues/1293)
+- Fix failing `ExtEvDataServiceSpec` [#1297](https://github.com/ie3-institute/simona/issues/1297)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
@@ -231,6 +235,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove pausing/continuing functionality from TimeAdvancer [#1271](https://github.com/ie3-institute/simona/issues/1271)
 - Remove `ChpModel` [#1156](https://github.com/ie3-institute/simona/issues/1156)
 - Remove `MutableStorage` [#1280](https://github.com/ie3-institute/simona/issues/1280)
+- Removed untyped simona service [#1298](https://github.com/ie3-institute/simona/issues/1298)
 
 ## [3.0.0] - 2023-08-07
 

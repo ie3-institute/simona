@@ -169,12 +169,9 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 
-      evcs1.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
-      )
-      evcs2.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
-      )
+      evcs1.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
+
+      evcs2.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
     }
 
     "fail when activated without having received ExtEvMessage" in {
@@ -250,12 +247,9 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 
-      evcs1.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
-      )
-      evcs2.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
-      )
+      evcs1.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
+
+      evcs2.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
 
       extEvData.sendExtMsg(
         new RequestEvcsFreeLots()
@@ -341,12 +335,9 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 
-      evcs1.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
-      )
-      evcs2.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
-      )
+      evcs1.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
+
+      evcs2.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
 
       extEvData.sendExtMsg(new RequestCurrentPrices())
 
@@ -468,12 +459,9 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 
-      evcs1.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
-      )
-      evcs2.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
-      )
+      evcs1.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
+
+      evcs2.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
 
       val departures = Map(
         evcs1UUID -> List(evA.getUuid).asJava,
@@ -625,12 +613,9 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 
-      evcs1.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
-      )
-      evcs2.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
-      )
+      evcs1.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
+
+      evcs2.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
 
       val arrivals = Map(
         evcs1UUID -> List[EvModel](evA).asJava,
@@ -708,9 +693,7 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 
-      evcs1.expectMessage(
-        RegistrationSuccessfulMessage(evService.ref.toClassic, 0L)
-      )
+      evcs1.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
 
       val arrivals = Map(
         evcs1UUID -> List[EvModel](evA).asJava,
