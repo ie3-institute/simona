@@ -7,21 +7,21 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant2.ParticipantAgent
+
+import java.util.UUID
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvInternal
 import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.LoadProfileMessageInternal
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherInternal
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
-
-import java.util.UUID
 
 /** Collections of all messages, that are send to and from the different
   * services
   */
-sealed trait ServiceMessage extends EvInternal with LoadProfileMessageInternal
+sealed trait ServiceMessage extends EvInternal with LoadProfileMessageInternal with WeatherInternal
 
 object ServiceMessage {
 
@@ -46,6 +46,7 @@ object ServiceMessage {
       tick: Long,
       unlockKey: ScheduleKey,
   ) extends ServiceMessage
+      with DataMessageFromExt
 
   /** Message used in response to a service request.
     */
@@ -63,7 +64,7 @@ object ServiceMessage {
     *   Identifier of the input model
     */
   final case class PrimaryServiceRegistrationMessage(
-      requestingActor: ClassicRef,
+      requestingActor: ActorRef[ParticipantAgent.Request],
       inputModelUuid: UUID,
   ) extends ServiceRegistrationMessage
 
@@ -74,8 +75,9 @@ object ServiceMessage {
     * @param requestingActor
     *   Reference to the requesting actor
     */
-  final case class WorkerRegistrationMessage(requestingActor: ClassicRef)
-      extends ServiceRegistrationMessage
+  final case class WorkerRegistrationMessage(
+      requestingActor: ActorRef[ParticipantAgent.Request]
+  ) extends ServiceRegistrationMessage
 
   /** Indicate the [[edu.ie3.simona.service.ev.ExtEvDataService]] that the
     * requesting agent wants to receive EV movements

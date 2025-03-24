@@ -62,7 +62,6 @@ final case class ThermalGrid(
       lastHpState: HpState,
   ): (ThermalDemandWrapper, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
-
     val (houseDemand, updatedHouseState) =
       house.zip(lastHpState.thermalGridState.houseState) match {
         case Some((thermalHouse, lastHouseState)) =>
@@ -76,8 +75,7 @@ final case class ThermalGrid(
               lastHouseState.qDot,
             )
           if (
-            updatedHouseState.innerTemperature < thermalHouse.targetTemperature |
-              (lastHouseState.qDot > zeroKW && updatedHouseState.innerTemperature < thermalHouse.upperBoundaryTemperature)
+            updatedHouseState.innerTemperature < thermalHouse.targetTemperature
           ) {
             (
               thermalHouse.energyDemand(
@@ -86,11 +84,9 @@ final case class ThermalGrid(
               ),
               Some(updatedHouseState),
             )
-
           } else {
             (ThermalEnergyDemand.noDemand, Some(updatedHouseState))
           }
-
         case None =>
           (ThermalEnergyDemand.noDemand, None)
       }

@@ -53,7 +53,7 @@ abstract class TypedSimonaService[
 
   def apply(
       scheduler: ActorRef[SchedulerMessage],
-      bufferSize: Int = 100,
+      bufferSize: Int = 10000,
   ): Behavior[T] = Behaviors.withStash(bufferSize) { buffer =>
     Behaviors.setup { ctx =>
       val activationAdapter: ActorRef[Activation] =
@@ -118,7 +118,7 @@ abstract class TypedSimonaService[
             constantData.activationAdapter,
             maybeNewTick,
           )
-          buffer.unstashAll(idle(serviceStateData, constantData, buffer))
+          buffer.unstashAll(idle(serviceStateData, constantData))
         case Failure(exception) =>
           // initialize service trigger with invalid data
           ctx.log.error(
@@ -162,19 +162,21 @@ abstract class TypedSimonaService[
   final protected def idle(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[T],
-  ): Behavior[T] = idleExternal
+  ): Behavior[T] = Behaviors.receive[T] { case (ctx, msg) =>
+    idleInternal
+      .orElse(idleExternal)
+      .applyOrElse((ctx, msg), unhandled.tupled)
+  }
 
-  private[service] def idleInternal(implicit
+  private def idleInternal(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[T],
-  ): Behavior[T] = Behaviors.receive {
+  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = {
     // agent registration process
     case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
       handleRegistrationRequest(registrationMsg)(stateData, ctx) match {
-        case Success(stateData) => idle(stateData, constantData, buffer)
+        case Success(stateData) => idle(stateData, constantData)
         case Failure(exception) =>
           ctx.log.error(
             "Error during registration." +
@@ -197,7 +199,7 @@ abstract class TypedSimonaService[
         Some(unlockKey),
       )
 
-      buffer.unstashAll(idleInternal)
+      idle
 
     // activity start trigger for this service
     case (ctx, WrappedActivation(Activation(tick))) =>
@@ -209,28 +211,28 @@ abstract class TypedSimonaService[
         maybeNewTriggers,
       )
 
-      buffer.unstashAll(idle(updatedStateData, constantData, buffer))
+      idle(updatedStateData, constantData)
+  }
 
-    // unhandled message
-    case (ctx, x) =>
-      ctx.log.error("Unhandled message received:{}", x)
+  private def unhandled: (ActorContext[T], T) => Behavior[T] = {
+    case (ctx, msg) =>
+      ctx.log.error("Unhandled message received:{}", msg)
       Behaviors.unhandled
   }
 
   /** Internal api method that allows handling incoming messages from external
-    * simulations
+    * simulations.
     *
     * @param stateData
-    *   the state data of this service
+    *   The state data of this service.
     * @return
-    *   the [[idleExternal()]] behavior as default, to override extend
-    *   [[ExtDataSupport]]
+    *   Empty partial function as default. To override, extend
+    *   [[ExtDataSupport]].
     */
-  private[service] def idleExternal(implicit
+  protected def idleExternal(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[T],
-  ): Behavior[T] = idleInternal
+  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = PartialFunction.empty
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks

@@ -20,8 +20,9 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
   ServiceMessage,
+  WeatherMessage,
+  LoadProfileMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -58,7 +59,7 @@ class DBFSAlgorithmSupGridSpec
     TestProbe("runtimeEvents")
   private val primaryService: TestProbe[ServiceMessage] =
     TestProbe("primaryService")
-  private val weatherService = TestProbe("weatherService")
+  private val weatherService = TestProbe[WeatherMessage]("weatherService")
   private val loadProfileService =
     TestProbe[LoadProfileMessage]("loadProfileService")
   private val hvGrid: TestProbe[GridAgent.Request] = TestProbe("hvGrid")
@@ -67,7 +68,7 @@ class DBFSAlgorithmSupGridSpec
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
-    weather = weatherService.ref.toClassic,
+    weather = weatherService.ref,
     loadProfiles = loadProfileService.ref,
     evDataService = None,
   )
@@ -105,12 +106,8 @@ class DBFSAlgorithmSupGridSpec
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
-      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.tick shouldBe 3600
       scheduleActivationMsg.unlockKey shouldBe Some(key)
-      val gridAgentActivation = scheduleActivationMsg.actor
-
-      superiorGridAgentFSM ! WrappedActivation(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
