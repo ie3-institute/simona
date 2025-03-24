@@ -164,6 +164,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Consider inputContainer when initialize participant models [#1251](https://github.com/ie3-institute/simona/issues/1251) 
 - Change logging level for unsupported messages from ExtDataSupport [#1286](https://github.com/ie3-institute/simona/issues/1286)
 - Converting `WeatherService` to pekko typed [#1216](https://github.com/ie3-institute/simona/issues/1216)
+- Converting `PrimaryServiceWorker` to pekko typed [#1229](https://github.com/ie3-institute/simona/issues/1229)
+- Converting `PrimaryServiceProxy` to pekko typed [#1230](https://github.com/ie3-institute/simona/issues/1230)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)

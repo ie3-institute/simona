@@ -121,7 +121,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
@@ -174,7 +174,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
@@ -242,7 +242,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
@@ -309,7 +309,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
@@ -391,7 +391,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
@@ -458,7 +458,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
@@ -531,7 +531,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
@@ -611,7 +611,7 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )

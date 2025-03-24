@@ -18,6 +18,7 @@ import edu.ie3.simona.event.listener.{
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
@@ -133,7 +134,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   context: ActorContext[_],
                   scheduler: ActorRef[SchedulerMessage],
                   extSimSetupData: ExtSimSetupData,
-              ): ClassicRef = {
+              ): ActorRef[ServiceMessage] = {
                 val throwingActor = context
                   .spawn[Any](
                     throwOnMessage,
@@ -141,7 +142,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   )
                 // Send ref to the outside to make it accessible
                 receiveThrowingActor.ref ! throwingActor
-                throwingActor.toClassic
+                throwingActor
               }
 
             }
@@ -199,7 +200,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   context: ActorContext[_],
                   scheduler: ActorRef[SchedulerMessage],
                   extSimSetupData: ExtSimSetupData,
-              ): ClassicRef = {
+              ): ActorRef[ServiceMessage] = {
                 val stoppingActor =
                   context.spawn[Any](
                     stopOnMessage,
@@ -430,8 +431,8 @@ object SimonaSimSpec {
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
         extSimSetupData: ExtSimSetupData,
-    ): ClassicRef =
-      context.spawn(empty, uniqueName("primaryService")).toClassic
+    ): ActorRef[ServiceMessage] =
+      context.spawn(empty, uniqueName("primaryService"))
 
     override def weatherService(
         context: ActorContext[_],
