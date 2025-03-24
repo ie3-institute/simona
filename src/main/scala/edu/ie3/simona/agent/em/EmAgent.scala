@@ -24,7 +24,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -33,6 +33,7 @@ import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.time.ZonedDateTime
+import scala.util.{Failure, Try}
 
 /** Energy management agent that receives flex options from and issues control
   * messages to connected agents
@@ -223,8 +224,11 @@ object EmAgent {
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
   ): Behavior[Request] = Behaviors.receiveMessagePartial {
-    case flexOptions: ProvideFlexOptions =>
-      val updatedCore = flexOptionsCore.handleFlexOptions(flexOptions)
+    case provideFlex: ProvideFlexOptions =>
+      val updatedCore = flexOptionsCore.handleFlexOptions(
+        provideFlex.modelUuid,
+        provideFlex.flexOptions,
+      )
 
       if (updatedCore.isComplete) {
 
@@ -252,19 +256,21 @@ object EmAgent {
         emData.parentData match {
           case Right(flexStateData) =>
             // provide aggregate flex options to parent
-            val flexMessage = ProvideMinMaxFlexOptions(
-              modelShell.uuid,
+            val flexOptions = MinMaxFlexOptions(
               emRef,
               emMin,
               emMax,
             )
 
-            flexStateData.emAgent ! flexMessage
+            flexStateData.emAgent ! ProvideFlexOptions(
+              modelShell.uuid,
+              flexOptions,
+            )
 
             val updatedEmData = emData.copy(
               parentData = Right(
                 flexStateData.copy(
-                  lastFlexOptions = Some(flexMessage)
+                  lastFlexOptions = Some(flexOptions)
                 )
               )
             )
@@ -327,10 +333,17 @@ object EmAgent {
         )
       )
 
-      val setPointActivePower = EmTools.determineFlexPower(
-        ownFlexOptions,
-        flexCtrl,
-      )
+      val setPointActivePower =
+        Try(EmTools.determineFlexPower(ownFlexOptions, flexCtrl))
+          .recoverWith(exception =>
+            Failure(
+              new CriticalFailureException(
+                s"Determining flex power failed for EmAgent ${modelShell.uuid}",
+                exception,
+              )
+            )
+          )
+          .get
 
       // flex options calculated by connected agents
       val receivedFlexOptions = flexOptionsCore.getFlexOptions

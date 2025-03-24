@@ -14,7 +14,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,
 }
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.WattsPerKelvin
@@ -707,13 +707,11 @@ class HpModelSpec
 
             // Invoke determineFlexOptions and match the results
             hp.determineFlexOptions(relevantData, lastState) match {
-              case ProvideMinMaxFlexOptions(
-                    modelUuid,
+              case MinMaxFlexOptions(
                     referencePower,
                     minPower,
                     maxPower,
                   ) =>
-                modelUuid shouldBe hp.uuid
                 referencePower should approximate(
                   Kilowatts(expectedReferencePower)
                 )

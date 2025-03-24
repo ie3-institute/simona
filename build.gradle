@@ -194,8 +194,7 @@ tasks.withType(ScalaCompile).configureEach {
   scalaCompileOptions.additionalParameters = [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
     "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/src/",
-    "-P:scapegoat:disabledInspections:VariableShadowing",
-    "-P:scapegoat:ignoredFiles:.*/SimonaConfig.scala" // see scapegoat-sbt page for this param
+    "-P:scapegoat:disabledInspections:TryGet"
   ]
   scalaCompileOptions.forkOptions.jvmArgs = [
     '-Xss2m',
@@ -208,7 +207,7 @@ compileTestScala {
   scalaCompileOptions.additionalParameters = [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
     "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/",
-    "-P:scapegoat:disabledInspections:VariableShadowing"
+    "-P:scapegoat:disabledInspections:TryGet"
   ]
 }
 
