@@ -4,6 +4,7 @@
 
 This page documents the functionality of the thermal house available in SIMONA.
 
+
 ## Behaviour
 
 This house model represents the thermal behaviour of a building. It represents a simple shoebox with thermal capacity and transmission losses.
@@ -21,7 +22,9 @@ As the storage is initialised as empty, the heat source will start charging the 
 
 ### Behaviour under EM control
 
-Currently, not fully supported. Will be fixed by [PR #1159](https://github.com/ie3-institute/simona/pull/1159)
+When {ref}`em` is applied to the heat source of this building, the thermal behaviour should be basically the same as without EM control, so internal temperature of the house should remain between the target temperature and the lower temperature limit. 
+
+However, for flexibility usage, the energy management system can turn on the heat source whenever the thermal house has additional demand. Same for the thermal storage. When the heat source is EM controlled, the thermal storage will only be recharged when the flexibility strategy allows. E.g. when there is surplus energy from PV plant.
 
 ## Attributes, Units and Remarks
 
