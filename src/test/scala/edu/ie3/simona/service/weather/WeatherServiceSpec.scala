@@ -36,7 +36,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
 import squants.motion.MetersPerSecond
@@ -126,7 +125,7 @@ class WeatherServiceSpec
         invalidCoordinate.longitude,
       )
 
-      agent.expectMessage(RegistrationFailedMessage(weatherService.toClassic))
+      agent.expectMessage(RegistrationFailedMessage(weatherService))
     }
 
     "announce, that a valid coordinate is registered" in {
@@ -138,7 +137,7 @@ class WeatherServiceSpec
       )
 
       agent.expectMessage(
-        RegistrationSuccessfulMessage(weatherService.toClassic, 0L)
+        RegistrationSuccessfulMessage(weatherService, 0L)
       )
     }
 
@@ -163,7 +162,7 @@ class WeatherServiceSpec
       agent.expectMessage(
         DataProvision(
           0,
-          weatherService.toClassic,
+          weatherService,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
@@ -186,7 +185,7 @@ class WeatherServiceSpec
       agent.expectMessage(
         DataProvision(
           3600,
-          weatherService.toClassic,
+          weatherService,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),

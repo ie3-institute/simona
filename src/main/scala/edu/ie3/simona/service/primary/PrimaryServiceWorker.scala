@@ -37,12 +37,11 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData,
 }
-import edu.ie3.simona.service.TypedSimonaService
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.slf4j.Logger
 
 import java.nio.file.Path
@@ -53,7 +52,7 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
-object PrimaryServiceWorker extends TypedSimonaService[ServiceMessage] {
+object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
 
   override type S = PrimaryServiceInitializedStateData[Value]
 
@@ -294,7 +293,7 @@ object PrimaryServiceWorker extends TypedSimonaService[ServiceMessage] {
     registrationMessage match {
       case WorkerRegistrationMessage(agentToBeRegistered) =>
         agentToBeRegistered ! PrimaryRegistrationSuccessfulMessage(
-          ctx.self.toClassic,
+          ctx.self,
           serviceStateData.maybeNextActivationTick.getOrElse(
             throw new CriticalFailureException(
               s"There is no primary data for $agentToBeRegistered"
@@ -442,7 +441,7 @@ object PrimaryServiceWorker extends TypedSimonaService[ServiceMessage] {
       )
 
     val provisionMessage =
-      DataProvision(tick, self.toClassic, primaryData, maybeNextTick)
+      DataProvision(tick, self, primaryData, maybeNextTick)
     serviceBaseStateData.subscribers.foreach(_ ! provisionMessage)
     (updatedStateData, maybeNextTick)
   }
