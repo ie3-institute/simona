@@ -21,7 +21,6 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   PrimaryRegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -32,18 +31,23 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   WorkerRegistrationMessage,
   WrappedActivation,
 }
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.SqlInitPrimaryServiceStateData
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
-import edu.ie3.simona.test.common.{AgentTypedSpec, TestSpawnerTyped}
 import edu.ie3.simona.test.helper.TestContainerHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Kilovars
-import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.prop.TableDrivenPropertyChecks
+import org.scalatest.wordspec.AnyWordSpecLike
 import org.testcontainers.utility.DockerImageName
 import squants.energy.Kilowatts
 
@@ -51,7 +55,8 @@ import java.util.UUID
 import scala.language.implicitConversions
 
 class PrimaryServiceWorkerSqlIT
-    extends AgentTypedSpec
+    extends ScalaTestWithActorTestKit
+    with AnyWordSpecLike
     with ForAllTestContainer
     with BeforeAndAfterAll
     with TableDrivenPropertyChecks

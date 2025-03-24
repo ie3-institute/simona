@@ -381,30 +381,33 @@ object PrimaryServiceProxy {
   ): Behavior[ServiceMessage] = Behaviors.receive {
     case (
           ctx,
-          PrimaryServiceRegistrationMessage(agentToBeRegistered, modelUuid),
+          PrimaryServiceRegistrationMessage(requestingActor, modelUuid),
         ) =>
       /* Try to register for this model */
       stateData.modelToTimeSeries.get(modelUuid) match {
         case Some(timeSeriesUuid) =>
           /* There is a time series apparent for this model, try to get a worker for it */
-          handleCoveredModel(
+          val updatedStateData = handleCoveredModel(
             modelUuid,
             timeSeriesUuid,
             stateData,
-            agentToBeRegistered,
+            requestingActor,
           )(constantData, ctx)
+
+          onMessage(updatedStateData)
+
         case None =>
           ctx.log.debug(
             s"There is no time series apparent for the model with uuid '{}'.",
             modelUuid,
           )
-          agentToBeRegistered ! RegistrationFailedMessage(ctx.self.toClassic)
-      }
+          requestingActor ! RegistrationFailedMessage(ctx.self.toClassic)
 
-      Behaviors.same
-    case (ctx, x) =>
+          Behaviors.same
+      }
+    case (ctx, unknown) =>
       ctx.log.error(
-        s"Received message '$x', but I'm only able to handle registration requests."
+        s"Received message '$unknown', but I'm only able to handle registration requests."
       )
       Behaviors.same
   }
@@ -424,17 +427,18 @@ object PrimaryServiceProxy {
       modelUuid: UUID,
       timeSeriesUuid: UUID,
       stateData: PrimaryServiceStateData,
-      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
+      requestingActor: ActorRef[ParticipantAgent.Request],
   )(implicit
       constantData: ServiceConstantStateData,
       ctx: ActorContext[ServiceMessage],
-  ): Unit = {
+  ): PrimaryServiceStateData = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     timeSeriesToSourceRef.get(timeSeriesUuid) match {
       case Some(SourceRef(_, Some(worker))) =>
         /* There is yet a worker apparent. Register the requesting actor. The worker will reply to the original
          * requesting actor. */
-        worker ! WorkerRegistrationMessage(agentToBeRegistered)
+        worker ! WorkerRegistrationMessage(requestingActor)
+        stateData
       case Some(SourceRef(metaInformation, None)) =>
         /* There is NO worker apparent, yet. Spin one off. */
         initializeWorker(
@@ -444,19 +448,18 @@ object PrimaryServiceProxy {
         ) match {
           case Success(workerRef) =>
             /* Forward the registration request. The worker will reply about successful registration or not. */
-            workerRef ! WorkerRegistrationMessage(agentToBeRegistered)
+            workerRef ! WorkerRegistrationMessage(requestingActor)
 
             /* Register the new worker within the state data and change the context */
-            onMessage(
-              updateStateData(stateData, timeSeriesUuid, workerRef)
-            )
+            updateStateData(stateData, timeSeriesUuid, workerRef)
           case Failure(exception) =>
             ctx.log.warn(
               s"A failure occurred during spin-off of a primary source for time series '$timeSeriesUuid'. " +
                 s"Will inform the requesting actor, that registration is not possible.",
               exception,
             )
-            agentToBeRegistered ! RegistrationFailedMessage(ctx.self.toClassic)
+            requestingActor ! RegistrationFailedMessage(ctx.self.toClassic)
+            stateData
         }
 
       case None =>
@@ -464,7 +467,8 @@ object PrimaryServiceProxy {
           s"There is no source information for time series '$timeSeriesUuid' (requested for model " +
             s"'$modelUuid'), although the mapping contains information about it."
         )
-        agentToBeRegistered ! RegistrationFailedMessage(ctx.self.toClassic)
+        requestingActor ! RegistrationFailedMessage(ctx.self.toClassic)
+        stateData
     }
   }
 
@@ -518,7 +522,7 @@ object PrimaryServiceProxy {
     * come
     *
     * @param timeSeriesUuid
-    *   uuid of the time series the actor processes
+    *   Uuid of the time series the actor processes
     * @return
     *   The [[ActorRef]] to the spun off actor
     */

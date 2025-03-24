@@ -96,7 +96,7 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
     * @param fileNamingStrategy
     *   [[FileNamingStrategy]], the input files follow
     * @param timePattern
-    *   the time format pattern of the time series
+    *   The time format pattern of the time series
     */
   final case class CsvInitPrimaryServiceStateData[V <: Value](
       override val timeSeriesUuid: UUID,
@@ -132,13 +132,13 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
   /** Class carrying the state of a fully initialized [[PrimaryServiceWorker]]
     *
     * @param maybeNextActivationTick
-    *   the next tick, when this actor is triggered by scheduler
+    *   The next tick, when this actor is triggered by scheduler
     * @param activationTicks
     *   Linked collection of ticks, in which data is available
     * @param startDateTime
     *   Simulation time of the first instant in simulation
     * @param valueClass
-    *   the class
+    *   The class
     * @param source
     *   Implementation of [[TimeSeriesSource]] to use for actual acquisition of
     *   data
@@ -162,9 +162,9 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
     * sent to the scheduler
     *
     * @param initServiceData
-    *   the data that should be used for initialization
+    *   The data that should be used for initialization
     * @return
-    *   the state data of this service actor and optional tick that should be
+    *   The state data of this service actor and optional tick that should be
     *   included in the completion message
     */
   override def init(
@@ -315,11 +315,11 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
   /** Send out the information to all registered recipients
     *
     * @param tick
-    *   current tick data should be announced for
+    *   Current tick data should be announced for
     * @param serviceBaseStateData
-    *   the current state data of this service
+    *   The current state data of this service
     * @return
-    *   the service stata data that should be used in the next state (normally
+    *   The service stata data that should be used in the next state (normally
     *   with updated values) together with the completion message that is sent
     *   in response to the trigger that is sent to start the initialization
     *   process
@@ -387,7 +387,7 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
     * @param serviceBaseStateData
     *   State data of the service
     * @return
-    *   updated state data as well as an optional sequence of triggers to be
+    *   Updated state data as well as an optional sequence of triggers to be
     *   sent to scheduler
     */
   private[service] def processDataAndAnnounce[V <: Value](
@@ -422,7 +422,7 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
     * @param serviceBaseStateData
     *   State data of the service
     * @return
-    *   updated state data as well as an optional sequence of triggers to be
+    *   Updated state data as well as an optional sequence of triggers to be
     *   sent to scheduler
     */
   private[service] def announcePrimaryData[V <: Value](
