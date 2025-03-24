@@ -145,8 +145,8 @@ abstract class TypedSimonaService[
       buffer.stash(msg)
       Behaviors.same
 
-    case (_, msg: ServiceResponseMessage) =>
-      handleServiceResponse(msg)
+    case (ctx, msg: ServiceResponseMessage) =>
+      handleServiceResponse(msg)(ctx)
       Behaviors.same
 
     // unhandled message
@@ -240,7 +240,7 @@ abstract class TypedSimonaService[
 
   protected def handleServiceResponse(
       serviceResponse: ServiceResponseMessage
-  ): Unit = {}
+  )(implicit ctx: ActorContext[T]): Unit = {}
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
