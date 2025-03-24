@@ -57,7 +57,6 @@ import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
-import scala.concurrent.duration.{FiniteDuration, SECONDS}
 import scala.language.postfixOps
 
 /** Test to ensure the functions that a thermal grid and its connected assets is
@@ -193,7 +192,7 @@ class ThermalGridIT
         )
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 0.toDateTime
@@ -247,7 +246,7 @@ class ThermalGridIT
 
       hpAgentActivation ! Activation(3416)
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 3416.toDateTime
@@ -318,7 +317,7 @@ class ThermalGridIT
         )
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 3600.toDateTime
@@ -374,7 +373,7 @@ class ThermalGridIT
 
       hpAgentActivation ! Activation(4417)
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 4417.toDateTime
@@ -443,7 +442,7 @@ class ThermalGridIT
         )
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 21600.toDateTime
@@ -498,7 +497,7 @@ class ThermalGridIT
 
       hpAgentActivation ! Activation(23103)
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 23103.toDateTime
@@ -568,7 +567,7 @@ class ThermalGridIT
         )
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 25000.toDateTime
@@ -625,7 +624,7 @@ class ThermalGridIT
 
       hpAgentActivation ! Activation(26702)
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 26702.toDateTime
@@ -694,7 +693,7 @@ class ThermalGridIT
         )
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 28000.toDateTime
@@ -745,7 +744,7 @@ class ThermalGridIT
 
       hpAgentActivation ! Activation(31939)
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 31939.toDateTime
@@ -798,7 +797,7 @@ class ThermalGridIT
 
       hpAgentActivation ! Activation(35355)
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 35355.toDateTime
@@ -851,7 +850,7 @@ class ThermalGridIT
 
       hpAgentActivation ! Activation(35894)
 
-      resultListener.expectMessageType[ParticipantResultEvent](timeout3) match {
+      resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 35894.toDateTime
