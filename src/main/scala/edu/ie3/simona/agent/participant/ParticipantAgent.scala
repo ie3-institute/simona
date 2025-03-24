@@ -61,6 +61,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Power}
@@ -131,7 +132,7 @@ abstract class ParticipantAgent[
        * that will confirm, otherwise, a failed registration is announced. */
       holdTick(INIT_SIM_TICK)
       initStateData.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        context.self,
+        context.self.toTyped,
         initStateData.inputModel.electricalInputModel.getUuid,
       )
       goto(HandleInformation) using ParticipantInitializingStateData(

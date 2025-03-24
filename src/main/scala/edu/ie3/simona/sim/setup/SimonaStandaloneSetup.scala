@@ -42,7 +42,6 @@ import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
   TypedActorContextOps,
   TypedActorRefOps,
 }
@@ -157,23 +156,21 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
-  ): ClassicRef = {
+  ): ActorRef[ServiceMessage] = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
-    val primaryServiceProxy = context.toClassic.simonaActorOf(
-      PrimaryServiceProxy.props(
-        scheduler.toClassic,
+    val primaryServiceProxy = context.spawn(
+      PrimaryServiceProxy(
+        scheduler,
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
           simulationStart,
         ),
-        simulationStart,
       ),
       "primaryServiceProxyAgent",
     )
 
-    scheduler ! ScheduleActivation(primaryServiceProxy.toTyped, INIT_SIM_TICK)
     primaryServiceProxy
   }
 
