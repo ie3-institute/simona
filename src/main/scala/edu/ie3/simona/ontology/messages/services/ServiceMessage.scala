@@ -21,7 +21,10 @@ import org.apache.pekko.actor.typed.ActorRef
 /** Collections of all messages, that are send to and from the different
   * services
   */
-sealed trait ServiceMessage extends EvInternal with LoadProfileMessageInternal with WeatherInternal
+sealed trait ServiceMessage
+    extends EvInternal
+    with LoadProfileMessageInternal
+    with WeatherInternal
 
 object ServiceMessage {
 

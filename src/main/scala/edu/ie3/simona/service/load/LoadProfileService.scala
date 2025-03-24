@@ -7,6 +7,7 @@
 package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.models.profile.LoadProfile
+import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
@@ -30,13 +31,12 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData,
 }
-import edu.ie3.simona.service.TypedSimonaService
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.simona.util.{SimonaConstants, TickUtil}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.time.ZonedDateTime
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -46,7 +46,7 @@ import scala.util.{Failure, Success, Try}
   * load profile information and provide load profile time series information
   * when requested
   */
-object LoadProfileService extends TypedSimonaService[LoadProfileMessage] {
+object LoadProfileService extends SimonaService[LoadProfileMessage] {
 
   override type S = LoadProfileInitializedStateData
 
@@ -62,7 +62,9 @@ object LoadProfileService extends TypedSimonaService[LoadProfileMessage] {
     */
   final case class LoadProfileInitializedStateData(
       loadProfileStore: LoadProfileStore,
-      profileToRefs: Map[LoadProfile, Vector[ClassicRef]] = Map.empty,
+      profileToRefs: Map[LoadProfile, Vector[
+        ActorRef[ParticipantAgent.Request]
+      ]] = Map.empty,
       override val maybeNextActivationTick: Option[Long],
       override val activationTicks: SortedDistinctSeq[Long],
       simulationStartTime: ZonedDateTime,
@@ -188,7 +190,7 @@ object LoadProfileService extends TypedSimonaService[LoadProfileMessage] {
     *   information if the registration has been carried out successfully
     */
   private def handleRegistrationRequest(
-      agentToBeRegistered: ClassicRef,
+      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
       loadProfile: LoadProfile,
   )(implicit
       serviceStateData: LoadProfileInitializedStateData,
@@ -202,7 +204,7 @@ object LoadProfileService extends TypedSimonaService[LoadProfileMessage] {
         if (serviceStateData.loadProfileStore.contains(loadProfile)) {
           // we can provide data for the agent
           agentToBeRegistered ! RegistrationSuccessfulMessage(
-            ctx.self.toClassic,
+            ctx.self,
             serviceStateData.maybeNextActivationTick.getOrElse(
               throw new CriticalFailureException(
                 "No first data tick for weather service"
@@ -221,14 +223,14 @@ object LoadProfileService extends TypedSimonaService[LoadProfileMessage] {
             s"Unable to obtain necessary information to register for load profile '${loadProfile.getKey}'."
           )
 
-          agentToBeRegistered ! RegistrationFailedMessage(ctx.self.toClassic)
+          agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
           serviceStateData
         }
 
       case Some(actorRefs) if !actorRefs.contains(agentToBeRegistered) =>
         // load profile is already known (= we have data for it), but this actor is not registered yet
         agentToBeRegistered ! RegistrationSuccessfulMessage(
-          ctx.self.toClassic,
+          ctx.self,
           serviceStateData.maybeNextActivationTick.getOrElse(
             throw new CriticalFailureException(
               "No first data tick for weather service"
@@ -252,7 +254,7 @@ object LoadProfileService extends TypedSimonaService[LoadProfileMessage] {
       case _ =>
         // actor is not registered and we don't have data for it
         // inform the agentToBeRegistered that the registration failed as we don't have data for it
-        agentToBeRegistered ! RegistrationFailedMessage(ctx.self.toClassic)
+        agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
         serviceStateData
     }
   }
@@ -292,7 +294,7 @@ object LoadProfileService extends TypedSimonaService[LoadProfileMessage] {
           actorRefs.foreach(recipient =>
             recipient ! DataProvision(
               tick,
-              ctx.self.toClassic,
+              ctx.self,
               LoadData(averagePower),
               maybeNextTick,
             )

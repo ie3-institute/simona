@@ -344,7 +344,7 @@ class GridAgentBuilder(
       Seq(
         Some(ServiceType.WeatherService -> environmentRefs.weather),
         Some(
-          ServiceType.LoadProfileService -> environmentRefs.loadProfiles.toClassic
+          ServiceType.LoadProfileService -> environmentRefs.loadProfiles
         ),
         environmentRefs.evDataService.map(ref =>
           ServiceType.EvMovementService -> ref

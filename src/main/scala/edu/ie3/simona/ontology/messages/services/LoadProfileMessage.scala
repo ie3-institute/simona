@@ -8,8 +8,9 @@ package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
-import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 
 sealed trait LoadProfileMessage
@@ -31,7 +32,7 @@ object LoadProfileMessage {
     *   [[edu.ie3.datamodel.models.timeseries.repetitive.LoadProfileTimeSeries]].
     */
   final case class RegisterForLoadProfileService(
-      requestingActor: ActorRef,
+      requestingActor: ActorRef[ParticipantAgent.Request],
       loadProfile: LoadProfile,
   ) extends LoadProfileMessage
       with ServiceRegistrationMessage
