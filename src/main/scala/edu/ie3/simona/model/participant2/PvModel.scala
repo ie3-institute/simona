@@ -23,7 +23,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
 }
-import edu.ie3.simona.model.participant2.PvModel.PvState
+import edu.ie3.simona.model.participant2.PvModel._
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -181,6 +181,127 @@ class PvModel private (
   override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
     ActivePowerOperatingPoint.zero
 
+  private def calcOutput(
+      gTotal: Irradiance,
+      time: ZonedDateTime,
+      irradianceSTC: Irradiance,
+  ): Power = {
+    val genCorr = generatorCorrectionFactor(time, gammaE)
+    val tempCorr = temperatureCorrectionFactor(time)
+    /* The actual yield of this sum of available panels. As the solar irradiance summed up over the total panel surface
+     * area. The yield also takes care of generator and temperature correction factors as well as the converter's
+     * efficiency */
+    val actYield =
+      gTotal * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
+
+    /* Calculate the foreseen active power output without boundary condition adaptions */
+    val proposal =
+      sRated.toActivePower(cosPhiRated) * -1 * (actYield / irradianceSTC)
+
+    /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
+    if (proposal < pMax)
+      logger.warn(
+        "The fed in active power is higher than the estimated maximum active power of this plant ({} < {}). " +
+          "Did you provide wrong weather input data?",
+        proposal,
+        pMax,
+      )
+
+    /* If the output is marginally small, suppress the output, as we are likely to be in night and then only produce incorrect output */
+    if (proposal.compareTo(activationThreshold) > 0)
+      DefaultQuantities.zeroMW
+    else proposal
+  }
+
+  override def createResults(
+      state: PvState,
+      lastOperatingPoint: Option[ActivePowerOperatingPoint],
+      currentOperatingPoint: ActivePowerOperatingPoint,
+      complexPower: ComplexPower,
+      dateTime: ZonedDateTime,
+  ): Iterable[SystemParticipantResult] =
+    Iterable(
+      new PvResult(
+        dateTime,
+        uuid,
+        complexPower.p.toMegawatts.asMegaWatt,
+        complexPower.q.toMegavars.asMegaVar,
+      )
+    )
+
+  override def createPrimaryDataResult(
+      data: PrimaryDataWithComplexPower[_],
+      dateTime: ZonedDateTime,
+  ): SystemParticipantResult =
+    new PvResult(
+      dateTime,
+      uuid,
+      data.p.toMegawatts.asMegaWatt,
+      data.q.toMegavars.asMegaVar,
+    )
+
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
+    Iterable(ServiceType.WeatherService)
+
+}
+
+object PvModel {
+
+  /** Holds all relevant data for a pv model calculation.
+    *
+    * @param tick
+    *   The current tick.
+    * @param dateTime
+    *   The date and time of the <b>ending</b> of time frame to calculate.
+    * @param diffIrradiance
+    *   The diffuse solar irradiance on a horizontal surface.
+    * @param dirIrradiance
+    *   The direct solar irradiance on a horizontal surface.
+    */
+  final case class PvState(
+      override val tick: Long,
+      dateTime: ZonedDateTime,
+      diffIrradiance: Irradiance,
+      dirIrradiance: Irradiance,
+  ) extends ModelState
+
+  def apply(
+      input: PvInput
+  ): PvModel =
+    new PvModel(
+      input.getUuid,
+      input.getId,
+      Kilovoltamperes(
+        input.getsRated
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
+          .getValue
+          .doubleValue
+      ),
+      input.getCosPhiRated,
+      QControl(input.getqCharacteristics),
+      Degrees(input.getNode.getGeoPosition.getY),
+      Degrees(input.getNode.getGeoPosition.getX),
+      input.getAlbedo,
+      Each(
+        input.getEtaConv
+          .to(PowerSystemUnits.PU)
+          .getValue
+          .doubleValue
+      ),
+      Radians(
+        input.getAzimuth
+          .to(RADIAN)
+          .getValue
+          .doubleValue
+      ),
+      Radians(
+        input.getElevationAngle
+          .to(RADIAN)
+          .getValue
+          .doubleValue
+      ),
+    )
+
   /** Calculates the position of the earth in relation to the sun (day angle)
     * for the provided time.
     *
@@ -275,8 +396,7 @@ class PvModel private (
 
   /** Calculates the sunrise hour angle omegaSR given omegaSS.
     */
-  private val calcSunriseAngleOmegaSR =
-    (omegaSS: Angle) => omegaSS * -1
+  private def calcSunriseAngleOmegaSR(omegaSS: Angle) = omegaSS * -1
 
   /** Calculates the solar altitude angle alphaS which represents the angle
     * between the horizontal and the line to the sun, that is, the complement of
@@ -715,126 +835,4 @@ class PvModel private (
 
     tempCorr(time.getMonth.getValue - 1)
   }
-
-  private def calcOutput(
-      gTotal: Irradiance,
-      time: ZonedDateTime,
-      irradianceSTC: Irradiance,
-  ): Power = {
-    val genCorr = generatorCorrectionFactor(time, gammaE)
-    val tempCorr = temperatureCorrectionFactor(time)
-    /* The actual yield of this sum of available panels. As the solar irradiance summed up over the total panel surface
-     * area. The yield also takes care of generator and temperature correction factors as well as the converter's
-     * efficiency */
-    val actYield =
-      gTotal * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
-
-    /* Calculate the foreseen active power output without boundary condition adaptions */
-    val proposal =
-      sRated.toActivePower(cosPhiRated) * -1 * (actYield / irradianceSTC)
-
-    /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
-    if (proposal < pMax)
-      logger.warn(
-        "The fed in active power is higher than the estimated maximum active power of this plant ({} < {}). " +
-          "Did you provide wrong weather input data?",
-        proposal,
-        pMax,
-      )
-
-    /* If the output is marginally small, suppress the output, as we are likely to be in night and then only produce incorrect output */
-    if (proposal.compareTo(activationThreshold) > 0)
-      DefaultQuantities.zeroMW
-    else proposal
-  }
-
-  override def createResults(
-      state: PvState,
-      lastOperatingPoint: Option[ActivePowerOperatingPoint],
-      currentOperatingPoint: ActivePowerOperatingPoint,
-      complexPower: ComplexPower,
-      dateTime: ZonedDateTime,
-  ): Iterable[SystemParticipantResult] =
-    Iterable(
-      new PvResult(
-        dateTime,
-        uuid,
-        complexPower.p.toMegawatts.asMegaWatt,
-        complexPower.q.toMegavars.asMegaVar,
-      )
-    )
-
-  override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
-      dateTime: ZonedDateTime,
-  ): SystemParticipantResult =
-    new PvResult(
-      dateTime,
-      uuid,
-      data.p.toMegawatts.asMegaWatt,
-      data.q.toMegavars.asMegaVar,
-    )
-
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.WeatherService)
-
-}
-
-object PvModel {
-
-  /** Holds all relevant data for a pv model calculation.
-    *
-    * @param tick
-    *   The current tick.
-    * @param dateTime
-    *   The date and time of the <b>ending</b> of time frame to calculate.
-    * @param diffIrradiance
-    *   The diffuse solar irradiance on a horizontal surface.
-    * @param dirIrradiance
-    *   The direct solar irradiance on a horizontal surface.
-    */
-  final case class PvState(
-      override val tick: Long,
-      dateTime: ZonedDateTime,
-      diffIrradiance: Irradiance,
-      dirIrradiance: Irradiance,
-  ) extends ModelState
-
-  def apply(
-      input: PvInput
-  ): PvModel =
-    new PvModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
-      input.getCosPhiRated,
-      QControl(input.getqCharacteristics),
-      Degrees(input.getNode.getGeoPosition.getY),
-      Degrees(input.getNode.getGeoPosition.getX),
-      input.getAlbedo,
-      Each(
-        input.getEtaConv
-          .to(PowerSystemUnits.PU)
-          .getValue
-          .doubleValue
-      ),
-      Radians(
-        input.getAzimuth
-          .to(RADIAN)
-          .getValue
-          .doubleValue
-      ),
-      Radians(
-        input.getElevationAngle
-          .to(RADIAN)
-          .getValue
-          .doubleValue
-      ),
-    )
-
 }
