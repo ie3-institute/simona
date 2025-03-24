@@ -26,14 +26,7 @@ import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData,
 }
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
-  DataProvision,
-  GridSimulationFinished,
-  PrimaryRegistrationSuccessfulMessage,
-  RegistrationFailedMessage,
-  RegistrationResponseMessage,
-  RequestAssetPowerMessage,
-}
+import edu.ie3.simona.agent.participant2.ParticipantAgent._
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.{

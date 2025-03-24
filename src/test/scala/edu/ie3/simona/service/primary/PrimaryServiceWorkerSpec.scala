@@ -52,7 +52,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.Inside.inside
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike

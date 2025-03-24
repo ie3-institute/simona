@@ -13,7 +13,6 @@ import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 /** Case class that holds information regarding the external data connections as
@@ -71,9 +70,9 @@ final case class ExtSimSetupData(
       case (_: ExtEvDataConnection, ref: ActorRef[EvMessage]) => ref
     }
 
-  def emDataService: Option[ClassicRef] =
+  def emDataService: Option[ActorRef[ServiceMessage]] =
     extDataServices.collectFirst { case (_: ExtEmDataConnection, ref) =>
-      ref.toClassic
+      ref
     }
 
   def evDataConnection: Option[ExtEvDataConnection] =

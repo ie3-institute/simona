@@ -36,7 +36,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
 import squants.motion.MetersPerSecond

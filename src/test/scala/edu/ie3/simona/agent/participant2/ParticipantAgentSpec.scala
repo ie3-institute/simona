@@ -52,7 +52,6 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter._
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Each, Power}
 
@@ -449,7 +448,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           0,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(1)),
           Some(6 * 3600),
         )
@@ -476,7 +475,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           6 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(3)),
           Some(12 * 3600),
         )
@@ -536,7 +535,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           12 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(6)),
           Some(15 * 3600),
         )
@@ -567,7 +566,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! NoDataProvision(
           15 * 3600,
-          service.ref.toClassic,
+          service.ref,
           Some(18 * 3600),
         )
 
@@ -592,7 +591,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           18 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(9)),
           Some(24 * 3600),
         )
@@ -712,7 +711,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           0,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(1)),
           Some(6 * 3600),
         )
@@ -736,7 +735,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           6 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(3)),
           Some(12 * 3600),
         )
@@ -787,7 +786,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           12 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(6)),
           Some(18 * 3600),
         )
@@ -816,7 +815,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           18 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(3)),
           Some(24 * 3600),
         )
@@ -1345,7 +1344,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           0,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(1)),
           Some(6 * 3600),
         )
@@ -1401,7 +1400,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           6 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(1)),
           Some(12 * 3600),
         )
@@ -1490,7 +1489,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           12 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(2)),
           Some(18 * 3600),
         )
@@ -1550,7 +1549,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           18 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(5)),
           Some(24 * 3600),
         )
@@ -1725,7 +1724,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           0,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(1)),
           Some(6 * 3600),
         )
@@ -1778,7 +1777,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           6 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(3)),
           Some(12 * 3600),
         )
@@ -1858,7 +1857,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           12 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(6)),
           Some(18 * 3600),
         )
@@ -1915,7 +1914,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           18 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(3)),
           Some(24 * 3600),
         )
