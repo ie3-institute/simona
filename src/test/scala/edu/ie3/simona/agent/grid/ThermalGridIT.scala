@@ -145,7 +145,7 @@ class ThermalGridIT
 
       primaryServiceProxy.expectMessage(
         PrimaryServiceRegistrationMessage(
-          hpAgent.toClassic,
+          hpAgent,
           typicalHpInputModel.getUuid,
         )
       )
@@ -990,11 +990,11 @@ class ThermalGridIT
 
       primaryServiceProxy.receiveMessages(2) should contain allOf (
         PrimaryServiceRegistrationMessage(
-          hpAgent.toClassic,
+          hpAgent,
           typicalHpInputModel.getUuid,
         ),
         PrimaryServiceRegistrationMessage(
-          pvAgent.toClassic,
+          pvAgent,
           pvInput.getUuid,
         )
       )
@@ -2423,7 +2423,7 @@ class ThermalGridIT
             }
         }
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(65582)))
+      scheduler.expectMessage(Completion(emAgentActivation, Some(65579)))
 
     }
   }
