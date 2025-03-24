@@ -175,7 +175,7 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       deathProbe.expectTerminated(hpAgent)
@@ -269,7 +269,7 @@ class HpAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* Expect a registration message */
@@ -334,7 +334,7 @@ class HpAgentModelCalculationSpec
       /* Reply, that registration was successful */
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, 4711L),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, 4711L),
       )
 
       /* Expect a completion message */
@@ -370,7 +370,7 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* Expect a registration message */
@@ -379,7 +379,7 @@ class HpAgentModelCalculationSpec
       )
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, 900L),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, 900L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -437,14 +437,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, 0L),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, 0L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -462,7 +462,7 @@ class HpAgentModelCalculationSpec
 
       weatherService.send(
         hpAgent,
-        DataProvision(0L, weatherService.ref, weatherData, Some(3600L)),
+        DataProvision(0L, weatherService.ref.toTyped, weatherData, Some(3600L)),
       )
 
       /* Find yourself in corresponding state and state data */
@@ -568,14 +568,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, 0L),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, 0L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -619,7 +619,7 @@ class HpAgentModelCalculationSpec
 
       weatherService.send(
         hpAgent,
-        DataProvision(0L, weatherService.ref, weatherData, Some(3600L)),
+        DataProvision(0L, weatherService.ref.toTyped, weatherData, Some(3600L)),
       )
 
       /* Expect confirmation */
@@ -697,14 +697,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, 3600L),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, 3600L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -732,7 +732,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         DataProvision(
           3600L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           weatherData,
           Some(7200L),
         ),
@@ -769,14 +769,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, 0L),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, 0L),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -789,7 +789,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         DataProvision(
           0L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),
@@ -807,7 +807,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         DataProvision(
           3600L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),
@@ -825,7 +825,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         DataProvision(
           7200L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),

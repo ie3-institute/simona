@@ -33,16 +33,11 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.{
-  ExtDataSupport,
-  ServiceStateData,
-  TypedSimonaService,
-}
+import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.slf4j.Logger
 
 import java.util.UUID
@@ -51,7 +46,7 @@ import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success, Try}
 
 object ExtEvDataService
-    extends TypedSimonaService[EvMessage]
+    extends SimonaService[EvMessage]
     with ExtDataSupport[EvMessage] {
 
   override type S = ExtEvStateData
@@ -310,7 +305,7 @@ object ExtEvDataService
 
       serviceStateData.uuidToActorRef.foreach { case (_, actor) =>
         actor ! RegistrationSuccessfulMessage(
-          ctx.self.toClassic,
+          ctx.self,
           nextTick,
         )
       }
@@ -322,7 +317,7 @@ object ExtEvDataService
 
         actor ! DataProvision(
           tick,
-          ctx.self.toClassic,
+          ctx.self,
           ArrivingEvs(evs.map(EvModelWrapper.apply)),
           maybeNextTick,
         )

@@ -34,7 +34,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.testcontainers.utility.DockerImageName
@@ -174,9 +173,7 @@ class PrimaryServiceProxySqlIT
 
       scheduler.expectNoMessage()
 
-      systemParticipantProbe.expectMessage(
-        RegistrationFailedMessage(proxyRef.toClassic)
-      )
+      systemParticipantProbe.expectMessage(RegistrationFailedMessage(proxyRef))
     }
   }
 }
