@@ -87,7 +87,10 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
 import org.apache.pekko.event.LoggingAdapter
@@ -437,12 +440,12 @@ protected trait ParticipantAgentFundamentals[
             firstDataTick,
           ) =>
         val remainingResponses =
-          stateData.pendingResponses.filter(_ != serviceRef)
+          stateData.pendingResponses.filter(_ != serviceRef.toClassic)
 
         /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
         val foreseenDataTicks =
           stateData.baseStateData.foreseenDataTicks +
-            (serviceRef -> Some(firstDataTick))
+            (serviceRef.toClassic -> Some(firstDataTick))
 
         if (remainingResponses.isEmpty) {
           /* All agent have responded. Determine the next to be used state data and reply completion to scheduler. */
@@ -501,11 +504,11 @@ protected trait ParticipantAgentFundamentals[
         optTick match {
           case Some(tick) if msg.tick == tick =>
             // expected data
-            if (actorRef == msg.serviceRef)
+            if (actorRef == msg.serviceRef.toClassic)
               Some(actorRef -> Some(msg.data))
             else
               Some(actorRef -> None)
-          case None if actorRef == msg.serviceRef =>
+          case None if actorRef == msg.serviceRef.toClassic =>
             // unexpected data
             Some(actorRef -> Some(msg.data))
           case _ =>
@@ -515,7 +518,7 @@ protected trait ParticipantAgentFundamentals[
 
     /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
     val foreseenDataTicks =
-      baseStateData.foreseenDataTicks + (msg.serviceRef -> msg.nextDataTick)
+      baseStateData.foreseenDataTicks + (msg.serviceRef.toClassic -> msg.nextDataTick)
 
     /* Go over to handling this information */
     val nextStateData = DataCollectionStateData(

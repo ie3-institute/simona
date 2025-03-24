@@ -572,9 +572,7 @@ class PrimaryServiceProxySpec
         maliciousStateData,
         agentToBeRegistered.ref,
       )
-      agentToBeRegistered.expectMessage(
-        RegistrationFailedMessage(service.ref.toClassic)
-      )
+      agentToBeRegistered.expectMessage(RegistrationFailedMessage(service.ref))
     }
 
     "forward the registration request, if worker is already known" in {
@@ -611,9 +609,7 @@ class PrimaryServiceProxySpec
         maliciousStateData,
         agentToBeRegistered.ref,
       )
-      agentToBeRegistered.expectMessage(
-        RegistrationFailedMessage(service.ref.toClassic)
-      )
+      agentToBeRegistered.expectMessage(RegistrationFailedMessage(service.ref))
     }
 
     "spin off a worker, if needed and forward the registration request" in {
@@ -716,9 +712,7 @@ class PrimaryServiceProxySpec
       )
 
       proxy ! request
-      agentToBeRegistered.expectMessage(
-        RegistrationFailedMessage(proxy.toClassic)
-      )
+      agentToBeRegistered.expectMessage(RegistrationFailedMessage(proxy))
     }
 
     "succeed, if model is handled" in {

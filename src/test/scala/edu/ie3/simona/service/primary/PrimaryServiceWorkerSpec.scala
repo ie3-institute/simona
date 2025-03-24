@@ -246,7 +246,7 @@ class PrimaryServiceWorkerSpec
       /* Wait for request approval */
       systemParticipant.expectMessage(
         PrimaryRegistrationSuccessfulMessage(
-          serviceRef.toClassic,
+          serviceRef,
           0L,
           ActivePowerExtra,
         )
@@ -314,7 +314,7 @@ class PrimaryServiceWorkerSpec
               actualNextDataTick,
             ) =>
           actualTick shouldBe 0L
-          actualServiceRef shouldBe serviceRef.toClassic
+          actualServiceRef shouldBe serviceRef
           actualData shouldBe primaryData
           actualNextDataTick shouldBe Some(900L)
       }
@@ -383,7 +383,7 @@ class PrimaryServiceWorkerSpec
       systemParticipant.expectMessage(
         DataProvision(
           tick,
-          serviceRef.toClassic,
+          serviceRef,
           ActivePower(Kilowatts(50.0)),
           Some(900L),
         )
@@ -415,7 +415,7 @@ class PrimaryServiceWorkerSpec
               nextDataTick,
             ) =>
           tick shouldBe 900L
-          actualServiceRef shouldBe serviceRef.toClassic
+          actualServiceRef shouldBe serviceRef
           inside(data) {
             case ActivePower(p) =>
               p should approximate(Kilowatts(1250.0))

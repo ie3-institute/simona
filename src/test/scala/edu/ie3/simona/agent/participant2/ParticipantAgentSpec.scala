@@ -41,6 +41,7 @@ import edu.ie3.simona.model.participant2.{
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -395,7 +396,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
-        val service = createTestProbe()
+        val service = createTestProbe[ServiceMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
@@ -418,7 +419,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
             ),
             ParticipantInputHandler(
-              Map(service.ref.toClassic -> 0)
+              Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
@@ -662,7 +663,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val scheduler = createTestProbe[SchedulerMessage]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
-        val service = createTestProbe()
+        val service = createTestProbe[ServiceMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
@@ -684,7 +685,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
             ),
             ParticipantInputHandler(
-              Map(service.ref.toClassic -> 0)
+              Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
@@ -1287,7 +1288,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
-        val service = createTestProbe()
+        val service = createTestProbe[ServiceMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
@@ -1315,7 +1316,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
             ),
             ParticipantInputHandler(
-              Map(service.ref.toClassic -> 0)
+              Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
@@ -1676,7 +1677,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val em = createTestProbe[FlexResponse]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
-        val service = createTestProbe()
+        val service = createTestProbe[ServiceMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
@@ -1698,7 +1699,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
             ),
             ParticipantInputHandler(
-              Map(service.ref.toClassic -> 0)
+              Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
               gridAgent.ref,

@@ -174,9 +174,7 @@ class PrimaryServiceProxySqlIT
 
       scheduler.expectNoMessage()
 
-      systemParticipantProbe.expectMessage(
-        RegistrationFailedMessage(proxyRef.toClassic)
-      )
+      systemParticipantProbe.expectMessage(RegistrationFailedMessage(proxyRef))
     }
   }
 }

@@ -38,7 +38,6 @@ import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.slf4j.Logger
 
 import java.util.UUID
@@ -306,7 +305,7 @@ object ExtEvDataService
 
       serviceStateData.uuidToActorRef.foreach { case (_, actor) =>
         actor ! RegistrationSuccessfulMessage(
-          ctx.self.toClassic,
+          ctx.self,
           nextTick,
         )
       }
@@ -318,7 +317,7 @@ object ExtEvDataService
 
         actor ! DataProvision(
           tick,
-          ctx.self.toClassic,
+          ctx.self,
           ArrivingEvs(evs.map(EvModelWrapper.apply)),
           maybeNextTick,
         )

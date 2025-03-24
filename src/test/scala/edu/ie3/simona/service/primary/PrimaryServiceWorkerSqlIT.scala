@@ -175,7 +175,7 @@ class PrimaryServiceWorkerSqlIT
 
           participant.expectMessage(
             PrimaryRegistrationSuccessfulMessage(
-              serviceRef.toClassic,
+              serviceRef,
               firstTick,
               primaryDataExtra,
             )

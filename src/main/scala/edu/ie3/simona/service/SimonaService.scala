@@ -40,7 +40,7 @@ import scala.util.{Failure, Success, Try}
   * information to registered participants
   *
   * @tparam T
-  *   the type of messages this service accepts
+  *   The type of messages this service accepts
   */
 abstract class SimonaService[
     T >: ServiceMessage
@@ -72,7 +72,7 @@ abstract class SimonaService[
     * the state "Uninitialized".
     *
     * @return
-    *   idleInternal methods for the uninitialized state
+    *   IdleInternal methods for the uninitialized state
     */
   def uninitialized(implicit
       constantData: ServiceConstantStateData,
@@ -154,19 +154,23 @@ abstract class SimonaService[
     * actual state data of this service to be ready to be used.
     *
     * @param stateData
-    *   the state data of this service
+    *   The state data of this service
     * @return
-    *   default idleInternal method when the service is initialized
+    *   Default idleInternal method when the service is initialized
     */
   final protected def idle(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): Behavior[T] = idleExternal
+  ): Behavior[T] = Behaviors.receive[T] { case (ctx, msg) =>
+    idleInternal
+      .orElse(idleExternal)
+      .applyOrElse((ctx, msg), unhandled.tupled)
+  }
 
-  private[service] def idleInternal(implicit
+  private def idleInternal(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): Behavior[T] = Behaviors.receive {
+  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = {
     // agent registration process
     case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
@@ -207,26 +211,27 @@ abstract class SimonaService[
       )
 
       idle(updatedStateData, constantData)
+  }
 
-    // unhandled message
-    case (ctx, x) =>
-      ctx.log.error("Unhandled message received:{}", x)
+  private def unhandled: (ActorContext[T], T) => Behavior[T] = {
+    case (ctx, msg) =>
+      ctx.log.error("Unhandled message received:{}", msg)
       Behaviors.unhandled
   }
 
   /** Internal api method that allows handling incoming messages from external
-    * simulations
+    * simulations.
     *
     * @param stateData
-    *   the state data of this service
+    *   The state data of this service.
     * @return
-    *   the [[idleExternal()]] behavior as default, to override extend
-    *   [[ExtDataSupport]]
+    *   Empty partial function as default. To override, extend
+    *   [[ExtDataSupport]].
     */
-  private[service] def idleExternal(implicit
+  protected def idleExternal(implicit
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): Behavior[T] = idleInternal
+  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = PartialFunction.empty
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
@@ -237,9 +242,9 @@ abstract class SimonaService[
     * initialization process
     *
     * @param initServiceData
-    *   the data that should be used for initialization
+    *   The data that should be used for initialization
     * @return
-    *   the state data of this service and optional tick that should be included
+    *   The state data of this service and optional tick that should be included
     *   in the completion message
     */
   def init(
@@ -249,11 +254,11 @@ abstract class SimonaService[
   /** Handle a request to register for information from this service
     *
     * @param registrationMessage
-    *   registration message to handle
+    *   Registration message to handle
     * @param serviceStateData
-    *   current state data of the actor
+    *   Current state data of the actor
     * @return
-    *   the service stata data that should be used in the next state (normally
+    *   The service stata data that should be used in the next state (normally
     *   with updated values)
     */
   protected def handleRegistrationRequest(
@@ -266,11 +271,11 @@ abstract class SimonaService[
   /** Send out the information to all registered recipients
     *
     * @param tick
-    *   current tick data should be announced for
+    *   Current tick data should be announced for
     * @param serviceStateData
-    *   the current state data of this service
+    *   The current state data of this service
     * @return
-    *   the service stata data that should be used in the next state (normally
+    *   The service stata data that should be used in the next state (normally
     *   with updated values) together with the completion message that is sent
     *   in response to the trigger that was sent to start this announcement
     */
