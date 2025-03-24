@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
@@ -16,7 +17,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
 }
-import edu.ie3.simona.config.RuntimeConfig.HpRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.{HpRuntimeConfig, PvRuntimeConfig}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent._
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -34,8 +35,6 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -49,6 +48,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
@@ -74,13 +74,6 @@ class ThermalGridIT
     with TestSpawnerTyped {
   protected implicit val temperatureTolerance: Double = 0.01
 
-  private val simulationParams = SimulationParameters(
-    expectedPowerRequestTick = Long.MaxValue,
-    requestVoltageDeviationTolerance = Each(1e-14d),
-    simulationStart = simulationStartDate,
-    simulationEnd = simulationEndDate,
-  )
-
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
     powerRequestReply = false,
@@ -100,6 +93,13 @@ class ThermalGridIT
         TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
       val simulationEndDate: ZonedDateTime =
         TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
+
+      val simulationParams = SimulationParameters(
+        expectedPowerRequestTick = Long.MaxValue,
+        requestVoltageDeviationTolerance = Each(1e-14d),
+        simulationStart = simulationStartDate,
+        simulationEnd = simulationEndDate,
+      )
 
       val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
       val resultListener = TestProbe[ResultEvent]("ResultListener")
