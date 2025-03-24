@@ -63,7 +63,6 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   SqlInitPrimaryServiceStateData,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
@@ -401,7 +400,7 @@ object PrimaryServiceProxy {
             s"There is no time series apparent for the model with uuid '{}'.",
             modelUuid,
           )
-          requestingActor ! RegistrationFailedMessage(ctx.self.toClassic)
+          requestingActor ! RegistrationFailedMessage(ctx.self)
 
           Behaviors.same
       }
@@ -458,7 +457,7 @@ object PrimaryServiceProxy {
                 s"Will inform the requesting actor, that registration is not possible.",
               exception,
             )
-            requestingActor ! RegistrationFailedMessage(ctx.self.toClassic)
+            requestingActor ! RegistrationFailedMessage(ctx.self)
             stateData
         }
 
@@ -467,7 +466,7 @@ object PrimaryServiceProxy {
           s"There is no source information for time series '$timeSeriesUuid' (requested for model " +
             s"'$modelUuid'), although the mapping contains information about it."
         )
-        requestingActor ! RegistrationFailedMessage(ctx.self.toClassic)
+        requestingActor ! RegistrationFailedMessage(ctx.self)
         stateData
     }
   }

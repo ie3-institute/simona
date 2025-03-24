@@ -41,6 +41,7 @@ import edu.ie3.simona.model.participant2.{
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -51,7 +52,6 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter._
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Each, Power}
 
@@ -395,7 +395,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
-        val service = createTestProbe()
+        val service = createTestProbe[ServiceMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
@@ -418,7 +418,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
             ),
             ParticipantInputHandler(
-              Map(service.ref.toClassic -> 0)
+              Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
@@ -448,7 +448,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           0,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(1)),
           Some(6 * 3600),
         )
@@ -475,7 +475,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           6 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(3)),
           Some(12 * 3600),
         )
@@ -535,7 +535,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           12 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(6)),
           Some(15 * 3600),
         )
@@ -566,7 +566,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! NoDataProvision(
           15 * 3600,
-          service.ref.toClassic,
+          service.ref,
           Some(18 * 3600),
         )
 
@@ -591,7 +591,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           18 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(9)),
           Some(24 * 3600),
         )
@@ -662,7 +662,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val scheduler = createTestProbe[SchedulerMessage]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
-        val service = createTestProbe()
+        val service = createTestProbe[ServiceMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
@@ -684,7 +684,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
             ),
             ParticipantInputHandler(
-              Map(service.ref.toClassic -> 0)
+              Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
@@ -711,7 +711,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           0,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(1)),
           Some(6 * 3600),
         )
@@ -735,7 +735,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           6 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(3)),
           Some(12 * 3600),
         )
@@ -786,7 +786,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           12 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(6)),
           Some(18 * 3600),
         )
@@ -815,7 +815,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           18 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(3)),
           Some(24 * 3600),
         )
@@ -1287,7 +1287,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
-        val service = createTestProbe()
+        val service = createTestProbe[ServiceMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
@@ -1315,7 +1315,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
             ),
             ParticipantInputHandler(
-              Map(service.ref.toClassic -> 0)
+              Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
@@ -1344,7 +1344,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           0,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(1)),
           Some(6 * 3600),
         )
@@ -1400,7 +1400,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           6 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(1)),
           Some(12 * 3600),
         )
@@ -1489,7 +1489,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           12 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(2)),
           Some(18 * 3600),
         )
@@ -1549,7 +1549,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           18 * 3600,
-          service.ref.toClassic,
+          service.ref,
           MockSecondaryData(Kilowatts(5)),
           Some(24 * 3600),
         )
@@ -1676,7 +1676,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val em = createTestProbe[FlexResponse]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
-        val service = createTestProbe()
+        val service = createTestProbe[ServiceMessage]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
@@ -1698,7 +1698,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
             ),
             ParticipantInputHandler(
-              Map(service.ref.toClassic -> 0)
+              Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
@@ -1724,7 +1724,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           0,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(1)),
           Some(6 * 3600),
         )
@@ -1777,7 +1777,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           6 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(3)),
           Some(12 * 3600),
         )
@@ -1857,7 +1857,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           12 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(6)),
           Some(18 * 3600),
         )
@@ -1914,7 +1914,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! DataProvision(
           18 * 3600,
-          service.ref.toClassic,
+          service.ref,
           ActivePower(Kilowatts(3)),
           Some(24 * 3600),
         )
