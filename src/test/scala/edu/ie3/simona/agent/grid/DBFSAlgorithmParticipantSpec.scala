@@ -129,7 +129,7 @@ class DBFSAlgorithmParticipantSpec
         .expectMessageType[PrimaryServiceRegistrationMessage]
       serviceRegistrationMsg.inputModelUuid shouldBe load1.getUuid
 
-      serviceRegistrationMsg.agentToBeRegistered ! RegistrationFailedMessage(
+      serviceRegistrationMsg.requestingActor ! RegistrationFailedMessage(
         primaryService.ref.toClassic
       )
 

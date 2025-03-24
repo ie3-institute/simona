@@ -57,13 +57,13 @@ object ServiceMessage {
 
   /** Message to register with a primary data service.
     *
-    * @param agentToBeRegistered
-    *   Reference to the agent, that should be registered
+    * @param requestingActor
+    *   The actor requesting registration for primary data
     * @param inputModelUuid
     *   Identifier of the input model
     */
   final case class PrimaryServiceRegistrationMessage(
-      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
+      requestingActor: ActorRef[ParticipantAgent.Request],
       inputModelUuid: UUID,
   ) extends ServiceRegistrationMessage
 
@@ -71,11 +71,11 @@ object ServiceMessage {
     * forward the original registration request. This message may only be used,
     * if no further information are needed.
     *
-    * @param agentToBeRegistered
-    *   Reference to the agent, that should be registered
+    * @param requestingActor
+    *   Reference to the requesting actor
     */
   final case class WorkerRegistrationMessage(
-      agentToBeRegistered: ActorRef[ParticipantAgent.Request]
+      requestingActor: ActorRef[ParticipantAgent.Request]
   ) extends ServiceRegistrationMessage
 
   /** Indicate the [[edu.ie3.simona.service.ev.ExtEvDataService]] that the

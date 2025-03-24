@@ -8,9 +8,11 @@ package edu.ie3.simona.service.primary
 
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.SValue
+import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.config.ConfigParams.{
   CouchbaseParams,
@@ -42,22 +44,29 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   SourceRef,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.CsvInitPrimaryServiceStateData
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
-import edu.ie3.simona.test.common.{AgentTypedSpec, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.testkit.typed.Effect.{
+  NoEffects,
+  Spawned,
+  SpawnedAnonymous,
+}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   BehaviorTestKit,
+  ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatest.Inside.inside
-import org.scalatest.PartialFunctionValues
 import org.scalatest.prop.TableDrivenPropertyChecks
+import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.{PartialFunctionValues, PrivateMethodTester}
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -68,7 +77,9 @@ import scala.language.implicitConversions
 import scala.util.{Failure, Success}
 
 class PrimaryServiceProxySpec
-    extends AgentTypedSpec
+    extends ScalaTestWithActorTestKit
+    with AnyWordSpecLike
+    with PrivateMethodTester
     with TableDrivenPropertyChecks
     with PartialFunctionValues
     with TimeSeriesTestData
@@ -362,6 +373,17 @@ class PrimaryServiceProxySpec
   }
 
   "Spinning off a worker" should {
+    "successfully instantiate an actor within the actor system" in {
+      val testKit = BehaviorTestKit(Behaviors.setup[AnyRef] { ctx =>
+        PrimaryServiceProxy.classToWorkerRef(workerId)(constantData, ctx)
+        Behaviors.stopped
+      })
+
+      testKit.expectEffectPF { case Spawned(_, actorName, _) =>
+        actorName shouldBe workerId
+      }
+    }
+
     "successfully build initialization data for the worker" in {
       val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
         metaPq,
@@ -615,6 +637,75 @@ class PrimaryServiceProxySpec
         WorkerRegistrationMessage(agentToBeRegistered.ref)
       )
     }
+
+    "spin off only one worker per time series" in {
+      val uuid1 = UUID.randomUUID()
+      val uuid3 = UUID.randomUUID()
+      val timeSeriesUUID1_3 = UUID.randomUUID()
+      val meta1_3 = new CsvIndividualTimeSeriesMetaInformation(
+        timeSeriesUUID1_3,
+        ColumnScheme.ACTIVE_POWER,
+        Path.of(""),
+      )
+
+      val uuid2 = UUID.randomUUID()
+      val timeSeriesUUID2 = UUID.randomUUID()
+      val meta2 = new CsvIndividualTimeSeriesMetaInformation(
+        timeSeriesUUID2,
+        ColumnScheme.ACTIVE_POWER,
+        Path.of(""),
+      )
+
+      val stateData = PrimaryServiceStateData(
+        Map(
+          uuid1 -> timeSeriesUUID1_3,
+          uuid2 -> timeSeriesUUID2,
+          uuid3 -> timeSeriesUUID1_3,
+        ),
+        Map(
+          timeSeriesUUID1_3 -> SourceRef(meta1_3, None),
+          timeSeriesUUID2 -> SourceRef(meta2, None),
+        ),
+        simulationStart,
+        validPrimaryConfig,
+        mappingSource,
+      )
+
+      val testKit = BehaviorTestKit(PrimaryServiceProxy.onMessage(stateData))
+
+      val participant1 = TestProbe[ParticipantAgent.Request]("participant1")
+      val participant2 = TestProbe[ParticipantAgent.Request]("participant2")
+      val participant3 = TestProbe[ParticipantAgent.Request]("participant3")
+
+      testKit.run(PrimaryServiceRegistrationMessage(participant1.ref, uuid1))
+
+      testKit.expectEffectPF { case Spawned(_, actorName, _) =>
+        actorName shouldBe timeSeriesUUID1_3.toString
+      }
+
+      // some behaviors spawned by the scheduler (e.g.: schedule lock)
+      testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
+      testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
+
+      // second participant uses a different input time series
+      // therefore, a second worker should be spawned
+      testKit.run(PrimaryServiceRegistrationMessage(participant2.ref, uuid2))
+
+      testKit.expectEffectPF { case Spawned(_, actorName, _) =>
+        actorName shouldBe timeSeriesUUID2.toString
+      }
+
+      // some behaviors spawned by the scheduler (e.g.: schedule lock)
+      testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
+      testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
+
+      // the third participant uses the same time series as the first participant
+      // therefore, no additional worker should be spawned
+      testKit.run(PrimaryServiceRegistrationMessage(participant3.ref, uuid3))
+
+      testKit.expectEffect(NoEffects)
+    }
+
   }
 
   "Trying to register with a proxy" should {
