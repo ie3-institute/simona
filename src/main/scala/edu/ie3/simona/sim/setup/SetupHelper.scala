@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
@@ -18,7 +19,7 @@ import edu.ie3.simona.config.GridConfigParser.{
   ConfigRefSystems,
   ConfigVoltageLimits,
 }
-import edu.ie3.simona.config.{SimonaConfig, OutputConfig}
+import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -225,13 +226,16 @@ trait SetupHelper extends LazyLogging {
     * The provided type safe config must be able to be parsed as
     * [[SimonaConfig]], otherwise an exception is thrown
     *
+    * @param typeSafeConfig
+    *   All configuration parameters
     * @param simonaConfig
-    *   the configuration file
+    *   The configuration for SIMONA
     * @return
-    *   the resulting result file hierarchy
+    *   The resulting result file hierarchy
     */
   def buildResultFileHierarchy(
-      simonaConfig: SimonaConfig
+      typeSafeConfig: Config,
+      simonaConfig: SimonaConfig,
   ): ResultFileHierarchy = {
 
     /* Determine the result models to write */
@@ -250,7 +254,7 @@ trait SetupHelper extends LazyLogging {
       ),
       configureLogger =
         LogbackConfiguration.default(simonaConfig.simona.output.log.level),
-      config = Some(simonaConfig),
+      config = Some((typeSafeConfig, simonaConfig)),
       addTimeStampToOutputDir =
         simonaConfig.simona.output.base.addTimestampToOutputDir,
     )
