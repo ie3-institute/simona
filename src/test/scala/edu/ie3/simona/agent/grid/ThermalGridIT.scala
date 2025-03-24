@@ -922,13 +922,12 @@ class ThermalGridIT
       val participantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
         primaryServiceProxy = primaryServiceProxy.ref.toClassic,
-        services =
-          Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+        services = Map(ServiceType.WeatherService -> weatherService.ref),
         resultListener = Iterable(resultListener.ref),
       )
 
       val keys = ScheduleLock
-        .multiKey(TSpawner, scheduler.ref, PRE_INIT_TICK, 3)
+        .multiKey(TSpawner, scheduler.ref, PRE_INIT_TICK, 2)
         .iterator
       val lockActivation =
         scheduler.expectMessageType[ScheduleActivation].actor
@@ -960,27 +959,15 @@ class ThermalGridIT
         "PvAgent",
       )
 
-      val heatPumpAgentWithEm = TestActorRef(
-        new HpAgent(
-          scheduler = scheduler.ref.toClassic,
-          initStateData = ParticipantInitializeStateData(
-            typicalHpInputModel,
-            typicalThermalGrid,
-            HpRuntimeConfig(
-              calculateMissingReactivePowerWithModel = true,
-              1.0,
-              List.empty[String],
-            ),
-            primaryServiceProxy.ref.toClassic,
-            Iterable(ActorWeatherService(weatherService.ref.toClassic)),
-            simulationStartWithPv,
-            simulationEndWithPv,
-            resolution,
-            simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-            outputConfigOn,
-            Some(emAgent),
-          ),
-          listener = Iterable(resultListener.ref.toClassic),
+      val hpAgent = spawn(
+        ParticipantAgentInit(
+          typicalHpInputContainer,
+          HpRuntimeConfig(),
+          outputConfigOn,
+          participantRefs,
+          simulationParams,
+          Right(emAgent),
+          keys.next(),
         ),
         "HeatPumpAgentWithEm",
       )
@@ -992,13 +979,18 @@ class ThermalGridIT
       emInitSchedule.tick shouldBe INIT_SIM_TICK
       val emAgentActivation = emInitSchedule.actor
 
+      scheduler.expectNoMessage()
+
+      emInitSchedule.unlockKey.value.unlock()
+      scheduler.expectMessage(Completion(lockActivation))
+
       /* INIT */
 
       emAgentActivation ! Activation(INIT_SIM_TICK)
 
-      primaryServiceProxy.receiveMessages(1) should contain oneOf (
+      primaryServiceProxy.receiveMessages(2) should contain allOf (
         PrimaryServiceRegistrationMessage(
-          heatPumpAgentWithEm.ref,
+          hpAgent.toClassic,
           typicalHpInputModel.getUuid,
         ),
         PrimaryServiceRegistrationMessage(
@@ -1013,7 +1005,7 @@ class ThermalGridIT
       // deal with weather service registration
       weatherService.expectMessage(
         RegisterForWeatherMessage(
-          pvAgent.toClassic,
+          pvAgent,
           pvInput.getNode.getGeoPosition.getY,
           pvInput.getNode.getGeoPosition.getX,
         )
@@ -1024,37 +1016,26 @@ class ThermalGridIT
         0L,
       )
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
-
       // heat pump
-      heatPumpAgentWithEm ! Activation(INIT_SIM_TICK)
+      hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
-      primaryServiceProxy.expectMessage(
-        PrimaryServiceRegistrationMessage(
-          heatPumpAgentWithEm.ref,
-          typicalHpInputModel.getUuid,
-        )
-      )
-      heatPumpAgentWithEm ! RegistrationFailedMessage(
-        primaryServiceProxy.ref.toClassic
-      )
-
+      // deal with weather service registration
       weatherService.expectMessage(
         RegisterForWeatherMessage(
-          heatPumpAgentWithEm.ref,
+          hpAgent,
           typicalHpInputModel.getNode.getGeoPosition.getY,
           typicalHpInputModel.getNode.getGeoPosition.getX,
         )
       )
 
-      heatPumpAgentWithEm ! RegistrationSuccessfulMessage(
+      hpAgent ! RegistrationSuccessfulMessage(
         weatherService.ref.toClassic,
         0L,
       )
 
-      scheduler.expectMessage(Completion(heatPumpAgentWithEm))
+      scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
-      val weatherDependentAgents = Seq(heatPumpAgentWithEm, pvAgent.toClassic)
+      val weatherDependentAgents = Seq(hpAgent, pvAgent)
 
       /* TICK 0
         Start of Simulation, No sun at the moment.
