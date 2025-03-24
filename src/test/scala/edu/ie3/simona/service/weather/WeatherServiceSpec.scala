@@ -14,30 +14,26 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  Create,
+  WrappedActivation,
+}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.service.weather.WeatherSource.AgentCoordinates
-import edu.ie3.simona.test.common.{
-  ConfigTestData,
-  TestKitWithShutdown,
-  TestSpawnerClassic,
-}
+import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.{
-  EventFilter,
-  ImplicitSender,
-  TestActorRef,
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
   TestProbe,
 }
 import org.scalatest.PrivateMethodTester
@@ -45,23 +41,17 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
+import scala.language.implicitConversions
+
 class WeatherServiceSpec
-    extends TestKitWithShutdown(
-      ActorSystem(
-        "WeatherServiceSpec",
-        ConfigFactory
-          .parseString("""
-             |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
-             |pekko.loglevel = "INFO"
-          """.stripMargin),
-      )
-    )
-    with ImplicitSender
+    extends ScalaTestWithActorTestKit
     with AnyWordSpecLike
     with PrivateMethodTester
     with LazyLogging
     with ConfigTestData
-    with TestSpawnerClassic {
+    with TestSpawnerTyped {
+
+  implicit def wrap(msg: Activation): ServiceMessage = WrappedActivation(msg)
 
   // setup config for scheduler
   private val config = ConfigFactory
@@ -75,7 +65,6 @@ class WeatherServiceSpec
             simona.input.weather.datasource.scheme = "icon"
             simona.input.weather.datasource.sampleParams.use = true
             simona.input.weather.datasource.coordinateSource.sampleParams.use = true
-            simona.input.grid.datatarget.id = "csv"
             simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
             simona.powerflow.newtonraphson.epsilon = [1E-12]
             simona.powerflow.newtonraphson.iterations = 50
@@ -92,98 +81,88 @@ class WeatherServiceSpec
   private val validCoordinate: AgentCoordinates =
     AgentCoordinates(52.02083574, 7.40110716)
 
-  private val scheduler = TestProbe("scheduler")
+  private val scheduler = TestProbe[SchedulerMessage]("scheduler")
+
+  private val agent = TestProbe[Any]("agent")
 
   // build the weather service
-  private val weatherActor: TestActorRef[WeatherService] = TestActorRef(
-    new WeatherService(
-      scheduler.ref,
-      TimeUtil.withDefaults.toZonedDateTime(
-        simonaConfig.simona.time.startDateTime
-      ),
-      TimeUtil.withDefaults.toZonedDateTime(
-        simonaConfig.simona.time.endDateTime
-      ),
-      4,
-    )
+  private val weatherService = testKit.spawn(
+    WeatherService(scheduler.ref)
   )
 
   "A weather service" must {
     "receive correct completion message after initialisation" in {
       val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
-      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      scheduler
+        .expectMessageType[ScheduleActivation] // lock activation scheduled
 
-      scheduler.send(
-        weatherActor,
-        SimonaService.Create(
-          InitWeatherServiceStateData(
-            simonaConfig.simona.input.weather.datasource
+      weatherService ! Create(
+        InitWeatherServiceStateData(
+          simonaConfig.simona.input.weather.datasource,
+          TimeUtil.withDefaults.toZonedDateTime(
+            simonaConfig.simona.time.startDateTime
           ),
-          key,
+          TimeUtil.withDefaults.toZonedDateTime(
+            simonaConfig.simona.time.endDateTime
+          ),
         ),
-      )
-      scheduler.expectMsg(
-        ScheduleActivation(weatherActor.toTyped, INIT_SIM_TICK, Some(key))
+        key,
       )
 
-      scheduler.send(weatherActor, Activation(INIT_SIM_TICK))
-      scheduler.expectMsg(Completion(weatherActor.toTyped, Some(0)))
+      val activationMsg = scheduler.expectMessageType[ScheduleActivation]
+      activationMsg.tick shouldBe INIT_SIM_TICK
+      activationMsg.unlockKey shouldBe Some(key)
+
+      weatherService ! Activation(INIT_SIM_TICK)
+      scheduler.expectMessage(Completion(activationMsg.actor, Some(0)))
     }
 
     "announce failed weather registration on invalid coordinate" in {
-      EventFilter
-        .error(
-          pattern =
-            "\\[.*] Unable to obtain necessary information to register for coordinate AgentCoordinates\\(180\\.5,90\\.5\\)\\.",
-          occurrences = 1,
-        )
-        .intercept {
-          weatherActor ! RegisterForWeatherMessage(
-            invalidCoordinate.latitude,
-            invalidCoordinate.longitude,
-          )
-        }
+      weatherService ! RegisterForWeatherMessage(
+        agent.ref,
+        invalidCoordinate.latitude,
+        invalidCoordinate.longitude,
+      )
 
-      expectMsg(RegistrationFailedMessage(weatherActor))
+      agent.expectMessage(RegistrationFailedMessage(weatherService))
     }
 
     "announce, that a valid coordinate is registered" in {
       /* The successful registration stems from the test above */
-      weatherActor ! RegisterForWeatherMessage(
+      weatherService ! RegisterForWeatherMessage(
+        agent.ref,
         validCoordinate.latitude,
         validCoordinate.longitude,
       )
 
-      expectMsg(RegistrationSuccessfulMessage(weatherActor.ref, 0L))
+      agent.expectMessage(
+        RegistrationSuccessfulMessage(weatherService, 0L)
+      )
     }
 
     "recognize, that a valid coordinate yet is registered" in {
       /* The successful registration stems from the test above */
-      EventFilter
-        .warning(
-          pattern = "Sending actor Actor\\[.*] is already registered",
-          occurrences = 1,
-        )
-        .intercept {
-          weatherActor ! RegisterForWeatherMessage(
-            validCoordinate.latitude,
-            validCoordinate.longitude,
-          )
-        }
-      expectNoMessage()
+      weatherService ! RegisterForWeatherMessage(
+        agent.ref,
+        validCoordinate.latitude,
+        validCoordinate.longitude,
+      )
+
+      agent.expectNoMessage()
     }
 
     "send out correct weather information upon activity start trigger and request the triggering for the next tick" in {
       /* Send out an activity start trigger as the scheduler */
-      scheduler.send(weatherActor, Activation(0))
+      weatherService ! Activation(0)
 
-      scheduler.expectMsg(Completion(weatherActor.toTyped, Some(3600)))
+      val activationMsg = scheduler.expectMessageType[Completion]
+      activationMsg.newTick shouldBe Some(3600)
 
-      expectMsg(
+      agent.expectMessage(
         DataProvision(
           0,
-          weatherActor,
+          weatherService,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
@@ -198,14 +177,15 @@ class WeatherServiceSpec
 
     "sends out correct weather information when triggered again and does not as for triggering, if the end is reached" in {
       /* Send out an activity start trigger as the scheduler */
-      scheduler.send(weatherActor, Activation(3600))
+      weatherService ! Activation(3600)
 
-      scheduler.expectMsg(Completion(weatherActor.toTyped))
+      val activationMsg = scheduler.expectMessageType[Completion]
+      activationMsg.newTick shouldBe None
 
-      expectMsg(
+      agent.expectMessage(
         DataProvision(
           3600,
-          weatherActor,
+          weatherService,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),

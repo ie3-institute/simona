@@ -10,7 +10,9 @@ import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.SimpleInputContainer
 import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.util.TimeUtil
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import tech.units.indriya.quantity.Quantities
@@ -42,7 +44,7 @@ trait PvInputTestData
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
-    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
     null,
     0.2,
     Quantities.getQuantity(12, StandardUnits.AZIMUTH),
@@ -54,6 +56,27 @@ trait PvInputTestData
     Quantities.getQuantity(10, StandardUnits.S_RATED),
     0.95,
   )
+
+  protected val pvInputContainer: SimpleInputContainer[PvInput] =
+    SimpleInputContainer(pvInput)
+
+  private val operationTime: OperationTime =
+    OperationTime
+      .builder()
+      .withStart(TimeUtil.withDefaults.toZonedDateTime("2020-01-01T11:00:00Z"))
+      .withEnd(TimeUtil.withDefaults.toZonedDateTime("2020-01-01T14:00:00Z"))
+      .build()
+
+  protected val pvInputLimitedOperationTime: PvInput = pvInput
+    .copy()
+    .uuid(UUID.randomUUID())
+    .id("Dummy_PvModel_With_Limited_Operation_Timec")
+    .operationTime(operationTime)
+    .build()
+
+  protected val pvInputContainerLimitedOperationTime
+      : SimpleInputContainer[PvInput] =
+    SimpleInputContainer(pvInputLimitedOperationTime)
 
   protected val pvSouth1 = new PvInput(
     UUID.fromString("7ac5bb15-36ee-42b0-902b-9cd520e241b3"),
@@ -71,8 +94,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvSouth2 = new PvInput(
@@ -91,8 +114,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvSouth3 = new PvInput(
@@ -111,8 +134,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvSouth4 = new PvInput(
@@ -131,8 +154,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvEast1 = new PvInput(
@@ -151,8 +174,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvEast2 = new PvInput(
@@ -171,8 +194,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvWest1 = new PvInput(
@@ -191,8 +214,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvWest2 = new PvInput(
@@ -211,8 +234,8 @@ trait PvInputTestData
     0.9,
     1.0,
     false,
-    Quantities.getQuantity(100, StandardUnits.S_RATED),
-    0.95,
+    Quantities.getQuantity(95, StandardUnits.S_RATED),
+    1.0,
   )
 
   protected val pvInputsTest: Set[PvInput] = Set(

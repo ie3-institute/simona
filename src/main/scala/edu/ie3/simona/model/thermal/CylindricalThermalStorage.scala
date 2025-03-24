@@ -21,13 +21,13 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
 import edu.ie3.util.scala.quantities.{
-  DefaultQuantities,
   KilowattHoursPerKelvinCubicMeters,
   SpecificHeatCapacity,
 }
+import squants.energy.Kilowatts
 import squants.space.{CubicMeters, Volume}
 import squants.thermal.Celsius
-import squants.time.{Hours, Seconds}
+import squants.time.Seconds
 import squants.{Energy, Power, Temperature}
 import tech.units.indriya.unit.Units
 
@@ -47,11 +47,9 @@ import java.util.UUID
   *   Operation time
   * @param bus
   *   Thermal bus input
-  * @param minEnergyThreshold
-  *   Minimum permissible energy stored in the storage
   * @param maxEnergyThreshold
   *   Maximum permissible energy stored in the storage
-  * @param chargingPower
+  * @param pThermalMax
   *   Thermal power, that can be charged / discharged
   */
 final case class CylindricalThermalStorage(
@@ -60,21 +58,18 @@ final case class CylindricalThermalStorage(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-    minEnergyThreshold: Energy,
     maxEnergyThreshold: Energy,
-    chargingPower: Power,
-    override var _storedEnergy: Energy,
+    pThermalMax: Power,
+    storedEnergy: Energy,
 ) extends ThermalStorage(
       uuid,
       id,
       operatorInput,
       operationTime,
       bus,
-      minEnergyThreshold,
       maxEnergyThreshold,
-      chargingPower,
-    )
-    with MutableStorage {
+      pThermalMax,
+    ) {
 
   /** Updates the given last state. Based on the then set thermal influx, the
     * current state is calculated. Positive values of influx are consider to
@@ -102,22 +97,22 @@ final case class CylindricalThermalStorage(
       if (isFull(newEnergy))
         maxEnergyThreshold
       else if (isEmpty(newEnergy))
-        minEnergyThreshold
+        zeroKWh
       else
         newEnergy
 
     /* Determine, when a threshold is reached */
     val nextThreshold =
-      if (qDot > zeroMW) {
+      if (qDot > zeroKW) {
         val duration = (maxEnergyThreshold - updatedEnergy) / qDot
-        val durationInTicks = Math.round(duration.toSeconds)
+        val durationInTicks = Math.floor(duration.toSeconds).toLong
         if (durationInTicks <= 0L)
           None
         else
           Some(StorageFull(tick + durationInTicks))
-      } else if (qDot < zeroMW) {
-        val duration = (updatedEnergy - minEnergyThreshold) / qDot * (-1)
-        val durationInTicks = Math.round(duration.toSeconds)
+      } else if (qDot < zeroKW) {
+        val duration = updatedEnergy / qDot * (-1)
+        val durationInTicks = Math.floor(duration.toSeconds).toLong
         if (durationInTicks <= 0L)
           None
         else
@@ -131,44 +126,9 @@ final case class CylindricalThermalStorage(
 
   override def startingState: ThermalStorageState = ThermalStorageState(
     -1L,
-    getMinEnergyThreshold,
+    zeroKWh,
     zeroKW,
   )
-
-  @deprecated("Use thermal storage state instead")
-  override def usableThermalEnergy: Energy =
-    _storedEnergy - minEnergyThreshold
-
-  @deprecated("Use thermal storage state instead")
-  override def tryToStoreAndReturnRemainder(
-      addedEnergy: Energy
-  ): Option[Energy] = {
-    if (addedEnergy > zeroKWh) {
-      _storedEnergy = _storedEnergy + addedEnergy
-      if (_storedEnergy > maxEnergyThreshold) {
-        val surplus = _storedEnergy - maxEnergyThreshold
-        _storedEnergy = maxEnergyThreshold
-        return Option(surplus)
-      }
-    }
-    Option.empty
-  }
-
-  @deprecated("Use thermal storage state instead")
-  override def tryToTakeAndReturnLack(
-      takenEnergy: Energy
-  ): Option[Energy] = {
-    if (takenEnergy > zeroKWh) {
-      _storedEnergy = _storedEnergy - takenEnergy
-      if (_storedEnergy < minEnergyThreshold) {
-        val lack = minEnergyThreshold - _storedEnergy
-        _storedEnergy = minEnergyThreshold
-        return Some(lack)
-      }
-    }
-    None
-  }
-
 }
 
 object CylindricalThermalStorage {
@@ -179,18 +139,17 @@ object CylindricalThermalStorage {
     * @param input
     *   instance of [[CylindricalStorageInput]] this storage should be built
     *   from
+    * @param initialStoredEnergy
+    *   initial stored energy
     * @return
     *   a ready-to-use [[CylindricalThermalStorage]] with referenced electric
     *   parameters
     */
+
   def apply(
       input: CylindricalStorageInput,
-      initialStoredEnergy: Energy = DefaultQuantities.zeroKWh,
+      initialStoredEnergy: Energy = zeroKWh,
   ): CylindricalThermalStorage = {
-    val minEnergyThreshold: Energy = {
-      // Temporary fix until changes in PSDM are released, Some minimumEnergyThreshold would lead to non-plausible behaviour
-      zeroKWh
-    }
 
     val maxEnergyThreshold: Energy =
       CylindricalThermalStorage.volumeToEnergy(
@@ -207,9 +166,13 @@ object CylindricalThermalStorage {
         Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
       )
 
-    /* TODO: Currently, the input model does not define any maximum charge power. Assume, that the usable energy can
-     *   be charged / discharged within the interval of an hour */
-    val chargingPower = (maxEnergyThreshold - minEnergyThreshold) / Hours(1d)
+    val pThermalMax = Kilowatts(
+      input
+        .getpThermalMax()
+        .to(PowerSystemUnits.KILOWATT)
+        .getValue
+        .doubleValue()
+    )
 
     new CylindricalThermalStorage(
       input.getUuid,
@@ -217,9 +180,8 @@ object CylindricalThermalStorage {
       input.getOperator,
       input.getOperationTime,
       input.getThermalBus,
-      minEnergyThreshold,
       maxEnergyThreshold,
-      chargingPower,
+      pThermalMax,
       initialStoredEnergy,
     )
   }

@@ -34,10 +34,10 @@ class CylindricalThermalStorageSpec
     "ThermalStorage",
     null,
     getQuantity(100, StandardUnits.VOLUME),
-    getQuantity(0, StandardUnits.VOLUME),
     getQuantity(30, StandardUnits.TEMPERATURE),
     getQuantity(40, StandardUnits.TEMPERATURE),
     getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+    getQuantity(50, PowerSystemUnits.KILOWATT),
   )
 
   def buildThermalStorage(
@@ -82,37 +82,6 @@ class CylindricalThermalStorageSpec
 
   "CylindricalThermalStorage Model" should {
 
-    "Check storage level operations:" in {
-      val storage = buildThermalStorage(storageInput, CubicMeters(70))
-
-      val initialLevel = storage._storedEnergy
-      storage._storedEnergy_=(vol2Energy(CubicMeters(50)))
-      val newLevel1 = storage._storedEnergy
-      val surplus =
-        storage.tryToStoreAndReturnRemainder(vol2Energy(CubicMeters(55)))
-      val newLevel2 = storage._storedEnergy
-      val isCovering = storage.isDemandCoveredByStorage(KilowattHours(5))
-      val lack = storage.tryToTakeAndReturnLack(vol2Energy(CubicMeters(115)))
-      val newLevel3 = storage._storedEnergy
-      val notCovering = storage.isDemandCoveredByStorage(KilowattHours(1))
-
-      initialLevel should approximate(vol2Energy(CubicMeters(70)))
-      newLevel1 should approximate(vol2Energy(CubicMeters(50)))
-      surplus.value shouldBe vol2Energy(CubicMeters(5))
-      newLevel2 should approximate(vol2Energy(CubicMeters(100)))
-      lack.value shouldBe vol2Energy(CubicMeters(15))
-      newLevel3 should approximate(vol2Energy(CubicMeters(0)))
-      isCovering shouldBe true
-      notCovering shouldBe false
-    }
-
-    "Converting methods work correctly" in {
-      val storage = buildThermalStorage(storageInput, CubicMeters(70))
-
-      val usableThermalEnergy = storage.usableThermalEnergy
-      usableThermalEnergy should approximate(KilowattHours(805))
-    }
-
     "Apply, validation, and build method work correctly" in {
       val storage = buildThermalStorage(storageInput, CubicMeters(70))
 
@@ -141,7 +110,7 @@ class CylindricalThermalStorageSpec
           3600L,
           42.0,
           260.0,
-          ThermalStorage.ThermalStorageThreshold.StorageFull(79886L),
+          ThermalStorage.ThermalStorageThreshold.StorageFull(79885L),
         ),
         (
           0L,
@@ -173,10 +142,10 @@ class CylindricalThermalStorageSpec
         (
           0L,
           1000.0,
-          149.0,
+          148.6,
           3600L,
           5000.0,
-          1149.0,
+          1148.6,
           ThermalStorage.ThermalStorageThreshold.StorageFull(3601L),
         ),
         (
@@ -184,7 +153,7 @@ class CylindricalThermalStorageSpec
           10.0,
           -9.0,
           3600L,
-          -5000.0,
+          -3600.0,
           1.0,
           ThermalStorage.ThermalStorageThreshold.StorageEmpty(3601L),
         ),

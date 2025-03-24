@@ -37,7 +37,8 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         (17d, false, true),
         (17.98d, false, true),
         (18d, false, true),
-        (20d, false, false),
+        (19.98d, false, false),
+        (20d, true, false),
         (22d, true, false),
         (22.02d, true, false),
         (23d, true, false),
@@ -75,12 +76,12 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       val ambientTemperature = Temperature(-20, Celsius)
       val relevantData = HpRelevantData(3600, ambientTemperature)
       val house = thermalHouse(18, 22)
-      val initialHousestate = startingState(house)
+      val initialHouseState = startingState(house)
       val lastAmbientTemperature = Temperature(15, Celsius)
 
       val (thermalHouseState, threshold) = house.updateState(
         relevantData,
-        initialHousestate,
+        initialHouseState,
         lastAmbientTemperature,
         zeroKW,
       )
@@ -93,7 +94,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         case unexpected =>
           fail(s"Expected a thermalHouseState but got none $unexpected.")
       }
-      threshold shouldBe Some(HouseTemperatureLowerBoundaryReached(4967))
+      threshold shouldBe Some(HouseTemperatureLowerBoundaryReached(4966))
     }
 
     "Check build method" in {

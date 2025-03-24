@@ -13,25 +13,34 @@ import edu.ie3.datamodel.models.input.connector.{
 }
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.services.{
+  ServiceMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.sim.SimonaSim
-import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.nio.file.Path
 import java.util.UUID
 
-class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
+class SimonaSetupSpec
+    extends UnitSpec
+    with SimonaSetup
+    with SubGridGateMokka
+    with ConfigTestData {
 
   override val args: Array[String] = Array.empty[String]
+  override val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
 
   override def logOutputDir: Path = throw new NotImplementedError()
 
@@ -50,16 +59,22 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
   override def primaryServiceProxy(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef = throw new NotImplementedException("This is a dummy setup")
+      extSimSetupData: ExtSimSetupData,
+  ): ActorRef[ServiceMessage] = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
 
   override def weatherService(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef = throw new NotImplementedException("This is a dummy setup")
+  ): ActorRef[WeatherMessage] = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
 
   override def extSimulations(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimPath: Option[Path],
   ): ExtSimSetupData = throw new NotImplementedException(
     "This is a dummy setup"
   )

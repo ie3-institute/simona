@@ -38,12 +38,12 @@ import scala.language.postfixOps
   *
   * @param house
   *   Thermal houses connected to the bus.
-  * @param storage
+  * @param heatStorage
   *   Thermal storages connected to the bus.
   */
 final case class ThermalGrid(
     house: Option[ThermalHouse],
-    storage: Option[ThermalStorage],
+    heatStorage: Option[ThermalStorage],
 ) extends LazyLogging {
 
   /** Determine the energy demand of the total grid at the given instance in
@@ -62,7 +62,6 @@ final case class ThermalGrid(
       lastHpState: HpState,
   ): (ThermalDemandWrapper, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
-
     val (houseDemand, updatedHouseState) =
       house.zip(lastHpState.thermalGridState.houseState) match {
         case Some((thermalHouse, lastHouseState)) =>
@@ -76,8 +75,7 @@ final case class ThermalGrid(
               lastHouseState.qDot,
             )
           if (
-            updatedHouseState.innerTemperature < thermalHouse.targetTemperature |
-              (lastHouseState.qDot > zeroKW && updatedHouseState.innerTemperature < thermalHouse.upperBoundaryTemperature)
+            updatedHouseState.innerTemperature < thermalHouse.targetTemperature
           ) {
             (
               thermalHouse.energyDemand(
@@ -86,11 +84,9 @@ final case class ThermalGrid(
               ),
               Some(updatedHouseState),
             )
-
           } else {
             (ThermalEnergyDemand.noDemand, Some(updatedHouseState))
           }
-
         case None =>
           (ThermalEnergyDemand.noDemand, None)
       }
@@ -98,7 +94,7 @@ final case class ThermalGrid(
     /* Then go over the storages, see what they can provide and what they might be able to charge */
     val (storageDemand, updatedStorageState) = {
 
-      storage
+      heatStorage
         .zip(lastHpState.thermalGridState.storageState)
         .map { case (storage, state) =>
           val (updatedStorageState, _) =
@@ -522,7 +518,7 @@ final case class ThermalGrid(
       state: ThermalGridState,
       qDotStorage: Power,
   ): (Option[ThermalStorageState], Option[ThermalThreshold]) = {
-    (storage, state.storageState) match {
+    (heatStorage, state.storageState) match {
       case (Some(thermalStorage), Some(lastStorageState)) =>
         val (newState, threshold) = thermalStorage.updateState(
           tick,
@@ -592,7 +588,7 @@ final case class ThermalGrid(
 
     /* Update the state of the storage */
     val maybeUpdatedStorageState =
-      storage.zip(lastThermalGridState.storageState).map {
+      heatStorage.zip(lastThermalGridState.storageState).map {
         case (storage, storageState) =>
           storage.updateState(relevantData.currentTick, qDot, storageState)
       }
@@ -658,7 +654,7 @@ final case class ThermalGrid(
   ): (
       Option[(ThermalHouseState, Option[ThermalThreshold])],
       Option[(ThermalStorageState, Option[ThermalThreshold])],
-  ) = house.zip(maybeHouseState).zip(storage.zip(maybeStorageState)) match {
+  ) = house.zip(maybeHouseState).zip(heatStorage.zip(maybeStorageState)) match {
     case Some(
           (
             (thermalHouse, (houseState, _)),
@@ -672,7 +668,7 @@ final case class ThermalGrid(
       /* Storage is meant to heat the house only, if there is no infeed from external (+/- 10 W) and the house is cold */
       val revisedStorageState = thermalStorage.updateState(
         relevantData.currentTick,
-        thermalStorage.getChargingPower * -1,
+        thermalStorage.getpThermalMax * -1,
         formerStorageState.getOrElse(
           throw new InconsistentStateException(
             "Impossible to find no storage state"
@@ -687,7 +683,7 @@ final case class ThermalGrid(
           )
         ),
         lastAmbientTemperature,
-        thermalStorage.getChargingPower,
+        thermalStorage.getpThermalMax,
       )
       (Some(revisedHouseState), Some(revisedStorageState))
     case _ => (maybeHouseState, maybeStorageState)
@@ -725,7 +721,7 @@ final case class ThermalGrid(
           )
       }
 
-    val maybeStorageResult = storage
+    val maybeStorageResult = heatStorage
       .zip(state.storageState)
       .filter { case (_, state) => state.tick == currentTick }
       .map {
@@ -742,7 +738,7 @@ final case class ThermalGrid(
           )
         case _ =>
           throw new NotImplementedError(
-            s"Result handling for storage type '${storage.getClass.getSimpleName}' not supported."
+            s"Result handling for storage type '${heatStorage.getClass.getSimpleName}' not supported."
           )
       }
 
@@ -756,7 +752,7 @@ object ThermalGrid {
   ): ThermalGrid = {
     val houses = input.houses().asScala.map(ThermalHouse(_)).toSet
     val storages: Set[ThermalStorage] = input
-      .storages()
+      .heatStorages()
       .asScala
       .flatMap {
         case cylindricalInput: CylindricalStorageInput =>
@@ -800,7 +796,7 @@ object ThermalGrid {
   def startingState(thermalGrid: ThermalGrid): ThermalGridState =
     ThermalGridState(
       thermalGrid.house.map(house => ThermalHouse.startingState(house)),
-      thermalGrid.storage.map(_.startingState),
+      thermalGrid.heatStorage.map(_.startingState),
     )
 
   /** Wraps the demand of thermal units (thermal house, thermal storage).

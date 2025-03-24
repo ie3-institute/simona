@@ -21,20 +21,22 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.{
+  ServiceMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
@@ -52,13 +54,13 @@ class DBFSAlgorithmParticipantSpec
     TestProbe("runtimeEvents")
   private val primaryService: TestProbe[ServiceMessage] =
     TestProbe("primaryService")
-  private val weatherService = TestProbe("weatherService")
+  private val weatherService = TestProbe[WeatherMessage]("weatherService")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
-    primaryServiceProxy = primaryService.ref.toClassic,
-    weather = weatherService.ref.toClassic,
+    primaryServiceProxy = primaryService.ref,
+    weather = weatherService.ref,
     evDataService = None,
   )
 
@@ -102,20 +104,23 @@ class DBFSAlgorithmParticipantSpec
 
       gridAgentWithParticipants ! CreateGridAgent(gridAgentInitData, key)
 
-      val scheduleActivationMsg =
-        scheduler.expectMessageType[ScheduleActivation]
-      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
-      scheduleActivationMsg.unlockKey shouldBe Some(key)
-      val gridAgentActivation = scheduleActivationMsg.actor
-
-      // send init data to agent and expect a Completion
-      gridAgentWithParticipants ! WrappedActivation(Activation(INIT_SIM_TICK))
-
-      val scheduleLoadAgentMsg = scheduler.expectMessageType[ScheduleActivation]
-      scheduleLoadAgentMsg.tick shouldBe INIT_SIM_TICK
-      val loadAgent = scheduleLoadAgentMsg.actor
-
-      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
+      val loadAgent = scheduler
+        .receiveMessages(3)
+        .flatMap {
+          case ScheduleActivation(_, PRE_INIT_TICK, None) =>
+            // participant schedule lock
+            None
+          case ScheduleActivation(actor, INIT_SIM_TICK, Some(_)) =>
+            // load agent
+            Some(actor)
+          case ScheduleActivation(_, 3600, Some(_)) =>
+            // GridAgent
+            None
+          case other =>
+            fail(s"Unexpected scheduler message $other")
+        }
+        .headOption
+        .value
 
       loadAgent ! Activation(INIT_SIM_TICK)
 
@@ -124,7 +129,7 @@ class DBFSAlgorithmParticipantSpec
       serviceRegistrationMsg.inputModelUuid shouldBe load1.getUuid
 
       serviceRegistrationMsg.requestingActor ! RegistrationFailedMessage(
-        primaryService.ref.toClassic
+        primaryService.ref
       )
 
       scheduler.expectMessage(Completion(loadAgent, Some(0)))

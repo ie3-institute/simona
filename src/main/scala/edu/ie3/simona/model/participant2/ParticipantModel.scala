@@ -13,7 +13,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 }
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ModelInput,
   ModelState,
   OperatingPoint,
 }
@@ -70,7 +69,7 @@ abstract class ParticipantModel[
 
   /** Determines the initial state given an initial model input.
     */
-  val initialState: ModelInput => S
+  val initialState: (Long, ZonedDateTime) => S
 
   /** Determines the current state given the last state and the operating point
     * that has been valid from the last state up until now.
@@ -80,16 +79,39 @@ abstract class ParticipantModel[
     * @param operatingPoint
     *   The operating point valid from the simulation time of the last state up
     *   until now.
-    * @param input
-    *   The model input data for the current tick.
+    * @param tick
+    *   The current tick
+    * @param simulationTime
+    *   The current simulation time
     * @return
     *   The current state.
     */
   def determineState(
       lastState: S,
       operatingPoint: OP,
-      input: ModelInput,
+      tick: Long,
+      simulationTime: ZonedDateTime,
   ): S
+
+  /** Handles input data (primary or secondary) by integrating into the current
+    * mode state. Is only called with new input received data or an empty
+    * sequence as received data.
+    *
+    * @param state
+    *   The current state
+    * @param receivedData
+    *   The currently received primary or secondary data. Sequence could be
+    *   empty, if no new data is available.
+    * @param nodalVoltage
+    *   The voltage at the node that we're connected to.
+    * @return
+    *   The current state with updated input data
+    */
+  def handleInput(
+      state: S,
+      receivedData: Seq[Data],
+      nodalVoltage: Dimensionless,
+  ): S = state
 
   /** Returns a partial function that transfers the current nodal voltage and
     * active power into reactive power based on the participants properties.
@@ -191,24 +213,6 @@ abstract class ParticipantModel[
 
 object ParticipantModel {
 
-  /** Holds all potentially relevant input data for model calculation.
-    *
-    * @param receivedData
-    *   The received primary or secondary data.
-    * @param nodalVoltage
-    *   The voltage at the node that we're connected to.
-    * @param currentTick
-    *   The current tick.
-    * @param currentSimulationTime
-    *   The current simulation time (matches the tick).
-    */
-  final case class ModelInput(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      currentTick: Long,
-      currentSimulationTime: ZonedDateTime,
-  )
-
   trait OperatingPoint {
 
     val activePower: Power
@@ -239,14 +243,15 @@ object ParticipantModel {
   ] {
     this: ParticipantModel[OP, FixedState] =>
 
-    override val initialState: ModelInput => FixedState =
-      input => FixedState(input.currentTick)
+    override val initialState: (Long, ZonedDateTime) => FixedState =
+      (tick, _) => FixedState(tick)
 
     override def determineState(
         lastState: FixedState,
         operatingPoint: OP,
-        input: ModelInput,
-    ): FixedState = FixedState(input.currentTick)
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): FixedState = FixedState(tick)
 
   }
 
@@ -264,15 +269,16 @@ object ParticipantModel {
   ] {
     this: ParticipantModel[OP, DateTimeState] =>
 
-    override val initialState: ModelInput => DateTimeState = input =>
-      DateTimeState(input.currentTick, input.currentSimulationTime)
+    override val initialState: (Long, ZonedDateTime) => DateTimeState =
+      (tick, simulationTime) => DateTimeState(tick, simulationTime)
 
     override def determineState(
         lastState: DateTimeState,
         operatingPoint: OP,
-        input: ModelInput,
+        tick: Long,
+        simulationTime: ZonedDateTime,
     ): DateTimeState =
-      DateTimeState(input.currentTick, input.currentSimulationTime)
+      DateTimeState(tick, simulationTime)
 
   }
 

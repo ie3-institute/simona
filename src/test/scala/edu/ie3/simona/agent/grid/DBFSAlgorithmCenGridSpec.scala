@@ -21,6 +21,10 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.services.{
+  ServiceMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
@@ -31,7 +35,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
@@ -55,8 +58,8 @@ class DBFSAlgorithmCenGridSpec
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   private val runtimeEvents: TestProbe[RuntimeEvent] =
     TestProbe("runtimeEvents")
-  private val primaryService = TestProbe("primaryService")
-  private val weatherService = TestProbe("weatherService")
+  private val primaryService = TestProbe[ServiceMessage]("primaryService")
+  private val weatherService = TestProbe[WeatherMessage]("weatherService")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
@@ -77,8 +80,8 @@ class DBFSAlgorithmCenGridSpec
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
-    primaryServiceProxy = primaryService.ref.toClassic,
-    weather = weatherService.ref.toClassic,
+    primaryServiceProxy = primaryService.ref,
+    weather = weatherService.ref,
     evDataService = None,
   )
 
@@ -130,12 +133,8 @@ class DBFSAlgorithmCenGridSpec
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
-      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.tick shouldBe 3600
       scheduleActivationMsg.unlockKey shouldBe Some(key)
-      val gridAgentActivation = scheduleActivationMsg.actor
-
-      centerGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {

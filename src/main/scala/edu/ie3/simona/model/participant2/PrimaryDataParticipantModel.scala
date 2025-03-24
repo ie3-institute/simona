@@ -20,7 +20,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ModelInput,
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
@@ -30,7 +29,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
-import squants.Power
+import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -62,33 +61,31 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
       PrimaryDataState[PD],
     ] {
 
-  override val initialState: ModelInput => PrimaryDataState[PD] = { input =>
-    val primaryData = getPrimaryData(input.receivedData)
-    PrimaryDataState(
-      primaryData,
-      input.currentTick,
-    )
-  }
+  override val initialState: (Long, ZonedDateTime) => PrimaryDataState[PD] =
+    (tick, _) =>
+      PrimaryDataState(
+        primaryDataExtra.zero,
+        tick,
+      )
 
   override def determineState(
       lastState: PrimaryDataState[PD],
       operatingPoint: PrimaryOperatingPoint[PD],
-      input: ModelInput,
-  ): PrimaryDataState[PD] = initialState(input)
+      tick: Long,
+      simulationTime: ZonedDateTime,
+  ): PrimaryDataState[PD] = lastState.copy(tick = tick)
 
-  private def getPrimaryData(receivedData: Seq[Data]): PD = {
+  override def handleInput(
+      state: PrimaryDataState[PD],
+      receivedData: Seq[Data],
+      nodalVoltage: Dimensionless,
+  ): PrimaryDataState[PD] =
     receivedData
       .collectFirst { case data: PD =>
         data
       }
-      .getOrElse {
-        throw new CriticalFailureException(
-          "Expected primary data of type " +
-            s"${implicitly[ClassTag[PD]].runtimeClass.getSimpleName}, " +
-            s"got $receivedData"
-        )
-      }
-  }
+      .map(newData => state.copy(data = newData))
+      .getOrElse(state)
 
   override def determineOperatingPoint(
       state: PrimaryDataState[PD]
