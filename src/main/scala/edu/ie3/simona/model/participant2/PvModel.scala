@@ -396,7 +396,7 @@ object PvModel {
 
   /** Calculates the sunrise hour angle omegaSR given omegaSS.
     */
-  private def calcSunriseAngleOmegaSR(omegaSS: Angle) = omegaSS * -1
+  private def calcSunriseAngleOmegaSR(omegaSS: Angle): Angle = omegaSS * -1
 
   /** Calculates the solar altitude angle alphaS which represents the angle
     * between the horizontal and the line to the sun, that is, the complement of
