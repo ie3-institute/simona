@@ -10,7 +10,6 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{Megawatts, Power}
-import squants.time.Hours
 
 /** A simple integration test that uses pre-calculated data to check if the pv
   * model works as expected. It uses 8 pv models located in GER.

@@ -210,7 +210,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   )
                 // Send ref to the outside to make it accessible
                 receiveStoppingActor.ref ! stoppingActor
-                stoppingActor.toClassic
+                stoppingActor
               }
             }
           ),

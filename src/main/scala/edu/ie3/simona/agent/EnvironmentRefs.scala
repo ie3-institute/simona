@@ -10,8 +10,12 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.services.{EvMessage, LoadProfileMessage}
 import edu.ie3.simona.ontology.messages.services.{EvMessage, WeatherMessage}
+import edu.ie3.simona.ontology.messages.services.{
+  EvMessage,
+  ServiceMessage,
+  WeatherMessage,
+}
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 /** Container class, that gather together reference to relevant entities, that
   * represent the environment in the simulation.
@@ -32,7 +36,7 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
 final case class EnvironmentRefs(
     scheduler: ActorRef[SchedulerMessage],
     runtimeEventListener: ActorRef[RuntimeEvent],
-    primaryServiceProxy: ClassicRef,
+    primaryServiceProxy: ActorRef[ServiceMessage],
     weather: ActorRef[WeatherMessage],
     loadProfiles: ActorRef[LoadProfileMessage],
     evDataService: Option[ActorRef[EvMessage]],

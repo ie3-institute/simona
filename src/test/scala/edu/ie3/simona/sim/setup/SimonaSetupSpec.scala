@@ -17,18 +17,19 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.services.LoadProfileMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.{
+  LoadProfileMessage,
+  ServiceMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.sim.SimonaSim
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.nio.file.Path
 import java.util.UUID

@@ -21,12 +21,12 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.{
   LoadProfileMessage,
   ServiceMessage,
   WeatherMessage,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
@@ -38,7 +38,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
@@ -63,7 +62,7 @@ class DBFSAlgorithmParticipantSpec
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
-    primaryServiceProxy = primaryService.ref.toClassic,
+    primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
     loadProfiles = loadProfileService.ref,
     evDataService = None,
@@ -134,7 +133,7 @@ class DBFSAlgorithmParticipantSpec
       serviceRegistrationMsg.inputModelUuid shouldBe load1.getUuid
 
       serviceRegistrationMsg.requestingActor ! RegistrationFailedMessage(
-        primaryService.ref.toClassic
+        primaryService.ref
       )
 
       scheduler.expectMessage(Completion(loadAgent, Some(0)))

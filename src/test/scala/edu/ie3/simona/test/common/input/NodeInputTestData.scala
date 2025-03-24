@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID

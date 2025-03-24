@@ -37,7 +37,7 @@ import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
 import edu.ie3.simona.util.ResultFileHierarchy
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef

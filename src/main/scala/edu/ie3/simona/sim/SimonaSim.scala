@@ -15,7 +15,7 @@ import edu.ie3.simona.scheduler.{ScheduleLock, TimeAdvancer}
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import edu.ie3.util.scala.Scope
-import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop, Terminated}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
@@ -104,8 +104,8 @@ object SimonaSim {
 
         val environmentRefs = EnvironmentRefs(
           scheduler,
-          runtimeEventListener.toClassic,
-          primaryServiceProxy.toClassic,
+          runtimeEventListener,
+          primaryServiceProxy,
           weatherService,
           loadProfileService,
           extSimulationData.evDataService,
@@ -219,7 +219,7 @@ object SimonaSim {
     }
 
     actorData.extSimAdapters.foreach { extSimAdapter =>
-      ctx.unwatch(extSimAdapter)
+      ctx.unwatch(extSimAdapter.toTyped)
       extSimAdapter ! ExtSimAdapter.Stop(simulationSuccessful)
     }
 

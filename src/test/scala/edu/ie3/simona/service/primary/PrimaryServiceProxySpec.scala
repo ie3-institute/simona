@@ -58,7 +58,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.mockito.ArgumentMatchers.any
@@ -572,9 +571,7 @@ class PrimaryServiceProxySpec
         maliciousStateData,
         agentToBeRegistered.ref,
       )
-      agentToBeRegistered.expectMessage(
-        RegistrationFailedMessage(service.ref.toClassic)
-      )
+      agentToBeRegistered.expectMessage(RegistrationFailedMessage(service.ref))
     }
 
     "forward the registration request, if worker is already known" in {
@@ -611,9 +608,7 @@ class PrimaryServiceProxySpec
         maliciousStateData,
         agentToBeRegistered.ref,
       )
-      agentToBeRegistered.expectMessage(
-        RegistrationFailedMessage(service.ref.toClassic)
-      )
+      agentToBeRegistered.expectMessage(RegistrationFailedMessage(service.ref))
     }
 
     "spin off a worker, if needed and forward the registration request" in {
@@ -716,9 +711,7 @@ class PrimaryServiceProxySpec
       )
 
       proxy ! request
-      agentToBeRegistered.expectMessage(
-        RegistrationFailedMessage(proxy.toClassic)
-      )
+      agentToBeRegistered.expectMessage(RegistrationFailedMessage(proxy))
     }
 
     "succeed, if model is handled" in {
