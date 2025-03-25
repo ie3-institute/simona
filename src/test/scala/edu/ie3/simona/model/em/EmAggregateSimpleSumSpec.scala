@@ -36,10 +36,10 @@ class EmAggregateSimpleSumSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(8.0),
         Kilowatts(2.0),
-        Kilowatts(14.0)
+        Kilowatts(14.0),
       )
     }
 

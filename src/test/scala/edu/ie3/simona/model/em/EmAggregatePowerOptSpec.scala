@@ -30,10 +30,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(0.0),
         Kilowatts(-1.0),
-        Kilowatts(4.0)
+        Kilowatts(4.0),
       )
     }
     "work as expected at zero flexibility" in {
@@ -49,10 +49,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(5.0),
         Kilowatts(5.0),
-        Kilowatts(5.0)
+        Kilowatts(5.0),
       )
     }
   }
@@ -80,10 +80,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(0.0),
         Kilowatts(-7.0),
-        Kilowatts(4.0)
+        Kilowatts(4.0),
       )
     }
 
@@ -107,10 +107,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(2.0),
         Kilowatts(2.0),
-        Kilowatts(14.0)
+        Kilowatts(14.0),
       )
     }
 
@@ -134,10 +134,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(-1.0),
         Kilowatts(-16.0),
-        Kilowatts(-1.0)
+        Kilowatts(-1.0),
       )
     }
   }
@@ -165,10 +165,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(-2.0),
         Kilowatts(-7.0),
-        Kilowatts(4.0)
+        Kilowatts(4.0),
       )
     }
 
@@ -192,10 +192,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(-7.0),
         Kilowatts(-16.0),
-        Kilowatts(-1.0)
+        Kilowatts(-1.0),
       )
     }
   }
@@ -224,10 +224,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(4.0),
         Kilowatts(4.0),
-        Kilowatts(6.0)
+        Kilowatts(6.0),
       )
     }
 
@@ -251,10 +251,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(3.0),
         Kilowatts(3.0),
-        Kilowatts(11.0)
+        Kilowatts(11.0),
       )
     }
 
@@ -278,10 +278,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(2.0),
         Kilowatts(1.0),
-        Kilowatts(11.0)
+        Kilowatts(11.0),
       )
     }
 
@@ -305,10 +305,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(3.0),
         Kilowatts(2.0),
-        Kilowatts(10.0)
+        Kilowatts(10.0),
       )
     }
 
@@ -332,10 +332,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(2.0),
         Kilowatts(1.0),
-        Kilowatts(10.0)
+        Kilowatts(10.0),
       )
     }
 
@@ -359,10 +359,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(-3.0),
         Kilowatts(-4.0),
-        Kilowatts(10.0)
+        Kilowatts(10.0),
       )
     }
 
@@ -386,10 +386,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(-3.0),
         Kilowatts(-8.0),
-        Kilowatts(5.0)
+        Kilowatts(5.0),
       )
     }
 
@@ -413,10 +413,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(3.0),
         Kilowatts(-7.0),
-        Kilowatts(12.0)
+        Kilowatts(12.0),
       )
     }
 
@@ -440,10 +440,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(-3.0),
         Kilowatts(-7.0),
-        Kilowatts(4.0)
+        Kilowatts(4.0),
       )
     }
 
@@ -467,10 +467,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(2.0),
         Kilowatts(-7.0),
-        Kilowatts(10.0)
+        Kilowatts(10.0),
       )
     }
 
@@ -494,10 +494,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(-2.0),
         Kilowatts(-7.0),
-        Kilowatts(4.0)
+        Kilowatts(4.0),
       )
     }
 
@@ -521,10 +521,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(3.0),
         Kilowatts(2.0),
-        Kilowatts(14.0)
+        Kilowatts(14.0),
       )
     }
 
@@ -548,10 +548,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(-3.0),
         Kilowatts(-16.0),
-        Kilowatts(-1.0)
+        Kilowatts(-1.0),
       )
     }
   }
@@ -580,10 +580,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(4.0),
         Kilowatts(4.0),
-        Kilowatts(12.0)
+        Kilowatts(12.0),
       )
     }
 
@@ -607,10 +607,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(3.0),
         Kilowatts(2.0),
-        Kilowatts(12.0)
+        Kilowatts(12.0),
       )
     }
 
@@ -634,10 +634,10 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
         )
       )
 
-      actualResult shouldBe (
+      actualResult shouldBe MinMaxFlexOptions(
         Kilowatts(-4.0),
         Kilowatts(-6.0),
-        Kilowatts(2.0)
+        Kilowatts(2.0),
       )
     }
   }
