@@ -32,7 +32,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.Kilovolts
 
-/** Methods to support the setup of a simona simulation
+/** Methods to support the setup of a simona simulation.
   *
   * @version 0.1
   * @since 02.07.20
@@ -45,20 +45,20 @@ trait SetupHelper extends LazyLogging {
     * [[RefSystem]] to use being defined in the config.
     *
     * @param subGridContainer
-    *   Container of all models for this sub grid
+    *   Container of all models for this sub grid.
     * @param subGridToActorRef
     *   Mapping from sub grid number to [[edu.ie3.simona.agent.grid.GridAgent]]
-    *   's [[ActorRef]]
+    *   's [[ActorRef]].
     * @param gridGates
-    *   [[Set]] of all [[SubGridGate]] s connecting this sub grid with its
-    *   ancestors and children
+    *   [[Set]] of all [[SubGridGate]] s connecting this sub grid with its.
+    *   ancestors and children.
     * @param configRefSystems
-    *   Collection of reference systems defined in config
+    *   Collection of reference systems defined in config.
     * @param thermalGrids
-    *   Collection of applicable thermal grids
+    *   Collection of applicable thermal grids.
     * @return
     *   Initialization data for the [[edu.ie3.simona.agent.grid.GridAgent]]
-    *   representing this sub grid
+    *   representing this sub grid.
     */
   def buildGridAgentInitData(
       subGridContainer: SubGridContainer,
@@ -95,16 +95,16 @@ trait SetupHelper extends LazyLogging {
   }
 
   /** Maps the [[SubGridGate]] s of a given sub grid to the corresponding actor
-    * references
+    * references.
     *
     * @param subGridToActorRefMap
-    *   Mapping from sub grid number to actor reference
+    *   Mapping from sub grid number to actor reference.
     * @param subGridGates
-    *   Gates from the given sub grid to other sub grids
+    *   Gates from the given sub grid to other sub grids.
     * @param currentSubGrid
-    *   Current grid number (only for building exception message)
+    *   Current grid number (only for building exception message).
     * @return
-    *   A mapping from [[SubGridGate]] to corresponding actor reference
+    *   A mapping from [[SubGridGate]] to corresponding actor reference.
     */
   def buildGateToActorRef(
       subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
@@ -140,16 +140,16 @@ trait SetupHelper extends LazyLogging {
       .toMap
 
   /** Get the actor reference from the map or throw an exception, if it is not
-    * apparent
+    * apparent.
     *
     * @param subGridToActorRefMap
-    *   Mapping from sub grid number to actor reference
+    *   Mapping from sub grid number to actor reference.
     * @param currentSubGrid
-    *   Current grid number (only for building exception message)
+    *   Current grid number (only for building exception message).
     * @param queriedSubGrid
-    *   The sub grid to look for
+    *   The sub grid to look for.
     * @return
-    *   The actor reference of the sub grid to look for
+    *   The actor reference of the sub grid to look for.
     */
   private def getActorRef(
       subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
@@ -169,11 +169,11 @@ trait SetupHelper extends LazyLogging {
     * [[SubGridContainer]] within the information provided by config.
     *
     * @param configRefSystems
-    *   Collection of reference systems definitions from config
+    *   Collection of reference systems definitions from config.
     * @param subGridContainer
-    *   Container model for the respective sub grid
+    *   Container model for the respective sub grid.
     * @return
-    *   The reference system to use
+    *   The reference system to use.
     */
   private def getRefSystem(
       configRefSystems: ConfigRefSystems,
@@ -224,14 +224,14 @@ trait SetupHelper extends LazyLogging {
 
   /** Build the result file hierarchy based on the provided configuration file.
     * The provided type safe config must be able to be parsed as
-    * [[SimonaConfig]], otherwise an exception is thrown
+    * [[SimonaConfig]], otherwise an exception is thrown.
     *
     * @param typeSafeConfig
-    *   All configuration parameters
+    *   All configuration parameters.
     * @param simonaConfig
-    *   The configuration for SIMONA
+    *   The configuration for SIMONA.
     * @return
-    *   The resulting result file hierarchy
+    *   The resulting result file hierarchy.
     */
   def buildResultFileHierarchy(
       typeSafeConfig: Config,
@@ -264,12 +264,12 @@ trait SetupHelper extends LazyLogging {
 object SetupHelper {
 
   /** Determine a comprehensive collection of all [[ResultEntity]] classes, that
-    * will have to be considered
+    * will have to be considered.
     *
     * @param outputConfig
-    *   configuration to consider
+    *   configuration to consider.
     * @return
-    *   Set of [[ResultEntity]] classes
+    *   Set of [[ResultEntity]] classes.
     */
   private def allResultEntitiesToWrite(
       outputConfig: OutputConfig
