@@ -71,7 +71,10 @@ class RunSimonaStandaloneIT
       ConfigFailFast.check(simonaConfig)
 
       val resultFileHierarchy =
-        SimonaStandaloneSetup.buildResultFileHierarchy(simonaConfig)
+        SimonaStandaloneSetup.buildResultFileHierarchy(
+          parsedConfig,
+          simonaConfig,
+        )
 
       val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
 
