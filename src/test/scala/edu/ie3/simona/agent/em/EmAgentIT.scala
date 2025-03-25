@@ -51,7 +51,10 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
 import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.matchers.should
@@ -105,7 +108,7 @@ class EmAgentIT
 
   private implicit val quantityTolerance: Double = 1e-10d
 
-  private implicit val classicSystem: ActorSystem = system.toClassic
+  private implicit val classicSystem: ActorSystem = system.classicSystem
 
   "An em agent" when {
     "having load, pv and storage agents connected" should {
@@ -119,9 +122,8 @@ class EmAgentIT
 
         val participantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
-          services =
-            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          primaryServiceProxy = primaryServiceProxy.ref,
+          services = Map(ServiceType.WeatherService -> weatherService.ref),
           resultListener = Iterable(resultListener.ref),
         )
 
@@ -197,24 +199,24 @@ class EmAgentIT
 
         primaryServiceProxy.receiveMessages(3) should contain allOf (
           PrimaryServiceRegistrationMessage(
-            loadAgent.toClassic,
+            loadAgent,
             loadInput.getUuid,
           ),
           PrimaryServiceRegistrationMessage(
-            pvAgent.toClassic,
+            pvAgent,
             pvInput.getUuid,
           ),
           PrimaryServiceRegistrationMessage(
-            storageAgent.toClassic,
+            storageAgent,
             storageInput.getUuid,
           )
         )
 
         // load
-        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // pv
-        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // deal with weather service registration
         weatherService.expectMessage(
@@ -225,15 +227,10 @@ class EmAgentIT
           )
         )
 
-        pvAgent ! RegistrationSuccessfulMessage(
-          weatherService.ref.toClassic,
-          0L,
-        )
+        pvAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
 
         // storage
-        storageAgent ! RegistrationFailedMessage(
-          primaryServiceProxy.ref.toClassic
-        )
+        storageAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
@@ -249,7 +246,7 @@ class EmAgentIT
 
         pvAgent ! DataProvision(
           0,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(200d),
             WattsPerSquareMeter(100d),
@@ -285,7 +282,7 @@ class EmAgentIT
 
         pvAgent ! DataProvision(
           7200,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(45d),
             WattsPerSquareMeter(140d),
@@ -343,7 +340,7 @@ class EmAgentIT
         // it got cloudy now...
         pvAgent ! DataProvision(
           14400,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0.5d),
             WattsPerSquareMeter(2d),
@@ -381,9 +378,8 @@ class EmAgentIT
 
         val participantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
-          services =
-            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          primaryServiceProxy = primaryServiceProxy.ref,
+          services = Map(ServiceType.WeatherService -> weatherService.ref),
           resultListener = Iterable(resultListener.ref),
         )
 
@@ -471,20 +467,20 @@ class EmAgentIT
 
         primaryServiceProxy.receiveMessages(2) should contain allOf (
           PrimaryServiceRegistrationMessage(
-            loadAgent.toClassic,
+            loadAgent,
             loadInput.getUuid,
           ),
           PrimaryServiceRegistrationMessage(
-            pvAgent.toClassic,
+            pvAgent,
             pvInput.getUuid,
           )
         )
 
         // load
-        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // pv
-        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // deal with weather service registration
         weatherService.expectMessage(
@@ -495,10 +491,7 @@ class EmAgentIT
           )
         )
 
-        pvAgent ! RegistrationSuccessfulMessage(
-          weatherService.ref.toClassic,
-          0L,
-        )
+        pvAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
@@ -507,30 +500,25 @@ class EmAgentIT
 
         primaryServiceProxy.expectMessage(
           PrimaryServiceRegistrationMessage(
-            heatPumpAgent.ref,
+            heatPumpAgent.toTyped,
             adaptedHpInputModel.getUuid,
           )
         )
-        heatPumpAgent ! RegistrationFailedMessage(
-          primaryServiceProxy.ref.toClassic
-        )
+        heatPumpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         weatherService.expectMessage(
           RegisterForWeatherMessage(
-            heatPumpAgent.ref,
+            heatPumpAgent.toTyped,
             adaptedHpInputModel.getNode.getGeoPosition.getY,
             adaptedHpInputModel.getNode.getGeoPosition.getX,
           )
         )
 
-        heatPumpAgent ! RegistrationSuccessfulMessage(
-          weatherService.ref.toClassic,
-          0L,
-        )
+        heatPumpAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
 
-        scheduler.expectMessage(Completion(heatPumpAgent))
+        scheduler.expectMessage(Completion(heatPumpAgent.ref.toTyped))
 
-        val weatherDependentAgents = Seq(pvAgent.toClassic, heatPumpAgent)
+        val weatherDependentAgents = Seq(pvAgent, heatPumpAgent.ref.toTyped)
 
         /* TICK 0
          LOAD: 0.269 kW
@@ -545,7 +533,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             0,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               WattsPerSquareMeter(200d),
               WattsPerSquareMeter(100d),
@@ -583,7 +571,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             7200,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               WattsPerSquareMeter(45d),
               WattsPerSquareMeter(140d),
@@ -621,7 +609,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             10800,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               WattsPerSquareMeter(45d),
               WattsPerSquareMeter(140d),
@@ -660,7 +648,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             11000,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               WattsPerSquareMeter(0.5d),
               WattsPerSquareMeter(2d),
@@ -698,7 +686,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             11500,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               // Same irradiation, but different angle of the sun
               WattsPerSquareMeter(2d),
@@ -737,9 +725,8 @@ class EmAgentIT
 
         val participantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
-          services =
-            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          primaryServiceProxy = primaryServiceProxy.ref,
+          services = Map(ServiceType.WeatherService -> weatherService.ref),
           resultListener = Iterable(resultListener.ref),
         )
 
@@ -802,41 +789,38 @@ class EmAgentIT
         emAgentActivation ! Activation(INIT_SIM_TICK)
 
         // load
-        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // pv
-        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         primaryServiceProxy.receiveMessages(2) should contain allOf (
           PrimaryServiceRegistrationMessage(
-            loadAgent.toClassic,
+            loadAgent,
             loadInputWithLimitedOperationTime.getUuid,
           ),
           PrimaryServiceRegistrationMessage(
-            pvAgent.toClassic,
+            pvAgent,
             pvInputLimitedOperationTime.getUuid,
           )
         )
 
         // load
-        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // pv
-        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
-            pvAgent.toClassic,
+            pvAgent,
             pvInputLimitedOperationTime.getNode.getGeoPosition.getY,
             pvInputLimitedOperationTime.getNode.getGeoPosition.getX,
           )
         )
 
-        pvAgent ! RegistrationSuccessfulMessage(
-          weatherService.ref.toClassic,
-          0L,
-        )
+        pvAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
@@ -853,7 +837,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             0,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               WattsPerSquareMeter(0d),
               WattsPerSquareMeter(0d),
@@ -887,7 +871,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             3600,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               WattsPerSquareMeter(0d),
               WattsPerSquareMeter(0d),
@@ -917,7 +901,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             7200,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               WattsPerSquareMeter(300d),
               WattsPerSquareMeter(200d),

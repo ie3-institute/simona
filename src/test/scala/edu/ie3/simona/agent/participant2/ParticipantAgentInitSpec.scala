@@ -26,25 +26,17 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexActivation,
-  FlexCompletion,
-  FlexResponse,
-  RegisterControlledAsset,
-  ScheduleFlexActivation,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
+import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.Each
 
 import java.time.ZonedDateTime
@@ -97,7 +89,7 @@ class ParticipantAgentInitSpec
 
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryService.ref.toClassic,
+          primaryServiceProxy = primaryService.ref,
           services = Map.empty,
           resultListener = Iterable(resultListener.ref),
         )
@@ -127,14 +119,12 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
 
-        participantAgent ! RegistrationFailedMessage(
-          primaryService.ref.toClassic
-        )
+        participantAgent ! RegistrationFailedMessage(primaryService.ref)
 
         scheduler.expectMessage(Completion(activationRef, Some(operationStart)))
 
@@ -150,7 +140,7 @@ class ParticipantAgentInitSpec
 
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryService.ref.toClassic,
+          primaryServiceProxy = primaryService.ref,
           services = Map.empty,
           resultListener = Iterable(resultListener.ref),
         )
@@ -180,13 +170,13 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
-          primaryService.ref.toClassic,
+          primaryService.ref,
           15 * 3600L,
           ActivePowerExtra,
         )
@@ -210,7 +200,7 @@ class ParticipantAgentInitSpec
 
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryService.ref.toClassic,
+          primaryServiceProxy = primaryService.ref,
           services = Map.empty,
           resultListener = Iterable(resultListener.ref),
         )
@@ -248,14 +238,12 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
 
-        participantAgent ! RegistrationFailedMessage(
-          primaryService.ref.toClassic
-        )
+        participantAgent ! RegistrationFailedMessage(primaryService.ref)
 
         em.expectMessage(
           FlexCompletion(
@@ -277,7 +265,7 @@ class ParticipantAgentInitSpec
 
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryService.ref.toClassic,
+          primaryServiceProxy = primaryService.ref,
           services = Map.empty,
           resultListener = Iterable(resultListener.ref),
         )
@@ -315,13 +303,13 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
-          primaryService.ref.toClassic,
+          primaryService.ref,
           15 * 3600L,
           ActivePowerExtra,
         )
@@ -367,7 +355,7 @@ class ParticipantAgentInitSpec
 
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryService.ref.toClassic,
+          primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
           resultListener = Iterable(resultListener.ref),
         )
@@ -397,14 +385,12 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
 
-        participantAgent ! RegistrationFailedMessage(
-          primaryService.ref.toClassic
-        )
+        participantAgent ! RegistrationFailedMessage(primaryService.ref)
 
         service.expectMessage(
           RegisterForWeatherMessage(
@@ -415,7 +401,7 @@ class ParticipantAgentInitSpec
         )
 
         participantAgent ! RegistrationSuccessfulMessage(
-          service.ref.toClassic,
+          service.ref,
           12 * 3600L,
         )
 
@@ -434,7 +420,7 @@ class ParticipantAgentInitSpec
 
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryService.ref.toClassic,
+          primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
           resultListener = Iterable(resultListener.ref),
         )
@@ -464,13 +450,13 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
-          primaryService.ref.toClassic,
+          primaryService.ref,
           // no activation expected for this tick, since it is
           // outside the operation interval
           15 * 3600L,
@@ -499,7 +485,7 @@ class ParticipantAgentInitSpec
 
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryService.ref.toClassic,
+          primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
           resultListener = Iterable(resultListener.ref),
         )
@@ -537,14 +523,12 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
 
-        participantAgent ! RegistrationFailedMessage(
-          primaryService.ref.toClassic
-        )
+        participantAgent ! RegistrationFailedMessage(primaryService.ref)
 
         service.expectMessage(
           RegisterForWeatherMessage(
@@ -555,7 +539,7 @@ class ParticipantAgentInitSpec
         )
 
         participantAgent ! RegistrationSuccessfulMessage(
-          service.ref.toClassic,
+          service.ref,
           12 * 3600L,
         )
 
@@ -579,7 +563,7 @@ class ParticipantAgentInitSpec
 
         val refs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryService.ref.toClassic,
+          primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
           resultListener = Iterable(resultListener.ref),
         )
@@ -617,13 +601,13 @@ class ParticipantAgentInitSpec
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
-            participantAgent.ref.toClassic,
+            participantAgent,
             mockInput.electricalInputModel.getUuid,
           )
         )
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
-          primaryService.ref.toClassic,
+          primaryService.ref,
           // no activation expected for this tick, since it is
           // outside the operation interval
           15 * 3600L,

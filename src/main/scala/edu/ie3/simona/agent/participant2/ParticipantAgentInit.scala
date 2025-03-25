@@ -31,9 +31,7 @@ import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import squants.Dimensionless
 
 import java.time.ZonedDateTime
@@ -59,7 +57,7 @@ object ParticipantAgentInit {
     */
   final case class ParticipantRefs(
       gridAgent: ActorRef[GridAgent.Request],
-      primaryServiceProxy: ClassicRef,
+      primaryServiceProxy: ActorRef[ServiceMessage],
       services: Map[ServiceType, ActorRef[_ >: ServiceMessage]],
       resultListener: Iterable[ActorRef[ResultEvent]],
   )
@@ -171,7 +169,7 @@ object ParticipantAgentInit {
         if activation.tick == INIT_SIM_TICK =>
       // first, check whether we're just supposed to replay primary data time series
       participantRefs.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        ctx.self.toClassic,
+        ctx.self,
         inputContainer.electricalInputModel.getUuid,
       )
 
@@ -207,7 +205,8 @@ object ParticipantAgentInit {
           ),
         ) =>
       // we're supposed to replay primary data, initialize accordingly
-      val expectedFirstData = Map(serviceRef -> firstDataTick)
+      val expectedFirstData: Map[ActorRef[_ >: ServiceMessage], Long] =
+        Map(serviceRef -> firstDataTick)
 
       completeInitialization(
         ParticipantModelShell.createForPrimaryData(
@@ -256,7 +255,6 @@ object ParticipantAgentInit {
                   s"${modelShell.identifier}: Service of type $serviceType is not available."
                 ),
               )
-              .toClassic
           )
           .toMap
 
@@ -286,7 +284,7 @@ object ParticipantAgentInit {
       participantRef: ActorRef[Request],
       modelShell: ParticipantModelShell[_, _],
       serviceType: ServiceType,
-      serviceRef: ClassicRef,
+      serviceRef: ActorRef[_ >: ServiceMessage],
   ): Unit =
     serviceType match {
       case ServiceType.WeatherService =>
@@ -324,8 +322,8 @@ object ParticipantAgentInit {
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
-      expectedRegistrations: Set[ClassicRef],
-      expectedFirstData: Map[ClassicRef, Long] = Map.empty,
+      expectedRegistrations: Set[ActorRef[_ >: ServiceMessage]],
+      expectedFirstData: Map[ActorRef[_ >: ServiceMessage], Long] = Map.empty,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] =
     Behaviors.receivePartial {
@@ -369,7 +367,7 @@ object ParticipantAgentInit {
   private def completeInitialization(
       modelShell: ParticipantModelShell[_, _],
       notifierConfig: NotifierConfig,
-      expectedData: Map[ClassicRef, Long],
+      expectedData: Map[ActorRef[_ >: ServiceMessage], Long],
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],

@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant2
 
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   ActivationRequest,
@@ -15,6 +14,8 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   NoDataProvision,
 }
 import edu.ie3.simona.agent.participant2.ParticipantInputHandler.ReceivedData
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import org.apache.pekko.actor.typed.ActorRef
 
 /** This class holds received data, knows what data is expected and can thus
   * decide whether all input requirements have been fulfilled.
@@ -30,8 +31,8 @@ import edu.ie3.simona.agent.participant2.ParticipantInputHandler.ReceivedData
   *   applicable. This is emptied after each tick is completed.
   */
 final case class ParticipantInputHandler(
-    expectedData: Map[ClassicRef, Long],
-    receivedData: Map[ClassicRef, ReceivedData],
+    expectedData: Map[ActorRef[_ >: ServiceMessage], Long],
+    receivedData: Map[ActorRef[_ >: ServiceMessage], ReceivedData],
     activation: Option[ActivationRequest],
 ) {
 
@@ -159,7 +160,9 @@ object ParticipantInputHandler {
     * @return
     *   A new [[ParticipantInputHandler]].
     */
-  def apply(expectedData: Map[ClassicRef, Long]): ParticipantInputHandler =
+  def apply(
+      expectedData: Map[ActorRef[_ >: ServiceMessage], Long]
+  ): ParticipantInputHandler =
     new ParticipantInputHandler(
       expectedData = expectedData,
       receivedData = Map.empty,

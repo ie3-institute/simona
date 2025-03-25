@@ -26,14 +26,7 @@ import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData,
 }
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
-  DataProvision,
-  GridSimulationFinished,
-  PrimaryRegistrationSuccessfulMessage,
-  RegistrationFailedMessage,
-  RegistrationResponseMessage,
-  RequestAssetPowerMessage,
-}
+import edu.ie3.simona.agent.participant2.ParticipantAgent._
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.{
@@ -61,6 +54,10 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Power}
@@ -131,7 +128,7 @@ abstract class ParticipantAgent[
        * that will confirm, otherwise, a failed registration is announced. */
       holdTick(INIT_SIM_TICK)
       initStateData.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        context.self,
+        context.self.toTyped,
         initStateData.inputModel.electricalInputModel.getUuid,
       )
       goto(HandleInformation) using ParticipantInitializingStateData(
@@ -285,7 +282,7 @@ abstract class ParticipantAgent[
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        serviceRef -> Some(nextTick),
+        serviceRef.toClassic -> Some(nextTick),
         scheduler,
       )
 
@@ -358,14 +355,14 @@ abstract class ParticipantAgent[
             isYetTriggered,
           ),
         ) =>
-      if (data.contains(msg.serviceRef)) {
+      if (data.contains(msg.serviceRef.toClassic)) {
         /* Update the yet received information */
-        val updatedData = data + (msg.serviceRef -> Some(msg.data))
+        val updatedData = data + (msg.serviceRef.toClassic -> Some(msg.data))
 
         /* Depending on if a next data tick can be foreseen, either update the entry in the base state data or remove
          * it */
         val foreseenDataTicks =
-          baseStateData.foreseenDataTicks + (msg.serviceRef -> msg.nextDataTick)
+          baseStateData.foreseenDataTicks + (msg.serviceRef.toClassic -> msg.nextDataTick)
         val updatedBaseStateData = BaseStateData.updateBaseStateData(
           baseStateData,
           baseStateData.resultValueStore,

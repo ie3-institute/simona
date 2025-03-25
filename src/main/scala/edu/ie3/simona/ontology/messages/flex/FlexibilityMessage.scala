@@ -142,8 +142,8 @@ object FlexibilityMessage {
     *   next second after the current tick.
     * @param requestAtTick
     *   Optionally the tick at which flex options are foreseen to have changed,
-    * i.e. the tick at which the controlled asset model would like to be
-    * activated at the latest.
+    *   i.e. the tick at which the controlled asset model would like to be
+    *   activated at the latest.
     */
   final case class FlexCompletion(
       override val modelUuid: UUID,
