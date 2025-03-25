@@ -27,7 +27,10 @@ import java.util.UUID
 /** Collections of all messages, that are send to and from the different
   * services
   */
-sealed trait ServiceMessage extends EmInternal with EvInternal with WeatherInternal
+sealed trait ServiceMessage
+    extends EmInternal
+    with EvInternal
+    with WeatherInternal
 
 object ServiceMessage {
 

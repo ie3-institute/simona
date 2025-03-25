@@ -9,7 +9,7 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.model.EmSetPointResult
+import edu.ie3.simona.api.data.em.model.{EmSetPointResult, FlexRequestResult}
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.api.data.em.{ExtEmDataConnection, NoSetPointValue}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
@@ -18,9 +18,19 @@ import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EmMessage
-import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{RegisterForEmDataService, ServiceRegistrationMessage, ServiceResponseMessage}
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{
+  WrappedFlexRequest,
+  WrappedFlexResponse,
+}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  RegisterForEmDataService,
+  ServiceRegistrationMessage,
+  ServiceResponseMessage,
+}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceBaseStateData,
+}
 import edu.ie3.simona.service.{ExtDataSupport, TypedSimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -38,7 +48,11 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Power => PsdmPower}
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.{
+  ListHasAsScala,
+  MapHasAsJava,
+  MapHasAsScala,
+}
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 import scala.util.{Failure, Success, Try}
 
@@ -105,8 +119,12 @@ object ExtEmDataService
       flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
       extEmDataMessage: Option[EmDataMessageFromExt] = None,
       toSchedule: Map[UUID, ScheduleFlexActivation] = Map.empty,
-      flexOptionResponse: ReceiveHierarchicalDataMap[UUID, (UUID, FlexOptionsResult)] =
-      ReceiveHierarchicalDataMap.empty,
+      flexRequest: ReceiveHierarchicalDataMap[UUID, Boolean] =
+        ReceiveHierarchicalDataMap.empty(false),
+      flexOptionResponse: ReceiveHierarchicalDataMap[
+        UUID,
+        (UUID, FlexOptionsResult),
+      ] = ReceiveHierarchicalDataMap.empty,
       setPointResponse: ReceiveDataMap[UUID, EmSetPointResult] =
         ReceiveDataMap.empty,
   ) extends ServiceBaseStateData
@@ -116,8 +134,6 @@ object ExtEmDataService
       uuidToRef: Map[UUID, ActorRef[EmAgent.Request]] = Map.empty,
       uuidToFlexResponse: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
       flexResponseToUuid: Map[ActorRef[FlexResponse], UUID] = Map.empty,
-      parentRefToRef: Map[ActorRef[FlexResponse], ActorRef[EmAgent.Request]] =
-        Map.empty,
   ) {
     def add(model: UUID, ref: ActorRef[EmAgent.Request]): EmHierarchy = copy(
       uuidToRef = uuidToRef + (model -> ref),
@@ -135,7 +151,6 @@ object ExtEmDataService
         refToUuid = refToUuid + (ref -> model),
         uuidToFlexResponse = uuidToFlexResponse + (model -> parent),
         flexResponseToUuid = flexResponseToUuid + (parent -> model),
-        parentRefToRef = parentRefToRef + (parent -> ref),
       )
     }
 
@@ -169,7 +184,6 @@ object ExtEmDataService
 
           scheduleFlexActivation.scheduleKey.foreach(_.unlock())
       }
-
 
   }
 
@@ -256,16 +270,16 @@ object ExtEmDataService
   )(implicit serviceStateData: ExtEmDataStateData): ExtEmDataStateData = {
     val hierarchy = serviceStateData.emHierarchy
 
-    val updatedDataMap = serviceStateData.flexOptionResponse.updateStructure(
-          parentUuid,
-          modelUuid
-        )
+    val updatedFlexRequest =
+      serviceStateData.flexRequest.updateStructure(parentUuid, modelUuid)
+    val updatedFlexResponse =
+      serviceStateData.flexOptionResponse.updateStructure(parentUuid, modelUuid)
 
     val updatedHierarchy = parentEm match {
       case Some(parent) =>
         hierarchy.add(modelUuid, modelActorRef, parent)
       case None =>
-        hierarchy.add(modelUuid, modelActorRef)
+        hierarchy.add(modelUuid, modelActorRef, modelActorRef)
     }
 
     if (parentEm.isEmpty) {
@@ -278,7 +292,8 @@ object ExtEmDataService
         serviceStateData.uuidToFlexAdapter + (modelUuid -> flexAdapter),
       flexAdapterToUuid =
         serviceStateData.flexAdapterToUuid + (flexAdapter -> modelUuid),
-      flexOptionResponse = updatedDataMap
+      flexRequest = updatedFlexRequest,
+      flexOptionResponse = updatedFlexResponse,
     )
   }
 
@@ -301,30 +316,33 @@ object ExtEmDataService
 
     val updatedStateData = serviceStateData.extEmDataMessage.getOrElse(
       throw ServiceException(
-        "ExtEMDataService was triggered without ExtEmDataMessage available"
+        "ExtEmDataService was triggered without ExtEmDataMessage available"
       )
     ) match {
-      case requestEmFlexResults: RequestEmFlexResults =>
-        ctx.log.warn(s"$requestEmFlexResults")
+      case provideFlexRequests: ProvideFlexRequestData =>
+        ctx.log.warn(s"$provideFlexRequests")
 
         // entities for which flex options are requested
-        val emEntities: Set[UUID] = requestEmFlexResults.emEntities().asScala.keys.toSet
+        val emEntities: Set[UUID] = provideFlexRequests
+          .flexRequests()
+          .asScala
+          .flatMap { case (_, v) => v.asScala }
+          .toSet
         val uuidToRef = serviceStateData.uuidToFlexAdapter
         val refs = emEntities.map(uuidToRef)
 
         log.warn(s"Em refs: $refs")
         refs.foreach(_ ! FlexActivation(tick))
 
-        updatedTick.copy(extEmDataMessage = None)
-
-      case requestEmSetPoints: RequestEmSetPoints =>
-        ctx.log.warn(s"$requestEmSetPoints")
-
-        val uuids = requestEmSetPoints.emEntities().asScala.toSet
+        val updatedFlexRequest =
+          serviceStateData.flexRequest.addSubKeysToExpectedKeys(emEntities)
+        val updatedFlexOptionResponse =
+          serviceStateData.flexOptionResponse.addExpectedKeys(emEntities)
 
         updatedTick.copy(
           extEmDataMessage = None,
-          setPointResponse = ReceiveDataMap(uuids),
+          flexRequest = updatedFlexRequest,
+          flexOptionResponse = updatedFlexOptionResponse,
         )
 
       case provideFlexOptions: ProvideEmFlexOptionData =>
@@ -336,6 +354,16 @@ object ExtEmDataService
         ctx.log.warn(s"$providedEmData")
 
         announceEmSetPoints(tick, providedEmData)(updatedTick, ctx)
+
+      case requestEmSetPoints: RequestEmSetPoints =>
+        ctx.log.warn(s"$requestEmSetPoints")
+
+        val uuids = requestEmSetPoints.emEntities().asScala.toSet
+
+        updatedTick.copy(
+          extEmDataMessage = None,
+          setPointResponse = ReceiveDataMap(uuids),
+        )
     }
 
     (updatedStateData, None)
@@ -355,12 +383,12 @@ object ExtEmDataService
       .foreach { case (agent, flexOptions) =>
         hierarchy.getResponseRef(agent) match {
           case Some(receiver) =>
-            flexOptions.asScala.foreach { flexOption =>
+            flexOptions.asScala.foreach { case (sender, options) =>
               receiver ! ProvideMinMaxFlexOptions(
-                flexOption.sender,
-                flexOption.pRef.toSquants,
-                flexOption.pMin.toSquants,
-                flexOption.pMax.toSquants,
+                sender,
+                options.pRef.toSquants,
+                options.pMin.toSquants,
+                options.pMax.toSquants,
               )
             }
 
@@ -495,13 +523,16 @@ object ExtEmDataService
         case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
           serviceStateData.flexOptionResponse.addData(
             modelUuid,
-            (uuid, new FlexOptionsResult(
-              serviceStateData.startTime, // TODO: Fix this
-              modelUuid,
-              min.toQuantity,
-              ref.toQuantity,
-              max.toQuantity,
-            )),
+            (
+              uuid,
+              new FlexOptionsResult(
+                serviceStateData.startTime, // TODO: Fix this
+                modelUuid,
+                min.toQuantity,
+                ref.toQuantity,
+                max.toQuantity,
+              ),
+            ),
           )
 
         case _ =>
@@ -515,7 +546,7 @@ object ExtEmDataService
 
         val (data, updatedFlexOptionResponse) = updated.getFinishedData
 
-        serviceStateData.extEmDataConnection.queueExtResponseMsg(
+        queueExtResponseMsg(
           new FlexOptionsResponse(
             data.map { case (entity, (_, value)) => entity -> value }.asJava
           )
@@ -525,7 +556,7 @@ object ExtEmDataService
           flexOptionResponse = updatedFlexOptionResponse
         )
       } else {
-       // responses are still incomplete
+        // responses are still incomplete
         serviceStateData.copy(
           flexOptionResponse = updated
         )
@@ -572,11 +603,41 @@ object ExtEmDataService
 
     if (flexActivation.tick == INIT_SIM_TICK) {
       receiver ! flexActivation
-    } else {
-      log.warn(s"Unhandled: $flexActivation")
-    }
 
-    serviceStateData
+      serviceStateData
+    } else {
+      val uuid = serviceStateData.flexAdapterToUuid(receiver)
+
+      log.warn(s"Receiver: $uuid")
+
+      val updated = serviceStateData.flexRequest.addData(
+        uuid,
+        true,
+      )
+
+      log.warn(s"$updated")
+
+      if (updated.hasCompletedKeys) {
+
+        val (dataMap, updatedFlexRequest) = updated.getFinishedData
+
+        log.warn(s"Data to be send: $dataMap")
+
+        val map = dataMap.map { case (key, _) =>
+          key ->
+            new FlexRequestResult(
+              flexActivation.tick.toDateTime(serviceStateData.startTime),
+              key,
+            )
+        }
+
+        queueExtResponseMsg(new FlexRequestResponse(map.asJava))
+
+        serviceStateData.copy(flexRequest = updatedFlexRequest)
+      } else {
+        serviceStateData.copy(flexRequest = updated)
+      }
+    }
   }
 
   private def handleFlexControl(
@@ -623,7 +684,7 @@ object ExtEmDataService
       } else {
         // all responses received, forward them to external simulation in a bundle
 
-        serviceStateData.extEmDataConnection.queueExtResponseMsg(
+        queueExtResponseMsg(
           new EmSetPointDataResponse(updated.receivedData.asJava)
         )
 
@@ -633,4 +694,19 @@ object ExtEmDataService
       }
     }
   }
+
+  private def queueExtResponseMsg(
+      msg: EmDataResponseMessageToExt
+  )(implicit serviceStateData: ExtEmDataStateData): Unit = {
+    val flexRequests = serviceStateData.flexRequest.allCompleted
+    val flexOptions = serviceStateData.flexOptionResponse.allCompleted
+    val setPoints = serviceStateData.setPointResponse.isComplete
+
+    val isFinished = flexRequests && flexOptions && setPoints
+
+    val connection = serviceStateData.extEmDataConnection
+
+    connection.queueExtResponseMsg(msg, isFinished)
+  }
+
 }
