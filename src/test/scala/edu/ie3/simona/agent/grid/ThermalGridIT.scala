@@ -76,7 +76,7 @@ class ThermalGridIT
     with DefaultTestData
     with TestSpawnerTyped {
   private implicit val classicSystem: ActorSystem = system.toClassic
-  protected implicit val temperatureTolerance = 0.01
+  private implicit val temperatureTolerance: Double = 0.01
 
   private val resolution =
     simonaConfig.simona.powerflow.resolution.toSeconds
