@@ -34,17 +34,17 @@ object EmTools {
       flexCtrl: IssueFlexControl,
   ): Power =
     flexOptions match {
-      case flexOptions: MinMaxFlexOptions =>
+      case minMaxFlexOptions: MinMaxFlexOptions =>
         flexCtrl match {
           case IssuePowerControl(_, setPower) =>
             // sanity check: setPower is in range of latest flex options
-            checkSetPower(flexOptions, setPower)
+            checkSetPower(minMaxFlexOptions, setPower)
 
             setPower
 
           case IssueNoControl(_) =>
             // no override, take reference power
-            flexOptions.ref
+            minMaxFlexOptions.ref
         }
 
       case unknownFlexOpt =>
