@@ -131,7 +131,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
       forAll(testCases) { (time, jSol) =>
         When("the day angle is calculated")
-        val jCalc = pvModel.calcAngleJ(ZonedDateTime.parse(time))
+        val jCalc = PvModel.calcAngleJ(ZonedDateTime.parse(time))
 
         Then("result should match the test data")
         jCalc should approximate(Radians(jSol))
@@ -150,7 +150,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
       forAll(testCases) { (j, deltaSol) =>
         When("the declination angle is calculated")
-        val deltaCalc = pvModel.calcSunDeclinationDelta(Radians(j))
+        val deltaCalc = PvModel.calcSunDeclinationDelta(Radians(j))
 
         Then("result should match the test data")
         deltaCalc should approximate(Radians(deltaSol))
@@ -248,7 +248,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
       forAll(testCases) { (time, j, longitude, omegaSol) =>
         When("the hour angle is calculated")
-        val omegaCalc = pvModel.calcHourAngleOmega(
+        val omegaCalc = PvModel.calcHourAngleOmega(
           ZonedDateTime.parse(time),
           Radians(j),
           Radians(longitude),
@@ -275,7 +275,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       forAll(testCases) { (latitude, delta, omegaSSSol) =>
         When("the sunset angle is calculated")
         val omegaSSCalc =
-          pvModel.calcSunsetAngleOmegaSS(Radians(latitude), Radians(delta))
+          PvModel.calcSunsetAngleOmegaSS(Radians(latitude), Radians(delta))
 
         Then("result should match the test data")
         omegaSSCalc should approximate(Radians(omegaSSSol))
@@ -440,7 +440,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
       forAll(testCases) { (omega, delta, latitude, alphaSSol) =>
         When("the solar altitude angle is calculated")
-        val alphaSCalc = pvModel.calcSolarAltitudeAngleAlphaS(
+        val alphaSCalc = PvModel.calcSolarAltitudeAngleAlphaS(
           Radians(omega),
           Radians(delta),
           Radians(latitude),
@@ -461,7 +461,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
       forAll(testCases) { (alphaS, thetaZSol) =>
         When("the zenith angle is calculated")
-        val thetaZCalc = pvModel.calcZenithAngleThetaZ(Radians(alphaS))
+        val thetaZCalc = PvModel.calcZenithAngleThetaZ(Radians(alphaS))
 
         Then("result should match the test data")
         thetaZCalc should approximate(Radians(thetaZSol))
@@ -478,7 +478,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
       forAll(testCases) { (thetaZ, airMassSol) =>
         When("the air mass is calculated")
-        val airMassCalc = pvModel.calcAirMass(Radians(thetaZ))
+        val airMassCalc = PvModel.calcAirMass(Radians(thetaZ))
 
         Then("result should match the test data")
         airMassCalc shouldEqual airMassSol +- 1e-10 // the "approximate" function does not work for doubles, therefore the "shouldEqual" function is used
@@ -495,7 +495,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
       forAll(testCases) { (j, g0Sol) =>
         When("the extraterrestrial radiance is calculated")
-        val g0Calc = pvModel.calcExtraterrestrialRadianceG0(Radians(j))
+        val g0Calc = PvModel.calcExtraterrestrialRadianceG0(Radians(j))
 
         Then("result should match the test data")
         g0Calc should approximate(WattsPerSquareMeter(g0Sol))
@@ -515,68 +515,28 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         (43d, -14d, -22.5d, 45d, 15d,
           35.176193345578606393727080835951995075234213360724d), // Duffie
         (
-          51.516667d,
-          +18.4557514d,
-          -15.00225713d,
-          30d,
-          +0d,
-          14.420271449960715d,
+          51.516667d, +18.4557514d, -15.00225713d, 30d, +0d, 14.420271449960715d,
         ), // Iqbal
         (
-          51.516667d,
-          +18.4557514d,
-          -15.00225713d,
-          90d,
-          +0d,
-          58.65287310017624d,
+          51.516667d, +18.4557514d, -15.00225713d, 90d, +0d, 58.65287310017624d,
         ), // Iqbal
         (
-          35.0d,
-          +23.2320597d,
-          +30.00053311d,
-          45d,
-          10d,
-          39.62841449023577d,
+          35.0d, +23.2320597d, +30.00053311d, 45d, 10d, 39.62841449023577d,
         ), // Kalogirou - Solar Energy Engineering Example 2.7  ISBN 978-0-12-374501-9; DOI https://doi.org/10.1016/B978-0-12-374501-9.X0001-5
         (
-          35.0d,
-          +23.2320597d,
-          +30.00053311d,
-          45d,
-          90d,
-          18.946300807438607d,
+          35.0d, +23.2320597d, +30.00053311d, 45d, 90d, 18.946300807438607d,
         ), // Kalogirou - Solar Energy Engineering Example 2.7 changed to 90° panel azimuth to WEST
         (
-          35.0d,
-          +23.2320597d,
-          +74.648850625d,
-          45d,
-          90d,
-          21.95480347380729d,
+          35.0d, +23.2320597d, +74.648850625d, 45d, 90d, 21.95480347380729d,
         ), // Kalogirou - Solar Energy Engineering Example 2.7  90° panel azimuth to WEST at 17:00
         (
-          35.0d,
-          +23.2320597d,
-          +74.648850625d,
-          45d,
-          -90d,
-          109.00780288303966d,
+          35.0d, +23.2320597d, +74.648850625d, 45d, -90d, 109.00780288303966d,
         ), // Kalogirou - Solar Energy Engineering Example 2.7  90° panel azimuth to EAST at 17:00
         (
-          27.96d,
-          -17.51d,
-          -11.1d,
-          30d,
-          +10d,
-          22.384603601536398d,
+          27.96d, -17.51d, -11.1d, 30d, +10d, 22.384603601536398d,
         ), // Goswami Principles of Solar Engineering Example 2.7a
         (
-          -35.3d,
-          -17.51d,
-          -4.2d,
-          30d,
-          +170d,
-          14.882390116876563d,
+          -35.3d, -17.51d, -4.2d, 30d, +170d, 14.882390116876563d,
         ), // Goswami Principles of Solar Engineering Example 2.7b
         (40d, -11.6d, 82.5d, 60d, 0d, 79.11011928744357d),
         (40d, -11.6d, -82.5d, 60d, 0d,
@@ -600,7 +560,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           Given("using the input data")
 
           When("the angle of incidence is calculated")
-          val thetaG = pvModel.calcAngleOfIncidenceThetaG(
+          val thetaG = PvModel.calcAngleOfIncidenceThetaG(
             Degrees(deltaDeg),
             Degrees(latitudeDeg),
             Degrees(gammaEDeg),
@@ -651,7 +611,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           Given("using pre-calculated parameters")
 
           When("the angle of incidence is calculated")
-          val thetaG = pvModel.calcAngleOfIncidenceThetaG(
+          val thetaG = PvModel.calcAngleOfIncidenceThetaG(
             Degrees(deltaDeg),
             Degrees(latitudeDeg),
             Degrees(gammaEDeg),
@@ -705,12 +665,12 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           // Beam irradiance on a horizontal surface
           // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
           val gBeamH = 67.777778d
-          val omegaSS = pvModel.calcSunsetAngleOmegaSS(
+          val omegaSS = PvModel.calcSunsetAngleOmegaSS(
             Degrees(latitudeDeg),
             Degrees(deltaDeg),
           ) // Sunset angle
           val omegaSR = -omegaSS // Sunrise angle
-          val omegas = pvModel.calculateBeamOmegas(
+          val omegas = PvModel.calculateBeamOmegas(
             Degrees(thetaGDeg),
             Degrees(omegaDeg),
             omegaSS,
@@ -718,7 +678,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           ) // omega1 and omega2
 
           When("the beam irradiance is calculated")
-          val gBeamSCalc = pvModel.calcBeamIrradianceOnSlopedSurface(
+          val gBeamSCalc = PvModel.calcBeamIrradianceOnSlopedSurface(
             WattsPerSquareMeter(gBeamH),
             omegas,
             Degrees(deltaDeg),
@@ -764,7 +724,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           val gDifH = Megajoules(0.796).toWattHours
 
           When("the diffuse irradiance is calculated")
-          val gDifSCalc = pvModel.calcDiffuseIrradianceOnSlopedSurfacePerez(
+          val gDifSCalc = PvModel.calcDiffuseIrradianceOnSlopedSurfacePerez(
             WattsPerSquareMeter(gDifH),
             WattsPerSquareMeter(gBeamH),
             airMass,
@@ -795,7 +755,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         val gDifH = 213.61111d
 
         When("the ground reflection is calculated")
-        val gRefSCalc = pvModel.calcReflectedIrradianceOnSlopedSurface(
+        val gRefSCalc = PvModel.calcReflectedIrradianceOnSlopedSurface(
           WattsPerSquareMeter(gBeamH),
           WattsPerSquareMeter(gDifH),
           Degrees(gammaEDeg),

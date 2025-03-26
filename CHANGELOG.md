@@ -166,6 +166,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converting `WeatherService` to pekko typed [#1216](https://github.com/ie3-institute/simona/issues/1216)
 - Converting `PrimaryServiceWorker` to pekko typed [#1229](https://github.com/ie3-institute/simona/issues/1229)
 - Converting `PrimaryServiceProxy` to pekko typed [#1230](https://github.com/ie3-institute/simona/issues/1230)
+- Made some methods of `PvModel` static [#1217](https://github.com/ie3-institute/simona/issues/1217)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -228,6 +229,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix vn_simona time series mapping [#1288](https://github.com/ie3-institute/simona/issues/1288)
 - Fix hierarchical em structures leading to exception while initializing [#1293](https://github.com/ie3-institute/simona/issues/1293)
 - Fix failing `ExtEvDataServiceSpec` [#1297](https://github.com/ie3-institute/simona/issues/1297)
+- Fixed pekko config not written as output [#1302](https://github.com/ie3-institute/simona/issues/1302)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
