@@ -9,9 +9,12 @@ package edu.ie3.simona.sim.setup
 import edu.ie3.simona.api.data.ExtInputDataConnection
 import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
+import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
+import edu.ie3.simona.api.data.primarydata.ontology.PrimaryDataMessageFromExt
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
+import edu.ie3.simona.sim.setup.ExtSimSetupData.Input
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
@@ -21,20 +24,16 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
   * @param extSimAdapters
   *   All adapters to external simulations.
   * @param extPrimaryDataServices
-  *   Map: external primary data connections to service references.
+  *   Seq: external primary data connections to service references.
   * @param extDataServices
-  *   Map: external input data connection to service references.
+  *   Seq: external input data connection to service references.
   * @param extResultListeners
   *   Map: external result data connections to result data providers.
   */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ClassicRef],
-    extPrimaryDataServices: Seq[
-      (ExtPrimaryDataConnection, ActorRef[_ >: ServiceMessage])
-    ],
-    extDataServices: Seq[
-      (_ <: ExtInputDataConnection, ActorRef[_ >: ServiceMessage])
-    ],
+    extPrimaryDataServices: Seq[Input[PrimaryDataMessageFromExt]],
+    extDataServices: Seq[Input[_ <: DataMessageFromExt]],
     extResultListeners: Seq[(ExtResultDataConnection, ActorRef[_])],
 ) {
 
@@ -47,7 +46,7 @@ final case class ExtSimSetupData(
     )
 
   private[setup] def update(
-      connection: ExtInputDataConnection,
+      connection: ExtInputDataConnection[_],
       ref: ActorRef[_ >: ServiceMessage],
   ): ExtSimSetupData = connection match {
     case primaryConnection: ExtPrimaryDataConnection =>
@@ -71,8 +70,8 @@ final case class ExtSimSetupData(
     }
 
   def emDataService: Option[ActorRef[ServiceMessage]] =
-    extDataServices.collectFirst { case (_: ExtEmDataConnection, ref) =>
-      ref
+    extDataServices.collectFirst {
+      case (_: ExtEmDataConnection, ref: ActorRef[ServiceMessage]) => ref
     }
 
   def evDataConnection: Option[ExtEvDataConnection] =
@@ -97,6 +96,9 @@ final case class ExtSimSetupData(
 }
 
 object ExtSimSetupData {
+
+  type Input[T <: DataMessageFromExt] =
+    (ExtInputDataConnection[T], ActorRef[_ >: ServiceMessage])
 
   /** Returns an empty [[ExtSimSetupData]].
     */

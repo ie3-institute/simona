@@ -27,8 +27,8 @@ object ServiceMessage {
   final case class WrappedActivation(activation: Activation)
       extends ServiceMessage
 
-  final case class WrappedExternalMessage(
-      extMsg: DataMessageFromExt
+  final case class WrappedExternalMessage[D <: DataMessageFromExt](
+      extMsg: D
   ) extends ServiceMessage
 
   /** Service initialization data can sometimes only be constructed once the

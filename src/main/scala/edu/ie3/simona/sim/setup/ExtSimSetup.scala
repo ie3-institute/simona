@@ -11,6 +11,7 @@ import edu.ie3.simona.api.data.ExtInputDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
+import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.exceptions.ServiceException
@@ -23,11 +24,11 @@ import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
   TypedActorContextOps,
   TypedActorRefOps,
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -73,7 +74,7 @@ object ExtSimSetup {
 
       // creating the adapter data
       implicit val extSimAdapterData: ExtSimAdapterData =
-        new ExtSimAdapterData(extSimAdapter, args)
+        new ExtSimAdapterData(extSimAdapter.toTyped, args)
 
       Try {
         // sets up the external simulation
@@ -132,7 +133,8 @@ object ExtSimSetup {
       extSimAdapterData: ExtSimAdapterData,
       resolution: FiniteDuration,
   ): ExtSimSetupData = {
-    implicit val extSimAdapter: ClassicRef = extSimAdapterData.getAdapter
+    implicit val extSimAdapter: ActorRef[ControlResponseMessageFromExt] =
+      extSimAdapterData.getAdapter
 
     // the data connections this external simulation provides
     val connections = extSimulation.getDataConnections.asScala
@@ -197,18 +199,19 @@ object ExtSimSetup {
     *   The reference to the service.
     */
   private[setup] def setupInputService[
-      T <: ExtInputDataConnection,
+      T <: ExtInputDataConnection[D],
       M >: ServiceMessage,
+      D <: DataMessageFromExt,
   ](
       extInputDataConnection: T,
       behavior: Behavior[M],
-      adapterToExt: ActorRef[M] => Behavior[DataMessageFromExt],
+      adapterToExt: ActorRef[M] => Behavior[D],
       name: String,
       initData: T => InitializeServiceStateData,
   )(implicit
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-      extSimAdapter: ClassicRef,
+      extSimAdapter: ActorRef[ControlResponseMessageFromExt],
   ): ActorRef[M] = {
     val extDataService = context.spawn(
       behavior,
@@ -230,7 +233,7 @@ object ExtSimSetup {
     )
 
     extInputDataConnection.setActorRefs(
-      adapter.toClassic,
+      adapter,
       extSimAdapter,
     )
 

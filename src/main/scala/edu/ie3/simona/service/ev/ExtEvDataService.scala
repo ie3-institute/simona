@@ -14,7 +14,6 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
-import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{
   CriticalFailureException,
@@ -47,7 +46,7 @@ import scala.util.{Failure, Success, Try}
 
 object ExtEvDataService
     extends SimonaService[EvMessage]
-    with ExtDataSupport[EvMessage] {
+    with ExtDataSupport[EvMessage, EvDataMessageFromExt] {
 
   override type S = ExtEvStateData
 
@@ -334,14 +333,9 @@ object ExtEvDataService
   }
 
   override protected def handleDataMessage(
-      extMsg: DataMessageFromExt
+      extMsg: EvDataMessageFromExt
   )(implicit serviceStateData: S): S =
-    extMsg match {
-      case extEvMessage: EvDataMessageFromExt =>
-        serviceStateData.copy(
-          extEvMessage = Some(extEvMessage)
-        )
-    }
+    serviceStateData.copy(extEvMessage = Some(extMsg))
 
   override protected def handleDataResponseMessage(
       extResponseMsg: ServiceResponseMessage

@@ -22,7 +22,8 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
   *   the type of messages this service accepts
   */
 trait ExtDataSupport[
-    T >: ServiceMessage
+    T >: ServiceMessage,
+    D <: DataMessageFromExt,
 ] {
   this: SimonaService[T] =>
 
@@ -34,14 +35,14 @@ trait ExtDataSupport[
     * @return
     *   The behavior of the adapter.
     */
-  def adapter(service: ActorRef[T]): Behavior[DataMessageFromExt] =
-    Behaviors.receiveMessagePartial[DataMessageFromExt] {
+  def adapter(service: ActorRef[T]): Behavior[D] =
+    Behaviors.receiveMessagePartial[D] {
       case scheduleServiceActivation: ScheduleServiceActivation =>
         // TODO: Refactor this with scala3
         service ! scheduleServiceActivation
         Behaviors.same
 
-      case extMsg =>
+      case extMsg: D =>
         service ! WrappedExternalMessage(extMsg)
         Behaviors.same
     }
@@ -50,7 +51,7 @@ trait ExtDataSupport[
       stateData: S,
       constantData: ServiceConstantStateData,
   ): PartialFunction[(ActorContext[T], T), Behavior[T]] = {
-    case (_, WrappedExternalMessage(extMsg)) =>
+    case (_, WrappedExternalMessage(extMsg: D)) =>
       val updatedStateData = handleDataMessage(extMsg)(stateData)
 
       idle(updatedStateData, constantData)
@@ -72,7 +73,7 @@ trait ExtDataSupport[
     *   the updated state data
     */
   protected def handleDataMessage(
-      extMsg: DataMessageFromExt
+      extMsg: D
   )(implicit serviceStateData: S): S
 
   /** Handle a message from inside SIMONA sent to external
