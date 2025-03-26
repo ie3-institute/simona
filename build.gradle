@@ -10,7 +10,7 @@ plugins {
   id "de.undercouch.download" version "5.6.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '8.3.6' // fat jar
-  id "org.sonarqube" version "6.0.1.5171" // sonarqube
+  id "org.sonarqube" version "6.1.0.5360" // sonarqube
   id "org.scoverage" version "8.1" // scala code coverage scoverage
   id 'org.hidetake.ssh' version '2.11.2'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
@@ -194,8 +194,7 @@ tasks.withType(ScalaCompile).configureEach {
   scalaCompileOptions.additionalParameters = [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
     "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/src/",
-    "-P:scapegoat:disabledInspections:VariableShadowing",
-    "-P:scapegoat:ignoredFiles:.*/SimonaConfig.scala" // see scapegoat-sbt page for this param
+    "-P:scapegoat:disabledInspections:TryGet"
   ]
   scalaCompileOptions.forkOptions.jvmArgs = [
     '-Xss2m',
@@ -208,7 +207,7 @@ compileTestScala {
   scalaCompileOptions.additionalParameters = [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
     "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/",
-    "-P:scapegoat:disabledInspections:VariableShadowing"
+    "-P:scapegoat:disabledInspections:TryGet"
   ]
 }
 

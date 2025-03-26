@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.system.{
   PvInput,
   StorageInput,
 }
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import org.mockito.Mockito.when
@@ -124,8 +124,7 @@ class PrioritizedFlexStratSpec
           val flexOptions = Seq(
             (
               loadInputModel,
-              ProvideMinMaxFlexOptions(
-                load,
+              MinMaxFlexOptions(
                 Kilowatts(loadPower),
                 Kilowatts(loadPower),
                 Kilowatts(loadPower),
@@ -133,8 +132,7 @@ class PrioritizedFlexStratSpec
             ),
             (
               pvInputModel,
-              ProvideMinMaxFlexOptions(
-                pv,
+              MinMaxFlexOptions(
                 Kilowatts(pvPower),
                 Kilowatts(pvPower),
                 Kilowatts(0d),
@@ -142,8 +140,7 @@ class PrioritizedFlexStratSpec
             ),
             (
               evcsInputModel,
-              ProvideMinMaxFlexOptions(
-                ev,
+              MinMaxFlexOptions(
                 Kilowatts(evcsSuggested),
                 Kilowatts(evcsMin),
                 Kilowatts(evcsMax),
@@ -151,8 +148,7 @@ class PrioritizedFlexStratSpec
             ),
             (
               storageInputModel,
-              ProvideMinMaxFlexOptions(
-                st,
+              MinMaxFlexOptions(
                 Kilowatts(0d),
                 Kilowatts(storageMin),
                 Kilowatts(storageMax),
@@ -237,8 +233,7 @@ class PrioritizedFlexStratSpec
           val flexOptions = Seq(
             (
               loadInputModel,
-              ProvideMinMaxFlexOptions(
-                load,
+              MinMaxFlexOptions(
                 Kilowatts(loadPower),
                 Kilowatts(loadPower),
                 Kilowatts(loadPower),
@@ -246,8 +241,7 @@ class PrioritizedFlexStratSpec
             ),
             (
               pvInputModel,
-              ProvideMinMaxFlexOptions(
-                pv,
+              MinMaxFlexOptions(
                 Kilowatts(pvPower),
                 Kilowatts(pvPower),
                 Kilowatts(0d),
@@ -255,8 +249,7 @@ class PrioritizedFlexStratSpec
             ),
             (
               evcsInputModel,
-              ProvideMinMaxFlexOptions(
-                ev,
+              MinMaxFlexOptions(
                 Kilowatts(evcsSuggested),
                 Kilowatts(evcsMin),
                 Kilowatts(evcsMax),
@@ -264,8 +257,7 @@ class PrioritizedFlexStratSpec
             ),
             (
               storageInputModel,
-              ProvideMinMaxFlexOptions(
-                st,
+              MinMaxFlexOptions(
                 Kilowatts(0d),
                 Kilowatts(storageMin),
                 Kilowatts(storageMax),
@@ -314,8 +306,7 @@ class PrioritizedFlexStratSpec
 
       forAll(cases) {
         case (curtailRegenerative, inputModel, expectedAdaptation) =>
-          val flexOptionsIn = ProvideMinMaxFlexOptions(
-            inputModel.getUuid,
+          val flexOptionsIn = MinMaxFlexOptions(
             Kilowatts(1),
             Kilowatts(-1),
             Kilowatts(2),
@@ -325,11 +316,8 @@ class PrioritizedFlexStratSpec
             .adaptFlexOptions(inputModel, flexOptionsIn)
 
           if (expectedAdaptation) {
-            flexOptionsOut shouldBe ProvideMinMaxFlexOptions
-              .noFlexOption(
-                inputModel.getUuid,
-                Kilowatts(1),
-              )
+            flexOptionsOut shouldBe MinMaxFlexOptions
+              .noFlexOption(Kilowatts(1))
           } else {
             flexOptionsOut shouldBe flexOptionsIn
           }

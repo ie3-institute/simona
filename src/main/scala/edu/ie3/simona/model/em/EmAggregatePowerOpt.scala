@@ -8,7 +8,7 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.datamodel.models.input.system.{PvInput, WecInput}
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
 
@@ -32,14 +32,14 @@ final case class EmAggregatePowerOpt(
 
   override def aggregateFlexOptions(
       flexOptions: Iterable[
-        (_ <: AssetInput, ProvideMinMaxFlexOptions)
+        (_ <: AssetInput, MinMaxFlexOptions)
       ]
-  ): (Power, Power, Power) = {
+  ): MinMaxFlexOptions = {
     val (minSum, refSum, maxSum) =
       flexOptions.foldLeft((zeroKW, zeroKW, zeroKW)) {
         case (
               (sumMin, sumRef, sumMax),
-              (_, ProvideMinMaxFlexOptions(_, addRef, addMin, addMax)),
+              (_, MinMaxFlexOptions(addRef, addMin, addMax)),
             ) =>
           (
             sumMin + addMin,
@@ -55,7 +55,7 @@ final case class EmAggregatePowerOpt(
         flexOptions.foldLeft(zeroKW) {
           case (
                 maxSumExclReg,
-                (inputModel, ProvideMinMaxFlexOptions(_, _, addMin, addMax)),
+                (inputModel, MinMaxFlexOptions(_, addMin, addMax)),
               ) =>
             inputModel match {
               case _: PvInput | _: WecInput =>
@@ -70,6 +70,6 @@ final case class EmAggregatePowerOpt(
 
     val refAgg = minSum.max(maxRefSum.min(targetAbs))
 
-    (refAgg, minSum, maxSum)
+    MinMaxFlexOptions(refAgg, minSum, maxSum)
   }
 }

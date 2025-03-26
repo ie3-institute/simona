@@ -16,8 +16,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalGridState,
 }
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -283,7 +282,7 @@ final case class HpModel(
   override def determineFlexOptions(
       data: HpRelevantData,
       lastState: HpState,
-  ): ProvideFlexOptions = {
+  ): FlexOptions = {
     /* Determine the operating state in the given tick */
     val (canOperate, canBeOutOfOperation, updatedHpState)
         : (Boolean, Boolean, HpState) = determineState(lastState, data)
@@ -299,8 +298,7 @@ final case class HpModel(
       else
         zeroKW
 
-    ProvideMinMaxFlexOptions(
-      uuid,
+    MinMaxFlexOptions(
       updatedHpState.activePower,
       lowerBoundary,
       upperBoundary,
