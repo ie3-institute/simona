@@ -15,6 +15,10 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.ontology.messages.services.{
+  ServiceMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped, UnitSpec}
@@ -23,7 +27,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.mockito.ArgumentMatchers.anyBoolean
@@ -49,21 +52,25 @@ class CongestionTestBase
   )
 
   val startTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime(
-    simonaConfig.simona.time.startDateTime
+    config.simona.time.startDateTime
   )
 
   protected val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   protected val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
     "runtimeEvents"
   )
-  protected val primaryService: TestProbe[Nothing] = TestProbe("primaryService")
-  protected val weatherService: TestProbe[Nothing] = TestProbe("weatherService")
+  protected val primaryService: TestProbe[ServiceMessage] = TestProbe(
+    "primaryService"
+  )
+  protected val weatherService: TestProbe[WeatherMessage] = TestProbe(
+    "weatherService"
+  )
 
   protected val environmentRefs: EnvironmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
-    primaryServiceProxy = primaryService.ref.toClassic,
-    weather = weatherService.ref.toClassic,
+    primaryServiceProxy = primaryService.ref,
+    weather = weatherService.ref,
     evDataService = None,
   )
 

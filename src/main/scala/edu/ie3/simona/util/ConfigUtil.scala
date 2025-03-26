@@ -23,9 +23,20 @@ import edu.ie3.datamodel.models.result.{
   NodeResult,
   ResultEntity,
 }
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  CouchbaseParams,
+  KafkaParams,
+  SqlParams,
+}
+import edu.ie3.simona.config.OutputConfig.{
+  GridOutputConfig,
+  ParticipantOutputConfig,
+  SimpleOutputConfig,
+}
 import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, EmRuntimeConfig}
-import edu.ie3.simona.config.SimonaConfig.{AssetConfigs, _}
+import edu.ie3.simona.config.SimonaConfig.AssetConfigs
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient

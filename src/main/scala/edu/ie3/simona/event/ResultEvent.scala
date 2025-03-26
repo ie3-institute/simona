@@ -119,9 +119,10 @@ object ResultEvent {
       congestionResults: Iterable[CongestionResult] = Iterable.empty,
   ) extends ResultEvent {
 
-    def +(congestionResult: CongestionResult): PowerFlowResultEvent = copy(
-      congestionResults = Seq(congestionResult)
-    )
+    def +(congestionResult: Iterable[CongestionResult]): PowerFlowResultEvent =
+      copy(
+        congestionResults = congestionResult
+      )
 
   }
 

@@ -17,7 +17,11 @@ import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.{
   CongestionResponse,
   ReceivedCongestions,
 }
-import edu.ie3.simona.agent.grid.congestion.{CongestionTestBase, Congestions}
+import edu.ie3.simona.agent.grid.congestion.{
+  CongestedComponents,
+  CongestionTestBase,
+  Congestions,
+}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
 import org.apache.pekko.actor.typed.ActorRef
@@ -49,6 +53,7 @@ class CongestionDetectionSpec extends CongestionTestBase {
           lineCongestions = false,
           transformerCongestions = false,
         ),
+        CongestedComponents.empty,
       )
 
       val cases = Table(
@@ -130,6 +135,7 @@ class CongestionDetectionSpec extends CongestionTestBase {
           lineCongestions = false,
           transformerCongestions = false,
         ),
+        CongestedComponents.empty,
       )
 
       val awaitingData: AwaitingData[Congestions] =
@@ -184,6 +190,7 @@ class CongestionDetectionSpec extends CongestionTestBase {
           lineCongestions = false,
           transformerCongestions = false,
         ),
+        CongestedComponents.empty,
       )
 
       val awaitingData: AwaitingData[Congestions] =
@@ -251,6 +258,7 @@ class CongestionDetectionSpec extends CongestionTestBase {
           lineCongestions = false,
           transformerCongestions = false,
         ),
+        CongestedComponents.empty,
       )
 
       val awaitingData: AwaitingData[Congestions] =

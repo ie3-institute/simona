@@ -7,12 +7,14 @@
 package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.datamodel.models.result.CongestionResult
+import edu.ie3.datamodel.models.result.CongestionResult.InputModelType
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentDataInternal,
 }
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.time.ZonedDateTime
@@ -103,6 +105,7 @@ object CMData {
       subgridNo: Int,
       powerFlowResults: PowerFlowResultEvent,
       congestions: Congestions,
+      congestedComponents: CongestedComponents,
   ) extends GridAgentDataInternal {
 
     /** Builds a [[CongestionResult]] from the power flow results.
@@ -111,22 +114,72 @@ object CMData {
       * @return
       *   a new [[CongestionResult]]
       */
-    def getCongestionResult(startTime: ZonedDateTime): CongestionResult = {
-      val gridModel = gridAgentBaseData.gridEnv.gridModel
+    private def getCongestionResults(
+        startTime: ZonedDateTime
+    ): Iterable[CongestionResult] = {
+      val voltageLimits = gridAgentBaseData.gridEnv.gridModel.voltageLimits
 
-      new CongestionResult(
-        startTime.plusSeconds(currentTick),
-        gridModel.subnetNo,
-        gridModel.voltageLimits.vMin,
-        gridModel.voltageLimits.vMax,
-        congestions.voltageCongestions,
-        congestions.lineCongestions,
-        congestions.transformerCongestions,
-      )
+      val nodes = congestedComponents.voltages.map { nodeRes =>
+        new CongestionResult(
+          startTime.plusSeconds(currentTick),
+          nodeRes.getInputModel,
+          InputModelType.NODE,
+          subgridNo,
+          nodeRes.getvMag().multiply(100),
+          voltageLimits.vMin.multiply(100),
+          voltageLimits.vMax.multiply(100),
+        )
+      }
+
+      val lines = congestedComponents.lines.map { case (lineModel, current) =>
+        val utilisation = (current / lineModel.iNom).asPercent
+
+        new CongestionResult(
+          startTime.plusSeconds(currentTick),
+          lineModel.uuid,
+          InputModelType.LINE,
+          subgridNo,
+          utilisation,
+          0.asPercent,
+          100.asPercent,
+        )
+      }
+
+      val transformer2W = congestedComponents.transformer2Ws.map {
+        case (transformerModel, power) =>
+          val utilisation = (power / transformerModel.sRated).asPercent
+
+          new CongestionResult(
+            startTime.plusSeconds(currentTick),
+            transformerModel.uuid,
+            InputModelType.TRANSFORMER_2W,
+            subgridNo,
+            utilisation,
+            0.asPercent,
+            100.asPercent,
+          )
+      }
+
+      val transformer3W = congestedComponents.transformer3Ws.map {
+        case (transformerModel, power) =>
+          val utilisation = (power / transformerModel.sRated).asPercent
+
+          new CongestionResult(
+            startTime.plusSeconds(currentTick),
+            transformerModel.uuid,
+            InputModelType.TRANSFORMER_3W,
+            subgridNo,
+            utilisation,
+            0.asPercent,
+            100.asPercent,
+          )
+      }
+
+      nodes ++ lines ++ transformer2W ++ transformer3W
     }
 
     def getAllResults(startTime: ZonedDateTime): PowerFlowResultEvent =
-      powerFlowResults + getCongestionResult(startTime)
+      powerFlowResults + getCongestionResults(startTime)
 
     def inferiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] =
       gridAgentBaseData.inferiorGridRefs(false)
@@ -146,18 +199,21 @@ object CMData {
     ): CongestionManagementData = {
       val gridModel = gridAgentBaseData.gridEnv.gridModel
 
+      val congestedComponents = CongestedComponents(
+        powerFlowResults,
+        gridModel.gridComponents,
+        gridModel.voltageLimits,
+        gridModel.mainRefSystem.nominalVoltage,
+        gridModel.subnetNo,
+      )
+
       CongestionManagementData(
         gridAgentBaseData,
         currentTick,
         gridModel.subnetNo,
         powerFlowResults,
-        Congestions(
-          powerFlowResults,
-          gridModel.gridComponents,
-          gridModel.voltageLimits,
-          gridModel.mainRefSystem.nominalVoltage,
-          gridModel.subnetNo,
-        ),
+        Congestions(congestedComponents),
+        congestedComponents,
       )
     }
 
