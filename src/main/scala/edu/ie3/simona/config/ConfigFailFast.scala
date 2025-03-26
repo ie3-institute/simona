@@ -327,8 +327,7 @@ object ConfigFailFast extends LazyLogging {
   }
 
   /** Check participants' basic runtime configurations, as well as in default as
-    * in individual configs. This comprises
-    * i.e. uuid and scaling factor
+    * in individual configs. This comprises i.e. uuid and scaling factor
     */
   private def checkBaseRuntimeConfigs(
       defaultConfig: BaseRuntimeConfig,

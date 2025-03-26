@@ -26,8 +26,7 @@ import edu.ie3.simona.model.participant2.StorageModel.{
   RefTargetSocParams,
   StorageState,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -171,7 +170,7 @@ class StorageModel private (
 
   override def determineFlexOptions(
       state: StorageState
-  ): FlexibilityMessage.ProvideFlexOptions = {
+  ): FlexOptions = {
 
     val chargingPossible = !isFull(state.storedEnergy)
     val dischargingPossible = !isEmpty(state.storedEnergy)
@@ -196,8 +195,7 @@ class StorageModel private (
         zeroKW
       }
 
-    ProvideMinMaxFlexOptions(
-      uuid,
+    MinMaxFlexOptions(
       refPower,
       if (dischargingPossible) pMax * -1 else zeroKW,
       if (chargingPossible) pMax else zeroKW,

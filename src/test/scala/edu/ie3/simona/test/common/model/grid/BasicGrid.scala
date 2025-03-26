@@ -42,16 +42,29 @@ import javax.measure.quantity.ElectricPotential
   *
   * Reference System: 400 kVA @ 10 kV --> Reference admittance: 4 mS
   *
-  * Transformer type: d_v = 1.5 % tap_min = -13 tap_max = 13 tap_neut = 0
-  * is_autotap = true tapSide = high voltage side (ConnectorPort.B -> None in
-  * [[TransformerTappingModel]]) r = 30.25 Ω -> 0.001 p.u. x = 4.5375 Ω ->
-  * 0.00015 p.u. g = 0 -> 0.0 p.u. b = 1.1 nS -> -0.000033275 p.u.K s_rated =
-  * 40000 kVA
-  * -> iNomHv = 209.9455524325912 A
-  * -> iNomLv = 2309.401076758503 A
+  * {{{
+  * Transformer type:
+  *   d_v = 1.5 %
+  *   tap_min = -13
+  *   tap_max = 13
+  *   tap_neut = 0
+  *   is_autotap = true
+  *   tapSide = high voltage side (ConnectorPort.B -> None in
+  *     [[TransformerTappingModel]])
+  *   r = 30.25 Ω -> 0.001 p.u.
+  *   x = 4.5375 Ω -> 0.00015 p.u.
+  *   g = 0 -> 0.0 p.u.
+  *   b = 1.1 nS -> -0.000033275 p.u.K
+  *   s_rated = 40000 kVA -> iNomHv = 209.9455524325912 A
+  *     -> iNomLv = 2309.401076758503 A
   *
-  * Transformer model: tap_side = hv (element port A) tap_pos = 0 amount = 1 vHv
-  * \= 110 kV (node 6) vLv = 10 kV (node 3)
+  * Transformer model:
+  *   tap_side = hv (element port A)
+  *   tap_pos = 0
+  *   amount = 1
+  *   vHv = 110 kV (node 6)
+  *   vLv = 10 kV (node 3)
+  * }}}
   *
   * Transformer admittance matrix data: gij = bij = g0 hv = 0 b0 hv =
   * -0.0000166375 // todo CK check g0 lv = b0 lv =

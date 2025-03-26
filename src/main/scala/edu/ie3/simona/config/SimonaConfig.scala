@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.config
 
-import com.typesafe.config.{Config, ConfigRenderOptions}
+import com.typesafe.config.Config
 import edu.ie3.simona.exceptions.CriticalFailureException
 import pureconfig._
 import pureconfig.error._
@@ -18,10 +18,7 @@ import scala.language.implicitConversions
 
 final case class SimonaConfig(
     simona: SimonaConfig.Simona
-) {
-  def render(options: ConfigRenderOptions): String =
-    SimonaConfig.render(this, options)
-}
+)
 
 object SimonaConfig {
   // pure config start
@@ -53,11 +50,6 @@ object SimonaConfig {
         )
       case Right(conf) => conf
     }
-
-  def render(
-      simonaConfig: SimonaConfig,
-      options: ConfigRenderOptions,
-  ): String = ConfigWriter[SimonaConfig].to(simonaConfig).render(options)
 
   // pure config end
 
