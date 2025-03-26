@@ -1824,7 +1824,8 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(24153)))
 
       /* TICK 24153
-        House reaches lower boundary, since we haven't surplus energy from pv we would use the energy from storage to heat the house.
+        House reaches lower boundary, since we don't have surplus energy from pv, we would use the energy from storage to heat the house.
+
         PV: 0.0 kW
         House demand heating : requiredDemand = 15.0 kWh, additionalDemand = 15.0 kWh
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
