@@ -14,7 +14,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.model.participant2.ParticipantModel.ActivePowerOperatingPoint
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -200,7 +200,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
           )
 
           storageModel.determineFlexOptions(state) match {
-            case result: ProvideMinMaxFlexOptions =>
+            case result: MinMaxFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
               result.max should approximate(Kilowatts(pMax))
@@ -242,7 +242,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
           )
 
           storageModel.determineFlexOptions(state) match {
-            case result: ProvideMinMaxFlexOptions =>
+            case result: MinMaxFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
               result.max should approximate(Kilowatts(pMax))
