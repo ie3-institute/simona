@@ -12,7 +12,7 @@ import edu.ie3.simona.ontology.messages.services.{
   EmMessage,
   EvMessage,
   ServiceMessage,
-  WeatherMessage
+  WeatherMessage,
 }
 import org.apache.pekko.actor.typed.ActorRef
 

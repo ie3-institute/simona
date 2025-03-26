@@ -95,10 +95,10 @@ final case class ReceiveHierarchicalDataMap[K, V](
   def getFinishedData: (Map[K, V], ReceiveHierarchicalDataMap[K, V]) = {
     val dataMap = if (expectedKeys.nonEmpty) {
       structure.keySet
-            .filter(isComplete)
-            .flatMap(key => structure(key))
-            .map(key => key -> receivedData(key))
-            .toMap
+        .filter(isComplete)
+        .flatMap(key => structure(key))
+        .map(key => key -> receivedData(key))
+        .toMap
     } else receivedData
 
     val updated = receivedData.removedAll(dataMap.keys)

@@ -40,10 +40,7 @@ import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException,
 }
-import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -55,7 +52,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   WorkerRegistrationMessage,
   WrappedActivation,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.{
@@ -75,11 +71,6 @@ import org.apache.pekko.actor.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
-import org.apache.pekko.actor.typed.{ActorRef => TypedRef}
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props, Stash}
 
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
@@ -110,6 +101,9 @@ object PrimaryServiceProxy {
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
+      extSimulationData: Seq[
+        (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
+      ],
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.
@@ -131,6 +125,7 @@ object PrimaryServiceProxy {
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
       mappingSource: TimeSeriesMappingSource,
+      extSubscribersToService: Map[UUID, ActorRef[ServiceMessage]] = Map.empty,
   ) extends ServiceStateData
 
   /** Giving reference to the target time series and source worker.
@@ -283,7 +278,7 @@ object PrimaryServiceProxy {
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
       extSimulationData: Seq[
-        (ExtPrimaryDataConnection, TypedRef[ServiceMessage])
+        (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
       ],
   )(implicit log: Logger): Try[PrimaryServiceStateData] = {
     createSources(primaryConfig).map {
@@ -417,9 +412,9 @@ object PrimaryServiceProxy {
       stateData.extSubscribersToService.get(modelUuid) match {
         case Some(_) =>
           /* There is external data apparent for this model */
-          val updatedStateData = handleExternalModel(modelUuid, stateData, requestingActor)
+          handleExternalModel(modelUuid, stateData, requestingActor)
 
-          onMessage(updatedStateData)
+          Behaviors.same
 
         case None =>
           ctx.log.debug(
@@ -518,7 +513,7 @@ object PrimaryServiceProxy {
   protected def handleExternalModel(
       modelUuid: UUID,
       stateData: PrimaryServiceStateData,
-      requestingActor: ActorRef,
+      requestingActor: ActorRef[ParticipantAgent.Request],
   ): Unit = {
     stateData.extSubscribersToService.foreach { case (_, ref) =>
       ref ! PrimaryServiceRegistrationMessage(

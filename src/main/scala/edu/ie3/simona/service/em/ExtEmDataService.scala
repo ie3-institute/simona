@@ -16,7 +16,7 @@ import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EmMessage
 import edu.ie3.simona.ontology.messages.services.EmMessage.{
   WrappedFlexRequest,
@@ -27,11 +27,11 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ServiceRegistrationMessage,
   ServiceResponseMessage,
 }
+import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.{ExtDataSupport, TypedSimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveHierarchicalDataMap}
@@ -57,7 +57,7 @@ import scala.jdk.OptionConverters.{RichOption, RichOptional}
 import scala.util.{Failure, Success, Try}
 
 object ExtEmDataService
-    extends TypedSimonaService[EmMessage]
+    extends SimonaService[EmMessage]
     with ExtDataSupport[EmMessage] {
 
   private val log: Logger = LoggerFactory.getLogger(ExtEmDataService.getClass)
@@ -384,11 +384,13 @@ object ExtEmDataService
         hierarchy.getResponseRef(agent) match {
           case Some(receiver) =>
             flexOptions.asScala.foreach { case (sender, options) =>
-              receiver ! ProvideMinMaxFlexOptions(
+              receiver ! ProvideFlexOptions(
                 sender,
-                options.pRef.toSquants,
-                options.pMin.toSquants,
-                options.pMax.toSquants,
+                MinMaxFlexOptions(
+                  options.pRef.toSquants,
+                  options.pMin.toSquants,
+                  options.pMax.toSquants,
+                ),
               )
             }
 
@@ -520,7 +522,7 @@ object ExtEmDataService
       }
 
       val updated = provideFlexOptions match {
-        case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
+        case ProvideFlexOptions(modelUuid, MinMaxFlexOptions(ref, min, max)) =>
           serviceStateData.flexOptionResponse.addData(
             modelUuid,
             (
