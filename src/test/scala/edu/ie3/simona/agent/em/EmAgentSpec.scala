@@ -20,7 +20,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.SquantsMatchers
@@ -59,14 +59,6 @@ class EmAgentSpec
     flexResult = true, // also test FlexOptionsResult if EM-controlled
   )
 
-  override protected val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
-    calculateMissingReactivePowerWithModel = false,
-    scaling = 1,
-    uuids = List("default"),
-    aggregateFlex = "SELF_OPT_EXCL_REG",
-    curtailRegenerative = false,
-  )
-
   private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
 
@@ -78,7 +70,7 @@ class EmAgentSpec
       val emAgent = spawn(
         EmAgent(
           emInput,
-          modelConfig,
+          EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
           simulationStartDate,
@@ -139,21 +131,25 @@ class EmAgentSpec
       evcsAgent.expectMessage(FlexActivation(0))
 
       // send flex options
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        Kilowatts(-5),
-        Kilowatts(-5),
-        Kilowatts(0),
+        MinMaxFlexOptions(
+          Kilowatts(-5),
+          Kilowatts(-5),
+          Kilowatts(0),
+        ),
       )
 
       pvAgent.expectNoMessage()
       evcsAgent.expectNoMessage()
 
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        Kilowatts(2),
-        Kilowatts(-11),
-        Kilowatts(11),
+        MinMaxFlexOptions(
+          Kilowatts(2),
+          Kilowatts(-11),
+          Kilowatts(11),
+        ),
       )
 
       // receive flex control messages
@@ -216,11 +212,13 @@ class EmAgentSpec
       evcsAgent.expectMessage(FlexActivation(300))
 
       // send flex options again, ev is fully charged
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        Kilowatts(0),
-        Kilowatts(-11),
-        Kilowatts(0),
+        MinMaxFlexOptions(
+          Kilowatts(0),
+          Kilowatts(-11),
+          Kilowatts(0),
+        ),
       )
 
       // receive flex control messages
@@ -264,7 +262,7 @@ class EmAgentSpec
       val emAgent = spawn(
         EmAgent(
           emInput,
-          modelConfig,
+          EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
           simulationStartDate,
@@ -300,21 +298,25 @@ class EmAgentSpec
       evcsAgent.expectMessage(FlexActivation(0))
 
       // send flex options
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        Kilowatts(-5),
-        Kilowatts(-5),
-        Kilowatts(0),
+        MinMaxFlexOptions(
+          Kilowatts(-5),
+          Kilowatts(-5),
+          Kilowatts(0),
+        ),
       )
 
       pvAgent.expectNoMessage()
       evcsAgent.expectNoMessage()
 
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        Kilowatts(2),
-        Kilowatts(-11),
-        Kilowatts(11),
+        MinMaxFlexOptions(
+          Kilowatts(2),
+          Kilowatts(-11),
+          Kilowatts(11),
+        ),
       )
 
       // receive flex control messages
@@ -378,11 +380,13 @@ class EmAgentSpec
       pvAgent.expectMessage(FlexActivation(300))
 
       // send flex options again, now there's a cloud and thus less feed-in
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        Kilowatts(-3),
-        Kilowatts(-3),
-        Kilowatts(0),
+        MinMaxFlexOptions(
+          Kilowatts(-3),
+          Kilowatts(-3),
+          Kilowatts(0),
+        ),
       )
 
       // receive flex control messages
@@ -445,7 +449,7 @@ class EmAgentSpec
       val emAgent = spawn(
         EmAgent(
           emInput,
-          modelConfig,
+          EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
           simulationStartDate,
@@ -481,21 +485,25 @@ class EmAgentSpec
       evcsAgent.expectMessage(FlexActivation(0))
 
       // send flex options
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        Kilowatts(-5),
-        Kilowatts(-5),
-        Kilowatts(0),
+        MinMaxFlexOptions(
+          Kilowatts(-5),
+          Kilowatts(-5),
+          Kilowatts(0),
+        ),
       )
 
       pvAgent.expectNoMessage()
       evcsAgent.expectNoMessage()
 
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        Kilowatts(2),
-        Kilowatts(-11),
-        Kilowatts(11),
+        MinMaxFlexOptions(
+          Kilowatts(2),
+          Kilowatts(-11),
+          Kilowatts(11),
+        ),
       )
 
       // receive flex control messages
@@ -560,21 +568,25 @@ class EmAgentSpec
       pvAgent.expectMessage(FlexActivation(300))
 
       // send flex options again, now there's a cloud and thus less feed-in
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        Kilowatts(-3),
-        Kilowatts(-3),
-        Kilowatts(0),
+        MinMaxFlexOptions(
+          Kilowatts(-3),
+          Kilowatts(-3),
+          Kilowatts(0),
+        ),
       )
 
       // expecting flex options request, since we asked for it last time
       evcsAgent.expectMessage(FlexActivation(300))
 
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        Kilowatts(2),
-        Kilowatts(-11),
-        Kilowatts(11),
+        MinMaxFlexOptions(
+          Kilowatts(2),
+          Kilowatts(-11),
+          Kilowatts(11),
+        ),
       )
 
       // FLEX CONTROL
@@ -636,7 +648,7 @@ class EmAgentSpec
       val emAgent = spawn(
         EmAgent(
           emInput,
-          modelConfig,
+          EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
           simulationStartDate,
@@ -705,21 +717,25 @@ class EmAgentSpec
       evcsAgent.expectMessage(FlexActivation(0))
 
       // send flex options
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        Kilowatts(-5),
-        Kilowatts(-5),
-        Kilowatts(0),
+        MinMaxFlexOptions(
+          Kilowatts(-5),
+          Kilowatts(-5),
+          Kilowatts(0),
+        ),
       )
 
       pvAgent.expectNoMessage()
       evcsAgent.expectNoMessage()
 
-      emAgent ! ProvideMinMaxFlexOptions(
+      emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        Kilowatts(2),
-        Kilowatts(-11),
-        Kilowatts(11),
+        MinMaxFlexOptions(
+          Kilowatts(2),
+          Kilowatts(-11),
+          Kilowatts(11),
+        ),
       )
 
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
@@ -732,11 +748,13 @@ class EmAgentSpec
       }
 
       parentEmAgent.expectMessageType[ProvideFlexOptions] match {
-        case ProvideMinMaxFlexOptions(
+        case ProvideFlexOptions(
               modelUuid,
-              referencePower,
-              minPower,
-              maxPower,
+              MinMaxFlexOptions(
+                referencePower,
+                minPower,
+                maxPower,
+              ),
             ) =>
           modelUuid shouldBe emInput.getUuid
           referencePower shouldBe Kilowatts(0)

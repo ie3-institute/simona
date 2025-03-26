@@ -19,7 +19,7 @@ spotless {
     // same as groovy, but for .gradle (defaults to '*.gradle')
     target('*.gradle', 'gradle/scripts/*.gradle')
     greclipse()
-    indentWithSpaces(2)
+    leadingTabsToSpaces(2)
   }
 
   //sets a license header, removes unused imports and formats conforming to the scala fmt formatter
@@ -32,7 +32,7 @@ spotless {
   format ('misc') {
     target('**/.gitignore', 'configs/**')
     trimTrailingWhitespace()
-    indentWithTabs()
+    leadingSpacesToTabs()
     endWithNewline()
   }
 
@@ -40,7 +40,7 @@ spotless {
    * enumerations) */
   format('md') {
     target('**/*.md')
-    indentWithSpaces(2)
+    leadingTabsToSpaces(2)
     endWithNewline()
   }
 }

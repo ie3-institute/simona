@@ -34,7 +34,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.energy.Megawatts
 
 import java.util.UUID
@@ -64,7 +63,7 @@ class DBFSAlgorithmSupGridSpec
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
-    primaryServiceProxy = primaryService.ref.toClassic,
+    primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
     emDataService = None,
     evDataService = None,

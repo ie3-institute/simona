@@ -51,7 +51,10 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
 import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.matchers.should
@@ -105,7 +108,7 @@ class EmAgentIT
 
   private implicit val quantityTolerance: Double = 1e-10d
 
-  private implicit val classicSystem: ActorSystem = system.toClassic
+  private implicit val classicSystem: ActorSystem = system.classicSystem
 
   "An em agent" when {
     "having load, pv and storage agents connected" should {
@@ -119,9 +122,8 @@ class EmAgentIT
 
         val participantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
-          services =
-            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          primaryServiceProxy = primaryServiceProxy.ref,
+          services = Map(ServiceType.WeatherService -> weatherService.ref),
           resultListener = Iterable(resultListener.ref),
         )
 
@@ -198,24 +200,24 @@ class EmAgentIT
 
         primaryServiceProxy.receiveMessages(3) should contain allOf (
           PrimaryServiceRegistrationMessage(
-            loadAgent.toClassic,
+            loadAgent,
             loadInput.getUuid,
           ),
           PrimaryServiceRegistrationMessage(
-            pvAgent.toClassic,
+            pvAgent,
             pvInput.getUuid,
           ),
           PrimaryServiceRegistrationMessage(
-            storageAgent.toClassic,
+            storageAgent,
             storageInput.getUuid,
           )
         )
 
         // load
-        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // pv
-        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // deal with weather service registration
         weatherService.expectMessage(
@@ -226,15 +228,10 @@ class EmAgentIT
           )
         )
 
-        pvAgent ! RegistrationSuccessfulMessage(
-          weatherService.ref.toClassic,
-          0L,
-        )
+        pvAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
 
         // storage
-        storageAgent ! RegistrationFailedMessage(
-          primaryServiceProxy.ref.toClassic
-        )
+        storageAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
@@ -250,7 +247,7 @@ class EmAgentIT
 
         pvAgent ! DataProvision(
           0,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(200d),
             WattsPerSquareMeter(100d),
@@ -268,7 +265,7 @@ class EmAgentIT
               -0.00057340027059.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0000882855367033.asMegaVar
+              -0.0018318880807426897.asMegaVar
             )
         }
 
@@ -286,7 +283,7 @@ class EmAgentIT
 
         pvAgent ! DataProvision(
           7200,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(45d),
             WattsPerSquareMeter(140d),
@@ -303,7 +300,9 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(
               0.0.asMegaWatt
             )
-            emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
+            emResult.getQ should equalWithTolerance(
+              -0.001132927019679857.asMegaVar
+            )
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(13246)))
@@ -325,7 +324,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(
               -0.0034468567291.asMegaWatt
             )
-            emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
+            emResult.getQ should equalWithTolerance(-0.001132927.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
@@ -342,7 +341,7 @@ class EmAgentIT
         // it got cloudy now...
         pvAgent ! DataProvision(
           14400,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0.5d),
             WattsPerSquareMeter(2d),
@@ -361,7 +360,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(
               0.0.asMegaWatt
             )
-            emResult.getQ should equalWithTolerance(0.000088285536.asMegaVar)
+            emResult.getQ should equalWithTolerance(0.000065375.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
@@ -380,9 +379,8 @@ class EmAgentIT
 
         val participantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
-          primaryServiceProxy = primaryServiceProxy.ref.toClassic,
-          services =
-            Map(ServiceType.WeatherService -> weatherService.ref.toClassic),
+          primaryServiceProxy = primaryServiceProxy.ref,
+          services = Map(ServiceType.WeatherService -> weatherService.ref),
           resultListener = Iterable(resultListener.ref),
         )
 
@@ -471,20 +469,20 @@ class EmAgentIT
 
         primaryServiceProxy.receiveMessages(2) should contain allOf (
           PrimaryServiceRegistrationMessage(
-            loadAgent.toClassic,
+            loadAgent,
             loadInput.getUuid,
           ),
           PrimaryServiceRegistrationMessage(
-            pvAgent.toClassic,
+            pvAgent,
             pvInput.getUuid,
           )
         )
 
         // load
-        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // pv
-        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // deal with weather service registration
         weatherService.expectMessage(
@@ -495,10 +493,7 @@ class EmAgentIT
           )
         )
 
-        pvAgent ! RegistrationSuccessfulMessage(
-          weatherService.ref.toClassic,
-          0L,
-        )
+        pvAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
@@ -507,30 +502,25 @@ class EmAgentIT
 
         primaryServiceProxy.expectMessage(
           PrimaryServiceRegistrationMessage(
-            heatPumpAgent.ref,
+            heatPumpAgent.toTyped,
             adaptedHpInputModel.getUuid,
           )
         )
-        heatPumpAgent ! RegistrationFailedMessage(
-          primaryServiceProxy.ref.toClassic
-        )
+        heatPumpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         weatherService.expectMessage(
           RegisterForWeatherMessage(
-            heatPumpAgent.ref,
+            heatPumpAgent.toTyped,
             adaptedHpInputModel.getNode.getGeoPosition.getY,
             adaptedHpInputModel.getNode.getGeoPosition.getX,
           )
         )
 
-        heatPumpAgent ! RegistrationSuccessfulMessage(
-          weatherService.ref.toClassic,
-          0L,
-        )
+        heatPumpAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
 
-        scheduler.expectMessage(Completion(heatPumpAgent))
+        scheduler.expectMessage(Completion(heatPumpAgent.ref.toTyped))
 
-        val weatherDependentAgents = Seq(pvAgent.toClassic, heatPumpAgent)
+        val weatherDependentAgents = Seq(pvAgent, heatPumpAgent.ref.toTyped)
 
         /* TICK 0
          LOAD: 0.269 kW
@@ -545,7 +535,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             0,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               WattsPerSquareMeter(200d),
               WattsPerSquareMeter(100d),
@@ -564,7 +554,7 @@ class EmAgentIT
               -0.0055734002705905523.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.000088285536703358.asMegaVar
+              -0.0018318880807426897.asMegaVar
             )
         }
 
@@ -583,7 +573,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             7200,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               WattsPerSquareMeter(45d),
               WattsPerSquareMeter(140d),
@@ -602,7 +592,7 @@ class EmAgentIT
               0.0014031432709.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0010731200408.asMegaVar
+              -0.0001480925156.asMegaVar
             )
         }
 
@@ -621,7 +611,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             10800,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               WattsPerSquareMeter(45d),
               WattsPerSquareMeter(140d),
@@ -640,7 +630,7 @@ class EmAgentIT
               0.0011098586291537654.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0010731200408.asMegaVar
+              -0.00024449051564412135.asMegaVar
             )
         }
 
@@ -660,7 +650,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             11000,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               WattsPerSquareMeter(0.5d),
               WattsPerSquareMeter(2d),
@@ -679,7 +669,7 @@ class EmAgentIT
               0.00021037894.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0000882855367.asMegaVar
+              0.0000691482.asMegaVar
             )
         }
 
@@ -698,7 +688,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             11500,
-            weatherService.ref.toClassic,
+            weatherService.ref,
             WeatherData(
               // Same irradiation, but different angle of the sun
               WattsPerSquareMeter(2d),
@@ -718,7 +708,7 @@ class EmAgentIT
               0.000135052481.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(
-              0.0000882855367.asMegaVar
+              0.0000443896038.asMegaVar
             )
         }
 
@@ -726,5 +716,254 @@ class EmAgentIT
       }
     }
 
+    "having a pv and a load agent connected" should {
+      "have correct values also for agents with limited operation time" in {
+        val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
+        val resultListener = TestProbe[ResultEvent]("ResultListener")
+        val primaryServiceProxy =
+          TestProbe[ServiceMessage]("PrimaryServiceProxy")
+        val weatherService = TestProbe[ServiceMessage]("WeatherService")
+        val scheduler = TestProbe[SchedulerMessage]("Scheduler")
+
+        val participantRefs = ParticipantRefs(
+          gridAgent = gridAgent.ref,
+          primaryServiceProxy = primaryServiceProxy.ref,
+          services = Map(ServiceType.WeatherService -> weatherService.ref),
+          resultListener = Iterable(resultListener.ref),
+        )
+
+        val keys = ScheduleLock
+          .multiKey(TSpawner, scheduler.ref, PRE_INIT_TICK, 2)
+          .iterator
+        val lockActivation =
+          scheduler.expectMessageType[ScheduleActivation].actor
+        lockActivation ! Activation(PRE_INIT_TICK)
+
+        val emAgent = spawn(
+          EmAgent(
+            emInput,
+            modelConfig,
+            outputConfigOn,
+            "PRIORITIZED",
+            simulationStartDate,
+            parent = Left(scheduler.ref),
+            listener = Iterable(resultListener.ref),
+          ),
+          "EmAgentReactivePower",
+        )
+        val pvAgent = spawn(
+          ParticipantAgentInit(
+            pvInputContainerLimitedOperationTime,
+            PvRuntimeConfig(calculateMissingReactivePowerWithModel = true),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
+            keys.next(),
+          ),
+          "PvAgentReactivePower",
+        )
+
+        val loadAgent = spawn(
+          ParticipantAgentInit(
+            loadInputContainerWithLimitedOperationTime,
+            LoadRuntimeConfig(calculateMissingReactivePowerWithModel = true),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
+            keys.next(),
+          ),
+          "LoadAgentReactivePower",
+        )
+
+        val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
+        emInitSchedule.tick shouldBe INIT_SIM_TICK
+        val emAgentActivation = emInitSchedule.actor
+
+        scheduler.expectNoMessage()
+
+        emInitSchedule.unlockKey.value.unlock()
+        scheduler.expectMessage(Completion(lockActivation))
+
+        /* INIT */
+
+        emAgentActivation ! Activation(INIT_SIM_TICK)
+
+        // load
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
+
+        // pv
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
+
+        primaryServiceProxy.receiveMessages(2) should contain allOf (
+          PrimaryServiceRegistrationMessage(
+            loadAgent,
+            loadInputWithLimitedOperationTime.getUuid,
+          ),
+          PrimaryServiceRegistrationMessage(
+            pvAgent,
+            pvInputLimitedOperationTime.getUuid,
+          )
+        )
+
+        // load
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
+
+        // pv
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
+
+        // deal with weather service registration
+        weatherService.expectMessage(
+          RegisterForWeatherMessage(
+            pvAgent,
+            pvInputLimitedOperationTime.getNode.getGeoPosition.getY,
+            pvInputLimitedOperationTime.getNode.getGeoPosition.getX,
+          )
+        )
+
+        pvAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
+
+        val weatherDependentAgents = Seq(pvAgent)
+
+        /* TICK 0
+         Load: 282.74 VA, cosPhi: 0.95, P: 268.603 W, Q: 88.2855 var
+         PV:  0 kW (not yet in operation)
+         -> expect load p and q values as em p and q values
+         */
+
+        emAgentActivation ! Activation(0)
+
+        weatherDependentAgents.foreach {
+          _ ! DataProvision(
+            0,
+            weatherService.ref,
+            WeatherData(
+              WattsPerSquareMeter(0d),
+              WattsPerSquareMeter(0d),
+              Celsius(0d),
+              MetersPerSecond(0d),
+            ),
+            Some(3600),
+          )
+        }
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 0.toDateTime
+            emResult.getP should equalWithTolerance(
+              0.000268603.asMegaWatt
+            )
+            emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
+
+        /* TICK 3600
+         Load: P: 268.603 W, Q: 88.2855 var (unchanged)
+         PV:  P: 0 W  Q: 0 Var (in operation, but no sun)
+         -> expect load p and q values as em p and q values
+         */
+
+        emAgentActivation ! Activation(3600)
+
+        weatherDependentAgents.foreach {
+          _ ! DataProvision(
+            3600,
+            weatherService.ref,
+            WeatherData(
+              WattsPerSquareMeter(0d),
+              WattsPerSquareMeter(0d),
+              Celsius(0d),
+              MetersPerSecond(0d),
+            ),
+            Some(7200),
+          )
+        }
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 3600.toDateTime
+            emResult.getP should equalWithTolerance(0.000268603.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
+
+        /* TICK 7200
+         Load: P: 268.603 W, Q: 88.2855 var (unchanged)
+         PV:  P: -8692.167 W  Q: -2856.98 var
+         -> expect P:-8423.564 Q: -2768.69 var
+         */
+
+        weatherDependentAgents.foreach {
+          _ ! DataProvision(
+            7200,
+            weatherService.ref,
+            WeatherData(
+              WattsPerSquareMeter(300d),
+              WattsPerSquareMeter(200d),
+              Celsius(0d),
+              MetersPerSecond(0d),
+            ),
+            Some(21800),
+          )
+        }
+
+        emAgentActivation ! Activation(7200)
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 7200.toDateTime
+            emResult.getP should equalWithTolerance(-0.008423564.asMegaWatt)
+            emResult.getQ should equalWithTolerance(
+              -0.0027686916118040607.asMegaVar
+            )
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
+
+        /* TICK 10800
+        LOAD: P: 0 W, Q: 0 var (limited OperationTime)
+        PV:  P: -8692.167 W  Q: -2856.98 var
+        -> expect P and Q values of PV
+         */
+
+        emAgentActivation ! Activation(10800)
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 10800.toDateTime
+            emResult.getP should equalWithTolerance(-0.008692167.asMegaWatt)
+            emResult.getQ should equalWithTolerance(
+              -0.002856977148.asMegaVar
+            )
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
+
+        /* TICK 14400
+        LOAD: P: 0 W, Q: 0 var (limited OperationTime)
+        PV: P: 0 W, Q: 0 var (limited OperationTime)
+        -> expect P: 0 W Q: 0 var
+         */
+
+        emAgentActivation ! Activation(14400)
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 14400.toDateTime
+            emResult.getP should equalWithTolerance(0.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.asMegaVar)
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, None))
+
+      }
+    }
   }
 }

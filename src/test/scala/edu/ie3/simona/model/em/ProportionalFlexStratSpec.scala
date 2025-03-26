@@ -7,9 +7,10 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.helper.TableDrivenHelper
+import org.mockito.Mockito.when
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
 import squants.Power
@@ -29,7 +30,13 @@ class ProportionalFlexStratSpec
 
     "determine flex control dependent on flex options" in {
 
-      val assetInput = mock[AssetInput] // is not used
+      val assetUuid1 = UUID.fromString("0-0-0-0-1")
+      val assetInput1 = mock[AssetInput]
+      when(assetInput1.getUuid).thenReturn(assetUuid1)
+
+      val assetUuid2 = UUID.fromString("0-0-0-0-2")
+      val assetInput2 = mock[AssetInput]
+      when(assetInput2.getUuid).thenReturn(assetUuid2)
 
       /* As an example, this is how the test cases should be interpreted,
        * using the second test case of target being higher than reference sum:
@@ -105,15 +112,13 @@ class ProportionalFlexStratSpec
             expected1,
             expected2,
         ) =>
-          val flexOptions1 = ProvideMinMaxFlexOptions(
-            modelUuid = UUID.randomUUID(),
+          val flexOptions1 = MinMaxFlexOptions(
             ref = Kilowatts(ref1),
             min = Kilowatts(min1),
             max = Kilowatts(max1),
           )
 
-          val flexOptions2 = ProvideMinMaxFlexOptions(
-            modelUuid = UUID.randomUUID(),
+          val flexOptions2 = MinMaxFlexOptions(
             ref = Kilowatts(ref2),
             min = Kilowatts(min2),
             max = Kilowatts(max2),
@@ -122,8 +127,8 @@ class ProportionalFlexStratSpec
           val actualResults = ProportionalFlexStrat
             .determineFlexControl(
               Seq(
-                (assetInput, flexOptions1),
-                (assetInput, flexOptions2),
+                (assetInput1, flexOptions1),
+                (assetInput2, flexOptions2),
               ),
               Kilowatts(target),
             )
@@ -133,7 +138,7 @@ class ProportionalFlexStratSpec
 
           expected1.foreach { exp1 =>
             val res1 = actualResults.getOrElse(
-              flexOptions1.modelUuid,
+              assetUuid1,
               fail(
                 "Results should include a set point for device 1, but doesn't"
               ),
@@ -143,7 +148,7 @@ class ProportionalFlexStratSpec
 
           expected2.foreach { exp2 =>
             val res2 = actualResults.getOrElse(
-              flexOptions2.modelUuid,
+              assetUuid2,
               fail(
                 "Results should include a set point for device 2, but doesn't"
               ),
@@ -157,8 +162,7 @@ class ProportionalFlexStratSpec
     "adapt flex options correctly" in {
       val assetInput = mock[AssetInput] // is not used
 
-      val flexOptionsIn = ProvideMinMaxFlexOptions(
-        UUID.randomUUID(),
+      val flexOptionsIn = MinMaxFlexOptions(
         Kilowatts(1),
         Kilowatts(-1),
         Kilowatts(2),

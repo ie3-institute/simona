@@ -25,8 +25,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   OperationChangeIndicator,
 }
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel._
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import squants.{Dimensionless, Power}
@@ -127,10 +126,10 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
 
   override def determineFlexOptions(
       state: PrimaryDataState[PD]
-  ): FlexibilityMessage.ProvideFlexOptions = {
+  ): FlexOptions = {
     val (operatingPoint, _) = determineOperatingPoint(state)
 
-    ProvideMinMaxFlexOptions.noFlexOption(uuid, operatingPoint.activePower)
+    MinMaxFlexOptions.noFlexOption(operatingPoint.activePower)
   }
 
   override def determineOperatingPoint(

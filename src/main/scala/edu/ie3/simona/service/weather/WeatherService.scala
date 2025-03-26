@@ -22,7 +22,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.TypedSimonaService
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates,
@@ -32,7 +32,6 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 
 import java.time.ZonedDateTime
 import scala.util.{Failure, Success, Try}
@@ -43,7 +42,7 @@ import scala.util.{Failure, Success, Try}
   * @version 0.1
   * @since 2019-07-28
   */
-object WeatherService extends TypedSimonaService[WeatherMessage] {
+object WeatherService extends SimonaService[WeatherMessage] {
 
   override type S = WeatherInitializedStateData
 
@@ -194,7 +193,7 @@ object WeatherService extends TypedSimonaService[WeatherMessage] {
       longitude: Double,
   )(implicit
       serviceStateData: WeatherInitializedStateData,
-      ctx: ActorContext[_],
+      ctx: ActorContext[WeatherMessage],
   ): WeatherInitializedStateData = {
     ctx.log.debug(
       "Received weather registration from {} for [Lat:{}, Long:{}]",
@@ -210,8 +209,8 @@ object WeatherService extends TypedSimonaService[WeatherMessage] {
     )
 
     val registrationResponse = serviceStateData.maybeNextActivationTick
-      .map(RegistrationSuccessfulMessage(ctx.self.toClassic, _))
-      .getOrElse(RegistrationFailedMessage(ctx.self.toClassic))
+      .map(RegistrationSuccessfulMessage(ctx.self, _))
+      .getOrElse(RegistrationFailedMessage(ctx.self))
 
     serviceStateData.coordsToActorRefMap.get(agentCoord) match {
       case None =>
@@ -238,7 +237,7 @@ object WeatherService extends TypedSimonaService[WeatherMessage] {
               s"Unable to obtain necessary information to register for coordinate $agentCoord.",
               exception,
             )
-            agentToBeRegistered ! RegistrationFailedMessage(ctx.self.toClassic)
+            agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
             serviceStateData
         }
 
@@ -262,7 +261,7 @@ object WeatherService extends TypedSimonaService[WeatherMessage] {
       case _ =>
         // actor is not registered, and we don't have data for it
         // inform the agentToBeRegistered that the registration failed as we don't have data for it
-        agentToBeRegistered ! RegistrationFailedMessage(ctx.self.toClassic)
+        agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
         serviceStateData
     }
   }
@@ -304,7 +303,7 @@ object WeatherService extends TypedSimonaService[WeatherMessage] {
             recipients.foreach(
               _ ! DataProvision(
                 tick,
-                ctx.self.toClassic,
+                ctx.self,
                 weatherResult,
                 maybeNextTick,
               )

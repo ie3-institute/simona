@@ -6,14 +6,13 @@
 
 package edu.ie3.simona.model.em
 
-import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.exceptions.FlexException
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   IssueNoControl,
   IssuePowerControl,
-  ProvideFlexOptions,
 }
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.Power
 
 /** Tools used by agents that engage with energy management and flexibility
@@ -23,33 +22,33 @@ object EmTools {
   /** Determines the set point given a flex options message and a flex control
     * message. Also validates the resulting power.
     *
-    * @param flexOptionsMsg
-    *   The flex options message
+    * @param flexOptions
+    *   The flex options.
     * @param flexCtrl
-    *   The flex control message
+    *   The flex control message.
     * @return
-    *   The resulting power set point
+    *   The resulting power set point.
     */
   def determineFlexPower(
-      flexOptionsMsg: ProvideFlexOptions,
+      flexOptions: FlexOptions,
       flexCtrl: IssueFlexControl,
   ): Power =
-    flexOptionsMsg match {
-      case flexOptions: ProvideMinMaxFlexOptions =>
+    flexOptions match {
+      case minMaxFlexOptions: MinMaxFlexOptions =>
         flexCtrl match {
           case IssuePowerControl(_, setPower) =>
             // sanity check: setPower is in range of latest flex options
-            checkSetPower(flexOptions, setPower)
+            checkSetPower(minMaxFlexOptions, setPower)
 
             setPower
 
           case IssueNoControl(_) =>
             // no override, take reference power
-            flexOptions.ref
+            minMaxFlexOptions.ref
         }
 
       case unknownFlexOpt =>
-        throw new CriticalFailureException(
+        throw new FlexException(
           s"Unknown/unfitting flex messages $unknownFlexOpt"
         )
     }
@@ -58,21 +57,21 @@ object EmTools {
     * the set point is feasible given the flex options.
     *
     * @param flexOptions
-    *   The flex options that the set point has to fit
+    *   The flex options that the set point has to fit.
     * @param setPower
-    *   The set point
+    *   The set point.
     */
   def checkSetPower(
-      flexOptions: ProvideMinMaxFlexOptions,
+      flexOptions: MinMaxFlexOptions,
       setPower: Power,
   ): Unit = {
     if (setPower < flexOptions.min)
-      throw new CriticalFailureException(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.min}!"
+      throw new FlexException(
+        s"The set power $setPower must not be lower than the minimum power ${flexOptions.min}!"
       )
     else if (setPower > flexOptions.max)
-      throw new CriticalFailureException(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.max}!"
+      throw new FlexException(
+        s"The set power $setPower must not be greater than the maximum power ${flexOptions.max}!"
       )
   }
 }
