@@ -11,8 +11,7 @@ import edu.ie3.simona.model.participant.ApparentPowerAndHeatSpec.ApparentPowerAn
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{
@@ -97,10 +96,9 @@ object ApparentPowerAndHeatSpec {
     override def determineFlexOptions(
         data: CalcRelevantData.FixedRelevantData.type,
         lastState: ModelState.ConstantState.type,
-    ): FlexibilityMessage.ProvideFlexOptions =
-      ProvideMinMaxFlexOptions.noFlexOption(
-        this.getUuid,
-        calculateActivePower(ConstantState, data),
+    ): FlexOptions =
+      MinMaxFlexOptions.noFlexOption(
+        calculateActivePower(ConstantState, data)
       )
 
     override def handleControlledPowerChange(

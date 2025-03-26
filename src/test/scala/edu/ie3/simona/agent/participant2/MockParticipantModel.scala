@@ -15,8 +15,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel._
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -141,10 +140,9 @@ class MockParticipantModel(
 
   override def determineFlexOptions(
       state: MockState
-  ): FlexibilityMessage.ProvideFlexOptions = {
+  ): FlexOptions = {
     val additionalP = state.additionalP.getOrElse(zeroKW)
-    ProvideMinMaxFlexOptions(
-      uuid,
+    MinMaxFlexOptions(
       Kilowatts(1) + additionalP,
       Kilowatts(-1) + additionalP,
       Kilowatts(3) + additionalP,

@@ -70,19 +70,22 @@ object FlexibilityMessage {
   ) extends FlexResponse
 
   /** Message that activates a controlled asset agent, usually in order to
-    * request flex options for given tick. During initialization, no flex option
-    * provision is expected.
+    * request [[FlexOptions]] for given tick. During initialization, no flex
+    * option provision is expected.
     *
     * @param tick
-    *   The tick to request flex options for
+    *   The tick to request [[FlexOptions]] for.
     */
   final case class FlexActivation(override val tick: Long) extends FlexRequest
 
-  /** Message that provides flex options to an
+  /** Message that provides [[FlexOptions]] to an
     * [[edu.ie3.simona.agent.em.EmAgent]] after they have been requested via
-    * [[FlexActivation]]
+    * [[FlexActivation]].
     */
-  trait ProvideFlexOptions extends FlexResponse
+  final case class ProvideFlexOptions private (
+      override val modelUuid: UUID,
+      flexOptions: FlexOptions,
+  ) extends FlexResponse
 
   /** Message that issues flexibility control to a controlled asset model, i.e.
     * a feasible set point is delivered that the controlled asset model should

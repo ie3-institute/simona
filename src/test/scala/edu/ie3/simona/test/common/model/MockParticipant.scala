@@ -14,7 +14,7 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
+import edu.ie3.simona.ontology.messages.flex.FlexOptions
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.ApparentPower
 import squants.Dimensionless
@@ -61,7 +61,7 @@ class MockParticipant(
   override def determineFlexOptions(
       data: CalcRelevantData,
       lastState: ModelState,
-  ): FlexibilityMessage.ProvideFlexOptions = {
+  ): FlexOptions = {
     null
   }
 
