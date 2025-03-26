@@ -38,7 +38,7 @@ final case class EmModelShell(
       allFlexOptions: Iterable[
         (UUID, FlexOptions)
       ]
-  ): (Power, Power, Power) = {
+  ): MinMaxFlexOptions = {
     val updatedAllFlexOptions = allFlexOptions.map {
       case (modelUuid, flexOptions) =>
         val assetInput = modelToParticipantInput.getOrElse(
@@ -62,8 +62,7 @@ final case class EmModelShell(
         assetInput -> updatedFlexOptions
     }
 
-    val aggregate = aggregateFlex.aggregateFlexOptions(updatedAllFlexOptions)
-    (aggregate.ref, aggregate.min, aggregate.max)
+    aggregateFlex.aggregateFlexOptions(updatedAllFlexOptions)
   }
 
   def determineFlexControl(

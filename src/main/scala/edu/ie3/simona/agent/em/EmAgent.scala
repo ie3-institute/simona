@@ -234,7 +234,7 @@ object EmAgent {
 
         val allFlexOptions = updatedCore.getFlexOptions
 
-        val (emRef, emMin, emMax) =
+        val emFlexOptions =
           modelShell.aggregateFlexOptions(allFlexOptions)
 
         if (emData.outputConfig.flexResult) {
@@ -243,9 +243,9 @@ object EmAgent {
               emData.simulationStartDate
             ),
             modelShell.uuid,
-            emRef.toMegawatts.asMegaWatt,
-            emMin.toMegawatts.asMegaWatt,
-            emMax.toMegawatts.asMegaWatt,
+            emFlexOptions.ref.toMegawatts.asMegaWatt,
+            emFlexOptions.min.toMegawatts.asMegaWatt,
+            emFlexOptions.max.toMegawatts.asMegaWatt,
           )
 
           emData.listener.foreach {
@@ -256,21 +256,15 @@ object EmAgent {
         emData.parentData match {
           case Right(flexStateData) =>
             // provide aggregate flex options to parent
-            val flexOptions = MinMaxFlexOptions(
-              emRef,
-              emMin,
-              emMax,
-            )
-
             flexStateData.emAgent ! ProvideFlexOptions(
               modelShell.uuid,
-              flexOptions,
+              emFlexOptions,
             )
 
             val updatedEmData = emData.copy(
               parentData = Right(
                 flexStateData.copy(
-                  lastFlexOptions = Some(flexOptions)
+                  lastFlexOptions = Some(emFlexOptions)
                 )
               )
             )
