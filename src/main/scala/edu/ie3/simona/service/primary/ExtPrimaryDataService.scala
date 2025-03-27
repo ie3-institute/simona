@@ -8,33 +8,18 @@ package edu.ie3.simona.service.primary
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
-  DataProvision,
-  PrimaryRegistrationSuccessfulMessage,
-}
+import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{DataProvision, PrimaryRegistrationSuccessfulMessage}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
-import edu.ie3.simona.api.data.primarydata.ontology.{
-  PrimaryDataMessageFromExt,
-  ProvidePrimaryData,
-}
+import edu.ie3.simona.api.data.primarydata.ontology.{PrimaryDataMessageFromExt, ProvidePrimaryData}
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  ServiceResponseMessage,
-}
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
-import edu.ie3.simona.service.{
-  ExtDataSupport,
-  ServiceStateData,
-  TypedSimonaService,
-}
-import org.apache.pekko.actor.ActorRef
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{PrimaryServiceRegistrationMessage, ServiceResponseMessage}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 
@@ -44,7 +29,7 @@ import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 object ExtPrimaryDataService
-    extends TypedSimonaService[ServiceMessage]
+    extends SimonaService[ServiceMessage]
     with ExtDataSupport[ServiceMessage] {
 
   override type S = ExtPrimaryDataStateData
@@ -52,8 +37,8 @@ object ExtPrimaryDataService
   final case class ExtPrimaryDataStateData(
       extPrimaryData: ExtPrimaryDataConnection,
       subscribers: List[UUID] = List.empty,
-      uuidToActorRef: Map[UUID, ActorRef] =
-        Map.empty[UUID, ActorRef], // subscribers in SIMONA
+      uuidToActorRef: Map[UUID, ActorRef[ParticipantAgent.Request]] =
+        Map.empty, // subscribers in SIMONA
       extPrimaryDataMessage: Option[PrimaryDataMessageFromExt] = None,
       maybeNextTick: Option[Long] = None,
   ) extends ServiceBaseStateData
@@ -102,7 +87,7 @@ object ExtPrimaryDataService
   }
 
   private def handleRegistrationRequest(
-      agentToBeRegistered: ActorRef,
+      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
       agentUUID: UUID,
   )(implicit
       serviceStateData: ExtPrimaryDataStateData,
@@ -121,7 +106,7 @@ object ExtPrimaryDataService
           )
 
         agentToBeRegistered ! PrimaryRegistrationSuccessfulMessage(
-          ctx.self.toClassic,
+          ctx.self,
           0L,
           PrimaryData.getPrimaryDataExtra(valueClass),
         )
@@ -209,7 +194,7 @@ object ExtPrimaryDataService
           case Success(primaryData) =>
             actor ! DataProvision(
               tick,
-              ctx.self.toClassic,
+              ctx.self,
               primaryData,
               maybeNextTick,
             )

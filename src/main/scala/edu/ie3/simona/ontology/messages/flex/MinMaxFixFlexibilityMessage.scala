@@ -7,7 +7,6 @@
 package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
 
@@ -22,8 +21,6 @@ object MinMaxFixFlexibilityMessage {
     * maximum power. It is possible that the power values are either all
     * negative or all positive, meaning that feed-in or load is mandatory.
     *
-    * @param modelUuid
-    *   The UUID of the flex options provider asset model
     * @param ref
     *   The reference active power that the flex options provider would
     *   produce/consume regularly at the current tick, i.e. if it was not
@@ -35,24 +32,23 @@ object MinMaxFixFlexibilityMessage {
     *   The maximum active power that the flex options provider allows at the
     *   current tick
     */
-  final case class ProvideMinMaxFixFlexOptions private (
-      override val modelUuid: UUID,
+  final case class MinMaxFixFlexOptions private(
       ref: Power,
       min: Power,
       max: Power,
       fix: Power,
-  ) extends ProvideFlexOptions
+  ) extends FlexOptions
 
-  object ProvideMinMaxFixFlexOptions {
+  object MinMaxFixFlexOptions {
 
     implicit class RichIterable(
-        private val flexOptions: Iterable[ProvideMinMaxFixFlexOptions]
+        private val flexOptions: Iterable[MinMaxFixFlexOptions]
     ) extends AnyVal {
       def flexSum: (Power, Power, Power, Power) =
         flexOptions.foldLeft((zeroKW, zeroKW, zeroKW, zeroKW)) {
           case (
                 (sumRef, sumMin, sumMax, sumFix),
-                ProvideMinMaxFixFlexOptions(_, addRef, addMin, addMax, addFix),
+                MinMaxFixFlexOptions(addRef, addMin, addMax, addFix),
               ) =>
             (
               sumRef + addRef,
@@ -64,7 +60,7 @@ object MinMaxFixFlexibilityMessage {
     }
 
     /** Creates a
-      * [[edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions]]
+      * [[edu.ie3.simona.ontology.messages.flex.MinMaxFixFlexibilityMessage.MinMaxFixFlexOptions]]
       * message with sanity checks regarding the power values
       *
       * @param modelUuid
@@ -81,7 +77,7 @@ object MinMaxFixFlexibilityMessage {
       *   current tick
       * @return
       *   The
-      *   [[edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions]]
+      *   [[edu.ie3.simona.ontology.messages.flex.MinMaxFixFlexibilityMessage.MinMaxFixFlexOptions]]
       *   message
       */
     def apply(
@@ -90,7 +86,7 @@ object MinMaxFixFlexibilityMessage {
         min: Power,
         max: Power,
         fix: Power,
-    ): ProvideMinMaxFixFlexOptions = {
+    ): MinMaxFixFlexOptions = {
       if (min > ref)
         throw new CriticalFailureException(
           s"Minimum power $min is greater than reference power $ref"
@@ -101,11 +97,11 @@ object MinMaxFixFlexibilityMessage {
           s"Reference power $ref is greater than maximum power $max"
         )
 
-      new ProvideMinMaxFixFlexOptions(modelUuid, ref, min, max, fix)
+      new MinMaxFixFlexOptions(ref, min, max, fix)
     }
 
     /** Creates a
-      * [[edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions]]
+      * [[edu.ie3.simona.ontology.messages.flex.MinMaxFixFlexibilityMessage.MinMaxFixFlexOptions]]
       * message that does not allow any flexibility, meaning that min = ref =
       * max power.
       *
@@ -115,13 +111,13 @@ object MinMaxFixFlexibilityMessage {
       *   The active power that the flex provider requires
       * @return
       *   The corresponding
-      *   [[edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions]]
+      *   [[edu.ie3.simona.ontology.messages.flex.MinMaxFixFlexibilityMessage.MinMaxFixFlexOptions]]
       *   message
       */
     def noFlexOption(
         modelUuid: UUID,
         power: Power,
-    ): ProvideMinMaxFixFlexOptions =
-      ProvideMinMaxFixFlexOptions(modelUuid, power, power, power, zeroKW)
+    ): MinMaxFixFlexOptions =
+      MinMaxFixFlexOptions(modelUuid, power, power, power, zeroKW)
   }
 }

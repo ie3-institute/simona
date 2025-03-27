@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.em.model.{EmSetPointResult, FlexRequestResult}
-import edu.ie3.simona.api.data.em.ontology._
+import edu.ie3.simona.api.data.em.ontology.{RequestEmCompletion, _}
 import edu.ie3.simona.api.data.em.{ExtEmDataConnection, NoSetPointValue}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
@@ -18,20 +18,10 @@ import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EmMessage
-import edu.ie3.simona.ontology.messages.services.EmMessage.{
-  WrappedFlexRequest,
-  WrappedFlexResponse,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  RegisterForEmDataService,
-  ServiceRegistrationMessage,
-  ServiceResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{RegisterForEmDataService, ServiceRegistrationMessage, ServiceResponseMessage}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveHierarchicalDataMap}
@@ -48,11 +38,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Power => PsdmPower}
-import scala.jdk.CollectionConverters.{
-  ListHasAsScala,
-  MapHasAsJava,
-  MapHasAsScala,
-}
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 import scala.util.{Failure, Success, Try}
 
@@ -319,6 +305,26 @@ object ExtEmDataService
         "ExtEmDataService was triggered without ExtEmDataMessage available"
       )
     ) match {
+      case requestEmCompletion : RequestEmCompletion =>
+
+        if (requestEmCompletion.tick != tick) {
+          log.warn(s"Received completion request for tick '${requestEmCompletion.tick}' in tick '$tick'.")
+          serviceStateData
+
+        } else {
+          ctx.log.info(s"Receive a request for completion for tick '$tick'.")
+
+          val setEms = serviceStateData.setPointResponse.getExpectedKeys
+
+          serviceStateData.uuidToFlexAdapter.foreach { case (uuid, adapter) if !setEms.contains(uuid) =>
+              adapter ! IssueNoControl(tick)
+          }
+
+          serviceStateData.extEmDataConnection.queueExtResponseMsg(new EmCompletion())
+
+          serviceStateData.copy(setPointResponse = ReceiveDataMap.empty)
+        }
+
       case provideFlexRequests: ProvideFlexRequestData =>
         ctx.log.warn(s"$provideFlexRequests")
 
@@ -548,7 +554,7 @@ object ExtEmDataService
 
         val (data, updatedFlexOptionResponse) = updated.getFinishedData
 
-        queueExtResponseMsg(
+        serviceStateData.extEmDataConnection.queueExtResponseMsg(
           new FlexOptionsResponse(
             data.map { case (entity, (_, value)) => entity -> value }.asJava
           )
@@ -633,7 +639,7 @@ object ExtEmDataService
             )
         }
 
-        queueExtResponseMsg(new FlexRequestResponse(map.asJava))
+        serviceStateData.extEmDataConnection.queueExtResponseMsg(new FlexRequestResponse(map.asJava))
 
         serviceStateData.copy(flexRequest = updatedFlexRequest)
       } else {
@@ -686,7 +692,7 @@ object ExtEmDataService
       } else {
         // all responses received, forward them to external simulation in a bundle
 
-        queueExtResponseMsg(
+        serviceStateData.extEmDataConnection.queueExtResponseMsg(
           new EmSetPointDataResponse(updated.receivedData.asJava)
         )
 
@@ -696,19 +702,4 @@ object ExtEmDataService
       }
     }
   }
-
-  private def queueExtResponseMsg(
-      msg: EmDataResponseMessageToExt
-  )(implicit serviceStateData: ExtEmDataStateData): Unit = {
-    val flexRequests = serviceStateData.flexRequest.allCompleted
-    val flexOptions = serviceStateData.flexOptionResponse.allCompleted
-    val setPoints = serviceStateData.setPointResponse.isComplete
-
-    val isFinished = flexRequests && flexOptions && setPoints
-
-    val connection = serviceStateData.extEmDataConnection
-
-    connection.queueExtResponseMsg(msg, isFinished)
-  }
-
 }
