@@ -25,6 +25,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 
 import java.time.ZonedDateTime
@@ -93,12 +94,7 @@ object FixedFeedInModel {
     new FixedFeedInModel(
       input.getUuid,
       input.getId,
-      Kilovoltamperes(
-        input.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
+      input.getsRated.toKilovoltamperes,
       input.getCosPhiRated,
       QControl.apply(input.getqCharacteristics),
     )

@@ -28,12 +28,15 @@ import edu.ie3.simona.model.participant2.StorageModel.{
 }
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
-import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Dimensionless, Each, Energy, Power, Seconds}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  DimensionlessToSimona,
+  EnergyToSimona,
+  PowerConversionSimona,
+}
+import squants.{Dimensionless, Energy, Power, Seconds}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -326,12 +329,8 @@ object StorageModel {
       input: StorageInput,
       config: StorageRuntimeConfig,
   ): StorageModel = {
-    val eStorage = KilowattHours(
-      input.getType.geteStorage
-        .to(PowerSystemUnits.KILOWATTHOUR)
-        .getValue
-        .doubleValue
-    )
+    val eStorage = input.getType.geteStorage.toKilowattHours
+
     val initialState: (Long, ZonedDateTime) => StorageState =
       (tick, _) => {
         val initialStoredEnergy = eStorage * config.initialSoc
@@ -341,25 +340,13 @@ object StorageModel {
     new StorageModel(
       input.getUuid,
       input.getId,
-      Kilovoltamperes(
-        input.getType.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
+      input.getType.getsRated.toKilovoltamperes,
       input.getType.getCosPhiRated,
       QControl.apply(input.getqCharacteristics),
       initialState,
       eStorage,
-      Kilowatts(
-        input.getType.getpMax
-          .to(PowerSystemUnits.KILOWATT)
-          .getValue
-          .doubleValue
-      ),
-      Each(
-        input.getType.getEta.to(PowerSystemUnits.PU).getValue.doubleValue
-      ),
+      input.getType.getpMax.toKilowatts,
+      input.getType.getEta.toPercent,
       config.targetSoc,
     )
   }

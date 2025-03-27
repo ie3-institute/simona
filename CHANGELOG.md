@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
 - Add test case to EmAgentIT to check for correct reactive power [#1185](https://github.com/ie3-institute/simona/issues/1185)
 - Integration test for thermal grids with Em [#1146](https://github.com/ie3-institute/simona/issues/1146)
+- Add conversion utils between `ComparableQuantity` and `Squants` [#1313](https://github.com/ie3-institute/simona/issues/1313)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)

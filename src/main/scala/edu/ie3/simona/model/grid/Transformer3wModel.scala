@@ -11,7 +11,6 @@ import breeze.math.Complex
 import breeze.numerics.pow
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
 import edu.ie3.simona.exceptions.{
@@ -27,16 +26,18 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import squants.electro.{Kilovolts, Ohms, Siemens}
-import squants.energy.Megawatts
-import tech.units.indriya.AbstractUnit
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{OHM, SIEMENS}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  OhmToSimona,
+  PowerConversionSimona,
+  SiemensToSimona,
+  VoltageToSimona,
+}
+import squants.electro.Siemens
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, ElectricPotential}
+import javax.measure.quantity.ElectricPotential
 import scala.math.BigDecimal.RoundingMode
 
 /** This model represents a three winding transformer incorporating a virtual
@@ -323,12 +324,8 @@ case object Transformer3wModel extends LazyLogging {
   ) = {
     val transformerRefSystem =
       RefSystem(
-        Megawatts(
-          transformerType.getsRatedA.to(MEGAVOLTAMPERE).getValue.doubleValue()
-        ),
-        Kilovolts(
-          transformerType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
-        ),
+        transformerType.getsRatedA.toMegawatts,
+        transformerType.getvRatedA.toKilovolts,
       )
 
     /* Get the physical equivalent circuit diagram parameters from type. They come with reference to the highest
@@ -336,51 +333,44 @@ case object Transformer3wModel extends LazyLogging {
     val (rTrafo, xTrafo, gTrafo, bTrafo) = powerFlowCase match {
       case PowerFlowCaseA =>
         (
-          transformerType.getrScA,
-          transformerType.getxScA,
-          transformerType.getgM,
-          transformerType.getbM,
+          transformerType.getrScA.toOhms,
+          transformerType.getxScA.toOhms,
+          transformerType.getgM.toSiemens,
+          transformerType.getbM.toSiemens,
         )
       case PowerFlowCaseB =>
         val nominalRatio = transformerType
           .getvRatedA()
-          .divide(transformerType.getvRatedB())
-          .asType(classOf[Dimensionless])
-          .to(AbstractUnit.ONE)
-          .getValue
-          .doubleValue()
+          .toKilovolts / transformerType.getvRatedB().toKilovolts
+
         (
-          transformerType.getrScB.divide(pow(nominalRatio, 2)),
-          transformerType.getxScB.divide(pow(nominalRatio, 2)),
-          Quantities.getQuantity(0d, StandardUnits.CONDUCTANCE),
-          Quantities.getQuantity(0d, StandardUnits.SUSCEPTANCE),
+          transformerType.getrScB.toOhms / pow(nominalRatio, 2),
+          transformerType.getxScB.toOhms / pow(nominalRatio, 2),
+          Siemens(0),
+          Siemens(0),
         )
       case PowerFlowCaseC =>
         val nominalRatio = transformerType
           .getvRatedA()
-          .divide(transformerType.getvRatedC())
-          .asType(classOf[Dimensionless])
-          .to(AbstractUnit.ONE)
-          .getValue
-          .doubleValue()
+          .toKilovolts / transformerType.getvRatedC().toKilovolts
         (
-          transformerType.getrScC.divide(pow(nominalRatio, 2)),
-          transformerType.getxScC.divide(pow(nominalRatio, 2)),
-          Quantities.getQuantity(0d, StandardUnits.CONDUCTANCE),
-          Quantities.getQuantity(0d, StandardUnits.SUSCEPTANCE),
+          transformerType.getrScC.toOhms / pow(nominalRatio, 2),
+          transformerType.getxScC.toOhms / pow(nominalRatio, 2),
+          Siemens(0),
+          Siemens(0),
         )
     }
 
     /* Translate the single parameters to dimensionless units based on the grid's reference system */
     (
       /* r */
-      refSystem.rInPu(Ohms(rTrafo.to(OHM).getValue.doubleValue())),
+      refSystem.rInPu(rTrafo),
       /* x */
-      refSystem.xInPu(Ohms(xTrafo.to(OHM).getValue.doubleValue())),
+      refSystem.xInPu(xTrafo),
       /* g */
-      refSystem.gInPu(Siemens(gTrafo.to(SIEMENS).getValue.doubleValue())),
+      refSystem.gInPu(gTrafo),
       /* b */
-      refSystem.bInPu(Siemens(bTrafo.to(SIEMENS).getValue.doubleValue())),
+      refSystem.bInPu(bTrafo),
     )
   }
 
