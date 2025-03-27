@@ -81,13 +81,16 @@ import edu.ie3.simona.model.participant.{
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
 import org.apache.pekko.event.LoggingAdapter
@@ -437,12 +440,12 @@ protected trait ParticipantAgentFundamentals[
             firstDataTick,
           ) =>
         val remainingResponses =
-          stateData.pendingResponses.filter(_ != serviceRef)
+          stateData.pendingResponses.filter(_ != serviceRef.toClassic)
 
         /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
         val foreseenDataTicks =
           stateData.baseStateData.foreseenDataTicks +
-            (serviceRef -> Some(firstDataTick))
+            (serviceRef.toClassic -> Some(firstDataTick))
 
         if (remainingResponses.isEmpty) {
           /* All agent have responded. Determine the next to be used state data and reply completion to scheduler. */
@@ -501,11 +504,11 @@ protected trait ParticipantAgentFundamentals[
         optTick match {
           case Some(tick) if msg.tick == tick =>
             // expected data
-            if (actorRef == msg.serviceRef)
+            if (actorRef == msg.serviceRef.toClassic)
               Some(actorRef -> Some(msg.data))
             else
               Some(actorRef -> None)
-          case None if actorRef == msg.serviceRef =>
+          case None if actorRef == msg.serviceRef.toClassic =>
             // unexpected data
             Some(actorRef -> Some(msg.data))
           case _ =>
@@ -515,7 +518,7 @@ protected trait ParticipantAgentFundamentals[
 
     /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
     val foreseenDataTicks =
-      baseStateData.foreseenDataTicks + (msg.serviceRef -> msg.nextDataTick)
+      baseStateData.foreseenDataTicks + (msg.serviceRef.toClassic -> msg.nextDataTick)
 
     /* Go over to handling this information */
     val nextStateData = DataCollectionStateData(
@@ -673,7 +676,10 @@ protected trait ParticipantAgentFundamentals[
         )
       )
 
-    updatedFlexData.emAgent ! newestFlexOptions
+    updatedFlexData.emAgent ! ProvideFlexOptions(
+      participantStateData.modelUuid,
+      newestFlexOptions,
+    )
 
     updatedBaseStateData
   }
@@ -700,15 +706,14 @@ protected trait ParticipantAgentFundamentals[
     // does not include reactive power which could change later)
     if (baseStateData.outputConfig.flexResult) {
       val flexResult = flexOptions match {
-        case ProvideMinMaxFlexOptions(
-              modelUuid,
+        case MinMaxFlexOptions(
               referencePower,
               minPower,
               maxPower,
             ) =>
           new FlexOptionsResult(
             tick.toDateTime,
-            modelUuid,
+            baseStateData.modelUuid,
             referencePower.toMegawatts.asMegaWatt,
             minPower.toMegawatts.asMegaWatt,
             maxPower.toMegawatts.asMegaWatt,
@@ -750,7 +755,16 @@ protected trait ParticipantAgentFundamentals[
       )
 
     val setPointActivePower =
-      EmTools.determineFlexPower(flexOptions, flexCtrl)
+      Try(EmTools.determineFlexPower(flexOptions, flexCtrl))
+        .recoverWith(exception =>
+          Failure(
+            new CriticalFailureException(
+              s"Determining flex power failed for model ${baseStateData.modelUuid}",
+              exception,
+            )
+          )
+        )
+        .get
 
     /* Handle the flex signal */
     val (updatedState, result, flexChangeIndicator) =

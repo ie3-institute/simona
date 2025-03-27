@@ -31,8 +31,7 @@ import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsState,
 }
 import edu.ie3.simona.model.participant2.{ChargingHelper, ParticipantModel}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
@@ -229,7 +228,7 @@ class EvcsModel private (
 
   override def determineFlexOptions(
       state: EvcsState
-  ): FlexibilityMessage.ProvideFlexOptions = {
+  ): FlexOptions = {
 
     val preferredPowers =
       strategy.determineChargingPowers(state.evs, state.tick, this)
@@ -279,8 +278,7 @@ class EvcsModel private (
       else
         (preferredPower, minCharging)
 
-    ProvideMinMaxFlexOptions(
-      uuid,
+    MinMaxFlexOptions(
       adaptedPreferred,
       adaptedMinCharging,
       maxCharging,

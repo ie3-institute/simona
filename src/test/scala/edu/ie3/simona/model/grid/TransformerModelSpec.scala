@@ -18,19 +18,17 @@ import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.powerflow.model.{NodeData, PowerFlowResult}
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.test.common.model.grid.{
   TapTestData,
   TransformerTestData,
   TransformerTestGrid,
 }
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.Each
-import squants.electro.{Amperes, Kilovolts}
-import squants.energy.Kilowatts
+import squants.electro.Amperes
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit

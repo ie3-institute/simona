@@ -35,15 +35,32 @@ import scala.jdk.CollectionConverters._
 
 /** Test data for a [[Transformer2WInput]].
   *
-  * Transformer type: d_v = 1.5 % tap_min = -13 tap_max = 13 tap_neut = 0
-  * is_autotap = true tapSide = high voltage side (ConnectorPort.B -> None in
-  * [[edu.ie3.simona.model.grid.TransformerTappingModel]]) r = 30.25 Ω x =
-  * 4.5375 Ω g = 0 b = 1.1 nS s_rated = 40000 kVA
-  * -> iNomHv = 209.9455524325912 A
-  * -> iNomLv = 2309.401076758503 A capex = 100.000 € opex = 0 €
+  * {{{
+  * Transformer type:
+  *   d_v = 1.5 %
+  *   tap_min = -13
+  *   tap_max = 13
+  *   tap_neut = 0
+  *   is_autotap = true
+  *   tapSide = high voltage side (ConnectorPort.B -> None in
+  *     [[edu.ie3.simona.model.grid.TransformerTappingModel]])
+  *   r = 30.25 Ω
+  *   x = 4.5375 Ω
+  *   g = 0
+  *   b = 1.1 nS
+  *   s_rated = 40000 kVA -> iNomHv = 209.9455524325912 A
+  *     -> iNomLv = 2309.401076758503 A
+  *   capex = 100.000 €
+  *   opex = 0 €
   *
-  * Transformer model: tap_side = hv (element port A) tap_pos = 0 auto_tap =
-  * false amount = 1 vHv = 110 kV vLv = 10 kV
+  * Transformer model:
+  *   tap_side = hv (element port A)
+  *   tap_pos = 0
+  *   auto_tap = false
+  *   amount = 1
+  *   vHv = 110 kV
+  *   vLv = 10 kV
+  * }}}
   */
 trait TransformerInputTestData extends DefaultTestData {
   private val nodeA = new NodeInput(

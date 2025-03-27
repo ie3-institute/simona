@@ -270,7 +270,7 @@ class PowerFlowSupportSpec
               0.0001d.asAmpere,
               currentTolerance,
             )
-          // angles are not reliable enough with such small magnitudes
+            // angles are not reliable enough with such small magnitudes
           }
 
         // right/bottom side segments (lines that are adjacent to the closed switch) should have load
@@ -381,7 +381,7 @@ class PowerFlowSupportSpec
               0.0001d.asAmpere,
               currentTolerance,
             )
-          // angles are not reliable enough with such small magnitudes
+            // angles are not reliable enough with such small magnitudes
           }
 
       }

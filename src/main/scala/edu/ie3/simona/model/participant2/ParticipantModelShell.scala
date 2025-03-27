@@ -31,11 +31,8 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   OperationChangeIndicator,
 }
 import edu.ie3.simona.model.participant2.ParticipantModelShell.ResultsContainer
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  IssueFlexControl,
-  ProvideFlexOptions,
-}
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -49,6 +46,7 @@ import squants.energy.Power
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.reflect.ClassTag
+import scala.util.{Failure, Try}
 
 /** A shell allowing interactions with the [[ParticipantModel]] that it holds.
   * Inputs and outputs are buffered and reused where applicable. The operation
@@ -92,7 +90,7 @@ final case class ParticipantModelShell[
     private val operationInterval: OperationInterval,
     private val simulationStartDate: ZonedDateTime,
     private val _state: Option[S] = None,
-    private val _flexOptions: Option[ProvideFlexOptions] = None,
+    private val _flexOptions: Option[FlexOptions] = None,
     private val _lastOperatingPoint: Option[OP] = None,
     private val _operatingPoint: Option[OP] = None,
     private val _operationChange: OperationChangeIndicator =
@@ -146,7 +144,7 @@ final case class ParticipantModelShell[
     * @return
     *   The flex options.
     */
-  def flexOptions: ProvideFlexOptions =
+  def flexOptions: FlexOptions =
     _flexOptions.getOrElse(
       throw new CriticalFailureException(
         "Flex options have not been calculated!"
@@ -236,7 +234,7 @@ final case class ParticipantModelShell[
   ): FlexOptionsResult = {
     val minMaxFlexOptions =
       flexOptions match {
-        case flex: ProvideMinMaxFlexOptions => flex
+        case flex: MinMaxFlexOptions => flex
       }
 
     new FlexOptionsResult(
@@ -297,7 +295,7 @@ final case class ParticipantModelShell[
         model.determineFlexOptions(currentState)
       } else {
         // Out of operation, there's no way to operate besides 0 kW
-        ProvideMinMaxFlexOptions.noFlexOption(model.uuid, zeroKW)
+        MinMaxFlexOptions.noFlexOption(zeroKW)
       }
 
     copy(_state = Some(currentState), _flexOptions = Some(flexOptions))
@@ -323,10 +321,17 @@ final case class ParticipantModelShell[
         throw new CriticalFailureException("No flex options available!")
       )
 
-      val setPointActivePower = EmTools.determineFlexPower(
-        fo,
-        flexControl,
-      )
+      val setPointActivePower =
+        Try(EmTools.determineFlexPower(fo, flexControl))
+          .recoverWith(exception =>
+            Failure(
+              new CriticalFailureException(
+                s"$identifier: Determining flex power failed",
+                exception,
+              )
+            )
+          )
+          .get
 
       model.determineOperatingPoint(
         currentState,

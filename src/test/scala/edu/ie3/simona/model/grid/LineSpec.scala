@@ -11,12 +11,10 @@ import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LineInputTestData
 import edu.ie3.simona.test.common.model.grid.FiveLinesWithNodes
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import squants.Each
 import squants.electro.{Amperes, Kilovolts}
 import squants.energy.Kilowatts
-import tech.units.indriya.unit.Units._
 
 import java.util.UUID
 

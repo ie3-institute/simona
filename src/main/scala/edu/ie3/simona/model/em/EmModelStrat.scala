@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import squants.Power
 import squants.energy.Kilowatts
 
@@ -32,7 +32,7 @@ trait EmModelStrat {
     */
   def determineFlexControl(
       flexOptions: Iterable[
-        (_ <: AssetInput, ProvideMinMaxFlexOptions)
+        (_ <: AssetInput, MinMaxFlexOptions)
       ],
       target: Power,
   ): Iterable[(UUID, Power)]
@@ -51,8 +51,8 @@ trait EmModelStrat {
     */
   def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: ProvideMinMaxFlexOptions,
-  ): ProvideMinMaxFlexOptions
+      flexOptions: MinMaxFlexOptions,
+  ): MinMaxFlexOptions
 }
 
 object EmModelStrat {

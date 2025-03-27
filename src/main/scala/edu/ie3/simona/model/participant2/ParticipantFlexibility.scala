@@ -8,12 +8,11 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  OperationChangeIndicator,
   ModelState,
   OperatingPoint,
+  OperationChangeIndicator,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import squants.energy.Power
 
 /** Trait for [[ParticipantModel]] to define methods related to flexibility.
@@ -33,14 +32,14 @@ trait ParticipantFlexibility[
   /** Given the current state, this method determines the flexibility options
     * for the current tick. This usually means that the range of possible
     * operating points has be considered and subsequently distilled into a
-    * [[ProvideFlexOptions]] message.
+    * [[FlexOptions]] message.
     *
     * @param state
     *   The current state.
     * @return
     *   The flexibility options.
     */
-  def determineFlexOptions(state: S): ProvideFlexOptions
+  def determineFlexOptions(state: S): FlexOptions
 
   /** Given the current state, this method determines the operating point that
     * is currently valid until the next operating point is determined, given a
@@ -87,11 +86,11 @@ object ParticipantFlexibility {
 
     override def determineFlexOptions(
         state: S
-    ): ProvideFlexOptions = {
+    ): FlexOptions = {
       val (operatingPoint, _) = determineOperatingPoint(state)
       val power = operatingPoint.activePower
 
-      ProvideMinMaxFlexOptions.noFlexOption(uuid, power)
+      MinMaxFlexOptions.noFlexOption(power)
     }
 
     override def determineOperatingPoint(

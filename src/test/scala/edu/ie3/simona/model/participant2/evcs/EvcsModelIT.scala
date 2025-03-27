@@ -129,8 +129,8 @@ class EvcsModelIT
       /* Create ParticipantAgent with EvcsModel */
       val participantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
-        primaryServiceProxy = primaryServiceProxy.ref.toClassic,
-        services = Map(ServiceType.EvMovementService -> evService.toClassic),
+        primaryServiceProxy = primaryServiceProxy.ref,
+        services = Map(ServiceType.EvMovementService -> evService),
         resultListener = Iterable(resultListener.ref),
       )
 
@@ -165,11 +165,11 @@ class EvcsModelIT
 
       primaryServiceProxy.expectMessage(
         PrimaryServiceRegistrationMessage(
-          evcsAgent.toClassic,
+          evcsAgent,
           evcsInputModel.getUuid,
         )
       )
-      evcsAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+      evcsAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
       // providing the first data tick
       extEvData.provideArrivingEvs(

@@ -1040,8 +1040,8 @@ class ThermalGridIT
       /* TICK 0
         Start of Simulation, No sun at the moment.
         PV: 0.0 kW
-        House demand heating : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
-        ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand 0.0 kWh
+        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays out - since requiredDemand of ThermalStorage not necessarily demand hp operation.
        */
 
@@ -1113,8 +1113,8 @@ class ThermalGridIT
       /* TICK 1800
         New Weather: The sun comes out, PV will produce.
         PV: -6.3 kW
-        House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 1.25 kWh
-        ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.25 kWh
+        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: turns on - since now we have flexibility potential available which can be used by hp to serve the reqDemand of ThermalStorage
        */
 
@@ -1188,9 +1188,9 @@ class ThermalGridIT
       /* TICK 5216
       Storage is fully heated up, meanwhile house cooled a bit.
       PV: -6.3 kW
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 3.6 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      Heat pump: stays on since it was on and the house has additional demand
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 3.6 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      Heat pump: stays on since it was on and the house has possible demand
        */
 
       emAgentActivation ! Activation(5216)
@@ -1249,8 +1249,8 @@ class ThermalGridIT
       /* TICK 5400
       PV: 0.0 kW
       New weather data, sun is gone again, thus we should now heat the house by storage.
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 3.17 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 3.17 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turns off
        */
 
@@ -1322,8 +1322,8 @@ class ThermalGridIT
       /* TICK 6829
      The house reaches target temperature
      PV: 0.0 kW
-     House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 4.15 kWh
+     House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+     ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.15 kWh
      Heat pump: stays off
        */
 
@@ -1381,8 +1381,8 @@ class ThermalGridIT
       /* TICK 9200
      The sun is back again, storage first.
      PV: -5.2 kW
-     House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 1.64 kWh
-     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 4.15 kWh
+     House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
+     ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.15 kWh
      Heat pump: turned off
        */
 
@@ -1460,8 +1460,8 @@ class ThermalGridIT
       /* TICK 10556
       Storage is full, now heating the house till target temperature.
       PV: -5.2 kW
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 2.58 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.58 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on
        */
 
@@ -1523,8 +1523,8 @@ class ThermalGridIT
       /* TICK 11644
       House reaches target temperature boundary.
       PV: -5.2 kW
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on
        */
 
@@ -1587,9 +1587,9 @@ class ThermalGridIT
       House would reach lowerTempBoundary at tick 23809,
       but now it's getting colder which should decrease inner temp of house faster, but the sun is still there.
       PV: -5.2 kW
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.25 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      Heat pump: turned on, since there is additionalDemand and setPower is 3800 W which is > 0.5 sRated of Hp
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.25 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      Heat pump: turned on, since there is possibleDemand and setPower is 3800 W which is > 0.5 sRated of Hp
        */
 
       emAgentActivation ! Activation(12000)
@@ -1805,9 +1805,9 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(24151)))
 
       /* TICK 24151
-        House reaches lower boundary, since we haven't surplus energy from pv we would use the energy from storage to heat the house.
+        House reaches lower boundary, since we don't have surplus energy from pv, we would use the energy from storage to heat the house.
         PV: 0.0 kW
-        House demand heating : requiredDemand = 15.0 kWh, additionalDemand = 15.0 kWh
+        House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         Heat pump: stays off
        */

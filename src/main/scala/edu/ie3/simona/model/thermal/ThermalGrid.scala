@@ -233,10 +233,10 @@ final case class ThermalGrid(
     // We can use the qDots from lastState to keep continuity. If...
     if (
       // ... house was heated in lastState but not from Storage and has still some demand. Hp must still run for this.
-      ((lastHouseQDot > zeroKW && (lastHeatStorageQDot >= zeroKW) && thermalDemands.houseDemand.hasAdditionalDemand) && isRunning ||
-      // ... storage was filled up in the lastState and has still additional demand
+      ((lastHouseQDot > zeroKW && (lastHeatStorageQDot >= zeroKW) && thermalDemands.houseDemand.hasPossibleDemand) && isRunning ||
+      // ... storage was filled up in the lastState and has still possible demand
       // But only if the house not reached some requiredDemand. Hp must still run for this.
-      lastHeatStorageQDot > zeroKW && thermalDemands.heatStorageDemand.hasAdditionalDemand && !thermalDemands.houseDemand.hasRequiredDemand && isRunning)
+      lastHeatStorageQDot > zeroKW && thermalDemands.heatStorageDemand.hasPossibleDemand && !thermalDemands.houseDemand.hasRequiredDemand && isRunning)
     ) {
       // We can continue for the house
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
@@ -335,10 +335,10 @@ final case class ThermalGrid(
     if (thermalDemands.houseDemand.hasRequiredDemand)
       handleCases(tick, state, qDot, zeroKW)
     else if (
-      thermalDemands.heatStorageDemand.hasRequiredDemand || thermalDemands.heatStorageDemand.hasAdditionalDemand
+      thermalDemands.heatStorageDemand.hasRequiredDemand || thermalDemands.heatStorageDemand.hasPossibleDemand
     )
       handleCases(tick, state, zeroKW, qDot)
-    else if (thermalDemands.houseDemand.hasAdditionalDemand)
+    else if (thermalDemands.houseDemand.hasPossibleDemand)
       handleCases(tick, state, qDot, zeroKW)
     else
       handleCases(tick, state, zeroKW, zeroKW)
@@ -775,7 +775,7 @@ object ThermalGrid {
 
     def hasRequiredDemand: Boolean = required > zeroMWh
 
-    def hasAdditionalDemand: Boolean = possible > zeroMWh
+    def hasPossibleDemand: Boolean = possible > zeroMWh
   }
   object ThermalEnergyDemand {
 
