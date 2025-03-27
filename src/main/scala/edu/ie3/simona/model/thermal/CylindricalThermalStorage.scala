@@ -51,6 +51,8 @@ import java.util.UUID
   *   Maximum permissible energy stored in the storage
   * @param pThermalMax
   *   Thermal power, that can be charged / discharged
+  * @param storedEnergy
+  *   Energy stored in the thermal storage
   */
 final case class CylindricalThermalStorage(
     uuid: UUID,
