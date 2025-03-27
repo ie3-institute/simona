@@ -255,43 +255,43 @@ class ThermalGridIT
           hpResult.getQ should equalWithTolerance(
             qRunningHp
           )
-
-          Range(0, 2)
-            .map { _ =>
-              resultListener.expectMessageType[ResultEvent]
-            }
-            .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
-              thermalUnitResult match {
-                case ThermalHouseResult(
-                      time,
-                      inputModel,
-                      qDot,
-                      indoorTemperature,
-                    ) =>
-                  inputModel shouldBe typicalThermalHouse.getUuid
-                  time shouldBe 3416.toDateTime
-                  qDot should equalWithTolerance(0.011.asMegaWatt)
-                  indoorTemperature should equalWithTolerance(
-                    19.68.asDegreeCelsius
-                  )(temperatureTolerance)
-
-                case CylindricalThermalStorageResult(
-                      time,
-                      inputModel,
-                      qDot,
-                      energy,
-                    ) =>
-                  inputModel shouldBe typicalThermalStorage.getUuid
-                  time shouldBe 3416.toDateTime
-                  qDot should equalWithTolerance(0.asMegaWatt)
-                  energy should equalWithTolerance(0.01044.asMegaWattHour)
-                case _ =>
-                  fail(
-                    "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
-                  )
-              }
-            }
       }
+
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
+          thermalUnitResult match {
+            case ThermalHouseResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  indoorTemperature,
+                ) =>
+              inputModel shouldBe typicalThermalHouse.getUuid
+              time shouldBe 3416.toDateTime
+              qDot should equalWithTolerance(0.011.asMegaWatt)
+              indoorTemperature should equalWithTolerance(
+                19.68.asDegreeCelsius
+              )(temperatureTolerance)
+
+            case CylindricalThermalStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe typicalThermalStorage.getUuid
+              time shouldBe 3416.toDateTime
+              qDot should equalWithTolerance(0.asMegaWatt)
+              energy should equalWithTolerance(0.01044.asMegaWattHour)
+            case _ =>
+              fail(
+                "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
+              )
+          }
+        }
 
       scheduler.expectMessage(Completion(hpAgentActivation, Some(3600)))
 
@@ -365,7 +365,7 @@ class ThermalGridIT
 
       scheduler.expectMessage(Completion(hpAgentActivation, Some(4417)))
 
-      /* TICK 4207
+      /* TICK 4417
       House reaches target temperature boundary
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -489,7 +489,7 @@ class ThermalGridIT
 
       scheduler.expectMessage(Completion(hpAgentActivation, Some(23103)))
 
-      /* TICK 23032
+      /* TICK 23103
       House reach lowerTemperatureBoundary
       House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.00 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
