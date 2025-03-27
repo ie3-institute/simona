@@ -297,7 +297,12 @@ class HpModel private (
           .toMegawatts
           .asMegaWatt,
       )
-    ) ++ thermalGrid.results(state, currentOperatingPoint, dateTime)
+    ) ++ thermalGrid.results(
+      state,
+      lastOperatingPoint,
+      currentOperatingPoint,
+      dateTime,
+    )
   }
 
   override def createPrimaryDataResult(
