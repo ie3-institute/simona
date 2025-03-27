@@ -14,12 +14,13 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   FixedState,
   ParticipantFixedState,
 }
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
-import squants.time.Days
+import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  EnergyToSimona,
+  PowerConversionSimona,
+}
 import squants.Power
-import squants.energy.KilowattHours
+import squants.time.Days
 
 import java.util.UUID
 
@@ -47,20 +48,13 @@ object FixedLoadModel {
   ): FixedLoadModel = {
     val referenceType = LoadReferenceType(config.reference)
 
-    val sRated = Kilovoltamperes(
-      input.getsRated
-        .to(PowerSystemUnits.KILOVOLTAMPERE)
-        .getValue
-        .doubleValue
-    )
+    val sRated = input.getsRated.toKilovoltamperes
 
     val activePower: Power = referenceType match {
       case LoadReferenceType.ACTIVE_POWER =>
         sRated.toActivePower(input.getCosPhiRated)
       case LoadReferenceType.ENERGY_CONSUMPTION =>
-        val eConsAnnual = KilowattHours(
-          input.geteConsAnnual().to(KILOWATTHOUR).getValue.doubleValue
-        )
+        val eConsAnnual = input.geteConsAnnual().toKilowattHours
         eConsAnnual / Days(365d)
     }
 

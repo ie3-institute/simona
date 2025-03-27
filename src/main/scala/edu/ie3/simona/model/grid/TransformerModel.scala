@@ -17,10 +17,13 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  OhmToSimona,
+  PowerConversionSimona,
+  SiemensToSimona,
+  VoltageToSimona,
+}
 import squants.Each
-import squants.electro.{Kilovolts, Ohms, Siemens}
-import squants.energy.Watts
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -140,34 +143,10 @@ case object TransformerModel {
     /* Determine the physical pi equivalent circuit diagram parameters from the perspective
      * of the transformer's low voltage side */
     val (rTrafo, xTrafo, gTrafo, bTrafo) = (
-      Ohms(
-        trafoType.getrSc
-          .to(OHM)
-          .divide(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
-      Ohms(
-        trafoType.getxSc
-          .to(OHM)
-          .divide(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
-      Siemens(
-        trafoType.getgM
-          .to(SIEMENS)
-          .multiply(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
-      Siemens(
-        trafoType.getbM
-          .to(SIEMENS)
-          .multiply(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
+      trafoType.getrSc.toOhms / squaredNominalVoltRatio.doubleValue,
+      trafoType.getxSc.toOhms / squaredNominalVoltRatio.doubleValue,
+      trafoType.getgM.toSiemens * squaredNominalVoltRatio.doubleValue,
+      trafoType.getbM().toSiemens * squaredNominalVoltRatio.doubleValue,
     )
 
     /* Transfer the dimensionless parameters into the grid reference system */
@@ -182,26 +161,12 @@ case object TransformerModel {
     val calcINom
         : squants.electro.ElectricPotential => squants.electro.ElectricCurrent = {
       portVoltage: squants.electro.ElectricPotential =>
-        Watts(
-          trafoType.getsRated
-            .to(VOLTAMPERE)
-            .getValue
-            .doubleValue()
-        ) / Math.sqrt(3) / portVoltage
-
+        trafoType.getsRated.toKilovoltamperes / Math.sqrt(3) / portVoltage
     }
     val (iNomHv, iNomLv) =
       (
-        calcINom(
-          Kilovolts(
-            trafoType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
-          )
-        ),
-        calcINom(
-          Kilovolts(
-            trafoType.getvRatedB.to(KILOVOLT).getValue.doubleValue()
-          )
-        ),
+        calcINom(trafoType.getvRatedA.toKilovolts),
+        calcINom(trafoType.getvRatedB.toKilovolts),
       )
 
     // get the element port, where the transformer tap is located
