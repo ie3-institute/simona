@@ -13,6 +13,7 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.DimensionlessToSimona
 import squants.Each
 
 import java.time.ZonedDateTime
@@ -68,7 +69,7 @@ case object NodeModel {
       nodeInput.getId,
       operationInterval,
       nodeInput.isSlack,
-      Each(nodeInput.getvTarget.to(PowerSystemUnits.PU).getValue.doubleValue()),
+      nodeInput.getvTarget.toPu,
       nodeInput.getVoltLvl,
     )
 

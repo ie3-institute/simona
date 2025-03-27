@@ -20,6 +20,7 @@ import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.energy.Kilowatts
 import squants.{Power, Temperature}
@@ -385,19 +386,9 @@ object HpModel {
       scaledInput.getId,
       operationInterval,
       qControl,
-      Kilovoltamperes(
-        scaledInput.getType.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
+      scaledInput.getType.getsRated.toKilovoltamperes,
       scaledInput.getType.getCosPhiRated,
-      Kilowatts(
-        scaledInput.getType.getpThermal
-          .to(PowerSystemUnits.KILOWATT)
-          .getValue
-          .doubleValue
-      ),
+      scaledInput.getType.getpThermal.toKilowatts,
       thermalGrid,
     )
 
