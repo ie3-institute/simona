@@ -33,8 +33,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 }
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.model.thermal.ThermalGrid._
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -43,7 +42,6 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities._
 import squants._
 import squants.energy.Kilowatts
-import squants.space.Degrees
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
@@ -139,7 +137,7 @@ class HpModel private (
 
   override def determineFlexOptions(
       state: HpState
-  ): FlexibilityMessage.ProvideFlexOptions = {
+  ): FlexOptions = {
     val lastHouseQDot =
       state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
     val lastStorageQDot =
@@ -154,8 +152,7 @@ class HpModel private (
         wasRunningLastPeriod,
       )
 
-    ProvideMinMaxFlexOptions(
-      uuid,
+    MinMaxFlexOptions(
       if (turnOn) sRated.toActivePower(cosPhiRated) else zeroKW,
       if (canBeOutOfOperation) zeroKW else sRated.toActivePower(cosPhiRated),
       if (canOperate) sRated.toActivePower(cosPhiRated) else zeroKW,
@@ -193,13 +190,13 @@ class HpModel private (
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && noThermalStorageOrEmpty) ||
-        (demandHouse.hasAdditionalDemand && wasRunningLastPeriod ||
+        (demandHouse.hasPossibleDemand && wasRunningLastPeriod ||
           demandThermalStorage.hasRequiredDemand ||
-          (demandThermalStorage.hasAdditionalDemand && wasRunningLastPeriod))
+          (demandThermalStorage.hasPossibleDemand && wasRunningLastPeriod))
 
     val canOperate =
-      demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
-        demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasAdditionalDemand
+      demandHouse.hasRequiredDemand || demandHouse.hasPossibleDemand ||
+        demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasPossibleDemand
     val canBeOutOfOperation =
       !(demandHouse.hasRequiredDemand && noThermalStorageOrEmpty)
 
@@ -266,7 +263,7 @@ class HpModel private (
         // If the house has req. demand and storage isn't empty, we can heat the house from storage.
         (zeroKW, zeroKW, storagePThermal)
       } else if (
-        currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasAdditionalDemand && lastHouseQDot > zeroKW
+        currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasPossibleDemand && lastHouseQDot > zeroKW
       )
         // Edge case when em controlled: If the house was heated last state by Hp and setPower is below turnOn condition now,
         // but house didn't reach target or boundary temperature yet. House can be heated from storage, if this one is not empty.

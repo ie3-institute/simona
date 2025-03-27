@@ -47,11 +47,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorRefOps,
-}
-import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -449,7 +444,7 @@ class EmAgentIT
           FiniteDuration(60, SECONDS),
         ) should contain allOf (
           PrimaryServiceRegistrationMessage(
-            hpAgent.toClassic,
+            hpAgent,
             adaptedHpInputModel.getUuid,
           ),
           PrimaryServiceRegistrationMessage(
@@ -480,7 +475,7 @@ class EmAgentIT
         pvAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
 
         // heat pump
-        hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+        hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
         // deal with weather service registration
         weatherService.expectMessage(

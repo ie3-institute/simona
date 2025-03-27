@@ -43,6 +43,7 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -110,7 +111,7 @@ class ThermalGridIT
 
       val participantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
-        primaryServiceProxy = primaryServiceProxy.ref.toClassic,
+        primaryServiceProxy = primaryServiceProxy.ref,
         services = Map(ServiceType.WeatherService -> weatherService.ref),
         resultListener = Iterable(resultListener.ref),
       )
@@ -151,7 +152,7 @@ class ThermalGridIT
       )
 
       // heat pump
-      hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+      hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
       weatherService.expectMessage(
         RegisterForWeatherMessage(
@@ -162,7 +163,7 @@ class ThermalGridIT
       )
 
       hpAgent ! RegistrationSuccessfulMessage(
-        weatherService.ref.toClassic,
+        weatherService.ref,
         0,
       )
       val weatherDependentAgents = Seq(hpAgent)
@@ -181,7 +182,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           0,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
@@ -306,7 +307,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           3600,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(1d),
             WattsPerSquareMeter(1d),
@@ -431,7 +432,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           21600,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(2d),
             WattsPerSquareMeter(2d),
@@ -556,7 +557,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           25000,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(3d),
             WattsPerSquareMeter(3d),
@@ -682,7 +683,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           28000,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(4d),
             WattsPerSquareMeter(4d),
@@ -921,7 +922,7 @@ class ThermalGridIT
 
       val participantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
-        primaryServiceProxy = primaryServiceProxy.ref.toClassic,
+        primaryServiceProxy = primaryServiceProxy.ref,
         services = Map(ServiceType.WeatherService -> weatherService.ref),
         resultListener = Iterable(resultListener.ref),
       )
@@ -1000,7 +1001,7 @@ class ThermalGridIT
       )
 
       // pv
-      pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+      pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
       // deal with weather service registration
       weatherService.expectMessage(
@@ -1012,12 +1013,12 @@ class ThermalGridIT
       )
 
       pvAgent ! RegistrationSuccessfulMessage(
-        weatherService.ref.toClassic,
+        weatherService.ref,
         0L,
       )
 
       // heat pump
-      hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
+      hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
       // deal with weather service registration
       weatherService.expectMessage(
@@ -1029,13 +1030,13 @@ class ThermalGridIT
       )
 
       hpAgent ! RegistrationSuccessfulMessage(
-        weatherService.ref.toClassic,
+        weatherService.ref,
         0L,
       )
 
       scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
-      val weatherDependentAgents = Seq(hpAgent, pvAgent)
+      val weatherDependentAgents = Seq(hpAgent.toClassic, pvAgent.toClassic)
 
       /* TICK 0
         Start of Simulation, No sun at the moment.
@@ -1050,7 +1051,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           0,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),
@@ -1123,7 +1124,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           1800,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(540),
             WattsPerSquareMeter(400),
@@ -1259,7 +1260,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           5400,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),
@@ -1391,7 +1392,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           9200,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(450),
             WattsPerSquareMeter(250),
@@ -1597,7 +1598,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           12000,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(450),
             WattsPerSquareMeter(250),
@@ -1740,7 +1741,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           12500,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
@@ -1880,7 +1881,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           25200,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(450),
             WattsPerSquareMeter(250),
@@ -1958,7 +1959,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           27500,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(450),
             WattsPerSquareMeter(250),
@@ -2101,7 +2102,7 @@ class ThermalGridIT
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           31000,
-          weatherService.ref.toClassic,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),

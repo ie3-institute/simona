@@ -19,7 +19,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
@@ -481,13 +481,11 @@ class HpModelSpec
 
           // Invoke determineFlexOptions and match the results
           hpModel.determineFlexOptions(state) match {
-            case ProvideMinMaxFlexOptions(
-                  modelUuid,
+            case MinMaxFlexOptions(
                   referencePower,
                   minPower,
                   maxPower,
                 ) =>
-              modelUuid shouldBe hpModel.uuid
               referencePower should approximate(
                 Kilowatts(expectedReferencePower)
               )
