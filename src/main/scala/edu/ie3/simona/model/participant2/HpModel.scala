@@ -417,7 +417,7 @@ object HpModel {
 
   object HpOperatingPoint {
     def zero: HpOperatingPoint =
-      HpOperatingPoint(zeroKW, None)
+      HpOperatingPoint(zeroKW, Some(ThermalOpWrapper(zeroKW, zeroKW, zeroKW)))
   }
 
   /** Wraps the thermal powers of the [[HpOperationPoint]].
