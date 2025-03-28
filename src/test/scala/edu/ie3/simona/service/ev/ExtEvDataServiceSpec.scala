@@ -30,7 +30,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.test.common.{EvTestData, TestSpawnerTyped}
+import edu.ie3.simona.test.common.{EvTestData, TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -39,7 +39,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.testkit.TestKit.awaitCond
-import org.scalatest.wordspec.AnyWordSpecLike
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
@@ -50,7 +49,7 @@ import scala.language.implicitConversions
 
 class ExtEvDataServiceSpec
     extends ScalaTestWithActorTestKit
-    with AnyWordSpecLike
+    with UnitSpec
     with EvTestData
     with TestSpawnerTyped {
 
