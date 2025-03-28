@@ -668,49 +668,58 @@ final case class ThermalGrid(
         }
       case None =>
         // we need some thermals that are different from zero for the first result
-        ThermalOpWrapper(Kilowatts(-42), zeroKW, zeroKW)
+        ThermalOpWrapper(Kilowatts(-42), Kilowatts(-42), Kilowatts(-42))
     }
+
+    def createThermalHouseResult(house: ThermalHouse): Option[ThermalHouseResult] = {
+      currentThermalGridState.houseState.collectFirst {
+        case ThermalHouseState(_, innerTemperature, _) =>
+          new ThermalHouseResult(
+            dateTime,
+            house.uuid,
+            currentOpThermals.qDotHouse.toMegawatts.asMegaWatt,
+            innerTemperature.toKelvinScale.asKelvin,
+          )
+      }.orElse(
+        throw new NotImplementedError(
+          s"Result handling for thermalHouse type '${house.getClass.getSimpleName}' not supported."
+        )
+      )
+    }
+
+    def createCylindricalStorageResult(storage: CylindricalThermalStorage): Option[CylindricalStorageResult] = {
+      currentThermalGridState.storageState.collectFirst {
+        case ThermalStorageState(_, storedEnergy, _) =>
+          new CylindricalStorageResult(
+            dateTime,
+            storage.uuid,
+            storedEnergy.toMegawattHours.asMegaWattHour,
+            currentOpThermals.qDotHeatStorage.toMegawatts.asMegaWatt,
+            (storedEnergy / storage.maxEnergyThreshold).asPu
+          )
+      }.orElse(
+        throw new NotImplementedError(
+          s"Result handling for storage type '${storage.getClass.getSimpleName}' not supported."
+        )
+      )
+    }
+
+
 
     val maybeHouseResult = {
-      if (currentOpThermals.qDotHouse != lastOpThermals.qDotHouse) {
-        house.zip(currentThermalGridState.houseState).collectFirst {
-          case (
-                thermalHouse: ThermalHouse,
-                ThermalHouseState(_, innerTemperature, _),
-              ) =>
-            new ThermalHouseResult(
-              dateTime,
-              thermalHouse.uuid,
-              currentOpThermals.qDotHouse.toMegawatts.asMegaWatt,
-              innerTemperature.toKelvinScale.asKelvin,
-            )
-        }
-      } else None
+      (house, currentOpThermals.qDotHouse != lastOpThermals.qDotHouse) match {
+        case (Some(house: ThermalHouse), true) =>
+          createThermalHouseResult(house)
+        case _ => None
+      }
     }
 
-    val maybeStorageResult: Option[CylindricalStorageResult] = {
-      if (currentOpThermals.qDotHeatStorage != lastOpThermals.qDotHeatStorage) {
-        heatStorage
-          .zip(currentThermalGridState.storageState)
-          .collectFirst {
-            case (
-                  storage: CylindricalThermalStorage,
-                  ThermalStorageState(_, storedEnergy, _),
-                ) =>
-              new CylindricalStorageResult(
-                dateTime,
-                storage.uuid,
-                storedEnergy.toMegawattHours.asMegaWattHour,
-                currentOpThermals.qDotHeatStorage.toMegawatts.asMegaWatt,
-                (storedEnergy / storage.maxEnergyThreshold).asPu,
-              )
-          }
-          .orElse(
-            throw new NotImplementedError(
-              s"Result handling for storage type '${heatStorage.getClass.getSimpleName}' not supported."
-            )
-          )
-      } else None
+    val maybeStorageResult = {
+      (heatStorage, currentOpThermals.qDotHeatStorage != lastOpThermals.qDotHeatStorage) match {
+        case (Some(storage: CylindricalThermalStorage), true) =>
+          createCylindricalStorageResult(storage)
+        case _ => None
+      }
     }
 
     Seq(maybeHouseResult, maybeStorageResult).flatten
