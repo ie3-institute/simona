@@ -193,30 +193,34 @@ class ThermalGridIT
         )
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(hpResult) =>
-          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-          hpResult.getTime shouldBe 0.toDateTime
-          hpResult.getP should equalWithTolerance(pRunningHp)
-          hpResult.getQ should equalWithTolerance(qRunningHp)
-      }
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 0.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
 
-      resultListener.expectMessageType[ThermalResultEvent] match {
-        case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
-          thermalUnitResult match {
-            case CylindricalThermalStorageResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  energy,
-                ) =>
-              inputModel shouldBe typicalThermalStorage.getUuid
-              time shouldBe 0.toDateTime
-              qDot should equalWithTolerance(0.011.asMegaWatt)
-              energy should equalWithTolerance(0.asMegaWattHour)
-
-          }
-      }
+              case CylindricalThermalStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe typicalThermalStorage.getUuid
+                time shouldBe 0.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
+                energy should equalWithTolerance(0.asMegaWattHour)
+            }
+        }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(3416)))
 
@@ -229,47 +233,45 @@ class ThermalGridIT
 
       heatPumpAgent ! Activation(3416)
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(hpResult) =>
-          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-          hpResult.getTime shouldBe 3416.toDateTime
-          hpResult.getP should equalWithTolerance(pRunningHp)
-          hpResult.getQ should equalWithTolerance(
-            qRunningHp
-          )
-      }
-
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
-        .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
-          thermalUnitResult match {
-            case ThermalHouseResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  indoorTemperature,
-                ) =>
-              inputModel shouldBe typicalThermalHouse.getUuid
-              time shouldBe 3416.toDateTime
-              qDot should equalWithTolerance(0.011.asMegaWatt)
-              indoorTemperature should equalWithTolerance(
-                19.68.asDegreeCelsius
-              )(temperatureTolerance)
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 3416.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 3416.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  19.68.asDegreeCelsius
+                )(temperatureTolerance)
+              case CylindricalThermalStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe typicalThermalStorage.getUuid
+                time shouldBe 3416.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                energy should equalWithTolerance(0.01044.asMegaWattHour)
 
-            case CylindricalThermalStorageResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  energy,
-                ) =>
-              inputModel shouldBe typicalThermalStorage.getUuid
-              time shouldBe 3416.toDateTime
-              qDot should equalWithTolerance(0.asMegaWatt)
-              energy should equalWithTolerance(0.01044.asMegaWattHour)
-
-          }
+            }
         }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(3600)))
@@ -321,32 +323,36 @@ class ThermalGridIT
 
       heatPumpAgent ! Activation(4417)
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(hpResult) =>
-          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-          hpResult.getTime shouldBe 4417.toDateTime
-          hpResult.getP should equalWithTolerance(0.asMegaWatt)
-          hpResult.getQ should equalWithTolerance(0.asMegaVar)
-      }
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 4417.toDateTime
+                hpResult._3 should equalWithTolerance(0.asMegaWatt)
+                hpResult._4 should equalWithTolerance(0.asMegaVar)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 4417.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  19.99.asDegreeCelsius
+                )(temperatureTolerance)
 
-      resultListener.expectMessageType[ThermalResultEvent] match {
-        case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
-          thermalUnitResult match {
-            case ThermalHouseResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  indoorTemperature,
-                ) =>
-              inputModel shouldBe typicalThermalHouse.getUuid
-              time shouldBe 4417.toDateTime
-              qDot should equalWithTolerance(0.asMegaWatt)
-              indoorTemperature should equalWithTolerance(
-                19.99.asDegreeCelsius
-              )(temperatureTolerance)
-
-          }
-      }
+            }
+        }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(21600)))
 
@@ -382,6 +388,7 @@ class ThermalGridIT
           hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
       }
 
+      // We don't expect any message for house or storage
       resultListener.expectNoMessage()
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(23103)))
@@ -395,44 +402,44 @@ class ThermalGridIT
 
       heatPumpAgent ! Activation(23103)
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(hpResult) =>
-          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-          hpResult.getTime shouldBe 23103.toDateTime
-          hpResult.getP should equalWithTolerance(0.0.asMegaWatt)
-          hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
-      }
-
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
-        .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
-          thermalUnitResult match {
-            case ThermalHouseResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  indoorTemperature,
-                ) =>
-              inputModel shouldBe typicalThermalHouse.getUuid
-              time shouldBe 23103.toDateTime
-              qDot should equalWithTolerance(0.01044.asMegaWatt)
-              indoorTemperature should equalWithTolerance(
-                18.00.asDegreeCelsius
-              )(temperatureTolerance)
-
-            case CylindricalThermalStorageResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  energy,
-                ) =>
-              inputModel shouldBe typicalThermalStorage.getUuid
-              time shouldBe 23103.toDateTime
-              qDot should equalWithTolerance(-0.01044.asMegaWatt)
-              energy should equalWithTolerance(0.01044.asMegaWattHour)
-          }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 23103.toDateTime
+                hpResult._3 should equalWithTolerance(0.asMegaWatt)
+                hpResult._4 should equalWithTolerance(0.asMegaVar)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 23103.toDateTime
+                qDot should equalWithTolerance(0.01044.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  18.00.asDegreeCelsius
+                )(temperatureTolerance)
+              case CylindricalThermalStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe typicalThermalStorage.getUuid
+                time shouldBe 23103.toDateTime
+                qDot should equalWithTolerance(-0.01044.asMegaWatt)
+                energy should equalWithTolerance(0.01044.asMegaWattHour)
+            }
         }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(25000)))
@@ -469,6 +476,7 @@ class ThermalGridIT
           hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
       }
 
+      // We don't expect any message for house or storage
       resultListener.expectNoMessage()
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(26702)))
@@ -482,44 +490,45 @@ class ThermalGridIT
 
       heatPumpAgent ! Activation(26702)
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(hpResult) =>
-          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-          hpResult.getTime shouldBe 26702.toDateTime
-          hpResult.getP should equalWithTolerance(pRunningHp)
-          hpResult.getQ should equalWithTolerance(qRunningHp)
-      }
-
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
-        .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
-          thermalUnitResult match {
-            case ThermalHouseResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  indoorTemperature,
-                ) =>
-              inputModel shouldBe typicalThermalHouse.getUuid
-              time shouldBe 26702.toDateTime
-              qDot should equalWithTolerance(0.011.asMegaWatt)
-              indoorTemperature should equalWithTolerance(
-                18.41.asDegreeCelsius
-              )(temperatureTolerance)
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 26702.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 26702.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  18.41.asDegreeCelsius
+                )(temperatureTolerance)
 
-            case CylindricalThermalStorageResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  energy,
-                ) =>
-              inputModel shouldBe typicalThermalStorage.getUuid
-              time shouldBe 26702.toDateTime
-              qDot should equalWithTolerance(0.asMegaWatt)
-              energy should equalWithTolerance(0.asMegaWattHour)
-          }
+              case CylindricalThermalStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe typicalThermalStorage.getUuid
+                time shouldBe 26702.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                energy should equalWithTolerance(0.asMegaWattHour)
+            }
         }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(28000)))
@@ -555,6 +564,7 @@ class ThermalGridIT
           hpResult.getQ should equalWithTolerance(qRunningHp)
       }
 
+      // We don't expect any message for house or storage
       resultListener.expectNoMessage()
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(31939)))
@@ -568,46 +578,47 @@ class ThermalGridIT
 
       heatPumpAgent ! Activation(31939)
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(hpResult) =>
-          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-          hpResult.getTime shouldBe 31939.toDateTime
-          hpResult.getP should equalWithTolerance(pRunningHp)
-          hpResult.getQ should equalWithTolerance(qRunningHp)
-      }
-
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
-        .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
-          thermalUnitResult match {
-            case ThermalHouseResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  indoorTemperature,
-                ) =>
-              inputModel shouldBe typicalThermalHouse.getUuid
-              time shouldBe 31939.toDateTime
-              qDot should equalWithTolerance(0.asMegaWatt)
-              indoorTemperature should equalWithTolerance(
-                19.99.asDegreeCelsius
-              )(temperatureTolerance)
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 31939.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 31939.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  19.99.asDegreeCelsius
+                )(temperatureTolerance)
 
-            case CylindricalThermalStorageResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  energy,
-                ) =>
-              inputModel shouldBe typicalThermalStorage.getUuid
-              time shouldBe 31939.toDateTime
-              qDot should equalWithTolerance(0.011.asMegaWatt)
-              energy should equalWithTolerance(
-                0.asMegaWattHour
-              )
-          }
+              case CylindricalThermalStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe typicalThermalStorage.getUuid
+                time shouldBe 31939.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.asMegaWattHour
+                )
+            }
         }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(35355)))
@@ -621,46 +632,47 @@ class ThermalGridIT
 
       heatPumpAgent ! Activation(35355)
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(hpResult) =>
-          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-          hpResult.getTime shouldBe 35355.toDateTime
-          hpResult.getP should equalWithTolerance(pRunningHp)
-          hpResult.getQ should equalWithTolerance(qRunningHp)
-      }
-
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
-        .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
-          thermalUnitResult match {
-            case ThermalHouseResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  indoorTemperature,
-                ) =>
-              inputModel shouldBe typicalThermalHouse.getUuid
-              time shouldBe 35355.toDateTime
-              qDot should equalWithTolerance(0.011.asMegaWatt)
-              indoorTemperature should equalWithTolerance(
-                19.81.asDegreeCelsius
-              )(temperatureTolerance)
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 35355.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 35355.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  19.81.asDegreeCelsius
+                )(temperatureTolerance)
 
-            case CylindricalThermalStorageResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  energy,
-                ) =>
-              inputModel shouldBe typicalThermalStorage.getUuid
-              time shouldBe 35355.toDateTime
-              qDot should equalWithTolerance(0.asMegaWatt)
-              energy should equalWithTolerance(
-                0.01044.asMegaWattHour
-              )
-          }
+              case CylindricalThermalStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe typicalThermalStorage.getUuid
+                time shouldBe 35355.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.01044.asMegaWattHour
+                )
+            }
         }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(35894)))
@@ -674,31 +686,35 @@ class ThermalGridIT
 
       heatPumpAgent ! Activation(35894)
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(hpResult) =>
-          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-          hpResult.getTime shouldBe 35894.toDateTime
-          hpResult.getP should equalWithTolerance(0.asMegaWatt)
-          hpResult.getQ should equalWithTolerance(0.asMegaVar)
-      }
-
-      resultListener.expectMessageType[ThermalResultEvent] match {
-        case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
-          thermalUnitResult match {
-            case ThermalHouseResult(
-                  time,
-                  inputModel,
-                  qDot,
-                  indoorTemperature,
-                ) =>
-              inputModel shouldBe typicalThermalHouse.getUuid
-              time shouldBe 35894.toDateTime
-              qDot should equalWithTolerance(0.0.asMegaWatt)
-              indoorTemperature should equalWithTolerance(
-                20.asDegreeCelsius
-              )(temperatureTolerance)
-          }
-      }
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 35894.toDateTime
+                hpResult._3 should equalWithTolerance(0.asMegaWatt)
+                hpResult._4 should equalWithTolerance(0.asMegaVar)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 35894.toDateTime
+                qDot should equalWithTolerance(0.0.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  20.asDegreeCelsius
+                )(temperatureTolerance)
+            }
+        }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(71892)))
 
@@ -787,6 +803,7 @@ class ThermalGridIT
       emInitSchedule.tick shouldBe INIT_SIM_TICK
       val emAgentActivation = emInitSchedule.actor
 
+      // We don't expect any message for house or storage
       scheduler.expectNoMessage()
 
       emInitSchedule.unlockKey.value.unlock()
@@ -889,6 +906,7 @@ class ThermalGridIT
           }
         }
 
+      // We don't expect any message for house or storage
       resultListener.expectNoMessage()
 
       scheduler.expectMessage(Completion(emAgentActivation, Some(1800)))
