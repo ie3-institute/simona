@@ -32,7 +32,7 @@ object MinMaxFixFlexibilityMessage {
     *   The maximum active power that the flex options provider allows at the
     *   current tick
     */
-  final case class MinMaxFixFlexOptions private(
+  final case class MinMaxFixFlexOptions private (
       ref: Power,
       min: Power,
       max: Power,

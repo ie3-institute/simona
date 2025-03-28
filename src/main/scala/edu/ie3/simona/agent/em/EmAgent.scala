@@ -238,6 +238,8 @@ object EmAgent {
       msg match {
         case Flex(_: FlexActivation) | EmActivation(_) =>
           val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
+          ctx.log.info(s"${ctx.self}, to activate: $toActivate")
+
           toActivate.foreach {
             _ ! FlexActivation(msg.tick)
           }

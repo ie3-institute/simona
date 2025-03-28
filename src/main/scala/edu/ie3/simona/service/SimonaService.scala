@@ -258,7 +258,9 @@ abstract class SimonaService[
 
   protected def handleServiceResponse(
       serviceResponse: ServiceResponseMessage
-  )(implicit ctx: ActorContext[T]): Unit = {}
+  )(implicit
+      ctx: ActorContext[T]
+  ): Unit = {}
 
   /** Handle a request to register for information from this service
     *

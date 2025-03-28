@@ -9,15 +9,27 @@ package edu.ie3.simona.service.primary
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
 import edu.ie3.simona.agent.participant2.ParticipantAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{DataProvision, PrimaryRegistrationSuccessfulMessage}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  PrimaryRegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
-import edu.ie3.simona.api.data.primarydata.ontology.{PrimaryDataMessageFromExt, ProvidePrimaryData}
+import edu.ie3.simona.api.data.primarydata.ontology.{
+  PrimaryDataMessageFromExt,
+  ProvidePrimaryData,
+}
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{PrimaryServiceRegistrationMessage, ServiceResponseMessage}
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  ServiceResponseMessage,
+}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceBaseStateData,
+}
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
