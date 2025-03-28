@@ -216,7 +216,7 @@ class ThermalGridIT
               energy should equalWithTolerance(0.asMegaWattHour)
 
           }
-        }
+      }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(3416)))
 
@@ -307,7 +307,7 @@ class ThermalGridIT
           )
       }
 
-      //We don't expect any message for house or storage
+      // We don't expect any message for house or storage
       resultListener.expectNoMessage()
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(4417)))
@@ -346,7 +346,7 @@ class ThermalGridIT
               )(temperatureTolerance)
 
           }
-        }
+      }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(21600)))
 
@@ -469,8 +469,7 @@ class ThermalGridIT
           hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
       }
 
-
-          resultListener.expectNoMessage()
+      resultListener.expectNoMessage()
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(26702)))
 
@@ -556,8 +555,7 @@ class ThermalGridIT
           hpResult.getQ should equalWithTolerance(qRunningHp)
       }
 
-
-          resultListener.expectNoMessage()
+      resultListener.expectNoMessage()
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(31939)))
 
@@ -699,7 +697,8 @@ class ThermalGridIT
               indoorTemperature should equalWithTolerance(
                 20.asDegreeCelsius
               )(temperatureTolerance)
-          }}
+          }
+      }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(71892)))
 
@@ -874,21 +873,20 @@ class ThermalGridIT
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 0.toDateTime
-                hpResult._3 should equalWithTolerance(0.asMegaWatt)
-                hpResult._4 should equalWithTolerance(0.asMegaVar)
+        .foreach { case ParticipantResultEvent(participantResult) =>
+          participantResult match {
+            case HpResult(hpResult) =>
+              hpResult._2 shouldBe typicalHpInputModel.getUuid
+              hpResult._1 shouldBe 0.toDateTime
+              hpResult._3 should equalWithTolerance(0.asMegaWatt)
+              hpResult._4 should equalWithTolerance(0.asMegaVar)
 
-              case EmResult(emResult) =>
-                emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 0.toDateTime
-                emResult._3 should equalWithTolerance(0.asMegaWatt)
-                emResult._4 should equalWithTolerance(0.asMegaVar)
-            }
+            case EmResult(emResult) =>
+              emResult._2 shouldBe emInput.getUuid
+              emResult._1 shouldBe 0.toDateTime
+              emResult._3 should equalWithTolerance(0.asMegaWatt)
+              emResult._4 should equalWithTolerance(0.asMegaVar)
+          }
         }
 
       resultListener.expectNoMessage()
@@ -1199,7 +1197,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-                 case CylindricalThermalStorageResult(
+              case CylindricalThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1475,29 +1473,28 @@ class ThermalGridIT
         )
       }
 
-      Range(0,2)
+      Range(0, 2)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 12500.toDateTime
-                hpResult._3 should equalWithTolerance(0.asMegaWatt)
-                hpResult._4 should equalWithTolerance(0.asMegaVar)
+        .foreach { case ParticipantResultEvent(participantResult) =>
+          participantResult match {
+            case HpResult(hpResult) =>
+              hpResult._2 shouldBe typicalHpInputModel.getUuid
+              hpResult._1 shouldBe 12500.toDateTime
+              hpResult._3 should equalWithTolerance(0.asMegaWatt)
+              hpResult._4 should equalWithTolerance(0.asMegaVar)
 
-              case EmResult(emResult) =>
-                emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 12500.toDateTime
-                emResult._3 should equalWithTolerance(
-                  0.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(
-                  0.asMegaVar
-                )
-            }
+            case EmResult(emResult) =>
+              emResult._2 shouldBe emInput.getUuid
+              emResult._1 shouldBe 12500.toDateTime
+              emResult._3 should equalWithTolerance(
+                0.asMegaWatt
+              )
+              emResult._4 should equalWithTolerance(
+                0.asMegaVar
+              )
+          }
         }
 
       scheduler.expectMessage(Completion(emAgentActivation, Some(24151)))
@@ -1671,27 +1668,25 @@ class ThermalGridIT
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 27500.toDateTime
-                hpResult._3 should equalWithTolerance(pRunningHp)
-                hpResult._4 should equalWithTolerance(qRunningHp)
+        .foreach { case ParticipantResultEvent(participantResult) =>
+          participantResult match {
+            case HpResult(hpResult) =>
+              hpResult._2 shouldBe typicalHpInputModel.getUuid
+              hpResult._1 shouldBe 27500.toDateTime
+              hpResult._3 should equalWithTolerance(pRunningHp)
+              hpResult._4 should equalWithTolerance(qRunningHp)
 
-              case EmResult(emResult) =>
-                emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 27500.toDateTime
-                emResult._3 should equalWithTolerance(
-                  -0.00006389649707132048.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(
-                  0.0012489995996796802.asMegaVar
-                )
-            }
-            }
-
+            case EmResult(emResult) =>
+              emResult._2 shouldBe emInput.getUuid
+              emResult._1 shouldBe 27500.toDateTime
+              emResult._3 should equalWithTolerance(
+                -0.00006389649707132048.asMegaWatt
+              )
+              emResult._4 should equalWithTolerance(
+                0.0012489995996796802.asMegaVar
+              )
+          }
+        }
 
       scheduler.expectMessage(Completion(emAgentActivation, Some(30708)))
 
