@@ -662,11 +662,12 @@ final case class ThermalGrid(
               thermals.qDotHeatStorage,
             )
           case None =>
-            // FIXME
-            ThermalOpWrapper(Kilowatts(-42), zeroKW, zeroKW)
+            throw new CriticalFailureException(
+              s"There should be an thermals within the lastOperatingPoint at this step, but there aren't: $lastOperatingPoint"
+            )
         }
       case None =>
-        // FIXME
+        // we need some thermals that are different from zero for the first result
         ThermalOpWrapper(Kilowatts(-42), zeroKW, zeroKW)
     }
 

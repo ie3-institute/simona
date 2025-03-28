@@ -62,7 +62,8 @@ class HpModel private (
     with LazyLogging {
 
   override val initialState: (Long, ZonedDateTime) => HpState = { (tick, _) =>
-    val preOperatingPoint = HpOperatingPoint(zeroKW, None)
+    val preOperatingPoint =
+      HpOperatingPoint(zeroKW, Some(ThermalOpWrapper(zeroKW, zeroKW, zeroKW)))
     val preHpState = HpState(
       tick,
       Celsius(20d),
