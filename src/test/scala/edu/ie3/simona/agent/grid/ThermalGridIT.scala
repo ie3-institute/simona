@@ -209,11 +209,11 @@ class ThermalGridIT
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -902,13 +902,14 @@ class ThermalGridIT
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
-        .foreach { case ParticipantResultEvent(participantResult) =>
-          participantResult match {
-            case HpResult(hpResult) =>
-              hpResult._2 shouldBe typicalHpInputModel.getUuid
-              hpResult._1 shouldBe 0.toDateTime
-              hpResult._3 should equalWithTolerance(0.asMegaWatt)
-              hpResult._4 should equalWithTolerance(0.asMegaVar)
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 0.toDateTime
+                hpResult._3 should equalWithTolerance(0.asMegaWatt)
+                hpResult._4 should equalWithTolerance(0.asMegaVar)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
