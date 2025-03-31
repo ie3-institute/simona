@@ -417,9 +417,11 @@ object HpModel {
     * @param qDotHp
     *   The thermal power output of the heat pump.
     * @param qDotHouse
-    *   The thermal power input of the [[ThermalHouse]].
+    *   The thermal power input of the
+    *   [[edu.ie3.simona.model.thermal.ThermalHouse]].
     * @param qDotHeatStorage
-    *   The thermal power input of the [[ThermalStorage]].
+    *   The thermal power input of the
+    *   [[edu.ie3.simona.model.thermal.ThermalStorage]].
     */
   final case class ThermalOpWrapper private (
       qDotHp: Power,
@@ -440,7 +442,7 @@ object HpModel {
     *   The applicable state of the [[ThermalGrid]].
     * @param lastHpOperatingPoint
     *   The last [[HpOperatingPoint]] of the heat pump.
-    * @param lastAmbientTemperature
+    * @param lastStateAmbientTemperature
     *   The outside temperature at the lastState.
     * @param thermalDemands
     *   The actual thermal demands of the thermal grid elements (house,
