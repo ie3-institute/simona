@@ -7,7 +7,11 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.participant2.HpModel.{HpOperatingPoint, HpState}
+import edu.ie3.simona.model.participant2.HpModel.{
+  HpOperatingPoint,
+  HpState,
+  ThermalOpWrapper,
+}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
@@ -63,7 +67,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       0L,
       testGridAmbientTemperature,
       initialGridState,
-      HpOperatingPoint(zeroKW, None),
+      HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
       testGridAmbientTemperature,
       noThermalDemand,
     )
@@ -94,7 +98,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             initialHpState,
-            HpOperatingPoint(zeroKW, None),
+            HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           )
 
         val houseDemand = thermalDemands.houseDemand
@@ -185,7 +189,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           0,
           testGridAmbientTemperature,
           gridState,
-          HpOperatingPoint(zeroKW, None),
+          HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           testGridAmbientTemperature,
           onlyThermalDemandOfHouse,
         )

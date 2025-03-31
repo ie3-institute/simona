@@ -47,7 +47,7 @@ class HpModelSpec
         0,
         Celsius(10),
         thermalState(Celsius(17d)),
-        HpOperatingPoint(zeroKW, None),
+        HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
         Celsius(10),
         noThermalDemand,
       )
@@ -125,12 +125,10 @@ class HpModelSpec
           val expectedTick = 7200
           val date = defaultSimulationStart
           val operatingPoint = state.lastHpOperatingPoint.copy(thermalOps =
-            Some(
-              ThermalOpWrapper(
-                zeroKW,
-                state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW),
-                zeroKW,
-              )
+            ThermalOpWrapper(
+              zeroKW,
+              state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW),
+              zeroKW,
             )
           )
           val expectedDemand = ThermalDemandWrapper(
@@ -198,7 +196,7 @@ class HpModelSpec
         0,
         Celsius(10),
         thermalState(Celsius(17d)),
-        HpOperatingPoint(zeroKW, None),
+        HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
         Celsius(10),
         noThermalDemand,
       )

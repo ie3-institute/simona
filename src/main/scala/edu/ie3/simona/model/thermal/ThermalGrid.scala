@@ -70,12 +70,8 @@ final case class ThermalGrid(
       operatingPoint: HpOperatingPoint,
   ): (ThermalDemandWrapper, ThermalGridState) = {
 
-    val (_, houseQDot, heatStorageQDot) =
-      operatingPoint.thermalOps match {
-        case Some(thermalOp) =>
-          (thermalOp.qDotHp, thermalOp.qDotHouse, thermalOp.qDotHeatStorage)
-        case None => (zeroKW, zeroKW, zeroKW)
-      }
+    val houseQDot = operatingPoint.thermalOps.qDotHouse
+    val heatStorageQDot = operatingPoint.thermalOps.qDotHeatStorage
 
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
     val (houseDemand, updatedHouseState) =
@@ -228,11 +224,9 @@ final case class ThermalGrid(
     // TODO: We would need to issue a storage result model here...
 
     /* Consider the action in the last state */
-    val lastHouseQDot =
-      state.lastHpOperatingPoint.thermalOps.map(_.qDotHouse).getOrElse(zeroKW)
-    val lastHeatStorageQDot = state.lastHpOperatingPoint.thermalOps
-      .map(_.qDotHeatStorage)
-      .getOrElse(zeroKW)
+    val lastHouseQDot = state.lastHpOperatingPoint.thermalOps.qDotHouse
+    val lastHeatStorageQDot =
+      state.lastHpOperatingPoint.thermalOps.qDotHeatStorage
 
     // We can use the qDots from lastState to keep continuity. If...
     if (
@@ -644,29 +638,11 @@ final case class ThermalGrid(
     val (_, currentThermalGridState) =
       energyDemandAndUpdatedState(state.tick, state, currentOperatingPoint)
 
-    val currentOpThermals = currentOperatingPoint.thermalOps match {
-      case Some(op) => op
-      case _ =>
-        throw new CriticalFailureException(
-          s"There should be an OperatingPoint at this step, but there isn't one: $currentOperatingPoint"
-        )
-    }
+    val currentOpThermals = currentOperatingPoint.thermalOps
 
-    val lastOpThermals: ThermalOpWrapper = lastOperatingPoint match {
-      case Some(op) =>
-        op.thermalOps match {
-          case Some(thermals) =>
-            ThermalOpWrapper(
-              thermals.qDotHp,
-              thermals.qDotHouse,
-              thermals.qDotHeatStorage,
-            )
-          case None =>
-            throw new CriticalFailureException(
-              s"There should be an thermals within the lastOperatingPoint at this step, but there aren't: $lastOperatingPoint"
-            )
-        }
-      case None =>
+    val lastOpThermals = lastOperatingPoint match {
+      case Some(op) => op.thermalOps
+      case None     =>
         // we need some thermals that are different from zero for the first result
         ThermalOpWrapper(Kilowatts(-42), Kilowatts(-42), Kilowatts(-42))
     }

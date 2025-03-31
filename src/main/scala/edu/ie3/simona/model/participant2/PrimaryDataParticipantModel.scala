@@ -177,7 +177,6 @@ object PrimaryDataParticipantModel {
   ](override val data: PD)
       extends PrimaryOperatingPoint[PD] {
     override val reactivePower: Option[ReactivePower] = Some(data.q)
-    override val thermalOps: Option[ThermalOpWrapper] = None
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
@@ -186,7 +185,6 @@ object PrimaryDataParticipantModel {
       override val data: PE
   ) extends PrimaryOperatingPoint[PE] {
     override val reactivePower: Option[ReactivePower] = None
-    override val thermalOps: Option[ThermalOpWrapper] = None
   }
 
   /** Trait that provides functionality that can create the same result objects

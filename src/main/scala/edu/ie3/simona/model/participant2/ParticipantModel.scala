@@ -223,13 +223,11 @@ object ParticipantModel {
       * the active-to-reactive-power function is used.
       */
     val reactivePower: Option[ReactivePower]
-    val thermalOps: Option[ThermalOpWrapper]
   }
 
   final case class ActivePowerOperatingPoint(override val activePower: Power)
       extends OperatingPoint {
     override val reactivePower: Option[ReactivePower] = None
-    override val thermalOps: Option[ThermalOpWrapper] = None
   }
 
   object ActivePowerOperatingPoint {

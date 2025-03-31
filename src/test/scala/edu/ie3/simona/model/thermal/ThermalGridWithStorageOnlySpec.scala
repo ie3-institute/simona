@@ -10,7 +10,11 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput,
 }
-import edu.ie3.simona.model.participant2.HpModel.{HpOperatingPoint, HpState}
+import edu.ie3.simona.model.participant2.HpModel.{
+  HpOperatingPoint,
+  HpState,
+  ThermalOpWrapper,
+}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
@@ -66,7 +70,7 @@ class ThermalGridWithStorageOnlySpec
       0L,
       testGridAmbientTemperature,
       initialGridState,
-      HpOperatingPoint(zeroKW, None),
+      HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
       testGridAmbientTemperature,
       onlyThermalDemandOfHeatStorage,
     )
@@ -98,7 +102,7 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid.energyDemandAndUpdatedState(
             state.tick,
             state,
-            HpOperatingPoint(zeroKW, None),
+            HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           )
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
@@ -124,7 +128,7 @@ class ThermalGridWithStorageOnlySpec
           10800, // after three hours
           testGridAmbientTemperature,
           gridState,
-          HpOperatingPoint(zeroKW, None),
+          HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           testGridAmbientTemperature,
           onlyAdditionalDemandOfHeatStorage,
         )
@@ -133,7 +137,7 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid.energyDemandAndUpdatedState(
             state.tick,
             state,
-            HpOperatingPoint(zeroKW, None),
+            HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           )
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand

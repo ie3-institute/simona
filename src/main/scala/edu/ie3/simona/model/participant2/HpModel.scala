@@ -63,7 +63,7 @@ class HpModel private (
 
   override val initialState: (Long, ZonedDateTime) => HpState = { (tick, _) =>
     val preOperatingPoint =
-      HpOperatingPoint(zeroKW, Some(ThermalOpWrapper(zeroKW, zeroKW, zeroKW)))
+      HpOperatingPoint(zeroKW, ThermalOpWrapper.zero)
     val preHpState = HpState(
       tick,
       Celsius(20d),
@@ -227,10 +227,8 @@ class HpModel private (
   ): (Power, Power) = {
 
     val lastHouseQDot =
-      state.lastHpOperatingPoint.thermalOps.map(_.qDotHouse).getOrElse(zeroKW)
-    val lastStorageQDot = state.lastHpOperatingPoint.thermalOps
-      .map(_.qDotHeatStorage)
-      .getOrElse(zeroKW)
+      state.lastHpOperatingPoint.thermalOps.qDotHouse
+    val lastStorageQDot = state.lastHpOperatingPoint.thermalOps.qDotHeatStorage
     val wasRunningLastPeriod = (lastHouseQDot + lastStorageQDot) > zeroKW
 
     val currentStorageEnergy =
@@ -288,15 +286,7 @@ class HpModel private (
         uuid,
         complexPower.p.toMegawatts.asMegaWatt,
         complexPower.q.toMegavars.asMegaVar,
-        currentOperatingPoint.thermalOps
-          .map(_.qDotHp)
-          .getOrElse(
-            throw new RuntimeException(
-              s"currentOperatingPoint $currentOperatingPoint does not contain heat value but one is expected."
-            )
-          )
-          .toMegawatts
-          .asMegaWatt,
+        currentOperatingPoint.thermalOps.qDotHp.toMegawatts.asMegaWatt,
       )
     ) ++ thermalGrid.results(
       state,
@@ -351,12 +341,10 @@ class HpModel private (
     val operatingPoint =
       HpOperatingPoint(
         newActivePowerHp,
-        Some(
-          ThermalOpWrapper(
-            qDotIntoGrid,
-            updateState.houseState.map(_.qDot).getOrElse(zeroKW),
-            updateState.storageState.map(_.qDot).getOrElse(zeroKW),
-          )
+        ThermalOpWrapper(
+          qDotIntoGrid,
+          updateState.houseState.map(_.qDot).getOrElse(zeroKW),
+          updateState.storageState.map(_.qDot).getOrElse(zeroKW),
         ),
       )
 
@@ -388,12 +376,10 @@ class HpModel private (
     val operatingPoint =
       HpOperatingPoint(
         newActivePowerHp,
-        Some(
-          ThermalOpWrapper(
-            qDotIntoGrid,
-            updateState.houseState.map(_.qDot).getOrElse(zeroKW),
-            updateState.storageState.map(_.qDot).getOrElse(zeroKW),
-          )
+        ThermalOpWrapper(
+          qDotIntoGrid,
+          updateState.houseState.map(_.qDot).getOrElse(zeroKW),
+          updateState.storageState.map(_.qDot).getOrElse(zeroKW),
         ),
       )
 
@@ -416,14 +402,14 @@ object HpModel {
 
   final case class HpOperatingPoint(
       override val activePower: Power,
-      override val thermalOps: Option[ThermalOpWrapper],
+      thermalOps: ThermalOpWrapper,
   ) extends OperatingPoint {
     override val reactivePower: Option[ReactivePower] = None
   }
 
   object HpOperatingPoint {
     def zero: HpOperatingPoint =
-      HpOperatingPoint(zeroKW, Some(ThermalOpWrapper(zeroKW, zeroKW, zeroKW)))
+      HpOperatingPoint(zeroKW, ThermalOpWrapper.zero)
   }
 
   /** Wraps the thermal powers of the [[HpOperatingPoint]].
@@ -440,6 +426,9 @@ object HpModel {
       qDotHouse: Power,
       qDotHeatStorage: Power,
   )
+  object ThermalOpWrapper {
+    def zero: ThermalOpWrapper = ThermalOpWrapper(zeroKW, zeroKW, zeroKW)
+  }
 
   /** Holds all relevant data for a hp model calculation.
     *
