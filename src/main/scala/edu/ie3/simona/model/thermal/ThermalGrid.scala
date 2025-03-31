@@ -483,27 +483,20 @@ final case class ThermalGrid(
 
   /** Handle consumption (or no infeed) from thermal grid.
     *
-    * @param tick
-    *   The actual tick of simulation.
     * @param state
     *   Last state of the heat pump.
-    * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
-    *   storages.
     * @return
     *   Updated thermal grid state.
     */
-  private def handleConsumption(
-      tick: Long,
-      state: HpState,
-      qDot: Power,
+  def handleConsumption(
+      state: HpState
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
     val maybeUpdatedHouseState =
       house.zip(state.thermalGridState.houseState).map {
         case (thermalHouse, houseState) =>
           thermalHouse.updateState(
-            tick,
+            state.tick,
             houseState,
             state.ambientTemperature,
             state.lastStateAmbientTemperature,
@@ -517,18 +510,18 @@ final case class ThermalGrid(
         case (storage, storageState) =>
           storage.updateState(
             state.tick,
-            qDot,
+            zeroKW,
             storageState,
           )
       }
 
     val (revisedHouseState, revisedStorageState) =
       reviseInfeedFromStorage(
-        tick,
+        state.tick,
         state,
         maybeUpdatedHouseState,
         maybeUpdatedStorageState,
-        qDot,
+        zeroKW,
       )
 
     val nextThreshold = determineMostRecentThreshold(
@@ -582,10 +575,9 @@ final case class ThermalGrid(
             (thermalStorage, (storageState, _)),
           )
         )
-        if qDot.~=(zeroKW)(Kilowatts(10e-3)) &&
-          thermalHouse.isInnerTemperatureTooLow(
-            houseState.innerTemperature
-          ) && !thermalStorage.isEmpty(storageState.storedEnergy) =>
+        if thermalHouse.isInnerTemperatureTooLow(
+          houseState.innerTemperature
+        ) && !thermalStorage.isEmpty(storageState.storedEnergy) =>
       /* Storage is meant to heat the house only, if there is no infeed from external (+/- 10 W) and the house is cold */
       val revisedStorageState = thermalStorage.updateState(
         state.tick,

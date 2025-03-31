@@ -129,11 +129,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val externalQDot = zeroKW
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(
-            tick,
-            initialHpState,
-            externalQDot,
-          )
+          thermalGrid invokePrivate handleConsumption(initialHpState)
 
         updatedGridState match {
           case ThermalGridState(
@@ -154,11 +150,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val tick = 0L
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(
-            tick,
-            initialHpState,
-            testGridQDotConsumption,
-          )
+          thermalGrid invokePrivate handleConsumption(initialHpState)
 
         updatedGridState match {
           case ThermalGridState(
@@ -251,13 +243,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
 
       "deliver proper result, if energy is consumed from the grid" in {
-        thermalGrid.updateState(
-          initialHpState.tick,
-          initialHpState,
-          isNotRunning,
-          testGridQDotConsumption,
-          onlyThermalDemandOfHouse,
-        ) match {
+        thermalGrid.handleConsumption(initialHpState) match {
           case (
                 ThermalGridState(
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),
@@ -274,13 +260,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
 
       "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
-        thermalGrid.updateState(
-          initialHpState.tick,
-          initialHpState,
-          isNotRunning,
-          zeroKW,
-          onlyThermalDemandOfHouse,
-        ) match {
+        thermalGrid.handleConsumption(initialHpState) match {
           case (
                 ThermalGridState(
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),

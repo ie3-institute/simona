@@ -28,8 +28,6 @@ trait ThermalGridTestData {
   )
   protected val testGridAmbientTemperature: Temperature = Celsius(12d)
   protected val testGridQDotInfeed: Power = Kilowatts(15d)
-  protected val testGridQDotConsumption: Power = Kilowatts(-42d)
-  protected val testGridQDotConsumptionHigh: Power = Kilowatts(-200d)
   protected val noThermalDemand: ThermalDemandWrapper =
     ThermalDemandWrapper(
       ThermalEnergyDemand(zeroKWh, zeroKWh),

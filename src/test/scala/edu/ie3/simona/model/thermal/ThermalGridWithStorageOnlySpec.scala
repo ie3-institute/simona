@@ -161,50 +161,6 @@ class ThermalGridWithStorageOnlySpec
       }
     }
 
-    "handling thermal energy consumption from grid" should {
-      val handleConsumption =
-        PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
-          Symbol("handleConsumption")
-        )
-
-      "properly take the energy from storage" in {
-        val gridState = initialGridState
-          .copy(storageState =
-            Some(
-              ThermalStorageState(
-                0L,
-                KilowattHours(200d),
-                zeroKW,
-              )
-            )
-          )
-
-        val state = initialHpState.copy(
-          thermalGridState = gridState,
-          thermalDemands = onlyAdditionalDemandOfHeatStorage,
-        )
-
-        val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(
-            state.tick,
-            state,
-            testGridQDotConsumptionHigh,
-          )
-
-        updatedGridState match {
-          case ThermalGridState(
-                None,
-                Some(ThermalStorageState(tick, storedEnergy, qDot)),
-              ) =>
-            tick shouldBe 0L
-            storedEnergy should approximate(KilowattHours(200d))
-            qDot should approximate(testGridQDotConsumptionHigh)
-          case _ => fail("Thermal grid state has been calculated wrong.")
-        }
-        reachedThreshold shouldBe Some(StorageEmpty(3600L))
-      }
-    }
-
     "handling thermal infeed into the grid" should {
       val handleInfeed =
         PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
@@ -277,8 +233,7 @@ class ThermalGridWithStorageOnlySpec
 
     "updating the grid state dependent on the given thermal infeed" should {
       "deliver proper result, if energy is fed into the grid" in {
-        val (updatedState, nextThreshold) = thermalGrid.updateState(
-          initialHpState.tick,
+        val (updatedState, nextThreshold) = thermalGrid.handleInfeed(
           initialHpState,
           isRunning,
           testGridQDotInfeed,
@@ -299,7 +254,7 @@ class ThermalGridWithStorageOnlySpec
         }
       }
 
-      "deliver proper result, if energy is consumed from the grid" in {
+      "do not consume energy from storage if there is no heat sink for this consumption" in {
         val initialLoading = KilowattHours(200d)
         val gridState = initialGridState.copy(storageState =
           initialGridState.storageState.map(storageState =>
@@ -311,36 +266,23 @@ class ThermalGridWithStorageOnlySpec
           thermalDemands = onlyAdditionalDemandOfHeatStorage,
         )
 
-        thermalGrid.updateState(
-          state.tick,
-          state,
-          isRunning,
-          testGridQDotConsumptionHigh,
-          onlyThermalDemandOfHouse,
-        ) match {
+        thermalGrid.handleConsumption(state) match {
           case (
                 ThermalGridState(
                   None,
                   Some(ThermalStorageState(tick, storedEnergy, qDot)),
                 ),
-                Some(StorageEmpty(thresholdTick)),
+                None,
               ) =>
             tick shouldBe 0L
             storedEnergy should approximate(KilowattHours(200d))
-            qDot should approximate(testGridQDotConsumptionHigh)
-            thresholdTick shouldBe 3600L
+            qDot should approximate(zeroKW)
           case _ => fail("Thermal grid state updated failed")
         }
       }
 
       "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
-        val updatedState = thermalGrid.updateState(
-          initialHpState.tick,
-          initialHpState,
-          isRunning,
-          zeroKW,
-          noThermalDemand,
-        )
+        val updatedState = thermalGrid.handleConsumption(initialHpState)
         updatedState match {
           case (
                 ThermalGridState(
