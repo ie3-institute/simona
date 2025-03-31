@@ -648,20 +648,20 @@ final case class ThermalGrid(
     }
 
     def createThermalHouseResult(
-        house: ThermalHouse
+        thermalHouse: ThermalHouse
     ): Option[ThermalHouseResult] = {
       currentThermalGridState.houseState
         .collectFirst { case ThermalHouseState(_, innerTemperature, _) =>
           new ThermalHouseResult(
             dateTime,
-            house.uuid,
+            thermalHouse.uuid,
             currentOpThermals.qDotHouse.toMegawatts.asMegaWatt,
             innerTemperature.toKelvinScale.asKelvin,
           )
         }
         .orElse(
           throw new NotImplementedError(
-            s"Result handling for thermalHouse type '${house.getClass.getSimpleName}' not supported."
+            s"Result handling for thermalHouse type '${thermalHouse.getClass.getSimpleName}' not supported."
           )
         )
     }
