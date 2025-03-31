@@ -426,7 +426,7 @@ object HpModel {
       HpOperatingPoint(zeroKW, Some(ThermalOpWrapper(zeroKW, zeroKW, zeroKW)))
   }
 
-  /** Wraps the thermal powers of the [[HpOperationPoint]].
+  /** Wraps the thermal powers of the [[HpOperatingPoint]].
     *
     * @param qDotHp
     *   The thermal power output of the heat pump.
