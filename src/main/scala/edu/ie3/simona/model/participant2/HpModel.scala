@@ -333,14 +333,17 @@ class HpModel private (
 
     val (newActivePowerHp, qDotIntoGrid) = nextOperatingPoint(state, None)
 
-    /* Push thermal energy to the thermal grid and get its updated state in return */
-    val (updateState, maybeThreshold) = thermalGrid.updateState(
-      state.tick,
-      state,
-      newActivePowerHp > zeroKW,
-      qDotIntoGrid,
-      state.thermalDemands,
-    )
+    val (updateState, maybeThreshold) =
+      /* Determine how qDot is used in thermalGrid and get threshold*/
+      if (qDotIntoGrid > zeroKW) {
+        thermalGrid.handleInfeed(
+          state,
+          newActivePowerHp > zeroKW,
+          qDotIntoGrid,
+          state.thermalDemands,
+        )
+      } else
+        thermalGrid.handleConsumption(state)
 
     val operatingPoint =
       HpOperatingPoint(
@@ -368,14 +371,17 @@ class HpModel private (
     val (newActivePowerHp, qDotIntoGrid) =
       nextOperatingPoint(state, Some(setPower))
 
-    /* Push thermal energy to the thermal grid and get its updated state in return */
-    val (updateState, maybeThreshold) = thermalGrid.updateState(
-      state.tick,
-      state,
-      newActivePowerHp > zeroKW,
-      qDotIntoGrid,
-      state.thermalDemands,
-    )
+    val (updateState, maybeThreshold) =
+      /* Determine how qDot is used in thermalGrid and get threshold*/
+      if (qDotIntoGrid > zeroKW) {
+        thermalGrid.handleInfeed(
+          state,
+          newActivePowerHp > zeroKW,
+          qDotIntoGrid,
+          state.thermalDemands,
+        )
+      } else
+        thermalGrid.handleConsumption(state)
 
     val operatingPoint =
       HpOperatingPoint(

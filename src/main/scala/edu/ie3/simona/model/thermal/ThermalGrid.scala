@@ -152,44 +152,6 @@ final case class ThermalGrid(
     )
   }
 
-  /** Update the current state of the grid. Whether there are two cases to
-    * handle, external infeed into the thermal grid and no infeed.
-    *
-    * @param tick
-    *   The actual tick of simulation.
-    * @param state
-    *   Last state of the heat pump.
-    * @param isRunning
-    *   Determines whether the heat pump is running or not.
-    * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
-    *   storages.
-    * @param thermalDemands
-    *   Holds the thermal demands of the thermal units (house, storage).
-    * @return
-    *   The updated state of the grid.
-    */
-  def updateState(
-      tick: Long,
-      state: HpState,
-      isRunning: Boolean,
-      qDot: Power,
-      thermalDemands: ThermalDemandWrapper,
-  ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > zeroKW)
-    handleInfeed(
-      tick,
-      state,
-      isRunning,
-      qDot,
-      thermalDemands,
-    )
-  else
-    handleConsumption(
-      tick,
-      state,
-      qDot,
-    )
-
   /** Handles the case, when a grid has infeed. Depending on which entity has
     * some heat demand the house or the storage will be heated up / filled up.
     * First the actions from lastState will be considered and checked if the
