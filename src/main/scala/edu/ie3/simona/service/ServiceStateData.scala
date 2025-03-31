@@ -25,19 +25,4 @@ object ServiceStateData {
       activationAdapter: ActorRef[Activation],
   ) extends ServiceStateData
 
-  /** Indicate that the service is initialized
-    */
-  trait ServiceActivationBaseStateData extends ServiceBaseStateData {
-    val maybeNextActivationTick: Option[Long]
-    val activationTicks: SortedDistinctSeq[Long]
-
-    /** Get the next upcoming tick and removes it from the list of scheduled
-      * ticks
-      *
-      * @return
-      *   The next upcoming tick and the remaining ones
-      */
-    def popNextTick: (Option[Long], SortedDistinctSeq[Long]) =
-      activationTicks.pop
-  }
 }
