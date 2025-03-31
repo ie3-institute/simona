@@ -9,8 +9,11 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.NoSetPointValue
-import edu.ie3.simona.api.data.em.model.{EmSetPointResult, FlexRequestResult}
+import edu.ie3.simona.api.data.em.model.{
+  EmSetPointResult,
+  FlexRequestResult,
+  NoSetPointValue,
+}
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
@@ -27,7 +30,11 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power
-import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.{
+  IterableHasAsScala,
+  MapHasAsJava,
+  MapHasAsScala,
+}
 
 final case class EmCommunicationCore(
     hierarchy: EmHierarchy = EmHierarchy(),
@@ -124,7 +131,6 @@ final case class EmCommunicationCore(
           hierarchy.getResponseRef(agent) match {
             case Some(receiver) =>
               flexOptions.asScala.foreach { option =>
-
                 receiver ! ProvideFlexOptions(
                   option.sender,
                   MinMaxFlexOptions(

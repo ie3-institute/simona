@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.em
 
-import edu.ie3.simona.api.data.em.NoSetPointValue
+import edu.ie3.simona.api.data.em.model.NoSetPointValue
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
