@@ -79,12 +79,14 @@ class HpModel private (
       ),
     )
 
-    val (thermalDemands, thermalGridState) =
-      thermalGrid.energyDemandAndUpdatedState(
+    val thermalGridState =
+      thermalGrid.updatedThermalGridState(
         tick,
         preHpState,
         preOperatingPoint,
       )
+
+    val thermalDemands = thermalGrid.determineEnergyDemand(thermalGridState)
 
     preHpState.copy(
       thermalDemands = thermalDemands,
@@ -103,12 +105,14 @@ class HpModel private (
     val updatedHpState =
       state.copy(lastStateAmbientTemperature = state.ambientTemperature)
 
-    val (thermalDemands, thermalGridState) =
-      thermalGrid.energyDemandAndUpdatedState(
+    val thermalGridState =
+      thermalGrid.updatedThermalGridState(
         tick,
         updatedHpState,
         operatingPoint,
       )
+
+    val thermalDemands = thermalGrid.determineEnergyDemand(thermalGridState)
 
     updatedHpState.copy(
       tick = tick,

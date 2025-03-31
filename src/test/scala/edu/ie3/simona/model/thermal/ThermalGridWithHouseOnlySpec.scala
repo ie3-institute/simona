@@ -94,12 +94,15 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "exactly be the demand of the house" in {
         val tick = 10800L // after three hours
 
-        val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(
+        val updatedThermalGridState =
+          thermalGrid.updatedThermalGridState(
             tick,
             initialHpState,
             HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           )
+
+        val thermalDemands =
+          thermalGrid.determineEnergyDemand(updatedThermalGridState)
 
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand

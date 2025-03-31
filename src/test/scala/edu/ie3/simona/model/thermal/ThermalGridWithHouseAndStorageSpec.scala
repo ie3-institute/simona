@@ -120,12 +120,16 @@ class ThermalGridWithHouseAndStorageSpec
           thermalDemands = onlyThermalDemandOfHeatStorage,
         )
 
-        val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(
+        val updatedThermalGridState =
+          thermalGrid.updatedThermalGridState(
             state.tick,
             state,
             HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           )
+
+        val thermalDemands =
+          thermalGrid.determineEnergyDemand(updatedThermalGridState)
+
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
@@ -155,12 +159,16 @@ class ThermalGridWithHouseAndStorageSpec
           thermalDemands = onlyThermalDemandOfHeatStorage,
         )
 
-        val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(
+        val updatedThermalGridState =
+          thermalGrid.updatedThermalGridState(
             state.tick,
             state,
             HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           )
+
+        val thermalDemands =
+          thermalGrid.determineEnergyDemand(updatedThermalGridState)
+
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 

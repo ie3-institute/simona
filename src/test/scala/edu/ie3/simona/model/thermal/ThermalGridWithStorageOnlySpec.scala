@@ -98,12 +98,16 @@ class ThermalGridWithStorageOnlySpec
         val tick = 10800L // after three hours
         val state = initialHpState.copy(tick = tick)
 
-        val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(
+        val updatedThermalGridState =
+          thermalGrid.updatedThermalGridState(
             state.tick,
             state,
             HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           )
+
+        val thermalDemands =
+          thermalGrid.determineEnergyDemand(updatedThermalGridState)
+
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
@@ -133,12 +137,16 @@ class ThermalGridWithStorageOnlySpec
           onlyAdditionalDemandOfHeatStorage,
         )
 
-        val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(
+        val updatedThermalGridState =
+          thermalGrid.updatedThermalGridState(
             state.tick,
             state,
             HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           )
+
+        val thermalDemands =
+          thermalGrid.determineEnergyDemand(updatedThermalGridState)
+
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
