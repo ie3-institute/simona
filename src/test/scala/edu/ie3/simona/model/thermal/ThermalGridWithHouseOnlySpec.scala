@@ -191,7 +191,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            state.tick,
             state,
             isNotRunning,
             testGridQDotInfeed,
@@ -220,8 +219,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         )
         val initState = initialHpState.copy(thermalGridState = gridState)
 
-        thermalGrid.updateState(
-          initState.tick,
+        thermalGrid.handleInfeed(
           initState,
           isRunning,
           testGridQDotInfeed,

@@ -197,8 +197,6 @@ final case class ThermalGrid(
     * by updated weather data. If this is not the case, all other cases will be
     * handled by [[ThermalGrid.handleFinalInfeedCases]].
     *
-    * @param tick
-    *   The actual tick of simulation.
     * @param state
     *   Last state of the heat pump.
     * @param isRunning
@@ -211,8 +209,7 @@ final case class ThermalGrid(
     * @return
     *   Updated thermal grid state and the thermalThreshold if there is one.
     */
-  private def handleInfeed(
-      tick: Long,
+  def handleInfeed(
       state: HpState,
       isRunning: Boolean,
       qDot: Power,
@@ -235,7 +232,7 @@ final case class ThermalGrid(
     ) {
       // We can continue for the house
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
-        handleInfeedHouse(tick, state, lastHouseQDot)
+        handleInfeedHouse(state.tick, state, lastHouseQDot)
 
       // ...and for the storage
       val (updatedStorageState, thermalStorageThreshold) = {
@@ -263,19 +260,19 @@ final case class ThermalGrid(
     else if (lastHouseQDot > zeroKW && lastHeatStorageQDot < zeroKW) {
       // ...and HP gets activated in current tick
       if (isRunning) {
-        handleCases(tick, state, qDot, zeroKW)
+        handleCases(state.tick, state, qDot, zeroKW)
       } else {
         // ... or continue lastState's behaviour
-        handleCases(tick, state, lastHouseQDot, lastHeatStorageQDot)
+        handleCases(state.tick, state, lastHouseQDot, lastHeatStorageQDot)
       }
     }
     // Handle edge case where house should be heated from storage
     else if (!isRunning && qDot > zeroKW) {
-      handleCases(tick, state, qDot, -qDot)
+      handleCases(state.tick, state, qDot, -qDot)
     }
     // or finally check for all other cases.
     else
-      handleFinalInfeedCases(tick, state, thermalDemands, qDot)
+      handleFinalInfeedCases(state.tick, state, thermalDemands, qDot)
   }
 
   /** Handles the last cases of [[ThermalGrid.handleInfeed]], where the thermal

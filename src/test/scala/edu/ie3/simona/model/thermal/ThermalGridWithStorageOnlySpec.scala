@@ -170,7 +170,6 @@ class ThermalGridWithStorageOnlySpec
       "properly put energy to storage" in {
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            initialHpState.tick,
             initialHpState,
             isRunning,
             testGridQDotInfeed,
@@ -209,7 +208,6 @@ class ThermalGridWithStorageOnlySpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            state.tick,
             state,
             isNotRunning,
             testGridQDotInfeed,
