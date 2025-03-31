@@ -439,7 +439,6 @@ class GridAgentBuilder(
               s"Unable to find thermal island grid for heat pump '${input.getUuid}' with thermal bus '${input.getThermalBus.getUuid}'."
             )
         }
-
       case input: StorageInput =>
         buildParticipant(
           SimpleInputContainer(input),
@@ -455,10 +454,6 @@ class GridAgentBuilder(
       case input: SystemParticipantInput =>
         throw new NotImplementedError(
           s"Building ${input.getClass.getSimpleName} is not implemented, yet."
-        )
-      case unknown =>
-        throw new GridAgentInitializationException(
-          "Received unknown input model type " + unknown.toString + "."
         )
     }
   }
