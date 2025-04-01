@@ -215,9 +215,6 @@ class WecModel private (
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.WeatherService)
-
 }
 
 object WecModel extends ParticipantModelFactory[WecInput, WecRuntimeConfig] {
@@ -273,6 +270,9 @@ object WecModel extends ParticipantModelFactory[WecInput, WecRuntimeConfig] {
           )
       )
   }
+
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
+    Iterable(ServiceType.WeatherService)
 
   override def create(
       input: WecInput,

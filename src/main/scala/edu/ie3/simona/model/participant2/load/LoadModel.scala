@@ -72,9 +72,6 @@ abstract class LoadModel[S <: ModelState]
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
-
 }
 
 object LoadModel extends ParticipantModelFactory[LoadInput, LoadRuntimeConfig] {
@@ -130,6 +127,9 @@ object LoadModel extends ParticipantModelFactory[LoadInput, LoadRuntimeConfig] {
 
     (referenceScalingFactor, scaledSRated)
   }
+
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
+    Iterable.empty
 
   override def create(
       input: LoadInput,

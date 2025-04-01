@@ -221,11 +221,6 @@ class EvcsModel private (
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(
-      ServiceType.EvMovementService
-    )
-
   override def determineFlexOptions(
       state: EvcsState
   ): FlexOptions = {
@@ -595,6 +590,9 @@ object EvcsModel extends ParticipantModelFactory[EvcsInput, EvcsRuntimeConfig] {
       evs: Seq[EvModelWrapper],
       override val tick: Long,
   ) extends ModelState
+
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
+    Iterable(ServiceType.EvMovementService)
 
   override def create(
       input: EvcsInput,

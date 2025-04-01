@@ -185,9 +185,6 @@ final case class BmModel(
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.WeatherService)
-
 }
 
 object BmModel {

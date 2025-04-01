@@ -206,11 +206,6 @@ abstract class ParticipantModel[
   ): S =
     throw new NotImplementedError(s"Method not implemented by $getClass")
 
-  /** @return
-    *   All secondary services required by the model.
-    */
-  def getRequiredSecondaryServices: Iterable[ServiceType]
-
 }
 
 object ParticipantModel {
@@ -227,6 +222,11 @@ object ParticipantModel {
       S <: SystemParticipantInput,
       C <: BaseRuntimeConfig,
   ] {
+
+    /** @return
+      *   All secondary services required by the model.
+      */
+    def getRequiredSecondaryServices: Iterable[ServiceType]
 
     /** Creates a [[ParticipantModel]] of a specific type given input and config
       * data.

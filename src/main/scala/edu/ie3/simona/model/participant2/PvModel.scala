@@ -241,9 +241,6 @@ class PvModel private (
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.WeatherService)
-
 }
 
 object PvModel extends ParticipantModelFactory[PvInput, PvRuntimeConfig] {
@@ -265,6 +262,9 @@ object PvModel extends ParticipantModelFactory[PvInput, PvRuntimeConfig] {
       diffIrradiance: Irradiance,
       dirIrradiance: Irradiance,
   ) extends ModelState
+
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
+    Iterable(ServiceType.WeatherService)
 
   override def create(
       input: PvInput,

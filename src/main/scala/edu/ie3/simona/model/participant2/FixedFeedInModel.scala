@@ -83,9 +83,6 @@ class FixedFeedInModel(
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
-
 }
 
 object FixedFeedInModel
@@ -93,6 +90,9 @@ object FixedFeedInModel
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
     ] {
+
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
+    Iterable.empty
 
   override def create(
       input: FixedFeedInInput,

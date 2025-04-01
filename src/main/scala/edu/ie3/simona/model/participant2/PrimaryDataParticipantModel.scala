@@ -26,7 +26,6 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel._
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
-import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import squants.{Dimensionless, Power}
 
@@ -118,11 +117,6 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
   ): SystemParticipantResult = throw new CriticalFailureException(
     "Method not implemented by this model."
   )
-
-  override def getRequiredSecondaryServices: Iterable[ServiceType] = {
-    // only secondary services should be specified here
-    Iterable.empty
-  }
 
   override def determineFlexOptions(
       state: PrimaryDataState[PD]

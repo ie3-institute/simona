@@ -135,9 +135,6 @@ class MockParticipantModel(
     )
   }
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    throw new NotImplementedError() // Not tested
-
   override def determineFlexOptions(
       state: MockState
   ): FlexOptions = {

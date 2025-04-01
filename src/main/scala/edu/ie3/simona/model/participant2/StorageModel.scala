@@ -166,9 +166,6 @@ class StorageModel private (
       -1.asPu,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
-
   override def determineFlexOptions(
       state: StorageState
   ): FlexOptions = {
@@ -323,6 +320,9 @@ object StorageModel
       targetWithPosMargin: Energy,
       targetWithNegMargin: Energy,
   )
+
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
+    Iterable.empty
 
   override def create(
       input: StorageInput,
