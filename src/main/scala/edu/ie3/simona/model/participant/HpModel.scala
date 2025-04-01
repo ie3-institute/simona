@@ -190,13 +190,13 @@ final case class HpModel(
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) ||
-        (demandHouse.hasAdditionalDemand && lastState.isRunning) ||
+        (demandHouse.hasPossibleDemand && lastState.isRunning) ||
         demandThermalStorage.hasRequiredDemand ||
-        (demandThermalStorage.hasAdditionalDemand && lastState.isRunning)
+        (demandThermalStorage.hasPossibleDemand && lastState.isRunning)
 
     val canOperate =
-      demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
-        demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasAdditionalDemand
+      demandHouse.hasRequiredDemand || demandHouse.hasPossibleDemand ||
+        demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasPossibleDemand
     val canBeOutOfOperation =
       !(demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty)
 
@@ -249,7 +249,7 @@ final case class HpModel(
         // If the house has req. demand and storage isn't empty, we can heat the house from storage.
         (zeroKW, zeroKW, currentStoragePThermal)
       } else if (
-        currentStorageEnergy > zeroKWh && demandWrapper.houseDemand.hasAdditionalDemand && lastHouseQDot > zeroKW
+        currentStorageEnergy > zeroKWh && demandWrapper.houseDemand.hasPossibleDemand && lastHouseQDot > zeroKW
       )
         // Edge case when em controlled: If the house was heated last state by Hp and setPower is below turnOn condition now,
         // but house didn't reach target or boundary temperature yet. House can be heated from storage, if this one is not empty.

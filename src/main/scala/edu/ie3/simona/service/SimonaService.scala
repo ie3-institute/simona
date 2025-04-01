@@ -110,9 +110,7 @@ abstract class SimonaService[
     case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
       // init might take some time and could go wrong if invalid initialize service data is received
       // execute complete and unstash only if init is carried out successfully
-      init(
-        initializeStateData
-      ) match {
+      init(initializeStateData) match {
         case Success((serviceStateData, maybeNewTick)) =>
           constantData.scheduler ! Completion(
             constantData.activationAdapter,
@@ -208,11 +206,12 @@ abstract class SimonaService[
     // activity start trigger for this service
     case (ctx, WrappedActivation(Activation(tick))) =>
       /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
-      val (updatedStateData, maybeNewTriggers) =
+      val (updatedStateData, maybeNextTick) =
         announceInformation(tick)(stateData, ctx)
+
       constantData.scheduler ! Completion(
         constantData.activationAdapter,
-        maybeNewTriggers,
+        maybeNextTick,
       )
 
       idle(updatedStateData, constantData)

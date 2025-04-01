@@ -17,6 +17,8 @@ import edu.ie3.simona.ontology.messages.services.{
   ServiceMessage,
 }
 import edu.ie3.simona.service.results.ExtResultDataProvider
+import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
+import edu.ie3.simona.sim.setup.ExtSimSetupData.Input
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
@@ -26,23 +28,17 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
   * @param extSimAdapters
   *   All adapters to external simulations.
   * @param extPrimaryDataServices
-  *   Map: external primary data connections to service references.
+  *   Seq: external primary data connections to service references.
   * @param extDataServices
-  *   Map: external input data connection to service references.
+  *   Seq: external input data connection to service references.
   * @param extResultListeners
   *   Map: external result data connections to result data providers.
   */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ClassicRef],
-    extPrimaryDataServices: Seq[
-      (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
-    ],
-    extDataServices: Seq[
-      (_ <: ExtInputDataConnection[_], ActorRef[_ >: ServiceMessage])
-    ],
-    extResultListeners: Seq[
-      (ExtResultDataConnection, ActorRef[ExtResultDataProvider.Request])
-    ],
+    extPrimaryDataServices: Seq[Input],
+    extDataServices: Seq[Input],
+    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[_])],
 ) {
 
   private[setup] def update(
@@ -107,6 +103,9 @@ final case class ExtSimSetupData(
 }
 
 object ExtSimSetupData {
+
+  type Input[T <: DataMessageFromExt] =
+    (ExtInputDataConnection[T], ActorRef[_ >: ServiceMessage])
 
   /** Returns an empty [[ExtSimSetupData]].
     */
