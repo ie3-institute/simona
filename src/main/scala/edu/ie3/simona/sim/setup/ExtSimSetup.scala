@@ -199,13 +199,12 @@ object ExtSimSetup {
     *   The reference to the service.
     */
   private[setup] def setupInputService[
-      T <: ExtInputDataConnection[D],
+      T <: ExtInputDataConnection,
       M >: ServiceMessage,
-      D <: DataMessageFromExt,
   ](
       extInputDataConnection: T,
       behavior: Behavior[M],
-      adapterToExt: ActorRef[M] => Behavior[D],
+      adapterToExt: ActorRef[M] => Behavior[DataMessageFromExt],
       name: String,
       initData: T => InitializeServiceStateData,
   )(implicit
