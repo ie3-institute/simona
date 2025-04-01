@@ -229,11 +229,16 @@ class EvcsModel private (
       state: EvcsState
   ): FlexOptions = {
 
-    val preferredPowers =
-      strategy.determineChargingPowers(state.evs, state.tick, this)
+    // Evs are split into Evs that can charge since they're not full and the full ones, the full ones are handled for determining flex potentials for discharging later
+    val (evsNotFull, evsFull) = state.evs.partition(ev => !isFull(ev))
 
-    val (maxCharging, preferredPower, forcedCharging, minCharging) =
-      state.evs.foldLeft(
+    val preferredPowers = {
+      strategy.determineChargingPowers(evsNotFull, state.tick, this)
+    }
+
+    // first handle flex options for the Evs that are not full
+    val (maxCharging, preferredPower, forcedCharging, minChargingEvsNotFull) =
+      evsNotFull.foldLeft(
         (zeroKW, zeroKW, zeroKW, zeroKW)
       ) {
         case (
@@ -269,6 +274,22 @@ class EvcsModel private (
             dischargingSum + maxDischarging,
           )
       }
+
+    // finally handle flex options for the Evs that are full and can discharge only
+    val minChargingEvsFull =
+      evsFull.foldLeft((zeroKW)) { case (dischargingSum, ev) =>
+        val maxPower = getMaxAvailableChargingPower(ev)
+        val maxDischarging =
+          if (!isEmpty(ev) && vehicle2grid)
+            maxPower * -1
+          else
+            zeroKW
+
+        dischargingSum + maxDischarging
+
+      }
+
+    val minCharging = minChargingEvsNotFull + minChargingEvsFull
 
     // if we need to charge at least one EV, we cannot discharge any other
     val (adaptedPreferred, adaptedMinCharging) =
