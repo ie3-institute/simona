@@ -215,10 +215,29 @@ abstract class ParticipantModel[
 
 object ParticipantModel {
 
+  /** Functionality related to creating and initializing a [[ParticipantModel]].
+    *
+    * @tparam S
+    *   The expected type of [[SystemParticipantInput]] used for creating the
+    *   model.
+    * @tparam C
+    *   The type of runtime configuration used for creating the model.
+    */
   trait ParticipantModelFactory[
       S <: SystemParticipantInput,
       C <: BaseRuntimeConfig,
   ] {
+
+    /** Creates a [[ParticipantModel]] of a specific type given input and config
+      * data.
+      *
+      * @param input
+      *   The model input used for creating the model.
+      * @param config
+      *   The runtime config used for creating the model.
+      * @return
+      *   The specific [[ParticipantModel]].
+      */
     def create(input: S, config: C): ParticipantModel[_, _]
   }
 
