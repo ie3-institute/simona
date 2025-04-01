@@ -17,8 +17,11 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputMode
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   EvcsRuntimeConfig,
+  FixedFeedInRuntimeConfig,
   LoadRuntimeConfig,
+  PvRuntimeConfig,
   StorageRuntimeConfig,
+  WecRuntimeConfig,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -66,18 +69,18 @@ object ParticipantModelInit {
     }
 
     (scaledParticipantInput, modelConfig) match {
-      case (input: FixedFeedInInput, _) =>
-        FixedFeedInModel(input)
+      case (input: FixedFeedInInput, config: FixedFeedInRuntimeConfig) =>
+        FixedFeedInModel.create(input, config: FixedFeedInRuntimeConfig)
       case (input: LoadInput, config: LoadRuntimeConfig) =>
-        LoadModel(input, config)
-      case (input: PvInput, _) =>
-        PvModel(input)
-      case (input: WecInput, _) =>
-        WecModel(input)
+        LoadModel.create(input, config)
+      case (input: PvInput, config: PvRuntimeConfig) =>
+        PvModel.create(input, config)
+      case (input: WecInput, config: WecRuntimeConfig) =>
+        WecModel.create(input, config)
       case (input: StorageInput, config: StorageRuntimeConfig) =>
-        StorageModel(input, config)
+        StorageModel.create(input, config)
       case (input: EvcsInput, config: EvcsRuntimeConfig) =>
-        EvcsModel(input, config)
+        EvcsModel.create(input, config)
       case (input, config) =>
         throw new CriticalFailureException(
           s"Handling the input model ${input.getClass.getSimpleName} and " +

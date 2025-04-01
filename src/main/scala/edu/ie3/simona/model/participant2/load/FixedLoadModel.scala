@@ -41,7 +41,8 @@ class FixedLoadModel(
 }
 
 object FixedLoadModel {
-  def apply(
+
+  def create(
       input: LoadInput,
       config: LoadRuntimeConfig,
   ): FixedLoadModel = {
@@ -73,4 +74,5 @@ object FixedLoadModel {
       activePower,
     )
   }
+
 }

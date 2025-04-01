@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant2
 
+import edu.ie3.simona.config.RuntimeConfig.PvRuntimeConfig
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.util.TimeUtil
@@ -42,7 +43,7 @@ trait PvModelITHelper extends PvInputTestData {
 
   def createPvModels(): Map[String, PvModel] = {
     pvInputsTest.map { inputModel =>
-      inputModel.getId -> PvModel(inputModel)
+      inputModel.getId -> PvModel.create(inputModel, PvRuntimeConfig())
     }.toMap
   }
 

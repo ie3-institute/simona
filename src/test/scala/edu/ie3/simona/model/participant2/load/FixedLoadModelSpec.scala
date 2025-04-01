@@ -33,7 +33,7 @@ class FixedLoadModelSpec extends UnitSpec with LoadInputTestData {
           reference = reference,
         )
 
-        val model = FixedLoadModel(
+        val model = FixedLoadModel.create(
           loadInput,
           config,
         )

@@ -51,7 +51,7 @@ class ProfileLoadModelSpec
         )
       ) { (profile, sRated, expectedScalingFactor) =>
         val config = LoadRuntimeConfig(modelBehaviour = "profile")
-        val model = ProfileLoadModel(
+        val model = ProfileLoadModel.create(
           loadInput
             .copy()
             .loadprofile(profile)
@@ -81,7 +81,7 @@ class ProfileLoadModelSpec
           modelBehaviour = "profile",
           reference = "energy",
         )
-        val model = ProfileLoadModel(
+        val model = ProfileLoadModel.create(
           loadInput
             .copy()
             .loadprofile(profile)
@@ -115,7 +115,7 @@ class ProfileLoadModelSpec
             .doubleValue
         )
 
-        val model = ProfileLoadModel(input, config)
+        val model = ProfileLoadModel.create(input, config)
 
         /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
          * [https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf], 1.5 %
@@ -137,7 +137,7 @@ class ProfileLoadModelSpec
         val input = loadInput.copy().loadprofile(profile).build()
         val config = LoadRuntimeConfig(modelBehaviour = "profile")
 
-        val model = ProfileLoadModel(input, config)
+        val model = ProfileLoadModel.create(input, config)
 
         val targetMaximumPower = Kilovoltamperes(
           input

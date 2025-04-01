@@ -21,6 +21,8 @@ import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  OperatingPoint,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant2.load.random.RandomLoadModel
@@ -75,7 +77,7 @@ abstract class LoadModel[S <: ModelState]
 
 }
 
-object LoadModel {
+object LoadModel extends ParticipantModelFactory[LoadInput, LoadRuntimeConfig] {
 
   /** Calculates the scaling factor and scaled rated apparent power according to
     * the reference type
@@ -129,17 +131,20 @@ object LoadModel {
     (referenceScalingFactor, scaledSRated)
   }
 
-  def apply(
+  override def create(
       input: LoadInput,
       config: LoadRuntimeConfig,
-  ): LoadModel[_ <: ModelState] = {
+  ): ParticipantModel[
+    _ <: OperatingPoint,
+    _ <: ModelState,
+  ] =
     LoadModelBehaviour(config.modelBehaviour) match {
       case LoadModelBehaviour.FIX =>
-        FixedLoadModel(input, config)
+        FixedLoadModel.create(input, config)
       case LoadModelBehaviour.PROFILE =>
-        ProfileLoadModel(input, config)
+        ProfileLoadModel.create(input, config)
       case LoadModelBehaviour.RANDOM =>
-        RandomLoadModel(input, config)
+        RandomLoadModel.create(input, config)
     }
-  }
+
 }

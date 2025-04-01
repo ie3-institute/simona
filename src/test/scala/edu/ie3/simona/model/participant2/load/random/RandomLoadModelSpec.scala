@@ -45,7 +45,7 @@ class RandomLoadModelSpec
         )
       ) { (sRated, expectedScalingFactor) =>
         val config = LoadRuntimeConfig(modelBehaviour = "random")
-        val model = RandomLoadModel(
+        val model = RandomLoadModel.create(
           loadInput
             .copy()
             .sRated(Quantities.getQuantity(sRated, PowerSystemUnits.VOLTAMPERE))
@@ -71,7 +71,7 @@ class RandomLoadModelSpec
           modelBehaviour = "random",
           reference = "energy",
         )
-        val model = RandomLoadModel(
+        val model = RandomLoadModel.create(
           loadInput
             .copy()
             .eConsAnnual(
@@ -87,7 +87,7 @@ class RandomLoadModelSpec
     }
 
     "deliver the correct distribution on request" in {
-      val model = RandomLoadModel(
+      val model = RandomLoadModel.create(
         loadInput,
         LoadRuntimeConfig(
           uuids = List.empty,
@@ -129,7 +129,7 @@ class RandomLoadModelSpec
         reference = "energy",
       )
 
-      val model = RandomLoadModel(
+      val model = RandomLoadModel.create(
         loadInput,
         config,
       )
@@ -152,7 +152,7 @@ class RandomLoadModelSpec
     "approximately reach the maximum power in a simulated year" in {
       val config = LoadRuntimeConfig(modelBehaviour = "random")
 
-      val model = RandomLoadModel(
+      val model = RandomLoadModel.create(
         loadInput,
         config,
       )

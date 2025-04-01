@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant2
 
+import edu.ie3.simona.config.RuntimeConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.FixedState
 import edu.ie3.simona.test.common.UnitSpec
@@ -20,7 +21,8 @@ class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
 
     "build a correct FixedFeedModel from valid input" in {
 
-      val model = FixedFeedInModel(fixedFeedInput)
+      val model =
+        FixedFeedInModel.create(fixedFeedInput, FixedFeedInRuntimeConfig())
 
       model.uuid shouldBe fixedFeedInput.getUuid
       model.sRated shouldBe Megavoltamperes(
@@ -33,7 +35,8 @@ class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
 
     "return approximately correct power calculations" in {
 
-      val model = FixedFeedInModel(fixedFeedInput)
+      val model =
+        FixedFeedInModel.create(fixedFeedInput, FixedFeedInRuntimeConfig())
 
       val expectedPower = Kilovoltamperes(
         fixedFeedInput

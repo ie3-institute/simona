@@ -24,6 +24,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsOperatingPoint,
@@ -575,7 +576,7 @@ class EvcsModel private (
 
 }
 
-object EvcsModel {
+object EvcsModel extends ParticipantModelFactory[EvcsInput, EvcsRuntimeConfig] {
 
   final case class EvcsOperatingPoint(evOperatingPoints: Map[UUID, Power])
       extends OperatingPoint {
@@ -595,7 +596,7 @@ object EvcsModel {
       override val tick: Long,
   ) extends ModelState
 
-  def apply(
+  override def create(
       input: EvcsInput,
       modelConfig: EvcsRuntimeConfig,
   ): EvcsModel =

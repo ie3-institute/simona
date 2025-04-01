@@ -15,12 +15,14 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
+import edu.ie3.simona.config.RuntimeConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   FixedState,
   ParticipantFixedState,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -86,9 +88,15 @@ class FixedFeedInModel(
 
 }
 
-object FixedFeedInModel {
-  def apply(
-      input: FixedFeedInInput
+object FixedFeedInModel
+    extends ParticipantModelFactory[
+      FixedFeedInInput,
+      FixedFeedInRuntimeConfig,
+    ] {
+
+  override def create(
+      input: FixedFeedInInput,
+      config: FixedFeedInRuntimeConfig,
   ): FixedFeedInModel = {
     new FixedFeedInModel(
       input.getUuid,
@@ -103,4 +111,5 @@ object FixedFeedInModel {
       QControl.apply(input.getqCharacteristics),
     )
   }
+
 }

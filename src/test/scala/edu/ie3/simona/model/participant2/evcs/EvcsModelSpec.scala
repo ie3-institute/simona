@@ -49,7 +49,7 @@ class EvcsModelSpec
       chargingStrategy: String,
       vehicle2Grid: Boolean = true,
   ): EvcsModel =
-    EvcsModel(
+    EvcsModel.create(
       evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
       EvcsRuntimeConfig(
         chargingStrategy = chargingStrategy

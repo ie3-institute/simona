@@ -18,11 +18,13 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
+import edu.ie3.simona.config.RuntimeConfig.WecRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.WecModel.{
   WecCharacteristic,
@@ -218,7 +220,7 @@ class WecModel private (
 
 }
 
-object WecModel {
+object WecModel extends ParticipantModelFactory[WecInput, WecRuntimeConfig] {
 
   /** Universal gas constant
     */
@@ -272,8 +274,9 @@ object WecModel {
       )
   }
 
-  def apply(
-      input: WecInput
+  override def create(
+      input: WecInput,
+      config: WecRuntimeConfig,
   ): WecModel =
     new WecModel(
       input.getUuid,

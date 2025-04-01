@@ -59,7 +59,7 @@ class ProfileLoadModel(
 
 object ProfileLoadModel {
 
-  def apply(input: LoadInput, config: LoadRuntimeConfig): ProfileLoadModel = {
+  def create(input: LoadInput, config: LoadRuntimeConfig): ProfileLoadModel = {
 
     val loadProfileStore = LoadProfileStore()
 

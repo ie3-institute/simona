@@ -21,6 +21,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.StorageModel.{
   RefTargetSocParams,
@@ -296,7 +297,8 @@ class StorageModel private (
 
 }
 
-object StorageModel {
+object StorageModel
+    extends ParticipantModelFactory[StorageInput, StorageRuntimeConfig] {
 
   /** @param storedEnergy
     *   The amount of currently stored energy
@@ -322,7 +324,7 @@ object StorageModel {
       targetWithNegMargin: Energy,
   )
 
-  def apply(
+  override def create(
       input: StorageInput,
       config: StorageRuntimeConfig,
   ): StorageModel = {

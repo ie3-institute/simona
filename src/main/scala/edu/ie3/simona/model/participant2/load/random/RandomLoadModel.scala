@@ -133,7 +133,7 @@ object RandomLoadModel {
     */
   private val maxPower: Power = Watts(159d)
 
-  def apply(input: LoadInput, config: LoadRuntimeConfig): RandomLoadModel = {
+  def create(input: LoadInput, config: LoadRuntimeConfig): RandomLoadModel = {
 
     val referenceType = LoadReferenceType(config.reference)
 
