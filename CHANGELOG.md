@@ -64,6 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration test for thermal grids without Em [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
 - Add test case to EmAgentIT to check for correct reactive power [#1185](https://github.com/ie3-institute/simona/issues/1185)
+- Integration test for thermal grids with Em [#1146](https://github.com/ie3-institute/simona/issues/1146)
+- Added check for equal start and end date of simulation to ConfigFailFast [#1317](https://github.com/ie3-institute/simona/issues/1317)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -231,6 +233,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix hierarchical em structures leading to exception while initializing [#1293](https://github.com/ie3-institute/simona/issues/1293)
 - Fix failing `ExtEvDataServiceSpec` [#1297](https://github.com/ie3-institute/simona/issues/1297)
 - Fixed pekko config not written as output [#1302](https://github.com/ie3-institute/simona/issues/1302)
+- Cleanups and log capturing in `ExtEvDataServiceSpec` [#1320](https://github.com/ie3-institute/simona/issues/1320)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)

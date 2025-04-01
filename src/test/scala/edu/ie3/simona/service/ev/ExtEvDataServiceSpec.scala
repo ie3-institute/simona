@@ -31,7 +31,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.test.common.{EvTestData, TestSpawnerTyped}
+import edu.ie3.simona.test.common.{EvTestData, TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -39,7 +39,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 import org.apache.pekko.testkit.TestKit.awaitCond
-import org.scalatest.wordspec.AnyWordSpecLike
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
@@ -50,7 +49,7 @@ import scala.language.implicitConversions
 
 class ExtEvDataServiceSpec
     extends ScalaTestWithActorTestKit
-    with AnyWordSpecLike
+    with UnitSpec
     with EvTestData
     with TestSpawnerTyped {
 
@@ -78,6 +77,8 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter, extSimAdapter.ref)
 
+      /* INIT */
+
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       // lock activation scheduled
       scheduler.expectMessageType[ScheduleActivation]
@@ -103,6 +104,8 @@ class ExtEvDataServiceSpec
       extEvData.setActorRefs(adapter, extSimAdapter.ref)
 
       val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
+
+      /* INIT */
 
       // this one should be stashed
       evService ! RegisterForEvDataMessage(evcs1.ref, evcs1UUID)
@@ -137,6 +140,11 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter, extSimAdapter.ref)
 
+      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
+      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
+
+      /* INIT */
+
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       // lock activation scheduled
       scheduler.expectMessageType[ScheduleActivation]
@@ -146,9 +154,6 @@ class ExtEvDataServiceSpec
 
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
-
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
-      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
 
       evService ! RegisterForEvDataMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
@@ -188,6 +193,8 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter, extSimAdapter.ref)
 
+      /* INIT */
+
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       // lock activation scheduled
       scheduler.expectMessageType[ScheduleActivation]
@@ -202,7 +209,7 @@ class ExtEvDataServiceSpec
       scheduler.expectMessage(Completion(activationMsg.actor))
 
       // we trigger ev service and expect an exception
-      evService ! Activation(0)
+      evService ! Activation(0L)
       scheduler.expectNoMessage()
 
       val deathWatch = createTestProbe("deathWatch")
@@ -219,6 +226,11 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter, extSimAdapter.ref)
 
+      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
+      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
+
+      /* INIT */
+
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       // lock activation scheduled
       scheduler.expectMessageType[ScheduleActivation]
@@ -228,9 +240,6 @@ class ExtEvDataServiceSpec
 
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
-
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
-      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
 
       evService ! RegisterForEvDataMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
@@ -255,6 +264,8 @@ class ExtEvDataServiceSpec
 
       evcs2.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
 
+      /* TICK 0 */
+
       extEvData.sendExtMsg(
         new RequestEvcsFreeLots()
       )
@@ -263,14 +274,12 @@ class ExtEvDataServiceSpec
       // scheduler should receive schedule msg
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
 
-      val tick = 0L
-
       // we trigger ev service
-      evService ! Activation(tick)
+      evService ! Activation(0L)
 
-      evcs1.expectMessage(EvFreeLotsRequest(tick, evService))
+      evcs1.expectMessage(EvFreeLotsRequest(0L, evService))
 
-      evcs2.expectMessage(EvFreeLotsRequest(tick, evService))
+      evcs2.expectMessage(EvFreeLotsRequest(0L, evService))
 
       scheduler.expectMessage(Completion(activationMsg.actor))
 
@@ -307,6 +316,11 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter, extSimAdapter.ref)
 
+      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
+      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
+
+      /* INIT */
+
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       // lock activation scheduled
       scheduler.expectMessageType[ScheduleActivation]
@@ -316,9 +330,6 @@ class ExtEvDataServiceSpec
 
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
-
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
-      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
 
       evService ! RegisterForEvDataMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
@@ -341,16 +352,16 @@ class ExtEvDataServiceSpec
 
       evcs2.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
 
+      /* TICK 0 */
+
       extEvData.sendExtMsg(new RequestCurrentPrices())
 
       // ev service should receive request at this moment
       // scheduler should receive schedule msg
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
 
-      val tick = 0L
-
       // we trigger ev service
-      evService ! Activation(tick)
+      evService ! Activation(0L)
 
       evcs1.expectNoMessage()
       evcs2.expectNoMessage()
@@ -383,6 +394,8 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter, extSimAdapter.ref)
 
+      /* INIT */
+
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       // lock activation scheduled
       scheduler.expectMessageType[ScheduleActivation]
@@ -394,16 +407,16 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 
+      /* TICK 0 */
+
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
 
       // ev service should receive movements msg at this moment
       // scheduler receives schedule msg
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
 
-      val tick = 0L
-
       // we trigger ev service
-      evService ! Activation(tick)
+      evService ! Activation(0L)
 
       scheduler.expectMessage(
         Completion(activationMsg.actor)
@@ -428,6 +441,11 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter, extSimAdapter.ref)
 
+      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
+      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
+
+      /* INIT */
+
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       // lock activation scheduled
       scheduler.expectMessageType[ScheduleActivation]
@@ -437,9 +455,6 @@ class ExtEvDataServiceSpec
 
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
-
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
-      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs1")
 
       evService ! RegisterForEvDataMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
@@ -462,6 +477,8 @@ class ExtEvDataServiceSpec
 
       evcs2.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
 
+      /* TICK 0 */
+
       val departures = Map(
         evcs1UUID -> List(evA.getUuid).asJava,
         evcs2UUID -> List(evB.getUuid).asJava,
@@ -475,16 +492,14 @@ class ExtEvDataServiceSpec
       // scheduler should receive schedule msg
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
 
-      val tick = 0L
-
       // we trigger ev service
-      evService ! Activation(tick)
+      evService ! Activation(0L)
 
       evcs1.expectMessage(
-        DepartingEvsRequest(tick, Seq(evA.getUuid), evService)
+        DepartingEvsRequest(0L, Seq(evA.getUuid), evService)
       )
       evcs2.expectMessage(
-        DepartingEvsRequest(tick, Seq(evB.getUuid), evService)
+        DepartingEvsRequest(0L, Seq(evB.getUuid), evService)
       )
 
       scheduler.expectMessage(Completion(activationMsg.actor))
@@ -533,6 +548,8 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter, extSimAdapter.ref)
 
+      /* INIT */
+
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       // lock activation scheduled
       scheduler.expectMessageType[ScheduleActivation]
@@ -543,6 +560,8 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 
+      /* TICK 0 */
+
       extEvData.sendExtMsg(
         new RequestDepartingEvs(Map.empty[UUID, java.util.List[UUID]].asJava)
       )
@@ -551,10 +570,8 @@ class ExtEvDataServiceSpec
       // scheduler should receive schedule msg
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
 
-      val tick = 0L
-
       // we trigger ev service
-      evService ! Activation(tick)
+      evService ! Activation(0L)
 
       scheduler.expectMessage(Completion(activationMsg.actor))
 
@@ -579,6 +596,11 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter, extSimAdapter.ref)
 
+      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
+      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
+
+      /* INIT */
+
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       // lock activation scheduled
       scheduler.expectMessageType[ScheduleActivation]
@@ -588,9 +610,6 @@ class ExtEvDataServiceSpec
 
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessageType[Completion]
-
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
-      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
 
       evService ! RegisterForEvDataMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
@@ -613,6 +632,8 @@ class ExtEvDataServiceSpec
 
       evcs2.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
 
+      /* TICK 0 */
+
       val arrivals = Map(
         evcs1UUID -> List[EvModel](evA).asJava,
         evcs2UUID -> List[EvModel](evB).asJava,
@@ -623,24 +644,22 @@ class ExtEvDataServiceSpec
       )
 
       // ev service should receive movements msg at this moment
-      // scheduler receive schedule msg
+      // scheduler should receive schedule msg
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
 
-      val tick = 0L
-
       // we trigger ev service
-      evService ! Activation(tick)
+      evService ! Activation(0L)
 
       val evsMessage1 =
         evcs1.expectMessageType[DataProvision[EvData]]
-      evsMessage1.tick shouldBe tick
+      evsMessage1.tick shouldBe 0L
       evsMessage1.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evA))
       )
 
       val evsMessage2 =
         evcs2.expectMessageType[DataProvision[EvData]]
-      evsMessage2.tick shouldBe tick
+      evsMessage2.tick shouldBe 0L
       evsMessage2.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evB))
       )
@@ -661,6 +680,10 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(adapter, extSimAdapter.ref)
 
+      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
+
+      /* INIT */
+
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       // lock activation scheduled
       scheduler.expectMessageType[ScheduleActivation]
@@ -670,8 +693,6 @@ class ExtEvDataServiceSpec
 
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessageType[Completion]
-
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
 
       evService ! RegisterForEvDataMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
@@ -689,6 +710,8 @@ class ExtEvDataServiceSpec
 
       evcs1.expectMessage(RegistrationSuccessfulMessage(evService, 0L))
 
+      /* TICK 0 */
+
       val arrivals = Map(
         evcs1UUID -> List[EvModel](evA).asJava,
         evcs2UUID -> List[EvModel](evB).asJava,
@@ -703,14 +726,12 @@ class ExtEvDataServiceSpec
       extSimAdapter
         .expectMessageType[ScheduleDataServiceMessage[EvDataMessageFromExt]]
 
-      val tick = 0L
-
       // we trigger ev service
-      evService ! Activation(tick)
+      evService ! Activation(0L)
 
       val evsMessage1 =
         evcs1.expectMessageType[DataProvision[EvData]]
-      evsMessage1.tick shouldBe tick
+      evsMessage1.tick shouldBe 0L
       evsMessage1.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evA))
       )
