@@ -9,6 +9,7 @@ package edu.ie3.simona.sim.setup
 import edu.ie3.simona.api.data.ExtInputDataConnection
 import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
+import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.ontology.messages.services.{
@@ -16,8 +17,6 @@ import edu.ie3.simona.ontology.messages.services.{
   EvMessage,
   ServiceMessage,
 }
-import edu.ie3.simona.service.results.ExtResultDataProvider
-import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
 import edu.ie3.simona.sim.setup.ExtSimSetupData.Input
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
@@ -36,9 +35,11 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
   */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ClassicRef],
-    extPrimaryDataServices: Seq[Input],
-    extDataServices: Seq[Input],
-    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[_])],
+    extPrimaryDataServices: Seq[
+      (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
+    ],
+    extDataServices: Seq[Input[_ <: DataMessageFromExt]],
+    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[ServiceMessage])],
 ) {
 
   private[setup] def update(
@@ -61,7 +62,7 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtResultDataConnection,
-      ref: ActorRef[ExtResultDataProvider.Request],
+      ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData =
     copy(extResultListeners = extResultListeners ++ Seq((connection, ref)))
 
@@ -78,7 +79,7 @@ final case class ExtSimSetupData(
       case (_: ExtEmDataConnection, ref: ActorRef[EmMessage]) => ref
     }
 
-  def resultDataServices: Iterable[ActorRef[ExtResultDataProvider.Request]] =
+  def resultDataServices: Iterable[ActorRef[ServiceMessage]] =
     extResultListeners.map { case (_, ref) => ref }
 
   def evDataConnection: Option[ExtEvDataConnection] =

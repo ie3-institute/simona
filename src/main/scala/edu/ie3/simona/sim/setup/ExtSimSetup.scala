@@ -13,14 +13,13 @@ import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
-import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ScheduleServiceActivation
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.Create
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.em.ExtEmDataService
@@ -29,31 +28,22 @@ import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
-import edu.ie3.simona.service.results.ExtResultDataProvider
-import edu.ie3.simona.service.results.ExtResultDataProvider.{
-  InitExtResultData,
-  RequestDataMessageAdapter,
-  RequestScheduleActivationAdapter,
-}
+import edu.ie3.simona.service.results.ExtResultProvider
+import edu.ie3.simona.service.results.ExtResultProvider.InitExtResultData
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps,
   TypedActorContextOps,
   TypedActorRefOps,
 }
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
-import org.apache.pekko.util.{Timeout => PekkoTimeout}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.Await
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
-import scala.jdk.DurationConverters.ScalaDurationOps
 import scala.util.{Failure, Success, Try}
 
 object ExtSimSetup {
@@ -324,42 +314,33 @@ object ExtSimSetup {
   )(implicit
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-      extSimAdapter: ClassicRef,
+      extSimAdapter: ActorRef[ControlResponseMessageFromExt],
       startTime: ZonedDateTime,
       resolution: FiniteDuration,
   ): ExtSimSetupData = {
-    val extResultDataProvider =
-      context.spawn(
-        ExtResultDataProvider(scheduler, startTime),
-        s"ExtResultDataProvider",
-      )
-
-    val timeout: PekkoTimeout = PekkoTimeout.create(5.seconds.toJava)
-    val scheduler2: Scheduler = context.system.scheduler
-
-    val adapterRef = Await.result(
-      extResultDataProvider.ask[ActorRef[ResultDataMessageFromExt]](ref =>
-        RequestDataMessageAdapter(ref)
-      )(timeout, scheduler2),
-      timeout.duration,
+    val extResultProvider = context.spawn(
+      ExtResultProvider(scheduler),
+      s"ExtResultDataProvider",
     )
-    val adapterScheduleRef = Await.result(
-      extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]](ref =>
-        RequestScheduleActivationAdapter(ref)
-      )(timeout, scheduler2),
-      timeout.duration,
+
+    val adapter = context.spawn(
+      ExtResultProvider.adapter(extResultProvider),
+      s"ExtResultDataProvider-adapter-to-external",
     )
 
     extResultDataConnection.setActorRefs(
-      adapterRef.toClassic,
-      adapterScheduleRef.toClassic,
+      adapter,
       extSimAdapter,
     )
 
     val powerFlowResolution = resolution.toSeconds
 
-    extResultDataProvider ! ExtResultDataProvider.Create(
-      InitExtResultData(extResultDataConnection, powerFlowResolution),
+    extResultProvider ! Create(
+      InitExtResultData(
+        extResultDataConnection,
+        powerFlowResolution,
+        startTime,
+      ),
       ScheduleLock.singleKey(
         context,
         scheduler,
@@ -367,7 +348,7 @@ object ExtSimSetup {
       ),
     )
 
-    extSimSetupData update (extResultDataConnection, extResultDataProvider)
+    extSimSetupData.update(extResultDataConnection, extResultProvider)
   }
 
   /** Method for validating the external primary data connections.

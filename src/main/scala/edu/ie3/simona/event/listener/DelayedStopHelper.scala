@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.event.listener
 
-import edu.ie3.simona.service.results.ExtResultDataProvider
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 
@@ -24,7 +23,6 @@ object DelayedStopHelper {
   sealed trait StoppingMsg
       extends ResultEventListener.Request
       with RuntimeEventListener.Request
-      with ExtResultDataProvider.Request
 
   /** Message indicating that [[RuntimeEventListener]] should stop. Instead of
     * using [[org.apache.pekko.actor.typed.scaladsl.ActorContext.stop]], this

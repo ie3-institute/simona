@@ -101,7 +101,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
 
       context become receiveIdle(stateData.copy(currentTick = None))
 
-    case scheduleDataService: ScheduleDataServiceMessage[DataMessageFromExt] =>
+    case scheduleDataService: ScheduleDataServiceMessage =>
       val tick = stateData.currentTick.getOrElse(
         throw new RuntimeException("No tick has been triggered")
       )

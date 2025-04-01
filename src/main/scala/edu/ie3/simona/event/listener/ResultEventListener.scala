@@ -22,8 +22,8 @@ import edu.ie3.simona.exceptions.{
   ProcessResultEventException,
 }
 import edu.ie3.simona.io.result._
-import edu.ie3.simona.service.results.ExtResultDataProvider
-import edu.ie3.simona.service.results.ExtResultDataProvider.ResultResponseMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.service.results.ExtResultProvider.ResultResponseMessage
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.slf4j.Logger
 
@@ -48,13 +48,12 @@ object ResultEventListener extends Transformer3wResultSupport {
     * @param classToSink
     *   a map containing the sink for each class that should be processed by the
     *   listener
-    * @param extResultListeners
+    * @param extSink
     *   actors for external result data services
     */
   private final case class BaseData(
       classToSink: Map[Class[_], ResultEntitySink],
-      extResultListeners: Iterable[ActorRef[ExtResultDataProvider.Request]] =
-        Iterable.empty,
+      extSink: Iterable[ActorRef[ServiceMessage]] = Iterable.empty,
       threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult,
@@ -166,13 +165,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       baseData: BaseData,
       log: Logger,
   ): BaseData = {
-    if (baseData.extResultListeners.nonEmpty) {
-      baseData.extResultListeners.foreach(
-        _ ! ResultResponseMessage(resultEntity)
-      )
-    }
-
-    handOverToSink(resultEntity, baseData.classToSink, log)
+    handOverToSink(resultEntity, baseData.classToSink, baseData.extSink, log)
     baseData
   }
 
@@ -204,7 +197,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       if (updatedResult.ready) {
         // if result is complete, we can write it out
         updatedResult.consolidate.foreach {
-          handOverToSink(_, baseData.classToSink, log)
+          handOverToSink(_, baseData.classToSink, baseData.extSink, log)
         }
         // also remove partial result from map
         baseData.threeWindingResults.removed(key)
@@ -237,9 +230,12 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handOverToSink(
       resultEntity: ResultEntity,
       classToSink: Map[Class[_], ResultEntitySink],
+      extSink: Iterable[ActorRef[ServiceMessage]],
       log: Logger,
   ): Unit =
     Try {
+      extSink.foreach(_ ! ResultResponseMessage(resultEntity))
+
       classToSink
         .get(resultEntity.getClass)
         .foreach(_.handleResultEntity(resultEntity))
@@ -249,8 +245,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   def apply(
       resultFileHierarchy: ResultFileHierarchy,
-      extResultListeners: Iterable[ActorRef[ExtResultDataProvider.Request]] =
-        Iterable.empty,
+      extResultListeners: Iterable[ActorRef[ServiceMessage]] = Iterable.empty,
   ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
     ctx.log.debug("Starting initialization!")
     resultFileHierarchy.resultSinkType match {
@@ -278,8 +273,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   }
 
   private def init(
-      extResultListeners: Iterable[ActorRef[ExtResultDataProvider.Request]] =
-        Iterable.empty
+      extResultListeners: Iterable[ActorRef[ServiceMessage]] = Iterable.empty
   ): Behavior[Request] = Behaviors.withStash(200) { buffer =>
     Behaviors.receive[Request] {
       case (ctx, SinkResponse(response)) =>
