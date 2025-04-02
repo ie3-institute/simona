@@ -79,10 +79,12 @@ class StorageModelSpec extends UnitSpec with Matchers {
   def buildStorageModel(
       targetSoc: Option[Double] = Option.empty
   ): StorageModel =
-    StorageModel.create(
-      inputModel,
-      StorageRuntimeConfig(targetSoc = targetSoc),
-    )
+    StorageModel
+      .Factory(
+        inputModel,
+        StorageRuntimeConfig(targetSoc = targetSoc),
+      )
+      .create()
 
   "StorageModel" should {
 

@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant2
 
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
@@ -19,7 +18,6 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
@@ -211,34 +209,20 @@ abstract class ParticipantModel[
 object ParticipantModel {
 
   /** Functionality related to creating and initializing a [[ParticipantModel]].
-    *
-    * @tparam S
-    *   The expected type of [[SystemParticipantInput]] used for creating the
-    *   model.
-    * @tparam C
-    *   The type of runtime configuration used for creating the model.
     */
-  trait ParticipantModelFactory[
-      S <: SystemParticipantInput,
-      C <: BaseRuntimeConfig,
-  ] {
+  trait ParticipantModelFactory {
 
     /** @return
       *   All secondary services required by the model.
       */
     def getRequiredSecondaryServices: Iterable[ServiceType]
 
-    /** Creates a [[ParticipantModel]] of a specific type given input and config
-      * data.
+    /** Creates a [[ParticipantModel]] of a specific type.
       *
-      * @param input
-      *   The model input used for creating the model.
-      * @param config
-      *   The runtime config used for creating the model.
       * @return
       *   The specific [[ParticipantModel]].
       */
-    def create(input: S, config: C): ParticipantModel[_, _]
+    def create(): ParticipantModel[_ <: OperatingPoint, _ <: ModelState]
   }
 
   trait OperatingPoint {

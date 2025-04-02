@@ -74,7 +74,7 @@ abstract class LoadModel[S <: ModelState]
 
 }
 
-object LoadModel extends ParticipantModelFactory[LoadInput, LoadRuntimeConfig] {
+object LoadModel {
 
   /** Calculates the scaling factor and scaled rated apparent power according to
     * the reference type
@@ -128,23 +128,27 @@ object LoadModel extends ParticipantModelFactory[LoadInput, LoadRuntimeConfig] {
     (referenceScalingFactor, scaledSRated)
   }
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
-
-  override def create(
+  final case class Factory(
       input: LoadInput,
       config: LoadRuntimeConfig,
-  ): ParticipantModel[
-    _ <: OperatingPoint,
-    _ <: ModelState,
-  ] =
-    LoadModelBehaviour(config.modelBehaviour) match {
-      case LoadModelBehaviour.FIX =>
-        FixedLoadModel.create(input, config)
-      case LoadModelBehaviour.PROFILE =>
-        ProfileLoadModel.create(input, config)
-      case LoadModelBehaviour.RANDOM =>
-        RandomLoadModel.create(input, config)
-    }
+  ) extends ParticipantModelFactory {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def create(): ParticipantModel[
+      _ <: OperatingPoint,
+      _ <: ModelState,
+    ] =
+      LoadModelBehaviour(config.modelBehaviour) match {
+        case LoadModelBehaviour.FIX =>
+          FixedLoadModel.create(input, config)
+        case LoadModelBehaviour.PROFILE =>
+          ProfileLoadModel.create(input, config)
+        case LoadModelBehaviour.RANDOM =>
+          RandomLoadModel.create(input, config)
+      }
+
+  }
 
 }

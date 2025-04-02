@@ -217,7 +217,7 @@ class WecModel private (
 
 }
 
-object WecModel extends ParticipantModelFactory[WecInput, WecRuntimeConfig] {
+object WecModel {
 
   /** Universal gas constant
     */
@@ -271,25 +271,28 @@ object WecModel extends ParticipantModelFactory[WecInput, WecRuntimeConfig] {
       )
   }
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.WeatherService)
+  final case class Factory(
+      input: WecInput
+  ) extends ParticipantModelFactory {
 
-  override def create(
-      input: WecInput,
-      config: WecRuntimeConfig,
-  ): WecModel =
-    new WecModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
-      ),
-      input.getType.getCosPhiRated,
-      QControl(input.getqCharacteristics),
-      SquareMeters(
-        input.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue
-      ),
-      WecCharacteristic(input.getType.getCpCharacteristic),
-    )
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.WeatherService)
+
+    override def create(): WecModel =
+      new WecModel(
+        input.getUuid,
+        input.getId,
+        Kilovoltamperes(
+          input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
+        ),
+        input.getType.getCosPhiRated,
+        QControl(input.getqCharacteristics),
+        SquareMeters(
+          input.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue
+        ),
+        WecCharacteristic(input.getType.getCpCharacteristic),
+      )
+
+  }
 
 }

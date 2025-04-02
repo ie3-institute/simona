@@ -571,7 +571,7 @@ class EvcsModel private (
 
 }
 
-object EvcsModel extends ParticipantModelFactory[EvcsInput, EvcsRuntimeConfig] {
+object EvcsModel {
 
   final case class EvcsOperatingPoint(evOperatingPoints: Map[UUID, Power])
       extends OperatingPoint {
@@ -591,26 +591,30 @@ object EvcsModel extends ParticipantModelFactory[EvcsInput, EvcsRuntimeConfig] {
       override val tick: Long,
   ) extends ModelState
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.EvMovementService)
-
-  override def create(
+  final case class Factory(
       input: EvcsInput,
       modelConfig: EvcsRuntimeConfig,
-  ): EvcsModel =
-    new EvcsModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
-      ),
-      input.getCosPhiRated,
-      QControl(input.getqCharacteristics),
-      EvcsChargingStrategy(modelConfig.chargingStrategy),
-      input.getType.getElectricCurrentType,
-      modelConfig.lowestEvSoc,
-      input.getChargingPoints,
-      input.getV2gSupport,
-    )
+  ) extends ParticipantModelFactory {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.EvMovementService)
+
+    override def create(): EvcsModel =
+      new EvcsModel(
+        input.getUuid,
+        input.getId,
+        Kilovoltamperes(
+          input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
+        ),
+        input.getCosPhiRated,
+        QControl(input.getqCharacteristics),
+        EvcsChargingStrategy(modelConfig.chargingStrategy),
+        input.getType.getElectricCurrentType,
+        modelConfig.lowestEvSoc,
+        input.getChargingPoints,
+        input.getV2gSupport,
+      )
+
+  }
 
 }

@@ -43,7 +43,7 @@ trait PvModelITHelper extends PvInputTestData {
 
   def createPvModels(): Map[String, PvModel] = {
     pvInputsTest.map { inputModel =>
-      inputModel.getId -> PvModel.create(inputModel, PvRuntimeConfig())
+      inputModel.getId -> PvModel.Factory(inputModel).create()
     }.toMap
   }
 

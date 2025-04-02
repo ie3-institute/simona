@@ -37,6 +37,7 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant2.{
   ParticipantModelInit,
   ParticipantModelShell,
+  PrimaryDataParticipantModel,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
@@ -670,10 +671,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // no additional activation ticks
         val physicalModel = new MockParticipantModel()
 
-        val model = ParticipantModelInit.createPrimaryModel(
-          physicalModel,
-          ActivePowerExtra,
-        )
+        val model = PrimaryDataParticipantModel
+          .Factory(
+            physicalModel,
+            ActivePowerExtra,
+          )
+          .create()
         val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
         val participantAgent = spawn(
@@ -1714,10 +1717,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // no additional activation ticks
         val physicalModel = new MockParticipantModel()
 
-        val model = ParticipantModelInit.createPrimaryModel(
-          physicalModel,
-          ActivePowerExtra,
-        )
+        val model = PrimaryDataParticipantModel
+          .Factory(
+            physicalModel,
+            ActivePowerExtra,
+          )
+          .create()
         val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
         val participantAgent = spawn(

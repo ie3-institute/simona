@@ -21,8 +21,7 @@ class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
 
     "build a correct FixedFeedModel from valid input" in {
 
-      val model =
-        FixedFeedInModel.create(fixedFeedInput, FixedFeedInRuntimeConfig())
+      val model = FixedFeedInModel.Factory(fixedFeedInput).create()
 
       model.uuid shouldBe fixedFeedInput.getUuid
       model.sRated shouldBe Megavoltamperes(
@@ -35,8 +34,7 @@ class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
 
     "return approximately correct power calculations" in {
 
-      val model =
-        FixedFeedInModel.create(fixedFeedInput, FixedFeedInRuntimeConfig())
+      val model = FixedFeedInModel.Factory(fixedFeedInput).create()
 
       val expectedPower = Kilovoltamperes(
         fixedFeedInput

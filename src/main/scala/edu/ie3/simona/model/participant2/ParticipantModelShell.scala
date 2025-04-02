@@ -13,14 +13,8 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.agent.participant.data.Data.{
-  PrimaryData,
-  PrimaryDataExtra,
-}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.em.EmTools
@@ -32,7 +26,6 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 import edu.ie3.simona.model.participant2.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
-import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
@@ -44,7 +37,6 @@ import squants.energy.Power
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.reflect.ClassTag
 import scala.util.{Failure, Try}
 
 /** A shell allowing interactions with the [[ParticipantModel]] that it holds.
@@ -112,15 +104,6 @@ final case class ParticipantModelShell[
     *   The UUID of the model.
     */
   def uuid: UUID = model.uuid
-
-  /** Returns the types of required secondary services for the model to
-    * function.
-    *
-    * @return
-    *   The types of secondary services required.
-    */
-  def requiredServices: Iterable[ServiceType] =
-    model.getRequiredSecondaryServices
 
   /** Returns the current operating point, if present, or throws a
     * [[CriticalFailureException]]. Only call this if you are certain the
@@ -491,99 +474,41 @@ object ParticipantModelShell {
       modelResults: Iterable[SystemParticipantResult],
   )
 
-  /** Creates a model shell receiving primary data using the given participant
-    * input.
-    *
-    * @param inputContainer
-    *   The input container holding the system participant model input that
-    *   represents the physical model at the core of the agent.
-    * @param config
-    *   Runtime configuration that has to match the participant type.
-    * @param primaryDataExtra
-    *   Extra functionality specific to the primary data class.
-    * @param simulationStart
-    *   The simulation start date and time.
-    * @param simulationEnd
-    *   The simulation end date and time.
-    * @tparam PD
-    *   The type of primary data to be received.
-    * @return
-    *   The constructed [[ParticipantModelShell]] with a primary data model.
-    */
-  def createForPrimaryData[PD <: PrimaryData: ClassTag](
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
-      config: BaseRuntimeConfig,
-      primaryDataExtra: PrimaryDataExtra[PD],
-      simulationStart: ZonedDateTime,
-      simulationEnd: ZonedDateTime,
-  ): ParticipantModelShell[_, _] = {
-    val model = ParticipantModelInit.createPrimaryModel(
-      inputContainer,
-      config,
-      primaryDataExtra,
-    )
-    createShell(
-      model,
-      inputContainer.electricalInputModel,
-      simulationEnd,
-      simulationStart,
-    )
-  }
-
   /** Creates a model shell for a physical model using the given participant
     * input.
     *
-    * @param inputContainer
-    *   The input container holding the system participant model input that
-    *   represents the physical model at the core of the agent.
-    * @param config
-    *   Runtime configuration that has to match the participant type.
+    * @param model
+    *   The participant model.
+    * @param participantInput
+    *   The system participant model input.
     * @param simulationStart
     *   The simulation start date and time.
     * @param simulationEnd
     *   The simulation end date and time.
     * @return
-    *   The constructed [[ParticipantModelShell]] with a physical model.
+    *   The constructed [[ParticipantModelShell]].
     */
-  def createForPhysicalModel(
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
-      config: BaseRuntimeConfig,
-      simulationStart: ZonedDateTime,
-      simulationEnd: ZonedDateTime,
-  ): ParticipantModelShell[_, _] = {
-    val model = ParticipantModelInit.createPhysicalModel(
-      inputContainer,
-      config,
-    )
-    createShell(
-      model,
-      inputContainer.electricalInputModel,
-      simulationEnd,
-      simulationStart,
-    )
-  }
-
-  private def createShell[
+  def create[
       OP <: OperatingPoint,
       S <: ModelState,
   ](
       model: ParticipantModel[OP, S],
       participantInput: SystemParticipantInput,
-      simulationEndDate: ZonedDateTime,
-      simulationStartDate: ZonedDateTime,
+      simulationStart: ZonedDateTime,
+      simulationEnd: ZonedDateTime,
   ): ParticipantModelShell[OP, S] = {
 
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
-        simulationStartDate,
-        simulationEndDate,
+        simulationStart,
+        simulationEnd,
         participantInput.getOperationTime,
       )
 
     new ParticipantModelShell(
       model = model,
       operationInterval = operationInterval,
-      simulationStartDate = simulationStartDate,
+      simulationStartDate = simulationStart,
     )
   }
 }

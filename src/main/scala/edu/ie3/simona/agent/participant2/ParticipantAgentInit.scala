@@ -14,7 +14,11 @@ import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.ParticipantModelShell
+import edu.ie3.simona.model.participant2.ParticipantModel.ParticipantModelFactory
+import edu.ie3.simona.model.participant2.{
+  ParticipantModelInit,
+  ParticipantModelShell,
+}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -209,13 +213,12 @@ object ParticipantAgentInit {
         Map(serviceRef -> firstDataTick)
 
       completeInitialization(
-        ParticipantModelShell.createForPrimaryData(
+        ParticipantModelInit.getPrimaryModelFactory(
           inputContainer,
           runtimeConfig,
           primaryDataExtra,
-          simulationParams.simulationStart,
-          simulationParams.simulationEnd,
         ),
+        inputContainer.electricalInputModel,
         notifierConfig,
         expectedFirstData,
         participantRefs,
@@ -225,19 +228,17 @@ object ParticipantAgentInit {
 
     case (ctx, RegistrationFailedMessage(_)) =>
       // we're _not_ supposed to replay primary data, thus initialize the physical model
-      val modelShell = ParticipantModelShell.createForPhysicalModel(
+      val modelFactory = ParticipantModelInit.getPhysicalModelFactory(
         inputContainer,
         runtimeConfig,
-        simulationParams.simulationStart,
-        simulationParams.simulationEnd,
       )
-
-      val requiredServiceTypes = modelShell.requiredServices.toSet
+      val requiredServiceTypes = modelFactory.getRequiredSecondaryServices
 
       if (requiredServiceTypes.isEmpty) {
         // not requiring any secondary services, thus we're ready to go
         completeInitialization(
-          modelShell,
+          modelFactory,
+          inputContainer.electricalInputModel,
           notifierConfig,
           Map.empty,
           participantRefs,
@@ -252,7 +253,7 @@ object ParticipantAgentInit {
               .getOrElse(
                 serviceType,
                 throw new CriticalFailureException(
-                  s"${modelShell.identifier}: Service of type $serviceType is not available."
+                  s"${inputContainer.electricalInputModel.identifier}: Service of type $serviceType is not available."
                 ),
               )
           )
@@ -262,14 +263,14 @@ object ParticipantAgentInit {
           registerForService(
             inputContainer.electricalInputModel,
             ctx.self,
-            modelShell,
             serviceType,
             serviceRef,
           )
         }
 
         waitingForServices(
-          modelShell,
+          modelFactory,
+          inputContainer.electricalInputModel,
           notifierConfig,
           participantRefs,
           simulationParams,
@@ -282,7 +283,6 @@ object ParticipantAgentInit {
   private def registerForService(
       participantInput: SystemParticipantInput,
       participantRef: ActorRef[Request],
-      modelShell: ParticipantModelShell[_, _],
       serviceType: ServiceType,
       serviceRef: ActorRef[_ >: ServiceMessage],
   ): Unit =
@@ -295,7 +295,7 @@ object ParticipantAgentInit {
             serviceRef ! RegisterForWeatherMessage(participantRef, lat, lon)
           case _ =>
             throw new CriticalFailureException(
-              s"${modelShell.identifier} cannot register for weather information at " +
+              s"${participantInput.identifier} cannot register for weather information at " +
                 s"node ${participantInput.getNode.getId} (${participantInput.getNode.getUuid}), " +
                 s"because the geo position (${geoPosition.getY}, ${geoPosition.getX}) is invalid."
             )
@@ -303,14 +303,14 @@ object ParticipantAgentInit {
 
       case ServiceType.PriceService =>
         throw new CriticalFailureException(
-          s"${modelShell.identifier} is trying to register for a ${ServiceType.PriceService}, " +
+          s"${participantInput.identifier} is trying to register for a ${ServiceType.PriceService}, " +
             s"which is currently not supported."
         )
 
       case ServiceType.EvMovementService =>
         serviceRef ! RegisterForEvDataMessage(
           participantRef,
-          modelShell.uuid,
+          participantInput.getUuid,
         )
     }
 
@@ -318,7 +318,8 @@ object ParticipantAgentInit {
     * received, we complete the initialization.
     */
   private def waitingForServices(
-      modelShell: ParticipantModelShell[_, _],
+      modelFactory: ParticipantModelFactory,
+      participantInput: SystemParticipantInput,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
@@ -331,7 +332,7 @@ object ParticipantAgentInit {
         // received registration success message from secondary service
         if (!expectedRegistrations.contains(serviceRef))
           throw new CriticalFailureException(
-            s"${modelShell.identifier}: Registration response from $serviceRef was not expected!"
+            s"${participantInput.identifier}: Registration response from $serviceRef was not expected!"
           )
 
         val newExpectedRegistrations = expectedRegistrations.excl(serviceRef)
@@ -341,7 +342,8 @@ object ParticipantAgentInit {
         if (newExpectedRegistrations.isEmpty)
           // all secondary services set up, ready to go
           completeInitialization(
-            modelShell,
+            modelFactory,
+            participantInput,
             notifierConfig,
             newExpectedFirstData,
             participantRefs,
@@ -351,7 +353,8 @@ object ParticipantAgentInit {
         else
           // there's at least one more service to go, let's wait for confirmation
           waitingForServices(
-            modelShell,
+            modelFactory,
+            participantInput,
             notifierConfig,
             participantRefs,
             simulationParams,
@@ -365,13 +368,23 @@ object ParticipantAgentInit {
     * [[ParticipantAgent]]
     */
   private def completeInitialization(
-      modelShell: ParticipantModelShell[_, _],
+      modelFactory: ParticipantModelFactory,
+      participantInput: SystemParticipantInput,
       notifierConfig: NotifierConfig,
       expectedData: Map[ActorRef[_ >: ServiceMessage], Long],
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] = {
+
+    val model = modelFactory.create()
+
+    val modelShell = ParticipantModelShell.create(
+      model,
+      participantInput,
+      simulationParams.simulationStart,
+      simulationParams.simulationEnd,
+    )
 
     val inputHandler = ParticipantInputHandler(expectedData)
 
@@ -414,5 +427,11 @@ object ParticipantAgentInit {
       ),
       parentData,
     )
+  }
+
+  implicit class RichSystemParticipantInput(spi: SystemParticipantInput) {
+
+    def identifier: String =
+      s"${spi.getClass.getSimpleName}[${spi.getId}/${spi.getUuid}]"
   }
 }

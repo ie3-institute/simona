@@ -17,7 +17,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.config.RuntimeConfig.PvRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -243,7 +242,7 @@ class PvModel private (
 
 }
 
-object PvModel extends ParticipantModelFactory[PvInput, PvRuntimeConfig] {
+object PvModel {
 
   /** Holds all relevant data for a pv model calculation.
     *
@@ -263,45 +262,48 @@ object PvModel extends ParticipantModelFactory[PvInput, PvRuntimeConfig] {
       dirIrradiance: Irradiance,
   ) extends ModelState
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.WeatherService)
+  final case class Factory(
+      input: PvInput
+  ) extends ParticipantModelFactory {
 
-  override def create(
-      input: PvInput,
-      config: PvRuntimeConfig,
-  ): PvModel =
-    new PvModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
-      input.getCosPhiRated,
-      QControl(input.getqCharacteristics),
-      Degrees(input.getNode.getGeoPosition.getY),
-      Degrees(input.getNode.getGeoPosition.getX),
-      input.getAlbedo,
-      Each(
-        input.getEtaConv
-          .to(PowerSystemUnits.PU)
-          .getValue
-          .doubleValue
-      ),
-      Radians(
-        input.getAzimuth
-          .to(RADIAN)
-          .getValue
-          .doubleValue
-      ),
-      Radians(
-        input.getElevationAngle
-          .to(RADIAN)
-          .getValue
-          .doubleValue
-      ),
-    )
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.WeatherService)
+
+    override def create(): PvModel =
+      new PvModel(
+        input.getUuid,
+        input.getId,
+        Kilovoltamperes(
+          input.getsRated
+            .to(PowerSystemUnits.KILOVOLTAMPERE)
+            .getValue
+            .doubleValue
+        ),
+        input.getCosPhiRated,
+        QControl(input.getqCharacteristics),
+        Degrees(input.getNode.getGeoPosition.getY),
+        Degrees(input.getNode.getGeoPosition.getX),
+        input.getAlbedo,
+        Each(
+          input.getEtaConv
+            .to(PowerSystemUnits.PU)
+            .getValue
+            .doubleValue
+        ),
+        Radians(
+          input.getAzimuth
+            .to(RADIAN)
+            .getValue
+            .doubleValue
+        ),
+        Radians(
+          input.getElevationAngle
+            .to(RADIAN)
+            .getValue
+            .doubleValue
+        ),
+      )
+
+  }
 
 }

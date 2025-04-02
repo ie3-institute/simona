@@ -294,8 +294,7 @@ class StorageModel private (
 
 }
 
-object StorageModel
-    extends ParticipantModelFactory[StorageInput, StorageRuntimeConfig] {
+object StorageModel {
 
   /** @param storedEnergy
     *   The amount of currently stored energy
@@ -321,49 +320,53 @@ object StorageModel
       targetWithNegMargin: Energy,
   )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
-
-  override def create(
+  final case class Factory(
       input: StorageInput,
       config: StorageRuntimeConfig,
-  ): StorageModel = {
-    val eStorage = KilowattHours(
-      input.getType.geteStorage
-        .to(PowerSystemUnits.KILOWATTHOUR)
-        .getValue
-        .doubleValue
-    )
-    val initialState: (Long, ZonedDateTime) => StorageState =
-      (tick, _) => {
-        val initialStoredEnergy = eStorage * config.initialSoc
-        StorageState(storedEnergy = initialStoredEnergy, tick)
-      }
+  ) extends ParticipantModelFactory {
 
-    new StorageModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getType.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def create(): StorageModel = {
+      val eStorage = KilowattHours(
+        input.getType.geteStorage
+          .to(PowerSystemUnits.KILOWATTHOUR)
           .getValue
           .doubleValue
-      ),
-      input.getType.getCosPhiRated,
-      QControl.apply(input.getqCharacteristics),
-      initialState,
-      eStorage,
-      Kilowatts(
-        input.getType.getpMax
-          .to(PowerSystemUnits.KILOWATT)
-          .getValue
-          .doubleValue
-      ),
-      Each(
-        input.getType.getEta.to(PowerSystemUnits.PU).getValue.doubleValue
-      ),
-      config.targetSoc,
-    )
+      )
+      val initialState: (Long, ZonedDateTime) => StorageState =
+        (tick, _) => {
+          val initialStoredEnergy = eStorage * config.initialSoc
+          StorageState(storedEnergy = initialStoredEnergy, tick)
+        }
+
+      new StorageModel(
+        input.getUuid,
+        input.getId,
+        Kilovoltamperes(
+          input.getType.getsRated
+            .to(PowerSystemUnits.KILOVOLTAMPERE)
+            .getValue
+            .doubleValue
+        ),
+        input.getType.getCosPhiRated,
+        QControl.apply(input.getqCharacteristics),
+        initialState,
+        eStorage,
+        Kilowatts(
+          input.getType.getpMax
+            .to(PowerSystemUnits.KILOWATT)
+            .getValue
+            .doubleValue
+        ),
+        Each(
+          input.getType.getEta.to(PowerSystemUnits.PU).getValue.doubleValue
+        ),
+        config.targetSoc,
+      )
+    }
+
   }
 
 }

@@ -15,7 +15,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.config.RuntimeConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -85,31 +84,29 @@ class FixedFeedInModel(
 
 }
 
-object FixedFeedInModel
-    extends ParticipantModelFactory[
-      FixedFeedInInput,
-      FixedFeedInRuntimeConfig,
-    ] {
+object FixedFeedInModel {
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
+  final case class Factory(
+      input: FixedFeedInInput
+  ) extends ParticipantModelFactory {
 
-  override def create(
-      input: FixedFeedInInput,
-      config: FixedFeedInRuntimeConfig,
-  ): FixedFeedInModel = {
-    new FixedFeedInModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
-      input.getCosPhiRated,
-      QControl.apply(input.getqCharacteristics),
-    )
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def create(): FixedFeedInModel =
+      new FixedFeedInModel(
+        input.getUuid,
+        input.getId,
+        Kilovoltamperes(
+          input.getsRated
+            .to(PowerSystemUnits.KILOVOLTAMPERE)
+            .getValue
+            .doubleValue
+        ),
+        input.getCosPhiRated,
+        QControl.apply(input.getqCharacteristics),
+      )
+
   }
 
 }

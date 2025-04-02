@@ -11,7 +11,6 @@ import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.config.RuntimeConfig.PvRuntimeConfig
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
@@ -61,7 +60,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
   )
 
   // build the PvModel
-  val pvModel: PvModel = PvModel.create(pvInput, PvRuntimeConfig())
+  val pvModel: PvModel = PvModel.Factory(pvInput).create()
 
   private implicit val apparentPowerTolerance: ApparentPower =
     Kilovoltamperes(1e-10)
