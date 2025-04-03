@@ -390,7 +390,6 @@ object ParticipantAgentInit {
     val inputHandler = ParticipantInputHandler(expectedData)
 
     val firstTick = modelShell.operationStart
-
     val dataCompletedTick = inputHandler.getDataCompletedTick
 
     dataCompletedTick.foreach { dataCompleted =>
