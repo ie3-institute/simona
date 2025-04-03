@@ -389,28 +389,28 @@ object ParticipantAgentInit {
 
     val inputHandler = ParticipantInputHandler(expectedData)
 
-    // get first overall activation tick
-    val firstTick = inputHandler.getDataCompletedTick.orElse(
-      modelShell
-        .getChangeIndicator(currentTick = -1, None)
-        .changesAtTick
-    )
+    val firstTick = modelShell.operationStart
 
-    if (firstTick.isEmpty)
-      throw new CriticalFailureException(
-        s"${modelShell.identifier}: No new first activation tick determined with expected data $expectedData"
-      )
+    val dataCompletedTick = inputHandler.getDataCompletedTick
+
+    dataCompletedTick.foreach { dataCompleted =>
+      if (dataCompleted > firstTick)
+        throw new CriticalFailureException(
+          s"${modelShell.identifier}: Input data will only be fully received at tick $dataCompleted. " +
+            s"It needs to be available with operation start $firstTick though."
+        )
+    }
 
     parentData.fold(
       schedulerData =>
         schedulerData.scheduler ! Completion(
           schedulerData.activationAdapter,
-          firstTick,
+          Some(firstTick),
         ),
       _.emAgent ! FlexCompletion(
         modelShell.uuid,
         requestAtNextActivation = false,
-        firstTick,
+        Some(firstTick),
       ),
     )
 
