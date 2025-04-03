@@ -55,17 +55,17 @@ import scala.util.{Failure, Try}
   * @param operationInterval
   *   The operation interval in which the participant model is active. Outside
   *   the interval, no power is produced or consumed.
-  * @param simulationStartDate
+  * @param simulationStart
   *   The date and time at which simulation started.
   * @param state
-  *   The most recent model state, if one has been calculated already.
-  * @param flexOptions
-  *   The most recent flex options, if they have been calculated already.
+  *   The most recent model state.
+  * @param operatingPoint
+  *   The most recent operating point.
   * @param lastOperatingPoint
   *   The operating point valid before the current [[operatingPoint]], if
   *   applicable.
-  * @param operatingPoint
-  *   The most recent operating point, if one has been calculated already.
+  * @param flexOptions
+  *   The most recent flex options, if they have been calculated already.
   * @param operationChange
   *   The operation change indicator, which indicates until when the current
   *   results are valid.
@@ -81,7 +81,7 @@ final case class ParticipantModelShell[
     private val model: ParticipantModel[OP, S]
       with ParticipantFlexibility[OP, S],
     private val operationInterval: OperationInterval,
-    private val simulationStartDate: ZonedDateTime,
+    private val simulationStart: ZonedDateTime,
     private val state: S,
     private val operatingPoint: OP,
     private val lastOperatingPoint: Option[OP] = None,
@@ -215,7 +215,7 @@ final case class ParticipantModelShell[
       }
 
     new FlexOptionsResult(
-      tick.toDateTime(simulationStartDate),
+      tick.toDateTime(simulationStart),
       uuid,
       minMaxFlexOptions.ref.toMegawatts.asMegaWatt,
       minMaxFlexOptions.min.toMegawatts.asMegaWatt,
@@ -248,7 +248,7 @@ final case class ParticipantModelShell[
       lastOperatingPoint,
       operatingPoint,
       complexPower,
-      tick.toDateTime(simulationStartDate),
+      tick.toDateTime(simulationStart),
     )
 
     ResultsContainer(
@@ -433,7 +433,7 @@ final case class ParticipantModelShell[
           state,
           operatingPoint,
           tick,
-          tick.toDateTime(simulationStartDate),
+          tick.toDateTime(simulationStart),
         )
       } else {
         // The state is up-to-date, no need to update
@@ -517,7 +517,7 @@ object ParticipantModelShell {
     new ParticipantModelShell(
       model = model,
       operationInterval = operationInterval,
-      simulationStartDate = simulationStart,
+      simulationStart = simulationStart,
       state = state,
       operatingPoint = model.zeroPowerOperatingPoint,
     )
