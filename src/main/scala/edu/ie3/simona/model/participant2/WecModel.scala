@@ -67,15 +67,6 @@ class WecModel private (
     with ParticipantSimpleFlexibility[WecState]
     with LazyLogging {
 
-  override val initialState: (Long, ZonedDateTime) => WecState =
-    (tick, _) =>
-      WecState(
-        tick,
-        MetersPerSecond(0d),
-        Celsius(0d),
-        None,
-      )
-
   override def determineState(
       lastState: WecState,
       operatingPoint: ActivePowerOperatingPoint,
@@ -273,10 +264,21 @@ object WecModel {
 
   final case class Factory(
       input: WecInput
-  ) extends ParticipantModelFactory {
+  ) extends ParticipantModelFactory[WecState] {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable(ServiceType.WeatherService)
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): WecState =
+      WecState(
+        tick,
+        MetersPerSecond(0d),
+        Celsius(0d),
+        None,
+      )
 
     override def create(): WecModel =
       new WecModel(

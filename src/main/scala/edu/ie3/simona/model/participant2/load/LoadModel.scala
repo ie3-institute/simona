@@ -128,27 +128,17 @@ object LoadModel {
     (referenceScalingFactor, scaledSRated)
   }
 
-  final case class Factory(
+  def getFactory(
       input: LoadInput,
       config: LoadRuntimeConfig,
-  ) extends ParticipantModelFactory {
-
-    override def getRequiredSecondaryServices: Iterable[ServiceType] =
-      Iterable.empty
-
-    override def create(): ParticipantModel[
-      _ <: OperatingPoint,
-      _ <: ModelState,
-    ] =
-      LoadModelBehaviour(config.modelBehaviour) match {
-        case LoadModelBehaviour.FIX =>
-          FixedLoadModel.create(input, config)
-        case LoadModelBehaviour.PROFILE =>
-          ProfileLoadModel.create(input, config)
-        case LoadModelBehaviour.RANDOM =>
-          RandomLoadModel.create(input, config)
-      }
-
-  }
+  ): ParticipantModelFactory[_ <: ModelState] =
+    LoadModelBehaviour(config.modelBehaviour) match {
+      case LoadModelBehaviour.FIX =>
+        FixedLoadModel.Factory(input, config)
+      case LoadModelBehaviour.PROFILE =>
+        ProfileLoadModel.Factory(input, config)
+      case LoadModelBehaviour.RANDOM =>
+        RandomLoadModel.Factory(input, config)
+    }
 
 }

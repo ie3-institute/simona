@@ -61,13 +61,6 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
       PrimaryDataState[PD],
     ] {
 
-  override val initialState: (Long, ZonedDateTime) => PrimaryDataState[PD] =
-    (tick, _) =>
-      PrimaryDataState(
-        primaryDataExtra.zero,
-        tick,
-      )
-
   override def determineState(
       lastState: PrimaryDataState[PD],
       operatingPoint: PrimaryOperatingPoint[PD],
@@ -155,13 +148,22 @@ object PrimaryDataParticipantModel {
   final case class Factory[PD <: PrimaryData: ClassTag](
       physicalModel: ParticipantModel[_, _],
       primaryDataExtra: PrimaryDataExtra[PD],
-  ) extends ParticipantModelFactory {
+  ) extends ParticipantModelFactory[PrimaryDataState[PD]] {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable.empty
 
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): PrimaryDataState[PD] =
+      PrimaryDataState(
+        primaryDataExtra.zero,
+        tick,
+      )
+
     override def create()
-        : ParticipantModel[_ <: OperatingPoint, _ <: ModelState] = {
+        : ParticipantModel[_ <: OperatingPoint, PrimaryDataState[PD]] = {
       val primaryResultFunc = new PrimaryResultFunc {
         override def createResult(
             data: PrimaryData.PrimaryDataWithComplexPower[_],
@@ -180,7 +182,6 @@ object PrimaryDataParticipantModel {
         primaryDataExtra,
       )
     }
-
   }
 
   /** Trait that provides functionality that can create the same result objects

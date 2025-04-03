@@ -88,10 +88,15 @@ object FixedFeedInModel {
 
   final case class Factory(
       input: FixedFeedInInput
-  ) extends ParticipantModelFactory {
+  ) extends ParticipantModelFactory[FixedState] {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable.empty
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): FixedState = FixedState(tick)
 
     override def create(): FixedFeedInModel =
       new FixedFeedInModel(

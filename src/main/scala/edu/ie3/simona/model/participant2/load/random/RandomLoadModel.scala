@@ -16,12 +16,14 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   DateTimeState,
   ParticipantDateTimeState,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.load.{
   DayType,
   LoadModel,
   LoadReferenceType,
 }
+import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.ApparentPower
@@ -133,31 +135,45 @@ object RandomLoadModel {
     */
   private val maxPower: Power = Watts(159d)
 
-  def create(input: LoadInput, config: LoadRuntimeConfig): RandomLoadModel = {
+  final case class Factory(
+      input: LoadInput,
+      config: LoadRuntimeConfig,
+  ) extends ParticipantModelFactory[DateTimeState] {
 
-    val referenceType = LoadReferenceType(config.reference)
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
 
-    val (referenceScalingFactor, scaledSRated) =
-      LoadModel.scaleToReference(
-        referenceType,
-        input,
-        maxPower,
-        profileReferenceEnergy,
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): DateTimeState = DateTimeState(tick, simulationTime)
+
+    override def create(): RandomLoadModel = {
+      val referenceType = LoadReferenceType(config.reference)
+
+      val (referenceScalingFactor, scaledSRated) =
+        LoadModel.scaleToReference(
+          referenceType,
+          input,
+          maxPower,
+          profileReferenceEnergy,
+        )
+
+      /** Safety factor to address potential higher sRated values when using
+        * unrestricted probability functions
+        */
+      val safetyFactor = 1.1
+
+      new RandomLoadModel(
+        input.getUuid,
+        input.getId,
+        scaledSRated * safetyFactor,
+        input.getCosPhiRated,
+        QControl.apply(input.getqCharacteristics()),
+        referenceScalingFactor,
       )
+    }
 
-    /** Safety factor to address potential higher sRated values when using
-      * unrestricted probability functions
-      */
-    val safetyFactor = 1.1
-
-    new RandomLoadModel(
-      input.getUuid,
-      input.getId,
-      scaledSRated * safetyFactor,
-      input.getCosPhiRated,
-      QControl.apply(input.getqCharacteristics()),
-      referenceScalingFactor,
-    )
   }
 
 }

@@ -73,15 +73,6 @@ class PvModel private (
   private val activationThreshold =
     sRated.toActivePower(cosPhiRated) * 0.001 * -1
 
-  override val initialState: (Long, ZonedDateTime) => PvState =
-    (tick, simulationTime) =>
-      PvState(
-        tick,
-        simulationTime,
-        zeroWPerSM,
-        zeroWPerSM,
-      )
-
   override def determineState(
       lastState: PvState,
       operatingPoint: ActivePowerOperatingPoint,
@@ -264,10 +255,21 @@ object PvModel {
 
   final case class Factory(
       input: PvInput
-  ) extends ParticipantModelFactory {
+  ) extends ParticipantModelFactory[PvState] {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable(ServiceType.WeatherService)
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): PvState =
+      PvState(
+        tick,
+        simulationTime,
+        zeroWPerSM,
+        zeroWPerSM,
+      )
 
     override def create(): PvModel =
       new PvModel(

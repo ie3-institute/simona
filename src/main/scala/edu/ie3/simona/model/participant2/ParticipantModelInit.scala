@@ -20,7 +20,10 @@ import edu.ie3.simona.config.RuntimeConfig.{
   StorageRuntimeConfig,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.ParticipantModel.ParticipantModelFactory
+import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ModelState,
+  ParticipantModelFactory,
+}
 import edu.ie3.simona.model.participant2.evcs.EvcsModel
 import edu.ie3.simona.model.participant2.load.LoadModel
 
@@ -46,7 +49,7 @@ object ParticipantModelInit {
   def getPhysicalModelFactory(
       inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
-  ): ParticipantModelFactory = {
+  ): ParticipantModelFactory[_ <: ModelState] = {
     val scaledParticipantInput = {
       (inputContainer.electricalInputModel
         .copy()
@@ -60,7 +63,7 @@ object ParticipantModelInit {
       case (input: FixedFeedInInput, _) =>
         FixedFeedInModel.Factory(input)
       case (input: LoadInput, config: LoadRuntimeConfig) =>
-        LoadModel.Factory(input, config)
+        LoadModel.getFactory(input, config)
       case (input: PvInput, _) =>
         PvModel.Factory(input)
       case (input: WecInput, _) =>
@@ -95,7 +98,7 @@ object ParticipantModelInit {
       inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
       primaryDataExtra: PrimaryDataExtra[PD],
-  ): ParticipantModelFactory = {
+  ): ParticipantModelFactory[_ <: ModelState] = {
     // Create a fitting physical model to extract parameters from
     val modelFactory = getPhysicalModelFactory(
       inputContainer,

@@ -68,10 +68,6 @@ class EvcsModel private (
     ]
     with EvcsChargingProperties {
 
-  override val initialState: (Long, ZonedDateTime) => EvcsState = { (tick, _) =>
-    EvcsState(Seq.empty, tick)
-  }
-
   override def determineState(
       lastState: EvcsState,
       operatingPoint: EvcsOperatingPoint,
@@ -594,10 +590,15 @@ object EvcsModel {
   final case class Factory(
       input: EvcsInput,
       modelConfig: EvcsRuntimeConfig,
-  ) extends ParticipantModelFactory {
+  ) extends ParticipantModelFactory[EvcsState] {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable(ServiceType.EvMovementService)
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): EvcsState = EvcsState(Seq.empty, tick)
 
     override def create(): EvcsModel =
       new EvcsModel(

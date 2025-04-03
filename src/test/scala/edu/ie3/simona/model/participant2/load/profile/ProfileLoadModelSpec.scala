@@ -51,14 +51,18 @@ class ProfileLoadModelSpec
         )
       ) { (profile, sRated, expectedScalingFactor) =>
         val config = LoadRuntimeConfig(modelBehaviour = "profile")
-        val model = ProfileLoadModel.create(
-          loadInput
-            .copy()
-            .loadprofile(profile)
-            .sRated(Quantities.getQuantity(sRated, PowerSystemUnits.VOLTAMPERE))
-            .build(),
-          config,
-        )
+        val model = ProfileLoadModel
+          .Factory(
+            loadInput
+              .copy()
+              .loadprofile(profile)
+              .sRated(
+                Quantities.getQuantity(sRated, PowerSystemUnits.VOLTAMPERE)
+              )
+              .build(),
+            config,
+          )
+          .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
       }
@@ -81,16 +85,19 @@ class ProfileLoadModelSpec
           modelBehaviour = "profile",
           reference = "energy",
         )
-        val model = ProfileLoadModel.create(
-          loadInput
-            .copy()
-            .loadprofile(profile)
-            .eConsAnnual(
-              Quantities.getQuantity(eConsAnnual, PowerSystemUnits.KILOWATTHOUR)
-            )
-            .build(),
-          config,
-        )
+        val model = ProfileLoadModel
+          .Factory(
+            loadInput
+              .copy()
+              .loadprofile(profile)
+              .eConsAnnual(
+                Quantities
+                  .getQuantity(eConsAnnual, PowerSystemUnits.KILOWATTHOUR)
+              )
+              .build(),
+            config,
+          )
+          .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
         model.sRated should approximate(Voltamperes(expectedSRated))
@@ -115,7 +122,7 @@ class ProfileLoadModelSpec
             .doubleValue
         )
 
-        val model = ProfileLoadModel.create(input, config)
+        val model = ProfileLoadModel.Factory(input, config).create()
 
         /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
          * [https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf], 1.5 %
@@ -137,7 +144,7 @@ class ProfileLoadModelSpec
         val input = loadInput.copy().loadprofile(profile).build()
         val config = LoadRuntimeConfig(modelBehaviour = "profile")
 
-        val model = ProfileLoadModel.create(input, config)
+        val model = ProfileLoadModel.Factory(input, config).create()
 
         val targetMaximumPower = Kilovoltamperes(
           input

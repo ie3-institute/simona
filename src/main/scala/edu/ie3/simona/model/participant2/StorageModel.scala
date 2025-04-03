@@ -45,7 +45,6 @@ class StorageModel private (
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    override val initialState: (Long, ZonedDateTime) => StorageState,
     eStorage: Energy,
     pMax: Power,
     eta: Dimensionless,
@@ -323,24 +322,27 @@ object StorageModel {
   final case class Factory(
       input: StorageInput,
       config: StorageRuntimeConfig,
-  ) extends ParticipantModelFactory {
+  ) extends ParticipantModelFactory[StorageState] {
+
+    private val eStorage = KilowattHours(
+      input.getType.geteStorage
+        .to(PowerSystemUnits.KILOWATTHOUR)
+        .getValue
+        .doubleValue
+    )
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable.empty
 
-    override def create(): StorageModel = {
-      val eStorage = KilowattHours(
-        input.getType.geteStorage
-          .to(PowerSystemUnits.KILOWATTHOUR)
-          .getValue
-          .doubleValue
-      )
-      val initialState: (Long, ZonedDateTime) => StorageState =
-        (tick, _) => {
-          val initialStoredEnergy = eStorage * config.initialSoc
-          StorageState(storedEnergy = initialStoredEnergy, tick)
-        }
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): StorageState = {
+      val initialStoredEnergy = eStorage * config.initialSoc
+      StorageState(storedEnergy = initialStoredEnergy, tick)
+    }
 
+    override def create(): StorageModel =
       new StorageModel(
         input.getUuid,
         input.getId,
@@ -352,7 +354,6 @@ object StorageModel {
         ),
         input.getType.getCosPhiRated,
         QControl.apply(input.getqCharacteristics),
-        initialState,
         eStorage,
         Kilowatts(
           input.getType.getpMax
@@ -365,7 +366,6 @@ object StorageModel {
         ),
         config.targetSoc,
       )
-    }
 
   }
 

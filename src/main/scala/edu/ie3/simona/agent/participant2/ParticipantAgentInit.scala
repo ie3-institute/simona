@@ -14,7 +14,10 @@ import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.ParticipantModel.ParticipantModelFactory
+import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ModelState,
+  ParticipantModelFactory,
+}
 import edu.ie3.simona.model.participant2.{
   ParticipantModelInit,
   ParticipantModelShell,
@@ -318,7 +321,7 @@ object ParticipantAgentInit {
     * received, we complete the initialization.
     */
   private def waitingForServices(
-      modelFactory: ParticipantModelFactory,
+      modelFactory: ParticipantModelFactory[_ <: ModelState],
       participantInput: SystemParticipantInput,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
@@ -368,7 +371,7 @@ object ParticipantAgentInit {
     * [[ParticipantAgent]]
     */
   private def completeInitialization(
-      modelFactory: ParticipantModelFactory,
+      modelFactory: ParticipantModelFactory[_ <: ModelState],
       participantInput: SystemParticipantInput,
       notifierConfig: NotifierConfig,
       expectedData: Map[ActorRef[_ >: ServiceMessage], Long],
@@ -377,11 +380,9 @@ object ParticipantAgentInit {
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] = {
 
-    val model = modelFactory.create()
-
     val modelShell = ParticipantModelShell.create(
-      model,
-      participantInput,
+      modelFactory,
+      participantInput.getOperationTime,
       simulationParams.simulationStart,
       simulationParams.simulationEnd,
     )

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant2
 
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.result.system.{
   FlexOptionsResult,
   SystemParticipantResult,
@@ -22,6 +22,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
@@ -80,7 +81,7 @@ final case class ParticipantModelShell[
       with ParticipantFlexibility[OP, S],
     private val operationInterval: OperationInterval,
     private val simulationStartDate: ZonedDateTime,
-    private val _state: Option[S] = None,
+    private val _state: S,
     private val _flexOptions: Option[FlexOptions] = None,
     private val _lastOperatingPoint: Option[OP] = None,
     private val _operatingPoint: Option[OP] = None,
@@ -163,7 +164,7 @@ final case class ParticipantModelShell[
     val updatedState =
       model.handleInput(currentState, receivedData, nodalVoltage)
 
-    copy(_state = Some(updatedState))
+    copy(_state = updatedState)
   }
 
   /** Update operating point when the model is '''not''' em-controlled.
@@ -196,7 +197,7 @@ final case class ParticipantModelShell[
       determineOperatingPoint(modelOperatingPoint, tick)
 
     copy(
-      _state = Some(currentState),
+      _state = currentState,
       _lastOperatingPoint = _operatingPoint,
       _operatingPoint = Some(newOperatingPoint),
       _operationChange = newChangeIndicator,
@@ -280,7 +281,7 @@ final case class ParticipantModelShell[
         MinMaxFlexOptions.noFlexOption(zeroKW)
       }
 
-    copy(_state = Some(currentState), _flexOptions = Some(flexOptions))
+    copy(_state = currentState, _flexOptions = Some(flexOptions))
   }
 
   /** Update operating point on receiving [[IssueFlexControl]], i.e. when the
@@ -331,7 +332,7 @@ final case class ParticipantModelShell[
       )
 
     copy(
-      _state = Some(currentState),
+      _state = currentState,
       _lastOperatingPoint = _operatingPoint,
       _operatingPoint = Some(newOperatingPoint),
       _operationChange = newChangeIndicator,
@@ -417,7 +418,7 @@ final case class ParticipantModelShell[
     val currentState = determineCurrentState(request.tick)
     val updatedState = model.handleRequest(currentState, ctx, request)
 
-    copy(_state = Some(updatedState))
+    copy(_state = updatedState)
   }
 
   /** Determines the current state (if it has not been determined before) using
@@ -430,31 +431,27 @@ final case class ParticipantModelShell[
     */
   private def determineCurrentState(tick: Long): S = {
     // new state is only calculated if there's an old state and an operating point
-    val state = _state
-      .map { st =>
-        if (st.tick < tick) {
-          // If the state is old, an operating point needs
-          // to be present to determine the curren state
-          model.determineState(
-            st,
-            operatingPoint,
-            tick,
-            tick.toDateTime(simulationStartDate),
-          )
-        } else {
-          // The state is up-to-date, no need to update
-          st
-        }
+    val newState =
+      if (_state.tick < tick) {
+        // If the state is old, an operating point needs
+        // to be present to determine the curren state
+        model.determineState(
+          _state,
+          operatingPoint,
+          tick,
+          tick.toDateTime(simulationStartDate),
+        )
+      } else {
+        // The state is up-to-date, no need to update
+        _state
       }
-      // No state present, create an initial one
-      .getOrElse(model.initialState(tick, tick.toDateTime(simulationStartDate)))
 
-    if (state.tick != tick)
+    if (newState.tick != tick)
       throw new CriticalFailureException(
-        s"The current state $state is not set to current tick $tick"
+        s"The current state $newState is not set to current tick $tick"
       )
 
-    state
+    newState
   }
 
 }
@@ -488,27 +485,34 @@ object ParticipantModelShell {
     * @return
     *   The constructed [[ParticipantModelShell]].
     */
-  def create[
-      OP <: OperatingPoint,
-      S <: ModelState,
-  ](
-      model: ParticipantModel[OP, S],
-      participantInput: SystemParticipantInput,
+  def create[S <: ModelState](
+      modelFactory: ParticipantModelFactory[S],
+      operationTime: OperationTime,
       simulationStart: ZonedDateTime,
       simulationEnd: ZonedDateTime,
-  ): ParticipantModelShell[OP, S] = {
+  ): ParticipantModelShell[_ <: OperatingPoint, S] = {
+
+    val model = modelFactory.create()
 
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStart,
         simulationEnd,
-        participantInput.getOperationTime,
+        operationTime,
       )
+
+    val initialTick = operationInterval.start
+
+    val initialState = modelFactory.getInitialState(
+      initialTick,
+      initialTick.toDateTime(simulationStart),
+    )
 
     new ParticipantModelShell(
       model = model,
       operationInterval = operationInterval,
       simulationStartDate = simulationStart,
+      _state = initialState,
     )
   }
 }
