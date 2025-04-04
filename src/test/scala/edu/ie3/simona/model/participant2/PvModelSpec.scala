@@ -60,7 +60,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
   )
 
   // build the PvModel
-  val pvModel: PvModel = PvModel(pvInput)
+  val pvModel: PvModel = PvModel.Factory(pvInput).create()
 
   private implicit val apparentPowerTolerance: ApparentPower =
     Kilovoltamperes(1e-10)

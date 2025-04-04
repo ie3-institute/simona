@@ -21,6 +21,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.StorageModel.{
   RefTargetSocParams,
@@ -47,7 +48,6 @@ class StorageModel private (
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    override val initialState: (Long, ZonedDateTime) => StorageState,
     eStorage: Energy,
     pMax: Power,
     eta: Dimensionless,
@@ -167,9 +167,6 @@ class StorageModel private (
       // Stored energy currently not supported by primary data time series
       -1.asPu,
     )
-
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
 
   override def determineFlexOptions(
       state: StorageState
@@ -325,30 +322,37 @@ object StorageModel {
       targetWithNegMargin: Energy,
   )
 
-  def apply(
+  final case class Factory(
       input: StorageInput,
       config: StorageRuntimeConfig,
-  ): StorageModel = {
-    val eStorage = input.getType.geteStorage.toKilowattHours
+  ) extends ParticipantModelFactory[StorageState] {
 
-    val initialState: (Long, ZonedDateTime) => StorageState =
-      (tick, _) => {
-        val initialStoredEnergy = eStorage * config.initialSoc
-        StorageState(storedEnergy = initialStoredEnergy, tick)
-      }
+    private val eStorage = input.getType.geteStorage.toKilowattHours
 
-    new StorageModel(
-      input.getUuid,
-      input.getId,
-      input.getType.getsRated.toKilovoltamperes,
-      input.getType.getCosPhiRated,
-      QControl.apply(input.getqCharacteristics),
-      initialState,
-      eStorage,
-      input.getType.getpMax.toKilowatts,
-      input.getType.getEta.toPercent,
-      config.targetSoc,
-    )
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): StorageState = {
+      val initialStoredEnergy = eStorage * config.initialSoc
+      StorageState(storedEnergy = initialStoredEnergy, tick)
+    }
+
+    override def create(): StorageModel =
+      new StorageModel(
+        input.getUuid,
+        input.getId,
+        input.getType.getsRated.toKilovoltamperes,
+        input.getType.getCosPhiRated,
+        QControl.apply(input.getqCharacteristics),
+        eStorage,
+        input.getType.getpMax.toKilowatts,
+        input.getType.getEta.toPercent,
+        config.targetSoc,
+      )
+
   }
 
 }

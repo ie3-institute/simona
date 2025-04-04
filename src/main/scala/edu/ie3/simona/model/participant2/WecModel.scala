@@ -18,11 +18,13 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
+import edu.ie3.simona.config.RuntimeConfig.WecRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.WecModel.{
   WecCharacteristic,
@@ -67,15 +69,6 @@ class WecModel private (
     ]
     with ParticipantSimpleFlexibility[WecState]
     with LazyLogging {
-
-  override val initialState: (Long, ZonedDateTime) => WecState =
-    (tick, _) =>
-      WecState(
-        tick,
-        MetersPerSecond(0d),
-        Celsius(0d),
-        None,
-      )
 
   override def determineState(
       lastState: WecState,
@@ -216,9 +209,6 @@ class WecModel private (
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.WeatherService)
-
 }
 
 object WecModel {
@@ -275,17 +265,35 @@ object WecModel {
       )
   }
 
-  def apply(
+  final case class Factory(
       input: WecInput
-  ): WecModel =
-    new WecModel(
-      input.getUuid,
-      input.getId,
-      input.getType.getsRated.toKilovoltamperes,
-      input.getType.getCosPhiRated,
-      QControl(input.getqCharacteristics),
-      input.getType.getRotorArea.toSquareMeters,
-      WecCharacteristic(input.getType.getCpCharacteristic),
-    )
+  ) extends ParticipantModelFactory[WecState] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.WeatherService)
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): WecState =
+      WecState(
+        tick,
+        MetersPerSecond(0d),
+        Celsius(0d),
+        None,
+      )
+
+    override def create(): WecModel =
+      new WecModel(
+        input.getUuid,
+        input.getId,
+        input.getType.getsRated.toKilovoltamperes,
+        input.getType.getCosPhiRated,
+        QControl(input.getqCharacteristics),
+        input.getType.getRotorArea.toSquareMeters,
+        WecCharacteristic(input.getType.getCpCharacteristic),
+      )
+
+  }
 
 }
