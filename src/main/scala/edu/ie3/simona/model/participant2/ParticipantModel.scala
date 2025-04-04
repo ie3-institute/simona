@@ -16,7 +16,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant2.HpModel.ThermalOpWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,

@@ -19,7 +19,6 @@ import edu.ie3.simona.agent.participant.data.Data.{
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant2.HpModel.ThermalOpWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
