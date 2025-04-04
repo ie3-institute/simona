@@ -81,7 +81,7 @@ import edu.ie3.simona.model.participant.{
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -676,7 +676,10 @@ protected trait ParticipantAgentFundamentals[
         )
       )
 
-    updatedFlexData.emAgent ! newestFlexOptions
+    updatedFlexData.emAgent ! ProvideFlexOptions(
+      participantStateData.modelUuid,
+      newestFlexOptions,
+    )
 
     updatedBaseStateData
   }
@@ -703,15 +706,14 @@ protected trait ParticipantAgentFundamentals[
     // does not include reactive power which could change later)
     if (baseStateData.outputConfig.flexResult) {
       val flexResult = flexOptions match {
-        case ProvideMinMaxFlexOptions(
-              modelUuid,
+        case MinMaxFlexOptions(
               referencePower,
               minPower,
               maxPower,
             ) =>
           new FlexOptionsResult(
             tick.toDateTime,
-            modelUuid,
+            baseStateData.modelUuid,
             referencePower.toMegawatts.asMegaWatt,
             minPower.toMegawatts.asMegaWatt,
             maxPower.toMegawatts.asMegaWatt,
@@ -753,7 +755,16 @@ protected trait ParticipantAgentFundamentals[
       )
 
     val setPointActivePower =
-      EmTools.determineFlexPower(flexOptions, flexCtrl)
+      Try(EmTools.determineFlexPower(flexOptions, flexCtrl))
+        .recoverWith(exception =>
+          Failure(
+            new CriticalFailureException(
+              s"Determining flex power failed for model ${baseStateData.modelUuid}",
+              exception,
+            )
+          )
+        )
+        .get
 
     /* Handle the flex signal */
     val (updatedState, result, flexChangeIndicator) =

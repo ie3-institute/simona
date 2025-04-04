@@ -16,10 +16,10 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant,
 }
+import edu.ie3.simona.ontology.messages.flex.FlexOptions
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse,
-  ProvideFlexOptions,
 }
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
@@ -250,7 +250,7 @@ object BaseStateData {
   final case class FlexControlledData(
       emAgent: ActorRef[FlexResponse],
       flexAdapter: ActorRef[FlexRequest],
-      lastFlexOptions: Option[ProvideFlexOptions] = None,
+      lastFlexOptions: Option[FlexOptions] = None,
   )
 
   /** Updates the base state data with the given value stores

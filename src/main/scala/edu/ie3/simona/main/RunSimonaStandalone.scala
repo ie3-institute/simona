@@ -37,7 +37,7 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
       parsedConfig,
       simonaConfig,
       SimonaStandaloneSetup
-        .buildResultFileHierarchy(simonaConfig, parsedConfig),
+        .buildResultFileHierarchy(parsedConfig, simonaConfig),
       mainArgs = arguments.mainArgs,
     )
   }

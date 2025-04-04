@@ -72,8 +72,8 @@ class RunSimonaStandaloneIT
 
       val resultFileHierarchy =
         SimonaStandaloneSetup.buildResultFileHierarchy(
-          simonaConfig,
           parsedConfig,
+          simonaConfig,
         )
 
       val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()

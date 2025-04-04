@@ -35,7 +35,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 }
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
-  ServiceActivationBaseStateData,
+  ServiceBaseStateData,
 }
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
@@ -147,14 +147,13 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
     *   Type of value to get from source
     */
   final case class PrimaryServiceInitializedStateData[V <: Value](
-      override val maybeNextActivationTick: Option[Long],
-      override val activationTicks: SortedDistinctSeq[Long] =
-        SortedDistinctSeq.empty,
+      maybeNextActivationTick: Option[Long],
+      activationTicks: SortedDistinctSeq[Long] = SortedDistinctSeq.empty,
       startDateTime: ZonedDateTime,
       valueClass: Class[V],
       source: TimeSeriesSource[V],
       subscribers: Vector[ActorRef[ParticipantAgent.Request]] = Vector.empty,
-  ) extends ServiceActivationBaseStateData
+  ) extends ServiceBaseStateData
 
   /** Initialize the actor with the given information. Try to figure out the
     * initialized state data and the next activation ticks, that will then be

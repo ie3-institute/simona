@@ -15,8 +15,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel._
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -43,7 +42,7 @@ import javax.measure.quantity.{Power => QuantPower}
   *   with flexibility)
   */
 class MockParticipantModel(
-    override val uuid: UUID = UUID.fromString("0-0-0-0-1"),
+    override val uuid: UUID = MockParticipantModel.uuid,
     override val id: String = "MockParticipant 1",
     override val sRated: ApparentPower = Kilovoltamperes(10),
     override val cosPhiRated: Double = 0.9,
@@ -54,14 +53,6 @@ class MockParticipantModel(
       ActivePowerOperatingPoint,
       MockState,
     ] {
-
-  override val initialState: (Long, ZonedDateTime) => MockState =
-    (tick, _) =>
-      MockState(
-        None,
-        zeroKWh,
-        tick,
-      )
 
   override def determineState(
       lastState: MockState,
@@ -136,15 +127,11 @@ class MockParticipantModel(
     )
   }
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    throw new NotImplementedError() // Not tested
-
   override def determineFlexOptions(
       state: MockState
-  ): FlexibilityMessage.ProvideFlexOptions = {
+  ): FlexOptions = {
     val additionalP = state.additionalP.getOrElse(zeroKW)
-    ProvideMinMaxFlexOptions(
-      uuid,
+    MinMaxFlexOptions(
       Kilowatts(1) + additionalP,
       Kilowatts(-1) + additionalP,
       Kilowatts(3) + additionalP,
@@ -179,6 +166,8 @@ class MockParticipantModel(
 }
 
 object MockParticipantModel {
+
+  val uuid: UUID = UUID.fromString("0-0-0-0-1")
 
   /** Simple [[ModelState]] to test its usage in operation point calculations.
     * Produced and consumed energy is counted in order to test the handling of
@@ -219,5 +208,31 @@ object MockParticipantModel {
   )
 
   final case class MockSecondaryData(additionalP: Power) extends SecondaryData
+
+  final case class Factory(
+      mockActivationTicks: Map[Long, Long] = Map.empty,
+      mockChangeAtNext: Set[Long] = Set.empty,
+  ) extends ParticipantModelFactory[MockState] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): MockState =
+      MockState(
+        None,
+        zeroKWh,
+        tick,
+      )
+
+    override def create(): MockParticipantModel =
+      new MockParticipantModel(
+        mockActivationTicks = mockActivationTicks,
+        mockChangeAtNext = mockChangeAtNext,
+      )
+
+  }
 
 }

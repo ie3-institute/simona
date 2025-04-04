@@ -24,14 +24,14 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsOperatingPoint,
   EvcsState,
 }
 import edu.ie3.simona.model.participant2.{ChargingHelper, ParticipantModel}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
@@ -67,10 +67,6 @@ class EvcsModel private (
       EvcsState,
     ]
     with EvcsChargingProperties {
-
-  override val initialState: (Long, ZonedDateTime) => EvcsState = { (tick, _) =>
-    EvcsState(Seq.empty, tick)
-  }
 
   override def determineState(
       lastState: EvcsState,
@@ -221,14 +217,9 @@ class EvcsModel private (
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(
-      ServiceType.EvMovementService
-    )
-
   override def determineFlexOptions(
       state: EvcsState
-  ): FlexibilityMessage.ProvideFlexOptions = {
+  ): FlexOptions = {
 
     val preferredPowers =
       strategy.determineChargingPowers(state.evs, state.tick, this)
@@ -278,8 +269,7 @@ class EvcsModel private (
       else
         (preferredPower, minCharging)
 
-    ProvideMinMaxFlexOptions(
-      uuid,
+    MinMaxFlexOptions(
       adaptedPreferred,
       adaptedMinCharging,
       maxCharging,
@@ -597,23 +587,35 @@ object EvcsModel {
       override val tick: Long,
   ) extends ModelState
 
-  def apply(
+  final case class Factory(
       input: EvcsInput,
       modelConfig: EvcsRuntimeConfig,
-  ): EvcsModel =
-    new EvcsModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
-      ),
-      input.getCosPhiRated,
-      QControl(input.getqCharacteristics),
-      EvcsChargingStrategy(modelConfig.chargingStrategy),
-      input.getType.getElectricCurrentType,
-      modelConfig.lowestEvSoc,
-      input.getChargingPoints,
-      input.getV2gSupport,
-    )
+  ) extends ParticipantModelFactory[EvcsState] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.EvMovementService)
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): EvcsState = EvcsState(Seq.empty, tick)
+
+    override def create(): EvcsModel =
+      new EvcsModel(
+        input.getUuid,
+        input.getId,
+        Kilovoltamperes(
+          input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
+        ),
+        input.getCosPhiRated,
+        QControl(input.getqCharacteristics),
+        EvcsChargingStrategy(modelConfig.chargingStrategy),
+        input.getType.getElectricCurrentType,
+        modelConfig.lowestEvSoc,
+        input.getChargingPoints,
+        input.getV2gSupport,
+      )
+
+  }
 
 }

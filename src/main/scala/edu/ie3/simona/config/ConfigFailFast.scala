@@ -246,6 +246,11 @@ object ConfigFailFast extends LazyLogging {
         s"Invalid time configuration." +
           s"Please ensure that the start time of the simulation is before the end time."
       )
+    if (startDate.isEqual(endDate))
+      throw new InvalidConfigParameterException(
+        s"Invalid time configuration." +
+          s"Please ensure that the start time of the simulation is not equal to the end time."
+      )
   }
 
   /** Creates a ZonedDateTime from String. If a faulty dateTime string is
@@ -327,8 +332,7 @@ object ConfigFailFast extends LazyLogging {
   }
 
   /** Check participants' basic runtime configurations, as well as in default as
-    * in individual configs. This comprises
-    * i.e. uuid and scaling factor
+    * in individual configs. This comprises i.e. uuid and scaling factor
     */
   private def checkBaseRuntimeConfigs(
       defaultConfig: BaseRuntimeConfig,

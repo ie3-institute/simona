@@ -47,7 +47,7 @@ object ResultFileHierarchy extends LazyLogging {
       simulationName: String,
       resultEntityPathConfig: ResultEntityPathConfig,
       configureLogger: Path => Unit = LogbackConfiguration.default("INFO"),
-      config: Option[(SimonaConfig, Config)] = None,
+      config: Option[(Config, SimonaConfig)] = None,
       addTimeStampToOutputDir: Boolean = true,
   ): ResultFileHierarchy = {
 
@@ -215,7 +215,7 @@ object ResultFileHierarchy extends LazyLogging {
       baseOutputDir: Path,
       dirsToBeCreated: Seq[Path],
       resultFileHierarchy: ResultFileHierarchy,
-      maybeConfig: Option[(SimonaConfig, Config)],
+      maybeConfig: Option[(Config, SimonaConfig)],
   ): Unit = {
     // create output directories if they are not present yet
     if (!runOutputDirExists(resultFileHierarchy))
@@ -225,7 +225,7 @@ object ResultFileHierarchy extends LazyLogging {
         resultFileHierarchy,
       )
 
-    maybeConfig.foreach { case (simonaConfig, config) =>
+    maybeConfig.foreach { case (config, simonaConfig) =>
       logger.info(
         "Processing configs for simulation: {}.",
         simonaConfig.simona.simulationName,

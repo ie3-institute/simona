@@ -455,7 +455,10 @@ object ParticipantAgent {
                   throw new CriticalFailureException(
                     "Received flex activation while not controlled by EM"
                   ),
-                _.emAgent ! shellWithFlex.flexOptions,
+                _.emAgent ! ProvideFlexOptions(
+                  shellWithFlex.uuid,
+                  shellWithFlex.getFlexOptions,
+                ),
               )
 
               (shellWithFlex, gridAdapter)

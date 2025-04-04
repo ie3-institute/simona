@@ -17,7 +17,7 @@ import edu.ie3.datamodel.models.input.system.{
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
 
@@ -55,14 +55,14 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
     */
   override def determineFlexControl(
       flexOptions: Iterable[
-        (_ <: AssetInput, ProvideMinMaxFlexOptions)
+        (_ <: AssetInput, MinMaxFlexOptions)
       ],
       target: Power,
   ): Seq[(UUID, Power)] = {
 
     val totalRefPower =
       flexOptions
-        .map { case (_, ProvideMinMaxFlexOptions(_, refPower, _, _)) =>
+        .map { case (_, MinMaxFlexOptions(refPower, _, _)) =>
           refPower
         }
         .reduceOption { (power1, power2) =>
@@ -109,10 +109,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
-              (
-                inputModel: SystemParticipantInput,
-                flexOption: ProvideMinMaxFlexOptions,
-              ),
+              (inputModel, flexOption: MinMaxFlexOptions),
             ) =>
           // potential for decreasing feed-in/increasing load (negative)
           val flexPotential =
@@ -161,10 +158,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
-              (
-                inputModel: SystemParticipantInput,
-                flexOption: ProvideMinMaxFlexOptions,
-              ),
+              (inputModel, flexOption: MinMaxFlexOptions),
             ) =>
           // potential for decreasing load/increasing feed-in
           val flexPotential =
@@ -208,8 +202,8 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
 
   override def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: ProvideMinMaxFlexOptions,
-  ): ProvideMinMaxFlexOptions = {
+      flexOptions: MinMaxFlexOptions,
+  ): MinMaxFlexOptions = {
     if (controllableAssets.contains(assetInput.getClass))
       flexOptions
     else {

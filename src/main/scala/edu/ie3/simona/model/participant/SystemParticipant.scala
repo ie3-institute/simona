@@ -12,7 +12,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 }
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.flex.FlexOptions
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities._
@@ -139,7 +139,7 @@ abstract class SystemParticipant[
   def determineFlexOptions(
       data: CD,
       lastState: MS,
-  ): ProvideFlexOptions
+  ): FlexOptions
 
   /** @param data
     *   The relevant data for calculation

@@ -16,7 +16,7 @@ import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsOperatingPoint,
   EvcsState,
 }
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EvMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.test.common.UnitSpec
@@ -49,12 +49,14 @@ class EvcsModelSpec
       chargingStrategy: String,
       vehicle2Grid: Boolean = true,
   ): EvcsModel =
-    EvcsModel(
-      evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
-      EvcsRuntimeConfig(
-        chargingStrategy = chargingStrategy
-      ),
-    )
+    EvcsModel
+      .Factory(
+        evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
+        EvcsRuntimeConfig(
+          chargingStrategy = chargingStrategy
+        ),
+      )
+      .create()
 
   "An EVCS model" should {
 
@@ -414,13 +416,11 @@ class EvcsModelSpec
                 currentTick,
               )
             ) match {
-              case ProvideMinMaxFlexOptions(
-                    modelUuid,
+              case MinMaxFlexOptions(
                     refPower,
                     minPower,
                     maxPower,
                   ) =>
-                modelUuid shouldBe evcsModel.uuid
                 refPower should approximate(Kilowatts(expectedPRef))
                 minPower should approximate(Kilowatts(expectedPMin))
                 maxPower should approximate(Kilowatts(expectedPMax))
@@ -510,13 +510,11 @@ class EvcsModelSpec
                 currentTick,
               )
             ) match {
-              case ProvideMinMaxFlexOptions(
-                    modelUuid,
+              case MinMaxFlexOptions(
                     refPower,
                     minPower,
                     maxPower,
                   ) =>
-                modelUuid shouldBe evcsModel.uuid
                 refPower should approximate(Kilowatts(expectedPRef))
                 minPower should approximate(Kilowatts(expectedPMin))
                 maxPower should approximate(Kilowatts(expectedPMax))
@@ -540,13 +538,11 @@ class EvcsModelSpec
             currentTick,
           )
         ) match {
-          case ProvideMinMaxFlexOptions(
-                modelUuid,
+          case MinMaxFlexOptions(
                 refPower,
                 minPower,
                 maxPower,
               ) =>
-            modelUuid shouldBe evcsModel.uuid
             refPower should approximate(Kilowatts(5.0)) // one hour left
             minPower should approximate(Kilowatts(0d)) // no v2g allowed!
             maxPower should approximate(ev1.pRatedAc)
