@@ -9,8 +9,16 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
+import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ModelState,
+  OperatingPoint,
+}
+import edu.ie3.simona.model.thermal.ThermalStorage.{
+  ThermalStorageOperatingPoint,
+  ThermalStorageState,
+}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import edu.ie3.util.scala.quantities.ReactivePower
 import squants.{Energy, Power, Seconds}
 
 import java.util.UUID
@@ -61,30 +69,47 @@ abstract class ThermalStorage(
   def isEmpty(energy: Energy): Boolean =
     energy < (zeroKWh + toleranceMargin)
 
-  def updateState(
+  def determineState(
       tick: Long,
-      qDot: Power,
-      lastState: ThermalStorageState,
-  ): (ThermalStorageState, Option[ThermalThreshold])
+      lastThermalStorageState: ThermalStorageState,
+      operatingPoint: ThermalStorageOperatingPoint,
+  ): ThermalStorageState
+
+  def determineNextThreshold(
+      state: ThermalStorageState,
+      thermalStorageOperatingPoint: ThermalStorageOperatingPoint,
+  ): Option[ThermalThreshold]
 }
 
 object ThermalStorage {
 
+  final case class ThermalStorageOperatingPoint(
+      override val activePower: Power
+  ) extends OperatingPoint {
+    override val reactivePower: Option[ReactivePower] = None
+  }
+
+  object ThermalStorageOperatingPoint {
+    def zero: ThermalStorageOperatingPoint =
+      ThermalStorageOperatingPoint(zeroKW)
+  }
+
   /** State of a thermal storage
     *
     * @param tick
-    *   Last tick of storage state change
+    *   Last tick of storage state change.
     * @param storedEnergy
-    *   Energy stored in the storage at this tick
-    * @param qDot
-    *   Infeed to the heat storage (positive: Storage is charging, negative:
-    *   Storage is discharging)
+    *   Energy stored in the storage at this tick.
+    * @param operatingPoint
+    *   Operating point of the thermal heat storage representing the infeed to
+    *   the heat storage (positive: Storage is charging, negative: Storage is
+    *   discharging).
     */
   final case class ThermalStorageState(
-      tick: Long,
+      override val tick: Long,
       storedEnergy: Energy,
-      qDot: Power,
-  )
+      operatingPoint: ThermalStorageOperatingPoint,
+  ) extends ModelState
 
   object ThermalStorageThreshold {
     final case class StorageEmpty(override val tick: Long)

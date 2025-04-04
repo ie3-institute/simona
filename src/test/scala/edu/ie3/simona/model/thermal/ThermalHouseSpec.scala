@@ -11,14 +11,14 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.{
+  ThermalHouseOperatingPoint,
   ThermalHouseState,
   startingState,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.WattsPerKelvin
-import org.scalatest.prop.TableFor3
+import org.scalatest.prop.{TableFor2, TableFor3}
 import squants.energy._
 import squants.thermal._
 import squants.time._
@@ -74,59 +74,97 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       newInnerTemperature should approximate(Temperature(29, Celsius))
     }
 
-    "Check for the correct state of house when ambient temperature changes" in {
+    "Check for the correct state of house" in {
       val house = thermalHouse(18, 22)
       val tick = 3600
-      val ambientTemperature = Temperature(-20, Celsius)
-      val initialHouseState = startingState(house)
-      val lastAmbientTemperature = Temperature(15, Celsius)
+      val ambientTemperature = Temperature(15, Celsius)
+      val initialHouseState = startingState(house, ambientTemperature)
 
-      val (thermalHouseState, threshold) =
-        house.updateState(
-          tick,
-          initialHouseState,
-          ambientTemperature,
-          lastAmbientTemperature,
-          zeroKW,
-        )
+      val testCases: TableFor2[Double, Double] = Table(
+        ("qDotHouse", "expectedTemperature(K)"),
+        // loss is higher than gain
+        (0d, 292.64986111),
+        (1d, 292.74988888888885),
+        (2d, 292.8499166666667),
+        // Loss and gain should be equal resulting no temperature change
+        (5d, 293.15),
+        // gain is higher than loss
+        (6d, 293.2500),
+        (10d, 293.6501388889),
+      )
 
-      thermalHouseState match {
-        case ThermalHouseState(tick, temperature, qDot) =>
-          tick shouldBe 3600L
-          temperature should approximate(Kelvin(292.64986111))
-          qDot shouldBe zeroKW
-        case unexpected =>
-          fail(s"Expected a thermalHouseState but got none $unexpected.")
+      forAll(testCases) {
+        (lastOperatingPoint: Double, expectedTemperature: Double) =>
+          val thermalHouseState =
+            house.determineState(
+              tick,
+              initialHouseState,
+              ThermalHouseOperatingPoint(Kilowatts(lastOperatingPoint)),
+            )
+
+          thermalHouseState match {
+            case ThermalHouseState(
+                  tick,
+                  _,
+                  ThermalHouseOperatingPoint(qDot),
+                  temperature,
+                ) =>
+              tick shouldBe 3600L
+              temperature should approximate(Kelvin(expectedTemperature))
+              qDot shouldBe Kilowatts(lastOperatingPoint)
+            case unexpected =>
+              fail(s"Expected a thermalHouseState but got none $unexpected.")
+          }
       }
-      threshold shouldBe Some(HouseTemperatureLowerBoundaryReached(4966))
     }
 
-    "Check for the correct state of house when thermal in feed changes" in {
-      val house = thermalHouse(18, 22)
+    "Check for the correct next threshold of house with thermal feed in" in {
       val tick = 3600
-      val ambientTemperature = Temperature(10, Celsius)
-      val initQDot = Kilowatts(5) // won't be sufficient to increase inner temp
-      val initialHouseState = ThermalHouseState(0, Celsius(18.5), initQDot)
-      val newQDot = Kilowatts(100) // should increase inner temp
+      val house = thermalHouse(18, 22)
+      val ambientTemperature = Temperature(15, Celsius)
+      val initialHouseState = startingState(house, ambientTemperature)
 
-      val (thermalHouseState, threshold) =
-        house.updateState(
-          tick,
-          initialHouseState,
-          ambientTemperature,
-          ambientTemperature,
-          newQDot,
+      val testCases: TableFor3[Double, Double, Option[ThermalThreshold]] =
+        Table(
+          ("lastOperatingPoint", "newOperatingPoint", "expectedThreshold"),
+          // some OperatingPoints not capable to heat the house sufficient
+          (0d, 0d, Some(HouseTemperatureLowerBoundaryReached(15599))),
+          (1d, 1d, Some(HouseTemperatureLowerBoundaryReached(19599))),
+          (2d, 2d, Some(HouseTemperatureLowerBoundaryReached(26266))),
+          // OperatingPoint that keeps the house in perfect balance
+          (5d, 5d, None),
+          // some OperatingPoints that increase the house inner temperature after some cooling down first
+          (0d, 6d, Some(HouseTargetTemperatureReached(15602))),
+          (0d, 10d, Some(HouseTargetTemperatureReached(6873))),
         )
 
-      thermalHouseState match {
-        case ThermalHouseState(tick, temperature, qDot) =>
-          tick shouldBe 3600L
-          temperature should approximate(Celsius(18.15))
-          qDot shouldBe newQDot
-        case unexpected =>
-          fail(s"Expected a thermalHouseState but got none $unexpected.")
+      forAll(testCases) {
+        (
+            lastOp: Double,
+            newOp: Double,
+            expectedThreshold: Option[ThermalThreshold],
+        ) =>
+          val lastOperatingPoint = ThermalHouseOperatingPoint(Kilowatts(lastOp))
+          val newOperatingPoint = ThermalHouseOperatingPoint(Kilowatts(newOp))
+
+          val state = house.determineState(
+            tick,
+            initialHouseState,
+            lastOperatingPoint,
+          )
+          val threshold = house.determineNextThreshold(
+            state,
+            newOperatingPoint,
+          )
+
+          threshold match {
+            case threshold => threshold shouldBe expectedThreshold
+            case unexpected =>
+              fail(
+                s"Expected a thermalHouseThreshold but got none $unexpected."
+              )
+          }
       }
-      threshold shouldBe Some(HouseTargetTemperatureReached(4325))
     }
 
     "Check build method" in {

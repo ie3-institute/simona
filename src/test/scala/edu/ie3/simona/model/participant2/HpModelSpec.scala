@@ -16,9 +16,15 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalEnergyDemand,
   ThermalGridState,
 }
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.model.thermal.ThermalHouse.{
+  ThermalHouseOperatingPoint,
+  ThermalHouseState,
+}
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.simona.model.thermal.ThermalStorage.{
+  ThermalStorageOperatingPoint,
+  ThermalStorageState,
+}
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
@@ -43,12 +49,12 @@ class HpModelSpec
   "HpModel" should {
 
     "Determine the current state" in {
+      val ambientTemperature = Celsius(10)
       val defaultState = HpState(
         0,
-        Celsius(10),
-        thermalState(Celsius(17d)),
+        ambientTemperature,
+        thermalState(Celsius(17d), ambientTemperature),
         HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
-        Celsius(10),
         noThermalDemand,
       )
 
@@ -60,38 +66,48 @@ class HpModelSpec
           "exptHeatStorageDemand",
         ),
         (
-          defaultState.copy(thermalGridState = thermalState(Celsius(17))),
+          defaultState.copy(thermalGridState =
+            thermalState(Celsius(17), ambientTemperature)
+          ),
           15.6,
           (44.0, 44.0),
           (0.0, 0.0),
         ),
         (
-          defaultState.copy(thermalGridState = thermalState(Celsius(18))),
+          defaultState.copy(thermalGridState =
+            thermalState(Celsius(18), ambientTemperature)
+          ),
           16.4,
           (36.0, 36.0),
           (0.0, 0.0),
         ),
         (
-          defaultState.copy(thermalGridState = thermalState(Celsius(20))),
+          defaultState.copy(thermalGridState =
+            thermalState(Celsius(20), ambientTemperature)
+          ),
           18.0,
           (20.0, 20.0),
           (0.0, 0.0),
         ),
         (
-          defaultState.copy(thermalGridState = thermalState(Celsius(22))),
+          defaultState.copy(thermalGridState =
+            thermalState(Celsius(22), ambientTemperature)
+          ),
           19.6,
           (0.0, 4.0),
           (0.0, 0.0),
         ),
         (
-          defaultState.copy(thermalGridState = thermalState(Celsius(23))),
+          defaultState.copy(thermalGridState =
+            thermalState(Celsius(23), ambientTemperature)
+          ),
           20.4,
           (0.0, 0.0),
           (0.0, 0.0),
         ),
         (
           defaultState.copy(thermalGridState =
-            thermalState(Celsius(0), Kilowatts(80))
+            thermalState(Celsius(0), ambientTemperature, Kilowatts(80))
           ),
           18.0,
           (20.0, 20.0),
@@ -99,7 +115,7 @@ class HpModelSpec
         ),
         (
           defaultState.copy(thermalGridState =
-            thermalState(Celsius(2), Kilowatts(80))
+            thermalState(Celsius(2), ambientTemperature, Kilowatts(80))
           ),
           19.6,
           (0.0, 4.0),
@@ -107,7 +123,7 @@ class HpModelSpec
         ),
         (
           defaultState.copy(thermalGridState =
-            thermalState(Celsius(17), Kilowatts(80))
+            thermalState(Celsius(17), ambientTemperature, Kilowatts(80))
           ),
           31.6,
           (0.0, 0.0),
@@ -127,7 +143,9 @@ class HpModelSpec
           val operatingPoint = state.lastHpOperatingPoint.copy(thermalOps =
             ThermalOpWrapper(
               zeroKW,
-              state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW),
+              state.thermalGridState.houseState
+                .map(_.operatingPoint.activePower)
+                .getOrElse(zeroKW),
               zeroKW,
             )
           )
@@ -154,7 +172,6 @@ class HpModelSpec
                   tick,
                   _,
                   ThermalGridState(Some(thermalHouseState), _),
-                  _,
                   _,
                   thermalDemands,
                 ) => {
@@ -191,13 +208,13 @@ class HpModelSpec
       val noDemand = ThermalEnergyDemand(zeroKWh, zeroKWh)
       val onlyAddDemand = ThermalEnergyDemand(zeroKWh, KilowattHours(1))
       val demand = ThermalEnergyDemand(KilowattHours(1), KilowattHours(1))
+      val ambientTemperature = Celsius(10)
 
       val defaultState = HpState(
         0,
-        Celsius(10),
-        thermalState(Celsius(17d)),
+        ambientTemperature,
+        thermalState(Celsius(17d), ambientTemperature),
         HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
-        Celsius(10),
         noThermalDemand,
       )
 
@@ -211,8 +228,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(15), zeroKW)),
-                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(zeroKW),
+                    Celsius(15),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    zeroKWh,
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(demand, demand),
             ),
@@ -223,8 +253,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(15), zeroKW)),
-                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(zeroKW),
+                    Celsius(15),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(20),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(demand, onlyAddDemand),
             ),
@@ -238,8 +281,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(1))),
-                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(Kilowatts(1)),
+                    Celsius(15),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    zeroKWh,
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(demand, demand),
             ),
@@ -250,8 +306,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(1))),
-                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(Kilowatts(1)),
+                    Celsius(15),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(20),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(demand, onlyAddDemand),
             ),
@@ -264,8 +333,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(1))),
-                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(Kilowatts(1)),
+                    Celsius(19),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    zeroKWh,
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
             ),
@@ -276,8 +358,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(1))),
-                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(Kilowatts(1)),
+                    Celsius(19),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(20),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands =
                 ThermalDemandWrapper(onlyAddDemand, onlyAddDemand),
@@ -291,8 +386,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), zeroKW)),
-                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(zeroKW),
+                    Celsius(19),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    zeroKWh,
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
             ),
@@ -303,8 +411,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), zeroKW)),
-                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(zeroKW),
+                    Celsius(19),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(20),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands =
                 ThermalDemandWrapper(onlyAddDemand, onlyAddDemand),
@@ -318,8 +439,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(20), Kilowatts(1))),
-                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(Kilowatts(1)),
+                    Celsius(20),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    zeroKWh,
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, demand),
             ),
@@ -330,8 +464,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(20), Kilowatts(1))),
-                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(Kilowatts(1)),
+                    Celsius(20),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(20),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
             ),
@@ -344,8 +491,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(20), zeroKW)),
-                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(zeroKW),
+                    Celsius(20),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    zeroKWh,
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, demand),
             ),
@@ -356,8 +516,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(20), zeroKW)),
-                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(zeroKW),
+                    Celsius(20),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(20),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
             ),
@@ -370,8 +543,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(1))),
-                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(Kilowatts(1)),
+                    Celsius(21),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    zeroKWh,
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, demand),
             ),
@@ -382,8 +568,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(1))),
-                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(Kilowatts(1)),
+                    Celsius(21),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(20),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
             ),
@@ -396,8 +595,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), zeroKW)),
-                Some(ThermalStorageState(0L, zeroKWh, zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(zeroKW),
+                    Celsius(21),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    zeroKWh,
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, demand),
             ),
@@ -408,8 +620,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), zeroKW)),
-                Some(ThermalStorageState(0L, KilowattHours(20), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(zeroKW),
+                    Celsius(21),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(20),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
             ),
@@ -419,8 +644,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), zeroKW)),
-                Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(zeroKW),
+                    Celsius(19),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(500),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(onlyAddDemand, noDemand),
             ),
@@ -430,8 +668,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(1))),
-                Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(Kilowatts(1)),
+                    Celsius(19),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(500),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(onlyAddDemand, noDemand),
             ),
@@ -442,8 +693,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(20), zeroKW)),
-                Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(zeroKW),
+                    Celsius(20),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(500),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, noDemand),
             ),
@@ -453,8 +717,21 @@ class HpModelSpec
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(25), zeroKW)),
-                Some(ThermalStorageState(0L, KilowattHours(500), zeroKW)),
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    ThermalHouseOperatingPoint(zeroKW),
+                    Celsius(25),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    KilowattHours(500),
+                    ThermalStorageOperatingPoint(zeroKW),
+                  )
+                ),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, noDemand),
             ),
@@ -494,6 +771,8 @@ class HpModelSpec
       }
     }
 
-    "Handle controlled power change" in {}
+    "Handle controlled power change" in {
+      // FIXME
+    }
   }
 }

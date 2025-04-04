@@ -16,10 +16,13 @@ import edu.ie3.simona.model.participant2.HpModel.{
   ThermalOpWrapper,
 }
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull,
+}
+import edu.ie3.simona.model.thermal.ThermalStorage.{
+  ThermalStorageOperatingPoint,
+  ThermalStorageState,
 }
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
@@ -65,13 +68,13 @@ class ThermalGridWithStorageOnlySpec
         Set.empty[ThermalStorageInput].asJava,
       )
     )
-    val initialGridState = ThermalGrid.startingState(thermalGrid)
+    val initialGridState =
+      ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
     val initialHpState = HpState(
       0L,
       testGridAmbientTemperature,
       initialGridState,
       HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
-      testGridAmbientTemperature,
       onlyThermalDemandOfHeatStorage,
     )
 
@@ -80,13 +83,21 @@ class ThermalGridWithStorageOnlySpec
         initialGridState match {
           case ThermalGridState(
                 None,
-                Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                Some(
+                  ThermalStorageState(
+                    tick,
+                    storedEnergy,
+                    ThermalStorageOperatingPoint(qDot),
+                  )
+                ),
               ) =>
             tick shouldBe expectedStorageStartingState.tick
             storedEnergy should approximate(
               expectedStorageStartingState.storedEnergy
             )
-            qDot should approximate(expectedStorageStartingState.qDot)
+            qDot should approximate(
+              expectedStorageStartingState.operatingPoint.activePower
+            )
 
           case _ => fail("Determination of starting state failed")
         }
@@ -99,7 +110,7 @@ class ThermalGridWithStorageOnlySpec
         val state = initialHpState.copy(tick = tick)
 
         val updatedThermalGridState =
-          thermalGrid.updatedThermalGridState(
+          thermalGrid.updateThermalGridState(
             state.tick,
             state,
             HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
@@ -117,7 +128,11 @@ class ThermalGridWithStorageOnlySpec
         storageDemand.possible should approximate(KilowattHours(1150d))
         updatedThermalGridState.houseState shouldBe None
         updatedThermalGridState.storageState shouldBe Some(
-          ThermalStorageState(10800, zeroKWh, zeroKW)
+          ThermalStorageState(
+            10800,
+            zeroKWh,
+            ThermalStorageOperatingPoint(zeroKW),
+          )
         )
       }
 
@@ -133,12 +148,11 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           gridState,
           HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
-          testGridAmbientTemperature,
           onlyAdditionalDemandOfHeatStorage,
         )
 
         val updatedThermalGridState =
-          thermalGrid.updatedThermalGridState(
+          thermalGrid.updateThermalGridState(
             state.tick,
             state,
             HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
@@ -156,7 +170,11 @@ class ThermalGridWithStorageOnlySpec
         storageDemand.possible should approximate(KilowattHours(575d))
         updatedThermalGridState.houseState shouldBe None
         updatedThermalGridState.storageState shouldBe Some(
-          ThermalStorageState(10800L, KilowattHours(575d), zeroKW)
+          ThermalStorageState(
+            10800L,
+            KilowattHours(575d),
+            ThermalStorageOperatingPoint(zeroKW),
+          )
         )
       }
     }
@@ -179,7 +197,13 @@ class ThermalGridWithStorageOnlySpec
         updatedGridState match {
           case ThermalGridState(
                 None,
-                Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                Some(
+                  ThermalStorageState(
+                    tick,
+                    storedEnergy,
+                    ThermalStorageOperatingPoint(qDot),
+                  )
+                ),
               ) =>
             tick shouldBe 0L
             storedEnergy should approximate(zeroKWh)
@@ -196,7 +220,7 @@ class ThermalGridWithStorageOnlySpec
               ThermalStorageState(
                 0L,
                 KilowattHours(150d),
-                zeroKW,
+                ThermalStorageOperatingPoint(zeroKW),
               )
             )
           )
@@ -217,7 +241,13 @@ class ThermalGridWithStorageOnlySpec
         updatedGridState match {
           case ThermalGridState(
                 None,
-                Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                Some(
+                  ThermalStorageState(
+                    tick,
+                    storedEnergy,
+                    ThermalStorageOperatingPoint(qDot),
+                  )
+                ),
               ) =>
             tick shouldBe 0L
             storedEnergy should approximate(KilowattHours(150d))
@@ -243,7 +273,13 @@ class ThermalGridWithStorageOnlySpec
         updatedState match {
           case ThermalGridState(
                 None,
-                Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                Some(
+                  ThermalStorageState(
+                    tick,
+                    storedEnergy,
+                    ThermalStorageOperatingPoint(qDot),
+                  )
+                ),
               ) =>
             tick shouldBe 0L
             storedEnergy should approximate(zeroKWh)
@@ -268,7 +304,13 @@ class ThermalGridWithStorageOnlySpec
           case (
                 ThermalGridState(
                   None,
-                  Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                  Some(
+                    ThermalStorageState(
+                      tick,
+                      storedEnergy,
+                      ThermalStorageOperatingPoint(qDot),
+                    )
+                  ),
                 ),
                 None,
               ) =>
@@ -285,7 +327,13 @@ class ThermalGridWithStorageOnlySpec
           case (
                 ThermalGridState(
                   None,
-                  Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                  Some(
+                    ThermalStorageState(
+                      tick,
+                      storedEnergy,
+                      ThermalStorageOperatingPoint(qDot),
+                    )
+                  ),
                 ),
                 None,
               ) =>

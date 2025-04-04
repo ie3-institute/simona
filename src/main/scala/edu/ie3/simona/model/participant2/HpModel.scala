@@ -68,11 +68,10 @@ class HpModel private (
       tick,
       Celsius(20d),
       ThermalGridState(
-        startingState(thermalGrid).houseState,
-        startingState(thermalGrid).storageState,
+        startingState(thermalGrid, Celsius(20d)).houseState,
+        startingState(thermalGrid, Celsius(20d)).storageState,
       ),
       preOperatingPoint,
-      Celsius(20d),
       ThermalDemandWrapper(
         ThermalEnergyDemand(zeroKWh, zeroKWh),
         ThermalEnergyDemand(zeroKWh, zeroKWh),
@@ -80,7 +79,7 @@ class HpModel private (
     )
 
     val thermalGridState =
-      thermalGrid.updatedThermalGridState(
+      thermalGrid.updateThermalGridState(
         tick,
         preHpState,
         preOperatingPoint,
@@ -100,21 +99,16 @@ class HpModel private (
       tick: Long,
       simulationTime: ZonedDateTime,
   ): HpState = {
-
-    // state.lastStateAmbientTemperature is now the temperature from over lastState, thus we have to update here
-    val updatedHpState =
-      state.copy(lastStateAmbientTemperature = state.ambientTemperature)
-
     val thermalGridState =
-      thermalGrid.updatedThermalGridState(
+      thermalGrid.updateThermalGridState(
         tick,
-        updatedHpState,
+        state,
         operatingPoint,
       )
 
     val thermalDemands = thermalGrid.determineEnergyDemand(thermalGridState)
 
-    updatedHpState.copy(
+    state.copy(
       tick = tick,
       thermalGridState = thermalGridState,
       lastHpOperatingPoint = operatingPoint,
@@ -131,12 +125,18 @@ class HpModel private (
       .collectFirst { case weatherData: WeatherData =>
         weatherData
       }
-      .map(newData =>
+      .map(newData => {
+        val thermalGridWithUpdatedAmbientTemp =
+          state.thermalGridState.copy(houseState =
+            state.thermalGridState.houseState
+              .map(_.copy(ambientTemperature = newData.temp))
+          )
+
         state.copy(
           ambientTemperature = newData.temp,
-          lastStateAmbientTemperature = state.ambientTemperature,
+          thermalGridState = thermalGridWithUpdatedAmbientTemp,
         )
-      )
+      })
       .getOrElse(state)
   }
 
@@ -144,9 +144,13 @@ class HpModel private (
       state: HpState
   ): FlexOptions = {
     val lastHouseQDot =
-      state.thermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
+      state.thermalGridState.houseState
+        .map(_.operatingPoint.activePower)
+        .getOrElse(zeroKW)
     val lastStorageQDot =
-      state.thermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
+      state.thermalGridState.storageState
+        .map(_.operatingPoint.activePower)
+        .getOrElse(zeroKW)
     val wasRunningLastPeriod = (lastHouseQDot + lastStorageQDot) > zeroKW
 
     // Determining the operation point and limitations at this tick
@@ -350,8 +354,12 @@ class HpModel private (
         newActivePowerHp,
         ThermalOpWrapper(
           qDotIntoGrid,
-          updateState.houseState.map(_.qDot).getOrElse(zeroKW),
-          updateState.storageState.map(_.qDot).getOrElse(zeroKW),
+          updateState.houseState
+            .map(_.operatingPoint.activePower)
+            .getOrElse(zeroKW),
+          updateState.storageState
+            .map(_.operatingPoint.activePower)
+            .getOrElse(zeroKW),
         ),
       )
 
@@ -388,8 +396,12 @@ class HpModel private (
         newActivePowerHp,
         ThermalOpWrapper(
           qDotIntoGrid,
-          updateState.houseState.map(_.qDot).getOrElse(zeroKW),
-          updateState.storageState.map(_.qDot).getOrElse(zeroKW),
+          updateState.houseState
+            .map(_.operatingPoint.activePower)
+            .getOrElse(zeroKW),
+          updateState.storageState
+            .map(_.operatingPoint.activePower)
+            .getOrElse(zeroKW),
         ),
       )
 
@@ -452,8 +464,6 @@ object HpModel {
     *   The applicable state of the [[ThermalGrid]].
     * @param lastHpOperatingPoint
     *   The last [[HpOperatingPoint]] of the heat pump.
-    * @param lastStateAmbientTemperature
-    *   The outside temperature at the lastState.
     * @param thermalDemands
     *   The actual thermal demands of the thermal grid elements (house,
     *   storage).
@@ -463,7 +473,6 @@ object HpModel {
       ambientTemperature: Temperature,
       thermalGridState: ThermalGridState,
       lastHpOperatingPoint: HpOperatingPoint,
-      lastStateAmbientTemperature: Temperature,
       thermalDemands: ThermalDemandWrapper,
   ) extends ModelState
 
