@@ -170,6 +170,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converting `PrimaryServiceProxy` to pekko typed [#1230](https://github.com/ie3-institute/simona/issues/1230)
 - Made some methods of `PvModel` static [#1217](https://github.com/ie3-institute/simona/issues/1217)
 - FlexOptions types in `FlexibilityMessage` [#1306](https://github.com/ie3-institute/simona/issues/1306)
+- Isolate solar radiation calculations of PvModel to its own object [#1327](https://github.com/ie3-institute/simona/issues/1327)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)

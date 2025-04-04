@@ -75,5 +75,6 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       Then("result should match the test data")
       actualSMax should approximate(expectedSMax)
     }
+
   }
 }
