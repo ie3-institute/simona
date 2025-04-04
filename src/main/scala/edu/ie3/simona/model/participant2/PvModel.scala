@@ -22,6 +22,7 @@ import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.PvModel.PvState
 import edu.ie3.simona.model.participant2.SolarIrradiationCalculation._
@@ -71,15 +72,6 @@ class PvModel private (
 
   private val activationThreshold =
     sRated.toActivePower(cosPhiRated) * 0.001 * -1
-
-  override val initialState: (Long, ZonedDateTime) => PvState =
-    (tick, simulationTime) =>
-      PvState(
-        tick,
-        simulationTime,
-        zeroWPerSM,
-        zeroWPerSM,
-      )
 
   override def determineState(
       lastState: PvState,
@@ -239,9 +231,6 @@ class PvModel private (
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.WeatherService)
-
 }
 
 object PvModel {
@@ -264,41 +253,59 @@ object PvModel {
       dirIrradiance: Irradiance,
   ) extends ModelState
 
-  def apply(
+  final case class Factory(
       input: PvInput
-  ): PvModel =
-    new PvModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
-      input.getCosPhiRated,
-      QControl(input.getqCharacteristics),
-      Degrees(input.getNode.getGeoPosition.getY),
-      Degrees(input.getNode.getGeoPosition.getX),
-      input.getAlbedo,
-      Each(
-        input.getEtaConv
-          .to(PowerSystemUnits.PU)
-          .getValue
-          .doubleValue
-      ),
-      Radians(
-        input.getAzimuth
-          .to(RADIAN)
-          .getValue
-          .doubleValue
-      ),
-      Radians(
-        input.getElevationAngle
-          .to(RADIAN)
-          .getValue
-          .doubleValue
-      ),
-    )
+  ) extends ParticipantModelFactory[PvState] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.WeatherService)
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): PvState =
+      PvState(
+        tick,
+        simulationTime,
+        zeroWPerSM,
+        zeroWPerSM,
+      )
+
+    override def create(): PvModel =
+      new PvModel(
+        input.getUuid,
+        input.getId,
+        Kilovoltamperes(
+          input.getsRated
+            .to(PowerSystemUnits.KILOVOLTAMPERE)
+            .getValue
+            .doubleValue
+        ),
+        input.getCosPhiRated,
+        QControl(input.getqCharacteristics),
+        Degrees(input.getNode.getGeoPosition.getY),
+        Degrees(input.getNode.getGeoPosition.getX),
+        input.getAlbedo,
+        Each(
+          input.getEtaConv
+            .to(PowerSystemUnits.PU)
+            .getValue
+            .doubleValue
+        ),
+        Radians(
+          input.getAzimuth
+            .to(RADIAN)
+            .getValue
+            .doubleValue
+        ),
+        Radians(
+          input.getElevationAngle
+            .to(RADIAN)
+            .getValue
+            .doubleValue
+        ),
+      )
+
+  }
 
 }

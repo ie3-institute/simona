@@ -24,6 +24,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsOperatingPoint,
@@ -66,10 +67,6 @@ class EvcsModel private (
       EvcsState,
     ]
     with EvcsChargingProperties {
-
-  override val initialState: (Long, ZonedDateTime) => EvcsState = { (tick, _) =>
-    EvcsState(Seq.empty, tick)
-  }
 
   override def determineState(
       lastState: EvcsState,
@@ -218,11 +215,6 @@ class EvcsModel private (
       uuid,
       data.p.toMegawatts.asMegaWatt,
       data.q.toMegavars.asMegaVar,
-    )
-
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(
-      ServiceType.EvMovementService
     )
 
   override def determineFlexOptions(
@@ -595,23 +587,35 @@ object EvcsModel {
       override val tick: Long,
   ) extends ModelState
 
-  def apply(
+  final case class Factory(
       input: EvcsInput,
       modelConfig: EvcsRuntimeConfig,
-  ): EvcsModel =
-    new EvcsModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
-      ),
-      input.getCosPhiRated,
-      QControl(input.getqCharacteristics),
-      EvcsChargingStrategy(modelConfig.chargingStrategy),
-      input.getType.getElectricCurrentType,
-      modelConfig.lowestEvSoc,
-      input.getChargingPoints,
-      input.getV2gSupport,
-    )
+  ) extends ParticipantModelFactory[EvcsState] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.EvMovementService)
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): EvcsState = EvcsState(Seq.empty, tick)
+
+    override def create(): EvcsModel =
+      new EvcsModel(
+        input.getUuid,
+        input.getId,
+        Kilovoltamperes(
+          input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
+        ),
+        input.getCosPhiRated,
+        QControl(input.getqCharacteristics),
+        EvcsChargingStrategy(modelConfig.chargingStrategy),
+        input.getType.getElectricCurrentType,
+        modelConfig.lowestEvSoc,
+        input.getChargingPoints,
+        input.getV2gSupport,
+      )
+
+  }
 
 }

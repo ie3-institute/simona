@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.participant2
 
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
@@ -35,8 +36,8 @@ import edu.ie3.simona.event.ResultEvent.{
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant2.{
-  ParticipantModelInit,
   ParticipantModelShell,
+  PrimaryDataParticipantModel,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
@@ -47,7 +48,6 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
@@ -56,6 +56,7 @@ import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Each, Power}
 
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 
 /** Test for [[ParticipantAgent]] and [[ParticipantModelShell]] using a mock
   * participant [[MockParticipantModel]]. Primary and secondary data handling is
@@ -66,14 +67,22 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
   private implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
 
-  private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
-  private implicit val reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
+  private val simulationEndDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-07T00:00:00Z")
+
+  private val operationTime = OperationTime.builder
+    .withStart(simulationStartDate.plus(8, ChronoUnit.HOURS))
+    .withEnd(simulationStartDate.plus(20, ChronoUnit.HOURS))
+    .build()
 
   private val notifierConfig = NotifierConfig(
     simulationResultInfo = true,
     powerRequestReply = false,
     flexResult = true,
   )
+
+  private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
+  private implicit val reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
 
   "A ParticipantAgent that is not controlled by EM" when {
 
@@ -90,15 +99,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
 
         // no additional activation ticks
-        val model = new MockParticipantModel()
-        val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
+        val modelFactory = MockParticipantModel.Factory()
 
         val participantAgent = spawn(
           ParticipantAgentMockFactory.create(
-            ParticipantModelShell(
-              model,
-              operationInterval,
+            ParticipantModelShell.create(
+              modelFactory,
+              operationTime,
               simulationStartDate,
+              simulationEndDate,
             ),
             ParticipantInputHandler(
               Map.empty
@@ -121,23 +130,23 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // TICK 8 * 3600: Start of operation interval
 
         participantAgent ! MockRequestMessage(
-          operationInterval.start,
+          8 * 3600,
           responseReceiver.ref,
         )
         responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
 
-        activationRef ! Activation(operationInterval.start)
+        activationRef ! Activation(8 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getP should equalWithTolerance(0.006.asMegaWatt)
             result.getQ should equalWithTolerance(0.00290593262.asMegaVar)
         }
 
         scheduler.expectMessage(
-          Completion(activationRef, Some(operationInterval.end))
+          Completion(activationRef, Some(20 * 3600))
         )
 
         // TICK 12 * 3600: GridAgent requests power
@@ -201,12 +210,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         participantAgent ! MockRequestMessage(20 * 3600, responseReceiver.ref)
         responseReceiver.expectMessage(MockResponseMessage(KilowattHours(72)))
 
-        activationRef ! Activation(operationInterval.end)
+        activationRef ! Activation(20 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
         }
@@ -246,21 +255,21 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
 
         // with additional activation ticks
-        val model = new MockParticipantModel(mockActivationTicks =
+        val modelFactory = MockParticipantModel.Factory(mockActivationTicks =
           Map(
             0 * 3600L -> 4 * 3600L, // still before operation, is ignored
             8 * 3600L -> 12 * 3600L, // middle of operation
             12 * 3600L -> 22 * 3600L, // after operation, is ignored
           )
         )
-        val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
         val participantAgent = spawn(
           ParticipantAgentMockFactory.create(
-            ParticipantModelShell(
-              model,
-              operationInterval,
+            ParticipantModelShell.create(
+              modelFactory,
+              operationTime,
               simulationStartDate,
+              simulationEndDate,
             ),
             ParticipantInputHandler(
               Map.empty
@@ -283,17 +292,17 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // TICK 8 * 3600: Start of operation interval
 
         participantAgent ! MockRequestMessage(
-          operationInterval.start,
+          8 * 3600,
           responseReceiver.ref,
         )
         responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
 
-        activationRef ! Activation(operationInterval.start)
+        activationRef ! Activation(8 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getP should equalWithTolerance(0.006.asMegaWatt)
             result.getQ should equalWithTolerance(0.00290593262.asMegaVar)
         }
@@ -331,14 +340,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // calculation should start now
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getP should equalWithTolerance(0.006.asMegaWatt)
             result.getQ should equalWithTolerance(0.00290593262.asMegaVar)
         }
 
         scheduler.expectMessage(
-          Completion(activationRef, Some(operationInterval.end))
+          Completion(activationRef, Some(20 * 3600))
         )
 
         // TICK 14 * 3600: Mock request
@@ -351,12 +360,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         participantAgent ! MockRequestMessage(20 * 3600, responseReceiver.ref)
         responseReceiver.expectMessage(MockResponseMessage(KilowattHours(72)))
 
-        activationRef ! Activation(operationInterval.end)
+        activationRef ! Activation(20 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
         }
@@ -401,21 +410,21 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
 
         // with additional activation ticks
-        val model = new MockParticipantModel(mockActivationTicks =
+        val modelFactory = MockParticipantModel.Factory(mockActivationTicks =
           Map(
             0 * 3600L -> 4 * 3600L, // still before operation, is ignored
             8 * 3600L -> 12 * 3600L, // middle of operation
             12 * 3600L -> 22 * 3600L, // after operation, is ignored
           )
         )
-        val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
         val participantAgent = spawn(
           ParticipantAgentMockFactory.create(
-            ParticipantModelShell(
-              model,
-              operationInterval,
+            ParticipantModelShell.create(
+              modelFactory,
+              operationTime,
               simulationStartDate,
+              simulationEndDate,
             ),
             ParticipantInputHandler(
               Map(service.ref -> 0)
@@ -456,7 +465,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // outside of operation interval, 0 MW
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe simulationStartDate
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
@@ -465,7 +474,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // next model tick and next data tick are ignored,
         // because we are outside of operation interval
         scheduler.expectMessage(
-          Completion(activationRef, Some(operationInterval.start))
+          Completion(activationRef, Some(8 * 3600))
         )
 
         // TICK 6 * 3600: Outside of operation interval, only data expected, no activation
@@ -486,17 +495,17 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // TICK 8 * 3600: Start of operation interval
 
         participantAgent ! MockRequestMessage(
-          operationInterval.start,
+          8 * 3600,
           responseReceiver.ref,
         )
         responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
 
-        activationRef ! Activation(operationInterval.start)
+        activationRef ! Activation(8 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getP should equalWithTolerance(0.009.asMegaWatt)
             result.getQ should equalWithTolerance(0.00435889893.asMegaVar)
         }
@@ -543,7 +552,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // calculation should start now
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getP should equalWithTolerance(0.012.asMegaWatt)
             result.getQ should equalWithTolerance(0.005811865258.asMegaVar)
@@ -599,14 +608,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // calculation should start now
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (18 * 3600).toDateTime
             result.getP should equalWithTolerance(0.015.asMegaWatt)
             result.getQ should equalWithTolerance(0.00726483157257.asMegaVar)
         }
 
         scheduler.expectMessage(
-          Completion(activationRef, Some(operationInterval.end))
+          Completion(activationRef, Some(20 * 3600))
         )
 
         // TICK 20 * 3600: Outside of operation interval (last tick)
@@ -614,12 +623,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         participantAgent ! MockRequestMessage(20 * 3600, responseReceiver.ref)
         responseReceiver.expectMessage(MockResponseMessage(KilowattHours(138)))
 
-        activationRef ! Activation(operationInterval.end)
+        activationRef ! Activation(20 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
         }
@@ -670,18 +679,18 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // no additional activation ticks
         val physicalModel = new MockParticipantModel()
 
-        val model = ParticipantModelInit.createPrimaryModel(
+        val modelFactory = PrimaryDataParticipantModel.Factory(
           physicalModel,
           ActivePowerExtra,
         )
-        val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
         val participantAgent = spawn(
           ParticipantAgentMockFactory.create(
-            ParticipantModelShell(
-              model,
-              operationInterval,
+            ParticipantModelShell.create(
+              modelFactory,
+              operationTime,
               simulationStartDate,
+              simulationEndDate,
             ),
             ParticipantInputHandler(
               Map(service.ref -> 0)
@@ -719,7 +728,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // outside of operation interval, 0 MW
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe simulationStartDate
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
@@ -728,7 +737,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // next model tick and next data tick are ignored,
         // because we are outside of operation interval
         scheduler.expectMessage(
-          Completion(activationRef, Some(operationInterval.start))
+          Completion(activationRef, Some(8 * 3600))
         )
 
         // TICK 6 * 3600: Outside of operation interval, only data expected, no activation
@@ -745,12 +754,12 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 8 * 3600: Start of operation interval
 
-        activationRef ! Activation(operationInterval.start)
+        activationRef ! Activation(8 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
@@ -794,7 +803,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // calculation should start now
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getP should equalWithTolerance(0.006.asMegaWatt)
             result.getQ should equalWithTolerance(0.00290593263.asMegaVar)
@@ -823,24 +832,24 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // calculation should start now
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (18 * 3600).toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
         scheduler.expectMessage(
-          Completion(activationRef, Some(operationInterval.end))
+          Completion(activationRef, Some(20 * 3600))
         )
 
         // TICK 20 * 3600: Outside of operation interval (last tick)
 
-        activationRef ! Activation(operationInterval.end)
+        activationRef ! Activation(20 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
         }
@@ -890,15 +899,15 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
 
         // no additional activation ticks
-        val model = new MockParticipantModel()
-        val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
+        val modelFactory = MockParticipantModel.Factory()
 
         val participantAgent = spawn(
           ParticipantAgentMockFactory.create(
-            ParticipantModelShell(
-              model,
-              operationInterval,
+            ParticipantModelShell.create(
+              modelFactory,
+              operationTime,
               simulationStartDate,
+              simulationEndDate,
             ),
             ParticipantInputHandler(
               Map.empty
@@ -920,19 +929,19 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // TICK 8 * 3600: Start of operation interval
 
         participantAgent ! MockRequestMessage(
-          operationInterval.start,
+          8 * 3600,
           responseReceiver.ref,
         )
         responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
 
-        flexRef ! FlexActivation(operationInterval.start)
+        flexRef ! FlexActivation(8 * 3600)
 
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(1))
             min should approximate(Kilowatts(-1))
             max should approximate(Kilowatts(3))
@@ -940,34 +949,34 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.001.asMegaWatt)
             result.getpMin() should equalWithTolerance(-0.001.asMegaWatt)
             result.getpMax() should equalWithTolerance(0.003.asMegaWatt)
         }
 
-        flexRef ! IssuePowerControl(operationInterval.start, Kilowatts(3))
+        flexRef ! IssuePowerControl(8 * 3600, Kilowatts(3))
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(3))
             result.q should approximate(Kilovars(1.4529663145))
         }
 
         em.expectMessage(
           FlexCompletion(
-            model.uuid,
-            requestAtTick = Some(operationInterval.end),
+            MockParticipantModel.uuid,
+            requestAtTick = Some(20 * 3600),
           )
         )
 
@@ -997,14 +1006,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         participantAgent ! MockRequestMessage(20 * 3600, responseReceiver.ref)
         responseReceiver.expectMessage(MockResponseMessage(KilowattHours(36)))
 
-        flexRef ! FlexActivation(operationInterval.end)
+        flexRef ! FlexActivation(20 * 3600)
 
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
@@ -1012,31 +1021,31 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.asMegaWatt)
             result.getpMax() should equalWithTolerance(0.asMegaWatt)
         }
 
-        flexRef ! IssueNoControl(operationInterval.end)
+        flexRef ! IssueNoControl(20 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
         }
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(0))
             result.q should approximate(Kilovars(0))
         }
 
-        em.expectMessage(FlexCompletion(model.uuid))
+        em.expectMessage(FlexCompletion(MockParticipantModel.uuid))
 
         // TICK 24 * 3600: GridAgent requests power
 
@@ -1069,7 +1078,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
 
         // with additional activation ticks
-        val model = new MockParticipantModel(
+        val modelFactory = MockParticipantModel.Factory(
           mockActivationTicks = Map(
             0 * 3600L -> 4 * 3600L, // out of operation, is ignored
             8 * 3600L -> 12 * 3600L, // in operation
@@ -1081,14 +1090,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             20 * 3600, // out of operation, is ignored
           ),
         )
-        val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
         val participantAgent = spawn(
           ParticipantAgentMockFactory.create(
-            ParticipantModelShell(
-              model,
-              operationInterval,
+            ParticipantModelShell.create(
+              modelFactory,
+              operationTime,
               simulationStartDate,
+              simulationEndDate,
             ),
             ParticipantInputHandler(
               Map.empty
@@ -1109,14 +1118,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 8 * 3600: Start of operation interval
 
-        flexRef ! FlexActivation(operationInterval.start)
+        flexRef ! FlexActivation(8 * 3600)
 
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(1))
             min should approximate(Kilowatts(-1))
             max should approximate(Kilowatts(3))
@@ -1124,33 +1133,33 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.001.asMegaWatt)
             result.getpMin() should equalWithTolerance(-0.001.asMegaWatt)
             result.getpMax() should equalWithTolerance(0.003.asMegaWatt)
         }
 
-        flexRef ! IssuePowerControl(operationInterval.start, Kilowatts(3))
+        flexRef ! IssuePowerControl(8 * 3600, Kilowatts(3))
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(3))
             result.q should approximate(Kilovars(1.4529663145))
         }
 
         em.expectMessage(
           FlexCompletion(
-            model.uuid,
+            MockParticipantModel.uuid,
             requestAtTick = Some(12 * 3600),
           )
         )
@@ -1186,7 +1195,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(1))
             min should approximate(Kilowatts(-1))
             max should approximate(Kilowatts(3))
@@ -1194,7 +1203,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.001.asMegaWatt)
             result.getpMin() should equalWithTolerance(-0.001.asMegaWatt)
@@ -1205,7 +1214,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getP should equalWithTolerance(0.001.asMegaWatt)
             result.getQ should equalWithTolerance(0.0004843221.asMegaVar)
@@ -1213,29 +1222,29 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(1))
             result.q should approximate(Kilovars(0.4843221048))
         }
 
         em.expectMessage(
           FlexCompletion(
-            model.uuid,
+            MockParticipantModel.uuid,
             requestAtNextActivation = true,
-            requestAtTick = Some(operationInterval.end),
+            requestAtTick = Some(20 * 3600),
           )
         )
 
         // TICK 20 * 3600: Outside of operation interval (last tick)
 
-        flexRef ! FlexActivation(operationInterval.end)
+        flexRef ! FlexActivation(20 * 3600)
 
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
@@ -1243,31 +1252,31 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.asMegaWatt)
             result.getpMax() should equalWithTolerance(0.asMegaWatt)
         }
 
-        flexRef ! IssueNoControl(operationInterval.end)
+        flexRef ! IssueNoControl(20 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
         }
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(0))
             result.q should approximate(Kilovars(0))
         }
 
-        em.expectMessage(FlexCompletion(model.uuid))
+        em.expectMessage(FlexCompletion(MockParticipantModel.uuid))
 
         // TICK 24 * 3600: GridAgent requests power
 
@@ -1308,7 +1317,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
 
         // with additional activation ticks
-        val model = new MockParticipantModel(
+        val modelFactory = MockParticipantModel.Factory(
           mockActivationTicks = Map(
             0 * 3600L -> 4 * 3600L, // out of operation, is ignored
             8 * 3600L -> 12 * 3600L, // in operation
@@ -1320,14 +1329,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             20 * 3600, // out of operation, is ignored
           ),
         )
-        val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
         val participantAgent = spawn(
           ParticipantAgentMockFactory.create(
-            ParticipantModelShell(
-              model,
-              operationInterval,
+            ParticipantModelShell.create(
+              modelFactory,
+              operationTime,
               simulationStartDate,
+              simulationEndDate,
             ),
             ParticipantInputHandler(
               Map(service.ref -> 0)
@@ -1369,7 +1378,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
@@ -1377,7 +1386,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe simulationStartDate
             result.getpRef() should equalWithTolerance(0.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.asMegaWatt)
@@ -1389,7 +1398,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // outside of operation interval, 0 MW
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe simulationStartDate
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
@@ -1397,7 +1406,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(0))
             result.q should approximate(Kilovars(0))
         }
@@ -1406,8 +1415,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // because we are outside of operation interval
         em.expectMessage(
           FlexCompletion(
-            model.uuid,
-            requestAtTick = Some(operationInterval.start),
+            MockParticipantModel.uuid,
+            requestAtTick = Some(8 * 3600),
           )
         )
 
@@ -1429,19 +1438,19 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // TICK 8 * 3600: Start of operation interval
 
         participantAgent ! MockRequestMessage(
-          operationInterval.start,
+          8 * 3600,
           responseReceiver.ref,
         )
         responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
 
-        flexRef ! FlexActivation(operationInterval.start)
+        flexRef ! FlexActivation(8 * 3600)
 
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(2))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(4))
@@ -1449,26 +1458,26 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.002.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.asMegaWatt)
             result.getpMax() should equalWithTolerance(0.004.asMegaWatt)
         }
 
-        flexRef ! IssuePowerControl(operationInterval.start, Kilowatts(3))
+        flexRef ! IssuePowerControl(8 * 3600, Kilowatts(3))
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(3))
             result.q should approximate(Kilovars(1.4529663145))
         }
@@ -1476,7 +1485,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // next model tick and next data tick are both hour 12
         em.expectMessage(
           FlexCompletion(
-            model.uuid,
+            MockParticipantModel.uuid,
             requestAtTick = Some(12 * 3600),
           )
         )
@@ -1521,7 +1530,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(3))
             min should approximate(Kilowatts(1))
             max should approximate(Kilowatts(5))
@@ -1529,7 +1538,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.003.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.001.asMegaWatt)
@@ -1540,7 +1549,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
@@ -1548,14 +1557,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(3))
             result.q should approximate(Kilovars(1.4529663145))
         }
 
         em.expectMessage(
           FlexCompletion(
-            model.uuid,
+            MockParticipantModel.uuid,
             requestAtTick = Some(18 * 3600),
           )
         )
@@ -1584,7 +1593,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(6))
             min should approximate(Kilowatts(4))
             max should approximate(Kilowatts(8))
@@ -1592,7 +1601,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (18 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.006.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.004.asMegaWatt)
@@ -1603,7 +1612,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (18 * 3600).toDateTime
             result.getP should equalWithTolerance(0.006.asMegaWatt)
             result.getQ should equalWithTolerance(0.002905932629.asMegaVar)
@@ -1611,16 +1620,16 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(6))
             result.q should approximate(Kilovars(2.905932629))
         }
 
         em.expectMessage(
           FlexCompletion(
-            model.uuid,
+            MockParticipantModel.uuid,
             requestAtNextActivation = true,
-            requestAtTick = Some(operationInterval.end),
+            requestAtTick = Some(20 * 3600),
           )
         )
 
@@ -1629,14 +1638,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         participantAgent ! MockRequestMessage(20 * 3600, responseReceiver.ref)
         responseReceiver.expectMessage(MockResponseMessage(KilowattHours(42)))
 
-        flexRef ! FlexActivation(operationInterval.end)
+        flexRef ! FlexActivation(20 * 3600)
 
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
@@ -1644,32 +1653,32 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.asMegaWatt)
             result.getpMax() should equalWithTolerance(0.asMegaWatt)
         }
 
-        flexRef ! IssueNoControl(operationInterval.end)
+        flexRef ! IssueNoControl(20 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
         }
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(0))
             result.q should approximate(Kilovars(0))
         }
 
         // Since we left the operation interval, there are no more ticks to activate
-        em.expectMessage(FlexCompletion(model.uuid))
+        em.expectMessage(FlexCompletion(MockParticipantModel.uuid))
 
         // TICK 24 * 3600: GridAgent requests power
 
@@ -1714,18 +1723,18 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // no additional activation ticks
         val physicalModel = new MockParticipantModel()
 
-        val model = ParticipantModelInit.createPrimaryModel(
+        val modelFactory = PrimaryDataParticipantModel.Factory(
           physicalModel,
           ActivePowerExtra,
         )
-        val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
         val participantAgent = spawn(
           ParticipantAgentMockFactory.create(
-            ParticipantModelShell(
-              model,
-              operationInterval,
+            ParticipantModelShell.create(
+              modelFactory,
+              operationTime,
               simulationStartDate,
+              simulationEndDate,
             ),
             ParticipantInputHandler(
               Map(service.ref -> 0)
@@ -1764,7 +1773,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
@@ -1772,7 +1781,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe simulationStartDate
             result.getpRef() should equalWithTolerance(0.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.asMegaWatt)
@@ -1784,7 +1793,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // outside of operation interval, 0 MW
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe simulationStartDate
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
@@ -1792,7 +1801,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(0))
             result.q should approximate(Kilovars(0))
         }
@@ -1801,8 +1810,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // because we are outside of operation interval
         em.expectMessage(
           FlexCompletion(
-            model.uuid,
-            requestAtTick = Some(operationInterval.start),
+            MockParticipantModel.uuid,
+            requestAtTick = Some(8 * 3600),
           )
         )
 
@@ -1820,14 +1829,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 8 * 3600: Start of operation interval
 
-        flexRef ! FlexActivation(operationInterval.start)
+        flexRef ! FlexActivation(8 * 3600)
 
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(3))
             min should approximate(Kilowatts(3))
             max should approximate(Kilowatts(3))
@@ -1835,26 +1844,26 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.003.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.003.asMegaWatt)
             result.getpMax() should equalWithTolerance(0.003.asMegaWatt)
         }
 
-        flexRef ! IssuePowerControl(operationInterval.start, Kilowatts(3))
+        flexRef ! IssuePowerControl(8 * 3600, Kilowatts(3))
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (8 * 3600).toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(3))
             result.q should approximate(Kilovars(1.4529663145))
         }
@@ -1862,7 +1871,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // next data tick is hour 12
         em.expectMessage(
           FlexCompletion(
-            model.uuid,
+            MockParticipantModel.uuid,
             requestAtTick = Some(12 * 3600),
           )
         )
@@ -1904,7 +1913,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(6))
             min should approximate(Kilowatts(6))
             max should approximate(Kilowatts(6))
@@ -1912,7 +1921,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.006.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.006.asMegaWatt)
@@ -1923,7 +1932,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getP should equalWithTolerance(0.006.asMegaWatt)
             result.getQ should equalWithTolerance(0.002905932629.asMegaVar)
@@ -1931,14 +1940,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(6))
             result.q should approximate(Kilovars(2.905932629))
         }
 
         em.expectMessage(
           FlexCompletion(
-            model.uuid,
+            MockParticipantModel.uuid,
             requestAtTick = Some(18 * 3600),
           )
         )
@@ -1964,7 +1973,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(3))
             min should approximate(Kilowatts(3))
             max should approximate(Kilowatts(3))
@@ -1972,7 +1981,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (18 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.003.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.003.asMegaWatt)
@@ -1983,7 +1992,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
+            result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (18 * 3600).toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
             result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
@@ -1991,28 +2000,28 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(3))
             result.q should approximate(Kilovars(1.4529663145))
         }
 
         em.expectMessage(
           FlexCompletion(
-            model.uuid,
-            requestAtTick = Some(operationInterval.end),
+            MockParticipantModel.uuid,
+            requestAtTick = Some(20 * 3600),
           )
         )
 
         // TICK 20 * 3600: Outside of operation interval (last tick)
 
-        flexRef ! FlexActivation(operationInterval.end)
+        flexRef ! FlexActivation(20 * 3600)
 
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            modelUuid shouldBe model.uuid
+            modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
             min should approximate(Kilowatts(0))
             max should approximate(Kilowatts(0))
@@ -2020,32 +2029,32 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         resultListener.expectMessageType[FlexOptionsResultEvent] match {
           case FlexOptionsResultEvent(result: FlexOptionsResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.asMegaWatt)
             result.getpMin() should equalWithTolerance(0.asMegaWatt)
             result.getpMax() should equalWithTolerance(0.asMegaWatt)
         }
 
-        flexRef ! IssueNoControl(operationInterval.end)
+        flexRef ! IssueNoControl(20 * 3600)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getInputModel shouldBe MockParticipantModel.uuid
+            result.getTime shouldBe (20 * 3600).toDateTime
             result.getP should equalWithTolerance(0.0.asMegaWatt)
             result.getQ should equalWithTolerance(0.0.asMegaVar)
         }
 
         em.expectMessageType[FlexResult] match {
           case FlexResult(uuid, result) =>
-            uuid shouldBe model.uuid
+            uuid shouldBe MockParticipantModel.uuid
             result.p should approximate(Kilowatts(0))
             result.q should approximate(Kilovars(0))
         }
 
         // Since we left the operation interval, there are no more ticks to activate
-        em.expectMessage(FlexCompletion(model.uuid))
+        em.expectMessage(FlexCompletion(MockParticipantModel.uuid))
 
         // TICK 24 * 3600: GridAgent requests power
 
