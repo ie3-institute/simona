@@ -669,7 +669,7 @@ final case class ThermalGrid(
       ) match {
         case (Some(house: ThermalHouse), true, true) =>
           createThermalHouseResult(house)
-          // We always want the results of the first tick
+        // We always want the results of the first tick
         case (Some(house: ThermalHouse), _, false) =>
           createThermalHouseResult(house)
         case _ => None
