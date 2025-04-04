@@ -78,8 +78,7 @@ object ParticipantModelInit {
                 s"model input container ${other.getClass.getSimpleName} is not implemented."
             )
         }
-
-        HpModel(input, thermalGrid)
+        HpModel.Factory(input, thermalGrid)
       case (input: PvInput, _) =>
         PvModel.Factory(input)
       case (input: WecInput, _) =>

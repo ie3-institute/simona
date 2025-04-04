@@ -30,6 +30,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.model.thermal.ThermalGrid._
@@ -38,7 +39,11 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{
+  zeroCelsius,
+  zeroKW,
+  zeroKWh,
+}
 import edu.ie3.util.scala.quantities._
 import squants._
 import squants.energy.Kilowatts
@@ -60,39 +65,6 @@ class HpModel private (
       HpState,
     ]
     with LazyLogging {
-
-  override val initialState: (Long, ZonedDateTime) => HpState = { (tick, _) =>
-    val preOperatingPoint =
-      HpOperatingPoint(zeroKW, ThermalOpWrapper.zero)
-    val preHpState = HpState(
-      tick,
-      Celsius(20d),
-      ThermalGridState(
-        startingState(thermalGrid).houseState,
-        startingState(thermalGrid).storageState,
-      ),
-      preOperatingPoint,
-      Celsius(20d),
-      ThermalDemandWrapper(
-        ThermalEnergyDemand(zeroKWh, zeroKWh),
-        ThermalEnergyDemand(zeroKWh, zeroKWh),
-      ),
-    )
-
-    val thermalGridState =
-      thermalGrid.updatedThermalGridState(
-        tick,
-        preHpState,
-        preOperatingPoint,
-      )
-
-    val thermalDemands = thermalGrid.determineEnergyDemand(thermalGridState)
-
-    preHpState.copy(
-      thermalDemands = thermalDemands,
-      thermalGridState = thermalGridState,
-    )
-  }
 
   override def determineState(
       state: HpState,
@@ -316,9 +288,6 @@ class HpModel private (
     }
   }
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.WeatherService)
-
   /** Calculate the active power behaviour of the model.
     *
     * @param state
@@ -467,28 +436,53 @@ object HpModel {
       thermalDemands: ThermalDemandWrapper,
   ) extends ModelState
 
-  def apply(
-      hpInput: HpInput,
+  final case class Factory(
+      input: HpInput,
       thermalGrid: PsdmThermalGrid,
-  ): HpModel =
-    new HpModel(
-      hpInput.getUuid,
-      hpInput.getId,
-      Kilovoltamperes(
-        hpInput.getType.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
-      hpInput.getType.getCosPhiRated,
-      QControl(hpInput.getqCharacteristics),
-      Kilowatts(
-        hpInput.getType
-          .getpThermal()
-          .to(PowerSystemUnits.KILOWATT)
-          .getValue
-          .doubleValue
-      ),
-      ThermalGrid(thermalGrid),
-    )
+  ) extends ParticipantModelFactory[HpState] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.WeatherService)
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): HpState = {
+
+      val therGrid = ThermalGrid(thermalGrid)
+      val initialState = ThermalGrid.startingState(therGrid)
+      val thermalDemand = therGrid.determineEnergyDemand(initialState)
+
+      HpState(
+        tick,
+        zeroCelsius,
+        initialState,
+        HpOperatingPoint.zero,
+        zeroCelsius,
+        thermalDemand,
+      )
+    }
+
+    override def create(): HpModel =
+      new HpModel(
+        input.getUuid,
+        input.getId,
+        Kilovoltamperes(
+          input.getType.getsRated
+            .to(PowerSystemUnits.KILOVOLTAMPERE)
+            .getValue
+            .doubleValue
+        ),
+        input.getType.getCosPhiRated,
+        QControl(input.getqCharacteristics),
+        Kilowatts(
+          input.getType
+            .getpThermal()
+            .to(PowerSystemUnits.KILOWATT)
+            .getValue
+            .doubleValue
+        ),
+        ThermalGrid(thermalGrid),
+      )
+  }
 }
