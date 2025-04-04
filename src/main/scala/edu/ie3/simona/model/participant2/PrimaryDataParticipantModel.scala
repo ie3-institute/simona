@@ -162,8 +162,7 @@ object PrimaryDataParticipantModel {
         tick,
       )
 
-    override def create()
-        : ParticipantModel[_ <: OperatingPoint, PrimaryDataState[PD]] = {
+    override def create(): PrimaryDataParticipantModel[PD] = {
       val primaryResultFunc = new PrimaryResultFunc {
         override def createResult(
             data: PrimaryData.PrimaryDataWithComplexPower[_],

@@ -60,10 +60,7 @@ object FixedLoadModel {
         simulationTime: ZonedDateTime,
     ): FixedState = FixedState(tick)
 
-    override def create(): ParticipantModel[
-      _ <: OperatingPoint,
-      FixedState,
-    ] = {
+    override def create(): FixedLoadModel = {
       val referenceType = LoadReferenceType(config.reference)
 
       val sRated = Kilovoltamperes(
