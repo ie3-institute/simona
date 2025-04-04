@@ -662,8 +662,15 @@ final case class ThermalGrid(
     }
 
     val maybeHouseResult = {
-      (house, currentOpThermals.qDotHouse != lastOpThermals.qDotHouse) match {
-        case (Some(house: ThermalHouse), true) =>
+      (
+        house,
+        currentOpThermals.qDotHouse != lastOpThermals.qDotHouse,
+        state.tick != 0,
+      ) match {
+        case (Some(house: ThermalHouse), true, true) =>
+          createThermalHouseResult(house)
+          // We always want the results of the first tick
+        case (Some(house: ThermalHouse), _, false) =>
           createThermalHouseResult(house)
         case _ => None
       }
@@ -673,8 +680,12 @@ final case class ThermalGrid(
       (
         heatStorage,
         currentOpThermals.qDotHeatStorage != lastOpThermals.qDotHeatStorage,
+        state.tick != 0,
       ) match {
-        case (Some(storage: CylindricalThermalStorage), true) =>
+        case (Some(storage: CylindricalThermalStorage), true, true) =>
+          createCylindricalStorageResult(storage)
+        // We always want the results of the first tick
+        case (Some(storage: CylindricalThermalStorage), _, false) =>
           createCylindricalStorageResult(storage)
         case _ => None
       }
