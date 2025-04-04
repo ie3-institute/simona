@@ -65,7 +65,7 @@ class PowerFlowSupportSpec
     with PowerFlowSupport
     with GridResultsSupport {
 
-  implicit val log: Logger = LoggerFactory.getLogger(this.getClass)
+  given log: Logger = LoggerFactory.getLogger(this.getClass)
   val actorRef: ActorRef[GridAgent.Request] =
     TestProbe[GridAgent.Request]("mock_grid_agent").ref
 
@@ -97,8 +97,7 @@ class PowerFlowSupportSpec
       ),
     )
 
-  val currentTolerance = 1e-3 // 1 mA
-  val angleTolerance = 1e-3 // 0.001 deg
+  given currentAnAngleTolerance: Double = 1e-3 // 1 mA, 0.001 deg
 
   /** We test for angle regardless of direction of the lines here, thus
     * normalize to [0, 180] degrees
@@ -166,21 +165,13 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => loadLinesLeft.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              30.4954d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              30.4954d.asAmpere,
-              currentTolerance,
-            )
+            lineRes.getiAMag() should equalWithTolerance(30.4954d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(30.4954d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance,
+              179.7095d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance,
+              179.7095d.asDegreeGeom
             )
           }
 
@@ -194,21 +185,13 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => loadLinesRight.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              27.723d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              27.723d.asAmpere,
-              currentTolerance,
-            )
+            lineRes.getiAMag() should equalWithTolerance(27.723d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(27.723d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance,
+              179.7095d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance,
+              179.7095d.asDegreeGeom
             )
           }
 
@@ -262,14 +245,8 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => loadLinesLeft.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance,
-            )
+            lineRes.getiAMag() should equalWithTolerance(0.0001d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(0.0001d.asAmpere)
             // angles are not reliable enough with such small magnitudes
           }
 
@@ -279,21 +256,13 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => loadLinesRight.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              58.6017d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              58.6017d.asAmpere,
-              currentTolerance,
-            )
+            lineRes.getiAMag() should equalWithTolerance(58.6017d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(58.6017d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.4090d.asDegreeGeom,
-              angleTolerance,
+              179.4090d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.4090d.asDegreeGeom,
-              angleTolerance,
+              179.4090d.asDegreeGeom
             )
           }
 
@@ -347,21 +316,13 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => expectedLoadLines.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              58.5343d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              58.5343d.asAmpere,
-              currentTolerance,
-            )
+            lineRes.getiAMag() should equalWithTolerance(58.5343d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(58.5343d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.461d.asDegreeGeom,
-              angleTolerance,
+              179.461d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.461d.asDegreeGeom,
-              angleTolerance,
+              179.461d.asDegreeGeom
             )
           }
 
@@ -373,14 +334,8 @@ class PowerFlowSupportSpec
             expectedNoLoadLines.contains(lineRes.getInputModel)
           )
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance,
-            )
+            lineRes.getiAMag() should equalWithTolerance(0.0001d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(0.0001d.asAmpere)
             // angles are not reliable enough with such small magnitudes
           }
 

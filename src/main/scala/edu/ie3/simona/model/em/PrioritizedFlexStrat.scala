@@ -109,7 +109,10 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
-              (inputModel, flexOption: MinMaxFlexOptions),
+              (
+                inputModel: SystemParticipantInput,
+                flexOption: MinMaxFlexOptions,
+              ),
             ) =>
           // potential for decreasing feed-in/increasing load (negative)
           val flexPotential =
@@ -158,7 +161,10 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
-              (inputModel, flexOption: MinMaxFlexOptions),
+              (
+                inputModel: SystemParticipantInput,
+                flexOption: MinMaxFlexOptions,
+              ),
             ) =>
           // potential for decreasing load/increasing feed-in
           val flexPotential =

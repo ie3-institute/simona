@@ -145,7 +145,7 @@ object PrimaryDataParticipantModel {
     * @param primaryDataExtra
     *   Extra functionality specific to the primary data class.
     */
-  final case class Factory[PD <: PrimaryData: ClassTag](
+  final case class Factory[PD <: PrimaryData](
       physicalModel: ParticipantModel[_, _],
       primaryDataExtra: PrimaryDataExtra[PD],
   ) extends ParticipantModelFactory[PrimaryDataState[PD]] {
