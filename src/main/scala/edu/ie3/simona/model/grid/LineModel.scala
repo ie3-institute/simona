@@ -154,10 +154,10 @@ case object LineModel extends LazyLogging {
 
     val lineType = lineInput.getType
     val (r, x, g, b) = (
-      refSystem.rInPu(lineType.getR.toOhms),
-      refSystem.xInPu(lineType.getX.toOhms),
-      refSystem.gInPu(lineType.getG.toSiemens),
-      refSystem.bInPu(lineType.getB.toSiemens),
+      refSystem.rInPu(lineType.getR.toSquants),
+      refSystem.xInPu(lineType.getX.toSquants),
+      refSystem.gInPu(lineType.getG.toSquants),
+      refSystem.bInPu(lineType.getB.toSquants),
     )
 
     val operationInterval =
@@ -174,7 +174,7 @@ case object LineModel extends LazyLogging {
       lineInput.getNodeA.getUuid,
       lineInput.getNodeB.getUuid,
       lineInput.getParallelDevices,
-      lineType.getiMax().toAmperes,
+      lineType.getiMax().toSquants,
       r,
       x,
       g,

@@ -386,9 +386,9 @@ object HpModel {
       scaledInput.getId,
       operationInterval,
       qControl,
-      scaledInput.getType.getsRated.toKilovoltamperes,
+      scaledInput.getType.getsRated.toApparent,
       scaledInput.getType.getCosPhiRated,
-      scaledInput.getType.getpThermal.toKilowatts,
+      scaledInput.getType.getpThermal.toSquants,
       thermalGrid,
     )
 

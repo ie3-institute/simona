@@ -143,10 +143,10 @@ case object TransformerModel {
     /* Determine the physical pi equivalent circuit diagram parameters from the perspective
      * of the transformer's low voltage side */
     val (rTrafo, xTrafo, gTrafo, bTrafo) = (
-      trafoType.getrSc.toOhms / squaredNominalVoltRatio.doubleValue,
-      trafoType.getxSc.toOhms / squaredNominalVoltRatio.doubleValue,
-      trafoType.getgM.toSiemens * squaredNominalVoltRatio.doubleValue,
-      trafoType.getbM().toSiemens * squaredNominalVoltRatio.doubleValue,
+      trafoType.getrSc.toSquants / squaredNominalVoltRatio.doubleValue,
+      trafoType.getxSc.toSquants / squaredNominalVoltRatio.doubleValue,
+      trafoType.getgM.toSquants * squaredNominalVoltRatio.doubleValue,
+      trafoType.getbM().toSquants * squaredNominalVoltRatio.doubleValue,
     )
 
     /* Transfer the dimensionless parameters into the grid reference system */
@@ -161,12 +161,12 @@ case object TransformerModel {
     val calcINom
         : squants.electro.ElectricPotential => squants.electro.ElectricCurrent = {
       portVoltage: squants.electro.ElectricPotential =>
-        trafoType.getsRated.toKilovoltamperes / Math.sqrt(3) / portVoltage
+        trafoType.getsRated.toApparent / Math.sqrt(3) / portVoltage
     }
     val (iNomHv, iNomLv) =
       (
-        calcINom(trafoType.getvRatedA.toKilovolts),
-        calcINom(trafoType.getvRatedB.toKilovolts),
+        calcINom(trafoType.getvRatedA.toSquants),
+        calcINom(trafoType.getvRatedB.toSquants),
       )
 
     // get the element port, where the transformer tap is located

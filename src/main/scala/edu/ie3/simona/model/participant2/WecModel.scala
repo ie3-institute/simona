@@ -287,10 +287,10 @@ object WecModel {
       new WecModel(
         input.getUuid,
         input.getId,
-        input.getType.getsRated.toKilovoltamperes,
+        input.getType.getsRated.toApparent,
         input.getType.getCosPhiRated,
         QControl(input.getqCharacteristics),
-        input.getType.getRotorArea.toSquareMeters,
+        input.getType.getRotorArea.toSquants,
         WecCharacteristic(input.getType.getCpCharacteristic),
       )
 

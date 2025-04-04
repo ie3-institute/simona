@@ -278,15 +278,15 @@ object PvModel {
       new PvModel(
         input.getUuid,
         input.getId,
-        input.getsRated.toKilovoltamperes,
+        input.getsRated.toApparent,
         input.getCosPhiRated,
         QControl(input.getqCharacteristics),
         Degrees(input.getNode.getGeoPosition.getY),
         Degrees(input.getNode.getGeoPosition.getX),
         input.getAlbedo,
         input.getEtaConv.toPercent,
-        input.getAzimuth.toRadians,
-        input.getElevationAngle.toRadians,
+        input.getAzimuth.toSquants,
+        input.getElevationAngle.toSquants,
       )
 
   }

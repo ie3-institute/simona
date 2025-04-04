@@ -21,12 +21,10 @@ import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
-  OperatingPoint,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant2.load.random.RandomLoadModel
-import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyToSimona,
@@ -99,8 +97,8 @@ object LoadModel {
       maxPower: Power,
       referenceEnergy: Energy,
   ): (Double, ApparentPower) = {
-    val sRated = input.getsRated.toKilovoltamperes
-    val eConsAnnual = input.geteConsAnnual().toKilowattHours
+    val sRated = input.getsRated.toApparent
+    val eConsAnnual = input.geteConsAnnual().toSquants
 
     val referenceScalingFactor = referenceType match {
       case LoadReferenceType.ACTIVE_POWER =>

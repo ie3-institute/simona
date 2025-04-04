@@ -324,8 +324,8 @@ case object Transformer3wModel extends LazyLogging {
   ) = {
     val transformerRefSystem =
       RefSystem(
-        transformerType.getsRatedA.toMegawatts,
-        transformerType.getvRatedA.toKilovolts,
+        transformerType.getsRatedA.toSquants,
+        transformerType.getvRatedA.toSquants,
       )
 
     /* Get the physical equivalent circuit diagram parameters from type. They come with reference to the highest
@@ -333,29 +333,29 @@ case object Transformer3wModel extends LazyLogging {
     val (rTrafo, xTrafo, gTrafo, bTrafo) = powerFlowCase match {
       case PowerFlowCaseA =>
         (
-          transformerType.getrScA.toOhms,
-          transformerType.getxScA.toOhms,
-          transformerType.getgM.toSiemens,
-          transformerType.getbM.toSiemens,
+          transformerType.getrScA.toSquants,
+          transformerType.getxScA.toSquants,
+          transformerType.getgM.toSquants,
+          transformerType.getbM.toSquants,
         )
       case PowerFlowCaseB =>
         val nominalRatio = transformerType
           .getvRatedA()
-          .toKilovolts / transformerType.getvRatedB().toKilovolts
+          .toSquants / transformerType.getvRatedB().toSquants
 
         (
-          transformerType.getrScB.toOhms / pow(nominalRatio, 2),
-          transformerType.getxScB.toOhms / pow(nominalRatio, 2),
+          transformerType.getrScB.toSquants / pow(nominalRatio, 2),
+          transformerType.getxScB.toSquants / pow(nominalRatio, 2),
           Siemens(0),
           Siemens(0),
         )
       case PowerFlowCaseC =>
         val nominalRatio = transformerType
           .getvRatedA()
-          .toKilovolts / transformerType.getvRatedC().toKilovolts
+          .toSquants / transformerType.getvRatedC().toSquants
         (
-          transformerType.getrScC.toOhms / pow(nominalRatio, 2),
-          transformerType.getxScC.toOhms / pow(nominalRatio, 2),
+          transformerType.getrScC.toSquants / pow(nominalRatio, 2),
+          transformerType.getxScC.toSquants / pow(nominalRatio, 2),
           Siemens(0),
           Siemens(0),
         )

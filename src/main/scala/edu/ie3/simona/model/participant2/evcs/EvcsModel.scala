@@ -600,7 +600,7 @@ object EvcsModel {
       new EvcsModel(
         input.getUuid,
         input.getId,
-        input.getType.getsRated.toKilovoltamperes,
+        input.getType.getsRated.toApparent,
         input.getCosPhiRated,
         QControl(input.getqCharacteristics),
         EvcsChargingStrategy(modelConfig.chargingStrategy),

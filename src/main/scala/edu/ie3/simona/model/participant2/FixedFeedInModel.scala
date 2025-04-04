@@ -103,7 +103,7 @@ object FixedFeedInModel {
       new FixedFeedInModel(
         input.getUuid,
         input.getId,
-        input.getsRated.toKilovoltamperes,
+        input.getsRated.toApparent,
         input.getCosPhiRated,
         QControl.apply(input.getqCharacteristics),
       )

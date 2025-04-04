@@ -327,7 +327,7 @@ object StorageModel {
       config: StorageRuntimeConfig,
   ) extends ParticipantModelFactory[StorageState] {
 
-    private val eStorage = input.getType.geteStorage.toKilowattHours
+    private val eStorage = input.getType.geteStorage.toSquants
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable.empty
@@ -344,11 +344,11 @@ object StorageModel {
       new StorageModel(
         input.getUuid,
         input.getId,
-        input.getType.getsRated.toKilovoltamperes,
+        input.getType.getsRated.toApparent,
         input.getType.getCosPhiRated,
         QControl.apply(input.getqCharacteristics),
         eStorage,
-        input.getType.getpMax.toKilowatts,
+        input.getType.getpMax.toSquants,
         input.getType.getEta.toPercent,
         config.targetSoc,
       )

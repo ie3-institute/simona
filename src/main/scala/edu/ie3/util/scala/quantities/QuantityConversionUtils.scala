@@ -12,7 +12,7 @@ import edu.ie3.util.quantities.interfaces.{
   SpecificResistance,
 }
 import squants.electro.{Kilovolts, Ohms, Siemens}
-import squants.energy.{KilowattHours, Kilowatts, Megawatts}
+import squants.energy.{KilowattHours, Kilowatts}
 import squants.space.SquareMeters
 import squants.{Amperes, Each, Percent, Radians}
 import tech.units.indriya.ComparableQuantity
@@ -60,7 +60,7 @@ object QuantityConversionUtils {
 
     /** Returns a quantity with unit [[Kilovolts]].
       */
-    def toKilovolts: squants.electro.ElectricPotential = Kilovolts(
+    def toSquants: squants.electro.ElectricPotential = Kilovolts(
       quantity.to(KILOVOLT).getValue.doubleValue
     )
   }
@@ -77,7 +77,7 @@ object QuantityConversionUtils {
 
     /** Returns a quantity with unit [[Amperes]].
       */
-    def toAmperes: squants.ElectricCurrent = Amperes(
+    def toSquants: squants.ElectricCurrent = Amperes(
       quantity.to(AMPERE).getValue.doubleValue
     )
   }
@@ -92,26 +92,14 @@ object QuantityConversionUtils {
 
     /** Returns a quantity with unit [[Kilowatts]].
       */
-    def toKilowatts: squants.Power = Kilowatts(
+    def toSquants: squants.Power = Kilowatts(
       quantity.to(KILOWATT).getValue.doubleValue
-    )
-
-    /** Returns a quantity with unit [[Megawatts]].
-      */
-    def toMegawatts: squants.Power = Megawatts(
-      quantity.to(MEGAWATT).getValue.doubleValue
     )
 
     /** Returns a quantity with unit [[Kilovoltamperes]].
       */
-    def toKilovoltamperes: ApparentPower = Kilovoltamperes(
+    def toApparent: ApparentPower = Kilovoltamperes(
       quantity.to(KILOVOLTAMPERE).getValue.doubleValue
-    )
-
-    /** Returns a quantity with unit [[Megavoltamperes]].
-      */
-    def toMegavoltamperes: ApparentPower = Megavoltamperes(
-      quantity.to(MEGAVOLTAMPERE).getValue.doubleValue
     )
   }
 
@@ -124,7 +112,7 @@ object QuantityConversionUtils {
 
     /** Returns a quantity with unit [[KilowattHours]].
       */
-    def toKilowattHours: squants.Energy = KilowattHours(
+    def toSquants: squants.Energy = KilowattHours(
       quantity.to(KILOVARHOUR).getValue.doubleValue
     )
   }
@@ -141,7 +129,7 @@ object QuantityConversionUtils {
 
     /** Returns a quantity with unit [[Ohms]].
       */
-    def toOhms: squants.electro.ElectricalResistance = Ohms(
+    def toSquants: squants.electro.ElectricalResistance = Ohms(
       quantity.to(OHM).getValue.doubleValue
     )
   }
@@ -161,7 +149,7 @@ object QuantityConversionUtils {
       * @return
       *   a quantity with unit [[Ohms]].
       */
-    def toOhms(implicit
+    def toSquants(implicit
         length: ComparableQuantity[Length]
     ): squants.electro.ElectricalResistance = Ohms(
       quantity
@@ -181,7 +169,7 @@ object QuantityConversionUtils {
   implicit class SiemensToSimona(
       quantity: ComparableQuantity[ElectricConductance]
   ) {
-    def toSiemens: squants.electro.ElectricalConductance = Siemens(
+    def toSquants: squants.electro.ElectricalConductance = Siemens(
       quantity.to(SIEMENS).getValue.doubleValue
     )
   }
@@ -201,7 +189,7 @@ object QuantityConversionUtils {
       * @return
       *   a quantity with unit [[Siemens]].
       */
-    def toSiemens(implicit
+    def toSquants(implicit
         length: ComparableQuantity[Length]
     ): squants.electro.ElectricalConductance = Siemens(
       quantity
@@ -221,7 +209,7 @@ object QuantityConversionUtils {
 
     /** Returns a quantity with unit [[SquareMeters]].
       */
-    def toSquareMeters: squants.Area = SquareMeters(
+    def toSquants: squants.Area = SquareMeters(
       quantity.to(SQUARE_METRE).getValue.doubleValue
     )
   }
@@ -235,7 +223,7 @@ object QuantityConversionUtils {
 
     /** Returns a quantity with unit [[Radians]].
       */
-    def toRadians: squants.Angle = Radians(
+    def toSquants: squants.Angle = Radians(
       quantity.to(RADIAN).getValue.doubleValue
     )
   }
