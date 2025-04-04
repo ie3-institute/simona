@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant2
 
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   FlexOptionsResult,
@@ -14,14 +14,8 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.agent.participant.data.Data.{
-  PrimaryData,
-  PrimaryDataExtra,
-}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.em.EmTools
@@ -29,11 +23,12 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
@@ -45,7 +40,6 @@ import squants.energy.Power
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.reflect.ClassTag
 import scala.util.{Failure, Try}
 
 /** A shell allowing interactions with the [[ParticipantModel]] that it holds.
@@ -62,18 +56,18 @@ import scala.util.{Failure, Try}
   * @param operationInterval
   *   The operation interval in which the participant model is active. Outside
   *   the interval, no power is produced or consumed.
-  * @param simulationStartDate
+  * @param simulationStart
   *   The date and time at which simulation started.
-  * @param _state
-  *   The most recent model state, if one has been calculated already.
-  * @param _flexOptions
-  *   The most recent flex options, if they have been calculated already.
-  * @param _lastOperatingPoint
-  *   The operating point valid before the current [[_operatingPoint]], if
+  * @param state
+  *   The most recent model state.
+  * @param operatingPoint
+  *   The most recent operating point.
+  * @param lastOperatingPoint
+  *   The operating point valid before the current [[operatingPoint]], if
   *   applicable.
-  * @param _operatingPoint
-  *   The most recent operating point, if one has been calculated already.
-  * @param _operationChange
+  * @param flexOptions
+  *   The most recent flex options, if they have been calculated already.
+  * @param operationChange
   *   The operation change indicator, which indicates until when the current
   *   results are valid.
   * @tparam OP
@@ -88,12 +82,12 @@ final case class ParticipantModelShell[
     private val model: ParticipantModel[OP, S]
       with ParticipantFlexibility[OP, S],
     private val operationInterval: OperationInterval,
-    private val simulationStartDate: ZonedDateTime,
-    private val _state: Option[S] = None,
-    private val _flexOptions: Option[FlexOptions] = None,
-    private val _lastOperatingPoint: Option[OP] = None,
-    private val _operatingPoint: Option[OP] = None,
-    private val _operationChange: OperationChangeIndicator =
+    private val simulationStart: ZonedDateTime,
+    private val state: S,
+    private val operatingPoint: OP,
+    private val lastOperatingPoint: Option[OP] = None,
+    private val flexOptions: Option[FlexOptions] = None,
+    private val operationChange: OperationChangeIndicator =
       OperationChangeIndicator(),
 ) {
 
@@ -114,28 +108,12 @@ final case class ParticipantModelShell[
     */
   def uuid: UUID = model.uuid
 
-  /** Returns the types of required secondary services for the model to
-    * function.
+  /** Returns the start of the operation interval of the model.
     *
     * @return
-    *   The types of secondary services required.
+    *   The start tick of the operation interval.
     */
-  def requiredServices: Iterable[ServiceType] =
-    model.getRequiredSecondaryServices
-
-  /** Returns the current operating point, if present, or throws a
-    * [[CriticalFailureException]]. Only call this if you are certain the
-    * operating point has been set.
-    *
-    * @return
-    *   The operating point.
-    */
-  private def operatingPoint: OP = {
-    _operatingPoint
-      .getOrElse(
-        throw new CriticalFailureException("No operating point available!")
-      )
-  }
+  def operationStart: Long = operationInterval.start
 
   /** Returns the current flex options, if present, or throws a
     * [[CriticalFailureException]]. Only call this if you are certain the flex
@@ -144,8 +122,8 @@ final case class ParticipantModelShell[
     * @return
     *   The flex options.
     */
-  def flexOptions: FlexOptions =
-    _flexOptions.getOrElse(
+  def getFlexOptions: FlexOptions =
+    flexOptions.getOrElse(
       throw new CriticalFailureException(
         "Flex options have not been calculated!"
       )
@@ -181,7 +159,7 @@ final case class ParticipantModelShell[
     val updatedState =
       model.handleInput(currentState, receivedData, nodalVoltage)
 
-    copy(_state = Some(updatedState))
+    copy(state = updatedState)
   }
 
   /** Update operating point when the model is '''not''' em-controlled.
@@ -214,10 +192,10 @@ final case class ParticipantModelShell[
       determineOperatingPoint(modelOperatingPoint, tick)
 
     copy(
-      _state = Some(currentState),
-      _lastOperatingPoint = _operatingPoint,
-      _operatingPoint = Some(newOperatingPoint),
-      _operationChange = newChangeIndicator,
+      state = currentState,
+      lastOperatingPoint = Some(operatingPoint),
+      operatingPoint = newOperatingPoint,
+      operationChange = newChangeIndicator,
     )
   }
 
@@ -233,12 +211,12 @@ final case class ParticipantModelShell[
       tick: Long
   ): FlexOptionsResult = {
     val minMaxFlexOptions =
-      flexOptions match {
+      getFlexOptions match {
         case flex: MinMaxFlexOptions => flex
       }
 
     new FlexOptionsResult(
-      tick.toDateTime(simulationStartDate),
+      tick.toDateTime(simulationStart),
       uuid,
       minMaxFlexOptions.ref.toMegawatts.asMegaWatt,
       minMaxFlexOptions.min.toMegawatts.asMegaWatt,
@@ -268,10 +246,10 @@ final case class ParticipantModelShell[
 
     val participantResults = model.createResults(
       determineCurrentState(tick),
-      _lastOperatingPoint,
+      lastOperatingPoint,
       operatingPoint,
       complexPower,
-      tick.toDateTime(simulationStartDate),
+      tick.toDateTime(simulationStart),
     )
 
     ResultsContainer(
@@ -298,7 +276,7 @@ final case class ParticipantModelShell[
         MinMaxFlexOptions.noFlexOption(zeroKW)
       }
 
-    copy(_state = Some(currentState), _flexOptions = Some(flexOptions))
+    copy(state = currentState, flexOptions = Some(flexOptions))
   }
 
   /** Update operating point on receiving [[IssueFlexControl]], i.e. when the
@@ -317,7 +295,7 @@ final case class ParticipantModelShell[
     val currentState = determineCurrentState(currentTick)
 
     def modelOperatingPoint(): (OP, OperationChangeIndicator) = {
-      val fo = _flexOptions.getOrElse(
+      val fo = flexOptions.getOrElse(
         throw new CriticalFailureException("No flex options available!")
       )
 
@@ -349,10 +327,10 @@ final case class ParticipantModelShell[
       )
 
     copy(
-      _state = Some(currentState),
-      _lastOperatingPoint = _operatingPoint,
-      _operatingPoint = Some(newOperatingPoint),
-      _operationChange = newChangeIndicator,
+      state = currentState,
+      lastOperatingPoint = Some(operatingPoint),
+      operatingPoint = newOperatingPoint,
+      operationChange = newChangeIndicator,
     )
   }
 
@@ -400,12 +378,12 @@ final case class ParticipantModelShell[
       // the end of the operation interval
       val adaptedNextTick =
         Seq(
-          _operationChange.changesAtTick,
+          operationChange.changesAtTick,
           nextDataTick,
           Option(operationInterval.end),
         ).flatten.minOption
 
-      _operationChange.copy(changesAtTick = adaptedNextTick)
+      operationChange.copy(changesAtTick = adaptedNextTick)
     } else {
       // If the model is not active, all activation ticks are ignored besides
       // potentially the operation start
@@ -435,7 +413,7 @@ final case class ParticipantModelShell[
     val currentState = determineCurrentState(request.tick)
     val updatedState = model.handleRequest(currentState, ctx, request)
 
-    copy(_state = Some(updatedState))
+    copy(state = updatedState)
   }
 
   /** Determines the current state (if it has not been determined before) using
@@ -448,31 +426,27 @@ final case class ParticipantModelShell[
     */
   private def determineCurrentState(tick: Long): S = {
     // new state is only calculated if there's an old state and an operating point
-    val state = _state
-      .map { st =>
-        if (st.tick < tick) {
-          // If the state is old, an operating point needs
-          // to be present to determine the curren state
-          model.determineState(
-            st,
-            operatingPoint,
-            tick,
-            tick.toDateTime(simulationStartDate),
-          )
-        } else {
-          // The state is up-to-date, no need to update
-          st
-        }
+    val newState =
+      if (state.tick < tick) {
+        // If the state is old, an operating point needs
+        // to be present to determine the curren state
+        model.determineState(
+          state,
+          operatingPoint,
+          tick,
+          tick.toDateTime(simulationStart),
+        )
+      } else {
+        // The state is up-to-date, no need to update
+        state
       }
-      // No state present, create an initial one
-      .getOrElse(model.initialState(tick, tick.toDateTime(simulationStartDate)))
 
-    if (state.tick != tick)
+    if (newState.tick != tick)
       throw new CriticalFailureException(
-        s"The current state $state is not set to current tick $tick"
+        s"The current state $newState is not set to current tick $tick"
       )
 
-    state
+    newState
   }
 
 }
@@ -492,99 +466,61 @@ object ParticipantModelShell {
       modelResults: Iterable[ResultEntity],
   )
 
-  /** Creates a model shell receiving primary data using the given participant
-    * input.
+  /** Creates a model shell using the model factory.
     *
-    * @param inputContainer
-    *   The input container holding the system participant model input that
-    *   represents the physical model at the core of the agent.
-    * @param config
-    *   Runtime configuration that has to match the participant type.
-    * @param primaryDataExtra
-    *   Extra functionality specific to the primary data class.
-    * @param simulationStart
-    *   The simulation start date and time.
-    * @param simulationEnd
-    *   The simulation end date and time.
-    * @tparam PD
-    *   The type of primary data to be received.
-    * @return
-    *   The constructed [[ParticipantModelShell]] with a primary data model.
-    */
-  def createForPrimaryData[PD <: PrimaryData: ClassTag](
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
-      config: BaseRuntimeConfig,
-      primaryDataExtra: PrimaryDataExtra[PD],
-      simulationStart: ZonedDateTime,
-      simulationEnd: ZonedDateTime,
-  ): ParticipantModelShell[_, _] = {
-    val model = ParticipantModelInit.createPrimaryModel(
-      inputContainer,
-      config,
-      primaryDataExtra,
-    )
-    createShell(
-      model,
-      inputContainer.electricalInputModel,
-      simulationEnd,
-      simulationStart,
-    )
-  }
-
-  /** Creates a model shell for a physical model using the given participant
-    * input.
-    *
-    * @param inputContainer
-    *   The input container holding the system participant model input that
-    *   represents the physical model at the core of the agent.
-    * @param config
-    *   Runtime configuration that has to match the participant type.
+    * @param modelFactory
+    *   The participant model factory.
+    * @param operationTime
+    *   The operation time of the participant.
     * @param simulationStart
     *   The simulation start date and time.
     * @param simulationEnd
     *   The simulation end date and time.
     * @return
-    *   The constructed [[ParticipantModelShell]] with a physical model.
+    *   The constructed [[ParticipantModelShell]].
     */
-  def createForPhysicalModel(
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
-      config: BaseRuntimeConfig,
+  def create[S <: ModelState](
+      modelFactory: ParticipantModelFactory[S],
+      operationTime: OperationTime,
       simulationStart: ZonedDateTime,
       simulationEnd: ZonedDateTime,
-  ): ParticipantModelShell[_, _] = {
-    val model = ParticipantModelInit.createPhysicalModel(
-      inputContainer,
-      config,
-    )
-    createShell(
-      model,
-      inputContainer.electricalInputModel,
-      simulationEnd,
+  ): ParticipantModelShell[_ <: OperatingPoint, S] = {
+
+    val model = modelFactory.create()
+
+    val operationInterval = SystemComponent.determineOperationInterval(
       simulationStart,
+      simulationEnd,
+      operationTime,
+    )
+
+    val initialState = modelFactory.getInitialState(
+      FIRST_TICK_IN_SIMULATION,
+      simulationStart,
+    )
+
+    ParticipantModelShell(
+      model = model,
+      operationInterval = operationInterval,
+      simulationStart = simulationStart,
+      state = initialState,
     )
   }
 
-  private def createShell[
-      OP <: OperatingPoint,
-      S <: ModelState,
-  ](
+  /** Additional method that is required for compliant operating point type.
+    */
+  private def apply[OP <: OperatingPoint, S <: ModelState](
       model: ParticipantModel[OP, S],
-      participantInput: SystemParticipantInput,
-      simulationEndDate: ZonedDateTime,
-      simulationStartDate: ZonedDateTime,
-  ): ParticipantModelShell[OP, S] = {
-
-    val operationInterval: OperationInterval =
-      SystemComponent.determineOperationInterval(
-        simulationStartDate,
-        simulationEndDate,
-        participantInput.getOperationTime,
-      )
-
+      operationInterval: OperationInterval,
+      simulationStart: ZonedDateTime,
+      state: S,
+  ): ParticipantModelShell[OP, S] =
     new ParticipantModelShell(
       model = model,
       operationInterval = operationInterval,
-      simulationStartDate = simulationStartDate,
+      simulationStart = simulationStart,
+      state = state,
+      operatingPoint = model.zeroPowerOperatingPoint,
     )
-  }
+
 }

@@ -69,10 +69,6 @@ abstract class ParticipantModel[
     */
   protected val pRated: Power = sRated.toActivePower(cosPhiRated)
 
-  /** Determines the initial state given an initial model input.
-    */
-  val initialState: (Long, ZonedDateTime) => S
-
   /** Determines the current state given the last state and the operating point
     * that has been valid from the last state up until now.
     *
@@ -206,14 +202,30 @@ abstract class ParticipantModel[
   ): S =
     throw new NotImplementedError(s"Method not implemented by $getClass")
 
-  /** @return
-    *   All secondary services required by the model.
-    */
-  def getRequiredSecondaryServices: Iterable[ServiceType]
-
 }
 
 object ParticipantModel {
+
+  /** Functionality related to creating and initializing a [[ParticipantModel]].
+    */
+  trait ParticipantModelFactory[S <: ModelState] {
+
+    /** @return
+      *   All secondary services required by the model.
+      */
+    def getRequiredSecondaryServices: Iterable[ServiceType]
+
+    /** Determines the initial state given an initial model input.
+      */
+    def getInitialState(tick: Long, simulationTime: ZonedDateTime): S
+
+    /** Creates a [[ParticipantModel]] of a specific type.
+      *
+      * @return
+      *   The specific [[ParticipantModel]].
+      */
+    def create(): ParticipantModel[_ <: OperatingPoint, S]
+  }
 
   trait OperatingPoint {
 
@@ -245,9 +257,6 @@ object ParticipantModel {
   ] {
     this: ParticipantModel[OP, FixedState] =>
 
-    override val initialState: (Long, ZonedDateTime) => FixedState =
-      (tick, _) => FixedState(tick)
-
     override def determineState(
         lastState: FixedState,
         operatingPoint: OP,
@@ -270,9 +279,6 @@ object ParticipantModel {
       OP <: OperatingPoint
   ] {
     this: ParticipantModel[OP, DateTimeState] =>
-
-    override val initialState: (Long, ZonedDateTime) => DateTimeState =
-      (tick, simulationTime) => DateTimeState(tick, simulationTime)
 
     override def determineState(
         lastState: DateTimeState,
