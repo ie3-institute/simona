@@ -37,8 +37,6 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
 import edu.ie3.util.scala.quantities._
 import squants._
 import squants.space.{Degrees, SquareMeters}
-import squants.time.Minutes
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
