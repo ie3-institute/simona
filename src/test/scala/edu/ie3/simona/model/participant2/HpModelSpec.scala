@@ -44,7 +44,8 @@ class HpModelSpec
   implicit val tempTolerance: Temperature = Kelvin(1e-3)
 
   // build the HpModel
-  val hpModel: HpModel = HpModel(hpInputModel, hpModelSpecThermalGrid)
+  val hpModel: HpModel =
+    HpModel.Factory(hpInputModel, hpModelSpecThermalGrid).create()
 
   "HpModel" should {
 
