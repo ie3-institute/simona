@@ -26,7 +26,7 @@ ext {
   pekkoVersion = '1.1.3'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.9.0'
-  scapegoatVersion = '3.1.7'
+  scapegoatVersion = '3.1.8'
 
   junitVersion = '1.12.1'
   testContainerVersion = '0.43.0'
