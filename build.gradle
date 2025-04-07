@@ -104,7 +104,7 @@ dependencies {
   testRuntimeOnly "org.scalatestplus:junit-5-11_${scalaVersion}:3.2.19.0"
 
   // mocking framework
-  testImplementation 'org.mockito:mockito-core:5.16.1'
+  testImplementation 'org.mockito:mockito-core:5.17.0'
   testImplementation "org.scalatestplus:mockito-3-4_${scalaVersion}:3.2.10.0"
 
   // pekko
