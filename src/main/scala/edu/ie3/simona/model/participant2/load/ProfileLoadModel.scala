@@ -16,9 +16,19 @@ import edu.ie3.simona.model.participant2.load.LoadModel.{
   LoadModelState,
   LoadModelWithService,
 }
+import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ActivePowerOperatingPoint,
+  DateTimeState,
+  ParticipantDateTimeState,
+  ParticipantModelFactory,
+}
 import edu.ie3.simona.service.load.LoadProfileStore
+import edu.ie3.simona.model.participant2.load.{LoadModel, LoadReferenceType}
+import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.util.TickUtil
 import edu.ie3.util.scala.quantities.ApparentPower
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
 class ProfileLoadModel(
@@ -34,21 +44,32 @@ class ProfileLoadModel(
 
 object ProfileLoadModel {
 
-  def apply(input: LoadInput, config: LoadRuntimeConfig): ProfileLoadModel = {
+  final case class Factory(
+      input: LoadInput,
+      config: LoadRuntimeConfig,
+  ) extends ParticipantModelFactory[DateTimeState] {
 
-    // This currently works only for the build in load profiles (bdew)
-    val loadProfileStore = LoadProfileStore()
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
 
-    val loadProfile = input.getLoadProfile match {
-      case slp: StandardLoadProfile =>
-        slp
-      case other =>
-        throw new CriticalFailureException(
-          s"Expected a standard load profile type, got ${other.getClass}"
-        )
-    }
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): DateTimeState = DateTimeState(tick, simulationTime)
 
-    val referenceType = LoadReferenceType(config.reference)
+    override def create(): ProfileLoadModel = {
+      val loadProfileStore = LoadProfileStore()
+
+      val loadProfile = input.getLoadProfile match {
+        case slp: StandardLoadProfile =>
+          slp
+        case other =>
+          throw new CriticalFailureException(
+            s"Expected a standard load profile type, got ${other.getClass}"
+          )
+      }
+
+      val referenceType = LoadReferenceType(config.reference)
 
     val maxPower = loadProfileStore
       .maxPower(loadProfile)
@@ -77,6 +98,8 @@ object ProfileLoadModel {
       loadProfile,
       referenceScalingFactor,
     )
+  }
+
   }
 
 }

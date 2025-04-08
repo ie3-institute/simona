@@ -18,12 +18,11 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 /** Trait that enables handling of external data.
+  *
   * @tparam T
-  *   the type of messages this service accepts
+  *   the type of messages this service accepts.
   */
-trait ExtDataSupport[
-    T >: ServiceMessage
-] {
+trait ExtDataSupport[T >: ServiceMessage] {
   this: SimonaService[T] =>
 
   /** Creates an adapter, that enables a service with [[ExtDataSupport]] to

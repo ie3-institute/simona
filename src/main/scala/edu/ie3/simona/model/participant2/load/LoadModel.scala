@@ -23,6 +23,8 @@ import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  OperatingPoint,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.LoadData
 import edu.ie3.simona.service.ServiceType
@@ -71,9 +73,6 @@ abstract class LoadModel[S <: ModelState]
       data.p.toMegawatts.asMegaWatt,
       data.q.toMegavars.asMegaVar,
     )
-
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
 
 }
 
@@ -141,17 +140,17 @@ object LoadModel {
     (referenceScalingFactor, scaledSRated)
   }
 
-  def apply(
+  def getFactory(
       input: LoadInput,
       config: LoadRuntimeConfig,
-  ): LoadModel[_ <: ModelState] = {
+  ): ParticipantModelFactory[_ <: ModelState] =
     LoadModelBehaviour(config.modelBehaviour) match {
       case LoadModelBehaviour.FIX =>
-        FixedLoadModel(input, config)
+        FixedLoadModel.Factory(input, config)
       case LoadModelBehaviour.PROFILE =>
-        ProfileLoadModel(input, config)
+        ProfileLoadModel.Factory(input, config)
       case LoadModelBehaviour.RANDOM =>
-        RandomLoadModel(input, config)
+        RandomLoadModel.Factory(input, config)
     }
   }
 
