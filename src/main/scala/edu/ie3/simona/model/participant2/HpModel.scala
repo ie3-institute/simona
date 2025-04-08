@@ -191,7 +191,6 @@ class HpModel private (
     *   The new active power of the heat pump and the thermal power (qDot) from
     *   the heat pump, feed into the thermal grid.
     */
-
   private def nextOperatingPoint(
       state: HpState,
       setPower: Option[Power],
@@ -286,7 +285,6 @@ class HpModel private (
     * @return
     *   The active power.
     */
-
   override def determineOperatingPoint(
       state: HpState
   ): (HpOperatingPoint, Option[Long]) = {
@@ -296,7 +294,7 @@ class HpModel private (
     val (updateState, maybeThreshold) =
       /* Determine how qDot is used in thermalGrid and get threshold*/
       if (qDotIntoGrid > zeroKW) {
-        thermalGrid.handleInfeed(
+        thermalGrid.handleFeedIn(
           state,
           newActivePowerHp > zeroKW,
           qDotIntoGrid,
@@ -334,7 +332,7 @@ class HpModel private (
     val (updateState, maybeThreshold) =
       /* Determine how qDot is used in thermalGrid and get threshold*/
       if (qDotIntoGrid > zeroKW) {
-        thermalGrid.handleInfeed(
+        thermalGrid.handleFeedIn(
           state,
           newActivePowerHp > zeroKW,
           qDotIntoGrid,

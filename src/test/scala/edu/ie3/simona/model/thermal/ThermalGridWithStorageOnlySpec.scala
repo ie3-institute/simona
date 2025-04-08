@@ -231,7 +231,7 @@ class ThermalGridWithStorageOnlySpec
 
     "updating the grid state dependent on the given thermal infeed" should {
       "deliver proper result, if energy is fed into the grid" in {
-        val (updatedState, nextThreshold) = thermalGrid.handleInfeed(
+        val (updatedState, nextThreshold) = thermalGrid.handleFeedIn(
           initialHpState,
           isRunning,
           testGridQDotInfeed,

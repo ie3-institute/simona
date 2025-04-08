@@ -219,7 +219,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         )
         val initState = initialHpState.copy(thermalGridState = gridState)
 
-        thermalGrid.handleInfeed(
+        thermalGrid.handleFeedIn(
           initState,
           isRunning,
           testGridQDotInfeed,
