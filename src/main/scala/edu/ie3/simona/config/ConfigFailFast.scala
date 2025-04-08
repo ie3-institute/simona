@@ -357,7 +357,6 @@ object ConfigFailFast extends LazyLogging {
       individualConfigs.map(config => (config, false)).toMap
 
     allConfigs.foreach { case (config, default) =>
-
       // we only check the uuids for individual configs
       if (!default) {
         /* Checking the uuids */
