@@ -585,12 +585,7 @@ final case class ThermalGrid(
 
     val currentOpThermals = currentOperatingPoint.thermalOps
 
-    val lastOpThermals = lastOperatingPoint match {
-      case Some(op) => op.thermalOps
-      case None     =>
-        // we need some thermals that are different from zero for the first result
-        ThermalOpWrapper(Kilowatts(-42), Kilowatts(-42), Kilowatts(-42))
-    }
+    val lastOpThermals = lastOperatingPoint.map(_.thermalOps)
 
     def createThermalHouseResult(
         thermalHouse: ThermalHouse
@@ -634,7 +629,7 @@ final case class ThermalGrid(
     val maybeHouseResult = {
       (
         house,
-        currentOpThermals.qDotHouse != lastOpThermals.qDotHouse,
+        lastOpThermals.forall(_.qDotHouse != currentOpThermals.qDotHouse),
         state.tick != 0,
       ) match {
         case (Some(house: ThermalHouse), true, true) =>
@@ -649,7 +644,9 @@ final case class ThermalGrid(
     val maybeStorageResult = {
       (
         heatStorage,
-        currentOpThermals.qDotHeatStorage != lastOpThermals.qDotHeatStorage,
+        lastOpThermals.forall(
+          _.qDotHeatStorage != currentOpThermals.qDotHeatStorage
+        ),
         state.tick != 0,
       ) match {
         case (Some(storage: CylindricalThermalStorage), true, true) =>
