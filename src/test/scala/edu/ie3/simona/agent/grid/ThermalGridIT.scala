@@ -320,7 +320,9 @@ class ThermalGridIT
           )
       }
 
-      // We don't expect any message for house or storage
+      // Since this activation is caused by new weather data, we don't expect any
+      // message for house or storage since there is no change of their operating
+      // point nor one of it reached any boundary.
       resultListener.expectNoMessage()
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(4417)))
@@ -399,7 +401,9 @@ class ThermalGridIT
           hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
       }
 
-      // We don't expect any message for house or storage
+      // Since this activation is caused by new weather data, we don't expect any
+      // message for house or storage since there is no change of their operating
+      // point nor one of it reached any boundary.
       resultListener.expectNoMessage()
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(23103)))
@@ -487,7 +491,9 @@ class ThermalGridIT
           hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
       }
 
-      // We don't expect any message for house or storage
+      // Since this activation is caused by new weather data, we don't expect any
+      // message for house or storage since there is no change of their operating
+      // point nor one of it reached any boundary.
       resultListener.expectNoMessage()
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(26702)))
@@ -575,7 +581,9 @@ class ThermalGridIT
           hpResult.getQ should equalWithTolerance(qRunningHp)
       }
 
-      // We don't expect any message for house or storage
+      // Since this activation is caused by new weather data, we don't expect any
+      // message for house or storage since there is no change of their operating
+      // point nor one of it reached any boundary.
       resultListener.expectNoMessage()
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(31940)))
@@ -814,7 +822,6 @@ class ThermalGridIT
       emInitSchedule.tick shouldBe INIT_SIM_TICK
       val emAgentActivation = emInitSchedule.actor
 
-      // We don't expect any message for house or storage
       scheduler.expectNoMessage()
 
       emInitSchedule.unlockKey.value.unlock()
