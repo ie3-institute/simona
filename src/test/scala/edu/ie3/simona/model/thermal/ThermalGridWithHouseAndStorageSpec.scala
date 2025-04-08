@@ -293,7 +293,6 @@ class ThermalGridWithHouseAndStorageSpec
         val maybeStorageState = None
 
         thermalGrid.reviseFeedInFromStorage(
-          state.tick,
           state,
           maybeHouseState,
           maybeStorageState,
@@ -333,7 +332,6 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         thermalGrid.reviseFeedInFromStorage(
-          state.tick,
           state,
           maybeHouseState,
           maybeStorageState,
@@ -373,7 +371,6 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         thermalGrid.reviseFeedInFromStorage(
-          state.tick,
           state,
           maybeHouseState,
           maybeStorageState,
@@ -415,7 +412,6 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         thermalGrid.reviseFeedInFromStorage(
-          state.tick,
           state,
           maybeHouseState,
           maybeStorageState,
@@ -477,7 +473,6 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         thermalGrid.reviseFeedInFromStorage(
-          state.tick,
           state,
           maybeHouseState,
           maybeStorageState,

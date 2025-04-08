@@ -474,7 +474,6 @@ final case class ThermalGrid(
 
     val (revisedHouseState, revisedStorageState) =
       reviseFeedInFromStorage(
-        state.tick,
         state,
         maybeUpdatedHouseState,
         maybeUpdatedStorageState,
@@ -500,8 +499,6 @@ final case class ThermalGrid(
     * is no feed in from external and</li> <li>the storage is not empty
     * itself</li> </ul>
     *
-    * @param tick
-    *   The actual tick of simulation.
     * @param state
     *   Last state of the heat pump.
     * @param maybeHouseState
@@ -515,7 +512,6 @@ final case class ThermalGrid(
     *   Options to revised thermal house and storage state.
     */
   def reviseFeedInFromStorage(
-      tick: Long,
       state: HpState,
       maybeHouseState: Option[(ThermalHouseState, Option[ThermalThreshold])],
       maybeStorageState: Option[
@@ -546,7 +542,7 @@ final case class ThermalGrid(
         ),
       )
       val revisedHouseState = thermalHouse.updateState(
-        tick,
+        state.tick,
         state.thermalGridState.houseState.getOrElse(
           throw new InconsistentStateException(
             "Impossible to find no house state"
