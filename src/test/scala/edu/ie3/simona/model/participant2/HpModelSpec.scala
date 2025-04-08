@@ -297,12 +297,16 @@ class HpModelSpec
                   )
                 ),
               ),
+              lastHpOperatingPoint = HpOperatingPoint(
+                Kilowatts(1),
+                ThermalOpWrapper(Kilowatts(1), Kilowatts(1), zeroKW),
+              ),
               thermalDemands = ThermalDemandWrapper(demand, demand),
             ),
             (95.0, 95.0, 95.0),
           ),
           // 4. Same as before but heat storage is NOT empty
-          // Hp should not run because of storage but can be turned on
+          // Hp should run but could be turned off because of storage
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
@@ -321,6 +325,10 @@ class HpModelSpec
                     ThermalStorageOperatingPoint(zeroKW),
                   )
                 ),
+              ),
+              lastHpOperatingPoint = HpOperatingPoint(
+                Kilowatts(1),
+                ThermalOpWrapper(Kilowatts(1), Kilowatts(1), zeroKW),
               ),
               thermalDemands = ThermalDemandWrapper(demand, onlyAddDemand),
             ),
@@ -349,6 +357,10 @@ class HpModelSpec
                   )
                 ),
               ),
+              lastHpOperatingPoint = HpOperatingPoint(
+                Kilowatts(1),
+                ThermalOpWrapper(Kilowatts(1), Kilowatts(1), zeroKW),
+              ),
               thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
             ),
             (95.0, 0.0, 95.0),
@@ -373,6 +385,10 @@ class HpModelSpec
                     ThermalStorageOperatingPoint(zeroKW),
                   )
                 ),
+              ),
+              lastHpOperatingPoint = HpOperatingPoint(
+                Kilowatts(1),
+                ThermalOpWrapper(Kilowatts(1), Kilowatts(1), zeroKW),
               ),
               thermalDemands =
                 ThermalDemandWrapper(onlyAddDemand, onlyAddDemand),
@@ -455,6 +471,10 @@ class HpModelSpec
                   )
                 ),
               ),
+              lastHpOperatingPoint = HpOperatingPoint(
+                Kilowatts(1),
+                ThermalOpWrapper(Kilowatts(1), Kilowatts(1), zeroKW),
+              ),
               thermalDemands = ThermalDemandWrapper(noDemand, demand),
             ),
             (95.0, 0.0, 95.0),
@@ -479,6 +499,10 @@ class HpModelSpec
                     ThermalStorageOperatingPoint(zeroKW),
                   )
                 ),
+              ),
+              lastHpOperatingPoint = HpOperatingPoint(
+                Kilowatts(1),
+                ThermalOpWrapper(Kilowatts(1), Kilowatts(1), zeroKW),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
             ),
@@ -559,6 +583,10 @@ class HpModelSpec
                   )
                 ),
               ),
+              lastHpOperatingPoint = HpOperatingPoint(
+                Kilowatts(1),
+                ThermalOpWrapper(Kilowatts(1), Kilowatts(1), zeroKW),
+              ),
               thermalDemands = ThermalDemandWrapper(noDemand, demand),
             ),
             (95.0, 0.0, 95.0),
@@ -583,6 +611,10 @@ class HpModelSpec
                     ThermalStorageOperatingPoint(zeroKW),
                   )
                 ),
+              ),
+              lastHpOperatingPoint = HpOperatingPoint(
+                Kilowatts(1),
+                ThermalOpWrapper(Kilowatts(1), Kilowatts(1), zeroKW),
               ),
               thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
             ),
@@ -683,6 +715,10 @@ class HpModelSpec
                     ThermalStorageOperatingPoint(zeroKW),
                   )
                 ),
+              ),
+              lastHpOperatingPoint = HpOperatingPoint(
+                Kilowatts(1),
+                ThermalOpWrapper(Kilowatts(1), Kilowatts(1), zeroKW),
               ),
               thermalDemands = ThermalDemandWrapper(onlyAddDemand, noDemand),
             ),

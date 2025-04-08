@@ -115,22 +115,14 @@ class HpModel private (
   override def determineFlexOptions(
       state: HpState
   ): FlexOptions = {
-    val lastHouseQDot =
-      state.thermalGridState.houseState
-        .map(_.operatingPoint.activePower)
-        .getOrElse(zeroKW)
-    val lastStorageQDot =
-      state.thermalGridState.storageState
-        .map(_.operatingPoint.activePower)
-        .getOrElse(zeroKW)
-    val wasRunningLastPeriod = (lastHouseQDot + lastStorageQDot) > zeroKW
+    val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
 
     // Determining the operation point and limitations at this tick
     val (turnOn, canOperate, canBeOutOfOperation) =
       operatesInNextState(
         state.thermalGridState,
         state.thermalDemands,
-        wasRunningLastPeriod,
+        wasRunningLastOp,
       )
 
     MinMaxFlexOptions(
@@ -200,16 +192,11 @@ class HpModel private (
     *   The new active power of the heat pump and the thermal power (qDot) from
     *   the heat pump, feed into the thermal grid.
     */
-
   private def nextOperatingPoint(
       state: HpState,
       setPower: Option[Power],
   ): (Power, Power) = {
-
-    val lastHouseQDot =
-      state.lastHpOperatingPoint.thermalOps.qDotHouse
-    val lastStorageQDot = state.lastHpOperatingPoint.thermalOps.qDotHeatStorage
-    val wasRunningLastPeriod = (lastHouseQDot + lastStorageQDot) > zeroKW
+    val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
 
     val currentStorageEnergy =
       state.thermalGridState.storageState.map(_.storedEnergy).getOrElse(zeroKWh)
@@ -229,7 +216,7 @@ class HpModel private (
           operatesInNextState(
             state.thermalGridState,
             state.thermalDemands,
-            wasRunningLastPeriod,
+            wasRunningLastOp,
           )
       }
 
@@ -242,7 +229,7 @@ class HpModel private (
         // If the house has req. demand and storage isn't empty, we can heat the house from storage.
         (zeroKW, zeroKW, storagePThermal)
       } else if (
-        currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasPossibleDemand && lastHouseQDot > zeroKW
+        currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasPossibleDemand && state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW
       )
         // Edge case when em controlled: If the house was heated last state by Hp and setPower is below turnOn condition now,
         // but house didn't reach target or boundary temperature yet. House can be heated from storage, if this one is not empty.
@@ -289,6 +276,10 @@ class HpModel private (
           result.q.toMegavars.asMegaVar,
           result.qDot.toMegawatts.asMegaWatt,
         )
+      case unknown =>
+        throw new IllegalArgumentException(
+          s"Unknown data type when matching for primary data results $unknown!"
+        )
     }
   }
 
@@ -299,7 +290,6 @@ class HpModel private (
     * @return
     *   The active power.
     */
-
   override def determineOperatingPoint(
       state: HpState
   ): (HpOperatingPoint, Option[Long]) = {
@@ -309,7 +299,7 @@ class HpModel private (
     val (updateState, maybeThreshold) =
       /* Determine how qDot is used in thermalGrid and get threshold*/
       if (qDotIntoGrid > zeroKW) {
-        thermalGrid.handleInfeed(
+        thermalGrid.handleFeedIn(
           state,
           newActivePowerHp > zeroKW,
           qDotIntoGrid,
@@ -351,7 +341,7 @@ class HpModel private (
     val (updateState, maybeThreshold) =
       /* Determine how qDot is used in thermalGrid and get threshold*/
       if (qDotIntoGrid > zeroKW) {
-        thermalGrid.handleInfeed(
+        thermalGrid.handleFeedIn(
           state,
           newActivePowerHp > zeroKW,
           qDotIntoGrid,
@@ -459,7 +449,7 @@ object HpModel {
     ): HpState = {
 
       val therGrid = ThermalGrid(thermalGrid)
-      val initialState = ThermalGrid.startingState(therGrid, zeroCelsius)
+      val initialState = ThermalGrid.startingState(therGrid)
       val thermalDemand = therGrid.determineEnergyDemand(initialState)
 
       HpState(
@@ -467,6 +457,7 @@ object HpModel {
         zeroCelsius,
         initialState,
         HpOperatingPoint.zero,
+        zeroCelsius,
         thermalDemand,
       )
     }

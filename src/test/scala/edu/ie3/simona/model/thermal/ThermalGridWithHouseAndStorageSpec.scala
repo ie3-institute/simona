@@ -386,7 +386,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
         val maybeStorageState = None
 
-        thermalGrid.reviseInfeedFromStorage(
+        thermalGrid.reviseFeedInFromStorage(
           state,
           maybeHouseState,
           maybeStorageState,
@@ -419,7 +419,7 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        thermalGrid.reviseInfeedFromStorage(
+        thermalGrid.reviseFeedInFromStorage(
           state,
           maybeHouseState,
           maybeStorageState,
@@ -452,7 +452,7 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        thermalGrid.reviseInfeedFromStorage(
+        thermalGrid.reviseFeedInFromStorage(
           state,
           maybeHouseState,
           maybeStorageState,
@@ -487,7 +487,7 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        thermalGrid.reviseInfeedFromStorage(
+        thermalGrid.reviseFeedInFromStorage(
           state,
           maybeHouseState,
           maybeStorageState,
@@ -575,10 +575,10 @@ class ThermalGridWithHouseAndStorageSpec
       }
     }
 
-    "handling thermal infeed into the grid" should {
-      val handleInfeed =
+    "handling thermal feed in into the grid" should {
+      val handleFeedIn =
         PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
-          Symbol("handleInfeed")
+          Symbol("handleFeedIn")
         )
 
       "heat the house, if the target temperature in the house is not reached" in {
@@ -602,7 +602,7 @@ class ThermalGridWithHouseAndStorageSpec
         val externalQDot = testGridQDotInfeed
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleInfeed(
+          thermalGrid invokePrivate handleFeedIn(
             state,
             isRunning,
             externalQDot,
@@ -666,7 +666,7 @@ class ThermalGridWithHouseAndStorageSpec
         val externalQDot = testGridQDotInfeed * 10
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleInfeed(
+          thermalGrid invokePrivate handleFeedIn(
             updatedHpState,
             isRunning,
             externalQDot,

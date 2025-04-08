@@ -56,7 +56,6 @@ import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
-import scala.concurrent.duration.{FiniteDuration, SECONDS}
 
 class EmAgentIT
     extends ScalaTestWithActorTestKit
@@ -439,10 +438,7 @@ class EmAgentIT
         /* INIT */
         emAgentActivation ! Activation(INIT_SIM_TICK)
 
-        primaryServiceProxy.receiveMessages(
-          3,
-          FiniteDuration(60, SECONDS),
-        ) should contain allOf (
+        primaryServiceProxy.receiveMessages(3) should contain allOf (
           PrimaryServiceRegistrationMessage(
             hpAgent,
             adaptedHpInputModel.getUuid,
