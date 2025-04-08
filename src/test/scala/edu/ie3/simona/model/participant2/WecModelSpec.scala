@@ -15,6 +15,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.{
 }
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
+import edu.ie3.simona.config.RuntimeConfig.WecRuntimeConfig
 import edu.ie3.simona.model.participant2.WecModel.WecState
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -79,7 +80,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
   "WecModel" should {
 
     "check build method of companion object" in {
-      val wecModel = WecModel(inputModel)
+      val wecModel = WecModel.Factory(inputModel).create()
       wecModel.uuid shouldBe inputModel.getUuid
       wecModel.cosPhiRated shouldBe typeInput.getCosPhiRated
       wecModel.sRated.toVoltamperes shouldBe (typeInput.getsRated.toSystemUnit.getValue
@@ -87,7 +88,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
     }
 
     "determine Betz coefficient correctly" in {
-      val wecModel = WecModel(inputModel)
+      val wecModel = WecModel.Factory(inputModel).create()
 
       val testCases = Table(
         ("velocity", "expectedBetzResult"),
@@ -108,7 +109,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
     }
 
     "calculate active power output depending on velocity" in {
-      val wecModel = WecModel(inputModel)
+      val wecModel = WecModel.Factory(inputModel).create()
       val testCases = Table(
         ("velocity", "expectedPower"),
         (1.0, 0.0),
@@ -141,7 +142,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
     }
 
     "calculate air density correctly" in {
-      val wecModel = WecModel(inputModel)
+      val wecModel = WecModel.Factory(inputModel).create()
       val testCases = Seq(
         (-15.0, 100129.44, 1.3512151548083537),
         (-5.0, 99535.96, 1.2931147269065832),
@@ -170,7 +171,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
     }
 
     "calculate active power output depending on temperature" in {
-      val wecModel = WecModel(inputModel)
+      val wecModel = WecModel.Factory(inputModel).create()
       val testCases = Table(
         ("temperature", "expectedPower"),
         (35.0, -23377.23862017266),

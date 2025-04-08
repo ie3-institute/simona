@@ -457,7 +457,7 @@ object ParticipantAgent {
                   ),
                 _.emAgent ! ProvideFlexOptions(
                   shellWithFlex.uuid,
-                  shellWithFlex.flexOptions,
+                  shellWithFlex.getFlexOptions,
                 ),
               )
 

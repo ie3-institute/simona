@@ -64,6 +64,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration test for thermal grids without Em [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
 - Add test case to EmAgentIT to check for correct reactive power [#1185](https://github.com/ie3-institute/simona/issues/1185)
+- Integration test for thermal grids with Em [#1146](https://github.com/ie3-institute/simona/issues/1146)
+- Added check for equal start and end date of simulation to ConfigFailFast [#1317](https://github.com/ie3-institute/simona/issues/1317)
+- Introduce ParticipantModel factory pattern [#1324](https://github.com/ie3-institute/simona/issues/1324)
 - Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
 
 ### Changed
@@ -168,6 +171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converting `PrimaryServiceProxy` to pekko typed [#1230](https://github.com/ie3-institute/simona/issues/1230)
 - Made some methods of `PvModel` static [#1217](https://github.com/ie3-institute/simona/issues/1217)
 - FlexOptions types in `FlexibilityMessage` [#1306](https://github.com/ie3-institute/simona/issues/1306)
+- Isolate solar radiation calculations of PvModel to its own object [#1327](https://github.com/ie3-institute/simona/issues/1327)
+- Reorganized CI order [#1333](https://github.com/ie3-institute/simona/issues/1333)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -231,6 +236,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix hierarchical em structures leading to exception while initializing [#1293](https://github.com/ie3-institute/simona/issues/1293)
 - Fix failing `ExtEvDataServiceSpec` [#1297](https://github.com/ie3-institute/simona/issues/1297)
 - Fixed pekko config not written as output [#1302](https://github.com/ie3-institute/simona/issues/1302)
+- Cleanups and log capturing in `ExtEvDataServiceSpec` [#1320](https://github.com/ie3-institute/simona/issues/1320)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)

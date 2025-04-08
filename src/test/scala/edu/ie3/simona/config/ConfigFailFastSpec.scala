@@ -62,6 +62,19 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           }.getMessage shouldBe "Invalid time configuration." +
             "Please ensure that the start time of the simulation is before the end time."
         }
+
+        "identify if start and end date configuration are equal" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTimeConfig(
+              Time(
+                "2020-06-18T13:41:00Z",
+                None,
+                "2020-06-18T13:41:00Z",
+              )
+            )
+          }.getMessage shouldBe "Invalid time configuration." +
+            "Please ensure that the start time of the simulation is not equal to the end time."
+        }
       }
 
       "Checking date string" should {
