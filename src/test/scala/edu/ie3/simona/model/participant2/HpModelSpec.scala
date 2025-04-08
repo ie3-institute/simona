@@ -158,7 +158,7 @@ class HpModelSpec
                   _,
                   _,
                   thermalDemands,
-                ) => {
+                ) =>
               tick shouldBe expectedTick
               thermalHouseState.tick shouldBe expectedTick
               thermalHouseState.innerTemperature should approximate(
@@ -179,7 +179,6 @@ class HpModelSpec
               thermalDemands.heatStorageDemand.required should approximate(
                 expectedDemand.heatStorageDemand.required
               )
-            }
             case unexpected =>
               fail(s"Expected a hp state but got none $unexpected.")
           }

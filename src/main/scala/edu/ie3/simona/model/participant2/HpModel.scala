@@ -47,7 +47,6 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.{
 import edu.ie3.util.scala.quantities._
 import squants._
 import squants.energy.Kilowatts
-import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.util.UUID
