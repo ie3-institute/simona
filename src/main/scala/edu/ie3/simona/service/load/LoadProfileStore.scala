@@ -8,23 +8,23 @@ package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.io.source.LoadProfileSource
 import edu.ie3.datamodel.models.profile.LoadProfile
+import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
-import edu.ie3.simona.service.load.LoadProfileStore.{
-  convertPower,
-  defaultReferenceScalingFactor,
-}
+import edu.ie3.simona.model.participant2.load.LoadModel.ProfileLoadFactoryData
+import edu.ie3.simona.service.load.LoadProfileStore.convertPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import squants.energy.{KilowattHours, Kilowatts}
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
+import java.util.Optional
 import javax.measure.quantity.Power
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.OptionConverters.RichOptional
 
 /** Container class that stores all loaded load profiles.
   * @param profileToSource
-  *   map: [[LoadProfile]] to [[LoadProfileSource]]
+  *   Map: [[LoadProfile]] to [[LoadProfileSource]]
   */
 final case class LoadProfileStore(
     profileToSource: Map[LoadProfile, LoadProfileSource[_, _]]
@@ -37,11 +37,11 @@ final case class LoadProfileStore(
     * interval) for given time and load profile.
     *
     * @param time
-    *   the requested time
+    *   The requested time.
     * @param loadProfile
-    *   the requested load profile
+    *   The requested load profile.
     * @return
-    *   a load in kW
+    *   A load in kW.
     */
   def entry(
       time: ZonedDateTime,
@@ -50,87 +50,83 @@ final case class LoadProfileStore(
     profileToSource
       .get(loadProfile)
       .flatMap(_.getValue(time).toScala)
-      .map(_.getP.toScala)
+      .map(_.getP)
       .flatMap(convertPower)
 
-  /** Returns the profile energy scaling for the given load profile.
-    *
-    * @param loadProfile
-    *   the given profile
+  /** Samples entries for random load profile.
+    * @param time
+    *   The requested time.
+    * @param nr
+    *   The number of values to sample.
     * @return
-    *   the scaling
+    *   A list of load values in kW.
     */
-  def profileScaling(loadProfile: LoadProfile): squants.Energy =
-    profileToSource
-      .get(loadProfile)
-      .flatMap(_.getLoadProfileEnergyScaling.toScala) match {
-      case Some(referenceScaling) =>
-        KilowattHours(
-          referenceScaling
-            .to(PowerSystemUnits.KILOWATTHOUR)
-            .getValue
-            .doubleValue()
-        )
-      case None =>
-        defaultReferenceScalingFactor
+  def sampleRandomEntries(
+      time: ZonedDateTime,
+      nr: Int,
+  ): Seq[squants.Power] =
+    Range.inclusive(0, nr, 1).flatMap(_ => entry(time, RANDOM_LOAD_PROFILE))
+
+  /** @param loadProfile
+    *   Given load profile.
+    * @return
+    *   An option for the [[ProfileLoadFactoryData]] for the given
+    *   [[LoadProfile]].
+    */
+  def getProfileLoadFactoryData(
+      loadProfile: LoadProfile
+  ): Option[ProfileLoadFactoryData] =
+    profileToSource.get(loadProfile).map { source =>
+      ProfileLoadFactoryData(
+        convertPower(source.getMaxPower),
+        source.getLoadProfileEnergyScaling.toScala.map(e =>
+          KilowattHours(
+            e.to(PowerSystemUnits.KILOWATTHOUR).getValue.doubleValue()
+          )
+        ),
+      )
     }
-
-  /** Returns the maximum average power consumption per quarter hour for a given
-    * load profile, calculated over all seasons and weekday types of given load
-    * profile
-    *
-    * @param loadProfile
-    *   the consumer type
-    * @return
-    *   the maximum load in kW
-    */
-  def maxPower(loadProfile: LoadProfile): Option[squants.Power] =
-    profileToSource
-      .get(loadProfile)
-      .map(_.getMaxPower.toScala)
-      .flatMap(convertPower)
 
 }
 
 object LoadProfileStore {
-
-  /** Default standard load profile energy scaling */
-  private val defaultReferenceScalingFactor: squants.Energy = KilowattHours(
-    1000d
-  )
 
   def apply(
       sourceDefinition: Datasource
   ): LoadProfileStore = {
 
     // build all additional sources
-    val additionalSources = LoadProfileSources.buildSources(sourceDefinition)
-
-    val profileToSource = LoadProfileSource.getBdewLoadProfiles.asScala ++ Map(
-      LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE -> LoadProfileSource.getRandomLoadProfile
-    ) ++ additionalSources
-
-    new LoadProfileStore(profileToSource.toMap)
+    val profileToSource =
+      buildInProfiles ++ LoadProfileSources.buildSources(sourceDefinition)
+    new LoadProfileStore(profileToSource)
   }
 
   def apply(): LoadProfileStore = {
-    val profileToSource = LoadProfileSource.getBdewLoadProfiles.asScala ++ Map(
-      LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE -> LoadProfileSource.getRandomLoadProfile
+    new LoadProfileStore(buildInProfiles)
+  }
+
+  /** Returns the build in [[LoadProfileSource]]s.
+    */
+  private def buildInProfiles: Map[LoadProfile, LoadProfileSource[_, _]] = {
+    val bdew: Map[LoadProfile, LoadProfileSource[_, _]] =
+      LoadProfileSource.getBdewLoadProfiles.asScala.toMap
+    val random: Map[LoadProfile, LoadProfileSource[_, _]] = Map(
+      RANDOM_LOAD_PROFILE -> LoadProfileSource.getRandomLoadProfile
     )
-    new LoadProfileStore(profileToSource.toMap)
+    bdew ++ random
   }
 
   /** Converts an option for [[ComparableQuantity]] power to an option for
     * [[squants.Power]].
     * @param power
-    *   that should be converted
+    *   That should be converted
     * @return
-    *   an option for [[squants.Power]]
+    *   An option for [[squants.Power]]
     */
   private def convertPower(
-      power: Option[ComparableQuantity[Power]]
+      power: Optional[ComparableQuantity[Power]]
   ): Option[squants.Power] =
-    power
+    power.toScala
       .map(p =>
         Kilowatts(p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue())
       )

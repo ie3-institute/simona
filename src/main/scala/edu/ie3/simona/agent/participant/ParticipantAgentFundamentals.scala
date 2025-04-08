@@ -438,6 +438,7 @@ protected trait ParticipantAgentFundamentals[
       case RegistrationSuccessfulMessage(
             serviceRef,
             firstDataTick,
+            _,
           ) =>
         val remainingResponses =
           stateData.pendingResponses.filter(_ != serviceRef.toClassic)

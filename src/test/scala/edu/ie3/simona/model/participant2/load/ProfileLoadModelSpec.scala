@@ -7,7 +7,9 @@
 package edu.ie3.simona.model.participant2.load
 
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
+import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
+import edu.ie3.simona.model.participant2.load.LoadModel.ProfileLoadFactoryData
 import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
@@ -35,7 +37,14 @@ class ProfileLoadModelSpec
   private val simulationStartDate =
     TimeUtil.withDefaults.toZonedDateTime("2022-01-01T00:00:00Z")
 
+  private val loadProfileStore = LoadProfileStore()
+
   "A profile load model" should {
+
+    def additionalData(loadProfile: LoadProfile): ProfileLoadFactoryData =
+      loadProfileStore
+        .getProfileLoadFactoryData(loadProfile)
+        .getOrElse(fail(s"No data found for profile: $loadProfile"))
 
     "be instantiated correctly with power reference" in {
 
@@ -62,6 +71,7 @@ class ProfileLoadModelSpec
               .build(),
             config,
           )
+          .update(additionalData(profile))
           .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
@@ -97,6 +107,7 @@ class ProfileLoadModelSpec
               .build(),
             config,
           )
+          .update(additionalData(profile))
           .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
@@ -122,7 +133,10 @@ class ProfileLoadModelSpec
             .doubleValue
         )
 
-        val model = ProfileLoadModel.Factory(input, config).create()
+        val model = ProfileLoadModel
+          .Factory(input, config)
+          .update(additionalData(profile))
+          .create()
 
         /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
          * [https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf], 1.5 %
@@ -144,7 +158,10 @@ class ProfileLoadModelSpec
         val input = loadInput.copy().loadprofile(profile).build()
         val config = LoadRuntimeConfig(modelBehaviour = "profile")
 
-        val model = ProfileLoadModel.Factory(input, config).create()
+        val model = ProfileLoadModel
+          .Factory(input, config)
+          .update(additionalData(profile))
+          .create()
 
         val targetMaximumPower = Kilovoltamperes(
           input

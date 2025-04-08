@@ -14,11 +14,8 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
+import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.{
-  CriticalFailureException,
-  InitializationException,
-}
 import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.{
   LoadData,
   RegisterForLoadProfileService,
@@ -29,12 +26,11 @@ import edu.ie3.simona.ontology.messages.services.{
 }
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
-  ServiceActivationBaseStateData,
+  ServiceBaseStateData,
 }
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
-import edu.ie3.simona.util.{SimonaConstants, TickUtil}
-import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
+import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
@@ -54,21 +50,21 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
     *   That stores that contains all load profiles.
     * @param profileToRefs
     *   Map: actor ref to [[LoadProfile]].
-    * @param maybeNextActivationTick
-    *   The next tick, when this actor is triggered by scheduler.
-    * @param activationTicks
-    *   Sorted set of ticks, that yet have been sent to the scheduler (w\o next
-    *   tick).
+    * @param nextActivationTick
+    *   The next tick for which this service should be activated.
+    * @param simulationStartTime
+    *   Start of the simulation.
+    * @param resolution
+    *   The resolution of this simulation.
     */
   final case class LoadProfileInitializedStateData(
       loadProfileStore: LoadProfileStore,
-      profileToRefs: Map[LoadProfile, Vector[
-        ActorRef[ParticipantAgent.Request]
-      ]] = Map.empty,
-      override val maybeNextActivationTick: Option[Long],
-      override val activationTicks: SortedDistinctSeq[Long],
+      profileToRefs: Map[LoadProfile, Seq[ActorRef[ParticipantAgent.Request]]] =
+        Map.empty,
+      nextActivationTick: Long,
       simulationStartTime: ZonedDateTime,
-  ) extends ServiceActivationBaseStateData
+      resolution: FiniteDuration,
+  ) extends ServiceBaseStateData
 
   /** Load profile service state data used for initialization of the load
     * profile sources.
@@ -90,20 +86,6 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
       resolution: FiniteDuration = 15.minutes,
   ) extends InitializeServiceStateData
 
-  /** Initialize the concrete service implementation using the provided
-    * initialization data. This method should perform all heavyweight tasks
-    * before the actor becomes ready. The return values are a) the state data of
-    * the initialized service and b) optional triggers that should be send to
-    * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
-    * message that is send in response to the trigger that is send to start the
-    * initialization process
-    *
-    * @param initServiceData
-    *   The data that should be used for initialization.
-    * @return
-    *   The state data of this service and optional tick that should be included
-    *   in the completion message.
-    */
   override def init(
       initServiceData: InitializeServiceStateData
   ): Try[(LoadProfileInitializedStateData, Option[Long])] =
@@ -111,35 +93,22 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
       case InitLoadProfileServiceStateData(
             dataSource,
             simulationStartTime,
-            simulationEnd,
+            _,
             resolution,
           ) =>
-        implicit val simulationStart: ZonedDateTime = simulationStartTime
-
         val loadProfileStore = LoadProfileStore(dataSource)
-
-        /* What is the first tick to be triggered for? And what are further activation ticks */
-        val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
-          TickUtil
-            .getTicksInBetween(
-              SimonaConstants.FIRST_TICK_IN_SIMULATION,
-              simulationEnd.toTick,
-              resolution.toSeconds,
-            )
-            .toSeq
-        ).pop
 
         val initializedStateData = LoadProfileInitializedStateData(
           loadProfileStore,
           Map.empty,
-          activationTicks = furtherActivationTicks,
-          maybeNextActivationTick = maybeNextTick,
+          FIRST_TICK_IN_SIMULATION,
           simulationStartTime = simulationStartTime,
+          resolution = resolution,
         )
 
         Success(
           initializedStateData,
-          maybeNextTick,
+          Some(FIRST_TICK_IN_SIMULATION),
         )
       case invalidData =>
         Failure(
@@ -149,16 +118,6 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
         )
     }
 
-  /** Handle a request to register for information from this service
-    *
-    * @param registrationMessage
-    *   registration message to handle
-    * @param serviceStateData
-    *   current state data of the actor
-    * @return
-    *   the service stata data that should be used in the next state (normally
-    *   with updated values)
-    */
   override protected def handleRegistrationRequest(
       registrationMessage: ServiceMessage.ServiceRegistrationMessage
   )(implicit
@@ -205,10 +164,9 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
           // we can provide data for the agent
           agentToBeRegistered ! RegistrationSuccessfulMessage(
             ctx.self,
-            serviceStateData.maybeNextActivationTick.getOrElse(
-              throw new CriticalFailureException(
-                "No first data tick for weather service"
-              )
+            FIRST_TICK_IN_SIMULATION,
+            serviceStateData.loadProfileStore.getProfileLoadFactoryData(
+              loadProfile
             ),
           )
 
@@ -231,10 +189,9 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
         // load profile is already known (= we have data for it), but this actor is not registered yet
         agentToBeRegistered ! RegistrationSuccessfulMessage(
           ctx.self,
-          serviceStateData.maybeNextActivationTick.getOrElse(
-            throw new CriticalFailureException(
-              "No first data tick for weather service"
-            )
+          FIRST_TICK_IN_SIMULATION,
+          serviceStateData.loadProfileStore.getProfileLoadFactoryData(
+            loadProfile
           ),
         )
 
@@ -259,57 +216,58 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
     }
   }
 
-  /** Send out the information to all registered recipients
-    *
-    * @param tick
-    *   current tick data should be announced for
-    * @param serviceStateData
-    *   the current state data of this service
-    * @return
-    *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is send
-    *   in response to the trigger that was sent to start this announcement
-    */
   override protected def announceInformation(tick: Long)(implicit
       serviceStateData: LoadProfileInitializedStateData,
       ctx: ActorContext[LoadProfileMessage],
   ): (LoadProfileInitializedStateData, Option[Long]) = {
 
     /* Pop the next activation tick and update the state data */
-    val (
-      maybeNextTick: Option[Long],
-      updatedStateData: LoadProfileInitializedStateData,
-    ) = {
-      val (nextTick, remainderTicks) = serviceStateData.activationTicks.pop
-      (nextTick, serviceStateData.copy(activationTicks = remainderTicks))
-    }
+    val nextTick = tick + serviceStateData.resolution.toSeconds
+    val updatedStateData: LoadProfileInitializedStateData =
+      serviceStateData.copy(nextActivationTick = nextTick)
 
     val time = tick.toDateTime(serviceStateData.simulationStartTime)
     val loadProfileStore = serviceStateData.loadProfileStore
 
     serviceStateData.profileToRefs.foreach { case (loadProfile, actorRefs) =>
-      loadProfileStore.entry(time, loadProfile) match {
-        case Some(averagePower) =>
-          /* Sending the found value to the requester */
-          actorRefs.foreach(recipient =>
-            recipient ! DataProvision(
-              tick,
-              ctx.self,
-              LoadData(averagePower),
-              maybeNextTick,
-            )
-          )
-        case None =>
-          /* There is no data available in the source. */
-          ctx.log.warn(
-            s"No power value found for load profile {} for time: {}",
-            loadProfile,
-            time,
-          )
+      loadProfile match {
+        case LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE =>
+          loadProfileStore
+            .sampleRandomEntries(time, actorRefs.size)
+            .zip(actorRefs)
+            .foreach { case (averagePower, recipient) =>
+              recipient ! DataProvision(
+                tick,
+                ctx.self,
+                LoadData(averagePower),
+                Some(nextTick),
+              )
+            }
+
+        case _ =>
+          loadProfileStore.entry(time, loadProfile) match {
+            case Some(averagePower) =>
+              /* Sending the found value to the requester */
+              actorRefs.foreach(recipient =>
+                recipient ! DataProvision(
+                  tick,
+                  ctx.self,
+                  LoadData(averagePower),
+                  Some(nextTick),
+                )
+              )
+            case None =>
+              /* There is no data available in the source. */
+              ctx.log.warn(
+                s"No power value found for load profile {} for time: {}",
+                loadProfile,
+                time,
+              )
+          }
       }
     }
 
-    (updatedStateData, maybeNextTick)
+    (updatedStateData, Some(nextTick))
   }
 
 }

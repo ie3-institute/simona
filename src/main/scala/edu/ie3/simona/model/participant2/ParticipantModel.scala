@@ -204,9 +204,22 @@ abstract class ParticipantModel[
 
 object ParticipantModel {
 
+  /** Additional data for factories.
+    */
+  trait AdditionalFactoryData
+
   /** Functionality related to creating and initializing a [[ParticipantModel]].
     */
   trait ParticipantModelFactory[S <: ModelState] {
+
+    /** Updates the factory with additional data. (default: simply retuning this
+      * factory).
+      * @param data
+      *   Used to update.
+      * @return
+      *   A copy of this factory.
+      */
+    def update(data: AdditionalFactoryData): ParticipantModelFactory[S] = this
 
     /** @return
       *   All secondary services required by the model.

@@ -9,11 +9,9 @@ package edu.ie3.simona.model.participant2.load
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   FixedState,
-  OperatingPoint,
   ParticipantFixedState,
   ParticipantModelFactory,
 }
@@ -21,9 +19,9 @@ import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
-import squants.time.Days
 import squants.Power
 import squants.energy.KilowattHours
+import squants.time.Days
 
 import java.time.ZonedDateTime
 import java.util.UUID

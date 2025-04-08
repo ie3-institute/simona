@@ -8,25 +8,29 @@ package edu.ie3.simona.model.participant2.load
 
 import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile
 import edu.ie3.datamodel.models.profile.{LoadProfile, StandardLoadProfile}
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant2.load.LoadModel.{
-  LoadModelState,
-  LoadModelWithService,
-}
+import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  DateTimeState,
-  ParticipantDateTimeState,
+  AdditionalFactoryData,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.service.load.LoadProfileStore
-import edu.ie3.simona.model.participant2.load.{LoadModel, LoadReferenceType}
+import edu.ie3.simona.model.participant2.load.LoadModel.{
+  LoadModelState,
+  ProfileLoadFactoryData,
+}
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.LoadData
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.util.TickUtil
+import edu.ie3.simona.service.ServiceType.LoadProfileService
 import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import squants.energy.Energy
+import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -38,31 +42,92 @@ class ProfileLoadModel(
     override val cosPhiRated: Double,
     override val qControl: QControl,
     val loadProfile: LoadProfile,
-    override val referenceScalingFactor: Double,
-) extends LoadModel[LoadModelState]
-    with LoadModelWithService
+    val referenceScalingFactor: Double,
+) extends LoadModel[LoadModelState] {
+
+  override def determineOperatingPoint(
+      state: LoadModelState
+  ): (ParticipantModel.ActivePowerOperatingPoint, Option[Long]) = {
+    val averagePower = state.averagePower
+
+    (
+      ActivePowerOperatingPoint(averagePower * referenceScalingFactor),
+      None,
+    )
+  }
+
+  /** Determines the current state given the last state and the operating point
+    * that has been valid from the last state up until now.
+    *
+    * @param lastState
+    *   The last state.
+    * @param operatingPoint
+    *   The operating point valid from the simulation time of the last state up
+    *   until now.
+    * @param tick
+    *   The current tick
+    * @param simulationTime
+    *   The current simulation time
+    * @return
+    *   The current state.
+    */
+  override def determineState(
+      lastState: LoadModelState,
+      operatingPoint: ActivePowerOperatingPoint,
+      tick: Long,
+      simulationTime: ZonedDateTime,
+  ): LoadModelState = lastState.copy(tick = tick)
+
+  override def handleInput(
+      state: LoadModelState,
+      receivedData: Seq[Data],
+      nodalVoltage: Dimensionless,
+  ): LoadModelState = {
+
+    val loadData = receivedData
+      .collectFirst { case loadData: LoadData =>
+        loadData
+      }
+      .getOrElse(
+        throw new CriticalFailureException(
+          s"Expected LoadProfileData, got $receivedData"
+        )
+      )
+
+    state.copy(averagePower = loadData.averagePower)
+  }
+}
 
 object ProfileLoadModel {
 
   final case class Factory(
       input: LoadInput,
       config: LoadRuntimeConfig,
-  ) extends ParticipantModelFactory[DateTimeState] {
+      maxPower: Option[Power] = None,
+      energyScaling: Option[Energy] = None,
+  ) extends ParticipantModelFactory[LoadModelState] {
+
+    override def update(
+        data: AdditionalFactoryData
+    ): Factory = data match {
+      case ProfileLoadFactoryData(maxPower, energyScaling) =>
+        copy(maxPower = maxPower, energyScaling = energyScaling)
+    }
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
-      Iterable.empty
+      Iterable(LoadProfileService)
 
     override def getInitialState(
         tick: Long,
         simulationTime: ZonedDateTime,
-    ): DateTimeState = DateTimeState(tick, simulationTime)
+    ): LoadModelState = LoadModelState(tick, zeroKW)
 
     override def create(): ProfileLoadModel = {
-      val loadProfileStore = LoadProfileStore()
-
       val loadProfile = input.getLoadProfile match {
         case slp: StandardLoadProfile =>
           slp
+        case random: RandomLoadProfile =>
+          random
         case other =>
           throw new CriticalFailureException(
             s"Expected a standard load profile type, got ${other.getClass}"
@@ -71,34 +136,45 @@ object ProfileLoadModel {
 
       val referenceType = LoadReferenceType(config.reference)
 
-    val maxPower = loadProfileStore
-      .maxPower(loadProfile)
-      .getOrElse(
+      val power = maxPower.getOrElse(
         throw new SourceException(
           s"Expected a maximal power value for this load profile: ${input.getLoadProfile}!"
         )
       )
 
-    val profileReferenceEnergy = loadProfileStore.profileScaling(loadProfile)
+      val profileReferenceEnergy = energyScaling.getOrElse(
+        throw new SourceException(
+          s"Expected a profile energy scaling value for this load profile: ${input.getLoadProfile}!"
+        )
+      )
 
-    val (referenceScalingFactor, scaledSRated) =
-      LoadModel.scaleToReference(
+      val (referenceScalingFactor, scaledSRated) = LoadModel.scaleToReference(
         referenceType,
         input,
-        maxPower,
+        power,
         profileReferenceEnergy,
       )
 
-    new ProfileLoadModel(
-      input.getUuid,
-      input.getId,
-      scaledSRated,
-      input.getCosPhiRated,
-      QControl.apply(input.getqCharacteristics()),
-      loadProfile,
-      referenceScalingFactor,
-    )
-  }
+      val sRated = loadProfile match {
+        case RandomLoadProfile.RANDOM_LOAD_PROFILE =>
+          /** Safety factor to address potential higher sRated values when using
+            * unrestricted probability functions.
+            */
+          scaledSRated * 1.1
+        case _ =>
+          scaledSRated
+      }
+
+      new ProfileLoadModel(
+        input.getUuid,
+        input.getId,
+        sRated,
+        input.getCosPhiRated,
+        QControl.apply(input.getqCharacteristics()),
+        loadProfile,
+        referenceScalingFactor,
+      )
+    }
 
   }
 

@@ -7,9 +7,6 @@
 package edu.ie3.simona.model.participant2.load
 
 import edu.ie3.datamodel.exceptions.SourceException
-import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile
-import edu.ie3.simona.model.participant2.ParticipantModel.ActivePowerOperatingPoint
-import edu.ie3.simona.model.participant2.load.LoadModel.LoadModelState
 import edu.ie3.simona.service.load.LoadProfileStore
 import squants.energy.KilowattHours
 import squants.time.Minutes
@@ -23,7 +20,7 @@ trait LoadModelTestHelper {
   private val store = LoadProfileStore()
 
   protected def calculateEnergyDiffForYear(
-      model: LoadModel[LoadModelState],
+      model: ProfileLoadModel,
       simulationStartDate: ZonedDateTime,
       expectedEnergy: Energy,
   ): Dimensionless = {
@@ -43,36 +40,24 @@ trait LoadModelTestHelper {
   }
 
   protected def calculatePowerForYear(
-      model: LoadModel[LoadModelState],
+      model: ProfileLoadModel,
       simulationStartDate: ZonedDateTime,
   ): Iterable[Power] = {
     val quarterHoursInYear = 365L * 96L
 
     (0L until quarterHoursInYear)
       .map { quarterHour =>
-        val tick = quarterHour * 15 * 60
         val dateTime =
           simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES)
 
         val averagePower = (model match {
           case profileLoadModel: ProfileLoadModel =>
             store.entry(dateTime, profileLoadModel.loadProfile)
-          case _: RandomLoadModel =>
-            store.entry(dateTime, RandomLoadProfile.RANDOM_LOAD_PROFILE)
         }).getOrElse(
           throw new SourceException("No load value present!")
         )
 
-        val state = LoadModelState(
-          tick,
-          averagePower,
-        )
-
-        model
-          .determineOperatingPoint(state) match {
-          case (ActivePowerOperatingPoint(p), _) =>
-            p
-        }
+        averagePower * model.referenceScalingFactor
       }
   }
 

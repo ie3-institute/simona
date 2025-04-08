@@ -446,7 +446,7 @@ object SimonaSimSpec {
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
     ): ActorRef[LoadProfileMessage] =
-      context.spawn(empty, uniqueName("loadProfileService")).toClassic
+      context.spawn(empty, uniqueName("loadProfileService"))
 
     override def timeAdvancer(
         context: ActorContext[_],
