@@ -369,9 +369,7 @@ object ThermalHouse {
     * @param operatingPoint
     *   The operating point of the thermal house.
     * @param innerTemperature
-    *   Inner temperature of the house
-    * @param qDot
-    *   Continuous external feed in of thermal energy since the given tick
+    *   Inner temperature of the house.
     */
   final case class ThermalHouseState(
       override val tick: Long,

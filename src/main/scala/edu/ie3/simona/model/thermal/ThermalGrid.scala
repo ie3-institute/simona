@@ -14,11 +14,7 @@ import edu.ie3.datamodel.models.result.thermal.{
   ThermalHouseResult,
 }
 import edu.ie3.simona.exceptions.InvalidParameterException
-import edu.ie3.simona.model.participant2.HpModel.{
-  HpOperatingPoint,
-  HpState,
-  ThermalOpWrapper,
-}
+import edu.ie3.simona.model.participant2.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.participant2.ParticipantModel.OperatingPoint
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
@@ -37,7 +33,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.{
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.energy.{KilowattHours, Kilowatts}
+import squants.energy.KilowattHours
 import squants.{Energy, Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -560,7 +556,7 @@ final case class ThermalGrid(
     * @return
     *   Options to revised thermal house and storage state.
     */
-  def reviseInfeedFromStorage(
+  def reviseFeedInFromStorage(
       state: HpState,
       maybeHouseState: Option[ThermalHouseState],
       maybeStorageState: Option[ThermalStorageState],
@@ -676,7 +672,6 @@ final case class ThermalGrid(
         lastOpThermals.forall(
           _.qDotHeatStorage != currentOpThermals.qDotHeatStorage
         ),
-        state.tick != 0,
         state.tick != 0,
       ) match {
         case (Some(storage: CylindricalThermalStorage), true, true) =>

@@ -449,7 +449,7 @@ object HpModel {
     ): HpState = {
 
       val therGrid = ThermalGrid(thermalGrid)
-      val initialState = ThermalGrid.startingState(therGrid)
+      val initialState = ThermalGrid.startingState(therGrid, zeroCelsius)
       val thermalDemand = therGrid.determineEnergyDemand(initialState)
 
       HpState(
@@ -457,7 +457,6 @@ object HpModel {
         zeroCelsius,
         initialState,
         HpOperatingPoint.zero,
-        zeroCelsius,
         thermalDemand,
       )
     }
