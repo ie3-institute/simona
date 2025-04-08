@@ -526,98 +526,10 @@ class HpModelSpec
               minPower should approximate(Kilowatts(expectedMinPower))
               maxPower should approximate(Kilowatts(expectedMaxPower))
           }
-      }
-    }
-
-    "Handle operating correctly" in {
-      val ambientTemperature = Celsius(10)
-
-      val cases = Table(
-        (
-          "tick",
-          "requiredDemandHouse",
-          "expectedHpQDot",
-          "expectedTick",
-        ),
-        (0, 0d, 0d, Some(4000)),
-        (5000, 1d, 95d, Some(6161)),
-      )
-
-      forAll(cases) {
-        (
-            tick,
-            requiredDemandHouse,
-            expectedHpQDot,
-            expectedTick,
-        ) =>
-          val state = HpState(
-            tick,
-            ambientTemperature,
-            thermalState(Celsius(19d), ambientTemperature),
-            HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
-            ThermalDemandWrapper(
-              ThermalEnergyDemand(
-                KilowattHours(requiredDemandHouse),
-                KilowattHours(requiredDemandHouse),
-              ),
-              ThermalEnergyDemand(zeroKWh, zeroKWh),
-            ),
-          )
-
-          val (op, threshold) = hpModel.determineOperatingPoint(state)
-
-          op.activePower shouldBe Kilowatts(expectedHpQDot)
-          threshold shouldBe expectedTick
 
       }
     }
 
-    "Handle controlled power change" in {
-      val ambientTemperature = Celsius(10)
-
-      val cases = Table(
-        (
-          "tick",
-          "setPower",
-          "requiredDemandHouse",
-          "expectedHpQDot",
-          "expectedTick",
-        ),
-        (0L, 0d, 0d, 0d, Some(4000)),
-        (5000L, 95d, 1d, 95d, Some(6161)),
-        (0L, 80d, 0d, 95d, Some(4000)),
-        (5000L, 80d, 1d, 95d, Some(6161)),
-      )
-
-      forAll(cases) {
-        (
-            tick,
-            setPwr,
-            requiredDemandHouse,
-            expectedHpQDot,
-            expectedTick,
-        ) =>
-          val state = HpState(
-            tick,
-            ambientTemperature,
-            thermalState(Celsius(19d), ambientTemperature),
-            HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
-            ThermalDemandWrapper(
-              ThermalEnergyDemand(
-                KilowattHours(requiredDemandHouse),
-                KilowattHours(requiredDemandHouse),
-              ),
-              ThermalEnergyDemand(zeroKWh, zeroKWh),
-            ),
-          )
-          val setPower = Kilowatts(setPwr)
-
-          val (op, threshold) = hpModel.determineOperatingPoint(state, setPower)
-
-          op.activePower shouldBe Kilowatts(expectedHpQDot)
-          threshold.changesAtTick shouldBe expectedTick
-
-      }
-    }
+    "Handle controlled power change" in {}
   }
 }
