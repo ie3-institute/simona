@@ -168,10 +168,10 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
     }
 
-    "handling thermal infeed into the grid" should {
-      val handleInfeed =
+    "handling thermal feed in into the grid" should {
+      val handleFeedIn =
         PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
-          Symbol("handleInfeed")
+          Symbol("handleFeedIn")
         )
 
       "solely heat up the house" in {
@@ -190,7 +190,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         )
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleInfeed(
+          thermalGrid invokePrivate handleFeedIn(
             state,
             isNotRunning,
             testGridQDotInfeed,
