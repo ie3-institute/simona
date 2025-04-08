@@ -337,17 +337,12 @@ object ConfigFailFast extends LazyLogging {
   private def checkBaseRuntimeConfigs(
       defaultConfig: BaseRuntimeConfig,
       individualConfigs: List[BaseRuntimeConfig],
-      defaultString: String = "default",
   ): Unit = {
     // special default config check
-    val uuidString = defaultConfig.uuids.mkString(",")
-    if (
-      StringUtils
-        .cleanString(uuidString)
-        .toLowerCase != StringUtils.cleanString(defaultString).toLowerCase
-    )
+    val defaultUuids = defaultConfig.uuids
+    if (defaultUuids.nonEmpty)
       logger.warn(
-        s"You provided '$uuidString' as uuid reference for the default model config. Those references will not be considered!"
+        s"You provided '${defaultUuids.mkString(",")}' as uuid reference for the default model config. Those references will not be considered!"
       )
 
     // special individual configs check
@@ -358,75 +353,37 @@ object ConfigFailFast extends LazyLogging {
       )
 
     // check that is valid for all model configs
-    val allConfigs = Map(defaultConfig -> Some(defaultString)) ++
-      individualConfigs.map(config => (config, None)).toMap
+    val allConfigs = Map(defaultConfig -> true) ++
+      individualConfigs.map(config => (config, false)).toMap
 
-    allConfigs.foreach { case (config, singleEntryStringOpt) =>
-      /* Checking the uuids */
-      if (config.uuids.isEmpty)
-        throw new InvalidConfigParameterException(
-          "There has to be at least one identifier for each participant."
-        )
-      /* If there is an option to a String that is also valid as a single entry, then check for this */
-      singleEntryStringOpt match {
-        case Some(singleString) =>
-          checkSingleString(singleString, config.uuids)
-        case None =>
-          config.uuids.foreach(uuid =>
-            try {
-              UUID.fromString(uuid)
-            } catch {
-              case e: IllegalArgumentException =>
-                throw new InvalidConfigParameterException(
-                  s"The UUID '$uuid' cannot be parsed as it is invalid.",
-                  e,
-                )
-            }
+    allConfigs.foreach { case (config, default) =>
+
+      // we only check the uuids for individual configs
+      if (!default) {
+        /* Checking the uuids */
+        if (config.uuids.isEmpty)
+          throw new InvalidConfigParameterException(
+            "There has to be at least one identifier for each participant."
           )
+
+        /* Checking if all uuids are valid */
+        config.uuids.foreach(uuid =>
+          try {
+            UUID.fromString(uuid)
+          } catch {
+            case e: IllegalArgumentException =>
+              throw new InvalidConfigParameterException(
+                s"The UUID '$uuid' cannot be parsed as it is invalid.",
+                e,
+              )
+          }
+        )
       }
 
       // check for scaling
       if (config.scaling < 0)
         throw new InvalidConfigParameterException(
           s"The scaling factor for system participants with UUID '${config.uuids.mkString(",")}' may not be negative."
-        )
-    }
-  }
-
-  /** Check method for a single string, normally the default string
-    *
-    * @param singleString
-    *   the single string that is expected
-    * @param uuids
-    *   the corresponding list of uuids
-    */
-  private def checkSingleString(
-      singleString: String,
-      uuids: List[String],
-  ): Unit = {
-    if (uuids.toVector.size != 1)
-      throw new InvalidConfigParameterException(
-        "The list of UUIDs is supposed to only have one entry!"
-      )
-    uuids.headOption match {
-      case Some(singleEntry) =>
-        if (
-          StringUtils
-            .cleanString(singleEntry)
-            .toLowerCase() != singleString
-        )
-          try {
-            UUID.fromString(singleEntry)
-          } catch {
-            case e: IllegalArgumentException =>
-              throw new InvalidConfigParameterException(
-                s"Found invalid UUID '$singleEntry' it was meant to be the string '$singleString' or a valid UUID.",
-                e,
-              )
-          }
-      case None =>
-        throw new InvalidConfigParameterException(
-          "There is no valid uuid entry in the list."
         )
     }
   }

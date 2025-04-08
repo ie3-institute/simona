@@ -195,7 +195,7 @@ The participant runtime can be either based on default configuration or individu
 simona.runtime.participant.load = {
   defaultConfig = {
     calculateMissingReactivePowerWithModel = false
-    uuids = ["default"]
+    uuids = []
     scaling = 1.0
     modelBehaviour = "fix"
     reference = "power"
@@ -208,9 +208,10 @@ The reactive power is determined based on the chosen Q-control of the participan
 
     calculateMissingReactivePowerWithModel = true
 
-Using the default configuration the universally unique identifier can be set to "default". 
+Using the default configuration the universally unique identifier should be empty. Alternatively, the parameter can dropped
+to use the default empty list.
 
-    uuids = ["default"]
+    uuids = []
 
 Choosing the scaling factor of relevant participant parameters such as rated power or annual power consumption: 
 

@@ -172,6 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FlexOptions types in `FlexibilityMessage` [#1306](https://github.com/ie3-institute/simona/issues/1306)
 - Isolate solar radiation calculations of PvModel to its own object [#1327](https://github.com/ie3-institute/simona/issues/1327)
 - Reorganized CI order [#1333](https://github.com/ie3-institute/simona/issues/1333)
+- Refactoring uuids in default runtime configs [#1336](https://github.com/ie3-institute/simona/issues/1336)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)

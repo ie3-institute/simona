@@ -103,7 +103,7 @@ object SimonaConfig {
       input: InputConfig,
       output: OutputConfig,
       powerflow: Simona.Powerflow,
-      runtime: RuntimeConfig,
+      runtime: RuntimeConfig = RuntimeConfig(),
       simulationName: String,
       time: Simona.Time = Simona.Time(),
   )
