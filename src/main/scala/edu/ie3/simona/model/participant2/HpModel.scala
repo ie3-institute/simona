@@ -275,6 +275,10 @@ class HpModel private (
           result.q.toMegavars.asMegaVar,
           result.qDot.toMegawatts.asMegaWatt,
         )
+      case unknown =>
+        throw new IllegalArgumentException(
+          s"Unknown data type when matching for primary data results $unknown!"
+        )
     }
   }
 
