@@ -576,7 +576,6 @@ final case class ThermalGrid(
       currentOperatingPoint: HpOperatingPoint,
       dateTime: ZonedDateTime,
   ): Seq[ResultEntity] = {
-
     val currentOpThermals = currentOperatingPoint.thermalOps
 
     val lastOpThermals = lastOperatingPoint.map(_.thermalOps)
