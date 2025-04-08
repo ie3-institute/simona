@@ -12,27 +12,19 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
 }
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ModelState,
-  OperatingPoint,
-}
+import edu.ie3.simona.model.participant2.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,
   HouseTemperatureLowerBoundaryReached,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.{
-  ThermalHouseOperatingPoint,
   ThermalHouseState,
   temperatureTolerance,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{
-  ReactivePower,
-  ThermalConductance,
-  WattsPerKelvin,
-}
+import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
 import squants.thermal.{Kelvin, ThermalCapacity}
 import squants.time.{Hours, Seconds}
@@ -222,19 +214,19 @@ final case class ThermalHouse(
     *   The tick that the houseState should be updated to.
     * @param thermalHouseState
     *   The applicable state of thermalHouse until this tick.
-    * @param operatingPoint
-    *   The operating point of the thermal house.
+    * @param qDot
+    *   The thermal feed in to the thermal house.
     * @return
     *   Updated state of the instance.
     */
   def determineState(
       tick: Long,
       thermalHouseState: ThermalHouseState,
-      operatingPoint: ThermalHouseOperatingPoint,
+      qDot: Power,
   ): ThermalHouseState = {
     val duration = Seconds(tick - thermalHouseState.tick)
     val updatedInnerTemperature = newInnerTemperature(
-      operatingPoint.activePower,
+      qDot,
       duration,
       thermalHouseState.innerTemperature,
       thermalHouseState.ambientTemperature,
@@ -243,21 +235,20 @@ final case class ThermalHouse(
     thermalHouseState.copy(
       tick = tick,
       innerTemperature = updatedInnerTemperature,
-      operatingPoint = operatingPoint,
     )
   }
 
   /** Determine the next threshold, that will be reached.
     * @param thermalHouseState
     *   The applicable state of thermalHouse until this tick.
-    * @param operatingPoint
-    *   The operating point of the thermal house.
+    * @param qDot
+    *   The thermal feed in to the thermal house.
     * @return
     *   The next threshold, that will be reached.
     */
   def determineNextThreshold(
       thermalHouseState: ThermalHouseState,
-      operatingPoint: ThermalHouseOperatingPoint,
+      qDot: Power,
   ): Option[ThermalThreshold] = {
     val artificialDuration = Hours(1d)
     val loss = ethLosses.calcThermalEnergyChange(
@@ -265,7 +256,7 @@ final case class ThermalHouse(
       thermalHouseState.ambientTemperature,
       artificialDuration,
     ) / artificialDuration
-    val resultingQDot = operatingPoint.activePower - loss
+    val resultingQDot = qDot - loss
     if (
       resultingQDot < zeroMW && !isInnerTemperatureTooLow(
         thermalHouseState.innerTemperature
@@ -319,17 +310,6 @@ final case class ThermalHouse(
 object ThermalHouse {
   protected def temperatureTolerance: Temperature = Kelvin(0.01d)
 
-  final case class ThermalHouseOperatingPoint(
-      override val activePower: Power
-  ) extends OperatingPoint {
-    override val reactivePower: Option[ReactivePower] = None
-  }
-
-  object ThermalHouseOperatingPoint {
-    def zero: ThermalHouseOperatingPoint =
-      ThermalHouseOperatingPoint(zeroKW)
-  }
-
   def apply(input: ThermalHouseInput): ThermalHouse = new ThermalHouse(
     input.getUuid,
     input.getId,
@@ -366,15 +346,12 @@ object ThermalHouse {
     *   Last tick of temperature change.
     * @param ambientTemperature
     *   The current ambient temperature.
-    * @param operatingPoint
-    *   The operating point of the thermal house.
     * @param innerTemperature
     *   Inner temperature of the house.
     */
   final case class ThermalHouseState(
       override val tick: Long,
       ambientTemperature: Temperature,
-      operatingPoint: ThermalHouseOperatingPoint,
       innerTemperature: Temperature,
   ) extends ModelState
 
@@ -385,7 +362,6 @@ object ThermalHouse {
     ThermalHouseState(
       -1L,
       ambientTemperature,
-      ThermalHouseOperatingPoint.zero,
       house.targetTemperature,
     )
 

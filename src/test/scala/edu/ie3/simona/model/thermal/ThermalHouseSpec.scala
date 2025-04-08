@@ -11,7 +11,6 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.{
-  ThermalHouseOperatingPoint,
   ThermalHouseState,
   startingState,
 }
@@ -99,19 +98,17 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
             house.determineState(
               tick,
               initialHouseState,
-              ThermalHouseOperatingPoint(Kilowatts(lastOperatingPoint)),
+              Kilowatts(lastOperatingPoint),
             )
 
           thermalHouseState match {
             case ThermalHouseState(
                   tick,
                   _,
-                  ThermalHouseOperatingPoint(qDot),
                   temperature,
                 ) =>
               tick shouldBe 3600L
               temperature should approximate(Kelvin(expectedTemperature))
-              qDot shouldBe Kilowatts(lastOperatingPoint)
             case unexpected =>
               fail(s"Expected a thermalHouseState but got none $unexpected.")
           }
@@ -144,8 +141,8 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
             newOp: Double,
             expectedThreshold: Option[ThermalThreshold],
         ) =>
-          val lastOperatingPoint = ThermalHouseOperatingPoint(Kilowatts(lastOp))
-          val newOperatingPoint = ThermalHouseOperatingPoint(Kilowatts(newOp))
+          val lastOperatingPoint = Kilowatts(lastOp)
+          val newOperatingPoint = Kilowatts(newOp)
 
           val state = house.determineState(
             tick,

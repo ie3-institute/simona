@@ -21,11 +21,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant2.HpModel.{
-  HpOperatingPoint,
-  HpState,
-  ThermalOpWrapper,
-}
+import edu.ie3.simona.model.participant2.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
@@ -71,6 +67,7 @@ class HpModel private (
       tick: Long,
       simulationTime: ZonedDateTime,
   ): HpState = {
+
     val thermalGridState =
       thermalGrid.updateThermalGridState(
         tick,
@@ -105,8 +102,7 @@ class HpModel private (
           )
 
         state.copy(
-          ambientTemperature = newData.temp,
-          thermalGridState = thermalGridWithUpdatedAmbientTemp,
+          thermalGridState = thermalGridWithUpdatedAmbientTemp
         )
       })
       .getOrElse(state)
@@ -296,7 +292,7 @@ class HpModel private (
 
     val (newActivePowerHp, qDotIntoGrid) = nextOperatingPoint(state, None)
 
-    val (updateState, maybeThreshold) =
+    val (_, maybeThreshold, thermalGridOperatingPoint) =
       /* Determine how qDot is used in thermalGrid and get threshold*/
       if (qDotIntoGrid > zeroKW) {
         thermalGrid.handleFeedIn(
@@ -311,15 +307,7 @@ class HpModel private (
     val operatingPoint =
       HpOperatingPoint(
         newActivePowerHp,
-        ThermalOpWrapper(
-          qDotIntoGrid,
-          updateState.houseState
-            .map(_.operatingPoint.activePower)
-            .getOrElse(zeroKW),
-          updateState.storageState
-            .map(_.operatingPoint.activePower)
-            .getOrElse(zeroKW),
-        ),
+        thermalGridOperatingPoint,
       )
 
     val nextTick = maybeThreshold match {
@@ -338,7 +326,7 @@ class HpModel private (
     val (newActivePowerHp, qDotIntoGrid) =
       nextOperatingPoint(state, Some(setPower))
 
-    val (updateState, maybeThreshold) =
+    val (_, maybeThreshold, thermalGridOperatingPoint) =
       /* Determine how qDot is used in thermalGrid and get threshold*/
       if (qDotIntoGrid > zeroKW) {
         thermalGrid.handleFeedIn(
@@ -353,15 +341,7 @@ class HpModel private (
     val operatingPoint =
       HpOperatingPoint(
         newActivePowerHp,
-        ThermalOpWrapper(
-          qDotIntoGrid,
-          updateState.houseState
-            .map(_.operatingPoint.activePower)
-            .getOrElse(zeroKW),
-          updateState.storageState
-            .map(_.operatingPoint.activePower)
-            .getOrElse(zeroKW),
-        ),
+        thermalGridOperatingPoint,
       )
 
     val nextTick = maybeThreshold match {
@@ -383,20 +363,20 @@ object HpModel {
 
   final case class HpOperatingPoint(
       override val activePower: Power,
-      thermalOps: ThermalOpWrapper,
+      thermalOps: ThermalGridOperatingPoint,
   ) extends OperatingPoint {
     override val reactivePower: Option[ReactivePower] = None
   }
 
   object HpOperatingPoint {
     def zero: HpOperatingPoint =
-      HpOperatingPoint(zeroKW, ThermalOpWrapper.zero)
+      HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero)
   }
 
-  /** Wraps the thermal powers of the [[HpOperatingPoint]].
+  /** Operating point of the thermal grid.
     *
     * @param qDotHp
-    *   The thermal power output of the heat pump.
+    *   The thermal power output of the heat pump that is feed into the grid.
     * @param qDotHouse
     *   The thermal power input of the
     *   [[edu.ie3.simona.model.thermal.ThermalHouse]].
@@ -404,21 +384,20 @@ object HpModel {
     *   The thermal power input of the
     *   [[edu.ie3.simona.model.thermal.ThermalStorage]].
     */
-  final case class ThermalOpWrapper private (
+  final case class ThermalGridOperatingPoint private (
       qDotHp: Power,
       qDotHouse: Power,
       qDotHeatStorage: Power,
   )
-  object ThermalOpWrapper {
-    def zero: ThermalOpWrapper = ThermalOpWrapper(zeroKW, zeroKW, zeroKW)
+  object ThermalGridOperatingPoint {
+    def zero: ThermalGridOperatingPoint =
+      ThermalGridOperatingPoint(zeroKW, zeroKW, zeroKW)
   }
 
   /** Holds all relevant data for a hp model calculation.
     *
     * @param tick
     *   The current tick.
-    * @param ambientTemperature
-    *   The actual outside temperature.
     * @param thermalGridState
     *   The applicable state of the [[ThermalGrid]].
     * @param lastHpOperatingPoint
@@ -429,7 +408,6 @@ object HpModel {
     */
   final case class HpState(
       override val tick: Long,
-      ambientTemperature: Temperature,
       thermalGridState: ThermalGridState,
       lastHpOperatingPoint: HpOperatingPoint,
       thermalDemands: ThermalDemandWrapper,
@@ -454,7 +432,6 @@ object HpModel {
 
       HpState(
         tick,
-        zeroCelsius,
         initialState,
         HpOperatingPoint.zero,
         thermalDemand,

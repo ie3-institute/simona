@@ -8,10 +8,8 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageOperatingPoint
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -107,17 +105,10 @@ class CylindricalThermalStorageSpec
 
       forAll(cases) { (storedEnergy, tick, qDot, expectedStoredEnergy) =>
         val storage = buildThermalStorage(storageInput, CubicMeters(70))
-        val lastState = ThermalStorage.ThermalStorageState(
-          0L,
-          KilowattHours(storedEnergy),
-          ThermalStorageOperatingPoint(zeroKW),
-        )
+        val lastState =
+          ThermalStorage.ThermalStorageState(0L, KilowattHours(storedEnergy))
         val storageState =
-          storage.determineState(
-            tick,
-            lastState,
-            ThermalStorageOperatingPoint(Kilowatts(qDot)),
-          )
+          storage.determineState(tick, lastState, Kilowatts(qDot))
 
         storageState.storedEnergy should approximate(
           KilowattHours(expectedStoredEnergy)
@@ -152,17 +143,11 @@ class CylindricalThermalStorageSpec
             expectedThreshold,
         ) =>
           val storage = buildThermalStorage(storageInput, CubicMeters(70))
-          val state = ThermalStorage.ThermalStorageState(
-            0L,
-            KilowattHours(storedEnergy),
-            ThermalStorageOperatingPoint.zero,
-          )
+          val state =
+            ThermalStorage.ThermalStorageState(0L, KilowattHours(storedEnergy))
 
           val threshold =
-            storage.determineNextThreshold(
-              state,
-              ThermalStorageOperatingPoint(Kilowatts(qDot)),
-            )
+            storage.determineNextThreshold(state, Kilowatts(qDot))
 
           threshold match {
             case Some(threshold) => threshold shouldBe expectedThreshold

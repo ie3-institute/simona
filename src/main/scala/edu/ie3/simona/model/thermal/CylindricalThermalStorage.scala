@@ -12,13 +12,10 @@ import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput,
 }
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull,
-}
-import edu.ie3.simona.model.thermal.ThermalStorage.{
-  ThermalStorageOperatingPoint,
-  ThermalStorageState,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -92,11 +89,11 @@ final case class CylindricalThermalStorage(
   override def determineState(
       tick: Long,
       thermalStorageState: ThermalStorageState,
-      operatingPoint: ThermalStorageOperatingPoint,
+      qDotHeatStorage: Power,
   ): ThermalStorageState = {
     /* Determine new state based on time difference and given state */
     val energyBalance =
-      operatingPoint.activePower * Seconds(
+      qDotHeatStorage * Seconds(
         tick - thermalStorageState.tick
       )
     val newEnergy = thermalStorageState.storedEnergy + energyBalance
@@ -108,14 +105,14 @@ final case class CylindricalThermalStorage(
       else
         newEnergy
 
-    ThermalStorageState(tick, updatedEnergy, operatingPoint)
+    ThermalStorageState(tick, updatedEnergy)
   }
 
   /** Calculates the tick, when the next threshold of the instance is reached.
     *
     * @param thermalStorageState
     *   State of the heat storage.
-    * @param operatingPoint
+    * @param qDotHeatStorage
     *   Operating point of the heat storage.
     * @return
     *   The next threshold if there is one.
@@ -123,19 +120,19 @@ final case class CylindricalThermalStorage(
 
   override def determineNextThreshold(
       thermalStorageState: ThermalStorageState,
-      operatingPoint: ThermalStorageOperatingPoint,
+      qDotHeatStorage: Power,
   ): Option[ThermalThreshold] = {
-    if (operatingPoint.activePower > zeroKW) {
+    if (qDotHeatStorage > zeroKW) {
       val duration =
-        (maxEnergyThreshold - thermalStorageState.storedEnergy) / operatingPoint.activePower
+        (maxEnergyThreshold - thermalStorageState.storedEnergy) / qDotHeatStorage
       val durationInTicks = Math.floor(duration.toSeconds).toLong
       if (durationInTicks <= 0L)
         None
       else
         Some(StorageFull(thermalStorageState.tick + durationInTicks))
-    } else if (operatingPoint.activePower < zeroKW) {
+    } else if (qDotHeatStorage < zeroKW) {
       val duration =
-        thermalStorageState.storedEnergy / operatingPoint.activePower * (-1)
+        thermalStorageState.storedEnergy / qDotHeatStorage * -1
       val durationInTicks = Math.floor(duration.toSeconds).toLong
       if (durationInTicks <= 0L)
         None
@@ -148,7 +145,6 @@ final case class CylindricalThermalStorage(
   override def startingState: ThermalStorageState = ThermalStorageState(
     -1L,
     zeroKWh,
-    ThermalStorageOperatingPoint(zeroKW),
   )
 }
 
