@@ -177,11 +177,11 @@ class ParticipantAgentInitSpec
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
           primaryService.ref,
-          15 * 3600L,
+          4 * 3600L,
           ActivePowerExtra,
         )
 
-        scheduler.expectMessage(Completion(activationRef, Some(15 * 3600L)))
+        scheduler.expectMessage(Completion(activationRef, Some(10 * 3600L)))
 
       }
 
@@ -310,14 +310,14 @@ class ParticipantAgentInitSpec
 
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
           primaryService.ref,
-          15 * 3600L,
+          4 * 3600L,
           ActivePowerExtra,
         )
 
         em.expectMessage(
           FlexCompletion(
             mockInput.electricalInputModel.getUuid,
-            requestAtTick = Some(15 * 3600L),
+            requestAtTick = Some(10 * 3600L),
           )
         )
       }
@@ -402,10 +402,10 @@ class ParticipantAgentInitSpec
 
         participantAgent ! RegistrationSuccessfulMessage(
           service.ref,
-          12 * 3600L,
+          4 * 3600L,
         )
 
-        scheduler.expectMessage(Completion(activationRef, Some(12 * 3600L)))
+        scheduler.expectMessage(Completion(activationRef, Some(10 * 3600L)))
 
       }
 
@@ -459,11 +459,11 @@ class ParticipantAgentInitSpec
           primaryService.ref,
           // no activation expected for this tick, since it is
           // outside the operation interval
-          15 * 3600L,
+          4 * 3600L,
           ActivePowerExtra,
         )
 
-        scheduler.expectMessage(Completion(activationRef, Some(15 * 3600L)))
+        scheduler.expectMessage(Completion(activationRef, Some(10 * 3600L)))
 
         // service should not be called at all
         service.expectNoMessage()
@@ -540,13 +540,13 @@ class ParticipantAgentInitSpec
 
         participantAgent ! RegistrationSuccessfulMessage(
           service.ref,
-          12 * 3600L,
+          4 * 3600L,
         )
 
         em.expectMessage(
           FlexCompletion(
             mockInput.electricalInputModel.getUuid,
-            requestAtTick = Some(12 * 3600L),
+            requestAtTick = Some(10 * 3600L),
           )
         )
       }
@@ -610,14 +610,14 @@ class ParticipantAgentInitSpec
           primaryService.ref,
           // no activation expected for this tick, since it is
           // outside the operation interval
-          15 * 3600L,
+          4 * 3600L,
           ActivePowerExtra,
         )
 
         em.expectMessage(
           FlexCompletion(
             mockInput.electricalInputModel.getUuid,
-            requestAtTick = Some(15 * 3600L),
+            requestAtTick = Some(10 * 3600L),
           )
         )
 

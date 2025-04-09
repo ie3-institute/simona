@@ -21,11 +21,9 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{ApparentPower, EnergyPrice}
 import squants.energy.Megawatts
-import squants.thermal.Celsius
 import squants.{Dimensionless, Money, Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -47,15 +45,6 @@ final case class BmModel(
       BmState,
     ]
     with ParticipantSimpleFlexibility[BmState] {
-
-  override val initialState: (Long, ZonedDateTime) => BmState =
-    (tick, simulationTime) =>
-      BmState(
-        tick,
-        simulationTime,
-        Celsius(0),
-        None,
-      )
 
   override def determineState(
       lastState: BmState,
@@ -184,9 +173,6 @@ final case class BmModel(
       data.p.toMegawatts.asMegaWatt,
       data.q.toMegavars.asMegaVar,
     )
-
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.WeatherService)
 
 }
 
