@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration test for thermal grids with Em [#1146](https://github.com/ie3-institute/simona/issues/1146)
 - Added check for equal start and end date of simulation to ConfigFailFast [#1317](https://github.com/ie3-institute/simona/issues/1317)
 - Introduce ParticipantModel factory pattern [#1324](https://github.com/ie3-institute/simona/issues/1324)
+- Implementing auto-merge for dependabot PRs [#1339](https://github.com/ie3-institute/simona/issues/1339)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
