@@ -6,10 +6,9 @@
 
 package edu.ie3.simona.service.em
 
-import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.model.{EmSetPointResult, FlexRequestResult, NoSetPointValue}
+import edu.ie3.simona.api.data.em.model.{EmSetPointResult, ExtendedFlexOptionsResult, FlexRequestResult, NoSetPointValue}
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
@@ -26,7 +25,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power
-import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsJava, MapHasAsScala, SetHasAsJava}
 
 final case class EmCommunicationCore(
     hierarchy: EmHierarchy = EmHierarchy(),
@@ -37,7 +36,7 @@ final case class EmCommunicationCore(
     toSchedule: Map[UUID, ScheduleFlexActivation] = Map.empty,
     flexRequestReceived: DataMap[UUID, Boolean] =
       ReceiveHierarchicalDataMap.empty(false),
-    flexOptionResponse: DataMap[UUID, (UUID, FlexOptionsResult)] =
+    flexOptionResponse: DataMap[UUID, ExtendedFlexOptionsResult] =
       ReceiveHierarchicalDataMap.empty,
     setPointResponse: DataMap[UUID, EmSetPointResult] =
       ReceiveHierarchicalDataMap.empty(false),
@@ -54,11 +53,11 @@ final case class EmCommunicationCore(
     val parentEm = registerMsg.parentEm
     val parentUuid = registerMsg.parentUuid
 
-    val updatedHierarchy = parentEm match {
-      case Some(parent) =>
-        hierarchy.add(uuid, ref, parent)
+    val updatedHierarchy = parentEm.zip(parentUuid) match {
+      case Some((parent, parentUuid)) =>
+        hierarchy.add(uuid, ref, parent, parentUuid)
       case None =>
-        hierarchy.add(uuid, ref, ref)
+        hierarchy.add(uuid, ref, ref, uuid)
     }
 
     copy(
@@ -188,7 +187,7 @@ final case class EmCommunicationCore(
         (this, None)
       } else {
 
-        val uuid = receiver match {
+        val receiverUuid = receiver match {
           case Right(otherRef) =>
             hierarchy.getUuid(otherRef)
           case Left(self: UUID) =>
@@ -202,16 +201,14 @@ final case class EmCommunicationCore(
               ) =>
             flexOptionResponse.addData(
               modelUuid,
-              (
-                uuid,
-                new FlexOptionsResult(
+              new ExtendedFlexOptionsResult(
                   tick.toDateTime(startTime),
                   modelUuid,
+                  receiverUuid,
                   min.toQuantity,
                   ref.toQuantity,
                   max.toQuantity,
                 ),
-              ),
             )
 
           case _ =>
@@ -225,12 +222,12 @@ final case class EmCommunicationCore(
 
           val (data, updatedFlexOptionResponse) = updated.getFinishedData
 
-          val pRefs = data.map { case (uuid, (_, options)) =>
+          val pRefs = data.map { case (uuid, options) =>
             uuid -> options.getpRef
           }
 
           val msgToExt = new FlexOptionsResponse(data.map {
-            case (entity, (_, value)) => entity -> value
+            case (entity, value) => entity -> value
           }.asJava)
 
           (
@@ -304,12 +301,12 @@ final case class EmCommunicationCore(
 
         if (updated.hasCompletedKeys) {
 
-          val (dataMap, updatedFlexRequest) = updated.getFinishedDataStructured
+          val (dataMap, _, updatedFlexRequest) = updated.getFinishedDataHierarchical
 
           log.warn(s"Data to be send: $dataMap")
 
           val map = dataMap.map { case (sender, receivers) =>
-            sender -> new FlexRequestResult(flexActivation.tick.toDateTime, sender, receivers.keySet.toList.asJava)
+            sender -> new FlexRequestResult(flexActivation.tick.toDateTime, sender, receivers.asJava)
           }
 
           (
@@ -391,13 +388,14 @@ object EmCommunicationCore {
         model: UUID,
         ref: ActorRef[EmAgent.Request],
         parent: ActorRef[FlexResponse],
+        parentUuid: UUID,
     ): EmHierarchy = {
 
       copy(
         uuidToRef = uuidToRef + (model -> ref),
         refToUuid = refToUuid + (ref -> model),
-        uuidToFlexResponse = uuidToFlexResponse + (model -> parent),
-        flexResponseToUuid = flexResponseToUuid + (parent -> model),
+        uuidToFlexResponse = uuidToFlexResponse + (parentUuid -> parent),
+        flexResponseToUuid = flexResponseToUuid + (parent -> parentUuid),
       )
     }
 

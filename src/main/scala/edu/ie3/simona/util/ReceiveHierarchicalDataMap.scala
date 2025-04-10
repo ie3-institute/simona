@@ -35,7 +35,7 @@ final case class ReceiveHierarchicalDataMap[K, V](
       key: Option[K],
       subKey: K,
   ): ReceiveHierarchicalDataMap[K, V] = {
-    log.warn(s"Parent '$key' with sub '$subKey'.")
+    log.warn(s"Added agent '$subKey' with parent '$key'.")
 
     val (updatedStructure, updatedKeys): (Map[K, Set[K]], Set[K]) = key match {
       case Some(parent) =>
@@ -106,17 +106,13 @@ final case class ReceiveHierarchicalDataMap[K, V](
     (dataMap, copy(receivedData = updated))
   }
 
-  def getFinishedDataStructured: (Map[K, Map[K, V]], ReceiveHierarchicalDataMap[K, V]) = {
-    val finished = structure.keySet.filter(isComplete)
+  def getFinishedDataHierarchical: (Map[K, Set[K]], Map[K, V], ReceiveHierarchicalDataMap[K, V]) = {
+    val (dataMap, updated) = getFinishedData
 
-    val dataMap = finished.map(key => key -> structure(key))
-      .map { case (parent, inferior) =>
-        parent -> inferior.map(key => key -> receivedData(key)).toMap
-      }.toMap
+    val hierarchicalDataMap = structure.keySet.filter(isComplete)
+      .map(parent =>parent -> structure(parent)).toMap
 
-    val updated = receivedData.removedAll(dataMap.values.flatMap(_.keySet))
-
-    (dataMap, copy(receivedData = updated))
+    (hierarchicalDataMap, dataMap, updated)
   }
 
 }
