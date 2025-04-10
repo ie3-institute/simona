@@ -12,7 +12,6 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
 }
-import edu.ie3.simona.model.participant2.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,
@@ -84,9 +83,9 @@ final case class ThermalHouse(
     * Otherwise, the required energy will be zero. PossibleEnergy: In case the
     * inner temperature is not at or above the target temperature, the energy
     * demand to reach targetTemperature is interpreted as possible energy.
-    * Otherwise, it will be zero. The current (external) thermal infeed is not
+    * Otherwise, it will be zero. The current (external) thermal feed in is not
     * accounted for, as we assume, that after determining the thermal demand, a
-    * change in external infeed will take place.
+    * change in external feed in will take place.
     *
     * @param currentThermalHouseState
     *   Most recent state, that is valid for this model.
@@ -372,7 +371,7 @@ object ThermalHouse {
     * @param innerTemperature
     *   Inner temperature of the house
     * @param qDot
-    *   Continuous external infeed of thermal energy since the given tick
+    *   Continuous external feed in of thermal energy since the given tick
     */
   final case class ThermalHouseState(
       tick: Long,
