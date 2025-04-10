@@ -292,7 +292,7 @@ class HpModel private (
 
     val (newActivePowerHp, qDotIntoGrid) = nextOperatingPoint(state, None)
 
-    val (_, maybeThreshold, thermalGridOperatingPoint) =
+    val (thermalGridOperatingPoint, maybeThreshold) =
       /* Determine how qDot is used in thermalGrid and get threshold*/
       if (qDotIntoGrid > zeroKW) {
         thermalGrid.handleFeedIn(
@@ -326,7 +326,7 @@ class HpModel private (
     val (newActivePowerHp, qDotIntoGrid) =
       nextOperatingPoint(state, Some(setPower))
 
-    val (_, maybeThreshold, thermalGridOperatingPoint) =
+    val (thermalGridOperatingPoint, maybeThreshold) =
       /* Determine how qDot is used in thermalGrid and get threshold*/
       if (qDotIntoGrid > zeroKW) {
         thermalGrid.handleFeedIn(

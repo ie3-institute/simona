@@ -165,15 +165,15 @@ final case class ThermalGrid(
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage).
     * @return
-    *   Updated thermal grid state, the thermalThreshold if there is one, and
-    *   the operating point of the thermal grid.
+    *   The operating point of the thermal grid and the thermalThreshold if
+    *   there is one.
     */
   def handleFeedIn(
       state: HpState,
       isRunning: Boolean,
       qDot: Power,
       thermalDemands: ThermalDemandWrapper,
-  ): (ThermalGridState, Option[ThermalThreshold], ThermalGridOperatingPoint) = {
+  ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
     // TODO: We would need to issue a storage result model here...
 
     /* Consider the action in the last state */
@@ -190,11 +190,11 @@ final case class ThermalGrid(
       lastHeatStorageQDot > zeroKW && thermalDemands.heatStorageDemand.hasPossibleDemand && !thermalDemands.houseDemand.hasRequiredDemand && isRunning
     ) {
       // We can continue for the house
-      val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
+      val (remainingQDotHouse, thermalHouseThreshold) =
         handleFeedInHouse(state, lastHouseQDot)
 
       // ...and for the storage
-      val (updatedStorageState, thermalStorageThreshold) = {
+      val thermalStorageThreshold = {
         // In case the ThermalHouse could not handle the feed in it will be used for the storage.
         if (remainingQDotHouse > lastHeatStorageQDot) {
           handleStorageCases(state, remainingQDotHouse)
@@ -208,16 +208,12 @@ final case class ThermalGrid(
         thermalStorageThreshold,
       )
       (
-        state.thermalGridState.copy(
-          houseState = updatedHouseState,
-          storageState = updatedStorageState,
-        ),
-        nextThreshold,
         ThermalGridOperatingPoint(
           lastHouseQDot + lastHeatStorageQDot,
           lastHouseQDot,
           lastHeatStorageQDot,
         ),
+        nextThreshold,
       )
     }
     // Handle edge case where house was heated from storage...
@@ -278,14 +274,14 @@ final case class ThermalGrid(
     *   Feed in to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
     * @return
-    *   Updated thermal grid state, the thermalThreshold if there is one, and
-    *   the operating point of the thermal grid.
+    *   The operating point of the thermal grid and the thermalThreshold if
+    *   there is one.
     */
   private def handleFinalFeedInCases(
       state: HpState,
       thermalDemands: ThermalDemandWrapper,
       qDot: Power,
-  ): (ThermalGridState, Option[ThermalThreshold], ThermalGridOperatingPoint) = {
+  ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
 
     if (thermalDemands.houseDemand.hasRequiredDemand)
       handleCases(state, qDot, zeroKW)
@@ -310,17 +306,18 @@ final case class ThermalGrid(
     *   Feed in to the heat storage (positive: Storage is charging, negative:
     *   Storage is discharging).
     * @return
-    *   Updated thermal grid state and the next threshold if there is one.
+    *   The operating point of the thermal grid and the next threshold if there
+    *   is one.
     */
   private def handleCases(
       state: HpState,
       qDotHouse: Power,
       qDotHeatStorage: Power,
-  ): (ThermalGridState, Option[ThermalThreshold], ThermalGridOperatingPoint) = {
-    val (updatedHouseState, thermalHouseThreshold, _) =
+  ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
+    val (_, thermalHouseThreshold) =
       handleFeedInHouse(state, qDotHouse)
 
-    val (updatedStorageState, thermalStorageThreshold) =
+    val thermalStorageThreshold =
       handleStorageCases(state, qDotHeatStorage)
 
     val nextThreshold = determineMostRecentThreshold(
@@ -329,16 +326,12 @@ final case class ThermalGrid(
     )
 
     (
-      state.thermalGridState.copy(
-        houseState = updatedHouseState,
-        storageState = updatedStorageState,
-      ),
-      nextThreshold,
       ThermalGridOperatingPoint(
         qDotHouse + qDotHeatStorage,
         qDotHouse,
         qDotHeatStorage,
       ),
+      nextThreshold,
     )
   }
 
@@ -350,17 +343,12 @@ final case class ThermalGrid(
     * @param qDotHouse
     *   Feed in into the house.
     * @return
-    *   Updated thermal house state, a ThermalThreshold and the thermal feed in
-    *   into the thermal house.
+    *   The thermal feed in into the thermal house and the ThermalThreshold.
     */
   private def handleFeedInHouse(
       state: HpState,
       qDotHouse: Power,
-  ): (
-      Option[ThermalHouseState],
-      Option[ThermalThreshold],
-      Power,
-  ) = {
+  ): (Power, Option[ThermalThreshold]) = {
     (house, state.thermalGridState.houseState) match {
       case (Some(thermalHouse), Some(lastHouseState)) =>
         val newState = thermalHouse.determineState(
@@ -374,26 +362,20 @@ final case class ThermalGrid(
             newState.innerTemperature
           )
         ) {
-          val fullHouseState =
-            thermalHouse.determineState(
-              state.tick,
-              lastHouseState,
-              zeroKW,
-            )
 
           val maybeFullHouseThreshold =
             thermalHouse.determineNextThreshold(newState, zeroKW)
 
-          (Some(fullHouseState), maybeFullHouseThreshold, qDotHouse)
+          (qDotHouse, maybeFullHouseThreshold)
 
         } else {
           val threshold = thermalHouse.determineNextThreshold(
             newState,
             qDotHouse,
           )
-          (Some(newState), threshold, zeroKW)
+          (zeroKW, threshold)
         }
-      case _ => (None, None, zeroKW)
+      case _ => (zeroKW, None)
     }
   }
 
@@ -411,7 +393,7 @@ final case class ThermalGrid(
   private def handleStorageCases(
       state: HpState,
       qDotStorage: Power,
-  ): (Option[ThermalStorageState], Option[ThermalThreshold]) = {
+  ): Option[ThermalThreshold] = {
     (heatStorage, state.thermalGridState.storageState) match {
       case (Some(thermalStorage), Some(lastStorageState)) =>
         val newState = thermalStorage.determineState(
@@ -419,12 +401,11 @@ final case class ThermalGrid(
           lastStorageState,
           qDotStorage,
         )
-        val threshold = thermalStorage.determineNextThreshold(
+        thermalStorage.determineNextThreshold(
           newState,
           qDotStorage,
         )
-        (Some(newState), threshold)
-      case _ => (None, None)
+      case _ => None
     }
   }
 
@@ -457,12 +438,12 @@ final case class ThermalGrid(
     * @param state
     *   Last state of the heat pump.
     * @return
-    *   Updated thermal grid state, the ThermalThreshold, and the
-    *   ThermalGridOperatingPoint.
+    *   The operating point of the thermal grid and the ThermalThreshold if
+    *   there is one.
     */
   def handleConsumption(
       state: HpState
-  ): (ThermalGridState, Option[ThermalThreshold], ThermalGridOperatingPoint) = {
+  ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
     val maybeUpdatedHouseState =
       house.zip(state.thermalGridState.houseState).map {
@@ -523,14 +504,7 @@ final case class ThermalGrid(
       revisedStorageThreshold,
     )
 
-    (
-      state.thermalGridState.copy(
-        houseState = revisedHouseState,
-        storageState = revisedStorageState,
-      ),
-      nextThreshold,
-      revisedThermalGridOperatingPoint,
-    )
+    (revisedThermalGridOperatingPoint, nextThreshold)
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>
