@@ -117,9 +117,7 @@ class EvcsModel private (
   ): (EvcsOperatingPoint, Option[Long]) = {
     // applicable evs can be charged, other evs cannot
     // since V2G only applies when Em-controlled we don't have to consider empty batteries
-    val applicableEvs = state.evs.filter { ev =>
-      !isFull(ev)
-    }
+    val applicableEvs = state.evs.filter(!isFull(_))
 
     val chargingPowers =
       strategy.determineChargingPowers(applicableEvs, state.tick, this)
@@ -222,7 +220,11 @@ class EvcsModel private (
   ): FlexOptions = {
 
     val preferredPowers =
-      strategy.determineChargingPowers(state.evs, state.tick, this)
+      strategy.determineChargingPowers(
+        state.evs.filter(!isFull(_)),
+        state.tick,
+        this,
+      )
 
     val (maxCharging, preferredPower, forcedCharging, minCharging) =
       state.evs.foldLeft(
