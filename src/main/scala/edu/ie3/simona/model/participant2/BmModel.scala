@@ -10,13 +10,13 @@ import edu.ie3.datamodel.models.result.system.{
   BmResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.BmModel._
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
 }
+import edu.ie3.simona.model.participant2.control.QControl
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.PrimaryData

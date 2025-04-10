@@ -7,8 +7,8 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.BmModel.BmState
+import edu.ie3.simona.model.participant2.control.QControl
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{EuroPerKilowatthour, Kilovoltamperes}
 import squants.energy.{Kilowatts, Megawatts}

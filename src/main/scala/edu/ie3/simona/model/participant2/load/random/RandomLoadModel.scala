@@ -10,7 +10,6 @@ import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueD
 import de.lmu.ifi.dbs.elki.utilities.random.RandomFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
@@ -18,6 +17,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ParticipantDateTimeState,
   ParticipantModelFactory,
 }
+import edu.ie3.simona.model.participant2.control.QControl
 import edu.ie3.simona.model.participant2.load.{
   DayType,
   LoadModel,

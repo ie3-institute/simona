@@ -7,8 +7,8 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.simona.config.RuntimeConfig.FixedFeedInRuntimeConfig
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.FixedState
+import edu.ie3.simona.model.participant2.control.QControl
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits

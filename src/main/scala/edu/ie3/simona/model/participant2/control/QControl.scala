@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.control
+package edu.ie3.simona.model.participant2.control
 
 import edu.ie3.datamodel.models.input.system.characteristic
 import edu.ie3.datamodel.models.input.system.characteristic.ReactivePowerCharacteristic

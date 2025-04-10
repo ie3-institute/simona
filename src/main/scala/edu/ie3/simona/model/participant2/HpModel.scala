@@ -14,7 +14,6 @@ import edu.ie3.datamodel.models.result.system.{
   HpResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.HpModel.{
   HpOperatingPoint,
   HpState,
@@ -26,6 +25,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   OperationChangeIndicator,
   ParticipantModelFactory,
 }
+import edu.ie3.simona.model.participant2.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.model.thermal.ThermalGrid._
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}

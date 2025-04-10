@@ -13,7 +13,6 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
   WecResult,
 }
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
@@ -26,6 +25,7 @@ import edu.ie3.simona.model.participant2.WecModel.{
   molarMassAir,
   universalGasConstantR,
 }
+import edu.ie3.simona.model.participant2.control.QControl
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData

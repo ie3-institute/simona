@@ -16,13 +16,13 @@ import edu.ie3.datamodel.models.result.system.{
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
   ParticipantModelFactory,
 }
+import edu.ie3.simona.model.participant2.control.QControl
 import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsOperatingPoint,
   EvcsState,

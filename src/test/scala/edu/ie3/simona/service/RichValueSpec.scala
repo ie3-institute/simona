@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant
+package edu.ie3.simona.service
 
 import edu.ie3.datamodel.models.value._
 import edu.ie3.simona.service.Data.PrimaryData

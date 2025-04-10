@@ -8,7 +8,6 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
@@ -16,6 +15,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel._
+import edu.ie3.simona.model.participant2.control.QControl
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,

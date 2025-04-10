@@ -13,7 +13,6 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
@@ -23,6 +22,7 @@ import edu.ie3.simona.model.participant2.StorageModel.{
   RefTargetSocParams,
   StorageState,
 }
+import edu.ie3.simona.model.participant2.control.QControl
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,

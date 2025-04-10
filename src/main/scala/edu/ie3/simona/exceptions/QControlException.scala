@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.exceptions
 
-/** Exception that should be used whenever an exception occurs in
-  * [[edu.ie3.simona.model.participant.control.QControl]]
+import edu.ie3.simona.model.participant2.control.QControl
+
+/** Exception that should be used whenever an exception occurs in [[QControl]]
+  *
   * @param message
   *   specific error message
   */

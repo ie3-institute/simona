@@ -12,7 +12,6 @@ import edu.ie3.datamodel.models.result.system.{
   PvResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
@@ -21,6 +20,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant2.PvModel.PvState
 import edu.ie3.simona.model.participant2.SolarIrradiationCalculation._
+import edu.ie3.simona.model.participant2.control.QControl
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
