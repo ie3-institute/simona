@@ -227,7 +227,6 @@ final case class ThermalGrid(
       }
     }
     // Handle edge case where house should be heated from storage
-    // FIXME Is there a case where we got here?
     else if (!isRunning && qDot > zeroKW) {
       handleCases(state, qDot, -qDot)
     }

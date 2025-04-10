@@ -78,13 +78,13 @@ final case class CylindricalThermalStorage(
     * flow into the storage.
     *
     * @param tick
-    *   Tick, where this change happens
+    *   Tick, where this change happens.
     * @param thermalStorageState
     *   Last state of the heat storage.
     * @param qDotHeatStorage
     *   Influx of the heat storage.
     * @return
-    *   The state of the instance
+    *   The state of the instance.
     */
   override def determineState(
       tick: Long,
