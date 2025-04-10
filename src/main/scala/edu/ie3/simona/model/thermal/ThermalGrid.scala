@@ -29,7 +29,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.KilowattHours
-import squants.{Energy, Power}
+import squants.{Energy, Power, Temperature}
 
 import java.time.ZonedDateTime
 import scala.jdk.CollectionConverters.SetHasAsScala
@@ -165,7 +165,8 @@ final case class ThermalGrid(
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage).
     * @return
-    *   Updated thermal grid state and the thermalThreshold if there is one.
+    *   Updated thermal grid state, the thermalThreshold if there is one, and
+    *   the operating point of the thermal grid.
     */
   def handleFeedIn(
       state: HpState,
@@ -277,7 +278,8 @@ final case class ThermalGrid(
     *   Feed in to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
     * @return
-    *   Updated thermal grid state and the thermalThreshold if there is one.
+    *   Updated thermal grid state, the thermalThreshold if there is one, and
+    *   the operating point of the thermal grid.
     */
   private def handleFinalFeedInCases(
       state: HpState,
@@ -398,15 +400,13 @@ final case class ThermalGrid(
   /** Handles the cases, when the storage has heat demand and will be filled up
     * here (positive qDot) or will return its stored energy into the thermal
     * grid (negative qDot).
-    *
     * @param state
     *   Last state of the heat pump.
     * @param qDotStorage
     *   Feed in to the storage (positive: Storage is charging, negative: Storage
     *   is discharging).
     * @return
-    *   Updated thermal grid state. Updated thermal storage state amd the
-    *   ThermalThreshold.
+    *   Updated thermal storage state and the ThermalThreshold.
     */
   private def handleStorageCases(
       state: HpState,

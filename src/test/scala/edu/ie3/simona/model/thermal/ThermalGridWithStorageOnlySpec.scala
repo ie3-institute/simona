@@ -136,10 +136,6 @@ class ThermalGridWithStorageOnlySpec
           gridState,
           HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
           onlyAdditionalDemandOfHeatStorage,
-          gridState,
-          HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
-          testGridAmbientTemperature,
-          onlyAdditionalDemandOfHeatStorage,
         )
 
         val updatedThermalGridState =
