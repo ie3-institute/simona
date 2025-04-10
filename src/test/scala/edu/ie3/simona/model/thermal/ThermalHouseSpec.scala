@@ -76,6 +76,8 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
     "Check for the correct state of house" in {
       val house = thermalHouse(18, 22)
       val tick = 3600
+      val ambientTemperature = Temperature(-20, Celsius)
+      val tick = 3600
       val ambientTemperature = Temperature(15, Celsius)
       val initialHouseState = startingState(house, ambientTemperature)
 
@@ -97,7 +99,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
           val thermalHouseState =
             house.determineState(
               tick,
-              initialHouseState,
+              initialHouseState,ambientTemperature,
               Kilowatts(lastOperatingPoint),
             )
 
@@ -162,6 +164,34 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
               )
           }
       }
+    }
+
+    "Check for the correct state of house when thermal in feed changes" in {
+      val house = thermalHouse(18, 22)
+      val tick = 3600
+      val ambientTemperature = Temperature(10, Celsius)
+      val initQDot = Kilowatts(5) // won't be sufficient to increase inner temp
+      val initialHouseState = ThermalHouseState(0, Celsius(18.5), initQDot)
+      val newQDot = Kilowatts(100) // should increase inner temp
+
+      val (thermalHouseState, threshold) =
+        house.updateState(
+          tick,
+          initialHouseState,
+          ambientTemperature,
+          ambientTemperature,
+          newQDot,
+        )
+
+      thermalHouseState match {
+        case ThermalHouseState(tick, temperature, qDot) =>
+          tick shouldBe 3600L
+          temperature should approximate(Celsius(18.15))
+          qDot shouldBe newQDot
+        case unexpected =>
+          fail(s"Expected a thermalHouseState but got none $unexpected.")
+      }
+      threshold shouldBe Some(HouseTargetTemperatureReached(4325))
     }
 
     "Check build method" in {

@@ -29,7 +29,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.KilowattHours
-import squants.{Energy, Power, Temperature}
+import squants.{Energy, Power}
 
 import java.time.ZonedDateTime
 import scala.jdk.CollectionConverters.SetHasAsScala

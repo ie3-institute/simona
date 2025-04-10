@@ -68,6 +68,10 @@ class HpModel private (
       simulationTime: ZonedDateTime,
   ): HpState = {
 
+    // state.lastStateAmbientTemperature is now the temperature from over lastState, thus we have to update here
+    val updatedHpState =
+      state.copy(lastStateAmbientTemperature = state.ambientTemperature)
+
     val thermalGridState =
       thermalGrid.updateThermalGridState(
         tick,
@@ -376,7 +380,7 @@ object HpModel {
   /** Operating point of the thermal grid.
     *
     * @param qDotHp
-    *   The thermal power output of the heat pump that is feed into the grid.
+    *   The thermal power output of the heat pump.
     * @param qDotHouse
     *   The thermal power input of the
     *   [[edu.ie3.simona.model.thermal.ThermalHouse]].
@@ -398,18 +402,24 @@ object HpModel {
     *
     * @param tick
     *   The current tick.
+    * @param ambientTemperature
+    *   The actual outside temperature.
     * @param thermalGridState
     *   The applicable state of the [[ThermalGrid]].
     * @param lastHpOperatingPoint
     *   The last [[HpOperatingPoint]] of the heat pump.
+    * @param lastStateAmbientTemperature
+    *   The outside temperature at the lastState.
     * @param thermalDemands
     *   The actual thermal demands of the thermal grid elements (house,
     *   storage).
     */
   final case class HpState(
       override val tick: Long,
+      ambientTemperature: Temperature,
       thermalGridState: ThermalGridState,
       lastHpOperatingPoint: HpOperatingPoint,
+      lastStateAmbientTemperature: Temperature,
       thermalDemands: ThermalDemandWrapper,
   ) extends ModelState
 
@@ -432,8 +442,10 @@ object HpModel {
 
       HpState(
         tick,
+        zeroCelsius,
         initialState,
         HpOperatingPoint.zero,
+        zeroCelsius,
         thermalDemand,
       )
     }

@@ -174,7 +174,9 @@ class HpModelSpec
           updatedState match {
             case HpState(
                   tick,
+                  _,
                   ThermalGridState(Some(thermalHouseState), _),
+                  _,
                   _,
                   thermalDemands,
                 ) =>

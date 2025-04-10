@@ -81,8 +81,8 @@ final case class CylindricalThermalStorage(
     *   Tick, where this change happens
     * @param thermalStorageState
     *   Last state of the heat storage.
-    * @param operatingPoint
-    *   Operating point of the heat storage.
+    * @param qDotHeatStorage
+    *   Influx of the heat storage.
     * @return
     *   The state of the instance
     */

@@ -17,8 +17,6 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.datamodel.models.input.{OperatorInput, container}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.WithHeatInputContainer
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal._
 import edu.ie3.util.quantities.PowerSystemUnits
 import squants.Temperature
