@@ -94,17 +94,14 @@ class HpModel private (
       .collectFirst { case weatherData: WeatherData =>
         weatherData
       }
-      .map(newData => {
-        val thermalGridWithUpdatedAmbientTemp =
-          state.thermalGridState.copy(houseState =
+      .map(newData =>
+        state.copy(
+          thermalGridState = state.thermalGridState.copy(houseState =
             state.thermalGridState.houseState
               .map(_.copy(ambientTemperature = newData.temp))
           )
-
-        state.copy(
-          thermalGridState = thermalGridWithUpdatedAmbientTemp
         )
-      })
+      )
       .getOrElse(state)
   }
 
@@ -425,7 +422,6 @@ object HpModel {
         tick: Long,
         simulationTime: ZonedDateTime,
     ): HpState = {
-
       val therGrid = ThermalGrid(thermalGrid)
       val initialState = ThermalGrid.startingState(therGrid, zeroCelsius)
       val thermalDemand = therGrid.determineEnergyDemand(initialState)
