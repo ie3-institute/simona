@@ -11,10 +11,6 @@ import edu.ie3.datamodel.models.result.system.{
   FixedFeedInResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ComplexPower,
-  PrimaryDataWithComplexPower,
-}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -22,6 +18,10 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   FixedState,
   ParticipantFixedState,
   ParticipantModelFactory,
+}
+import edu.ie3.simona.service.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits

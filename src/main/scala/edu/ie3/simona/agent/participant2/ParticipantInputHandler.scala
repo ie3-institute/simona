@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant2
 
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   ActivationRequest,
   DataInputMessage,
@@ -15,6 +14,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
 }
 import edu.ie3.simona.agent.participant2.ParticipantInputHandler.ReceivedData
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.service.Data
 import org.apache.pekko.actor.typed.ActorRef
 
 /** This class holds received data, knows what data is expected and can thus

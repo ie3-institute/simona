@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.test.common.model
 
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
@@ -15,6 +14,7 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexOptions
+import edu.ie3.simona.service.Data
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.ApparentPower
 import squants.Dimensionless

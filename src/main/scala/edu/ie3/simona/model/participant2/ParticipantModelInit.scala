@@ -8,14 +8,6 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemParticipantInputCopyBuilder
 import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.agent.participant.data.Data.{
-  PrimaryData,
-  PrimaryDataExtra,
-}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  InputModelContainer,
-  WithHeatInputContainer,
-}
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   EvcsRuntimeConfig,
@@ -23,12 +15,15 @@ import edu.ie3.simona.config.RuntimeConfig.{
   StorageRuntimeConfig,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.InputModelContainer
+import edu.ie3.simona.model.InputModelContainer.WithHeatInputContainer
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.evcs.EvcsModel
 import edu.ie3.simona.model.participant2.load.LoadModel
+import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
 
 import scala.reflect.ClassTag
 

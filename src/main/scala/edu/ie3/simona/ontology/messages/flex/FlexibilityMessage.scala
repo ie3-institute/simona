@@ -8,8 +8,8 @@ package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 
@@ -17,13 +17,13 @@ import java.util.UUID
 
 /** Messages used to facilitate flexibility-based communication between
   * [[edu.ie3.simona.agent.em.EmAgent]] and
-  * [[edu.ie3.simona.agent.participant.ParticipantAgent]]s.
+  * [[edu.ie3.simona.agent.participant2.ParticipantAgent]]s.
   */
 object FlexibilityMessage {
 
   /** Trait that is extended by all messages that are supposed to be received by
     * a controlled asset model, which could be any
-    * [[edu.ie3.simona.agent.participant.ParticipantAgent]] or
+    * [[edu.ie3.simona.agent.participant2.ParticipantAgent]] or
     * [[edu.ie3.simona.agent.em.EmAgent]], if it is EM-controlled.
     */
   sealed trait FlexRequest {

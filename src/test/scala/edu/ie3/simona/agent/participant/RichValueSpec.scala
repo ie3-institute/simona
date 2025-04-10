@@ -6,16 +6,9 @@
 
 package edu.ie3.simona.agent.participant
 
-import edu.ie3.datamodel.models.value.{
-  HeatAndPValue,
-  HeatAndSValue,
-  HeatDemandValue,
-  PValue,
-  SValue,
-  Value,
-}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+import edu.ie3.datamodel.models.value._
+import edu.ie3.simona.service.Data.PrimaryData
+import edu.ie3.simona.service.Data.PrimaryData.{
   ActivePower,
   ActivePowerAndHeat,
   ComplexPower,

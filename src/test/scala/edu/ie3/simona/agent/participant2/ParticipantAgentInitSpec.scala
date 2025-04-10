@@ -8,8 +8,6 @@ package edu.ie3.simona.agent.participant2
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePowerExtra
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.SimpleInputContainer
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   PrimaryRegistrationSuccessfulMessage,
   RegistrationFailedMessage,
@@ -22,6 +20,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
 import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, PvRuntimeConfig}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -31,6 +30,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRe
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}

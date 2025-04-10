@@ -14,12 +14,6 @@ import edu.ie3.datamodel.models.result.system.{
   HpResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ComplexPower,
-  ComplexPowerAndHeat,
-  PrimaryDataWithComplexPower,
-}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.HpModel.{
   HpOperatingPoint,
@@ -36,7 +30,12 @@ import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.model.thermal.ThermalGrid._
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.Data.PrimaryData.{
+  ComplexPower,
+  ComplexPowerAndHeat,
+  PrimaryDataWithComplexPower,
+}
+import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.{

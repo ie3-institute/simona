@@ -7,16 +7,6 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ComplexPower,
-  EnrichableData,
-  PrimaryDataWithComplexPower,
-}
-import edu.ie3.simona.agent.participant.data.Data.{
-  PrimaryData,
-  PrimaryDataExtra,
-}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -27,7 +17,13 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel._
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.Data.PrimaryData.{
+  ComplexPower,
+  EnrichableData,
+  PrimaryDataWithComplexPower,
+}
+import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
+import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import squants.{Dimensionless, Power}
 

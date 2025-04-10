@@ -197,7 +197,7 @@ object GridAgentData {
     * grid, parameters for the power flow calculations, information of the
     * current sweep number needed by [[DBFSAlgorithm]], a value store for
     * received slack and power values from superior and inferior [[GridAgent]] s
-    * and [[edu.ie3.simona.agent.participant.ParticipantAgent]] s (== assets).
+    * and [[edu.ie3.simona.agent.participant2.ParticipantAgent]] s (== assets).
     *
     * @param gridEnv
     *   the grid environment

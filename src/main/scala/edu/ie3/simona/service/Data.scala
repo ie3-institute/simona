@@ -4,10 +4,10 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant.data
+package edu.ie3.simona.service
 
 import edu.ie3.datamodel.models.value._
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -83,8 +83,6 @@ object Data {
     sealed trait Heat {
       val qDot: Power
     }
-
-    val ZERO_POWER: ComplexPower = ComplexPower(zeroMW, zeroMVAr)
 
     /** Active power as participant simulation result
       *

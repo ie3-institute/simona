@@ -13,9 +13,6 @@ import edu.ie3.datamodel.models.result.system.{
   EvcsResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
@@ -33,7 +30,9 @@ import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
 import edu.ie3.simona.model.participant2.{ChargingHelper, ParticipantModel}
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.ontology.messages.services.EvMessage._
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.Data.PrimaryData
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._

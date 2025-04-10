@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.data
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData._
+import edu.ie3.simona.service.Data.PrimaryData._
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.Kilovars

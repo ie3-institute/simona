@@ -10,9 +10,6 @@ import edu.ie3.datamodel.models.result.system.{
   BmResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.BmModel._
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
@@ -21,6 +18,9 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.service.Data
+import edu.ie3.simona.service.Data.PrimaryData
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{ApparentPower, EnergyPrice}
 import squants.energy.Megawatts

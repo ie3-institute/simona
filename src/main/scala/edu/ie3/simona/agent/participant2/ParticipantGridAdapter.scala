@@ -7,9 +7,9 @@
 package edu.ie3.simona.agent.participant2
 
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant2.ParticipantGridAdapter._
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroMVAr, zeroMW}
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.apache.pekko.actor.typed.ActorRef

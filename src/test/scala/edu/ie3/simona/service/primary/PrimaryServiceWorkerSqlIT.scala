@@ -9,13 +9,6 @@ package edu.ie3.simona.service.primary
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
 import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ActivePower,
-  ActivePowerExtra,
-  ComplexPowerAndHeat,
-  ComplexPowerAndHeatExtra,
-}
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   PrimaryRegistrationSuccessfulMessage,
@@ -33,6 +26,13 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey}
+import edu.ie3.simona.service.Data.PrimaryData
+import edu.ie3.simona.service.Data.PrimaryData.{
+  ActivePower,
+  ActivePowerExtra,
+  ComplexPowerAndHeat,
+  ComplexPowerAndHeatExtra,
+}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.SqlInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData

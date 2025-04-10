@@ -11,22 +11,20 @@ import edu.ie3.datamodel.models.result.system.{
   LoadResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ComplexPower,
-  PrimaryDataWithComplexPower,
-}
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
-  OperatingPoint,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant2.load.random.RandomLoadModel
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithComplexPower,
+}
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOVOLTAMPERE, KILOWATTHOUR}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
