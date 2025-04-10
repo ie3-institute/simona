@@ -7,12 +7,16 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.model.participant2.HpModel.{
+  HpOperatingPoint,
+  HpState,
+  ThermalOpWrapper,
+}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTemperatureLowerBoundaryReached,
   HouseTargetTemperatureReached,
+  HouseTemperatureLowerBoundaryReached,
 }
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
@@ -70,9 +74,21 @@ class ThermalGridWithHouseAndStorageSpec
       )
     )
 
+    val initialGridState: ThermalGridState =
+      ThermalGrid.startingState(thermalGrid)
+
+    val initialHpState = HpState(
+      0L,
+      testGridAmbientTemperature,
+      initialGridState,
+      HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
+      testGridAmbientTemperature,
+      noThermalDemand,
+    )
+
     "requesting the starting state" should {
       "deliver proper results" in {
-        ThermalGrid.startingState(thermalGrid) match {
+        initialGridState match {
           case ThermalGridState(
                 Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
                 Some(
@@ -98,24 +114,22 @@ class ThermalGridWithHouseAndStorageSpec
 
     "determining the energy demand" should {
       "deliver the house demand (no demand) with added flexibility by storage" in {
-        val relevantData = HpRelevantData(
-          10800, // after three hours
-          testGridAmbientTemperature,
+        val tick = 10800L // after three hours
+        val state = initialHpState.copy(
+          tick = tick,
+          thermalDemands = onlyThermalDemandOfHeatStorage,
         )
-        val lastHpState = HpState(
-          true,
-          relevantData.currentTick,
-          Some(testGridAmbientTemperature),
-          Kilowatts(42),
-          Kilowatts(42),
-          ThermalGrid.startingState(thermalGrid),
-          None,
-        )
-        val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(
-            relevantData,
-            lastHpState,
+
+        val updatedThermalGridState =
+          thermalGrid.updatedThermalGridState(
+            state.tick,
+            state,
+            HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           )
+
+        val thermalDemands =
+          thermalGrid.determineEnergyDemand(updatedThermalGridState)
+
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
@@ -132,30 +146,29 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "deliver the correct house and storage demand" in {
-        val relevantData = HpRelevantData(
-          10800, // after three hours
-          testGridAmbientTemperature,
-        )
-        val startingState = ThermalGrid.startingState(thermalGrid)
-        val lastHpState = HpState(
-          true,
-          relevantData.currentTick,
-          Some(testGridAmbientTemperature),
-          Kilowatts(42),
-          Kilowatts(42),
-          startingState.copy(houseState =
-            startingState.houseState.map(
-              _.copy(innerTemperature = Celsius(16d))
-            )
-          ),
-          None,
+        val tick = 10800
+        val gridState = initialGridState.copy(houseState =
+          initialGridState.houseState.map(
+            _.copy(innerTemperature = Celsius(16d))
+          )
         )
 
-        val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(
-            relevantData,
-            lastHpState,
+        val state = initialHpState.copy(
+          tick = tick,
+          thermalGridState = gridState,
+          thermalDemands = onlyThermalDemandOfHeatStorage,
+        )
+
+        val updatedThermalGridState =
+          thermalGrid.updatedThermalGridState(
+            state.tick,
+            state,
+            HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           )
+
+        val thermalDemands =
+          thermalGrid.determineEnergyDemand(updatedThermalGridState)
+
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
@@ -179,26 +192,22 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
       "return house threshold, if storage is in balance" in {
-        val relevantData = HpRelevantData(
-          0L,
-          testGridAmbientTemperature,
-        )
-        val initialGridState = ThermalGrid.startingState(thermalGrid)
         val initialLoading = KilowattHours(430d)
         val gridState = initialGridState.copy(storageState =
           initialGridState.storageState.map(storageState =>
             storageState.copy(storedEnergy = initialLoading)
           )
         )
+
+        val state = initialHpState.copy(
+          thermalGridState = gridState,
+          thermalDemands = onlyAdditionalDemandOfHeatStorage,
+        )
+
         val externalQDot = zeroKW
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(
-            relevantData,
-            testGridAmbientTemperature,
-            gridState,
-            externalQDot,
-          )
+          thermalGrid invokePrivate handleConsumption(state)
 
         updatedGridState match {
           case ThermalGridState(
@@ -218,26 +227,23 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "take energy from storage, if there is actual consumption" in {
-        val relevantData = HpRelevantData(
-          0L,
-          testGridAmbientTemperature,
-        )
-        val initialGridState = ThermalGrid.startingState(thermalGrid)
-        val initialLoading = KilowattHours(200d)
-        val gridState = initialGridState.copy(storageState =
-          initialGridState.storageState.map(storageState =>
+        val initialLoading = KilowattHours(10d)
+        val gridState = initialGridState.copy(
+          houseState = initialGridState.houseState.map(houseState =>
+            houseState.copy(innerTemperature = Celsius(17))
+          ),
+          storageState = initialGridState.storageState.map(storageState =>
             storageState.copy(storedEnergy = initialLoading)
-          )
+          ),
         )
-        val externalQDot = testGridQDotConsumption
+
+        val state = initialHpState.copy(
+          thermalGridState = gridState,
+          thermalDemands = onlyAdditionalDemandOfHeatStorage,
+        )
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(
-            relevantData,
-            testGridAmbientTemperature,
-            gridState,
-            externalQDot,
-          )
+          thermalGrid invokePrivate handleConsumption(state)
 
         updatedGridState match {
           case ThermalGridState(
@@ -249,30 +255,30 @@ class ThermalGridWithHouseAndStorageSpec
                 ),
               ) =>
             houseTick shouldBe 0L
-            innerTemperature should approximate(Celsius(18.9999d))
-            qDotHouse should approximate(zeroKW)
+            innerTemperature should approximate(Celsius(16.9999))
+            qDotHouse should approximate(thermalStorage.pThermalMax)
 
             storageTick shouldBe 0L
             storedEnergy should approximate(initialLoading)
-            qDotStorage should approximate(externalQDot)
+            qDotStorage should approximate(thermalStorage.pThermalMax * -1)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(StorageEmpty(17142L))
+        reachedThreshold shouldBe Some(StorageEmpty(1800L))
       }
     }
 
     "revising infeed from storage to house" should {
       val zeroInflux = zeroKW
-      val relevantData = HpRelevantData(
-        3600,
-        testGridAmbientTemperature,
+
+      val state = initialHpState.copy(
+        tick = 3600L,
+        thermalDemands = onlyThermalDemandOfHeatStorage,
       )
-      val ambientTemperature = Celsius(14d)
       "hand back unaltered information if needed information is missing" in {
         val maybeHouseState = Some(
           (
             ThermalHouseState(
-              relevantData.currentTick,
+              state.tick,
               Celsius(
                 thermalHouseInput.getTargetTemperature
                   .to(Units.CELSIUS)
@@ -286,14 +292,11 @@ class ThermalGridWithHouseAndStorageSpec
         )
         val maybeStorageState = None
 
-        thermalGrid.reviseInfeedFromStorage(
-          relevantData,
+        thermalGrid.reviseFeedInFromStorage(
+          state,
           maybeHouseState,
           maybeStorageState,
-          maybeHouseState.map(_._1),
-          None,
-          testGridAmbientTemperature,
-          testGridQDotConsumption,
+          zeroKW,
         ) match {
           case (maybeRevisedHouseState, maybeRevisedStorageState) =>
             maybeRevisedHouseState shouldBe maybeHouseState
@@ -305,7 +308,7 @@ class ThermalGridWithHouseAndStorageSpec
         val maybeHouseState = Some(
           (
             ThermalHouseState(
-              relevantData.currentTick,
+              state.tick,
               Celsius(
                 thermalHouseInput.getTargetTemperature
                   .to(Units.CELSIUS)
@@ -320,7 +323,7 @@ class ThermalGridWithHouseAndStorageSpec
         val maybeStorageState = Some(
           (
             ThermalStorageState(
-              relevantData.currentTick,
+              state.tick,
               KilowattHours(50d),
               zeroInflux,
             ),
@@ -328,13 +331,10 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        thermalGrid.reviseInfeedFromStorage(
-          relevantData,
+        thermalGrid.reviseFeedInFromStorage(
+          state,
           maybeHouseState,
           maybeStorageState,
-          maybeHouseState.map(_._1),
-          maybeStorageState.map(_._1),
-          ambientTemperature,
           zeroInflux,
         ) match {
           case (maybeRevisedHouseState, maybeRevisedStorageState) =>
@@ -347,7 +347,7 @@ class ThermalGridWithHouseAndStorageSpec
         val maybeHouseState = Some(
           (
             ThermalHouseState(
-              relevantData.currentTick,
+              state.tick,
               Celsius(
                 thermalHouseInput.getTargetTemperature
                   .to(Units.CELSIUS)
@@ -362,7 +362,7 @@ class ThermalGridWithHouseAndStorageSpec
         val maybeStorageState = Some(
           (
             ThermalStorageState(
-              relevantData.currentTick,
+              state.tick,
               KilowattHours(50d),
               zeroInflux,
             ),
@@ -370,13 +370,10 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        thermalGrid.reviseInfeedFromStorage(
-          relevantData,
+        thermalGrid.reviseFeedInFromStorage(
+          state,
           maybeHouseState,
           maybeStorageState,
-          maybeHouseState.map(_._1),
-          maybeStorageState.map(_._1),
-          ambientTemperature,
           testGridQDotInfeed,
         ) match {
           case (maybeRevisedHouseState, maybeRevisedStorageState) =>
@@ -389,7 +386,7 @@ class ThermalGridWithHouseAndStorageSpec
         val maybeHouseState = Some(
           (
             ThermalHouseState(
-              relevantData.currentTick,
+              state.tick,
               Celsius(
                 thermalHouseInput.getLowerTemperatureLimit
                   .to(Units.CELSIUS)
@@ -399,28 +396,25 @@ class ThermalGridWithHouseAndStorageSpec
               zeroInflux,
             ),
             Some(
-              HouseTemperatureLowerBoundaryReached(relevantData.currentTick)
+              HouseTemperatureLowerBoundaryReached(state.tick)
             ),
           )
         )
         val maybeStorageState = Some(
           (
             ThermalStorageState(
-              relevantData.currentTick,
+              state.tick,
               zeroKWh,
               testGridQDotInfeed,
             ),
-            Some(StorageEmpty(relevantData.currentTick)),
+            Some(StorageEmpty(state.tick)),
           )
         )
 
-        thermalGrid.reviseInfeedFromStorage(
-          relevantData,
+        thermalGrid.reviseFeedInFromStorage(
+          state,
           maybeHouseState,
           maybeStorageState,
-          maybeHouseState.map(_._1),
-          maybeStorageState.map(_._1),
-          ambientTemperature,
           zeroInflux,
         ) match {
           case (maybeRevisedHouseState, maybeRevisedStorageState) =>
@@ -430,10 +424,29 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "alter the given states as expected, when all conditions are met" in {
+        val tick = 3600L
+        val initialLoading = KilowattHours(70d)
+        val dischargingRate = Kilowatts(-50d)
+        val gridState = initialGridState.copy(storageState =
+          initialGridState.storageState.map(storageState =>
+            storageState.copy(
+              storedEnergy = initialLoading,
+              qDot = dischargingRate,
+            )
+          )
+        )
+
+        val state = initialHpState.copy(
+          tick = tick,
+          thermalGridState = gridState,
+          lastStateAmbientTemperature = Celsius(14),
+          thermalDemands = noThermalDemand,
+        )
+
         val maybeHouseState = Some(
           (
             ThermalHouseState(
-              relevantData.currentTick,
+              state.tick,
               Celsius(
                 thermalHouseInput.getLowerTemperatureLimit
                   .to(Units.CELSIUS)
@@ -443,14 +456,14 @@ class ThermalGridWithHouseAndStorageSpec
               zeroInflux,
             ),
             Some(
-              HouseTemperatureLowerBoundaryReached(relevantData.currentTick)
+              HouseTemperatureLowerBoundaryReached(state.tick)
             ),
           )
         )
         val maybeStorageState = Some(
           (
             ThermalStorageState(
-              relevantData.currentTick,
+              state.tick,
               KilowattHours(20d),
               // just any Power, the stored energy is what we need here.
               zeroKW,
@@ -458,33 +471,11 @@ class ThermalGridWithHouseAndStorageSpec
             None,
           )
         )
-        val formerHouseState = Some(
-          ThermalHouseState(
-            0L,
-            Celsius(
-              thermalHouseInput.getTargetTemperature
-                .to(Units.CELSIUS)
-                .getValue
-                .doubleValue
-            ),
-            zeroInflux,
-          )
-        )
-        val formerStorageState = Some(
-          ThermalStorageState(
-            0L,
-            KilowattHours(40d),
-            thermalStorage.pThermalMax * -1,
-          )
-        )
 
-        thermalGrid.reviseInfeedFromStorage(
-          relevantData,
+        thermalGrid.reviseFeedInFromStorage(
+          state,
           maybeHouseState,
           maybeStorageState,
-          formerHouseState,
-          formerStorageState,
-          ambientTemperature,
           zeroInflux,
         ) match {
           case (
@@ -501,8 +492,8 @@ class ThermalGridWithHouseAndStorageSpec
                   )
                 ),
               ) =>
-            houseTick shouldBe relevantData.currentTick
-            storageTick shouldBe relevantData.currentTick
+            houseTick shouldBe state.tick
+            storageTick shouldBe state.tick
 
             revisedQDotHouse should approximate(thermalStorage.pThermalMax)
             revisedQDotStorage should approximate(
@@ -510,34 +501,34 @@ class ThermalGridWithHouseAndStorageSpec
             )
 
             houseWarmTick shouldBe 3645
-            storageEmptyTick shouldBe 7200
+            storageEmptyTick shouldBe 7197
           case _ => fail("Revision of states failed")
         }
       }
     }
 
-    "handling thermal infeed into the grid" should {
-      val handleInfeed =
+    "handling thermal feed in into the grid" should {
+      val handleFeedIn =
         PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
-          Symbol("handleInfeed")
+          Symbol("handleFeedIn")
         )
 
       "heat the house, if the target temperature in the house is not reached" in {
-        val relevantData = HpRelevantData(
-          0L,
-          testGridAmbientTemperature,
-        )
         val initialGridState = ThermalGridState(
           Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
           Some(expectedStorageStartingState),
         )
+
+        val state = initialHpState.copy(
+          thermalGridState = initialGridState,
+          thermalDemands = onlyThermalDemandOfHouse,
+        )
+
         val externalQDot = testGridQDotInfeed
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleInfeed(
-            relevantData,
-            testGridAmbientTemperature,
-            initialGridState,
+          thermalGrid invokePrivate handleFeedIn(
+            state,
             isRunning,
             externalQDot,
             onlyThermalDemandOfHouse,
@@ -571,26 +562,20 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "load the storage, if the target temperature in the house is reached" in {
-        val relevantData = HpRelevantData(
-          0L,
-          testGridAmbientTemperature,
-        )
-        val initialGridState = ThermalGridState(
-          Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
-          Some(expectedStorageStartingState),
-        )
         val gridState = initialGridState.copy(houseState =
           initialGridState.houseState.map(
             _.copy(innerTemperature = thermalHouse.targetTemperature)
           )
         )
+        val state = initialHpState.copy(
+          thermalGridState = gridState,
+          thermalDemands = onlyThermalDemandOfHeatStorage,
+        )
         val externalQDot = testGridQDotInfeed * 10
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleInfeed(
-            relevantData,
-            testGridAmbientTemperature,
-            gridState,
+          thermalGrid invokePrivate handleFeedIn(
+            state,
             isRunning,
             externalQDot,
             onlyThermalDemandOfHeatStorage,

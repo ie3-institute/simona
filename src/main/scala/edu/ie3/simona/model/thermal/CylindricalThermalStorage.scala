@@ -51,6 +51,8 @@ import java.util.UUID
   *   Maximum permissible energy stored in the storage
   * @param pThermalMax
   *   Thermal power, that can be charged / discharged
+  * @param storedEnergy
+  *   Energy stored in the thermal storage
   */
 final case class CylindricalThermalStorage(
     uuid: UUID,
@@ -80,19 +82,20 @@ final case class CylindricalThermalStorage(
     *   Tick, where this change happens
     * @param qDot
     *   Influx
-    * @param lastState
-    *   Last known state
+    * @param lastHeatStorageState
+    *   Last state of the heat storage.
     * @return
     *   The updated state as well as the tick, when a threshold is reached
     */
   override def updateState(
       tick: Long,
       qDot: Power,
-      lastState: ThermalStorageState,
+      lastHeatStorageState: ThermalStorageState,
   ): (ThermalStorageState, Option[ThermalThreshold]) = {
     /* Determine new state based on time difference and given state */
-    val energyBalance = lastState.qDot * Seconds(tick - lastState.tick)
-    val newEnergy = lastState.storedEnergy + energyBalance
+    val energyBalance =
+      lastHeatStorageState.qDot * Seconds(tick - lastHeatStorageState.tick)
+    val newEnergy = lastHeatStorageState.storedEnergy + energyBalance
     val updatedEnergy =
       if (isFull(newEnergy))
         maxEnergyThreshold
