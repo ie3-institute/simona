@@ -9,11 +9,7 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.model.{
-  EmSetPointResult,
-  FlexRequestResult,
-  NoSetPointValue,
-}
+import edu.ie3.simona.api.data.em.model.{EmSetPointResult, FlexRequestResult, NoSetPointValue}
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
@@ -30,11 +26,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power
-import scala.jdk.CollectionConverters.{
-  IterableHasAsScala,
-  MapHasAsJava,
-  MapHasAsScala,
-}
+import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 
 final case class EmCommunicationCore(
     hierarchy: EmHierarchy = EmHierarchy(),
@@ -111,7 +103,7 @@ final case class EmCommunicationCore(
       val emEntities: Set[UUID] = provideFlexRequests
         .flexRequests()
         .asScala
-        .flatMap { case (_, v) => v.asScala }
+        .map { case (agent, _) => agent }
         .toSet
 
       val refs = emEntities.map(uuidToFlexAdapter)
@@ -312,13 +304,12 @@ final case class EmCommunicationCore(
 
         if (updated.hasCompletedKeys) {
 
-          val (dataMap, updatedFlexRequest) = updated.getFinishedData
+          val (dataMap, updatedFlexRequest) = updated.getFinishedDataStructured
 
           log.warn(s"Data to be send: $dataMap")
 
-          val map = dataMap.map { case (key, _) =>
-            key ->
-              new FlexRequestResult(flexActivation.tick.toDateTime, key)
+          val map = dataMap.map { case (sender, receivers) =>
+            sender -> new FlexRequestResult(flexActivation.tick.toDateTime, sender, receivers.keySet.toList.asJava)
           }
 
           (
