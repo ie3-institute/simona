@@ -213,20 +213,20 @@ class HpModel private (
   }
 
   /** Depending on the input, this function calculates the next operating point
-   * of the heat pump and the next threshold.
-   *
-   * @param state
-   *   Currently applicable HpState.
-   * @param setPower
-   *   The setPower from Em, if there is some.
-   * @return
-   *   The operating point of the Hp and the next threshold if there is one.
-   */
+    * of the heat pump and the next threshold.
+    *
+    * @param state
+    *   Currently applicable HpState.
+    * @param setPower
+    *   The setPower from Em, if there is some.
+    * @return
+    *   The operating point of the Hp and the next threshold if there is one.
+    */
 
   private def findOperatingPointAndNextThreshold(
-                                                  state: HpState,
-                                                  setPower: Option[Power],
-                                                ): (HpOperatingPoint, Option[Long]) = {
+      state: HpState,
+      setPower: Option[Power],
+  ): (HpOperatingPoint, Option[Long]) = {
 
     /* Determine active and thermal power of the Hp */
     val (newActivePowerHp, qDotIntoGrid) = determineHpOperation(state, setPower)

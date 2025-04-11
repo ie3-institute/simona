@@ -185,7 +185,6 @@ class ThermalGridWithStorageOnlySpec
         val (thermalGridOperatingPoint, nextThreshold) =
           thermalGrid.handleFeedIn(
             initialHpState,
-
             testGridQDotInfeed,
             onlyThermalDemandOfHeatStorage,
           )

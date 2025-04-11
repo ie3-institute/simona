@@ -306,13 +306,12 @@ class ThermalGridWithHouseAndStorageSpec
               ThermalStorageState(
                 0L,
                 KilowattHours(5d),
-                zeroKW,
               )
             ),
           )
         val lastOperatingPoint = HpOperatingPoint(
           Kilowatts(1),
-          ThermalOpWrapper(Kilowatts(1), Kilowatts(1), zeroKW),
+          ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
         )
 
         val state = initialHpState.copy(
@@ -321,24 +320,15 @@ class ThermalGridWithHouseAndStorageSpec
           thermalDemands = onlyThermalDemandOfHouse,
         )
 
-        val (updatedGridState, reachedThreshold) =
+        val (thermalGridOperatingPoint, reachedThreshold) =
           thermalGrid.handleConsumption(state)
 
-        updatedGridState match {
-          case ThermalGridState(
-                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
-                Some(
-                  ThermalStorageState(storageTick, storedEnergy, qDotStorage)
-                ),
-              ) =>
-            houseTick shouldBe 0L
-            storageTick shouldBe 0L
-            innerTemperature should approximate(Celsius(18.5))
-            storedEnergy should approximate(KilowattHours(5d))
-            qDotHouse should approximate(thermalStorage.pThermalMax)
-            qDotStorage should approximate(thermalStorage.pThermalMax * -1)
-          case _ => fail("Thermal grid state has been calculated wrong.")
-        }
+        thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
+          zeroKW,
+          thermalStorage.pThermalMax,
+          thermalStorage.pThermalMax * -1,
+        )
+
         reachedThreshold shouldBe Some(StorageEmpty(900))
       }
     }
@@ -555,7 +545,6 @@ class ThermalGridWithHouseAndStorageSpec
       val (thermalGridOperatingPoint, reachedThreshold) =
         thermalGrid.handleFeedIn(
           state,
-
           externalQDot,
           onlyThermalDemandOfHouse,
         )
@@ -591,7 +580,6 @@ class ThermalGridWithHouseAndStorageSpec
       val (thermalGridOperatingPoint, reachedThreshold) =
         thermalGrid.handleFeedIn(
           updatedHpState,
-
           externalQDot,
           onlyThermalDemandOfHeatStorage,
         )

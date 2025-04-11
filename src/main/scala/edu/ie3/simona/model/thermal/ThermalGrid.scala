@@ -489,7 +489,7 @@ final case class ThermalGrid(
       revisedStorageThreshold,
     )
 
-    (revisedThermalGridOperatingPoint, nextThreshold)}
+    (revisedThermalGridOperatingPoint, nextThreshold)
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>
