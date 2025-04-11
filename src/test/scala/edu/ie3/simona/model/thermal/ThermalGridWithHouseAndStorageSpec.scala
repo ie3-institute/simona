@@ -509,7 +509,7 @@ class ThermalGridWithHouseAndStorageSpec
       val (thermalGridOperatingPoint, reachedThreshold) =
         thermalGrid.handleFeedIn(
           state,
-          isRunning,
+
           externalQDot,
           onlyThermalDemandOfHouse,
         )
@@ -545,7 +545,7 @@ class ThermalGridWithHouseAndStorageSpec
       val (thermalGridOperatingPoint, reachedThreshold) =
         thermalGrid.handleFeedIn(
           updatedHpState,
-          isRunning,
+
           externalQDot,
           onlyThermalDemandOfHeatStorage,
         )

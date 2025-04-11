@@ -157,8 +157,6 @@ final case class ThermalGrid(
     *
     * @param state
     *   Last state of the heat pump.
-    * @param isRunning
-    *   determines whether the heat pump is running or not.
     * @param qDot
     *   Feed in to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
@@ -170,7 +168,6 @@ final case class ThermalGrid(
     */
   def handleFeedIn(
       state: HpState,
-      isRunning: Boolean,
       qDot: Power,
       thermalDemands: ThermalDemandWrapper,
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
@@ -184,10 +181,10 @@ final case class ThermalGrid(
     // We can use the qDots from lastState to keep continuity. If...
     if (
       // ... house was heated in lastState but not from Storage and has still some demand. Hp must still run for this.
-      lastHouseQDot > zeroKW && lastHeatStorageQDot >= zeroKW && thermalDemands.houseDemand.hasPossibleDemand && isRunning ||
+      lastHouseQDot > zeroKW && lastHeatStorageQDot >= zeroKW && thermalDemands.houseDemand.hasPossibleDemand && qDot > zeroKW ||
       // ... storage was filled up in the lastState and has still possible demand
       // But only if the house not reached some requiredDemand. Hp must still run for this.
-      lastHeatStorageQDot > zeroKW && thermalDemands.heatStorageDemand.hasPossibleDemand && !thermalDemands.houseDemand.hasRequiredDemand && isRunning
+      lastHeatStorageQDot > zeroKW && thermalDemands.heatStorageDemand.hasPossibleDemand && !thermalDemands.houseDemand.hasRequiredDemand && qDot > zeroKW
     ) {
       // We can continue for the house
       val (remainingQDotHouse, thermalHouseThreshold) =
@@ -219,16 +216,12 @@ final case class ThermalGrid(
     // Handle edge case where house was heated from storage...
     else if (lastHouseQDot > zeroKW && lastHeatStorageQDot < zeroKW) {
       // ...and HP gets activated in current tick
-      if (isRunning) {
+      if (qDot > zeroKW) {
         handleCases(state, qDot, zeroKW)
       } else {
         // ... or continue lastState's behaviour
         handleCases(state, lastHouseQDot, lastHeatStorageQDot)
       }
-    }
-    // Handle edge case where house should be heated from storage
-    else if (!isRunning && qDot > zeroKW) {
-      handleCases(state, qDot, -qDot)
     }
     // or finally check for all other cases.
     else
@@ -443,23 +436,46 @@ final case class ThermalGrid(
   def handleConsumption(
       state: HpState
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
-    /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
-    val maybeUpdatedHouseState =
-      house.zip(state.thermalGridState.houseState).map {
-        case (thermalHouse, houseState) =>
-          thermalHouse.determineState(
-            state.tick,
-            houseState,
-            zeroKW,
-          )
-      }
 
-    /* Update the state of the storage */
-    val maybeUpdatedStorageState =
-      heatStorage.zip(state.thermalGridState.storageState).map {
-        case (storage, storageState) =>
-          storage.determineState(state.tick, storageState, zeroKW)
-      }
+    val currentStorageEnergy =
+      state.thermalGridState.storageState.map(_.storedEnergy).getOrElse(zeroKWh)
+
+    if (
+      currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasRequiredDemand ||
+      currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasPossibleDemand && state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW
+    )
+      // First OR-Condition: If the house has req. demand and storage isn't empty, we can heat the house from storage.
+      // Second OR-Condition: Edge case when em controlled: If the house was heated last state by Hp and setPower is below turnOn condition now,
+      // but house didn't reach target or boundary temperature yet. House can be heated from storage, if this one is not empty.
+      {
+        val qDot = heatStorage
+          .map(_.getpThermalMax)
+          .getOrElse(
+            throw new IllegalStateException(
+              s"There should be a thermal heat storage available but isn't $heatStorage"
+            )
+          )
+
+        handleCases(state.tick, state, qDot, -qDot)
+      } else {
+
+      /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
+      val maybeUpdatedHouseState =
+        house.zip(state.thermalGridState.houseState).map {
+          case (thermalHouse, houseState) =>
+            thermalHouse.determineState(
+              state.tick,
+              houseState,
+              zeroKW,
+            )
+        }
+
+      /* Update the state of the storage */
+      val maybeUpdatedStorageState =
+        heatStorage.zip(state.thermalGridState.storageState).map {
+          case (storage, storageState) =>
+            storage.determineState(state.tick, storageState, zeroKW)
+        }
 
     val (
       revisedHouseState,
@@ -498,12 +514,12 @@ final case class ThermalGrid(
             )
       }
 
-    val nextThreshold = determineMostRecentThreshold(
-      revisedHouseThreshold,
-      revisedStorageThreshold,
-    )
+      val nextThreshold = determineMostRecentThreshold(
+        revisedHouseThreshold,
+        revisedStorageThreshold,
+      )
 
-    (revisedThermalGridOperatingPoint, nextThreshold)
+    (revisedThermalGridOperatingPoint, nextThreshold)}
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>

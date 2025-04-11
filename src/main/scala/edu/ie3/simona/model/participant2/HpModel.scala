@@ -208,38 +208,25 @@ class HpModel private (
         )._1
     }
 
-    if (turnOn)
-      (pRated, pThermal)
-    else if (
-      currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasRequiredDemand
-    ) {
-      // If the house has req. demand and storage isn't empty, we can heat the house from storage.
-      (zeroKW, storagePThermal)
-    } else if (
-      currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasPossibleDemand && state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW
-    )
-      // Edge case when em controlled: If the house was heated last state by Hp and setPower is below turnOn condition now,
-      // but house didn't reach target or boundary temperature yet. House can be heated from storage, if this one is not empty.
-      (zeroKW, storagePThermal)
+    if (turnOn) (pRated, pThermal)
     else (zeroKW, zeroKW)
-
   }
 
   /** Depending on the input, this function calculates the next operating point
-    * of the heat pump and the next threshold.
-    *
-    * @param state
-    *   Currently applicable HpState.
-    * @param setPower
-    *   The setPower from Em, if there is some.
-    * @return
-    *   The operating point of the Hp and the next threshold if there is one.
-    */
+   * of the heat pump and the next threshold.
+   *
+   * @param state
+   *   Currently applicable HpState.
+   * @param setPower
+   *   The setPower from Em, if there is some.
+   * @return
+   *   The operating point of the Hp and the next threshold if there is one.
+   */
 
   private def findOperatingPointAndNextThreshold(
-      state: HpState,
-      setPower: Option[Power],
-  ): (HpOperatingPoint, Option[Long]) = {
+                                                  state: HpState,
+                                                  setPower: Option[Power],
+                                                ): (HpOperatingPoint, Option[Long]) = {
 
     /* Determine active and thermal power of the Hp */
     val (newActivePowerHp, qDotIntoGrid) = determineHpOperation(state, setPower)
@@ -249,7 +236,6 @@ class HpModel private (
       if (qDotIntoGrid > zeroKW) {
         thermalGrid.handleFeedIn(
           state,
-          newActivePowerHp > zeroKW,
           qDotIntoGrid,
           state.thermalDemands,
         )
