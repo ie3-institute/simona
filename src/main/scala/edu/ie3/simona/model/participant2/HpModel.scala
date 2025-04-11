@@ -36,16 +36,15 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.{
   zeroCelsius,
   zeroKW,
   zeroKWh,
 }
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities._
 import squants._
-import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -455,26 +454,18 @@ object HpModel {
       )
     }
 
-    override def create(): HpModel =
+    override def create(): HpModel = {
+      val bmType = input.getType
+
       new HpModel(
         input.getUuid,
         input.getId,
-        Kilovoltamperes(
-          input.getType.getsRated
-            .to(PowerSystemUnits.KILOVOLTAMPERE)
-            .getValue
-            .doubleValue
-        ),
+        bmType.getsRated.toApparent,
         input.getType.getCosPhiRated,
         QControl(input.getqCharacteristics),
-        Kilowatts(
-          input.getType
-            .getpThermal()
-            .to(PowerSystemUnits.KILOWATT)
-            .getValue
-            .doubleValue
-        ),
+        bmType.getpThermal.toSquants,
         ThermalGrid(thermalGrid),
       )
+    }
   }
 }

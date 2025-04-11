@@ -24,9 +24,9 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -102,12 +102,7 @@ object FixedFeedInModel {
       new FixedFeedInModel(
         input.getUuid,
         input.getId,
-        Kilovoltamperes(
-          input.getsRated
-            .to(PowerSystemUnits.KILOVOLTAMPERE)
-            .getValue
-            .doubleValue
-        ),
+        input.getsRated.toApparent,
         input.getCosPhiRated,
         QControl.apply(input.getqCharacteristics),
       )

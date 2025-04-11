@@ -33,14 +33,10 @@ import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{
-  ApparentPower,
-  Kilovoltamperes,
-  ReactivePower,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
+import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.energy.{Kilowatts, Watts}
 import squants.time.Seconds
@@ -116,9 +112,7 @@ class EvcsModel private (
   ): (EvcsOperatingPoint, Option[Long]) = {
     // applicable evs can be charged, other evs cannot
     // since V2G only applies when Em-controlled we don't have to consider empty batteries
-    val applicableEvs = state.evs.filter { ev =>
-      !isFull(ev)
-    }
+    val applicableEvs = state.evs.filter(!isFull(_))
 
     val chargingPowers =
       strategy.determineChargingPowers(applicableEvs, state.tick, this)
@@ -221,7 +215,11 @@ class EvcsModel private (
   ): FlexOptions = {
 
     val preferredPowers =
-      strategy.determineChargingPowers(state.evs, state.tick, this)
+      strategy.determineChargingPowers(
+        state.evs.filter(!isFull(_)),
+        state.tick,
+        this,
+      )
 
     val (maxCharging, preferredPower, forcedCharging, minCharging) =
       state.evs.foldLeft(
@@ -603,9 +601,7 @@ object EvcsModel {
       new EvcsModel(
         input.getUuid,
         input.getId,
-        Kilovoltamperes(
-          input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
-        ),
+        input.getType.getsRated.toApparent,
         input.getCosPhiRated,
         QControl(input.getqCharacteristics),
         EvcsChargingStrategy(modelConfig.chargingStrategy),
