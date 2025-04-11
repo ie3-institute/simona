@@ -172,47 +172,12 @@ final case class ThermalGrid(
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     // TODO: We would need to issue a storage result model here...
 
-    /* Consider the action in the last state */
-    val lastHouseQDot = state.lastHpOperatingPoint.thermalOps.qDotHouse
-    val lastHeatStorageQDot =
-      state.lastHpOperatingPoint.thermalOps.qDotHeatStorage
-
-    // We can use the qDots from lastState to keep continuity. If...
+    /* Consider the action in the last state
+    We can continue using the qDots from last operating point to keep continuity.
+    If the house was heated in lastState and has still some demand. */
     if (
-      // ... house was heated in lastState but not from Storage and has still some demand.
-      lastHouseQDot > zeroKW && lastHeatStorageQDot >= zeroKW && thermalDemands.houseDemand.hasPossibleDemand ||
-      // ... storage was filled up in the lastState and has still possible demand
-      // But only if the house not reached some requiredDemand.
-      lastHeatStorageQDot > zeroKW && thermalDemands.heatStorageDemand.hasPossibleDemand && !thermalDemands.houseDemand.hasRequiredDemand
-    ) {
-      // We can continue for the house
-      val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
-        handleFeedInHouse(state.tick, state, lastHouseQDot)
-
-      // ...and for the storage
-      val (updatedStorageState, thermalStorageThreshold) = {
-        // In case the ThermalHouse could not handle the feed in it will be used for the storage.
-        if (remainingQDotHouse > lastHeatStorageQDot) {
-          handleStorageCases(state, remainingQDotHouse)
-        } else {
-          handleStorageCases(state, lastHeatStorageQDot)
-        }
-      }
-
-      val nextThreshold = determineMostRecentThreshold(
-        thermalHouseThreshold,
-        thermalStorageThreshold,
-      )
-      (
-        state.thermalGridState.copy(
-          houseState = updatedHouseState,
-          storageState = updatedStorageState,
-        ),
-        nextThreshold,
-      )
-    }
-    // Handle edge case where house was heated from storage.
-    else if (lastHouseQDot > zeroKW && lastHeatStorageQDot < zeroKW)
+      state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW && state.thermalDemands.houseDemand.hasPossibleDemand
+    )
       handleCases(state.tick, state, qDot, zeroKW)
     // or finally check for all other cases.
     else
