@@ -237,7 +237,6 @@ class HpModel private (
         thermalGrid.handleFeedIn(
           state,
           qDotIntoGrid,
-          state.thermalDemands,
         )
       } else
         thermalGrid.handleConsumption(state)

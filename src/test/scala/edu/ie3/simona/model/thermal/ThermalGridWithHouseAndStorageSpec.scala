@@ -546,7 +546,6 @@ class ThermalGridWithHouseAndStorageSpec
         thermalGrid.handleFeedIn(
           state,
           externalQDot,
-          onlyThermalDemandOfHouse,
         )
 
       reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7321L))
@@ -581,7 +580,6 @@ class ThermalGridWithHouseAndStorageSpec
         thermalGrid.handleFeedIn(
           updatedHpState,
           externalQDot,
-          onlyThermalDemandOfHeatStorage,
         )
 
       reachedThreshold shouldBe Some(

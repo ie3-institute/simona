@@ -160,8 +160,6 @@ final case class ThermalGrid(
     * @param qDot
     *   Feed in to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
-    * @param thermalDemands
-    *   holds the thermal demands of the thermal units (house, storage).
     * @return
     *   The operating point of the thermal grid and the thermalThreshold if
     *   there is one.
@@ -169,9 +167,10 @@ final case class ThermalGrid(
   def handleFeedIn(
       state: HpState,
       qDot: Power,
-      thermalDemands: ThermalDemandWrapper,
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
     // TODO: We would need to issue a storage result model here...
+
+
 
     /* Consider the action in the last state */
     val lastHouseQDot = state.lastHpOperatingPoint.thermalOps.qDotHouse
@@ -181,10 +180,10 @@ final case class ThermalGrid(
     // We can use the qDots from lastState to keep continuity. If...
     if (
       // ... house was heated in lastState but not from Storage and has still some demand.
-      lastHouseQDot > zeroKW && lastHeatStorageQDot >= zeroKW && thermalDemands.houseDemand.hasPossibleDemand ||
+      lastHouseQDot > zeroKW && lastHeatStorageQDot >= zeroKW && state.thermalDemands.houseDemand.hasPossibleDemand ||
       // ... storage was filled up in the lastState and has still possible demand
       // But only if the house not reached some requiredDemand.
-      lastHeatStorageQDot > zeroKW && thermalDemands.heatStorageDemand.hasPossibleDemand && !thermalDemands.houseDemand.hasRequiredDemand
+      lastHeatStorageQDot > zeroKW && state.thermalDemands.heatStorageDemand.hasPossibleDemand && !state.thermalDemands.houseDemand.hasRequiredDemand
     ) {
       // We can continue for the house
       val (remainingQDotHouse, thermalHouseThreshold) =
@@ -218,7 +217,7 @@ final case class ThermalGrid(
       handleCases(state, qDot, zeroKW)
     // or finally check for all other cases.
     else
-      handleFinalFeedInCases(state, thermalDemands, qDot)
+      handleFinalFeedInCases(state, qDot)
   }
 
   /** Handles the last cases of [[ThermalGrid.handleFeedIn]], where the thermal
@@ -253,8 +252,6 @@ final case class ThermalGrid(
     *
     * @param state
     *   Last state of the heat pump.
-    * @param thermalDemands
-    *   holds the thermal demands of the thermal units (house, storage).
     * @param qDot
     *   Feed in to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
@@ -264,17 +261,16 @@ final case class ThermalGrid(
     */
   private def handleFinalFeedInCases(
       state: HpState,
-      thermalDemands: ThermalDemandWrapper,
       qDot: Power,
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
 
-    if (thermalDemands.houseDemand.hasRequiredDemand)
+    if (state.thermalDemands.houseDemand.hasRequiredDemand)
       handleCases(state, qDot, zeroKW)
     else if (
-      thermalDemands.heatStorageDemand.hasRequiredDemand || thermalDemands.heatStorageDemand.hasPossibleDemand
+      state.thermalDemands.heatStorageDemand.hasRequiredDemand || state.thermalDemands.heatStorageDemand.hasPossibleDemand
     )
       handleCases(state, zeroKW, qDot)
-    else if (thermalDemands.houseDemand.hasPossibleDemand)
+    else if (state.thermalDemands.houseDemand.hasPossibleDemand)
       handleCases(state, qDot, zeroKW)
     else
       handleCases(state, zeroKW, zeroKW)

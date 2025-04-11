@@ -168,7 +168,6 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid.handleFeedIn(
             initialHpState,
             testGridQDotInfeed,
-            onlyThermalDemandOfHeatStorage,
           )
 
         reachedThreshold shouldBe Some(StorageFull(276000L))
@@ -186,7 +185,6 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid.handleFeedIn(
             initialHpState,
             testGridQDotInfeed,
-            onlyThermalDemandOfHeatStorage,
           )
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
