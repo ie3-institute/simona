@@ -247,11 +247,6 @@ class ThermalGridWithHouseAndStorageSpec
     }
 
     "handling thermal energy consumption from grid" should {
-      val handleConsumption =
-        PrivateMethod[(ThermalGridOperatingPoint, Option[ThermalThreshold])](
-          Symbol("handleConsumption")
-        )
-
       "return house threshold, if storage is in balance" in {
         val initialLoading = KilowattHours(430d)
         val gridState = initialGridState.copy(storageState =
@@ -266,16 +261,12 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(state)
+          thermalGrid.handleConsumption(state)
 
         reachedThreshold shouldBe Some(
           HouseTemperatureLowerBoundaryReached(154284L)
         )
-        thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
-          zeroKW,
-          zeroKW,
-          zeroKW,
-        )
+        thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
       }
 
       "take energy from storage, if there is actual consumption" in {
@@ -295,7 +286,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(state)
+          thermalGrid.handleConsumption(state)
 
         reachedThreshold shouldBe Some(StorageEmpty(1800L))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
@@ -496,13 +487,6 @@ class ThermalGridWithHouseAndStorageSpec
   }
 
   "handling thermal feed in into the grid" should {
-    val handleFeedIn =
-      PrivateMethod[
-        (ThermalGridOperatingPoint, Option[ThermalThreshold])
-      ](
-        Symbol("handleFeedIn")
-      )
-
     "heat the house, if the target temperature in the house is not reached" in {
       val initialGridState = ThermalGridState(
         Some(
@@ -523,7 +507,7 @@ class ThermalGridWithHouseAndStorageSpec
       val externalQDot = testGridQDotInfeed
 
       val (thermalGridOperatingPoint, reachedThreshold) =
-        thermalGrid invokePrivate handleFeedIn(
+        thermalGrid.handleFeedIn(
           state,
           isRunning,
           externalQDot,
@@ -559,7 +543,7 @@ class ThermalGridWithHouseAndStorageSpec
       val externalQDot = testGridQDotInfeed * 10
 
       val (thermalGridOperatingPoint, reachedThreshold) =
-        thermalGrid invokePrivate handleFeedIn(
+        thermalGrid.handleFeedIn(
           updatedHpState,
           isRunning,
           externalQDot,

@@ -163,14 +163,9 @@ class ThermalGridWithStorageOnlySpec
     }
 
     "handling thermal feed in into the grid" should {
-      val handleFeedIn =
-        PrivateMethod[(ThermalGridOperatingPoint, Option[ThermalThreshold])](
-          Symbol("handleFeedIn")
-        )
-
       "properly put energy to storage" in {
         val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid invokePrivate handleFeedIn(
+          thermalGrid.handleFeedIn(
             initialHpState,
             isRunning,
             testGridQDotInfeed,

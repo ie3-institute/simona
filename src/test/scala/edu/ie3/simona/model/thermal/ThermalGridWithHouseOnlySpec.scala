@@ -142,14 +142,10 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     }
 
     "handling thermal energy consumption from grid" should {
-      val handleConsumption =
-        PrivateMethod[(ThermalGridOperatingPoint, Option[ThermalThreshold])](
-          Symbol("handleConsumption")
-        )
 
-      "deliver the house state by just letting it cool down, if just no infeed is given" in {
+      "deliver the house state by just letting it cool down, if just no feed in is given" in {
         val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(initialHpState)
+          thermalGrid.handleConsumption(initialHpState)
 
         reachedThreshold shouldBe Some(
           HouseTemperatureLowerBoundaryReached(154284L)
@@ -159,7 +155,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
       "not withdraw energy from the house, if actual consumption is given" in {
         val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(initialHpState)
+          thermalGrid.handleConsumption(initialHpState)
 
         reachedThreshold shouldBe Some(
           HouseTemperatureLowerBoundaryReached(154284L)
@@ -169,11 +165,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     }
 
     "handling thermal feed in into the grid" should {
-      val handleFeedIn =
-        PrivateMethod[(ThermalGridOperatingPoint, Option[ThermalThreshold])](
-          Symbol("handleFeedIn")
-        )
-
       "solely heat up the house" in {
         val gridState = ThermalGridState(
           Some(
@@ -194,7 +185,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         )
 
         val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid invokePrivate handleFeedIn(
+          thermalGrid.handleFeedIn(
             state,
             isRunning,
             testGridQDotInfeed,
