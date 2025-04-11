@@ -9,11 +9,21 @@ package edu.ie3.simona.service.results
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
-import edu.ie3.simona.api.data.results.ontology.{ProvideResultEntities, RequestResultEntities, ResultDataMessageFromExt}
+import edu.ie3.simona.api.data.results.ontology.{
+  ProvideResultEntities,
+  RequestResultEntities,
+  ResultDataMessageFromExt,
+}
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ServiceRegistrationMessage, ServiceResponseMessage}
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ServiceRegistrationMessage,
+  ServiceResponseMessage,
+}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceBaseStateData,
+}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK

@@ -106,13 +106,16 @@ final case class ReceiveHierarchicalDataMap[K, V](
     (dataMap, copy(receivedData = updated))
   }
 
-  def getFinishedDataHierarchical: (Map[K, Set[K]], Map[K, V], ReceiveHierarchicalDataMap[K, V]) = {
+  def getFinishedDataHierarchical
+      : (Map[K, Set[K]], Map[K, V], ReceiveHierarchicalDataMap[K, V]) = {
     val (dataMap, updated) = getFinishedData
 
-    val hierarchicalDataMap = structure.keySet.filter(isComplete)
-      .map(parent =>parent -> structure(parent)).toMap
+    val structureMap = structure.keySet
+      .filter(isComplete)
+      .map(parent => parent -> structure(parent))
+      .toMap
 
-    (hierarchicalDataMap, dataMap, updated)
+    (structureMap, dataMap, updated)
   }
 
 }

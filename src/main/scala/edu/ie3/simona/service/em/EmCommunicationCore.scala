@@ -8,7 +8,12 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.model.{EmSetPointResult, ExtendedFlexOptionsResult, FlexRequestResult, NoSetPointValue}
+import edu.ie3.simona.api.data.em.model.{
+  EmSetPointResult,
+  ExtendedFlexOptionsResult,
+  FlexRequestResult,
+  NoSetPointValue,
+}
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
@@ -25,7 +30,12 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power
-import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsJava, MapHasAsScala, SetHasAsJava}
+import scala.jdk.CollectionConverters.{
+  IterableHasAsScala,
+  MapHasAsJava,
+  MapHasAsScala,
+  SetHasAsJava,
+}
 
 final case class EmCommunicationCore(
     hierarchy: EmHierarchy = EmHierarchy(),
@@ -38,7 +48,7 @@ final case class EmCommunicationCore(
       ReceiveHierarchicalDataMap.empty(false),
     flexOptionResponse: DataMap[UUID, ExtendedFlexOptionsResult] =
       ReceiveHierarchicalDataMap.empty,
-    setPointResponse: DataMap[UUID, EmSetPointResult] =
+    setPointResponse: DataMap[UUID, PValue] =
       ReceiveHierarchicalDataMap.empty(false),
     completions: DataMap[UUID, FlexCompletion] =
       ReceiveHierarchicalDataMap.empty(false),
@@ -202,13 +212,13 @@ final case class EmCommunicationCore(
             flexOptionResponse.addData(
               modelUuid,
               new ExtendedFlexOptionsResult(
-                  tick.toDateTime(startTime),
-                  modelUuid,
-                  receiverUuid,
-                  min.toQuantity,
-                  ref.toQuantity,
-                  max.toQuantity,
-                ),
+                tick.toDateTime(startTime),
+                modelUuid,
+                receiverUuid,
+                min.toQuantity,
+                ref.toQuantity,
+                max.toQuantity,
+              ),
             )
 
           case _ =>
@@ -301,12 +311,17 @@ final case class EmCommunicationCore(
 
         if (updated.hasCompletedKeys) {
 
-          val (dataMap, _, updatedFlexRequest) = updated.getFinishedDataHierarchical
+          val (dataMap, _, updatedFlexRequest) =
+            updated.getFinishedDataHierarchical
 
           log.warn(s"Data to be send: $dataMap")
 
           val map = dataMap.map { case (sender, receivers) =>
-            sender -> new FlexRequestResult(flexActivation.tick.toDateTime, sender, receivers.asJava)
+            sender -> new FlexRequestResult(
+              flexActivation.tick.toDateTime,
+              sender,
+              receivers.asJava,
+            )
           }
 
           (
@@ -337,20 +352,29 @@ final case class EmCommunicationCore(
             (tick.toDateTime, new PValue(setPower.toQuantity))
         }
 
-        val updated = setPointResponse.addData(
-          uuid,
-          new EmSetPointResult(time, uuid, power),
-        )
+        val updated = setPointResponse.addData(uuid, power)
 
         log.warn(s"Updated set point response: $updated")
 
         if (updated.hasCompletedKeys) {
 
-          val (dataMap, updatedSetPointResponse) = updated.getFinishedData
+          val (structureMap, dataMap, updatedSetPointResponse) =
+            updated.getFinishedDataHierarchical
+
+          val setPointResults = structureMap.map { case (sender, receivers) =>
+            sender -> new EmSetPointResult(
+              time,
+              sender,
+              receivers
+                .map(receiver => receiver -> dataMap(receiver))
+                .toMap
+                .asJava,
+            )
+          }
 
           (
             copy(setPointResponse = updatedSetPointResponse),
-            Some(new EmSetPointDataResponse(dataMap.asJava)),
+            Some(new EmSetPointDataResponse(setPointResults.asJava)),
           )
 
         } else {
