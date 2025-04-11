@@ -187,13 +187,12 @@ class HpModel private (
     * @param setPower
     *   The setPower from Em, if there is some.
     * @return
-    *   The new active power of the heat pump and the thermal power (qDot) from
-    *   the heat pump, feed into the thermal grid.
+    *   The new active power of the heat pump.
     */
   private def nextOperatingPoint(
       state: HpState,
       setPower: Option[Power],
-  ): (Power, Power) = {
+  ): Power = {
     val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
 
     val currentStorageEnergy =
@@ -299,7 +298,6 @@ class HpModel private (
       if (qDotIntoGrid > zeroKW) {
         thermalGrid.handleFeedIn(
           state,
-          newActivePowerHp > zeroKW,
           qDotIntoGrid,
           state.thermalDemands,
         )

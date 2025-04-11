@@ -529,10 +529,9 @@ class ThermalGridWithHouseAndStorageSpec
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleFeedIn(
             state,
-            isRunning,
             externalQDot,
-            onlyThermalDemandOfHouse,
-          )
+          onlyThermalDemandOfHouse,
+        )
 
         updatedGridState match {
           case ThermalGridState(
@@ -576,10 +575,9 @@ class ThermalGridWithHouseAndStorageSpec
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleFeedIn(
             state,
-            isRunning,
             externalQDot,
-            onlyThermalDemandOfHeatStorage,
-          )
+          onlyThermalDemandOfHeatStorage,
+        )
 
         updatedGridState match {
           case ThermalGridState(

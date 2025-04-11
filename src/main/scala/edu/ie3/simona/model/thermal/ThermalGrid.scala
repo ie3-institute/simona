@@ -157,8 +157,6 @@ final case class ThermalGrid(
     *
     * @param state
     *   Last state of the heat pump.
-    * @param isRunning
-    *   determines whether the heat pump is running or not.
     * @param qDot
     *   Feed in to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
@@ -169,7 +167,6 @@ final case class ThermalGrid(
     */
   def handleFeedIn(
       state: HpState,
-      isRunning: Boolean,
       qDot: Power,
       thermalDemands: ThermalDemandWrapper,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
@@ -183,10 +180,10 @@ final case class ThermalGrid(
     // We can use the qDots from lastState to keep continuity. If...
     if (
       // ... house was heated in lastState but not from Storage and has still some demand. Hp must still run for this.
-      lastHouseQDot > zeroKW && lastHeatStorageQDot >= zeroKW && thermalDemands.houseDemand.hasPossibleDemand && isRunning ||
+      lastHouseQDot > zeroKW && lastHeatStorageQDot >= zeroKW && thermalDemands.houseDemand.hasPossibleDemand && qDot > zeroKW ||
       // ... storage was filled up in the lastState and has still possible demand
       // But only if the house not reached some requiredDemand. Hp must still run for this.
-      lastHeatStorageQDot > zeroKW && thermalDemands.heatStorageDemand.hasPossibleDemand && !thermalDemands.houseDemand.hasRequiredDemand && isRunning
+      lastHeatStorageQDot > zeroKW && thermalDemands.heatStorageDemand.hasPossibleDemand && !thermalDemands.houseDemand.hasRequiredDemand && qDot > zeroKW
     ) {
       // We can continue for the house
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
@@ -217,16 +214,12 @@ final case class ThermalGrid(
     // Handle edge case where house was heated from storage...
     else if (lastHouseQDot > zeroKW && lastHeatStorageQDot < zeroKW) {
       // ...and HP gets activated in current tick
-      if (isRunning) {
+      if (qDot > zeroKW) {
         handleCases(state.tick, state, qDot, zeroKW)
       } else {
         // ... or continue lastState's behaviour
         handleCases(state.tick, state, lastHouseQDot, lastHeatStorageQDot)
       }
-    }
-    // Handle edge case where house should be heated from storage
-    else if (!isRunning && qDot > zeroKW) {
-      handleCases(state.tick, state, qDot, -qDot)
     }
     // or finally check for all other cases.
     else

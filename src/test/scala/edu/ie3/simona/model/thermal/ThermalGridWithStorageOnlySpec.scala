@@ -171,7 +171,6 @@ class ThermalGridWithStorageOnlySpec
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleFeedIn(
             initialHpState,
-            isRunning,
             testGridQDotInfeed,
             onlyThermalDemandOfHeatStorage,
           )
@@ -231,12 +230,12 @@ class ThermalGridWithStorageOnlySpec
 
     "updating the grid state dependent on the given thermal infeed" should {
       "deliver proper result, if energy is fed into the grid" in {
-        val (updatedState, nextThreshold) = thermalGrid.handleFeedIn(
-          initialHpState,
-          isRunning,
-          testGridQDotInfeed,
-          onlyThermalDemandOfHeatStorage,
-        )
+        val (updatedState, nextThreshold) =
+          thermalGrid.handleFeedIn(
+            initialHpState,
+            testGridQDotInfeed,
+            onlyThermalDemandOfHeatStorage,
+          )
 
         nextThreshold shouldBe Some(StorageFull(276000L))
 
