@@ -211,16 +211,9 @@ final case class ThermalGrid(
         nextThreshold,
       )
     }
-    // Handle edge case where house was heated from storage...
-    else if (lastHouseQDot > zeroKW && lastHeatStorageQDot < zeroKW) {
-      // ...and HP gets activated in current tick
-      if (qDot > zeroKW) {
-        handleCases(state.tick, state, qDot, zeroKW)
-      } else {
-        // ... or continue lastState's behaviour
-        handleCases(state.tick, state, lastHouseQDot, lastHeatStorageQDot)
-      }
-    }
+    // Handle edge case where house was heated from storage.
+    else if (lastHouseQDot > zeroKW && lastHeatStorageQDot < zeroKW)
+      handleCases(state.tick, state, qDot, zeroKW)
     // or finally check for all other cases.
     else
       handleFinalFeedInCases(state.tick, state, thermalDemands, qDot)
