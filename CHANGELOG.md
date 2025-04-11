@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added check for equal start and end date of simulation to ConfigFailFast [#1317](https://github.com/ie3-institute/simona/issues/1317)
 - Introduce ParticipantModel factory pattern [#1324](https://github.com/ie3-institute/simona/issues/1324)
 - Replace `HpModel` with its new implementation [#1236](https://github.com/ie3-institute/simona/issues/1236)
+- Add conversion utils between `ComparableQuantity` and `Squants` [#1313](https://github.com/ie3-institute/simona/issues/1313)
 - Introduce operatingPoints also to `ThermalGrid` [#1338](https://github.com/ie3-institute/simona/issues/1338)
 
 ### Changed
@@ -174,6 +175,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FlexOptions types in `FlexibilityMessage` [#1306](https://github.com/ie3-institute/simona/issues/1306)
 - Isolate solar radiation calculations of PvModel to its own object [#1327](https://github.com/ie3-institute/simona/issues/1327)
 - Reorganized CI order [#1333](https://github.com/ie3-institute/simona/issues/1333)
+- Fixed determining FlexOptions of `Evcs` [#1322](https://github.com/ie3-institute/simona/issues/1322)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
