@@ -162,14 +162,9 @@ class ThermalGridWithStorageOnlySpec
     }
 
     "handling thermal feed in into the grid" should {
-      val handleFeedIn =
-        PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
-          Symbol("handleFeedIn")
-        )
-
       "properly put energy to storage" in {
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleFeedIn(
+          thermalGrid.handleFeedIn(
             initialHpState,
             testGridQDotInfeed,
             onlyThermalDemandOfHeatStorage,
@@ -190,28 +185,26 @@ class ThermalGridWithStorageOnlySpec
 
       "properly take energy from storage" in {
         val gridState = initialGridState
-          .copy(storageState =
-            Some(
+          .copy(
+            houseState = initialGridState.houseState.map(
+              _.copy(innerTemperature = Celsius(16))
+            ),
+            storageState = Some(
               ThermalStorageState(
                 0L,
                 KilowattHours(150d),
                 zeroKW,
               )
-            )
+            ),
           )
 
         val state = initialHpState.copy(
           thermalGridState = gridState,
-          thermalDemands = onlyAdditionalDemandOfHeatStorage,
+          thermalDemands = onlyThermalDemandOfHouse,
         )
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleFeedIn(
-            state,
-            isNotRunning,
-            testGridQDotInfeed,
-            onlyThermalDemandOfHeatStorage,
-          )
+          thermalGrid.handleConsumption(state)
 
         updatedGridState match {
           case ThermalGridState(
@@ -220,12 +213,11 @@ class ThermalGridWithStorageOnlySpec
               ) =>
             tick shouldBe 0L
             storedEnergy should approximate(KilowattHours(150d))
-            qDot should approximate(testGridQDotInfeed * (-1))
+            qDot should approximate(thermalStorage.pThermalMax * -1)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(StorageEmpty(36000L))
+        reachedThreshold shouldBe Some(StorageEmpty(27000L))
       }
-
     }
 
     "updating the grid state dependent on the given thermal infeed" should {

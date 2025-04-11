@@ -437,50 +437,74 @@ final case class ThermalGrid(
   def handleConsumption(
       state: HpState
   ): (ThermalGridState, Option[ThermalThreshold]) = {
-    /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
-    val maybeUpdatedHouseState =
-      house.zip(state.thermalGridState.houseState).map {
-        case (thermalHouse, houseState) =>
-          thermalHouse.updateState(
-            state.tick,
-            houseState,
-            state.ambientTemperature,
-            state.lastStateAmbientTemperature,
-            zeroMW,
-          )
-      }
 
-    /* Update the state of the storage */
-    val maybeUpdatedStorageState =
-      heatStorage.zip(state.thermalGridState.storageState).map {
-        case (storage, storageState) =>
-          storage.updateState(
-            state.tick,
-            zeroKW,
-            storageState,
-          )
-      }
+    val currentStorageEnergy =
+      state.thermalGridState.storageState.map(_.storedEnergy).getOrElse(zeroKWh)
 
-    val (revisedHouseState, revisedStorageState) =
-      reviseFeedInFromStorage(
-        state,
-        maybeUpdatedHouseState,
-        maybeUpdatedStorageState,
-        zeroKW,
+    if (
+      currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasRequiredDemand ||
+      currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasPossibleDemand && state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW
+    )
+      // First OR-Condition: If the house has req. demand and storage isn't empty, we can heat the house from storage.
+      // Second OR-Condition: Edge case when em controlled: If the house was heated last state by Hp and setPower is below turnOn condition now,
+      // but house didn't reach target or boundary temperature yet. House can be heated from storage, if this one is not empty.
+      {
+        val qDot = heatStorage
+          .map(_.getpThermalMax)
+          .getOrElse(
+            throw new IllegalStateException(
+              s"There should be a thermal heat storage available but isn't $heatStorage"
+            )
+          )
+
+        handleCases(state.tick, state, qDot, -qDot)
+      } else {
+
+      /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
+      val maybeUpdatedHouseState =
+        house.zip(state.thermalGridState.houseState).map {
+          case (thermalHouse, houseState) =>
+            thermalHouse.updateState(
+              state.tick,
+              houseState,
+              state.ambientTemperature,
+              state.lastStateAmbientTemperature,
+              zeroMW,
+            )
+        }
+
+      /* Update the state of the storage */
+      val maybeUpdatedStorageState =
+        heatStorage.zip(state.thermalGridState.storageState).map {
+          case (storage, storageState) =>
+            storage.updateState(
+              state.tick,
+              zeroKW,
+              storageState,
+            )
+        }
+
+      val (revisedHouseState, revisedStorageState) =
+        reviseFeedInFromStorage(
+          state,
+          maybeUpdatedHouseState,
+          maybeUpdatedStorageState,
+          zeroKW,
+        )
+
+      val nextThreshold = determineMostRecentThreshold(
+        revisedHouseState.flatMap(_._2),
+        revisedStorageState.flatMap(_._2),
       )
 
-    val nextThreshold = determineMostRecentThreshold(
-      revisedHouseState.flatMap(_._2),
-      revisedStorageState.flatMap(_._2),
-    )
-
-    (
-      state.thermalGridState.copy(
-        houseState = revisedHouseState.map(_._1),
-        storageState = revisedStorageState.map(_._1),
-      ),
-      nextThreshold,
-    )
+      (
+        state.thermalGridState.copy(
+          houseState = revisedHouseState.map(_._1),
+          storageState = revisedStorageState.map(_._1),
+        ),
+        nextThreshold,
+      )
+    }
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>

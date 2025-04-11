@@ -187,12 +187,13 @@ class HpModel private (
     * @param setPower
     *   The setPower from Em, if there is some.
     * @return
-    *   The new active power of the heat pump.
+    *   The new active power of the heat pump and the thermal power (qDot) from
+    *   the heat pump, feed into the thermal grid.
     */
   private def nextOperatingPoint(
       state: HpState,
       setPower: Option[Power],
-  ): Power = {
+  ): (Power, Power) = {
     val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
 
     val currentStorageEnergy =
@@ -217,24 +218,8 @@ class HpModel private (
           )
       }
 
-    val (newHpActivePower, _, qDotIntoGrid) = {
-      if (turnOn)
-        (pRated, pThermal, pThermal)
-      else if (
-        currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasRequiredDemand
-      ) {
-        // If the house has req. demand and storage isn't empty, we can heat the house from storage.
-        (zeroKW, zeroKW, storagePThermal)
-      } else if (
-        currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasPossibleDemand && state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW
-      )
-        // Edge case when em controlled: If the house was heated last state by Hp and setPower is below turnOn condition now,
-        // but house didn't reach target or boundary temperature yet. House can be heated from storage, if this one is not empty.
-        (zeroKW, zeroKW, storagePThermal)
-      else (zeroKW, zeroKW, zeroKW)
-    }
-
-    (newHpActivePower, qDotIntoGrid)
+    if (turnOn) (pRated, pThermal)
+    else (zeroKW, zeroKW)
   }
 
   override def createResults(
@@ -335,7 +320,6 @@ class HpModel private (
       if (qDotIntoGrid > zeroKW) {
         thermalGrid.handleFeedIn(
           state,
-          newActivePowerHp > zeroKW,
           qDotIntoGrid,
           state.thermalDemands,
         )
