@@ -150,7 +150,7 @@ final case class ThermalGrid(
 
   /** Handles the case, when a grid has feed in. Depending on which entity has
     * some heat demand the house or the storage will be heated up / filled up.
-    * First the actions from lastState will be considered and checked if the
+    * First the actions from last operating point will be considered and checked if the
     * behaviour should be continued. This might be the case, if we got activated
     * by updated weather data. If this is not the case, all other cases will be
     * handled by [[ThermalGrid.handleFinalFeedInCases]].
@@ -170,48 +170,12 @@ final case class ThermalGrid(
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
     // TODO: We would need to issue a storage result model here...
 
-    /* Consider the action in the last state */
-    val lastHouseQDot = state.lastHpOperatingPoint.thermalOps.qDotHouse
-    val lastHeatStorageQDot =
-      state.lastHpOperatingPoint.thermalOps.qDotHeatStorage
-
-    // We can use the qDots from lastState to keep continuity. If...
+    /* Consider the action in the last state
+    We can continue using the qDots from last operating point to keep continuity.
+    If the house was heated in lastState and has still some demand. */
     if (
-      // ... house was heated in lastState but not from Storage and has still some demand.
-      lastHouseQDot > zeroKW && lastHeatStorageQDot >= zeroKW && state.thermalDemands.houseDemand.hasPossibleDemand ||
-      // ... storage was filled up in the lastState and has still possible demand
-      // But only if the house not reached some requiredDemand.
-      lastHeatStorageQDot > zeroKW && state.thermalDemands.heatStorageDemand.hasPossibleDemand && !state.thermalDemands.houseDemand.hasRequiredDemand
-    ) {
-      // We can continue for the house
-      val (remainingQDotHouse, thermalHouseThreshold) =
-        handleFeedInHouse(state, lastHouseQDot)
-
-      // ...and for the storage
-      val thermalStorageThreshold = {
-        // In case the ThermalHouse could not handle the feed in it will be used for the storage.
-        if (remainingQDotHouse > lastHeatStorageQDot) {
-          handleStorageCases(state, remainingQDotHouse)
-        } else {
-          handleStorageCases(state, lastHeatStorageQDot)
-        }
-      }
-
-      val nextThreshold = determineMostRecentThreshold(
-        thermalHouseThreshold,
-        thermalStorageThreshold,
-      )
-      (
-        ThermalGridOperatingPoint(
-          lastHouseQDot + lastHeatStorageQDot,
-          lastHouseQDot,
-          lastHeatStorageQDot,
-        ),
-        nextThreshold,
-      )
-    }
-    // Handle edge case where house was heated from storage.
-    else if (lastHouseQDot > zeroKW && lastHeatStorageQDot < zeroKW)
+      state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW && state.thermalDemands.houseDemand.hasPossibleDemand
+    )
       handleCases(state, qDot, zeroKW)
     // or finally check for all other cases.
     else
