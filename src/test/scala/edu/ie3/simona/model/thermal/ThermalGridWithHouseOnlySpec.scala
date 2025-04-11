@@ -199,7 +199,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
     }
 
-    "updating the grid state dependent on the given thermal infeed" should {
+    "updating the grid state dependent on the given thermal feed in" should {
       "deliver proper result, if energy is fed into the grid" in {
         val gridState = ThermalGridState(
           Some(
@@ -211,7 +211,10 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           ),
           None,
         )
-        val initState = initialHpState.copy(thermalGridState = gridState)
+        val initState = initialHpState.copy(
+          thermalGridState = gridState,
+          thermalDemands = onlyThermalDemandOfHouse,
+        )
 
         thermalGrid.handleFeedIn(
           initState,

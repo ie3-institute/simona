@@ -170,8 +170,6 @@ final case class ThermalGrid(
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
     // TODO: We would need to issue a storage result model here...
 
-
-
     /* Consider the action in the last state */
     val lastHouseQDot = state.lastHpOperatingPoint.thermalOps.qDotHouse
     val lastHeatStorageQDot =
