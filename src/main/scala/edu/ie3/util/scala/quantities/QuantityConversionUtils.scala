@@ -35,16 +35,10 @@ object QuantityConversionUtils {
       quantity: ComparableQuantity[Dimensionless]
   ) {
 
-    /** Returns a quantity with unit p.u. ([[Each]]).
+    /** Returns a quantity with unit [[Each]].
       */
-    def toPu: squants.Dimensionless = Each(
+    def toSquants: squants.Dimensionless = Each(
       quantity.to(PU).getValue.doubleValue
-    )
-
-    /** Returns a quantity with unit [[Percent]].
-      */
-    def toPercent: squants.Dimensionless = Percent(
-      quantity.to(PERCENT).getValue.doubleValue
     )
   }
 

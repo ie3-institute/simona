@@ -11,10 +11,8 @@ import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.voltagelevels.VoltageLevel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.DimensionlessToSimona
-import squants.Each
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -69,7 +67,7 @@ case object NodeModel {
       nodeInput.getId,
       operationInterval,
       nodeInput.isSlack,
-      nodeInput.getvTarget.toPu,
+      nodeInput.getvTarget.toSquants,
       nodeInput.getVoltLvl,
     )
 

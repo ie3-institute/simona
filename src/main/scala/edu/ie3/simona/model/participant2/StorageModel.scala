@@ -349,7 +349,7 @@ object StorageModel {
         QControl.apply(input.getqCharacteristics),
         eStorage,
         input.getType.getpMax.toSquants,
-        input.getType.getEta.toPercent,
+        input.getType.getEta.toSquants,
         config.targetSoc,
       )
 

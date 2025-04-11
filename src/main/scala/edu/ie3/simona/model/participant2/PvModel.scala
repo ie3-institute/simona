@@ -284,7 +284,7 @@ object PvModel {
         Degrees(input.getNode.getGeoPosition.getY),
         Degrees(input.getNode.getGeoPosition.getX),
         input.getAlbedo,
-        input.getEtaConv.toPercent,
+        input.getEtaConv.toSquants,
         input.getAzimuth.toSquants,
         input.getElevationAngle.toSquants,
       )
