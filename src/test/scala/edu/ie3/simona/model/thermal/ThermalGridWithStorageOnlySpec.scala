@@ -182,42 +182,6 @@ class ThermalGridWithStorageOnlySpec
         }
         reachedThreshold shouldBe Some(StorageFull(276000L))
       }
-
-      "properly take energy from storage" in {
-        val gridState = initialGridState
-          .copy(
-            houseState = initialGridState.houseState.map(
-              _.copy(innerTemperature = Celsius(16))
-            ),
-            storageState = Some(
-              ThermalStorageState(
-                0L,
-                KilowattHours(150d),
-                zeroKW,
-              )
-            ),
-          )
-
-        val state = initialHpState.copy(
-          thermalGridState = gridState,
-          thermalDemands = onlyThermalDemandOfHouse,
-        )
-
-        val (updatedGridState, reachedThreshold) =
-          thermalGrid.handleConsumption(state)
-
-        updatedGridState match {
-          case ThermalGridState(
-                None,
-                Some(ThermalStorageState(tick, storedEnergy, qDot)),
-              ) =>
-            tick shouldBe 0L
-            storedEnergy should approximate(KilowattHours(150d))
-            qDot should approximate(thermalStorage.pThermalMax * -1)
-          case _ => fail("Thermal grid state has been calculated wrong.")
-        }
-        reachedThreshold shouldBe Some(StorageEmpty(27000L))
-      }
     }
 
     "updating the grid state dependent on the given thermal infeed" should {
