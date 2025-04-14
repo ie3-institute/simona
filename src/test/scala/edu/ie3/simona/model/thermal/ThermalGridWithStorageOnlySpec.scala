@@ -162,16 +162,10 @@ class ThermalGridWithStorageOnlySpec
     }
 
     "handling thermal feed in into the grid" should {
-      val handleFeedIn =
-        PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
-          Symbol("handleFeedIn")
-        )
-
       "properly put energy to storage" in {
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleFeedIn(
+          thermalGrid.handleFeedIn(
             initialHpState,
-            isRunning,
             testGridQDotInfeed,
             onlyThermalDemandOfHeatStorage,
           )
@@ -188,55 +182,16 @@ class ThermalGridWithStorageOnlySpec
         }
         reachedThreshold shouldBe Some(StorageFull(276000L))
       }
-
-      "properly take energy from storage" in {
-        val gridState = initialGridState
-          .copy(storageState =
-            Some(
-              ThermalStorageState(
-                0L,
-                KilowattHours(150d),
-                zeroKW,
-              )
-            )
-          )
-
-        val state = initialHpState.copy(
-          thermalGridState = gridState,
-          thermalDemands = onlyAdditionalDemandOfHeatStorage,
-        )
-
-        val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleFeedIn(
-            state,
-            isNotRunning,
-            testGridQDotInfeed,
-            onlyThermalDemandOfHeatStorage,
-          )
-
-        updatedGridState match {
-          case ThermalGridState(
-                None,
-                Some(ThermalStorageState(tick, storedEnergy, qDot)),
-              ) =>
-            tick shouldBe 0L
-            storedEnergy should approximate(KilowattHours(150d))
-            qDot should approximate(testGridQDotInfeed * (-1))
-          case _ => fail("Thermal grid state has been calculated wrong.")
-        }
-        reachedThreshold shouldBe Some(StorageEmpty(36000L))
-      }
-
     }
 
     "updating the grid state dependent on the given thermal infeed" should {
       "deliver proper result, if energy is fed into the grid" in {
-        val (updatedState, nextThreshold) = thermalGrid.handleFeedIn(
-          initialHpState,
-          isRunning,
-          testGridQDotInfeed,
-          onlyThermalDemandOfHeatStorage,
-        )
+        val (updatedState, nextThreshold) =
+          thermalGrid.handleFeedIn(
+            initialHpState,
+            testGridQDotInfeed,
+            onlyThermalDemandOfHeatStorage,
+          )
 
         nextThreshold shouldBe Some(StorageFull(276000L))
 
