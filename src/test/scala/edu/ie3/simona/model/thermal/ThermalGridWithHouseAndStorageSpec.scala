@@ -353,6 +353,11 @@ class ThermalGridWithHouseAndStorageSpec
         )
         val maybeStorageState = None
 
+        val maybeThermalGridState =
+          ThermalGridState(maybeHouseState, maybeStorageState)
+
+        val maybeThreshold = None
+
         thermalGrid.reviseFeedInFromStorage(
           state,
           maybeHouseState,
@@ -391,10 +396,14 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
+        val maybeThermalGridState =
+          ThermalGridState(maybeHouseState, maybeStorageState)
+
+        val maybeThreshold = None
         thermalGrid.reviseFeedInFromStorage(
           state,
-          maybeHouseState,
-          maybeStorageState,
+          maybeThermalGridState,
+          maybeThreshold,
         ) match {
           case (
                 maybeRevisedHouseState,
@@ -429,10 +438,14 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
+        val maybeThermalGridState =
+          ThermalGridState(maybeHouseState, maybeStorageState)
+        val maybeThreshold = Some(HouseTargetTemperatureReached(3600L))
+
         thermalGrid.reviseFeedInFromStorage(
           state,
-          maybeHouseState,
-          maybeStorageState,
+          maybeThermalGridState,
+          maybeThreshold,
         ) match {
           case (maybeRevisedHouseState, _, maybeRevisedStorageState, _) =>
             maybeRevisedHouseState shouldBe maybeHouseState
@@ -457,8 +470,8 @@ class ThermalGridWithHouseAndStorageSpec
 
         thermalGrid.reviseFeedInFromStorage(
           state,
-          maybeHouseState,
-          maybeStorageState,
+          maybeThermalGridState,
+          maybeThreshold,
         ) match {
           case (
                 maybeRevisedHouseState,

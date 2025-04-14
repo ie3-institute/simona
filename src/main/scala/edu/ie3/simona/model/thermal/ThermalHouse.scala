@@ -89,7 +89,7 @@ final case class ThermalHouse(
     * change in external feed in will take place.
     *
     * @param currentThermalHouseState
-    *   Most recent state, that is valid for this model.
+    *   Actual state, that is valid for this model.
     * @return
     *   The needed energy in the questioned tick.
     */

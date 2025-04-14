@@ -52,7 +52,7 @@ final case class ThermalGrid(
     * @param tick
     *   The actual tick of simulation.
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param operatingPoint
     *   The operating point of the heat pump.
     * @return
@@ -156,7 +156,7 @@ final case class ThermalGrid(
     * handled by [[ThermalGrid.handleFinalFeedInCases]].
     *
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param qDot
     *   Feed in to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
@@ -176,7 +176,7 @@ final case class ThermalGrid(
     if (
       state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW && state.thermalDemands.houseDemand.hasPossibleDemand
     )
-      handleCases(state, qDot, zeroKW)
+      handleCase(state, qDot, zeroKW)
     // or finally check for all other cases.
     else
       handleFinalFeedInCases(state, qDot)
@@ -213,7 +213,7 @@ final case class ThermalGrid(
     * | 4  | else                                 | no output |
     *
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param qDot
     *   Feed in to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
@@ -227,22 +227,21 @@ final case class ThermalGrid(
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
 
     if (state.thermalDemands.houseDemand.hasRequiredDemand)
-      handleCases(state, qDot, zeroKW)
+      handleCase(state, qDot, zeroKW)
     else if (
       state.thermalDemands.heatStorageDemand.hasRequiredDemand || state.thermalDemands.heatStorageDemand.hasPossibleDemand
     )
-      handleCases(state, zeroKW, qDot)
+      handleCase(state, zeroKW, qDot)
     else if (state.thermalDemands.houseDemand.hasPossibleDemand)
-      handleCases(state, qDot, zeroKW)
+      handleCase(state, qDot, zeroKW)
     else
-      handleCases(state, zeroKW, zeroKW)
+      handleCase(state, zeroKW, zeroKW)
   }
 
-  /** Handles the different cases, of thermal flows from and into the thermal
-    * grid.
+  /** Handles the different thermal flows from and into the thermal grid.
     *
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param qDotHouse
     *   Feed in to the house.
     * @param qDotHeatStorage
@@ -252,7 +251,7 @@ final case class ThermalGrid(
     *   The operating point of the thermal grid and the next threshold if there
     *   is one.
     */
-  private def handleCases(
+  private def handleCase(
       state: HpState,
       qDotHouse: Power,
       qDotHeatStorage: Power,
@@ -261,7 +260,7 @@ final case class ThermalGrid(
       handleFeedInHouse(state, qDotHouse)
 
     val thermalStorageThreshold =
-      handleStorageCases(state, qDotHeatStorage)
+      handleFeedInStorage(state, qDotHeatStorage)
 
     val nextThreshold = determineMostRecentThreshold(
       thermalHouseThreshold,
@@ -282,7 +281,7 @@ final case class ThermalGrid(
     * here.
     *
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param qDotHouse
     *   Feed in into the house.
     * @return
@@ -322,18 +321,18 @@ final case class ThermalGrid(
     }
   }
 
-  /** Handles the cases, when the storage has heat demand and will be filled up
+  /** Handles the case, when the storage has heat demand and will be filled up
     * here (positive qDot) or will return its stored energy into the thermal
     * grid (negative qDot).
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param qDotStorage
     *   Feed in to the storage (positive: Storage is charging, negative: Storage
     *   is discharging).
     * @return
     *   Updated thermal storage state and the ThermalThreshold.
     */
-  private def handleStorageCases(
+  private def handleFeedInStorage(
       state: HpState,
       qDotStorage: Power,
   ): Option[ThermalThreshold] = {
@@ -379,7 +378,7 @@ final case class ThermalGrid(
   /** Handle consumption (or no feed in) from thermal grid.
     *
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @return
     *   The operating point of the thermal grid and the ThermalThreshold if
     *   there is one.
@@ -388,66 +387,16 @@ final case class ThermalGrid(
       state: HpState
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
-    val maybeUpdatedHouseState =
-      house.zip(state.thermalGridState.houseState).map {
-        case (thermalHouse, houseState) =>
-          thermalHouse.determineState(
-            state.tick,
-            houseState,
-            zeroKW,
-          )
-      }
+    val (maybeThermalGridState, maybeNextThreshold) =
+      handleCase(state.tick, state, zeroKW, zeroKW)
 
-    /* Update the state of the storage */
-    val maybeUpdatedStorageState =
-      heatStorage.zip(state.thermalGridState.storageState).map {
-        case (storage, storageState) =>
-          storage.determineState(state.tick, storageState, zeroKW)
-      }
-
-    val (
-      revisedHouseState,
-      revisedQDotHouse,
-      revisedStorageState,
-      revisedQDotStorage,
-    ) =
-      reviseFeedInFromStorage(
-        state,
-        maybeUpdatedHouseState,
-        maybeUpdatedStorageState,
-      )
-
-    val revisedThermalGridOperatingPoint = ThermalGridOperatingPoint(
+    /* Check if house can be heated from storage */
+    reviseFeedInFromStorage(
+      state,
+      maybeThermalGridState,
+      maybeNextThreshold,
       zeroKW,
-      revisedQDotHouse,
-      revisedQDotStorage,
     )
-
-    val revisedHouseThreshold =
-      house.zip(revisedHouseState).flatMap { case (thermalHouse, houseState) =>
-        thermalHouse
-          .determineNextThreshold(
-            houseState,
-            revisedThermalGridOperatingPoint.qDotHouse,
-          )
-      }
-
-    val revisedStorageThreshold =
-      heatStorage.zip(revisedStorageState).flatMap {
-        case (thermalStorage: ThermalStorage, storageState) =>
-          thermalStorage
-            .determineNextThreshold(
-              storageState,
-              revisedThermalGridOperatingPoint.qDotHeatStorage,
-            )
-      }
-
-    val nextThreshold = determineMostRecentThreshold(
-      revisedHouseThreshold,
-      revisedStorageThreshold,
-    )
-
-    (revisedThermalGridOperatingPoint, nextThreshold)
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>
@@ -456,7 +405,7 @@ final case class ThermalGrid(
     * itself</li> </ul>
     *
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param maybeHouseState
     *   Optional thermal house state.
     * @param maybeStorageState
@@ -467,14 +416,15 @@ final case class ThermalGrid(
     */
   def reviseFeedInFromStorage(
       state: HpState,
-      maybeHouseState: Option[ThermalHouseState],
-      maybeStorageState: Option[ThermalStorageState],
+      maybeThermalGridState: ThermalGridState,
+      maybeThreshold: Option[ThermalThreshold],
+      qDot: Power,
   ): (
-      Option[ThermalHouseState],
-      Power,
-      Option[ThermalStorageState],
-      Power,
-  ) = house.zip(maybeHouseState).zip(heatStorage.zip(maybeStorageState)) match {
+      ThermalGridState,
+      Option[ThermalThreshold],
+  ) = house
+    .zip(maybeThermalGridState.houseState)
+    .zip(heatStorage.zip(maybeThermalGridState.storageState)) match {
     case Some(
           (
             (thermalHouse, houseState),
@@ -488,39 +438,47 @@ final case class ThermalGrid(
         if !thermalStorage.isEmpty(storageState.storedEnergy) &&
           (thermalHouse.isInnerTemperatureTooLow(houseState.innerTemperature) ||
             (state.thermalDemands.houseDemand.hasPossibleDemand && state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW)) =>
-      /* Storage is meant to heat the house only, if there is no feed in from external and the house is cold */
-      val updatedQDotHouse = thermalStorage.getpThermalMax
-
-      val revisedHouseState = Some(
-        thermalHouse.determineState(
+      /* Storage is meant to heat the house only, if there is no feed in from external (+/- 10 W) and the house is cold */
+      val (revisedStorageState, revisedStorageThreshold) =
+        thermalStorage.updateState(
           state.tick,
-          houseState,
-          updatedQDotHouse,
+          thermalStorage.getpThermalMax * -1,
+          state.thermalGridState.storageState.getOrElse(
+            throw new InconsistentStateException(
+              "Impossible to find no storage state"
+            )
+          ),
         )
+      val (revisedHouseState, revisedHouseThreshold) = thermalHouse.updateState(
+        state.tick,
+        state.thermalGridState.houseState.getOrElse(
+          throw new InconsistentStateException(
+            "Impossible to find no house state"
+          )
+        ),
+        state.ambientTemperature,
+        state.lastStateAmbientTemperature,
+        thermalStorage.getpThermalMax,
       )
 
-      val revisedStorageState = Some(
-        thermalStorage.determineState(
-          state.tick,
-          storageState,
-          updatedQDotHouse * -1,
-        )
+      val nextThreshold = determineMostRecentThreshold(
+        revisedHouseThreshold,
+        revisedStorageThreshold,
       )
 
       (
-        revisedHouseState,
-        updatedQDotHouse,
-        revisedStorageState,
-        updatedQDotHouse * -1,
+        ThermalGridState(Some(revisedHouseState), Some(revisedStorageState)),
+        nextThreshold,
       )
-    case _ => (maybeHouseState, zeroKW, maybeStorageState, zeroKW)
+    case _ =>
+      (maybeThermalGridState, maybeThreshold)
   }
 
   /** Convert the given state of the thermal grid into result models of its
     * constituent models.
     *
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param lastOperatingPoint
     *   The last operating point of the heat pump.
     * @param currentOperatingPoint
