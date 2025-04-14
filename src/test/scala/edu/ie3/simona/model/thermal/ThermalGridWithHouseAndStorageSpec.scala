@@ -7,31 +7,18 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.participant2.HpModel.{
-  HpOperatingPoint,
-  HpState,
-  ThermalGridOperatingPoint,
-}
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalDemandWrapper,
-  ThermalEnergyDemand,
-  ThermalGridState,
-}
+import edu.ie3.simona.model.participant2.HpModel.{HpOperatingPoint, HpState, ThermalGridOperatingPoint}
+import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalDemandWrapper, ThermalEnergyDemand, ThermalGridState}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTargetTemperatureReached,
-  HouseTemperatureLowerBoundaryReached,
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTargetTemperatureReached, HouseTemperatureLowerBoundaryReached}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull,
-}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
 import squants.thermal.Celsius
-import squants.{Energy, Kelvin, Power, Temperature}
+import squants.time.Hours
+import squants.{Energy, Kelvin, Power, Seconds, Temperature}
 import tech.units.indriya.unit.Units
 
 import scala.jdk.CollectionConverters._
@@ -173,7 +160,7 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "updatedThermalGridState" should {
-        "exactly calculate the state of the thermalGrid" in {
+        "exactly calculate the state of the thermalGrid with zero as operating point" in {
           val tick = 10800
           val gridState = initialGridState.copy(houseState =
             initialGridState.houseState.map(
@@ -202,6 +189,48 @@ class ThermalGridWithHouseAndStorageSpec
           )
           updatedThermalGridState.storageState shouldBe Some(
             ThermalStorageState(10800, zeroKWh)
+          )
+        }
+
+        "exactly calculate the state of the thermalGrid with non-zero OperatingPoint" in {
+          val tick = 10800
+          val gridState = initialGridState.copy(houseState =
+            initialGridState.houseState.map(
+              _.copy(innerTemperature = Celsius(16d))
+            )
+          )
+
+          val state = initialHpState.copy(
+            tick = tick,
+            thermalGridState = gridState,
+            thermalDemands = ThermalDemandWrapper(
+              ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+              ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+            ),
+          )
+
+          val thGridOperatingPoint = ThermalGridOperatingPoint(
+            testGridQDotInfeed,
+            zeroKW,
+            testGridQDotInfeed,
+          )
+
+          val updatedThermalGridState =
+            thermalGrid.updateThermalGridState(
+              state.tick,
+              state,
+              HpOperatingPoint(zeroKW, thGridOperatingPoint),
+            )
+
+          updatedThermalGridState.houseState shouldBe Some(
+            ThermalHouseState(
+              10800,
+              testGridAmbientTemperature,
+              Celsius(15.959996296296296),
+            )
+          )
+          updatedThermalGridState.storageState shouldBe Some(
+            ThermalStorageState(10800, testGridQDotInfeed * (Hours(3) + Seconds(1)))
           )
         }
       }
