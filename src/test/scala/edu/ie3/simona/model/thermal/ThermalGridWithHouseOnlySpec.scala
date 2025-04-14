@@ -64,7 +64,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
 
     val initialHpState = HpState(
-      0L,
+      -1L,
       initialGridState,
       HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
       noThermalDemand,
@@ -152,16 +152,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         )
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
       }
-
-      "not withdraw energy from the house, if actual consumption is given" in {
-        val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid.handleConsumption(initialHpState)
-
-        reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(154284L)
-        )
-        thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
-      }
     }
 
     "handling thermal feed in into the grid" should {
@@ -241,27 +231,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),
               ) =>
             thresholdTick shouldBe 154284L
-            thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
-              zeroKW,
-              zeroKW,
-              zeroKW,
-            )
-          case _ => fail("Thermal grid state updated failed")
-        }
-      }
-
-      "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
-        thermalGrid.handleConsumption(initialHpState) match {
-          case (
-                thermalGridOperatingPoint,
-                Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),
-              ) =>
-            thresholdTick shouldBe 154284L
-            thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
-              zeroKW,
-              zeroKW,
-              zeroKW,
-            )
+            thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
           case _ => fail("Thermal grid state updated failed")
         }
       }

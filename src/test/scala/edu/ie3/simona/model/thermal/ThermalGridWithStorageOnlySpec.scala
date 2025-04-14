@@ -65,7 +65,7 @@ class ThermalGridWithStorageOnlySpec
     val initialGridState =
       ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
     val initialHpState = HpState(
-      0L,
+      -1L,
       initialGridState,
       HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
       onlyThermalDemandOfHeatStorage,
@@ -96,12 +96,11 @@ class ThermalGridWithStorageOnlySpec
     "determining the energy demand" should {
       "deliver the capabilities of the storage" in {
         val tick = 10800L // after three hours
-        val state = initialHpState.copy(tick = tick)
 
         val updatedThermalGridState =
           thermalGrid.updateThermalGridState(
-            state.tick,
-            state,
+            tick,
+            initialHpState,
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
           )
 
@@ -170,7 +169,7 @@ class ThermalGridWithStorageOnlySpec
             testGridQDotInfeed,
           )
 
-        reachedThreshold shouldBe Some(StorageFull(276000L))
+        reachedThreshold shouldBe Some(StorageFull(275999))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           testGridQDotInfeed,
           zeroKW,
@@ -192,7 +191,7 @@ class ThermalGridWithStorageOnlySpec
           zeroKW,
           testGridQDotInfeed,
         )
-        nextThreshold shouldBe Some(StorageFull(276000L))
+        nextThreshold shouldBe Some(StorageFull(275999))
       }
 
       "do not consume energy from storage if there is no heat sink for this consumption" in {

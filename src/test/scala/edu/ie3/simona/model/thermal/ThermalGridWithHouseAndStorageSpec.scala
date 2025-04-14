@@ -12,7 +12,11 @@ import edu.ie3.simona.model.participant2.HpModel.{
   HpState,
   ThermalGridOperatingPoint,
 }
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,
@@ -57,7 +61,7 @@ class ThermalGridWithHouseAndStorageSpec
     -1L,
     initialGridState,
     HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
-    noThermalDemand,
+    onlyThermalDemandOfHeatStorage,
   )
 
   "Testing thermal grid generation with only a house" should {
@@ -120,15 +124,11 @@ class ThermalGridWithHouseAndStorageSpec
     "updatedThermalGridState" should {
       "exactly calculate the state of the thermalGrid" in {
         val tick = 10800L // after three hours
-        val state = initialHpState.copy(
-          tick = tick,
-          thermalDemands = onlyThermalDemandOfHeatStorage,
-        )
 
         val updatedThermalGridState =
           thermalGrid.updateThermalGridState(
-            state.tick,
-            state,
+            tick,
+            initialHpState,
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
           )
 
@@ -152,15 +152,11 @@ class ThermalGridWithHouseAndStorageSpec
     "determining the energy demand" should {
       "deliver the house demand (no demand) with added flexibility by storage" in {
         val tick = 10800L // after three hours
-        val state = initialHpState.copy(
-          tick = tick,
-          thermalDemands = onlyThermalDemandOfHeatStorage,
-        )
 
         val updatedThermalGridState =
           thermalGrid.updateThermalGridState(
-            state.tick,
-            state,
+            tick,
+            initialHpState,
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
           )
 
@@ -178,7 +174,6 @@ class ThermalGridWithHouseAndStorageSpec
 
       "updatedThermalGridState" should {
         "exactly calculate the state of the thermalGrid" in {
-
           val tick = 10800
           val gridState = initialGridState.copy(houseState =
             initialGridState.houseState.map(
@@ -187,14 +182,13 @@ class ThermalGridWithHouseAndStorageSpec
           )
 
           val state = initialHpState.copy(
-            tick = tick,
             thermalGridState = gridState,
-            thermalDemands = onlyThermalDemandOfHeatStorage,
+            thermalDemands = thermalDemandOfHouseAndHeatStorage,
           )
 
           val updatedThermalGridState =
             thermalGrid.updateThermalGridState(
-              state.tick,
+              tick,
               state,
               HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
             )
@@ -223,7 +217,7 @@ class ThermalGridWithHouseAndStorageSpec
         val state = initialHpState.copy(
           tick = tick,
           thermalGridState = gridState,
-          thermalDemands = onlyThermalDemandOfHeatStorage,
+          thermalDemands = thermalDemandOfHouseAndHeatStorage,
         )
 
         val updatedThermalGridState =
@@ -282,7 +276,11 @@ class ThermalGridWithHouseAndStorageSpec
 
         val state = initialHpState.copy(
           thermalGridState = gridState,
-          thermalDemands = onlyAdditionalDemandOfHeatStorage,
+          // The exact amount doesn't matter
+          thermalDemands = ThermalDemandWrapper(
+            ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+            ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+          ),
         )
 
         val (thermalGridOperatingPoint, reachedThreshold) =
@@ -317,7 +315,11 @@ class ThermalGridWithHouseAndStorageSpec
         val state = initialHpState.copy(
           thermalGridState = gridState,
           lastHpOperatingPoint = lastOperatingPoint,
-          thermalDemands = onlyThermalDemandOfHouse,
+          // The exact amount doesn't matter
+          thermalDemands = ThermalDemandWrapper(
+            ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+            ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+          ),
         )
 
         val (thermalGridOperatingPoint, reachedThreshold) =
@@ -336,7 +338,7 @@ class ThermalGridWithHouseAndStorageSpec
     "revising infeed from storage to house" should {
       val state = initialHpState.copy(
         tick = 3600L,
-        thermalDemands = noThermalDemand,
+        thermalDemands = onlyThermalDemandOfHeatStorage,
       )
       "hand back unaltered information if needed information is missing" in {
         val maybeHouseThreshold = thermalHouse.determineNextThreshold(
@@ -381,11 +383,17 @@ class ThermalGridWithHouseAndStorageSpec
 
         val maybeStorageState =
           Some(ThermalStorageState(state.tick, KilowattHours(10)))
-        val hpState = state.copy(thermalGridState =
-          state.thermalGridState.copy(
+
+        val hpState = state.copy(
+          thermalGridState = state.thermalGridState.copy(
             houseState = Some(maybeHouseState),
             storageState = maybeStorageState,
-          )
+          ),
+          // The exact amount doesn't matter
+          thermalDemands = ThermalDemandWrapper(
+            ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+            ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+          ),
         )
 
         thermalGrid.reviseFeedInFromStorage(
@@ -435,7 +443,11 @@ class ThermalGridWithHouseAndStorageSpec
         val state = initialHpState.copy(
           tick = tick,
           thermalGridState = gridState,
-          thermalDemands = onlyThermalDemandOfHouse,
+          // The exact amount doesn't matter
+          thermalDemands = ThermalDemandWrapper(
+            ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+            ThermalEnergyDemand(zeroKWh, KilowattHours(1)),
+          ),
         )
 
         val (thermalGridOperatingPoint, threshold) =
@@ -469,7 +481,11 @@ class ThermalGridWithHouseAndStorageSpec
 
       val state = initialHpState.copy(
         thermalGridState = initialGridState,
-        thermalDemands = onlyThermalDemandOfHouse,
+        // The exact amount doesn't matter
+        thermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+          ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+        ),
       )
 
       val externalQDot = testGridQDotInfeed
@@ -489,33 +505,16 @@ class ThermalGridWithHouseAndStorageSpec
     }
 
     "load the storage, if the target temperature in the house is reached" in {
-      val gridState = initialGridState.copy(houseState =
-        initialGridState.houseState.map(
-          _.copy(innerTemperature = thermalHouse.targetTemperature)
-        )
-      )
-      val state = initialHpState.copy(
-        thermalGridState = gridState,
-        thermalDemands = onlyThermalDemandOfHeatStorage,
-      )
-
-      val hpOperatingPoint = HpOperatingPoint.zero
-
-      val updatedThermalGridState =
-        thermalGrid.updateThermalGridState(0, state, hpOperatingPoint)
-      val updatedHpState =
-        state.copy(thermalGridState = updatedThermalGridState)
-
       val externalQDot = testGridQDotInfeed * 10
 
       val (thermalGridOperatingPoint, reachedThreshold) =
         thermalGrid.handleFeedIn(
-          updatedHpState,
+          initialHpState,
           externalQDot,
         )
 
       reachedThreshold shouldBe Some(
-        StorageFull(27600L)
+        StorageFull(27599)
       )
       thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
         externalQDot,
