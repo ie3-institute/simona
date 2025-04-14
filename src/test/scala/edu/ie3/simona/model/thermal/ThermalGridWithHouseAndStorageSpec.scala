@@ -7,12 +7,26 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.participant2.HpModel.{HpOperatingPoint, HpState, ThermalGridOperatingPoint}
-import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalDemandWrapper, ThermalEnergyDemand, ThermalGridState}
+import edu.ie3.simona.model.participant2.HpModel.{
+  HpOperatingPoint,
+  HpState,
+  ThermalGridOperatingPoint,
+}
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTargetTemperatureReached, HouseTemperatureLowerBoundaryReached}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
+  HouseTargetTemperatureReached,
+  HouseTemperatureLowerBoundaryReached,
+}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
+  StorageEmpty,
+  StorageFull,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
@@ -230,7 +244,10 @@ class ThermalGridWithHouseAndStorageSpec
             )
           )
           updatedThermalGridState.storageState shouldBe Some(
-            ThermalStorageState(10800, testGridQDotInfeed * (Hours(3) + Seconds(1)))
+            ThermalStorageState(
+              10800,
+              testGridQDotInfeed * (Hours(3) + Seconds(1)),
+            )
           )
         }
       }
