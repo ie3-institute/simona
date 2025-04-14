@@ -360,7 +360,7 @@ object ThermalHouse {
       ambientTemperature: Temperature,
   ): ThermalHouseState =
     ThermalHouseState(
-      -1L,
+      0L,
       ambientTemperature,
       house.targetTemperature,
     )

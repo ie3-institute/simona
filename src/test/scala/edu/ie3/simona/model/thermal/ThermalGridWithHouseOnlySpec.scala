@@ -109,7 +109,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           ThermalHouseState(
             10800,
             testGridAmbientTemperature,
-            Kelvin(292.0799935185185),
+            Kelvin(292.08),
           )
         )
         updatedThermalGridState.storageState shouldBe None
@@ -135,7 +135,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val storageDemand = thermalDemands.heatStorageDemand
 
         houseDemand.required should approximate(zeroKWh)
-        houseDemand.possible should approximate(KilowattHours(1.050097))
+        houseDemand.possible should approximate(KilowattHours(1.0499999999))
         storageDemand.required should approximate(zeroKWh)
         storageDemand.possible should approximate(zeroKWh)
       }
@@ -148,7 +148,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           thermalGrid.handleConsumption(initialHpState)
 
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(154284L)
+          HouseTemperatureLowerBoundaryReached(154285L)
         )
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
       }
@@ -230,7 +230,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 thermalGridOperatingPoint,
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),
               ) =>
-            thresholdTick shouldBe 154284L
+            thresholdTick shouldBe 154285L
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
           case _ => fail("Thermal grid state updated failed")
         }

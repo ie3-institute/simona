@@ -82,14 +82,14 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       val testCases: TableFor2[Double, Double] = Table(
         ("qDotHouse", "expectedTemperature(K)"),
         // loss is higher than gain
-        (0d, 292.64986111),
-        (1d, 292.74988888888885),
-        (2d, 292.8499166666667),
+        (0d, 292.65),
+        (1d, 292.75),
+        (2d, 292.85),
         // Loss and gain should be equal resulting no temperature change
         (5d, 293.15),
         // gain is higher than loss
-        (6d, 293.2500),
-        (10d, 293.6501388889),
+        (6d, 293.25),
+        (10d, 293.65),
       )
 
       forAll(testCases) {
@@ -125,14 +125,14 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         Table(
           ("lastOperatingPoint", "newOperatingPoint", "expectedThreshold"),
           // some OperatingPoints not capable to heat the house sufficient
-          (0d, 0d, Some(HouseTemperatureLowerBoundaryReached(15599))),
-          (1d, 1d, Some(HouseTemperatureLowerBoundaryReached(19599))),
+          (0d, 0d, Some(HouseTemperatureLowerBoundaryReached(15600))),
+          (1d, 1d, Some(HouseTemperatureLowerBoundaryReached(19600))),
           (2d, 2d, Some(HouseTemperatureLowerBoundaryReached(26266))),
           // OperatingPoint that keeps the house in perfect balance
           (5d, 5d, None),
           // some OperatingPoints that increase the house inner temperature after some cooling down first
-          (0d, 6d, Some(HouseTargetTemperatureReached(15602))),
-          (0d, 10d, Some(HouseTargetTemperatureReached(6873))),
+          (0d, 6d, Some(HouseTargetTemperatureReached(15600))),
+          (0d, 10d, Some(HouseTargetTemperatureReached(6872))),
         )
 
       forAll(testCases) {
