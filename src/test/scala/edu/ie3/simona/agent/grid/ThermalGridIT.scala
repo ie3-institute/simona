@@ -1625,7 +1625,7 @@ class ThermalGridIT
       /* TICK 25200
         The sun comes out and it's getting warmer.
         PV: -4.4 kW
-        House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 13.21 kWh
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.21 kWh
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 3.04 kWh
         Heat pump: will be turned on and will continue heating the house
        */

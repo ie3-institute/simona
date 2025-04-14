@@ -119,17 +119,12 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     }
 
     "handling thermal energy consumption from grid" should {
-      val handleConsumption =
-        PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
-          Symbol("handleConsumption")
-        )
-
       "deliver the house state by just letting it cool down, if just no infeed is given" in {
         val tick = 0L
         val externalQDot = zeroKW
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(initialHpState)
+          thermalGrid.handleConsumption(initialHpState)
 
         updatedGridState match {
           case ThermalGridState(
@@ -147,10 +142,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
 
       "not withdraw energy from the house, if actual consumption is given" in {
-        val tick = 0L
-
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(initialHpState)
+          thermalGrid.handleConsumption(initialHpState)
 
         updatedGridState match {
           case ThermalGridState(
@@ -169,11 +162,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     }
 
     "handling thermal feed in into the grid" should {
-      val handleFeedIn =
-        PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
-          Symbol("handleFeedIn")
-        )
-
       "solely heat up the house" in {
         val gridState = ThermalGridState(
           Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
@@ -190,9 +178,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         )
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleFeedIn(
+          thermalGrid.handleFeedIn(
             state,
-            isNotRunning,
             testGridQDotInfeed,
             onlyThermalDemandOfHouse,
           )
@@ -221,7 +208,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
         thermalGrid.handleFeedIn(
           initState,
-          isRunning,
           testGridQDotInfeed,
           onlyThermalDemandOfHouse,
         ) match {

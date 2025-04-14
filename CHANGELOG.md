@@ -176,6 +176,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Isolate solar radiation calculations of PvModel to its own object [#1327](https://github.com/ie3-institute/simona/issues/1327)
 - Reorganized CI order [#1333](https://github.com/ie3-institute/simona/issues/1333)
 - Fixed determining FlexOptions of `Evcs` [#1322](https://github.com/ie3-institute/simona/issues/1322)
+- Refactor handleFeedIn and handleConsumption of `ThermalGrid` due to qDotIntoGrid [#1343](https://github.com/ie3-institute/simona/issues/1343)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
