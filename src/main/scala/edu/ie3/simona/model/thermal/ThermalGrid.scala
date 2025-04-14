@@ -150,10 +150,10 @@ final case class ThermalGrid(
 
   /** Handles the case, when a grid has feed in. Depending on which entity has
     * some heat demand the house or the storage will be heated up / filled up.
-    * First the actions from last operating point will be considered and checked if the
-    * behaviour should be continued. This might be the case, if we got activated
-    * by updated weather data. If this is not the case, all other cases will be
-    * handled by [[ThermalGrid.handleFinalFeedInCases]].
+    * First the actions from last operating point will be considered and checked
+    * if the behaviour should be continued. This might be the case, if we got
+    * activated by updated weather data. If this is not the case, all other
+    * cases will be handled by [[ThermalGrid.handleFinalFeedInCases]].
     *
     * @param state
     *   State of the heat pump.
@@ -387,16 +387,14 @@ final case class ThermalGrid(
       state: HpState
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
-    val (maybeThermalGridState, maybeNextThreshold) =
-      handleCase(state.tick, state, zeroKW, zeroKW)
+    val houseThreshold = house.zip(state.thermalGridState.houseState) match {
+      case Some((thermalHouse, houseState)) =>
+        thermalHouse.determineNextThreshold(houseState, zeroKW)
+      case _ => None
+    }
 
     /* Check if house can be heated from storage */
-    reviseFeedInFromStorage(
-      state,
-      maybeThermalGridState,
-      maybeNextThreshold,
-      zeroKW,
-    )
+    reviseFeedInFromStorage(state, houseThreshold)
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>
@@ -416,15 +414,10 @@ final case class ThermalGrid(
     */
   def reviseFeedInFromStorage(
       state: HpState,
-      maybeThermalGridState: ThermalGridState,
-      maybeThreshold: Option[ThermalThreshold],
-      qDot: Power,
-  ): (
-      ThermalGridState,
-      Option[ThermalThreshold],
-  ) = house
-    .zip(maybeThermalGridState.houseState)
-    .zip(heatStorage.zip(maybeThermalGridState.storageState)) match {
+      maybeHouseThreshold: Option[ThermalThreshold],
+  ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = house
+    .zip(state.thermalGridState.houseState)
+    .zip(heatStorage.zip(state.thermalGridState.storageState)) match {
     case Some(
           (
             (thermalHouse, houseState),
@@ -439,39 +432,28 @@ final case class ThermalGrid(
           (thermalHouse.isInnerTemperatureTooLow(houseState.innerTemperature) ||
             (state.thermalDemands.houseDemand.hasPossibleDemand && state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW)) =>
       /* Storage is meant to heat the house only, if there is no feed in from external (+/- 10 W) and the house is cold */
-      val (revisedStorageState, revisedStorageThreshold) =
-        thermalStorage.updateState(
-          state.tick,
-          thermalStorage.getpThermalMax * -1,
-          state.thermalGridState.storageState.getOrElse(
-            throw new InconsistentStateException(
-              "Impossible to find no storage state"
-            )
-          ),
-        )
-      val (revisedHouseState, revisedHouseThreshold) = thermalHouse.updateState(
-        state.tick,
-        state.thermalGridState.houseState.getOrElse(
-          throw new InconsistentStateException(
-            "Impossible to find no house state"
-          )
-        ),
-        state.ambientTemperature,
-        state.lastStateAmbientTemperature,
+      val revisedHouseThreshold = thermalHouse.determineNextThreshold(
+        houseState,
         thermalStorage.getpThermalMax,
       )
-
+      val revisedStorageThreshold = thermalStorage.determineNextThreshold(
+        storageState,
+        thermalStorage.getpThermalMax * -1,
+      )
       val nextThreshold = determineMostRecentThreshold(
         revisedHouseThreshold,
         revisedStorageThreshold,
       )
 
       (
-        ThermalGridState(Some(revisedHouseState), Some(revisedStorageState)),
+        ThermalGridOperatingPoint(
+          zeroKW,
+          thermalStorage.getpThermalMax,
+          thermalStorage.getpThermalMax * -1,
+        ),
         nextThreshold,
       )
-    case _ =>
-      (maybeThermalGridState, maybeThreshold)
+    case _ => (ThermalGridOperatingPoint.zero, maybeHouseThreshold)
   }
 
   /** Convert the given state of the thermal grid into result models of its
