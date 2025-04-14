@@ -178,7 +178,7 @@ final case class ThermalGrid(
     if (
       state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW && state.thermalDemands.houseDemand.hasPossibleDemand
     )
-      handleCases(state.tick, state, qDot, zeroKW)
+      handleCase(state.tick, state, qDot, zeroKW)
     // or finally check for all other cases.
     else
       handleFinalFeedInCases(state.tick, state, thermalDemands, qDot)
@@ -234,19 +234,18 @@ final case class ThermalGrid(
   ): (ThermalGridState, Option[ThermalThreshold]) = {
 
     if (thermalDemands.houseDemand.hasRequiredDemand)
-      handleCases(tick, state, qDot, zeroKW)
+      handleCase(tick, state, qDot, zeroKW)
     else if (
       thermalDemands.heatStorageDemand.hasRequiredDemand || thermalDemands.heatStorageDemand.hasPossibleDemand
     )
-      handleCases(tick, state, zeroKW, qDot)
+      handleCase(tick, state, zeroKW, qDot)
     else if (thermalDemands.houseDemand.hasPossibleDemand)
-      handleCases(tick, state, qDot, zeroKW)
+      handleCase(tick, state, qDot, zeroKW)
     else
-      handleCases(tick, state, zeroKW, zeroKW)
+      handleCase(tick, state, zeroKW, zeroKW)
   }
 
-  /** Handles the different cases, of thermal flows from and into the thermal
-    * grid.
+  /** Handles the different thermal flows from and into the thermal grid.
     *
     * @param tick
     *   The actual tick of simulation.
@@ -334,7 +333,7 @@ final case class ThermalGrid(
     }
   }
 
-  /** Handles the cases, when the storage has heat demand and will be filled up
+  /** Handles the case, when the storage has heat demand and will be filled up
     * here (positive qDot) or will return its stored energy into the thermal
     * grid (negative qDot).
     * @param state
@@ -345,7 +344,7 @@ final case class ThermalGrid(
     * @return
     *   Updated thermal grid state.
     */
-  private def handleStorageCases(
+  private def handleFeedInStorage(
       state: HpState,
       qDotStorage: Power,
   ): (Option[ThermalStorageState], Option[ThermalThreshold]) = {
