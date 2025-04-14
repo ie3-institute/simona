@@ -24,7 +24,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble

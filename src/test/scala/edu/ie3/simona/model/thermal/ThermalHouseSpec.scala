@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureLowerBoundaryReached
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
+  HouseTargetTemperatureReached,
+  HouseTemperatureLowerBoundaryReached,
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
   startingState,
@@ -73,18 +75,20 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
     }
 
     "Check for the correct state of house when ambient temperature changes" in {
-      val ambientTemperature = Temperature(-20, Celsius)
-      val relevantData = HpRelevantData(3600, ambientTemperature)
       val house = thermalHouse(18, 22)
+      val tick = 3600
+      val ambientTemperature = Temperature(-20, Celsius)
       val initialHouseState = startingState(house)
       val lastAmbientTemperature = Temperature(15, Celsius)
 
-      val (thermalHouseState, threshold) = house.updateState(
-        relevantData,
-        initialHouseState,
-        lastAmbientTemperature,
-        zeroKW,
-      )
+      val (thermalHouseState, threshold) =
+        house.updateState(
+          tick,
+          initialHouseState,
+          ambientTemperature,
+          lastAmbientTemperature,
+          zeroKW,
+        )
 
       thermalHouseState match {
         case ThermalHouseState(tick, temperature, qDot) =>
@@ -97,10 +101,38 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       threshold shouldBe Some(HouseTemperatureLowerBoundaryReached(4966))
     }
 
+    "Check for the correct state of house when thermal in feed changes" in {
+      val house = thermalHouse(18, 22)
+      val tick = 3600
+      val ambientTemperature = Temperature(10, Celsius)
+      val initQDot = Kilowatts(5) // won't be sufficient to increase inner temp
+      val initialHouseState = ThermalHouseState(0, Celsius(18.5), initQDot)
+      val newQDot = Kilowatts(100) // should increase inner temp
+
+      val (thermalHouseState, threshold) =
+        house.updateState(
+          tick,
+          initialHouseState,
+          ambientTemperature,
+          ambientTemperature,
+          newQDot,
+        )
+
+      thermalHouseState match {
+        case ThermalHouseState(tick, temperature, qDot) =>
+          tick shouldBe 3600L
+          temperature should approximate(Celsius(18.15))
+          qDot shouldBe newQDot
+        case unexpected =>
+          fail(s"Expected a thermalHouseState but got none $unexpected.")
+      }
+      threshold shouldBe Some(HouseTargetTemperatureReached(4325))
+    }
+
     "Check build method" in {
 
       val thermalTestHouse = thermalHouse(18, 22)
-      val thermalHouseInput = defaultThermalHouse
+      val thermalHouseInput = defaultThermalHouseInput
 
       thermalTestHouse.id shouldBe thermalHouseInput.getId
       thermalTestHouse.operatorInput shouldBe thermalHouseInput.getOperator
