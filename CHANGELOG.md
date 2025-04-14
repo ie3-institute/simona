@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduce ParticipantModel factory pattern [#1324](https://github.com/ie3-institute/simona/issues/1324)
 - Replace `HpModel` with its new implementation [#1236](https://github.com/ie3-institute/simona/issues/1236)
 - Add conversion utils between `ComparableQuantity` and `Squants` [#1313](https://github.com/ie3-institute/simona/issues/1313)
+- Implementing auto-merge for dependabot PRs [#1339](https://github.com/ie3-institute/simona/issues/1339)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
