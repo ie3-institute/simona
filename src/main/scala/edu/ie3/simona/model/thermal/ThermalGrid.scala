@@ -49,7 +49,7 @@ final case class ThermalGrid(
     * @param tick
     *   The actual tick of simulation.
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param operatingPoint
     *   The operating point of the heat pump.
     * @return
@@ -156,7 +156,7 @@ final case class ThermalGrid(
     * handled by [[ThermalGrid.handleFinalFeedInCases]].
     *
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param qDot
     *   Feed in to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
@@ -217,7 +217,7 @@ final case class ThermalGrid(
     * @param tick
     *   The actual tick of simulation.
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage).
     * @param qDot
@@ -250,7 +250,7 @@ final case class ThermalGrid(
     * @param tick
     *   The actual tick of simulation.
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param qDotHouse
     *   Feed in to the house.
     * @param qDotHeatStorage
@@ -291,7 +291,7 @@ final case class ThermalGrid(
     * @param tick
     *   The actual tick of simulation.
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param qDotHouse
     *   Feed in into the house.
     * @return
@@ -337,7 +337,7 @@ final case class ThermalGrid(
     * here (positive qDot) or will return its stored energy into the thermal
     * grid (negative qDot).
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param qDotStorage
     *   Feed in to the storage (positive: Storage is charging, negative: Storage
     *   is discharging).
@@ -387,7 +387,7 @@ final case class ThermalGrid(
   /** Handle consumption (or no feed in) from thermal grid.
     *
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @return
     *   Updated thermal grid state.
     */
@@ -413,7 +413,7 @@ final case class ThermalGrid(
     * itself</li> </ul>
     *
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param maybeHouseState
     *   Optional thermal house state.
     * @param maybeStorageState
@@ -488,7 +488,7 @@ final case class ThermalGrid(
     * constituent models.
     *
     * @param state
-    *   Last state of the heat pump.
+    *   State of the heat pump.
     * @param lastOperatingPoint
     *   The last operating point of the heat pump.
     * @param currentOperatingPoint
