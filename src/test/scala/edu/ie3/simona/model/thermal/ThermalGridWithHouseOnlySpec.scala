@@ -99,7 +99,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val tick = 10800L // after three hours
 
         val updatedThermalGridState =
-          thermalGrid.updateThermalGridState(
+          thermalGrid.determineThermalGridState(
             tick,
             initialHpState,
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
@@ -122,7 +122,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val tick = 10800L // after three hours
 
         val updatedThermalGridState =
-          thermalGrid.updateThermalGridState(
+          thermalGrid.determineThermalGridState(
             tick,
             initialHpState,
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),

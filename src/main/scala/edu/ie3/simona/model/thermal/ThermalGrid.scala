@@ -48,7 +48,8 @@ final case class ThermalGrid(
     heatStorage: Option[ThermalStorage],
 ) extends LazyLogging {
 
-  /** Updates the state of the ThermalGrid by using the actual HpOperatingPoint.
+  /** Determines the state of the ThermalGrid by using the actual
+    * HpOperatingPoint.
     * @param tick
     *   The actual tick of simulation.
     * @param state
@@ -56,9 +57,9 @@ final case class ThermalGrid(
     * @param operatingPoint
     *   The operating point of the heat pump.
     * @return
-    *   an updated [[ThermalGridState]].
+    *   The updated [[ThermalGridState]].
     */
-  def updateThermalGridState(
+  def determineThermalGridState(
       tick: Long,
       state: HpState,
       operatingPoint: HpOperatingPoint,

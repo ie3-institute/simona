@@ -68,7 +68,7 @@ class HpModel private (
   ): HpState = {
 
     val thermalGridState =
-      thermalGrid.updateThermalGridState(
+      thermalGrid.determineThermalGridState(
         tick,
         state,
         operatingPoint,

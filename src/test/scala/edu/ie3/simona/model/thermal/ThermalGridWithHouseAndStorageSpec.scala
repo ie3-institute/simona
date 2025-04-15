@@ -127,7 +127,7 @@ class ThermalGridWithHouseAndStorageSpec
         val tick = 10800L // after three hours
 
         val updatedThermalGridState =
-          thermalGrid.updateThermalGridState(
+          thermalGrid.determineThermalGridState(
             tick,
             initialHpState,
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
@@ -155,7 +155,7 @@ class ThermalGridWithHouseAndStorageSpec
         val tick = 10800L // after three hours
 
         val updatedThermalGridState =
-          thermalGrid.updateThermalGridState(
+          thermalGrid.determineThermalGridState(
             tick,
             initialHpState,
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
@@ -188,7 +188,7 @@ class ThermalGridWithHouseAndStorageSpec
           )
 
           val updatedThermalGridState =
-            thermalGrid.updateThermalGridState(
+            thermalGrid.determineThermalGridState(
               tick,
               state,
               HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
@@ -230,7 +230,7 @@ class ThermalGridWithHouseAndStorageSpec
           )
 
           val updatedThermalGridState =
-            thermalGrid.updateThermalGridState(
+            thermalGrid.determineThermalGridState(
               state.tick,
               state,
               HpOperatingPoint(zeroKW, thGridOperatingPoint),
@@ -267,7 +267,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         val updatedThermalGridState =
-          thermalGrid.updateThermalGridState(
+          thermalGrid.determineThermalGridState(
             state.tick,
             state,
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
