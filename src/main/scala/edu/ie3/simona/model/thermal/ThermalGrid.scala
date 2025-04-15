@@ -103,7 +103,6 @@ final case class ThermalGrid(
     * @return
     *   The energy demand of elements of thermalGrid.
     */
-
   def determineEnergyDemand(
       thermalGridState: ThermalGridState
   ): ThermalDemandWrapper = {

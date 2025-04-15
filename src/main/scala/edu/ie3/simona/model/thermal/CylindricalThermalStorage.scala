@@ -117,7 +117,6 @@ final case class CylindricalThermalStorage(
     * @return
     *   The next threshold if there is one.
     */
-
   override def determineNextThreshold(
       thermalStorageState: ThermalStorageState,
       qDotHeatStorage: Power,
@@ -162,7 +161,6 @@ object CylindricalThermalStorage {
     *   a ready-to-use [[CylindricalThermalStorage]] with referenced electric
     *   parameters
     */
-
   def apply(
       input: CylindricalStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
