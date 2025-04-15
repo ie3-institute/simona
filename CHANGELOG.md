@@ -241,6 +241,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix failing `ExtEvDataServiceSpec` [#1297](https://github.com/ie3-institute/simona/issues/1297)
 - Fixed pekko config not written as output [#1302](https://github.com/ie3-institute/simona/issues/1302)
 - Cleanups and log capturing in `ExtEvDataServiceSpec` [#1320](https://github.com/ie3-institute/simona/issues/1320)
+- Fix tolerance in `ThermalGridIT` [#1345](https://github.com/ie3-institute/simona/issues/1345)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
