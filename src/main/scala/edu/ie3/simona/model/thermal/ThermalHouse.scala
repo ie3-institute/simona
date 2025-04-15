@@ -381,7 +381,7 @@ object ThermalHouse {
 
   def startingState(house: ThermalHouse): ThermalHouseState =
     ThermalHouseState(
-      -1L,
+      0L,
       house.targetTemperature,
       zeroMW,
     )

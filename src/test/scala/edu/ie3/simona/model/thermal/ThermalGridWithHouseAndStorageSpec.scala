@@ -134,11 +134,11 @@ class ThermalGridWithHouseAndStorageSpec
         val storageDemand = thermalDemands.heatStorageDemand
 
         houseDemand.required should approximate(zeroKWh)
-        houseDemand.possible should approximate(KilowattHours(1.05009722d))
+        houseDemand.possible should approximate(KilowattHours(1.05))
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
         updatedThermalGridState.houseState shouldBe Some(
-          ThermalHouseState(10800, Kelvin(292.0799935185185), zeroKW)
+          ThermalHouseState(10800, Kelvin(292.08), zeroKW)
         )
         updatedThermalGridState.storageState shouldBe Some(
           ThermalStorageState(10800, zeroKWh, zeroKW)
@@ -172,12 +172,12 @@ class ThermalGridWithHouseAndStorageSpec
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
-        houseDemand.required should approximate(KilowattHours(45.6000555))
-        houseDemand.possible should approximate(KilowattHours(45.600055555))
+        houseDemand.required should approximate(KilowattHours(45.6))
+        houseDemand.possible should approximate(KilowattHours(45.6))
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
         updatedThermalGridState.houseState shouldBe Some(
-          ThermalHouseState(10800, Celsius(15.959996296296296), zeroKW)
+          ThermalHouseState(10800, Celsius(15.96), zeroKW)
         )
         updatedThermalGridState.storageState shouldBe Some(
           ThermalStorageState(10800, zeroKWh, zeroKW)
@@ -222,7 +222,7 @@ class ThermalGridWithHouseAndStorageSpec
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(154284L)
+          HouseTemperatureLowerBoundaryReached(154285L)
         )
       }
 
@@ -635,7 +635,7 @@ class ThermalGridWithHouseAndStorageSpec
                 ),
               ) =>
             houseTick shouldBe 0L
-            innerTemperature should approximate(Celsius(18.99999167d))
+            innerTemperature should approximate(Celsius(19d))
             qDotHouse should approximate(zeroKW)
 
             storageTick shouldBe 0L
