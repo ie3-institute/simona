@@ -291,8 +291,8 @@ final case class ThermalGrid(
       state: HpState,
       qDotHouse: Power,
   ): (Power, Option[ThermalThreshold]) = {
-    (house, state.thermalGridState.houseState) match {
-      case (Some(thermalHouse), Some(lastHouseState)) =>
+    house.zip(state.thermalGridState.houseState) match {
+      case Some((thermalHouse, lastHouseState)) =>
         val newState = thermalHouse.determineState(
           state.tick,
           lastHouseState,
@@ -336,8 +336,8 @@ final case class ThermalGrid(
       state: HpState,
       qDotStorage: Power,
   ): Option[ThermalThreshold] = {
-    (heatStorage, state.thermalGridState.storageState) match {
-      case (Some(thermalStorage), Some(lastStorageState)) =>
+    heatStorage.zip(state.thermalGridState.storageState) match {
+      case Some((thermalStorage, lastStorageState)) =>
         val newState = thermalStorage.determineState(
           state.tick,
           lastStorageState,
