@@ -71,7 +71,8 @@ class ThermalGridIT
     with MockitoSugar
     with DefaultTestData
     with TestSpawnerTyped {
-  protected implicit val temperatureTolerance: Double = 0.01
+  private implicit val quantityTolerance: Double = 1e-10d
+  protected val temperatureTolerance: Double = 0.01
 
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
@@ -996,7 +997,9 @@ class ThermalGridIT
                 emResult._3 should equalWithTolerance(
                   -0.002517561515.asMegaWatt
                 )
-                emResult._4 should equalWithTolerance(0.0012489996.asMegaVar)
+                emResult._4 should equalWithTolerance(
+                  -0.00082748245392177.asMegaVar
+                )
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -1044,7 +1047,9 @@ class ThermalGridIT
                 emResult._3 should equalWithTolerance(
                   -0.0025175615153993284.asMegaWatt
                 )
-                emResult._4 should equalWithTolerance(0.0012489996.asMegaVar)
+                emResult._4 should equalWithTolerance(
+                  -0.00082748245392177.asMegaVar
+                )
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -1202,7 +1207,7 @@ class ThermalGridIT
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 6829.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
-                energy should equalWithTolerance(0.0062900999999.asMegaWattHour)
+                energy should equalWithTolerance(0.0062959.asMegaWattHour)
             }
         }
 
@@ -1252,7 +1257,7 @@ class ThermalGridIT
                   -0.0013527980811294546.asMegaWatt
                 )
                 emResult._4 should equalWithTolerance(
-                  0.0012489995996796802.asMegaVar
+                  -0.00044464322678371.asMegaVar
                 )
             }
           case ThermalResultEvent(thermalUnitResult) =>
@@ -1267,7 +1272,7 @@ class ThermalGridIT
                 time shouldBe 9200.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.006290099999999.asMegaWattHour
+                  0.0062959.asMegaWattHour
                 )
             }
         }
@@ -1304,7 +1309,7 @@ class ThermalGridIT
                   -0.0013527980811294546.asMegaWatt
                 )
                 emResult._4 should equalWithTolerance(
-                  0.0012489995996796802.asMegaVar
+                  -0.000444643226783.asMegaVar
                 )
             }
           case ThermalResultEvent(thermalUnitResult) =>
@@ -1367,7 +1372,7 @@ class ThermalGridIT
                   -0.005152798081129455.asMegaWatt
                 )
                 emResult._4 should equalWithTolerance(
-                  0.asMegaVar
+                  -0.0016936428264633.asMegaVar
                 )
             }
           case ThermalResultEvent(thermalUnitResult) =>
@@ -1434,7 +1439,7 @@ class ThermalGridIT
                   -0.0014021250411259763.asMegaWatt
                 )
                 emResult._4 should equalWithTolerance(
-                  0.0012489995996796802.asMegaVar
+                  -0.000460856214491.asMegaVar
                 )
             }
           case ThermalResultEvent(thermalUnitResult) =>
@@ -1486,7 +1491,7 @@ class ThermalGridIT
                   -0.005202125041125976.asMegaWatt
                 )
                 emResult._4 should equalWithTolerance(
-                  0.asMegaVar
+                  -0.0017098558141710484.asMegaVar
                 )
             }
           case ThermalResultEvent(thermalUnitResult) =>
@@ -1666,7 +1671,7 @@ class ThermalGridIT
                   -0.000557218282208516.asMegaWatt
                 )
                 emResult._4 should equalWithTolerance(
-                  0.0012489995996796802.asMegaVar
+                  -0.000183148792477.asMegaVar
                 )
             }
           case ThermalResultEvent(thermalUnitResult) =>
@@ -1694,7 +1699,7 @@ class ThermalGridIT
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.007403699999999999.asMegaWattHour
+                  0.0073979.asMegaWattHour
                 )
             }
         }
@@ -1743,7 +1748,7 @@ class ThermalGridIT
                 -0.00006389649707132048.asMegaWatt
               )
               emResult._4 should equalWithTolerance(
-                0.0012489995996796802.asMegaVar
+                -0.00002100176296395.asMegaVar
               )
           }
         }
@@ -1780,7 +1785,7 @@ class ThermalGridIT
                   -0.00006389649707132048.asMegaWatt
                 )
                 emResult._4 should equalWithTolerance(
-                  0.0012489995996796802.asMegaVar
+                  -0.00002100176296395.asMegaVar
                 )
             }
           case ThermalResultEvent(thermalUnitResult) =>
@@ -1808,7 +1813,7 @@ class ThermalGridIT
                 time shouldBe 30708.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.007403699999999999.asMegaWattHour
+                  0.0073979.asMegaWattHour
                 )
             }
         }
@@ -1873,7 +1878,7 @@ class ThermalGridIT
                 time shouldBe 31000.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.008289811111111111.asMegaWattHour
+                  0.00829012222222222.asMegaWattHour
                 )
             }
         }
@@ -1938,7 +1943,7 @@ class ThermalGridIT
                 time shouldBe 40689.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.008289811111111111.asMegaWattHour
+                  0.00829012222222222.asMegaWattHour
                 )
             }
         }
