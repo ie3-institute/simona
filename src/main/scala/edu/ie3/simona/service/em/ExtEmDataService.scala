@@ -151,7 +151,7 @@ object ExtEmDataService
           serviceStateData.serviceCore.handleRegistration(registrationMsg)
 
         if (registrationMsg.parentEm.isEmpty) {
-          registrationMsg.flexAdapter ! FlexActivation(INIT_SIM_TICK)
+          //registrationMsg.flexAdapter ! FlexActivation(INIT_SIM_TICK)
         }
 
         Success(serviceStateData.copy(serviceCore = updatedCore))

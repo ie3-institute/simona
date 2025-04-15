@@ -14,7 +14,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
 import edu.ie3.simona.service.em.EmCommunicationCore.{DataMap, EmHierarchy}
-import edu.ie3.simona.service.em.ExtEmDataService.log
 import edu.ie3.simona.util.ReceiveHierarchicalDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
