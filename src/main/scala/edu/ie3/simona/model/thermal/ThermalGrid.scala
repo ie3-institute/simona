@@ -292,27 +292,22 @@ final case class ThermalGrid(
       qDotHouse: Power,
   ): (Power, Option[ThermalThreshold]) = {
     house.zip(state.thermalGridState.houseState) match {
-      case Some((thermalHouse, lastHouseState)) =>
-        val newState = thermalHouse.determineState(
-          state.tick,
-          lastHouseState,
-          qDotHouse,
-        )
+      case Some((thermalHouse, houseState)) =>
         /* Check if house can handle the thermal feed in */
         if (
           thermalHouse.isInnerTemperatureTooHigh(
-            newState.innerTemperature
+            houseState.innerTemperature
           )
         ) {
 
           val maybeFullHouseThreshold =
-            thermalHouse.determineNextThreshold(newState, zeroKW)
+            thermalHouse.determineNextThreshold(houseState, zeroKW)
 
           (qDotHouse, maybeFullHouseThreshold)
 
         } else {
           val threshold = thermalHouse.determineNextThreshold(
-            newState,
+            houseState,
             qDotHouse,
           )
           (zeroKW, threshold)
@@ -337,14 +332,9 @@ final case class ThermalGrid(
       qDotStorage: Power,
   ): Option[ThermalThreshold] = {
     heatStorage.zip(state.thermalGridState.storageState) match {
-      case Some((thermalStorage, lastStorageState)) =>
-        val newState = thermalStorage.determineState(
-          state.tick,
-          lastStorageState,
-          qDotStorage,
-        )
+      case Some((thermalStorage, storageState)) =>
         thermalStorage.determineNextThreshold(
-          newState,
+          storageState,
           qDotStorage,
         )
       case _ => None

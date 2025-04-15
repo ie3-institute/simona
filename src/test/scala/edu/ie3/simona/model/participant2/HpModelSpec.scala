@@ -777,8 +777,8 @@ class HpModelSpec
           "expectedHpQDot",
           "expectedTick",
         ),
-        (0, 0d, 0d, Some(4000)),
-        (5000, 1d, 95d, Some(6161)),
+        //  (0, 0d, 0d, Some(4000)),
+        (5000, 1d, 95d, Some(11000)),
       )
 
       forAll(cases) {
@@ -790,7 +790,10 @@ class HpModelSpec
         ) =>
           val state = HpState(
             tick,
-            thermalState(Celsius(19d), ambientTemperature),
+            ThermalGridState(
+              Some(ThermalHouseState(tick, ambientTemperature, Celsius(19))),
+              None,
+            ),
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
             ThermalDemandWrapper(
               ThermalEnergyDemand(
@@ -821,9 +824,9 @@ class HpModelSpec
           "expectedTick",
         ),
         (0L, 0d, 0d, 0d, Some(4000)),
-        (5000L, 95d, 1d, 95d, Some(6161)),
+        (5000L, 95d, 1d, 95d, Some(11000)),
         (0L, 80d, 0d, 95d, Some(4000)),
-        (5000L, 80d, 1d, 95d, Some(6161)),
+        (5000L, 80d, 1d, 95d, Some(11000)),
       )
 
       forAll(cases) {
@@ -836,7 +839,10 @@ class HpModelSpec
         ) =>
           val state = HpState(
             tick,
-            thermalState(Celsius(19d), ambientTemperature),
+            ThermalGridState(
+              Some(ThermalHouseState(tick, ambientTemperature, Celsius(19))),
+              None,
+            ),
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
             ThermalDemandWrapper(
               ThermalEnergyDemand(

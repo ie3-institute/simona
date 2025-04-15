@@ -560,7 +560,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
       reachedThreshold shouldBe Some(
-        StorageFull(27599)
+        StorageFull(27600)
       )
       thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
         externalQDot,
