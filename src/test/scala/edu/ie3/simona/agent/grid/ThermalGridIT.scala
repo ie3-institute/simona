@@ -943,6 +943,7 @@ class ThermalGridIT
           simulationStartWithPv,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
+          None,
         ),
         "EmAgent",
       )

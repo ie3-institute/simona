@@ -6,26 +6,25 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.simona.api.data.em.ExtEmDataConnection
+import edu.ie3.datamodel.models.value.Value
+import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.test.common.UnitSpec
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
 class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
   "An ExtSimSetupData" should {
 
-    val emptyMapInput = Map.empty[String, UUID].asJava
-    val emptyMapResult = Map.empty[UUID, String].asJava
+    val emptyMapInput = Map.empty[UUID, Class[_ <: Value]].asJava
+    val emptyListInput = List.empty[UUID].asJava
+    val emptyResultList = List.empty[UUID].asJava
 
     "be updated with an ExtPrimaryDataConnection correctly" in {
       val extSimSetupData = ExtSimSetupData.apply
@@ -75,7 +74,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val evConnection = new ExtEvDataConnection()
       val evRef = TestProbe[ServiceMessage]("ev_service").ref
 
-      val emConnection = new ExtEmDataConnection(emptyMapInput)
+      val emConnection = new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
       val emRef = TestProbe[ServiceMessage]("em_service").ref
 
       val cases = Table(
@@ -114,9 +113,9 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       val resultConnection =
         new ExtResultDataConnection(
-          emptyMapResult,
-          emptyMapResult,
-          emptyMapResult,
+          emptyResultList,
+          emptyResultList,
+          emptyResultList,
         )
       val resultRef = TestProbe("result_service").ref
 
@@ -137,14 +136,14 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val evConnection = new ExtEvDataConnection()
       val evRef = TestProbe[ServiceMessage]("ev_service").ref
 
-      val emConnection = new ExtEmDataConnection(emptyMapInput)
+      val emConnection = new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
       val emRef = TestProbe[ServiceMessage]("em_service").ref
 
       val resultConnection =
         new ExtResultDataConnection(
-          emptyMapResult,
-          emptyMapResult,
-          emptyMapResult,
+          emptyResultList,
+          emptyResultList,
+          emptyResultList,
         )
       val resultRef = TestProbe[ServiceMessage]("result_service").ref
 
@@ -169,7 +168,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "return emDataService correctly" in {
-      val emConnection = new ExtEmDataConnection(emptyMapInput)
+      val emConnection = new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
       val emRef = TestProbe("em_service").ref
 
       val cases = Table(
@@ -209,7 +208,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "return emDataService correctly" in {
-      val emConnection = new ExtEmDataConnection(emptyMapInput)
+      val emConnection = new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
       val emRef = TestProbe[ServiceMessage]("em_service").ref
 
       val cases = Table(

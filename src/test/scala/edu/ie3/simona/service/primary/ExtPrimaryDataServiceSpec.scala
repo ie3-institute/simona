@@ -7,32 +7,21 @@
 package edu.ie3.simona.service.primary
 
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
-  DataProvision,
-  RegistrationSuccessfulMessage,
-}
-import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{DataProvision, RegistrationSuccessfulMessage}
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  WrappedActivation,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{PrimaryServiceRegistrationMessage, WrappedActivation}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should
@@ -52,16 +41,17 @@ class ExtPrimaryDataServiceSpec
 
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
   private val extSimAdapter =
-    TestProbe[ScheduleDataServiceMessage]("extSimAdapter")
+    TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
   private val extPrimaryDataConnection = new ExtPrimaryDataConnection(
-    Map.empty[String, UUID].asJava
+    Map.empty[UUID, Class[_ <: Value]].asJava
   )
 
   "An uninitialized external primary data service" must {
 
     "send correct completion message after initialisation" in {
       val primaryDataService = spawn(ExtPrimaryDataService.apply(scheduler.ref))
+      val adapter = spawn(ExtPrimaryDataService.adapter(primaryDataService))
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -69,8 +59,8 @@ class ExtPrimaryDataServiceSpec
         .expectMessageType[ScheduleActivation] // lock activation scheduled
 
       extPrimaryDataConnection.setActorRefs(
-        primaryDataService.toClassic,
-        extSimAdapter.ref.toClassic,
+        adapter,
+        extSimAdapter.ref,
       )
 
       primaryDataService ! ServiceMessage.Create(
@@ -110,7 +100,7 @@ class ExtPrimaryDataServiceSpec
       service ! WrappedActivation(Activation(INIT_SIM_TICK))
 
       service ! RegisterForWeatherMessage(
-        systemParticipant.ref.toClassic,
+        systemParticipant.ref,
         51.4843281,
         7.4116482,
       )
@@ -121,7 +111,7 @@ class ExtPrimaryDataServiceSpec
 
     "correctly register a forwarded request" ignore {
       serviceRef ! PrimaryServiceRegistrationMessage(
-        systemParticipant.ref.toClassic,
+        systemParticipant.ref,
         UUID.randomUUID(),
       )
 

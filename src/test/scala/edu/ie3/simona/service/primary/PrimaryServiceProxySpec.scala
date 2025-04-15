@@ -11,54 +11,27 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
-import edu.ie3.datamodel.models.value.SValue
+import edu.ie3.datamodel.models.value.{PValue, SValue, Value}
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
-import edu.ie3.simona.config.ConfigParams.{
-  CouchbaseParams,
-  TimeStampedCsvParams,
-  TimeStampedInfluxDb1xParams,
-}
+import edu.ie3.simona.config.ConfigParams.{CouchbaseParams, TimeStampedCsvParams, TimeStampedInfluxDb1xParams}
 import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
-import edu.ie3.simona.exceptions.{
-  InitializationException,
-  InvalidConfigParameterException,
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  Create,
-  PrimaryServiceRegistrationMessage,
-  WorkerRegistrationMessage,
-  WrappedActivation,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{Create, PrimaryServiceRegistrationMessage, WorkerRegistrationMessage, WrappedActivation}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.LockMsg
 import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
-  InitPrimaryServiceProxyStateData,
-  PrimaryServiceStateData,
-  SourceRef,
-}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData, SourceRef}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.CsvInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.testkit.typed.Effect.{
-  NoEffects,
-  Spawned,
-  SpawnedAnonymous,
-}
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  BehaviorTestKit,
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
+import org.apache.pekko.actor.testkit.typed.Effect.{NoEffects, Spawned, SpawnedAnonymous}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{BehaviorTestKit, ScalaTestWithActorTestKit, TestProbe}
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.mockito.ArgumentMatchers.any
@@ -73,13 +46,9 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.nio.file.{Path, Paths}
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.jdk.CollectionConverters._
 import scala.language.implicitConversions
 import scala.util.{Failure, Success}
-import java.util.concurrent.TimeUnit
-import java.util.{Objects, UUID}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.jdk.CollectionConverters._
-import scala.util.{Failure, Success, Try}
 
 class PrimaryServiceProxySpec
     extends ScalaTestWithActorTestKit
@@ -159,16 +128,15 @@ class PrimaryServiceProxySpec
     m
   }
 
-  private val validExtPrimaryDataService = TSpawner.spawn(
-    ExtPrimaryDataService.apply(
-      scheduler.ref.toTyped
-    )
-  )
+  private val validExtPrimaryDataService = spawn(ExtPrimaryDataService(scheduler.ref))
 
   private val extEntityId =
     UUID.fromString("07bbe1aa-1f39-4dfb-b41b-339dec816ec4")
+
+  private val valueMap: Map[UUID, Class[_ <: Value]] = Map(extEntityId -> classOf[PValue])
+
   private val extPrimaryDataConnection = new ExtPrimaryDataConnection(
-    Map(extEntityId.toString -> extEntityId).asJava
+    valueMap.asJava
   )
 
   "Testing a primary service config" should {
@@ -383,7 +351,7 @@ class PrimaryServiceProxySpec
     }
 
     "build proxy correctly when there is an external simulation" in {
-      proxy invokePrivate prepareStateData(
+     PrimaryServiceProxy.prepareStateData(
         validPrimaryConfig,
         simulationStart,
         Seq((extPrimaryDataConnection, validExtPrimaryDataService)),

@@ -748,6 +748,7 @@ class EmAgentIT
             simulationStartDate,
             parent = Left(scheduler.ref),
             listener = Iterable(resultListener.ref),
+            None,
           ),
           "EmAgentReactivePower",
         )

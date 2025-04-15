@@ -8,17 +8,13 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.model.{
-  EmSetPointResult,
-  ExtendedFlexOptionsResult,
-  FlexRequestResult,
-  NoSetPointValue,
-}
+import edu.ie3.simona.api.data.em.model.{EmSetPointResult, ExtendedFlexOptionsResult, FlexRequestResult, NoSetPointValue}
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
 import edu.ie3.simona.service.em.EmCommunicationCore.{DataMap, EmHierarchy}
+import edu.ie3.simona.service.em.ExtEmDataService.log
 import edu.ie3.simona.util.ReceiveHierarchicalDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -30,12 +26,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power
-import scala.jdk.CollectionConverters.{
-  IterableHasAsScala,
-  MapHasAsJava,
-  MapHasAsScala,
-  SetHasAsJava,
-}
+import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsJava, MapHasAsScala, SetHasAsJava}
 
 final case class EmCommunicationCore(
     hierarchy: EmHierarchy = EmHierarchy(),

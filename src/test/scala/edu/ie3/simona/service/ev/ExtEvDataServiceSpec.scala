@@ -7,37 +7,23 @@
 package edu.ie3.simona.service.ev
 
 import edu.ie3.simona.agent.participant2.ParticipantAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
-  DataProvision,
-  RegistrationSuccessfulMessage,
-}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{DataProvision, RegistrationSuccessfulMessage}
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
-import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
+import edu.ie3.simona.api.data.ontology.{DataMessageFromExt, ScheduleDataServiceMessage}
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.services.EvMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  Create,
-  RegisterForEvDataMessage,
-  WrappedActivation,
-  WrappedExternalMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{Create, RegisterForEvDataMessage, WrappedActivation, WrappedExternalMessage}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.test.common.{EvTestData, TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.PowerSystemUnits
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
 import org.apache.pekko.testkit.TestKit.awaitCond
 import tech.units.indriya.quantity.Quantities
 
@@ -58,7 +44,7 @@ class ExtEvDataServiceSpec
 
   implicit def wrap(
       msg: EvDataMessageFromExt
-  ): WrappedExternalMessage[EvDataMessageFromExt] =
+  ): WrappedExternalMessage =
     WrappedExternalMessage(msg)
 
   private val evcs1UUID =
@@ -724,7 +710,7 @@ class ExtEvDataServiceSpec
       // ev service should receive movements msg at this moment
       // scheduler should receive schedule msg
       extSimAdapter
-        .expectMessageType[ScheduleDataServiceMessage[EvDataMessageFromExt]]
+        .expectMessageType[ScheduleDataServiceMessage]
 
       // we trigger ev service
       evService ! Activation(0L)
