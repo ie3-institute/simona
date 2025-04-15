@@ -18,18 +18,14 @@ final case class ReceiveHierarchicalDataMap[K, V](
   private val log: Logger =
     LoggerFactory.getLogger(ReceiveHierarchicalDataMap.getClass)
 
-  def allCompleted: Boolean = structure.keySet.forall(isComplete)
+  def allCompleted: Boolean = allKeys.forall(isComplete)
 
   def hasCompletedKeys: Boolean = structure.keySet.exists(isComplete)
 
-  def isComplete(key: K): Boolean = if (withExpected) {
-    structure
+  def isComplete(key: K): Boolean = structure
       .get(key)
       .map(_.intersect(expectedKeys))
       .forall(_.forall(receivedData.contains))
-  } else {
-    structure.get(key).forall(_.forall(receivedData.contains))
-  }
 
   def updateStructure(
       key: Option[K],

@@ -7,11 +7,9 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.api.data.em.ontology._
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexRequest,
-  FlexResponse,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexRequest, FlexResponse}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
+import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
@@ -19,6 +17,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 
 case class EmServiceBaseCore(
+    override val lastFinishedTick: Long = PRE_INIT_TICK,
     override val uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]] = Map.empty
 ) extends EmServiceCore {
 

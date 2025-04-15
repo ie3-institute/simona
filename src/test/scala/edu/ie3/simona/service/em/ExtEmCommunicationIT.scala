@@ -4,6 +4,7 @@ import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.SimpleInputContainer
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
 import edu.ie3.simona.agent.participant2.ParticipantAgentInit
 import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{ParticipantRefs, SimulationParameters}
 import edu.ie3.simona.api.data.em.model.{ExtendedFlexOptionsResult, FlexOptionRequest, FlexOptions, FlexRequestResult}
@@ -17,7 +18,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleAc
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.{FlexibilityMessage, MinMaxFlexOptions}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.Create
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{Create, PrimaryServiceRegistrationMessage}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
@@ -453,13 +455,58 @@ class ExtEmCommunicationIT
 
       // activate the service for init tick
       serviceActivation ! Activation(INIT_SIM_TICK)
-
-
-      // TODO: Init participants
-
-
-
       scheduler.expectMessage(Completion(serviceActivation))
+
+      primaryServiceProxy.receiveMessages(4) should contain allOf (
+        PrimaryServiceRegistrationMessage(
+          pvAgentNode3,
+          pvNode3.getUuid,
+        ),
+        PrimaryServiceRegistrationMessage(
+          storageAgentNode3,
+          storageInput.getUuid,
+        ),
+        PrimaryServiceRegistrationMessage(
+          pvAgentNode4,
+          pvNode4.getUuid,
+        ),
+        PrimaryServiceRegistrationMessage(
+          loadAgentNode4,
+          loadInput.getUuid,
+        ),
+      )
+
+      // pv agent 3
+      pvAgentNode3 ! RegistrationFailedMessage(primaryServiceProxy.ref)
+
+      // deal with weather service registration
+      weatherService.expectMessage(
+        RegisterForWeatherMessage(
+          pvAgentNode3,
+          pvNode3.getNode.getGeoPosition.getY,
+          pvNode3.getNode.getGeoPosition.getX,
+        )
+      )
+
+      pvAgentNode3 ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
+
+      // pv agent 4
+      pvAgentNode4 ! RegistrationFailedMessage(primaryServiceProxy.ref)
+
+      weatherService.expectMessage(
+        RegisterForWeatherMessage(
+          pvAgentNode4,
+          pvNode4.getNode.getGeoPosition.getY,
+          pvNode4.getNode.getGeoPosition.getX,
+        )
+      )
+      pvAgentNode4 ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
+
+      // storage
+      storageAgentNode3 ! RegistrationFailedMessage(primaryServiceProxy.ref)
+
+      // load
+      loadAgentNode4 ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
       /* TICK: 0 */
 

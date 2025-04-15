@@ -12,21 +12,12 @@ import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.services.EmMessage
-import edu.ie3.simona.ontology.messages.services.EmMessage.{
-  WrappedFlexRequest,
-  WrappedFlexResponse,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  RegisterForEmDataService,
-  ServiceRegistrationMessage,
-  ServiceResponseMessage,
-}
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
+import edu.ie3.simona.ontology.messages.services.{EmMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{RegisterForEmDataService, ServiceRegistrationMessage, ServiceResponseMessage}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData, ServiceConstantStateData}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -151,7 +142,7 @@ object ExtEmDataService
           serviceStateData.serviceCore.handleRegistration(registrationMsg)
 
         if (registrationMsg.parentEm.isEmpty) {
-          //registrationMsg.flexAdapter ! FlexActivation(INIT_SIM_TICK)
+          registrationMsg.flexAdapter ! FlexActivation(INIT_SIM_TICK)
         }
 
         Success(serviceStateData.copy(serviceCore = updatedCore))
@@ -167,24 +158,41 @@ object ExtEmDataService
       serviceStateData: ExtEmDataStateData,
       ctx: ActorContext[EmMessage],
   ): (ExtEmDataStateData, Option[Long]) = {
-    val extMsg = serviceStateData.extEmDataMessage.getOrElse(
-      throw ServiceException(
-        "ExtEmDataService was triggered without ExtEmDataMessage available"
+    val stateTick = serviceStateData.tick
+
+    if (tick != stateTick) {
+
+      val lastFinishedTick = serviceStateData.serviceCore.lastFinishedTick
+
+      if (lastFinishedTick == stateTick) {
+        announceInformation(tick)(serviceStateData.copy(tick = tick), ctx)
+      }
+
+       ctx.self ! ServiceMessage.WrappedActivation(Activation(tick))
+
+      (serviceStateData, None)
+
+    } else {
+      val extMsg = serviceStateData.extEmDataMessage.getOrElse(
+        throw ServiceException(
+          "ExtEmDataService was triggered without ExtEmDataMessage available"
+        )
       )
-    )
 
-    val (updatedCore, msgToExt) =
-      serviceStateData.serviceCore.handleExtMessage(tick, extMsg)(ctx.log)
+      val (updatedCore, msgToExt) =
+        serviceStateData.serviceCore.handleExtMessage(tick, extMsg)(ctx.log)
 
-    msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+      msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
 
-    (
-      serviceStateData.copy(
-        tick = tick,
-        serviceCore = updatedCore,
-      ),
-      None,
-    )
+      (
+        serviceStateData.copy(
+          tick = tick,
+          serviceCore = updatedCore,
+          extEmDataMessage = None,
+        ),
+        None,
+      )
+    }
   }
 
   override protected def handleDataMessage(

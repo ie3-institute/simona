@@ -14,8 +14,8 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
 import edu.ie3.simona.service.em.EmCommunicationCore.{DataMap, EmHierarchy}
-import edu.ie3.simona.util.ReceiveHierarchicalDataMap
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.{ReceiveDataMap, ReceiveHierarchicalDataMap}
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.apache.pekko.actor.typed.ActorRef
@@ -28,9 +28,10 @@ import javax.measure.quantity.Power
 import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsJava, MapHasAsScala, SetHasAsJava}
 
 final case class EmCommunicationCore(
-    hierarchy: EmHierarchy = EmHierarchy(),
+    override val lastFinishedTick: Long = PRE_INIT_TICK,
     override val uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]] =
       Map.empty,
+    hierarchy: EmHierarchy = EmHierarchy(),
     flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
     uuidToPRef: Map[UUID, ComparableQuantity[Power]] = Map.empty,
     toSchedule: Map[UUID, ScheduleFlexActivation] = Map.empty,
@@ -40,8 +41,7 @@ final case class EmCommunicationCore(
       ReceiveHierarchicalDataMap.empty,
     setPointResponse: DataMap[UUID, PValue] =
       ReceiveHierarchicalDataMap.empty(false),
-    completions: DataMap[UUID, FlexCompletion] =
-      ReceiveHierarchicalDataMap.empty(false),
+    completions: ReceiveDataMap[UUID, FlexCompletion] = ReceiveDataMap.empty,
 ) extends EmServiceCore {
 
   override def handleRegistration(
@@ -68,7 +68,7 @@ final case class EmCommunicationCore(
         flexRequestReceived.updateStructure(parentUuid, uuid),
       flexOptionResponse = flexOptionResponse.updateStructure(parentUuid, uuid),
       setPointResponse = setPointResponse.updateStructure(parentUuid, uuid),
-      completions = completions.updateStructure(parentUuid, uuid),
+      completions = completions.addExpectedKeys(Set(uuid)),
     )
   }
 
@@ -92,7 +92,7 @@ final case class EmCommunicationCore(
           adapter ! IssueNoControl(tick)
         }
 
-        (EmCommunicationCore.empty, Some(new EmCompletion()))
+        (this, Some(new EmCompletion()))
       }
 
     case provideFlexRequests: ProvideFlexRequestData =>
@@ -196,9 +196,9 @@ final case class EmCommunicationCore(
 
         val updated = provideFlexOptions match {
           case ProvideFlexOptions(
-                modelUuid,
-                MinMaxFlexOptions(ref, min, max),
-              ) =>
+          modelUuid,
+          MinMaxFlexOptions(ref, min, max),
+          ) =>
             flexOptionResponse.addData(
               modelUuid,
               new ExtendedFlexOptionsResult(
@@ -252,27 +252,23 @@ final case class EmCommunicationCore(
       receiver.map(_ ! completion)
       log.warn(s"Completion: $completion")
 
-      // TODO: Check if necessary
-      if (tick != INIT_SIM_TICK) {
+      val model = completion.modelUuid
+      val updated = completions.addData(model, completion)
 
-        val model = completion.modelUuid
 
-        val updated = completions.addData(model, completion)
+      if (updated.isComplete) {
+        val allKeys = updated.receivedData.keySet
 
-        if (updated.allCompleted) {
+        val extMsgOption = if (tick != INIT_SIM_TICK) {
+          // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
+          Some(new EmCompletion())
+        } else None
 
-          val (_, updatedCompletions) = updated.getFinishedData
+        // every em agent has sent a completion message
+        (copy(lastFinishedTick = tick, completions = ReceiveDataMap(allKeys)), extMsgOption)
 
-          // every em agent has sent a completion message
-          // send completion message to external simulation
-          (copy(completions = updatedCompletions), Some(new EmCompletion()))
+      } else (copy(completions = updated), None)
 
-        } else {
-          (copy(completions = updated), None)
-        }
-      } else {
-        (this, None)
-      }
   }
 
   override def handleFlexRequest(
@@ -379,7 +375,7 @@ final case class EmCommunicationCore(
       flexRequestReceived = flexRequestReceived.addSubKeysToExpectedKeys(keys),
       flexOptionResponse = flexOptionResponse.addSubKeysToExpectedKeys(keys),
       setPointResponse = setPointResponse.addSubKeysToExpectedKeys(keys),
-      completions = completions.addSubKeysToExpectedKeys(keys),
+      completions = completions.addExpectedKeys(keys),
     )
 }
 

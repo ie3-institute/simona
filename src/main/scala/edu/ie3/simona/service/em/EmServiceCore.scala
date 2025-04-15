@@ -38,6 +38,8 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.OptionConverters.RichOptional
 
 trait EmServiceCore {
+  def lastFinishedTick: Long
+
   def uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]]
 
   implicit class SquantsToQuantity(private val value: Power) {
