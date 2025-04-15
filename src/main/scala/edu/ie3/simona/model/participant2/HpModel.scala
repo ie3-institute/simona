@@ -189,13 +189,6 @@ class HpModel private (
       setPower: Option[Power],
   ): (Power, Power) = {
     val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
-    val currentStorageEnergy =
-      state.thermalGridState.storageState
-        .map(_.storedEnergy)
-        .getOrElse(zeroKWh)
-    val storagePThermal =
-      thermalGrid.heatStorage.map(_.getpThermalMax).getOrElse(zeroKW)
-
     val turnOn = setPower match {
       case Some(value) =>
         /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
