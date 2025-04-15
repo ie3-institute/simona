@@ -124,8 +124,119 @@ class HpModel private (
     )
   }
 
+  /** Calculate the active power behaviour of the model.
+    *
+    * @param state
+    *   The current state including weather data.
+    * @return
+    *   The active power.
+    */
+  override def determineOperatingPoint(
+      state: HpState
+  ): (HpOperatingPoint, Option[Long]) =
+    findOperatingPointAndNextThreshold(state, None)
+
+  /** Calculate the active power behaviour of the model.
+    *
+    * @param state
+    *   The current state including weather data.
+    * @param setPower
+    *   The power set by the energy management.
+    * @return
+    *   The active power.
+    */
+  override def determineOperatingPoint(
+      state: HpState,
+      setPower: Power,
+  ): (HpOperatingPoint, OperationChangeIndicator) = {
+    val (operatingPoint, nextTick) =
+      findOperatingPointAndNextThreshold(state, Some(setPower))
+
+    (
+      operatingPoint,
+      OperationChangeIndicator(
+        changesAtNextActivation = true,
+        changesAtTick = nextTick,
+      ),
+    )
+  }
+
   override def zeroPowerOperatingPoint: HpOperatingPoint =
     HpOperatingPoint.zero
+
+  /** Depending on the input, this function calculates the next operating point
+    * of the heat pump and the next threshold.
+    *
+    * @param state
+    *   Currently applicable HpState.
+    * @param setPower
+    *   The setPower from Em, if there is some.
+    * @return
+    *   The operating point of the Hp and the next threshold if there is one.
+    */
+  private def findOperatingPointAndNextThreshold(
+      state: HpState,
+      setPower: Option[Power],
+  ): (HpOperatingPoint, Option[Long]) = {
+
+    /* Determine active and thermal power of the Hp */
+    val (newActivePowerHp, qDotIntoGrid) = determineHpOperation(state, setPower)
+
+    /* Determine how qDot is used in thermalGrid and get threshold */
+    val (thermalGridOperatingPoint, maybeThreshold) =
+      if (qDotIntoGrid > zeroKW) {
+        thermalGrid.handleFeedIn(
+          state,
+          qDotIntoGrid,
+        )
+      } else
+        thermalGrid.handleConsumption(state)
+
+    val operatingPoint =
+      HpOperatingPoint(
+        newActivePowerHp,
+        thermalGridOperatingPoint,
+      )
+
+    val nextTick = maybeThreshold match {
+      case Some(threshold) => Some(threshold.tick)
+      case None            => None
+    }
+
+    (operatingPoint, nextTick)
+  }
+
+  /** Depending on the input, this function calculates the active power and
+    * thermal power (qDot) of the heat pump.
+    *
+    * @param state
+    *   Currently applicable HpState.
+    * @param setPower
+    *   The setPower from Em, if there is some.
+    * @return
+    *   The new active power of the heat pump and the thermal power (qDot) from
+    *   the heat pump, feed into the thermal grid.
+    */
+  private def determineHpOperation(
+      state: HpState,
+      setPower: Option[Power],
+  ): (Power, Power) = {
+    val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
+    val turnOn = setPower match {
+      case Some(value) =>
+        /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
+        value > (sRated.toActivePower(cosPhiRated) * 0.5)
+      case None =>
+        determineHpOperatingOptions(
+          state.thermalGridState,
+          state.thermalDemands,
+          wasRunningLastOp,
+        )._1
+    }
+
+    if (turnOn) (pRated, pThermal)
+    else (zeroKW, zeroKW)
+  }
 
   /** Depending on the input, this function determines the different operating
     * options of the heat pump. The heat pump is foreseen to operate, if the
@@ -172,80 +283,6 @@ class HpModel private (
     )
   }
 
-  /** Depending on the input, this function calculates the active power and
-    * thermal power (qDot) of the heat pump.
-    *
-    * @param state
-    *   Currently applicable HpState.
-    * @param setPower
-    *   The setPower from Em, if there is some.
-    * @return
-    *   The new active power of the heat pump and the thermal power (qDot) from
-    *   the heat pump, feed into the thermal grid.
-    */
-  private def determineHpOperation(
-      state: HpState,
-      setPower: Option[Power],
-  ): (Power, Power) = {
-    val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
-    val turnOn = setPower match {
-      case Some(value) =>
-        /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
-        value > (sRated.toActivePower(cosPhiRated) * 0.5)
-      case None =>
-        determineHpOperatingOptions(
-          state.thermalGridState,
-          state.thermalDemands,
-          wasRunningLastOp,
-        )._1
-    }
-
-    if (turnOn) (pRated, pThermal)
-    else (zeroKW, zeroKW)
-  }
-
-  /** Depending on the input, this function calculates the next operating point
-    * of the heat pump and the next threshold.
-    *
-    * @param state
-    *   Currently applicable HpState.
-    * @param setPower
-    *   The setPower from Em, if there is some.
-    * @return
-    *   The operating point of the Hp and the next threshold if there is one.
-    */
-  private def findOperatingPointAndNextThreshold(
-      state: HpState,
-      setPower: Option[Power],
-  ): (HpOperatingPoint, Option[Long]) = {
-
-    /* Determine active and thermal power of the Hp */
-    val (newActivePowerHp, qDotIntoGrid) = determineHpOperation(state, setPower)
-
-    /* Determine how qDot is used in thermalGrid and get threshold */
-    val (thermalGridOperatingPoint, maybeThreshold) =
-      if (qDotIntoGrid > zeroKW) {
-        thermalGrid.handleFeedIn(
-          state,
-          qDotIntoGrid,
-        )
-      } else
-        thermalGrid.handleConsumption(state)
-
-    val operatingPoint =
-      HpOperatingPoint(
-        newActivePowerHp,
-        thermalGridOperatingPoint,
-      )
-
-    val nextTick = maybeThreshold match {
-      case Some(threshold) => Some(threshold.tick)
-      case None            => None
-    }
-
-    (operatingPoint, nextTick)
-  }
-
   override def createResults(
       state: HpState,
       lastOperatingPoint: Option[HpOperatingPoint],
@@ -287,43 +324,6 @@ class HpModel private (
           s"Unknown data type when matching for primary data results $unknown!"
         )
     }
-  }
-
-  /** Calculate the active power behaviour of the model.
-    *
-    * @param state
-    *   The current state including weather data.
-    * @return
-    *   The active power.
-    */
-  override def determineOperatingPoint(
-      state: HpState
-  ): (HpOperatingPoint, Option[Long]) =
-    findOperatingPointAndNextThreshold(state, None)
-
-  /** Calculate the active power behaviour of the model.
-    *
-    * @param state
-    *   The current state including weather data.
-    * @param setPower
-    *   The power set by the energy management.
-    * @return
-    *   The active power.
-    */
-  override def determineOperatingPoint(
-      state: HpState,
-      setPower: Power,
-  ): (HpOperatingPoint, OperationChangeIndicator) = {
-    val (operatingPoint, nextTick) =
-      findOperatingPointAndNextThreshold(state, Some(setPower))
-
-    (
-      operatingPoint,
-      OperationChangeIndicator(
-        changesAtNextActivation = true,
-        changesAtTick = nextTick,
-      ),
-    )
   }
 }
 
