@@ -1,3 +1,9 @@
+/*
+ * © 2025. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
 package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.models.input.system.`type`.StorageTypeInput
@@ -19,11 +25,12 @@ import squants.Each
 import java.time.ZonedDateTime
 import java.util.UUID
 
-trait EmCommunicationTestData
-  extends DefaultTestData {
+trait EmCommunicationTestData extends DefaultTestData {
 
-  protected implicit val simulationStart: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
-  protected implicit val simulationEnd: ZonedDateTime = simulationStart.plusHours(2)
+  protected implicit val simulationStart: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
+  protected implicit val simulationEnd: ZonedDateTime =
+    simulationStart.plusHours(2)
 
   protected val simonaConfig: SimonaConfig = createSimonaConfig()
 
@@ -48,7 +55,6 @@ trait EmCommunicationTestData
     curtailRegenerative = false,
   )
 
-
   val node3 = new NodeInput(
     UUID.fromString("33f29587-f63e-45b7-960b-037bda37a3cb"),
     "Node_3",
@@ -56,7 +62,7 @@ trait EmCommunicationTestData
     false,
     GeoUtils.buildPoint(51.4843281, 7.4116482),
     GermanVoltageLevelUtils.LV,
-    2
+    2,
   )
 
   val node4 = new NodeInput(
@@ -66,28 +72,28 @@ trait EmCommunicationTestData
     false,
     GeoUtils.buildPoint(51.4843281, 7.4116482),
     GermanVoltageLevelUtils.LV,
-    2
+    2,
   )
 
   val emSup = new EmInput(
     UUID.fromString("858f3d3d-4189-49cd-9fe5-3cd49b88dc70"),
     "EM_SUP",
     "PROPORTIONAL",
-    null
+    null,
   )
 
   val emNode3 = new EmInput(
     UUID.fromString("fd1a8de9-722a-4304-8799-e1e976d9979c"),
     "emNode3",
     "PRIORITIZED",
-    emSup
+    emSup,
   )
 
   val emNode4 = new EmInput(
     UUID.fromString("ff0b995a-86ff-4f4d-987e-e475a64f2180"),
     "emNode4",
     "PRIORITIZED",
-    emSup
+    emSup,
   )
 
   val pvNode3 = new PvInput(
@@ -104,7 +110,7 @@ trait EmCommunicationTestData
     1.0,
     false,
     10.0.asKiloVoltAmpere,
-    0.8999999761581421
+    0.8999999761581421,
   )
 
   val pvNode4 = new PvInput(
@@ -121,20 +127,20 @@ trait EmCommunicationTestData
     1.0,
     false,
     10.0.asKiloVoltAmpere,
-    0.8999999761581421
+    0.8999999761581421,
   )
 
   val storageType = new StorageTypeInput(
     UUID.fromString("95d4c980-d9e1-4813-9f2a-b0942488a570"),
     "Typ_1",
     0.0.asEuro,
-     0.65.asEuroPerKiloWattHour,
+    0.65.asEuroPerKiloWattHour,
     16.0.asKiloWattHour,
     4.166666666666667.asKiloVoltAmpere,
     0.96,
     4.0.asKiloWatt,
     1.0.asPercentPerHour,
-    93.0.asPercent
+    93.0.asPercent,
   )
 
   val storageInput: StorageInput = new StorageInput(
@@ -143,7 +149,7 @@ trait EmCommunicationTestData
     node3,
     ReactivePowerCharacteristic.parse("cosPhiFixed:{(0.0,0.98)}"),
     emNode3,
-    storageType
+    storageType,
   )
 
   val loadInput: LoadInput = new LoadInput(
@@ -155,6 +161,6 @@ trait EmCommunicationTestData
     BdewStandardLoadProfile.H0,
     4000.0.asKiloWattHour,
     2.3157899379730225.asKiloVoltAmpere,
-    0.949999988079071
+    0.949999988079071,
   )
 }

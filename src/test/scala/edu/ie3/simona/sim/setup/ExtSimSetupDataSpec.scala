@@ -13,7 +13,10 @@ import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.test.common.UnitSpec
-import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
@@ -74,7 +77,8 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val evConnection = new ExtEvDataConnection()
       val evRef = TestProbe[ServiceMessage]("ev_service").ref
 
-      val emConnection = new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
+      val emConnection =
+        new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
       val emRef = TestProbe[ServiceMessage]("em_service").ref
 
       val cases = Table(
@@ -136,7 +140,8 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val evConnection = new ExtEvDataConnection()
       val evRef = TestProbe[ServiceMessage]("ev_service").ref
 
-      val emConnection = new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
+      val emConnection =
+        new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
       val emRef = TestProbe[ServiceMessage]("em_service").ref
 
       val resultConnection =
@@ -168,7 +173,8 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "return emDataService correctly" in {
-      val emConnection = new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
+      val emConnection =
+        new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
       val emRef = TestProbe("em_service").ref
 
       val cases = Table(
@@ -208,7 +214,8 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "return emDataService correctly" in {
-      val emConnection = new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
+      val emConnection =
+        new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
       val emRef = TestProbe[ServiceMessage]("em_service").ref
 
       val cases = Table(

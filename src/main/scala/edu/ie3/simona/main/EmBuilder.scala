@@ -1,3 +1,9 @@
+/*
+ * © 2025. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
 package edu.ie3.simona.main
 
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
@@ -9,7 +15,11 @@ import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 
 import java.nio.file.Path
 import java.util.UUID
-import scala.jdk.CollectionConverters.{MapHasAsScala, SetHasAsJava, SetHasAsScala}
+import scala.jdk.CollectionConverters.{
+  MapHasAsScala,
+  SetHasAsJava,
+  SetHasAsScala,
+}
 
 object EmBuilder {
 
@@ -22,9 +32,17 @@ object EmBuilder {
     val gridSource = new RawGridSource(typeSource, csvSource)
     val emSource = new EnergyManagementSource(typeSource, csvSource)
     val thermalSource = new ThermalSource(typeSource, csvSource)
-    val participantSource = new SystemParticipantSource(typeSource, thermalSource, gridSource, emSource, csvSource)
+    val participantSource = new SystemParticipantSource(
+      typeSource,
+      thermalSource,
+      gridSource,
+      emSource,
+      csvSource,
+    )
 
-    val (_, otherNodes) = gridSource.getNodes.asScala.toMap.partition { case (_, node) => node.isSlack}
+    val (_, otherNodes) = gridSource.getNodes.asScala.toMap.partition {
+      case (_, node) => node.isSlack
+    }
 
     val emSup = new EmInput(
       UUID.randomUUID(),
@@ -32,9 +50,8 @@ object EmBuilder {
       OperatorInput.NO_OPERATOR_ASSIGNED,
       OperationTime.notLimited(),
       "PROPORTIONAL",
-      null
+      null,
     )
-
 
     val ems = otherNodes.map { case (_, node) =>
       node -> new EmInput(
@@ -43,7 +60,7 @@ object EmBuilder {
         OperatorInput.NO_OPERATOR_ASSIGNED,
         OperationTime.notLimited(),
         "PROPORTIONAL",
-        emSup
+        emSup,
       )
     }
 
@@ -59,7 +76,8 @@ object EmBuilder {
       load.copy().em(ems(node)).build()
     }
 
-    val sink = new CsvFileSink(path.resolve("withEm"), new FileNamingStrategy(), ";")
+    val sink =
+      new CsvFileSink(path.resolve("withEm"), new FileNamingStrategy(), ";")
 
     sink.persistAllIgnoreNested(allEms.asJava)
     sink.persistAllIgnoreNested(fixedFeedIns.asJava)

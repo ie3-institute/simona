@@ -10,13 +10,19 @@ import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent}
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent,
+}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EmMessage
-import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{
+  WrappedFlexRequest,
+  WrappedFlexResponse,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.SquantsMatchers
@@ -26,7 +32,10 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
-import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
@@ -173,7 +182,7 @@ class EmAgentWithServiceSpec
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
-        )
+        ),
       )
 
       pvAgent.expectNoMessage()
@@ -185,7 +194,7 @@ class EmAgentWithServiceSpec
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
-        )
+        ),
       )
 
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
@@ -205,7 +214,7 @@ class EmAgentWithServiceSpec
                   referencePower,
                   minPower,
                   maxPower,
-                )
+                ),
               ),
               Right(receiver),
             ) =>
@@ -524,7 +533,7 @@ class EmAgentWithServiceSpec
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
-        )
+        ),
       )
 
       pvAgent.expectNoMessage()
@@ -536,7 +545,7 @@ class EmAgentWithServiceSpec
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
-        )
+        ),
       )
 
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
@@ -550,14 +559,14 @@ class EmAgentWithServiceSpec
 
       service.expectMessageType[WrappedFlexResponse] match {
         case WrappedFlexResponse(
-        ProvideFlexOptions(
-        modelUuid,
-        MinMaxFlexOptions(
-        referencePower,
-        minPower,
-        maxPower,
-        )
-        ),
+              ProvideFlexOptions(
+                modelUuid,
+                MinMaxFlexOptions(
+                  referencePower,
+                  minPower,
+                  maxPower,
+                ),
+              ),
               Right(receiver),
             ) =>
           modelUuid shouldBe updatedEmInput.getUuid
@@ -574,19 +583,19 @@ class EmAgentWithServiceSpec
           Kilowatts(0),
           Kilowatts(-16),
           Kilowatts(6),
-        )
+        ),
       )
 
       service.expectMessageType[WrappedFlexResponse] match {
         case WrappedFlexResponse(
-        ProvideFlexOptions(
-        modelUuid,
-        MinMaxFlexOptions(
-        referencePower,
-        minPower,
-        maxPower,
-        )
-        ),
+              ProvideFlexOptions(
+                modelUuid,
+                MinMaxFlexOptions(
+                  referencePower,
+                  minPower,
+                  maxPower,
+                ),
+              ),
               Left(self),
             ) =>
           modelUuid shouldBe parentEmInput.getUuid

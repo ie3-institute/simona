@@ -9,19 +9,31 @@ package edu.ie3.simona.service.primary
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{DataProvision, RegistrationSuccessfulMessage}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{PrimaryServiceRegistrationMessage, WrappedActivation}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  WrappedActivation,
+}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should

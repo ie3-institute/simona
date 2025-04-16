@@ -8,16 +8,34 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.model.{EmSetPointResult, ExtendedFlexOptionsResult, FlexOptions}
+import edu.ie3.simona.api.data.em.model.{
+  EmSetPointResult,
+  ExtendedFlexOptionsResult,
+  FlexOptions,
+}
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexActivation, FlexRequest, IssuePowerControl, ProvideFlexOptions}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexActivation,
+  FlexRequest,
+  IssuePowerControl,
+  ProvideFlexOptions,
+}
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{Create, RegisterForEmDataService}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{
+  WrappedFlexRequest,
+  WrappedFlexResponse,
+}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  Create,
+  RegisterForEmDataService,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
@@ -26,7 +44,10 @@ import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.testkit.TestKit.awaitCond
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -49,7 +70,8 @@ class ExtEmDataServiceSpec
 
   private val emptyControlled = List.empty[UUID].asJava
 
-  private val emAgentSupUUID = UUID.fromString("d797fe9c-e4af-49a3-947d-44f81933887e")
+  private val emAgentSupUUID =
+    UUID.fromString("d797fe9c-e4af-49a3-947d-44f81933887e")
   private val emAgent1UUID =
     UUID.fromString("06a14909-366e-4e94-a593-1016e1455b30")
   private val emAgent2UUID =
@@ -58,11 +80,13 @@ class ExtEmDataServiceSpec
   "An uninitialized em service" must {
     "send correct completion message after initialisation" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
-      val extSimAdapter = TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
+      val extSimAdapter =
+        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
       val emService = spawn(ExtEmDataService.apply(scheduler.ref))
       val adapter = spawn(ExtEmDataService.adapter(emService))
-      val extEmDataConnection = new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
+      val extEmDataConnection =
+        new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
       extEmDataConnection.setActorRefs(
         adapter,
         extSimAdapter.ref,
@@ -90,11 +114,13 @@ class ExtEmDataServiceSpec
 
     "stash registration request and handle it correctly once initialized" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
-      val extSimAdapter = TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
+      val extSimAdapter =
+        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
       val emService = spawn(ExtEmDataService.apply(scheduler.ref))
       val adapter = spawn(ExtEmDataService.adapter(emService))
-      val extEmDataConnection = new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
+      val extEmDataConnection =
+        new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
       extEmDataConnection.setActorRefs(
         adapter,
         extSimAdapter.ref,
@@ -139,11 +165,13 @@ class ExtEmDataServiceSpec
 
     "fail when activated without having received ExtEmMessage" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
-      val extSimAdapter = TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
+      val extSimAdapter =
+        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
       val emService = spawn(ExtEmDataService.apply(scheduler.ref))
       val adapter = spawn(ExtEmDataService.adapter(emService))
-      val extEmDataConnection = new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
+      val extEmDataConnection =
+        new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
       extEmDataConnection.setActorRefs(
         adapter,
         extSimAdapter.ref,
@@ -178,11 +206,13 @@ class ExtEmDataServiceSpec
 
     "handle flex option request correctly" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
-      val extSimAdapter = TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
+      val extSimAdapter =
+        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
       val emService = spawn(ExtEmDataService.apply(scheduler.ref))
       val adapter = spawn(ExtEmDataService.adapter(emService))
-      val extEmDataConnection = new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
+      val extEmDataConnection =
+        new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
       extEmDataConnection.setActorRefs(
         adapter,
         extSimAdapter.ref,
@@ -258,7 +288,7 @@ class ExtEmDataServiceSpec
 
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
 
-      //scheduler.expectMessage(Completion(serviceActivation))
+      // scheduler.expectMessage(Completion(serviceActivation))
 
       serviceActivation ! Activation(0)
 
@@ -279,7 +309,7 @@ class ExtEmDataServiceSpec
             Kilowatts(5),
             Kilowatts(0),
             Kilowatts(10),
-          )
+          ),
         ),
         Left(emAgent1UUID),
       )
@@ -308,11 +338,13 @@ class ExtEmDataServiceSpec
 
     "handle flex option provision correctly" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
-      val extSimAdapter = TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
+      val extSimAdapter =
+        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
       val emService = spawn(ExtEmDataService.apply(scheduler.ref))
       val adapter = spawn(ExtEmDataService.adapter(emService))
-      val extEmDataConnection = new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
+      val extEmDataConnection =
+        new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
       extEmDataConnection.setActorRefs(
         adapter,
         extSimAdapter.ref,
@@ -391,7 +423,7 @@ class ExtEmDataServiceSpec
             Kilowatts(-1),
             Kilowatts(-3),
             Kilowatts(1),
-          )
+          ),
         )
       )
 
@@ -400,11 +432,13 @@ class ExtEmDataServiceSpec
 
     "handle set point provision correctly" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
-      val extSimAdapter = TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
+      val extSimAdapter =
+        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
       val emService = spawn(ExtEmDataService.apply(scheduler.ref))
       val adapter = spawn(ExtEmDataService.adapter(emService))
-      val extEmDataConnection = new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
+      val extEmDataConnection =
+        new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
       extEmDataConnection.setActorRefs(
         adapter,
         extSimAdapter.ref,
@@ -484,11 +518,13 @@ class ExtEmDataServiceSpec
 
     "handle set point request correctly" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
-      val extSimAdapter = TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
+      val extSimAdapter =
+        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
       val emService = spawn(ExtEmDataService.apply(scheduler.ref))
       val adapter = spawn(ExtEmDataService.adapter(emService))
-      val extEmDataConnection = new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
+      val extEmDataConnection =
+        new ExtEmDataConnection(emptyControlled, EmMode.EM_COMMUNICATION)
       extEmDataConnection.setActorRefs(
         adapter,
         extSimAdapter.ref,
@@ -577,7 +613,7 @@ class ExtEmDataServiceSpec
       emAgent1.expectNoMessage()
       emAgent2.expectNoMessage()
 
-      //scheduler.expectMessage(Completion(serviceActivation))
+      // scheduler.expectMessage(Completion(serviceActivation))
 
       extEmDataConnection.receiveTriggerQueue shouldBe empty
 

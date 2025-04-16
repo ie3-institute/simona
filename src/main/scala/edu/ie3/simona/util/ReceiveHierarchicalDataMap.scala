@@ -18,20 +18,18 @@ final case class ReceiveHierarchicalDataMap[K, V](
   private val log: Logger =
     LoggerFactory.getLogger(ReceiveHierarchicalDataMap.getClass)
 
-  def allCompleted: Boolean = allKeys.forall(isComplete)
-
   def hasCompletedKeys: Boolean = structure.keySet.exists(isComplete)
 
   def isComplete(key: K): Boolean = structure
-      .get(key)
-      .map(_.intersect(expectedKeys))
-      .forall(_.forall(receivedData.contains))
+    .get(key)
+    .map(_.intersect(expectedKeys))
+    .forall(_.forall(receivedData.contains))
 
   def updateStructure(
       key: Option[K],
       subKey: K,
   ): ReceiveHierarchicalDataMap[K, V] = {
-    log.warn(s"Added agent '$subKey' with parent '$key'.")
+    log.debug(s"Added agent '$subKey' with parent '$key' to structure.")
 
     val (updatedStructure, updatedKeys): (Map[K, Set[K]], Set[K]) = key match {
       case Some(parent) =>
@@ -50,11 +48,15 @@ final case class ReceiveHierarchicalDataMap[K, V](
             )
         }
 
-      case None =>
+      case None if !structure.contains(subKey) =>
         (
           structure ++ Map(subKey -> Set.empty),
           allKeys + subKey,
         )
+      case _ =>
+        // we already added the subkey as parent
+        // therefore, no changes are needed
+        (structure, allKeys)
     }
 
     copy(
@@ -62,9 +64,6 @@ final case class ReceiveHierarchicalDataMap[K, V](
       allKeys = updatedKeys,
     )
   }
-
-  def addExpectedKey(key: K): ReceiveHierarchicalDataMap[K, V] =
-    copy(expectedKeys = expectedKeys + key)
 
   def addExpectedKeys(keys: Set[K]): ReceiveHierarchicalDataMap[K, V] =
     copy(expectedKeys = expectedKeys ++ keys)

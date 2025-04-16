@@ -14,10 +14,20 @@ import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequ
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.services.EmMessage.{
+  WrappedFlexRequest,
+  WrappedFlexResponse,
+}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  RegisterForEmDataService,
+  ServiceRegistrationMessage,
+  ServiceResponseMessage,
+}
 import edu.ie3.simona.ontology.messages.services.{EmMessage, ServiceMessage}
-import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{RegisterForEmDataService, ServiceRegistrationMessage, ServiceResponseMessage}
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData, ServiceConstantStateData}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceBaseStateData,
+}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -26,6 +36,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
 
 object ExtEmDataService
@@ -161,16 +172,22 @@ object ExtEmDataService
     val stateTick = serviceStateData.tick
 
     if (tick != stateTick) {
+      // we received an activation for the next tick
 
+      // check the last finished tick of the core
       val lastFinishedTick = serviceStateData.serviceCore.lastFinishedTick
 
+      // we request a new activation for the same tick
+      ctx.self ! ServiceMessage.WrappedActivation(Activation(tick))
+
       if (lastFinishedTick == stateTick) {
-        announceInformation(tick)(serviceStateData.copy(tick = tick), ctx)
+        // we finished the last tick and update the core with the requested tick
+        (serviceStateData.copy(tick = tick), None)
+
+      } else {
+        // we are still waiting for data for the state data tick
+        (serviceStateData, None)
       }
-
-       ctx.self ! ServiceMessage.WrappedActivation(Activation(tick))
-
-      (serviceStateData, None)
 
     } else {
       val extMsg = serviceStateData.extEmDataMessage.getOrElse(
