@@ -376,7 +376,7 @@ object HpModel {
     *   The thermal power input of the
     *   [[edu.ie3.simona.model.thermal.ThermalStorage]].
     */
-  final case class ThermalOpWrapper private (
+  final case class ThermalOpWrapper(
       qDotHp: Power,
       qDotHouse: Power,
       qDotHeatStorage: Power,

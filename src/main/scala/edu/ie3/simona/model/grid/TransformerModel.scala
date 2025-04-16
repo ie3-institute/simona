@@ -160,7 +160,7 @@ case object TransformerModel {
     // iNomHv, iNomLv
     val calcINom
         : squants.electro.ElectricPotential => squants.electro.ElectricCurrent = {
-      portVoltage: squants.electro.ElectricPotential =>
+      (portVoltage: squants.electro.ElectricPotential) =>
         trafoType.getsRated.toApparent / Math.sqrt(3) / portVoltage
     }
     val (iNomHv, iNomLv) =
