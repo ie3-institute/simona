@@ -209,10 +209,17 @@ abstract class SimonaService[
       val (updatedStateData, maybeNextTick) =
         announceInformation(tick)(stateData, ctx)
 
-      constantData.scheduler ! Completion(
-        constantData.activationAdapter,
-        maybeNextTick,
-      )
+      maybeNextTick match {
+        case Some(nextTick) if nextTick == tick =>
+          // we need to do an additional activation of this service
+          ctx.self ! WrappedActivation(Activation(tick))
+
+        case _ =>
+          constantData.scheduler ! Completion(
+            constantData.activationAdapter,
+            maybeNextTick,
+          )
+      }
 
       idle(updatedStateData, constantData)
   }

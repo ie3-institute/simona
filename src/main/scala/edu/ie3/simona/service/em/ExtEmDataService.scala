@@ -177,17 +177,17 @@ object ExtEmDataService
       // check the last finished tick of the core
       val lastFinishedTick = serviceStateData.serviceCore.lastFinishedTick
 
-      // we request a new activation for the same tick
-      ctx.self ! ServiceMessage.WrappedActivation(Activation(tick))
-
-      if (lastFinishedTick == stateTick) {
+      val updatedStateData = if (lastFinishedTick == stateTick) {
         // we finished the last tick and update the core with the requested tick
-        (serviceStateData.copy(tick = tick), None)
+        serviceStateData.copy(tick = tick)
 
       } else {
         // we are still waiting for data for the state data tick
-        (serviceStateData, None)
+        serviceStateData
       }
+
+      // we request a new activation for the same tick
+      (updatedStateData, Some(tick))
 
     } else {
       val extMsg = serviceStateData.extEmDataMessage.getOrElse(
