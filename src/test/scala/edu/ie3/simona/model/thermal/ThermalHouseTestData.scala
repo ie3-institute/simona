@@ -34,7 +34,7 @@ trait ThermalHouseTestData extends ThermalGridTestData {
 
   protected val expectedHouseStartingState: ThermalHouseState =
     ThermalHouseState(
-      -1L,
+      0L,
       Celsius(19d),
       Megawatts(0d),
     )
