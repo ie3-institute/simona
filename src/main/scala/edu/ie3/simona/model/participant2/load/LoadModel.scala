@@ -24,8 +24,6 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant2.load.profile.ProfileLoadModel
-import edu.ie3.simona.model.participant2.load.random.RandomLoadModel
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyToSimona,

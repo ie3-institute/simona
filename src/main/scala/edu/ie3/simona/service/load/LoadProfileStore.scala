@@ -11,16 +11,18 @@ import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.model.participant2.load.LoadModel.ProfileLoadFactoryData
-import edu.ie3.simona.service.load.LoadProfileStore.convertPower
-import edu.ie3.util.quantities.PowerSystemUnits
-import squants.energy.{KilowattHours, Kilowatts}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  EnergyToSimona,
+  PowerConversionSimona,
+}
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.Optional
-import javax.measure.quantity.Power
+import javax.measure.quantity.{Energy, Power}
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.OptionConverters.RichOptional
+import scala.language.implicitConversions
 
 /** Container class that stores all loaded load profiles.
   * @param profileToSource
@@ -30,6 +32,37 @@ final case class LoadProfileStore(
     profileToSource: Map[LoadProfile, LoadProfileSource[_, _]]
 ) {
 
+  /** Converts an option for [[ComparableQuantity]] power to an option for
+    * [[squants.Power]].
+    * @param power
+    *   That should be converted.
+    * @return
+    *   An option for [[squants.Power]].
+    */
+  private implicit def convertPower(
+      power: Optional[ComparableQuantity[Power]]
+  ): Option[squants.Power] =
+    power.toScala.map(_.toSquants)
+
+  /** Converts an option for [[ComparableQuantity]] energy to an option for
+    * [[squants.Energy]].
+    * @param energy
+    *   That should be converted.
+    * @return
+    *   An option for [[squants.Power]].
+    */
+  private implicit def convertEnergy(
+      energy: Optional[ComparableQuantity[Energy]]
+  ): Option[squants.Energy] =
+    energy.toScala.map(_.toSquants)
+
+  /** Method to check whether this [[LoadProfileStore]] contains the given
+    * [[LoadProfile]].
+    * @param loadProfile
+    *   That should be checked.
+    * @return
+    *   True, if this store contain the profile, else false.
+    */
   def contains(loadProfile: LoadProfile): Boolean =
     profileToSource.contains(loadProfile)
 
@@ -50,8 +83,7 @@ final case class LoadProfileStore(
     profileToSource
       .get(loadProfile)
       .flatMap(_.getValue(time).toScala)
-      .map(_.getP)
-      .flatMap(convertPower)
+      .flatMap(_.getP)
 
   /** Samples entries for random load profile.
     * @param time
@@ -78,12 +110,8 @@ final case class LoadProfileStore(
   ): Option[ProfileLoadFactoryData] =
     profileToSource.get(loadProfile).map { source =>
       ProfileLoadFactoryData(
-        convertPower(source.getMaxPower),
-        source.getLoadProfileEnergyScaling.toScala.map(e =>
-          KilowattHours(
-            e.to(PowerSystemUnits.KILOWATTHOUR).getValue.doubleValue()
-          )
-        ),
+        source.getMaxPower,
+        source.getLoadProfileEnergyScaling,
       )
     }
 
@@ -93,17 +121,11 @@ object LoadProfileStore {
 
   def apply(
       sourceDefinition: Datasource
-  ): LoadProfileStore = {
+  ): LoadProfileStore = new LoadProfileStore(
+    buildInProfiles ++ LoadProfileSources.buildSources(sourceDefinition)
+  )
 
-    // build all additional sources
-    val profileToSource =
-      buildInProfiles ++ LoadProfileSources.buildSources(sourceDefinition)
-    new LoadProfileStore(profileToSource)
-  }
-
-  def apply(): LoadProfileStore = {
-    new LoadProfileStore(buildInProfiles)
-  }
+  def apply(): LoadProfileStore = new LoadProfileStore(buildInProfiles)
 
   /** Returns the build in [[LoadProfileSource]]s.
     */
@@ -115,19 +137,4 @@ object LoadProfileStore {
     )
     bdew ++ random
   }
-
-  /** Converts an option for [[ComparableQuantity]] power to an option for
-    * [[squants.Power]].
-    * @param power
-    *   That should be converted
-    * @return
-    *   An option for [[squants.Power]]
-    */
-  private def convertPower(
-      power: Optional[ComparableQuantity[Power]]
-  ): Option[squants.Power] =
-    power.toScala
-      .map(p =>
-        Kilowatts(p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue())
-      )
 }
