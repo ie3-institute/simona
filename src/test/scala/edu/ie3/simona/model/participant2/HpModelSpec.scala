@@ -767,7 +767,7 @@ class HpModelSpec
       }
     }
 
-    "Handle operating correctly" in {
+    "determine operating point without flex control correctly" in {
       val ambientTemperature = Celsius(10)
 
       val cases = Table(
@@ -812,7 +812,7 @@ class HpModelSpec
       }
     }
 
-    "Handle controlled power change" in {
+    "determine operating point with flex control correctly" in {
       val ambientTemperature = Celsius(10)
 
       val cases = Table(
