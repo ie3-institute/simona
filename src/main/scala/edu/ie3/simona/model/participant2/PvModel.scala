@@ -28,13 +28,16 @@ import edu.ie3.simona.model.participant2.PvModel.PvState
 import edu.ie3.simona.model.participant2.SolarIrradiationCalculation._
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroWPerSM
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  DimensionlessToSimona,
+  PowerConversionSimona,
+  RadiansConversionSimona,
+}
 import edu.ie3.util.scala.quantities._
 import squants._
 import squants.space.{Degrees, SquareMeters}
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -275,35 +278,15 @@ object PvModel {
       new PvModel(
         input.getUuid,
         input.getId,
-        Kilovoltamperes(
-          input.getsRated
-            .to(PowerSystemUnits.KILOVOLTAMPERE)
-            .getValue
-            .doubleValue
-        ),
+        input.getsRated.toApparent,
         input.getCosPhiRated,
         QControl(input.getqCharacteristics),
         Degrees(input.getNode.getGeoPosition.getY),
         Degrees(input.getNode.getGeoPosition.getX),
         input.getAlbedo,
-        Each(
-          input.getEtaConv
-            .to(PowerSystemUnits.PU)
-            .getValue
-            .doubleValue
-        ),
-        Radians(
-          input.getAzimuth
-            .to(RADIAN)
-            .getValue
-            .doubleValue
-        ),
-        Radians(
-          input.getElevationAngle
-            .to(RADIAN)
-            .getValue
-            .doubleValue
-        ),
+        input.getEtaConv.toSquants,
+        input.getAzimuth.toSquants,
+        input.getElevationAngle.toSquants,
       )
 
   }

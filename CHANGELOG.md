@@ -68,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added check for equal start and end date of simulation to ConfigFailFast [#1317](https://github.com/ie3-institute/simona/issues/1317)
 - Introduce ParticipantModel factory pattern [#1324](https://github.com/ie3-institute/simona/issues/1324)
 - Replace `HpModel` with its new implementation [#1236](https://github.com/ie3-institute/simona/issues/1236)
+- Add conversion utils between `ComparableQuantity` and `Squants` [#1313](https://github.com/ie3-institute/simona/issues/1313)
+- Implementing auto-merge for dependabot PRs [#1339](https://github.com/ie3-institute/simona/issues/1339)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -173,6 +175,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FlexOptions types in `FlexibilityMessage` [#1306](https://github.com/ie3-institute/simona/issues/1306)
 - Isolate solar radiation calculations of PvModel to its own object [#1327](https://github.com/ie3-institute/simona/issues/1327)
 - Reorganized CI order [#1333](https://github.com/ie3-institute/simona/issues/1333)
+- Fixed determining FlexOptions of `Evcs` [#1322](https://github.com/ie3-institute/simona/issues/1322)
+- Refactor handleFeedIn and handleConsumption of `ThermalGrid` due to qDotIntoGrid [#1343](https://github.com/ie3-institute/simona/issues/1343)
 - Refactoring uuids in default runtime configs [#1336](https://github.com/ie3-institute/simona/issues/1336)
 
 ### Fixed
@@ -238,6 +242,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix failing `ExtEvDataServiceSpec` [#1297](https://github.com/ie3-institute/simona/issues/1297)
 - Fixed pekko config not written as output [#1302](https://github.com/ie3-institute/simona/issues/1302)
 - Cleanups and log capturing in `ExtEvDataServiceSpec` [#1320](https://github.com/ie3-institute/simona/issues/1320)
+- Fix tolerance in `ThermalGridIT` [#1345](https://github.com/ie3-institute/simona/issues/1345)
+- Fix startingState of `ThermalHouse` and `ThermalStorage` [#1347](https://github.com/ie3-institute/simona/issues/1347)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)

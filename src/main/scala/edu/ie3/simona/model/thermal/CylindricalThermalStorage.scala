@@ -128,7 +128,7 @@ final case class CylindricalThermalStorage(
   }
 
   override def startingState: ThermalStorageState = ThermalStorageState(
-    -1L,
+    0L,
     zeroKWh,
     zeroKW,
   )

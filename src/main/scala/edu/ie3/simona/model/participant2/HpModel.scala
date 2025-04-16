@@ -37,16 +37,15 @@ import edu.ie3.simona.model.thermal.ThermalGrid._
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.{
   zeroCelsius,
   zeroKW,
   zeroKWh,
 }
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities._
 import squants._
-import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -219,24 +218,8 @@ class HpModel private (
           )
       }
 
-    val (newHpActivePower, _, qDotIntoGrid) = {
-      if (turnOn)
-        (pRated, pThermal, pThermal)
-      else if (
-        currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasRequiredDemand
-      ) {
-        // If the house has req. demand and storage isn't empty, we can heat the house from storage.
-        (zeroKW, zeroKW, storagePThermal)
-      } else if (
-        currentStorageEnergy > zeroKWh && state.thermalDemands.houseDemand.hasPossibleDemand && state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW
-      )
-        // Edge case when em controlled: If the house was heated last state by Hp and setPower is below turnOn condition now,
-        // but house didn't reach target or boundary temperature yet. House can be heated from storage, if this one is not empty.
-        (zeroKW, zeroKW, storagePThermal)
-      else (zeroKW, zeroKW, zeroKW)
-    }
-
-    (newHpActivePower, qDotIntoGrid)
+    if (turnOn) (pRated, pThermal)
+    else (zeroKW, zeroKW)
   }
 
   override def createResults(
@@ -300,7 +283,6 @@ class HpModel private (
       if (qDotIntoGrid > zeroKW) {
         thermalGrid.handleFeedIn(
           state,
-          newActivePowerHp > zeroKW,
           qDotIntoGrid,
           state.thermalDemands,
         )
@@ -338,7 +320,6 @@ class HpModel private (
       if (qDotIntoGrid > zeroKW) {
         thermalGrid.handleFeedIn(
           state,
-          newActivePowerHp > zeroKW,
           qDotIntoGrid,
           state.thermalDemands,
         )
@@ -456,26 +437,18 @@ object HpModel {
       )
     }
 
-    override def create(): HpModel =
+    override def create(): HpModel = {
+      val bmType = input.getType
+
       new HpModel(
         input.getUuid,
         input.getId,
-        Kilovoltamperes(
-          input.getType.getsRated
-            .to(PowerSystemUnits.KILOVOLTAMPERE)
-            .getValue
-            .doubleValue
-        ),
+        bmType.getsRated.toApparent,
         input.getType.getCosPhiRated,
         QControl(input.getqCharacteristics),
-        Kilowatts(
-          input.getType
-            .getpThermal()
-            .to(PowerSystemUnits.KILOWATT)
-            .getValue
-            .doubleValue
-        ),
+        bmType.getpThermal.toSquants,
         ThermalGrid(thermalGrid),
       )
+    }
   }
 }
