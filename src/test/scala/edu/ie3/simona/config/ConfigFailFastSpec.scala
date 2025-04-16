@@ -596,6 +596,32 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         val checkBaseRuntimeConfigs =
           PrivateMethod[Unit](Symbol("checkBaseRuntimeConfigs"))
 
+        "throw an InvalidConfigParameterException if the UUID of an individual config is not valid" in {
+          val baseRuntimeConfig = ConfigFactory.parseString(
+            """simona.runtime.participant.load = {
+              |  individualConfigs = [
+              |    {
+              |      calculateMissingReactivePowerWithModel = false
+              |      uuids = ["blabla"]
+              |      scaling = 1.3
+              |      modelBehaviour = "profile"
+              |      reference = "power"
+              |    }
+              |  ]
+              |}""".stripMargin
+          )
+          val config =
+            baseRuntimeConfig.withFallback(typesafeConfig).resolve()
+          val simonaConfig = SimonaConfig(config)
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
+              simonaConfig.simona.runtime.participant.load.defaultConfig,
+              simonaConfig.simona.runtime.participant.load.individualConfigs,
+            )
+          }.getMessage shouldBe s"The UUID 'blabla' cannot be parsed as it is invalid."
+        }
+
         "throw an InvalidConfigParameterException if the scaling factor of the load model config is negative" in {
           val baseRuntimeConfig = ConfigFactory.parseString(
             """simona.runtime.participant.load = {
