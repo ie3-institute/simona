@@ -12,7 +12,10 @@ import edu.ie3.simona.agent.participant.data.Data.{
   PrimaryData,
   PrimaryDataExtra,
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  InputModelContainer,
+  WithHeatInputContainer,
+}
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   EvcsRuntimeConfig,
@@ -64,6 +67,18 @@ object ParticipantModelInit {
         FixedFeedInModel.Factory(input)
       case (input: LoadInput, config: LoadRuntimeConfig) =>
         LoadModel.getFactory(input, config)
+      case (input: HpInput, _) =>
+        val thermalGrid = inputContainer match {
+          case heatInputContainer: WithHeatInputContainer[_] =>
+            heatInputContainer.thermalGrid
+
+          case other =>
+            throw new CriticalFailureException(
+              s"Handling the input model ${input.getClass.getSimpleName} and " +
+                s"model input container ${other.getClass.getSimpleName} is not implemented."
+            )
+        }
+        HpModel.Factory(input, thermalGrid)
       case (input: PvInput, _) =>
         PvModel.Factory(input)
       case (input: WecInput, _) =>

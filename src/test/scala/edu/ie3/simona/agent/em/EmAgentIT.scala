@@ -8,9 +8,6 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
-import edu.ie3.simona.agent.participant.hp.HpAgent
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
@@ -46,16 +43,10 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
-import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorRefOps,
-}
-import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -80,9 +71,6 @@ class EmAgentIT
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T10:00:00Z")
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
-
-  private val resolution =
-    simonaConfig.simona.powerflow.resolution.toSeconds
 
   private val simulationParams = SimulationParameters(
     expectedPowerRequestTick = Long.MaxValue,
@@ -109,8 +97,6 @@ class EmAgentIT
   )
 
   private implicit val quantityTolerance: Double = 1e-10d
-
-  private implicit val classicSystem: ActorSystem = system.classicSystem
 
   "An em agent" when {
     "having load, pv and storage agents connected" should {
@@ -386,7 +372,7 @@ class EmAgentIT
         )
 
         val keys = ScheduleLock
-          .multiKey(TSpawner, scheduler.ref, PRE_INIT_TICK, 2)
+          .multiKey(TSpawner, scheduler.ref, PRE_INIT_TICK, 3)
           .iterator
         val lockActivation =
           scheduler.expectMessageType[ScheduleActivation].actor
@@ -429,27 +415,15 @@ class EmAgentIT
           ),
           "PvAgent1",
         )
-        val heatPumpAgent = TestActorRef(
-          new HpAgent(
-            scheduler = scheduler.ref.toClassic,
-            initStateData = ParticipantInitializeStateData(
-              adaptedHpInputModel,
-              adaptedThermalGrid,
-              HpRuntimeConfig(
-                calculateMissingReactivePowerWithModel = true,
-                1.0,
-                List.empty[String],
-              ),
-              primaryServiceProxy.ref.toClassic,
-              Iterable(ActorWeatherService(weatherService.ref.toClassic)),
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfigOff,
-              Some(emAgent),
-            ),
-            listener = Iterable(resultListener.ref.toClassic),
+        val hpAgent = spawn(
+          ParticipantAgentInit(
+            adaptedWithHeatContainer,
+            HpRuntimeConfig(),
+            outputConfigOff,
+            participantRefs,
+            simulationParams,
+            Right(emAgent),
+            keys.next(),
           ),
           "HeatPumpAgent1",
         )
@@ -464,10 +438,13 @@ class EmAgentIT
         scheduler.expectMessage(Completion(lockActivation))
 
         /* INIT */
-
         emAgentActivation ! Activation(INIT_SIM_TICK)
 
-        primaryServiceProxy.receiveMessages(2) should contain allOf (
+        primaryServiceProxy.receiveMessages(3) should contain allOf (
+          PrimaryServiceRegistrationMessage(
+            hpAgent,
+            adaptedHpInputModel.getUuid,
+          ),
           PrimaryServiceRegistrationMessage(
             loadAgent,
             loadInput.getUuid,
@@ -495,32 +472,23 @@ class EmAgentIT
 
         pvAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
-
         // heat pump
-        heatPumpAgent ! Activation(INIT_SIM_TICK)
+        hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
-        primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(
-            heatPumpAgent.toTyped,
-            adaptedHpInputModel.getUuid,
-          )
-        )
-        heatPumpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
-
+        // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
-            heatPumpAgent.toTyped,
+            hpAgent,
             adaptedHpInputModel.getNode.getGeoPosition.getY,
             adaptedHpInputModel.getNode.getGeoPosition.getX,
           )
         )
 
-        heatPumpAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
+        hpAgent ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
 
-        scheduler.expectMessage(Completion(heatPumpAgent.ref.toTyped))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
-        val weatherDependentAgents = Seq(pvAgent, heatPumpAgent.ref.toTyped)
+        val weatherDependentAgents = Seq(pvAgent, hpAgent)
 
         /* TICK 0
          LOAD: 0.269 kW

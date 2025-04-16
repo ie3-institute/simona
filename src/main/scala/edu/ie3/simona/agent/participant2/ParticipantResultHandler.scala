@@ -6,16 +6,20 @@
 
 package edu.ie3.simona.agent.participant2
 
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   FlexOptionsResult,
   SystemParticipantResult,
 }
+import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
+  ThermalResultEvent,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.exceptions.CriticalFailureException
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Handles all kind of results stemming from the participant by sending them to
@@ -36,10 +40,19 @@ final case class ParticipantResultHandler(
     * @param result
     *   The [[SystemParticipantResult]].
     */
-  def maybeSend(result: SystemParticipantResult): Unit =
+  def maybeSend(result: ResultEntity): Unit =
     if (config.simulationResultInfo) {
-      listener.foreach(
-        _ ! ParticipantResultEvent(result)
+      listener.foreach(actor =>
+        result match {
+          case thermalResult: ThermalUnitResult =>
+            actor ! ThermalResultEvent(thermalResult)
+          case participantResult: SystemParticipantResult =>
+            actor ! ParticipantResultEvent(participantResult)
+          case unsupported =>
+            throw new CriticalFailureException(
+              s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."
+            )
+        }
       )
     }
 
