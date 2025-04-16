@@ -64,7 +64,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
 
     val initialHpState = HpState(
-      -1L,
+      0L,
       initialGridState,
       HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
       noThermalDemand,

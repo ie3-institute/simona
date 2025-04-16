@@ -59,7 +59,7 @@ class ThermalGridWithHouseAndStorageSpec
     ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
 
   val initialHpState = HpState(
-    -1L,
+    0L,
     initialGridState,
     HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
     onlyThermalDemandOfHeatStorage,
@@ -381,7 +381,7 @@ class ThermalGridWithHouseAndStorageSpec
       }
     }
 
-    "revising infeed from storage to house" should {
+    "revising feed in from storage to house" should {
       val state = initialHpState.copy(
         tick = 3600L,
         thermalDemands = onlyThermalDemandOfHeatStorage,
