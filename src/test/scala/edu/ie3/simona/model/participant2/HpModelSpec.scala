@@ -777,7 +777,7 @@ class HpModelSpec
           "expectedHpQDot",
           "expectedTick",
         ),
-        //  (0, 0d, 0d, Some(4000)),
+        (0, 0d, 0d, Some(4000)),
         (5000, 1d, 95d, Some(11000)),
       )
 
