@@ -28,8 +28,6 @@ trait ThermalGridTestData {
   )
   protected val testGridAmbientTemperature: Temperature = Celsius(12d)
   protected val testGridQDotInfeed: Power = Kilowatts(15d)
-  protected val testGridQDotConsumption: Power = Kilowatts(-42d)
-  protected val testGridQDotConsumptionHigh: Power = Kilowatts(-200d)
   protected val noThermalDemand: ThermalDemandWrapper =
     ThermalDemandWrapper(
       ThermalEnergyDemand(zeroKWh, zeroKWh),
@@ -43,6 +41,16 @@ trait ThermalGridTestData {
   protected val onlyThermalDemandOfHeatStorage: ThermalDemandWrapper =
     ThermalDemandWrapper(
       ThermalEnergyDemand(zeroKWh, zeroKWh),
+      ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
+    )
+  protected val onlyAdditionalDemandOfHeatStorage: ThermalDemandWrapper =
+    ThermalDemandWrapper(
+      ThermalEnergyDemand(zeroKWh, zeroKWh),
+      ThermalEnergyDemand(zeroKWh, KilowattHours(2)),
+    )
+  protected val thermalDemandOfHouseAndHeatStorage: ThermalDemandWrapper =
+    ThermalDemandWrapper(
+      ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
       ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
     )
   protected val isRunning: Boolean = true

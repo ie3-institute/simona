@@ -7,7 +7,11 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.model.participant2.HpModel.{
+  HpOperatingPoint,
+  HpState,
+  ThermalOpWrapper,
+}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
@@ -56,10 +60,21 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         Set.empty[ThermalStorageInput].asJava,
       )
     )
+    val initialGridState: ThermalGridState =
+      ThermalGrid.startingState(thermalGrid)
+
+    val initialHpState = HpState(
+      0L,
+      testGridAmbientTemperature,
+      initialGridState,
+      HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
+      testGridAmbientTemperature,
+      noThermalDemand,
+    )
 
     "requesting the starting state" should {
       "deliver proper results" in {
-        ThermalGrid.startingState(thermalGrid) match {
+        initialGridState match {
           case ThermalGridState(
                 Some(ThermalHouseState(tick, innerTemperature, thermalInfeed)),
                 None,
@@ -77,61 +92,39 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
     "determining the energy demand" should {
       "exactly be the demand of the house" in {
-        val relevantData = HpRelevantData(
-          10800, // after three hours
-          testGridAmbientTemperature,
-        )
-        val lastHpState = HpState(
-          true,
-          relevantData.currentTick,
-          Some(testGridAmbientTemperature),
-          Kilowatts(42),
-          Kilowatts(42),
-          ThermalGrid.startingState(thermalGrid),
-          None,
-        )
+        val tick = 10800L // after three hours
 
-        val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(
-            relevantData,
-            lastHpState,
+        val updatedThermalGridState =
+          thermalGrid.updatedThermalGridState(
+            tick,
+            initialHpState,
+            HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
           )
+
+        val thermalDemands =
+          thermalGrid.determineEnergyDemand(updatedThermalGridState)
 
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
         houseDemand.required should approximate(zeroKWh)
-        houseDemand.possible should approximate(KilowattHours(1.050097))
+        houseDemand.possible should approximate(KilowattHours(1.05))
         storageDemand.required should approximate(zeroKWh)
         storageDemand.possible should approximate(zeroKWh)
         updatedThermalGridState.houseState shouldBe Some(
-          ThermalHouseState(10800, Kelvin(292.0799935185185), zeroKW)
+          ThermalHouseState(10800, Kelvin(292.08), zeroKW)
         )
         updatedThermalGridState.storageState shouldBe None
       }
     }
 
     "handling thermal energy consumption from grid" should {
-      val handleConsumption =
-        PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
-          Symbol("handleConsumption")
-        )
-
       "deliver the house state by just letting it cool down, if just no infeed is given" in {
-        val relevantData = HpRelevantData(
-          0L,
-          testGridAmbientTemperature,
-        )
-        val gridState = ThermalGrid.startingState(thermalGrid)
+        val tick = 0L
         val externalQDot = zeroKW
 
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(
-            relevantData,
-            testGridAmbientTemperature,
-            gridState,
-            externalQDot,
-          )
+          thermalGrid.handleConsumption(initialHpState)
 
         updatedGridState match {
           case ThermalGridState(
@@ -139,29 +132,18 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None,
               ) =>
             tick shouldBe 0L
-            innerTemperature should approximate(Celsius(18.9999d))
+            innerTemperature should approximate(Celsius(19d))
             qDot should approximate(externalQDot)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(154284L)
+          HouseTemperatureLowerBoundaryReached(154285L)
         )
       }
 
       "not withdraw energy from the house, if actual consumption is given" in {
-        val relevantData = HpRelevantData(
-          0L,
-          testGridAmbientTemperature,
-        )
-        val gridState = ThermalGrid.startingState(thermalGrid)
-
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleConsumption(
-            relevantData,
-            testGridAmbientTemperature,
-            gridState,
-            testGridQDotConsumption,
-          )
+          thermalGrid.handleConsumption(initialHpState)
 
         updatedGridState match {
           case ThermalGridState(
@@ -169,38 +151,35 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None,
               ) =>
             tick shouldBe 0L
-            innerTemperature should approximate(Celsius(18.9999d))
+            innerTemperature should approximate(Celsius(19d))
             qDot should approximate(zeroKW)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(154284L)
+          HouseTemperatureLowerBoundaryReached(154285L)
         )
       }
     }
 
-    "handling thermal infeed into the grid" should {
-      val handleInfeed =
-        PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
-          Symbol("handleInfeed")
-        )
-
+    "handling thermal feed in into the grid" should {
       "solely heat up the house" in {
-        val relevantData = HpRelevantData(
-          0L,
-          testGridAmbientTemperature,
-        )
         val gridState = ThermalGridState(
           Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
           None,
         )
 
+        val state = HpState(
+          0,
+          testGridAmbientTemperature,
+          gridState,
+          HpOperatingPoint(zeroKW, ThermalOpWrapper.zero),
+          testGridAmbientTemperature,
+          onlyThermalDemandOfHouse,
+        )
+
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleInfeed(
-            relevantData,
-            testGridAmbientTemperature,
-            gridState,
-            isNotRunning,
+          thermalGrid.handleFeedIn(
+            state,
             testGridQDotInfeed,
             onlyThermalDemandOfHouse,
           )
@@ -220,18 +199,15 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     }
 
     "updating the grid state dependent on the given thermal infeed" should {
-      val relevantData = HpRelevantData(0, testGridAmbientTemperature)
       "deliver proper result, if energy is fed into the grid" in {
         val gridState = ThermalGridState(
           Some(ThermalHouseState(-1, Celsius(17), zeroKW)),
           None,
         )
+        val initState = initialHpState.copy(thermalGridState = gridState)
 
-        thermalGrid.updateState(
-          relevantData,
-          gridState,
-          testGridAmbientTemperature,
-          isRunning,
+        thermalGrid.handleFeedIn(
+          initState,
           testGridQDotInfeed,
           onlyThermalDemandOfHouse,
         ) match {
@@ -251,14 +227,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
 
       "deliver proper result, if energy is consumed from the grid" in {
-        thermalGrid.updateState(
-          relevantData,
-          ThermalGrid.startingState(thermalGrid),
-          testGridAmbientTemperature,
-          isNotRunning,
-          testGridQDotConsumption,
-          onlyThermalDemandOfHouse,
-        ) match {
+        thermalGrid.handleConsumption(initialHpState) match {
           case (
                 ThermalGridState(
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),
@@ -267,22 +236,15 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),
               ) =>
             tick shouldBe 0L
-            innerTemperature should approximate(Celsius(18.9999d))
+            innerTemperature should approximate(Celsius(19d))
             qDot should approximate(zeroKW)
-            thresholdTick shouldBe 154284L
+            thresholdTick shouldBe 154285L
           case _ => fail("Thermal grid state updated failed")
         }
       }
 
       "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
-        thermalGrid.updateState(
-          relevantData,
-          ThermalGrid.startingState(thermalGrid),
-          testGridAmbientTemperature,
-          isNotRunning,
-          zeroKW,
-          onlyThermalDemandOfHouse,
-        ) match {
+        thermalGrid.handleConsumption(initialHpState) match {
           case (
                 ThermalGridState(
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),
@@ -291,9 +253,9 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),
               ) =>
             tick shouldBe 0L
-            innerTemperature should approximate(Celsius(18.9999d))
+            innerTemperature should approximate(Celsius(19d))
             qDot should approximate(zeroKW)
-            thresholdTick shouldBe 154284L
+            thresholdTick shouldBe 154285L
           case _ => fail("Thermal grid state updated failed")
         }
       }
