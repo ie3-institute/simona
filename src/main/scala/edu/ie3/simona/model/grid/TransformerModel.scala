@@ -23,7 +23,7 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   SiemensToSimona,
   VoltageToSimona,
 }
-import squants.Each
+import squants.{Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -205,9 +205,7 @@ case object TransformerModel {
       voltRatioNominal,
       iNomHv,
       iNomLv,
-      Kilowatts(
-        trafoType.getsRated().to(KILOVOLTAMPERE).getValue.doubleValue()
-      ),
+      trafoType.getsRated().toSquants,
       r,
       x,
       g,

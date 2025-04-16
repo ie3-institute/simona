@@ -32,6 +32,7 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   SiemensToSimona,
   VoltageToSimona,
 }
+import squants.Power
 import squants.electro.Siemens
 
 import java.time.ZonedDateTime
@@ -265,17 +266,11 @@ case object Transformer3wModel extends LazyLogging {
 
     val sRated = powerFlowCase match {
       case PowerFlowCaseA =>
-        Watts(
-          trafo3wType.getsRatedA().to(VOLTAMPERE).getValue.doubleValue()
-        )
+        trafo3wType.getsRatedA().toSquants
       case PowerFlowCaseB =>
-        Watts(
-          trafo3wType.getsRatedB().to(VOLTAMPERE).getValue.doubleValue()
-        )
+        trafo3wType.getsRatedB().toSquants
       case PowerFlowCaseC =>
-        Watts(
-          trafo3wType.getsRatedC().to(VOLTAMPERE).getValue.doubleValue()
-        )
+        trafo3wType.getsRatedC().toSquants
     }
 
     val operationInterval =
@@ -342,12 +337,6 @@ case object Transformer3wModel extends LazyLogging {
       squants.Dimensionless,
       squants.Dimensionless,
   ) = {
-    val transformerRefSystem =
-      RefSystem(
-        transformerType.getsRatedA.toSquants,
-        transformerType.getvRatedA.toSquants,
-      )
-
     /* Get the physical equivalent circuit diagram parameters from type. They come with reference to the highest
      * voltage side, therefore, in power flow case B and C, they need to be adapted. */
     val (rTrafo, xTrafo, gTrafo, bTrafo) = powerFlowCase match {
