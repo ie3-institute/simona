@@ -390,7 +390,7 @@ final case class ThermalGrid(
   /** Check, if the storage can heat the house. This is only done, if <ul>
     * <li>the house has reached it's lower temperature boundary,</li> <li>there
     * is no feed in from external and</li> <li>the storage is not empty
-    * itself</li> </ul>
+    * itself</li> </ul>.
     *
     * @param state
     *   State of the heat pump.
@@ -399,8 +399,8 @@ final case class ThermalGrid(
     * @param maybeStorageState
     *   Optional thermal storage state.
     * @return
-    *   Options to revised thermal house and storage state and the updated qDot
-    *   of house and storage.
+    *   Operating point of the thermal grid and the next thermal threshold, if
+    *   there is one.
     */
   def reviseFeedInFromStorage(
       state: HpState,
