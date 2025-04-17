@@ -301,14 +301,23 @@ final case class ThermalGrid(
         ) {
 
           val maybeFullHouseThreshold =
-            thermalHouse.determineNextThreshold(houseState, zeroKW)
+            thermalHouse.determineNextThresholdRecursive(
+              houseState.tick,
+              zeroKW,
+              houseState.innerTemperature,
+              houseState.ambientTemperature,
+              1,
+            )
 
           (qDotHouse, maybeFullHouseThreshold)
 
         } else {
-          val threshold = thermalHouse.determineNextThreshold(
-            houseState,
+          val threshold = thermalHouse.determineNextThresholdRecursive(
+            houseState.tick,
             qDotHouse,
+            houseState.innerTemperature,
+            houseState.ambientTemperature,
+            1,
           )
           (zeroKW, threshold)
         }
@@ -379,7 +388,13 @@ final case class ThermalGrid(
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
     val houseThreshold = house.zip(state.thermalGridState.houseState) match {
       case Some((thermalHouse, houseState)) =>
-        thermalHouse.determineNextThreshold(houseState, zeroKW)
+        thermalHouse.determineNextThresholdRecursive(
+          houseState.tick,
+          zeroKW,
+          houseState.innerTemperature,
+          houseState.ambientTemperature,
+          1,
+        )
       case _ => None
     }
 
@@ -422,9 +437,12 @@ final case class ThermalGrid(
           (thermalHouse.isInnerTemperatureTooLow(houseState.innerTemperature) ||
             (state.thermalDemands.houseDemand.hasPossibleDemand && state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW)) =>
       /* Storage is meant to heat the house only, if there is no feed in from external (+/- 10 W) and the house is cold */
-      val revisedHouseThreshold = thermalHouse.determineNextThreshold(
-        houseState,
+      val revisedHouseThreshold = thermalHouse.determineNextThresholdRecursive(
+        houseState.tick,
         thermalStorage.getpThermalMax,
+        houseState.innerTemperature,
+        houseState.ambientTemperature,
+        1,
       )
       val revisedStorageThreshold = thermalStorage.determineNextThreshold(
         storageState,

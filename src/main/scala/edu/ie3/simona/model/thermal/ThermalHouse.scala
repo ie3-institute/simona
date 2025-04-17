@@ -184,28 +184,45 @@ final case class ThermalHouse(
     * @return
     *   new inner temperature
     */
-  def newInnerTemperature(
+  def newInnerTemperatureRecursive(
       thermalPower: Power,
-      duration: Time,
+      remainingDuration: Time,
       currentInnerTemperature: Temperature,
       ambientTemperature: Temperature,
   ): Temperature = {
-    val thermalEnergyGain = thermalPower * duration
+    if (remainingDuration <= Seconds(0)) {
+      return currentInnerTemperature
+    }
 
-    // thermal energy loss due to the deviation between outside and inside temperature
+    // FIXME Maybe this can be calculated according to desired granularity of scenario?
+    val divisor = 500d
+    // time step should be small
+    val timeStepApproach = Seconds(remainingDuration.toSeconds / divisor)
+
+    val deltaTime =
+      if (timeStepApproach > Seconds(1)) timeStepApproach else Seconds(1)
+
+    // Thermal energy gain and loss for this time step
+    val thermalEnergyGain = thermalPower * deltaTime
     val thermalEnergyLoss = ethLosses.calcThermalEnergyChange(
       currentInnerTemperature,
       ambientTemperature,
-      duration,
+      deltaTime,
     )
 
+    // Energy and temperature change
     val energyChange = thermalEnergyGain - thermalEnergyLoss
-
-    // temperature change calculated from energy change(WattHours) and thermal capacity(Joules per Kelvin)
     val temperatureChange = energyChange / ethCapa
 
-    // return value new inner temperature
-    currentInnerTemperature + temperatureChange
+    // Update the inner temperature
+    val newInnerTemperature = currentInnerTemperature + temperatureChange
+
+    newInnerTemperatureRecursive(
+      thermalPower,
+      remainingDuration - deltaTime,
+      newInnerTemperature,
+      ambientTemperature,
+    )
   }
 
   /** Update the current state of the house.
@@ -225,7 +242,7 @@ final case class ThermalHouse(
       qDot: Power,
   ): ThermalHouseState = {
     val duration = Seconds(tick - lastThermalHouseState.tick)
-    val updatedInnerTemperature = newInnerTemperature(
+    val updatedInnerTemperature = newInnerTemperatureRecursive(
       qDot,
       duration,
       lastThermalHouseState.innerTemperature,
@@ -287,6 +304,48 @@ final case class ThermalHouse(
     }
   }
 
+  def determineNextThresholdRecursive(
+      tick: Long,
+      qDotExternal: Power,
+      innerTemperature: Temperature,
+      ambientTemperature: Temperature,
+      duration: Long,
+  ): Option[ThermalThreshold] = {
+
+    val loss = ethLosses.calcQDot(innerTemperature, ambientTemperature)
+    val resultingQDot = qDotExternal - loss
+
+    val artificialDuration = Seconds(1)
+
+    val energyChange = resultingQDot * artificialDuration
+    // Energy and temperature change
+    val temperatureChange = energyChange / ethCapa
+
+    // Update the inner temperature
+    val newTemperature = innerTemperature + temperatureChange
+
+    val updatedDuration = duration + 1
+    if (
+      resultingQDot < zeroMW && isInnerTemperatureTooLow(
+        newTemperature
+      )
+    ) { Some(HouseTemperatureLowerBoundaryReached(tick + duration)) }
+    else if (
+      resultingQDot > zeroMW && isInnerTemperatureTooHigh(
+        innerTemperature
+      )
+    ) { Some(HouseTargetTemperatureReached(tick + duration)) }
+    else
+      determineNextThresholdRecursive(
+        tick,
+        qDotExternal,
+        newTemperature,
+        ambientTemperature,
+        updatedDuration,
+      )
+
+  }
+
   private def nextActivation(
       tick: Long,
       higherTemperature: Temperature,
@@ -308,7 +367,8 @@ final case class ThermalHouse(
 }
 
 object ThermalHouse {
-  protected def temperatureTolerance: Temperature = Kelvin(0.01d)
+  // FIXME, the tolerance should be dependent from the powers, see Evcs
+  protected def temperatureTolerance: Temperature = Kelvin(0.05d)
 
   def apply(input: ThermalHouseInput): ThermalHouse = new ThermalHouse(
     input.getUuid,

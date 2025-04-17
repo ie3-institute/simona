@@ -63,12 +63,11 @@ class HpModel private (
       simulationTime: ZonedDateTime,
   ): HpState = {
 
-    val thermalGridState =
-      thermalGrid.determineState(
-        tick,
-        state.thermalGridState,
-        operatingPoint,
-      )
+    val thermalGridState = thermalGrid.determineState(
+      tick,
+      state.thermalGridState,
+      operatingPoint,
+    )
 
     val thermalDemands = thermalGrid.determineEnergyDemand(thermalGridState)
 
