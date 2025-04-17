@@ -300,7 +300,7 @@ final case class ThermalGrid(
         ) {
 
           val maybeFullHouseThreshold =
-            thermalHouse.determineNextThreshold(houseState, zeroKW)
+            thermalHouse.determineNextThresholdRecursive(houseState, zeroKW)
 
           (qDotHouse, maybeFullHouseThreshold)
 

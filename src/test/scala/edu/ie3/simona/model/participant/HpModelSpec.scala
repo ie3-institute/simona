@@ -67,36 +67,35 @@ class HpModelSpec
           (42.6911468252153, 42.6911468252153),
           (0.0, 0.0),
         ),
-        /*FIXME include all tests
         (
           defaultState.copy(thermalGridState =
             thermalState(Celsius(18), ambientTemperature)
           ),
-          16.4,
-          (36.0, 36.0),
+          16.54958,
+          (34.5041678002461, 34.5041678002461),
           (0.0, 0.0),
         ),
         (
           defaultState.copy(thermalGridState =
             thermalState(Celsius(20), ambientTemperature)
           ),
-          18.0,
-          (20.0, 20.0),
+          18.186979,
+          (0.0, 18.1302097503072),
           (0.0, 0.0),
         ),
         (
           defaultState.copy(thermalGridState =
             thermalState(Celsius(22), ambientTemperature)
           ),
-          19.6,
-          (0.0, 4.0),
+          19.82437,
+          (0.0, 1.75625170036824),
           (0.0, 0.0),
         ),
         (
           defaultState.copy(thermalGridState =
             thermalState(Celsius(23), ambientTemperature)
           ),
-          20.4,
+          20.64307273246,
           (0.0, 0.0),
           (0.0, 0.0),
         ),
@@ -108,8 +107,8 @@ class HpModelSpec
               ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
             ),
           ),
-          18.3172,
-          (20.0, 20.0),
+          16.3171887,//TODO CHECK THIS?!
+          (36.8281122472325, 36.8281122472325),
           (0.0, 0.0),
         ),
         (
@@ -120,8 +119,8 @@ class HpModelSpec
               ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
             ),
           ),
-          19.6,
-          (0.0, 4.0),
+          17.9545845802706,//TODO CHECK THIS?!
+          (20.4541541972941, 20.4541541972941),
           (0.0, 0.0),
         ),
         (
@@ -132,10 +131,10 @@ class HpModelSpec
               ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
             ),
           ),
-          31.6,
+          30.2350531177,//TODO CHECK THIS?!
           (0.0, 0.0),
           (0.0, 0.0),
-        ),*/
+        ),
       )
 
       forAll(cases) {
@@ -778,8 +777,8 @@ class HpModelSpec
           "expectedHpQDot",
           "expectedTick",
         ),
-        (0, 0d, 0d, Some(4016)),
-        (5000, 1d, 95d, Some(11206)),
+        (0, 0d, 0d, Some(4196)),
+        (5000, 1d, 95d, Some(11492)),
       )
 
       forAll(cases) {
@@ -824,10 +823,10 @@ class HpModelSpec
           "expectedHpQDot",
           "expectedTick",
         ),
-        (0L, 0d, 0d, 0d, Some(4016)),
-        (5000L, 95d, 1d, 95d, Some(11206)),
-        (0L, 80d, 0d, 95d, Some(4016)),
-        (5000L, 80d, 1d, 95d, Some(11206)),
+        (0L, 0d, 0d, 0d, Some(4196)),
+        (5000L, 95d, 1d, 95d, Some(11492)),
+        (0L, 80d, 0d, 95d, Some(4196)),
+        (5000L, 80d, 1d, 95d, Some(11492)),
       )
 
       forAll(cases) {
