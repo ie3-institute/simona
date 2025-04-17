@@ -48,8 +48,7 @@ final case class ThermalGrid(
     heatStorage: Option[ThermalStorage],
 ) extends LazyLogging {
 
-  /** Determines the state of the ThermalGrid by using the current
-    * HpOperatingPoint.
+  /** Determines the state of the ThermalGrid by using the HpOperatingPoint.
     * @param tick
     *   The current tick of simulation.
     * @param lastState
@@ -301,10 +300,7 @@ final case class ThermalGrid(
         ) {
 
           val maybeFullHouseThreshold =
-            thermalHouse.determineNextThresholdRecursive(
-              houseState,
-              zeroKW,
-            )
+            thermalHouse.determineNextThreshold(houseState, zeroKW)
 
           (qDotHouse, maybeFullHouseThreshold)
 
@@ -382,10 +378,7 @@ final case class ThermalGrid(
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
     val houseThreshold = house.zip(state.thermalGridState.houseState) match {
       case Some((thermalHouse, houseState)) =>
-        thermalHouse.determineNextThresholdRecursive(
-          houseState,
-          zeroKW,
-        )
+        thermalHouse.determineNextThresholdRecursive(houseState, zeroKW)
       case _ => None
     }
 
