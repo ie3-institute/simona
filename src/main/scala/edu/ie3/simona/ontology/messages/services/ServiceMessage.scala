@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.ontology.messages.services
 
-import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent
 
 import java.util.UUID
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt

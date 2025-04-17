@@ -24,10 +24,13 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.SimpleInputContainer
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.model.InputModelContainer.{
+  SimpleInputContainer,
+  WithHeatInputContainer,
+}
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
@@ -148,4 +151,7 @@ trait EmInputTestData
     Seq.empty[ThermalStorageInput].asJava,
     Seq.empty[ThermalStorageInput].asJava,
   )
+
+  protected val adaptedWithHeatContainer =
+    WithHeatInputContainer(adaptedHpInputModel, adaptedThermalGrid)
 }

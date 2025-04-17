@@ -51,6 +51,8 @@ import java.util.UUID
   *   Maximum permissible energy stored in the storage
   * @param pThermalMax
   *   Thermal power, that can be charged / discharged
+  * @param storedEnergy
+  *   Energy stored in the thermal storage
   */
 final case class CylindricalThermalStorage(
     uuid: UUID,
@@ -73,26 +75,28 @@ final case class CylindricalThermalStorage(
 
   /** Updates the given last state. Based on the then set thermal influx, the
     * current state is calculated. Positive values of influx are consider to
-    * flow into the storage. Additionally, the tick, when the next threshold is
-    * reached, is calculated as well.
+    * flow into the storage.
     *
     * @param tick
-    *   Tick, where this change happens
-    * @param qDot
-    *   Influx
-    * @param lastState
-    *   Last known state
+    *   Tick, where this change happens.
+    * @param lastThermalStorageState
+    *   Last state of the heat storage.
+    * @param qDotHeatStorage
+    *   Influx of the heat storage.
     * @return
-    *   The updated state as well as the tick, when a threshold is reached
+    *   The state of the instance.
     */
-  override def updateState(
+  override def determineState(
       tick: Long,
-      qDot: Power,
-      lastState: ThermalStorageState,
-  ): (ThermalStorageState, Option[ThermalThreshold]) = {
+      lastThermalStorageState: ThermalStorageState,
+      qDotHeatStorage: Power,
+  ): ThermalStorageState = {
     /* Determine new state based on time difference and given state */
-    val energyBalance = lastState.qDot * Seconds(tick - lastState.tick)
-    val newEnergy = lastState.storedEnergy + energyBalance
+    val energyBalance =
+      qDotHeatStorage * Seconds(
+        tick - lastThermalStorageState.tick
+      )
+    val newEnergy = lastThermalStorageState.storedEnergy + energyBalance
     val updatedEnergy =
       if (isFull(newEnergy))
         maxEnergyThreshold
@@ -101,33 +105,45 @@ final case class CylindricalThermalStorage(
       else
         newEnergy
 
-    /* Determine, when a threshold is reached */
-    val nextThreshold =
-      if (qDot > zeroKW) {
-        val duration = (maxEnergyThreshold - updatedEnergy) / qDot
-        val durationInTicks = Math.floor(duration.toSeconds).toLong
-        if (durationInTicks <= 0L)
-          None
-        else
-          Some(StorageFull(tick + durationInTicks))
-      } else if (qDot < zeroKW) {
-        val duration = updatedEnergy / qDot * (-1)
-        val durationInTicks = Math.floor(duration.toSeconds).toLong
-        if (durationInTicks <= 0L)
-          None
-        else
-          Some(StorageEmpty(tick + durationInTicks))
-      } else {
-        return (ThermalStorageState(tick, updatedEnergy, qDot), None)
-      }
+    ThermalStorageState(tick, updatedEnergy)
+  }
 
-    (ThermalStorageState(tick, updatedEnergy, qDot), nextThreshold)
+  /** Calculates the tick, when the next threshold of the instance is reached.
+    *
+    * @param thermalStorageState
+    *   State of the heat storage.
+    * @param qDotHeatStorage
+    *   Operating point of the heat storage.
+    * @return
+    *   The next threshold if there is one.
+    */
+  override def determineNextThreshold(
+      thermalStorageState: ThermalStorageState,
+      qDotHeatStorage: Power,
+  ): Option[ThermalThreshold] = {
+    if (qDotHeatStorage > zeroKW) {
+      val duration =
+        (maxEnergyThreshold - thermalStorageState.storedEnergy) / qDotHeatStorage
+      val durationInTicks = Math.floor(duration.toSeconds).toLong
+      if (durationInTicks <= 0L)
+        None
+      else
+        Some(StorageFull(thermalStorageState.tick + durationInTicks))
+    } else if (qDotHeatStorage < zeroKW) {
+      val duration =
+        thermalStorageState.storedEnergy / qDotHeatStorage * -1
+      val durationInTicks = Math.floor(duration.toSeconds).toLong
+      if (durationInTicks <= 0L)
+        None
+      else
+        Some(StorageEmpty(thermalStorageState.tick + durationInTicks))
+    } else
+      None
   }
 
   override def startingState: ThermalStorageState = ThermalStorageState(
-    -1L,
+    0L,
     zeroKWh,
-    zeroKW,
   )
 }
 
@@ -145,7 +161,6 @@ object CylindricalThermalStorage {
     *   a ready-to-use [[CylindricalThermalStorage]] with referenced electric
     *   parameters
     */
-
   def apply(
       input: CylindricalStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
