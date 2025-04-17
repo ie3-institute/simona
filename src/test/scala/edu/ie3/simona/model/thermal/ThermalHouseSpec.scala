@@ -17,7 +17,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.WattsPerKelvin
-import org.scalatest.prop.{TableFor2, TableFor3, TableFor6}
+import org.scalatest.prop.{TableFor2, TableFor3, TableFor6, TableFor7}
 import squants.energy._
 import squants.thermal._
 import squants.time._
@@ -117,11 +117,12 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
     "Check for the correct state over multiple simulation steps" in {
       val house = thermalHouse(18, 22)
       val ambientTemperature = Celsius(5)
-      val initialHouseState = startingState(house, ambientTemperature)
 
-      val testCases: TableFor6[Double, Long, Double, Double, Long, Double] =
+      val testCases
+          : TableFor7[Double, Double, Long, Double, Double, Long, Double] =
         Table(
           (
+            "startingTemp",
             "qDotFirstPeriod",
             "firstTick",
             "expectedTemperatureFirstPeriod",
@@ -129,13 +130,15 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
             "secondTick",
             "expectedTemperatureSecondPeriod",
           ),
-          (30d, 36000, 302.63, 30d, 72000, 306.12),
-          (30d, 18000, 299.05, 30d, 72000, 306.12),
-          (30d, 7200, 295.87, 30d, 72000, 306.12),
+          (20d, 30d, 36000, 29.48, 30d, 72000, 32.97),
+          (20d, 30d, 18000, 25.9, 30d, 72000, 32.97),
+          (20d, 30d, 7200, 22.72, 30d, 72000, 32.97),
+          (6d, 30d, 23709, 20.0, 30d, 72000, 31.08),
         )
 
       forAll(testCases) {
         (
+            startingTemp: Double,
             qDotFirstPeriod: Double,
             firstTick: Long,
             expectedTemperatureFirstPeriod: Double,
@@ -143,6 +146,8 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
             secondTick: Long,
             expectedTemperatureSecondPeriod: Double,
         ) =>
+          val initialHouseState = startingState(house, ambientTemperature)
+            .copy(innerTemperature = Celsius(startingTemp))
           val thermalHouseState = house.determineState(
             firstTick,
             initialHouseState,
@@ -157,7 +162,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
                 ) =>
               tick shouldBe firstTick
               temperature should approximate(
-                Kelvin(expectedTemperatureFirstPeriod)
+                Celsius(expectedTemperatureFirstPeriod)
               )
             case unexpected =>
               fail(s"Expected a thermalHouseState but got none $unexpected.")
@@ -177,7 +182,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
                 ) =>
               tick shouldBe secondTick
               temperature should approximate(
-                Kelvin(expectedTemperatureSecondPeriod)
+                Celsius(expectedTemperatureSecondPeriod)
               )
             case unexpected =>
               fail(s"Expected a thermalHouseState but got none $unexpected.")
@@ -232,6 +237,43 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       )
     }
 
+    "Check if the same threshold is determined by different ways of simulation steps" in {
+      val house = thermalHouse(18, 22)
+      val ambientTemperature = Celsius(5)
+      val initialHouseState = startingState(house, ambientTemperature)
+        .copy(innerTemperature = Celsius(6))
+      val qDot = Kilowatts(30)
+
+      val inBetweenStateCaseA =
+        house.determineState(3600, initialHouseState, qDot)
+      val inBetweenStateCaseB =
+        house.determineState(18000, initialHouseState, qDot)
+
+      val finalThresholdCaseA =
+        house.determineNextThresholdRecursive(inBetweenStateCaseA, qDot)
+      val finalThresholdCaseB =
+        house.determineNextThresholdRecursive(inBetweenStateCaseB, qDot)
+
+      val finalThresholdCaseC = house.determineNextThresholdRecursive(
+        initialHouseState,
+        qDot,
+      )
+
+      val tolerance = 4d
+      (finalThresholdCaseA, finalThresholdCaseB, finalThresholdCaseC) match {
+        case (Some(thresholdA), Some(thresholdB), Some(thresholdC)) => {
+          thresholdA.tick.doubleValue should approximate(
+            thresholdB.tick.doubleValue
+          )(tolerance)
+          thresholdB.tick.doubleValue should approximate(
+            thresholdC.tick.doubleValue
+          )(tolerance)
+          thresholdC shouldBe HouseTargetTemperatureReached(23709)
+        }
+        case _ => fail("Could not match thresholds.")
+      }
+    }
+
     "Check for the correct next threshold of house with thermal feed in" in {
       val tick = 3600
       val house = thermalHouse(18, 22)
@@ -242,14 +284,14 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         Table(
           ("lastOperatingPoint", "newOperatingPoint", "expectedThreshold"),
           // some OperatingPoints not capable to heat the house sufficient
-          (0d, 0d, Some(HouseTemperatureLowerBoundaryReached(17794))),
-          (1d, 1d, Some(HouseTemperatureLowerBoundaryReached(24063))),
-          (2d, 2d, Some(HouseTemperatureLowerBoundaryReached(37792))),
+          (0d, 0d, Some(HouseTemperatureLowerBoundaryReached(18269))),
+          (1d, 1d, Some(HouseTemperatureLowerBoundaryReached(24773))),
+          (2d, 2d, Some(HouseTemperatureLowerBoundaryReached(39191))),
           // OperatingPoint that keeps the house in perfect balance //FIXME, possible?
           // (5d, 5d, None),
           // some OperatingPoints that increase the house inner temperature after some cooling down first
-          (0d, 6d, Some(HouseTargetTemperatureReached(15859))),
-          (0d, 10d, Some(HouseTargetTemperatureReached(6516))),
+          (0d, 6d, Some(HouseTargetTemperatureReached(17257))),
+          (0d, 10d, Some(HouseTargetTemperatureReached(6802))),
         )
 
       forAll(testCases) {

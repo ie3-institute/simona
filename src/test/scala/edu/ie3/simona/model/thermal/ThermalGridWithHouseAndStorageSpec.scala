@@ -281,7 +281,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalGrid.handleConsumption(state)
 
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(157520)
+          HouseTemperatureLowerBoundaryReached(164685)
         )
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
       }
@@ -385,7 +385,7 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
             nextThreshold shouldBe Some(
-              HouseTemperatureLowerBoundaryReached(157520)
+              HouseTemperatureLowerBoundaryReached(164685)
             )
         }
       }
@@ -487,7 +487,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalStorage.pThermalMax * -1,
         )
 
-        threshold shouldBe Some(HouseTargetTemperatureReached(6208))
+        threshold shouldBe Some(HouseTargetTemperatureReached(6318))
       }
     }
   }
@@ -522,7 +522,7 @@ class ThermalGridWithHouseAndStorageSpec
           externalQDot,
         )
 
-      reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7162L))
+      reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7310))
       thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
         externalQDot,
         externalQDot,

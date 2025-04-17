@@ -144,7 +144,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           thermalGrid.handleConsumption(initialHpState)
 
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(157520)
+          HouseTemperatureLowerBoundaryReached(164685)
         )
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
       }
@@ -176,7 +176,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             testGridQDotInfeed,
           )
 
-        reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7162L))
+        reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7310))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           testGridQDotInfeed,
           testGridQDotInfeed,
@@ -210,7 +210,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 thermalGridOperatingPoint,
                 Some(HouseTargetTemperatureReached(thresholdTick)),
               ) =>
-            thresholdTick shouldBe 7162L
+            thresholdTick shouldBe 7310L
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
               testGridQDotInfeed,
               testGridQDotInfeed,
@@ -226,7 +226,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 thermalGridOperatingPoint,
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),
               ) =>
-            thresholdTick shouldBe 157520L
+            thresholdTick shouldBe 164685L
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
           case _ => fail("Thermal grid state updated failed")
         }

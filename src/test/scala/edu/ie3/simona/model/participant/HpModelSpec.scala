@@ -107,7 +107,7 @@ class HpModelSpec
               ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
             ),
           ),
-          16.3171887,//TODO CHECK THIS?!
+          16.3171887, // TODO CHECK THIS?!
           (36.8281122472325, 36.8281122472325),
           (0.0, 0.0),
         ),
@@ -119,7 +119,7 @@ class HpModelSpec
               ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
             ),
           ),
-          17.9545845802706,//TODO CHECK THIS?!
+          17.9545845802706, // TODO CHECK THIS?!
           (20.4541541972941, 20.4541541972941),
           (0.0, 0.0),
         ),
@@ -131,7 +131,7 @@ class HpModelSpec
               ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
             ),
           ),
-          30.2350531177,//TODO CHECK THIS?!
+          30.2350531177, // TODO CHECK THIS?!
           (0.0, 0.0),
           (0.0, 0.0),
         ),
