@@ -307,8 +307,16 @@ final case class ThermalHouse(
         updatedTemperature
       )
     ) {
+
       Some(
         HouseTargetTemperatureReached(
+          thermalHouseState.tick + nextTryForPossibleThreshold
+        )
+      )
+    } else if (nextTryForPossibleThreshold >= 2 * 86400) {
+      // House is maybe in balance, so we stop here and give back an activation two days later
+      Some(
+        HouseTemperatureLowerBoundaryReached(
           thermalHouseState.tick + nextTryForPossibleThreshold
         )
       )

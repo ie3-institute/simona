@@ -2114,7 +2114,6 @@ class ThermalGridIT
         }
 
       scheduler.expectMessage(Completion(emAgentActivation, Some(65999)))
-
     }
   }
 }

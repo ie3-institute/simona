@@ -287,8 +287,12 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
           (0d, 0d, Some(HouseTemperatureLowerBoundaryReached(18269))),
           (1d, 1d, Some(HouseTemperatureLowerBoundaryReached(24773))),
           (2d, 2d, Some(HouseTemperatureLowerBoundaryReached(39191))),
-          // OperatingPoint that keeps the house in perfect balance //FIXME, possible?
-          // (5d, 5d, None),
+          // OperatingPoint that keeps the house in perfect balance, in theory no threshold, thus we at least activate a day later
+          (
+            5d,
+            5d,
+            Some(HouseTemperatureLowerBoundaryReached(2 * 86400 + 3600)),
+          ),
           // some OperatingPoints that increase the house inner temperature after some cooling down first
           (0d, 6d, Some(HouseTargetTemperatureReached(17257))),
           (0d, 10d, Some(HouseTargetTemperatureReached(6802))),
