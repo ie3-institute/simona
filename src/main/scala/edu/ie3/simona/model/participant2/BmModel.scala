@@ -21,7 +21,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
 import edu.ie3.util.scala.quantities.{ApparentPower, EnergyPrice}
 import squants.energy.Megawatts
 import squants.{Dimensionless, Money, Power, Temperature}

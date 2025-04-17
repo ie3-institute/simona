@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant2.evcs
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockEvModel
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils._
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.Kilowatts
 
