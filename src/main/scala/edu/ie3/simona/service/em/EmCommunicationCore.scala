@@ -23,6 +23,7 @@ import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveHierarchicalDataMap}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 import tech.units.indriya.ComparableQuantity

@@ -23,13 +23,12 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   RegisterForEmDataService,
   ServiceResponseMessage,
 }
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 import squants.Power
-import squants.energy.Kilowatts
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -45,13 +44,6 @@ trait EmServiceCore {
 
   implicit class SquantsToQuantity(private val value: Power) {
     def toQuantity: ComparableQuantity[PsdmPower] = value.toMegawatts.asMegaWatt
-  }
-  implicit class QuantityToSquants(
-      private val value: ComparableQuantity[PsdmPower]
-  ) {
-    def toSquants: Power = Kilowatts(
-      value.to(PowerSystemUnits.KILOWATT).getValue.doubleValue()
-    )
   }
 
   def handleRegistration(
