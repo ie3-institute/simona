@@ -302,22 +302,16 @@ final case class ThermalGrid(
 
           val maybeFullHouseThreshold =
             thermalHouse.determineNextThresholdRecursive(
-              houseState.tick,
+              houseState,
               zeroKW,
-              houseState.innerTemperature,
-              houseState.ambientTemperature,
-              1,
             )
 
           (qDotHouse, maybeFullHouseThreshold)
 
         } else {
           val threshold = thermalHouse.determineNextThresholdRecursive(
-            houseState.tick,
+            houseState,
             qDotHouse,
-            houseState.innerTemperature,
-            houseState.ambientTemperature,
-            1,
           )
           (zeroKW, threshold)
         }
@@ -389,11 +383,8 @@ final case class ThermalGrid(
     val houseThreshold = house.zip(state.thermalGridState.houseState) match {
       case Some((thermalHouse, houseState)) =>
         thermalHouse.determineNextThresholdRecursive(
-          houseState.tick,
+          houseState,
           zeroKW,
-          houseState.innerTemperature,
-          houseState.ambientTemperature,
-          1,
         )
       case _ => None
     }
@@ -438,11 +429,8 @@ final case class ThermalGrid(
             (state.thermalDemands.houseDemand.hasPossibleDemand && state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW)) =>
       /* Storage is meant to heat the house only, if there is no feed in from external (+/- 10 W) and the house is cold */
       val revisedHouseThreshold = thermalHouse.determineNextThresholdRecursive(
-        houseState.tick,
+        houseState,
         thermalStorage.getpThermalMax,
-        houseState.innerTemperature,
-        houseState.ambientTemperature,
-        1,
       )
       val revisedStorageThreshold = thermalStorage.determineNextThreshold(
         storageState,

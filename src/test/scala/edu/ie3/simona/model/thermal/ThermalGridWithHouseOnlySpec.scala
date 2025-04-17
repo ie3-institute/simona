@@ -176,7 +176,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             testGridQDotInfeed,
           )
 
-        reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7163L))
+        reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7162L))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           testGridQDotInfeed,
           testGridQDotInfeed,
@@ -210,7 +210,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 thermalGridOperatingPoint,
                 Some(HouseTargetTemperatureReached(thresholdTick)),
               ) =>
-            thresholdTick shouldBe 7163L
+            thresholdTick shouldBe 7162L
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
               testGridQDotInfeed,
               testGridQDotInfeed,

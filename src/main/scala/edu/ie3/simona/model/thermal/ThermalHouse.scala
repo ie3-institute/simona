@@ -305,14 +305,12 @@ final case class ThermalHouse(
   }
 
   def determineNextThresholdRecursive(
-      tick: Long,
+      state: ThermalHouseState,
       qDotExternal: Power,
-      innerTemperature: Temperature,
-      ambientTemperature: Temperature,
-      duration: Long,
+      duration: Long = 1,
   ): Option[ThermalThreshold] = {
 
-    val loss = ethLosses.calcQDot(innerTemperature, ambientTemperature)
+    val loss = ethLosses.calcQDot(state.innerTemperature, state.ambientTemperature)
     val resultingQDot = qDotExternal - loss
 
     val artificialDuration = Seconds(1)
@@ -322,25 +320,25 @@ final case class ThermalHouse(
     val temperatureChange = energyChange / ethCapa
 
     // Update the inner temperature
-    val newTemperature = innerTemperature + temperatureChange
+    val updatedTemperature = state.innerTemperature + temperatureChange
+
+    val updatedState = state.copy(innerTemperature = updatedTemperature)
 
     val updatedDuration = duration + 1
     if (
       resultingQDot < zeroMW && isInnerTemperatureTooLow(
-        newTemperature
+        updatedTemperature
       )
-    ) { Some(HouseTemperatureLowerBoundaryReached(tick + duration)) }
+    ) { Some(HouseTemperatureLowerBoundaryReached(state.tick + duration)) }
     else if (
       resultingQDot > zeroMW && isInnerTemperatureTooHigh(
-        innerTemperature
+        updatedTemperature
       )
-    ) { Some(HouseTargetTemperatureReached(tick + duration)) }
+    ) { Some(HouseTargetTemperatureReached(state.tick + duration)) }
     else
       determineNextThresholdRecursive(
-        tick,
+        updatedState,
         qDotExternal,
-        newTemperature,
-        ambientTemperature,
         updatedDuration,
       )
 

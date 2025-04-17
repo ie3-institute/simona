@@ -779,7 +779,7 @@ class HpModelSpec
           "expectedTick",
         ),
         (0, 0d, 0d, Some(4016)),
-        (5000, 1d, 95d, Some(11207)),
+        (5000, 1d, 95d, Some(11206)),
       )
 
       forAll(cases) {
@@ -825,9 +825,9 @@ class HpModelSpec
           "expectedTick",
         ),
         (0L, 0d, 0d, 0d, Some(4016)),
-        (5000L, 95d, 1d, 95d, Some(11207)),
+        (5000L, 95d, 1d, 95d, Some(11206)),
         (0L, 80d, 0d, 95d, Some(4016)),
-        (5000L, 80d, 1d, 95d, Some(11207)),
+        (5000L, 80d, 1d, 95d, Some(11206)),
       )
 
       forAll(cases) {

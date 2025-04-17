@@ -248,8 +248,8 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
           // OperatingPoint that keeps the house in perfect balance //FIXME, possible?
           // (5d, 5d, None),
           // some OperatingPoints that increase the house inner temperature after some cooling down first
-          (0d, 6d, Some(HouseTargetTemperatureReached(15860))),
-          (0d, 10d, Some(HouseTargetTemperatureReached(6517))),
+          (0d, 6d, Some(HouseTargetTemperatureReached(15859))),
+          (0d, 10d, Some(HouseTargetTemperatureReached(6516))),
         )
 
       forAll(testCases) {
@@ -267,11 +267,8 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
             lastOperatingPoint,
           )
           val threshold = house.determineNextThresholdRecursive(
-            tick,
+            state,
             newOperatingPoint,
-            state.innerTemperature,
-            ambientTemperature,
-            1,
           )
 
           threshold match {

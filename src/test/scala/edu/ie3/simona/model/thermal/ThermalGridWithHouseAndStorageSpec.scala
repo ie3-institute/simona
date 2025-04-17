@@ -371,11 +371,8 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         val maybeHouseThreshold = thermalHouse.determineNextThresholdRecursive(
-          houseState.tick,
+          houseState,
           zeroKW,
-          houseState.innerTemperature,
-          houseState.ambientTemperature,
-          1,
         )
 
         thermalGrid.reviseFeedInFromStorage(
@@ -407,11 +404,8 @@ class ThermalGridWithHouseAndStorageSpec
 
         val maybeHouseThreshold =
           thermalHouse.determineNextThresholdRecursive(
-            houseState.tick,
+            houseState,
             zeroKW,
-            houseState.innerTemperature,
-            houseState.ambientTemperature,
-            1,
           )
 
         val storageState = ThermalStorageState(state.tick, KilowattHours(10))
@@ -493,7 +487,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalStorage.pThermalMax * -1,
         )
 
-        threshold shouldBe Some(HouseTargetTemperatureReached(6209))
+        threshold shouldBe Some(HouseTargetTemperatureReached(6208))
       }
     }
   }
@@ -528,7 +522,7 @@ class ThermalGridWithHouseAndStorageSpec
           externalQDot,
         )
 
-      reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7163L))
+      reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7162L))
       thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
         externalQDot,
         externalQDot,
