@@ -59,7 +59,7 @@ class ExtSimAdapterSpec
         new ExtSimAdapter(scheduler.ref)
       )
 
-      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
+      val extData = new ExtSimAdapterData(extSimAdapter.toTyped, mainArgs)
 
       val key1 = ScheduleKey(lock.ref.toTyped, UUID.randomUUID())
       scheduler.send(extSimAdapter, ExtSimAdapter.Create(extData, key1))
@@ -77,7 +77,7 @@ class ExtSimAdapterSpec
         new ExtSimAdapter(scheduler.ref)
       )
 
-      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
+      val extData = new ExtSimAdapterData(extSimAdapter.toTyped, mainArgs)
 
       val key1 = ScheduleKey(lock.ref.toTyped, UUID.randomUUID())
       scheduler.send(extSimAdapter, ExtSimAdapter.Create(extData, key1))
@@ -116,7 +116,7 @@ class ExtSimAdapterSpec
         new ExtSimAdapter(scheduler.ref)
       )
 
-      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
+      val extData = new ExtSimAdapterData(extSimAdapter.toTyped, mainArgs)
       val dataService = TestProbe("dataService")
 
       val key1 = ScheduleKey(lock.ref.toTyped, UUID.randomUUID())
@@ -136,7 +136,7 @@ class ExtSimAdapterSpec
       extData.receiveMessageQueue.take()
 
       extSimAdapter ! new ScheduleDataServiceMessage(
-        dataService.ref
+        dataService.ref.toTyped
       )
       scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
 
@@ -154,7 +154,7 @@ class ExtSimAdapterSpec
           new ExtSimAdapter(scheduler.ref)
         )
 
-        val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
+        val extData = new ExtSimAdapterData(extSimAdapter.toTyped, mainArgs)
 
         val key1 = ScheduleKey(lock.ref.toTyped, UUID.randomUUID())
         scheduler.send(extSimAdapter, ExtSimAdapter.Create(extData, key1))
