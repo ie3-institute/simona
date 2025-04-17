@@ -7,10 +7,7 @@
 package edu.ie3.simona.api
 
 import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData, Stop}
-import edu.ie3.simona.api.data.ontology.{
-  DataMessageFromExt,
-  ScheduleDataServiceMessage,
-}
+import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
   ActivationMessage,
@@ -101,7 +98,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
 
       context become receiveIdle(stateData.copy(currentTick = None))
 
-    case scheduleDataService: ScheduleDataServiceMessage[DataMessageFromExt] =>
+    case scheduleDataService: ScheduleDataServiceMessage =>
       val tick = stateData.currentTick.getOrElse(
         throw new RuntimeException("No tick has been triggered")
       )

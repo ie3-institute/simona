@@ -58,8 +58,7 @@ class ExtEvDataServiceSpec
 
   implicit def wrap(
       msg: EvDataMessageFromExt
-  ): WrappedExternalMessage[EvDataMessageFromExt] =
-    WrappedExternalMessage(msg)
+  ): WrappedExternalMessage = WrappedExternalMessage(msg)
 
   private val evcs1UUID =
     UUID.fromString("06a14909-366e-4e94-a593-1016e1455b30")
@@ -723,8 +722,7 @@ class ExtEvDataServiceSpec
 
       // ev service should receive movements msg at this moment
       // scheduler should receive schedule msg
-      extSimAdapter
-        .expectMessageType[ScheduleDataServiceMessage[EvDataMessageFromExt]]
+      extSimAdapter.expectMessageType[ScheduleDataServiceMessage]
 
       // we trigger ev service
       evService ! Activation(0L)
