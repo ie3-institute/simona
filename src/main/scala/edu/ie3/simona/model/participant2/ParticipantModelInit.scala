@@ -8,12 +8,14 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemParticipantInputCopyBuilder
 import edu.ie3.datamodel.models.input.system._
-import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.{
   PrimaryData,
   PrimaryDataExtra,
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  InputModelContainer,
+  WithHeatInputContainer,
+}
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   EvcsRuntimeConfig,
@@ -23,13 +25,11 @@ import edu.ie3.simona.config.RuntimeConfig.{
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
-  OperatingPoint,
+  ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.PrimaryResultFunc
 import edu.ie3.simona.model.participant2.evcs.EvcsModel
 import edu.ie3.simona.model.participant2.load.LoadModel
 
-import java.time.ZonedDateTime
 import scala.reflect.ClassTag
 
 /** Helper object for constructing all types of [[ParticipantModel]]s, including
@@ -49,13 +49,10 @@ object ParticipantModelInit {
     * @return
     *   The [[ParticipantModel]].
     */
-  def createPhysicalModel(
+  def getPhysicalModelFactory(
       inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
-  ): ParticipantModel[
-    _ <: OperatingPoint,
-    _ <: ModelState,
-  ] = {
+  ): ParticipantModelFactory[_ <: ModelState] = {
     val scaledParticipantInput = {
       (inputContainer.electricalInputModel
         .copy()
@@ -67,17 +64,29 @@ object ParticipantModelInit {
 
     (scaledParticipantInput, modelConfig) match {
       case (input: FixedFeedInInput, _) =>
-        FixedFeedInModel(input)
+        FixedFeedInModel.Factory(input)
       case (input: LoadInput, config: LoadRuntimeConfig) =>
-        LoadModel(input, config)
+        LoadModel.getFactory(input, config)
+      case (input: HpInput, _) =>
+        val thermalGrid = inputContainer match {
+          case heatInputContainer: WithHeatInputContainer[_] =>
+            heatInputContainer.thermalGrid
+
+          case other =>
+            throw new CriticalFailureException(
+              s"Handling the input model ${input.getClass.getSimpleName} and " +
+                s"model input container ${other.getClass.getSimpleName} is not implemented."
+            )
+        }
+        HpModel.Factory(input, thermalGrid)
       case (input: PvInput, _) =>
-        PvModel(input)
+        PvModel.Factory(input)
       case (input: WecInput, _) =>
-        WecModel(input)
+        WecModel.Factory(input)
       case (input: StorageInput, config: StorageRuntimeConfig) =>
-        StorageModel(input, config)
+        StorageModel.Factory(input, config)
       case (input: EvcsInput, config: EvcsRuntimeConfig) =>
-        EvcsModel(input, config)
+        EvcsModel.Factory(input, config)
       case (input, config) =>
         throw new CriticalFailureException(
           s"Handling the input model ${input.getClass.getSimpleName} and " +
@@ -100,53 +109,19 @@ object ParticipantModelInit {
     * @return
     *   The [[PrimaryDataParticipantModel]].
     */
-  def createPrimaryModel[PD <: PrimaryData: ClassTag](
+  def getPrimaryModelFactory[PD <: PrimaryData: ClassTag](
       inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
       primaryDataExtra: PrimaryDataExtra[PD],
-  ): PrimaryDataParticipantModel[PD] = {
+  ): ParticipantModelFactory[_ <: ModelState] = {
     // Create a fitting physical model to extract parameters from
-    val physicalModel = createPhysicalModel(
+    val modelFactory = getPhysicalModelFactory(
       inputContainer,
       modelConfig,
     )
 
-    createPrimaryModel(
-      physicalModel,
-      primaryDataExtra,
-    )
-  }
-
-  /** Constructs a [[PrimaryDataParticipantModel]] for the given physical
-    * [[ParticipantModel]] and the given primary data. The given
-    * [[BaseRuntimeConfig]] has to match the participant input.
-    *
-    * @param physicalModel
-    *   The physical participant model.
-    * @param primaryDataExtra
-    *   Extra functionality specific to the primary data class.
-    * @return
-    *   The [[PrimaryDataParticipantModel]].
-    */
-  def createPrimaryModel[PD <: PrimaryData: ClassTag](
-      physicalModel: ParticipantModel[_, _],
-      primaryDataExtra: PrimaryDataExtra[PD],
-  ): PrimaryDataParticipantModel[PD] = {
-    val primaryResultFunc = new PrimaryResultFunc {
-      override def createResult(
-          data: PrimaryData.PrimaryDataWithComplexPower[_],
-          dateTime: ZonedDateTime,
-      ): SystemParticipantResult =
-        physicalModel.createPrimaryDataResult(data, dateTime)
-    }
-
-    new PrimaryDataParticipantModel(
-      physicalModel.uuid,
-      physicalModel.id,
-      physicalModel.sRated,
-      physicalModel.cosPhiRated,
-      physicalModel.qControl,
-      primaryResultFunc,
+    PrimaryDataParticipantModel.Factory(
+      modelFactory.create(),
       primaryDataExtra,
     )
   }

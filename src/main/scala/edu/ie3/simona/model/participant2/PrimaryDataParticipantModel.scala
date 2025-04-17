@@ -8,14 +8,14 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.{
-  PrimaryData,
-  PrimaryDataExtra,
-}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   EnrichableData,
   PrimaryDataWithComplexPower,
+}
+import edu.ie3.simona.agent.participant.data.Data.{
+  PrimaryData,
+  PrimaryDataExtra,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
@@ -23,6 +23,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel._
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
@@ -59,13 +60,6 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
       PrimaryOperatingPoint[PD],
       PrimaryDataState[PD],
     ] {
-
-  override val initialState: (Long, ZonedDateTime) => PrimaryDataState[PD] =
-    (tick, _) =>
-      PrimaryDataState(
-        primaryDataExtra.zero,
-        tick,
-      )
 
   override def determineState(
       lastState: PrimaryDataState[PD],
@@ -119,11 +113,6 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
     "Method not implemented by this model."
   )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] = {
-    // only secondary services should be specified here
-    Iterable.empty
-  }
-
   override def determineFlexOptions(
       state: PrimaryDataState[PD]
   ): FlexOptions = {
@@ -147,6 +136,65 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
 }
 
 object PrimaryDataParticipantModel {
+
+  /** Constructs a [[PrimaryDataParticipantModel]] for the given physical
+    * [[ParticipantModel]] and the given primary data.
+    *
+    * @param physicalModel
+    *   The physical participant model.
+    * @param primaryDataExtra
+    *   Extra functionality specific to the primary data class.
+    */
+  final case class Factory[PD <: PrimaryData: ClassTag](
+      physicalModel: ParticipantModel[_, _],
+      primaryDataExtra: PrimaryDataExtra[PD],
+  ) extends ParticipantModelFactory[PrimaryDataState[PD]] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): PrimaryDataState[PD] =
+      PrimaryDataState(
+        primaryDataExtra.zero,
+        tick,
+      )
+
+    override def create(): PrimaryDataParticipantModel[PD] = {
+      val primaryResultFunc = new PrimaryResultFunc {
+        override def createResult(
+            data: PrimaryData.PrimaryDataWithComplexPower[_],
+            dateTime: ZonedDateTime,
+        ): SystemParticipantResult =
+          physicalModel.createPrimaryDataResult(data, dateTime)
+      }
+
+      new PrimaryDataParticipantModel(
+        physicalModel.uuid,
+        physicalModel.id,
+        physicalModel.sRated,
+        physicalModel.cosPhiRated,
+        physicalModel.qControl,
+        primaryResultFunc,
+        primaryDataExtra,
+      )
+    }
+  }
+
+  /** Trait that provides functionality that can create the same result objects
+    * as the corresponding physical object.
+    *
+    * The function needs to be packaged in a trait in order to be stored in a
+    * val.
+    */
+  private[participant2] trait PrimaryResultFunc {
+    def createResult(
+        data: PrimaryDataWithComplexPower[_],
+        dateTime: ZonedDateTime,
+    ): SystemParticipantResult
+  }
 
   final case class PrimaryDataState[+PD <: PrimaryData](
       data: PD,
@@ -184,19 +232,6 @@ object PrimaryDataParticipantModel {
       override val data: PE
   ) extends PrimaryOperatingPoint[PE] {
     override val reactivePower: Option[ReactivePower] = None
-  }
-
-  /** Trait that provides functionality that can create the same result objects
-    * as the corresponding physical object.
-    *
-    * The function needs to be packaged in a trait in order to be stored in a
-    * val.
-    */
-  trait PrimaryResultFunc {
-    def createResult(
-        data: PrimaryDataWithComplexPower[_],
-        dateTime: ZonedDateTime,
-    ): SystemParticipantResult
   }
 
 }

@@ -9,6 +9,7 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
+import edu.ie3.simona.model.participant2.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import squants.{Energy, Power, Seconds}
@@ -61,11 +62,16 @@ abstract class ThermalStorage(
   def isEmpty(energy: Energy): Boolean =
     energy < (zeroKWh + toleranceMargin)
 
-  def updateState(
+  def determineState(
       tick: Long,
-      qDot: Power,
-      lastState: ThermalStorageState,
-  ): (ThermalStorageState, Option[ThermalThreshold])
+      lastThermalStorageState: ThermalStorageState,
+      qDotHeatStorage: Power,
+  ): ThermalStorageState
+
+  def determineNextThreshold(
+      state: ThermalStorageState,
+      qDotHeatStorage: Power,
+  ): Option[ThermalThreshold]
 }
 
 object ThermalStorage {
@@ -73,18 +79,14 @@ object ThermalStorage {
   /** State of a thermal storage
     *
     * @param tick
-    *   Last tick of storage state change
+    *   Last tick of storage state change.
     * @param storedEnergy
-    *   Energy stored in the storage at this tick
-    * @param qDot
-    *   Infeed to the heat storage (positive: Storage is charging, negative:
-    *   Storage is discharging)
+    *   Energy stored in the storage at this tick.
     */
   final case class ThermalStorageState(
-      tick: Long,
+      override val tick: Long,
       storedEnergy: Energy,
-      qDot: Power,
-  )
+  ) extends ModelState
 
   object ThermalStorageThreshold {
     final case class StorageEmpty(override val tick: Long)

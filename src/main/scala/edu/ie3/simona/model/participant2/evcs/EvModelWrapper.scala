@@ -9,8 +9,12 @@ package edu.ie3.simona.model.participant2.evcs
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  EnergyToSimona,
+  PowerConversionSimona,
+}
 import squants.Power
-import squants.energy.{Energy, KilowattHours, Kilowatts}
+import squants.energy.{Energy, KilowattHours}
 
 import java.util.UUID
 
@@ -34,15 +38,9 @@ final case class EvModelWrapper(
   def uuid: UUID = original.getUuid
   def id: String = original.getId
 
-  lazy val pRatedAc: Power = Kilowatts(
-    original.getPRatedAC.to(KILOWATT).getValue.doubleValue
-  )
-  lazy val pRatedDc: Power = Kilowatts(
-    original.getPRatedDC.to(KILOWATT).getValue.doubleValue
-  )
-  lazy val eStorage: Energy = KilowattHours(
-    original.getEStorage.to(KILOWATTHOUR).getValue.doubleValue
-  )
+  lazy val pRatedAc: Power = original.getPRatedAC.toSquants
+  lazy val pRatedDc: Power = original.getPRatedDC.toSquants
+  lazy val eStorage: Energy = original.getEStorage.toSquants
 
   def departureTick: Long = original.getDepartureTick
 

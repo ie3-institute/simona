@@ -45,13 +45,17 @@ class RandomLoadModelSpec
         )
       ) { (sRated, expectedScalingFactor) =>
         val config = LoadRuntimeConfig(modelBehaviour = "random")
-        val model = RandomLoadModel(
-          loadInput
-            .copy()
-            .sRated(Quantities.getQuantity(sRated, PowerSystemUnits.VOLTAMPERE))
-            .build(),
-          config,
-        )
+        val model = RandomLoadModel
+          .Factory(
+            loadInput
+              .copy()
+              .sRated(
+                Quantities.getQuantity(sRated, PowerSystemUnits.VOLTAMPERE)
+              )
+              .build(),
+            config,
+          )
+          .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
       }
@@ -71,15 +75,18 @@ class RandomLoadModelSpec
           modelBehaviour = "random",
           reference = "energy",
         )
-        val model = RandomLoadModel(
-          loadInput
-            .copy()
-            .eConsAnnual(
-              Quantities.getQuantity(eConsAnnual, PowerSystemUnits.KILOWATTHOUR)
-            )
-            .build(),
-          config,
-        )
+        val model = RandomLoadModel
+          .Factory(
+            loadInput
+              .copy()
+              .eConsAnnual(
+                Quantities
+                  .getQuantity(eConsAnnual, PowerSystemUnits.KILOWATTHOUR)
+              )
+              .build(),
+            config,
+          )
+          .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
         model.sRated should approximate(Voltamperes(expectedSRated))
@@ -87,14 +94,16 @@ class RandomLoadModelSpec
     }
 
     "deliver the correct distribution on request" in {
-      val model = RandomLoadModel(
-        loadInput,
-        LoadRuntimeConfig(
-          uuids = List.empty,
-          modelBehaviour = "random",
-          reference = "energy",
-        ),
-      )
+      val model = RandomLoadModel
+        .Factory(
+          loadInput,
+          LoadRuntimeConfig(
+            uuids = List.empty,
+            modelBehaviour = "random",
+            reference = "energy",
+          ),
+        )
+        .create()
 
       /* Working day, 61st quarter-hour */
       val queryDate =
@@ -129,10 +138,12 @@ class RandomLoadModelSpec
         reference = "energy",
       )
 
-      val model = RandomLoadModel(
-        loadInput,
-        config,
-      )
+      val model = RandomLoadModel
+        .Factory(
+          loadInput,
+          config,
+        )
+        .create()
 
       val targetEnergyConsumption = KilowattHours(
         loadInput
@@ -152,10 +163,12 @@ class RandomLoadModelSpec
     "approximately reach the maximum power in a simulated year" in {
       val config = LoadRuntimeConfig(modelBehaviour = "random")
 
-      val model = RandomLoadModel(
-        loadInput,
-        config,
-      )
+      val model = RandomLoadModel
+        .Factory(
+          loadInput,
+          config,
+        )
+        .create()
 
       val targetMaximumPower = Kilovoltamperes(
         loadInput

@@ -21,10 +21,12 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   FixedState,
   ParticipantFixedState,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 
 import java.time.ZonedDateTime
@@ -81,26 +83,31 @@ class FixedFeedInModel(
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
-
 }
 
 object FixedFeedInModel {
-  def apply(
+
+  final case class Factory(
       input: FixedFeedInInput
-  ): FixedFeedInModel = {
-    new FixedFeedInModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
-      input.getCosPhiRated,
-      QControl.apply(input.getqCharacteristics),
-    )
+  ) extends ParticipantModelFactory[FixedState] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): FixedState = FixedState(tick)
+
+    override def create(): FixedFeedInModel =
+      new FixedFeedInModel(
+        input.getUuid,
+        input.getId,
+        input.getsRated.toApparent,
+        input.getCosPhiRated,
+        QControl.apply(input.getqCharacteristics),
+      )
+
   }
+
 }

@@ -16,18 +16,13 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.datamodel.models.input.{OperatorInput, container}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.model.participant.HpModel
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
-import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.WithHeatInputContainer
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal._
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.Kilovoltamperes
+import squants.Temperature
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.thermal.Celsius
-import squants.{Power, Temperature}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -58,17 +53,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     hpTypeInput,
   )
 
-  protected def hpModel(thermalGrid: ThermalGrid) = new HpModel(
-    UUID.randomUUID(),
-    "HpModel",
-    OperationInterval.apply(0L, 86400L),
-    QControl.CosPhiFixed(0.95),
-    Kilovoltamperes(100d),
-    0.95,
-    Kilowatts(15d),
-    thermalGrid,
-  )
-  protected val defaultThermalHouse = new ThermalHouseInput(
+  protected val defaultThermalHouseInput = new ThermalHouseInput(
     UUID.fromString("91940626-bdd0-41cf-96dd-47c94c86b20e"),
     "Thermal house",
     thermalBusInput,
@@ -81,9 +66,11 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     2.0,
   )
 
-  protected val defaultThermalGrid = new container.ThermalGrid(
+  protected val defaultThermalHouse = ThermalHouse(defaultThermalHouseInput)
+
+  protected val hpModelSpecThermalGrid = new container.ThermalGrid(
     thermalBusInput,
-    Seq(defaultThermalHouse).asJava,
+    Seq(thermalHouseInput(18, 22)).asJava,
     Seq.empty[ThermalStorageInput].asJava,
     Seq.empty[ThermalStorageInput].asJava,
   )
@@ -142,6 +129,9 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     typicalHpTypeInput,
   )
 
+  protected val typicalHpInputContainer =
+    WithHeatInputContainer(typicalHpInputModel, typicalThermalGrid)
+
   protected def thermalGrid(
       thermalHouse: ThermalHouse,
       thermalStorage: Option[ThermalStorage] = None,
@@ -155,6 +145,13 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       lowerTemperatureBoundary: Double,
       upperTemperatureBoundary: Double,
   ): ThermalHouse = ThermalHouse(
+    thermalHouseInput(lowerTemperatureBoundary, upperTemperatureBoundary)
+  )
+
+  protected def thermalHouseInput(
+      lowerTemperatureBoundary: Double,
+      upperTemperatureBoundary: Double,
+  ): ThermalHouseInput =
     new ThermalHouseInput(
       UUID.fromString("75a43a0f-7c20-45ca-9568-949b728804ca"),
       "Thermal house",
@@ -170,7 +167,6 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       "house",
       2.0,
     )
-  )
 
   protected def thermalStorage: ThermalStorage = CylindricalThermalStorage(
     UUID.fromString("d57ddc54-48bd-4c59-babf-330c7ba71a74"),
@@ -184,20 +180,16 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
   )
 
   protected def thermalState(
-      temperature: Temperature,
-      qDot: Power = Kilowatts(0d),
+      innerHouseTemperature: Temperature,
+      ambientTemperature: Temperature,
   ): ThermalGridState = ThermalGridState(
     Some(
       ThermalHouseState(
         0L,
-        temperature,
-        qDot,
+        ambientTemperature,
+        innerHouseTemperature,
       )
     ),
     None,
   )
-
-  protected def hpData: HpRelevantData =
-    HpRelevantData(7200, Celsius(10d))
-
 }

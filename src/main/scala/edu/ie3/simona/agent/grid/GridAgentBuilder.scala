@@ -12,12 +12,10 @@ import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
-import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   InputModelContainer,
-  ParticipantInitializeStateData,
   SimpleInputContainer,
+  WithHeatInputContainer,
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
   ParticipantRefs,
@@ -35,7 +33,6 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
 import edu.ie3.simona.ontology.messages.services.EmMessage
 import edu.ie3.simona.ontology.messages.services.{
@@ -46,7 +43,7 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
-import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
+import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter._
@@ -431,24 +428,23 @@ class GridAgentBuilder(
           environmentRefs.scheduler,
           maybeControllingEm,
         )
-      case hpInput: HpInput =>
-        thermalIslandGridsByBusId.get(hpInput.getThermalBus.getUuid) match {
+      case input: HpInput =>
+        thermalIslandGridsByBusId.get(input.getThermalBus.getUuid) match {
           case Some(thermalGrid) =>
-            buildHp(
-              hpInput,
-              thermalGrid,
+            buildParticipant(
+              WithHeatInputContainer(input, thermalGrid),
               participantConfigUtil.getOrDefault[HpRuntimeConfig](
-                hpInput.getUuid
+                input.getUuid
               ),
-              environmentRefs.primaryServiceProxy,
-              environmentRefs.weather,
-              requestVoltageDeviationThreshold,
               outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
+              participantRefs,
+              simParams,
+              environmentRefs.scheduler,
               maybeControllingEm,
             )
           case None =>
             throw new GridAgentInitializationException(
-              s"Unable to find thermal island grid for heat pump '${hpInput.getUuid}' with thermal bus '${hpInput.getThermalBus.getUuid}'."
+              s"Unable to find thermal island grid for heat pump '${input.getUuid}' with thermal bus '${input.getThermalBus.getUuid}'."
             )
         }
       case input: StorageInput =>
@@ -466,10 +462,6 @@ class GridAgentBuilder(
       case input: SystemParticipantInput =>
         throw new NotImplementedError(
           s"Building ${input.getClass.getSimpleName} is not implemented, yet."
-        )
-      case unknown =>
-        throw new GridAgentInitializationException(
-          "Received unknown input model type " + unknown.toString + "."
         )
     }
   }
@@ -503,64 +495,6 @@ class GridAgentBuilder(
       ),
     )
     gridAgentContext.watch(participant)
-
-    participant
-  }
-
-  /** Builds an [[HpAgent]] from given input
-    *
-    * @param hpInput
-    *   Input model
-    * @param thermalGrid
-    *   The thermal grid, that this heat pump is ought to handle
-    * @param modelConfiguration
-    *   Runtime configuration for the agent
-    * @param primaryServiceProxy
-    *   Proxy actor reference for primary data
-    * @param weatherService
-    *   Actor reference for weather service
-    * @param requestVoltageDeviationThreshold
-    *   Permissible voltage magnitude deviation to consider being equal
-    * @param outputConfig
-    *   Configuration for output notification
-    * @param maybeControllingEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   A tuple of actor reference and [[ParticipantInitializeStateData]]
-    */
-  private def buildHp(
-      hpInput: HpInput,
-      thermalGrid: ThermalGrid,
-      modelConfiguration: HpRuntimeConfig,
-      primaryServiceProxy: ActorRef[ServiceMessage],
-      weatherService: ActorRef[WeatherMessage],
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[ParticipantAgent.Request] = {
-    val participant = gridAgentContext.toClassic
-      .simonaActorOf(
-        HpAgent.props(
-          environmentRefs.scheduler.toClassic,
-          ParticipantInitializeStateData(
-            hpInput,
-            thermalGrid,
-            modelConfiguration,
-            primaryServiceProxy.toClassic,
-            Iterable(ActorWeatherService(weatherService.toClassic)),
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            requestVoltageDeviationThreshold,
-            outputConfig,
-            maybeControllingEm,
-          ),
-          listener.map(_.toClassic),
-        ),
-        hpInput.getId,
-      )
-      .toTyped
-    introduceAgentToEnvironment(participant)
 
     participant
   }
@@ -602,20 +536,5 @@ class GridAgentBuilder(
       ),
       actorName(classOf[EmAgent.type], emInput.getId),
     )
-
-  /** Introduces the given agent to scheduler
-    *
-    * @param actorRef
-    *   Reference to the actor to add to the environment
-    */
-  private def introduceAgentToEnvironment(
-      actorRef: ActorRef[ParticipantAgent.Request]
-  ): Unit = {
-    gridAgentContext.watch(actorRef)
-    environmentRefs.scheduler ! ScheduleActivation(
-      actorRef.toClassic.toTyped,
-      INIT_SIM_TICK,
-    )
-  }
 
 }

@@ -33,10 +33,12 @@ class FixedLoadModelSpec extends UnitSpec with LoadInputTestData {
           reference = reference,
         )
 
-        val model = FixedLoadModel(
-          loadInput,
-          config,
-        )
+        val model = FixedLoadModel
+          .Factory(
+            loadInput,
+            config,
+          )
+          .create()
 
         (0 until 1000).foreach { tick =>
           val (operatingPoint, nextTick) = model.determineOperatingPoint(

@@ -49,12 +49,14 @@ class EvcsModelSpec
       chargingStrategy: String,
       vehicle2Grid: Boolean = true,
   ): EvcsModel =
-    EvcsModel(
-      evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
-      EvcsRuntimeConfig(
-        chargingStrategy = chargingStrategy
-      ),
-    )
+    EvcsModel
+      .Factory(
+        evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
+        EvcsRuntimeConfig(
+          chargingStrategy = chargingStrategy
+        ),
+      )
+      .create()
 
   "An EVCS model" should {
 
@@ -544,6 +546,32 @@ class EvcsModelSpec
             refPower should approximate(Kilowatts(5.0)) // one hour left
             minPower should approximate(Kilowatts(0d)) // no v2g allowed!
             maxPower should approximate(ev1.pRatedAc)
+        }
+
+      }
+
+      "holding almost full EV" in {
+        val evcsModel = createModel("constantPower")
+
+        val currentTick = 7200L
+
+        // 9.997222222222222 kWh is the margin including tolerance
+        val ev = EvModelWrapper(
+          ev4.copyWith(9.998.asKiloWattHour)
+        )
+
+        evcsModel.determineFlexOptions(
+          EvcsState(Seq(ev), currentTick)
+        ) match {
+          case MinMaxFlexOptions(
+                refPower,
+                minPower,
+                maxPower,
+              ) =>
+            // ev in top tolerance margin
+            refPower should approximate(Kilowatts(0))
+            minPower should approximate(Kilowatts(-10))
+            maxPower should approximate(Kilowatts(0))
         }
 
       }

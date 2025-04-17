@@ -21,6 +21,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.StorageModel.{
   RefTargetSocParams,
@@ -28,12 +29,15 @@ import edu.ie3.simona.model.participant2.StorageModel.{
 }
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
-import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Dimensionless, Each, Energy, Power, Seconds}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  DimensionlessToSimona,
+  EnergyToSimona,
+  PowerConversionSimona,
+}
+import squants.{Dimensionless, Energy, Power, Seconds}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -44,7 +48,6 @@ class StorageModel private (
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    override val initialState: (Long, ZonedDateTime) => StorageState,
     eStorage: Energy,
     pMax: Power,
     eta: Dimensionless,
@@ -164,9 +167,6 @@ class StorageModel private (
       // Stored energy currently not supported by primary data time series
       -1.asPu,
     )
-
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
 
   override def determineFlexOptions(
       state: StorageState
@@ -322,46 +322,37 @@ object StorageModel {
       targetWithNegMargin: Energy,
   )
 
-  def apply(
+  final case class Factory(
       input: StorageInput,
       config: StorageRuntimeConfig,
-  ): StorageModel = {
-    val eStorage = KilowattHours(
-      input.getType.geteStorage
-        .to(PowerSystemUnits.KILOWATTHOUR)
-        .getValue
-        .doubleValue
-    )
-    val initialState: (Long, ZonedDateTime) => StorageState =
-      (tick, _) => {
-        val initialStoredEnergy = eStorage * config.initialSoc
-        StorageState(storedEnergy = initialStoredEnergy, tick)
-      }
+  ) extends ParticipantModelFactory[StorageState] {
 
-    new StorageModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getType.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
-      input.getType.getCosPhiRated,
-      QControl.apply(input.getqCharacteristics),
-      initialState,
-      eStorage,
-      Kilowatts(
-        input.getType.getpMax
-          .to(PowerSystemUnits.KILOWATT)
-          .getValue
-          .doubleValue
-      ),
-      Each(
-        input.getType.getEta.to(PowerSystemUnits.PU).getValue.doubleValue
-      ),
-      config.targetSoc,
-    )
+    private val eStorage = input.getType.geteStorage.toSquants
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): StorageState = {
+      val initialStoredEnergy = eStorage * config.initialSoc
+      StorageState(storedEnergy = initialStoredEnergy, tick)
+    }
+
+    override def create(): StorageModel =
+      new StorageModel(
+        input.getUuid,
+        input.getId,
+        input.getType.getsRated.toApparent,
+        input.getType.getCosPhiRated,
+        QControl.apply(input.getqCharacteristics),
+        eStorage,
+        input.getType.getpMax.toSquants,
+        input.getType.getEta.toSquants,
+        config.targetSoc,
+      )
+
   }
 
 }

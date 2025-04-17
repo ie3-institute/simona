@@ -18,11 +18,13 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
+import edu.ie3.simona.config.RuntimeConfig.WecRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.WecModel.{
   WecCharacteristic,
@@ -34,15 +36,18 @@ import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOVOLTAMPERE, PU}
+import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.Scope
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  AreaToSimona,
+  PowerConversionSimona,
+}
 import squants._
 import squants.energy.Watts
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
-import squants.space.SquareMeters
 import squants.thermal.{Celsius, JoulesPerKelvin}
 import tech.units.indriya.unit.Units._
 
@@ -64,15 +69,6 @@ class WecModel private (
     ]
     with ParticipantSimpleFlexibility[WecState]
     with LazyLogging {
-
-  override val initialState: (Long, ZonedDateTime) => WecState =
-    (tick, _) =>
-      WecState(
-        tick,
-        MetersPerSecond(0d),
-        Celsius(0d),
-        None,
-      )
 
   override def determineState(
       lastState: WecState,
@@ -213,9 +209,6 @@ class WecModel private (
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable(ServiceType.WeatherService)
-
 }
 
 object WecModel {
@@ -272,21 +265,35 @@ object WecModel {
       )
   }
 
-  def apply(
+  final case class Factory(
       input: WecInput
-  ): WecModel =
-    new WecModel(
-      input.getUuid,
-      input.getId,
-      Kilovoltamperes(
-        input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
-      ),
-      input.getType.getCosPhiRated,
-      QControl(input.getqCharacteristics),
-      SquareMeters(
-        input.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue
-      ),
-      WecCharacteristic(input.getType.getCpCharacteristic),
-    )
+  ) extends ParticipantModelFactory[WecState] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.WeatherService)
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): WecState =
+      WecState(
+        tick,
+        MetersPerSecond(0d),
+        Celsius(0d),
+        None,
+      )
+
+    override def create(): WecModel =
+      new WecModel(
+        input.getUuid,
+        input.getId,
+        input.getType.getsRated.toApparent,
+        input.getType.getCosPhiRated,
+        QControl(input.getqCharacteristics),
+        input.getType.getRotorArea.toSquants,
+        WecCharacteristic(input.getType.getCpCharacteristic),
+      )
+
+  }
 
 }

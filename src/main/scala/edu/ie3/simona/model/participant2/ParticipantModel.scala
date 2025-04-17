@@ -6,19 +6,20 @@
 
 package edu.ie3.simona.model.participant2
 
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
+import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
 }
-import edu.ie3.simona.agent.participant2.ParticipantAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
@@ -66,10 +67,6 @@ abstract class ParticipantModel[
     * power factor.
     */
   protected val pRated: Power = sRated.toActivePower(cosPhiRated)
-
-  /** Determines the initial state given an initial model input.
-    */
-  val initialState: (Long, ZonedDateTime) => S
 
   /** Determines the current state given the last state and the operating point
     * that has been valid from the last state up until now.
@@ -177,7 +174,7 @@ abstract class ParticipantModel[
       currentOperatingPoint: OP,
       complexPower: ComplexPower,
       dateTime: ZonedDateTime,
-  ): Iterable[SystemParticipantResult]
+  ): Iterable[ResultEntity]
 
   def createPrimaryDataResult(
       data: PrimaryDataWithComplexPower[_],
@@ -204,14 +201,30 @@ abstract class ParticipantModel[
   ): S =
     throw new NotImplementedError(s"Method not implemented by $getClass")
 
-  /** @return
-    *   All secondary services required by the model.
-    */
-  def getRequiredSecondaryServices: Iterable[ServiceType]
-
 }
 
 object ParticipantModel {
+
+  /** Functionality related to creating and initializing a [[ParticipantModel]].
+    */
+  trait ParticipantModelFactory[S <: ModelState] {
+
+    /** @return
+      *   All secondary services required by the model.
+      */
+    def getRequiredSecondaryServices: Iterable[ServiceType]
+
+    /** Determines the initial state given an initial model input.
+      */
+    def getInitialState(tick: Long, simulationTime: ZonedDateTime): S
+
+    /** Creates a [[ParticipantModel]] of a specific type.
+      *
+      * @return
+      *   The specific [[ParticipantModel]].
+      */
+    def create(): ParticipantModel[_ <: OperatingPoint, S]
+  }
 
   trait OperatingPoint {
 
@@ -243,9 +256,6 @@ object ParticipantModel {
   ] {
     this: ParticipantModel[OP, FixedState] =>
 
-    override val initialState: (Long, ZonedDateTime) => FixedState =
-      (tick, _) => FixedState(tick)
-
     override def determineState(
         lastState: FixedState,
         operatingPoint: OP,
@@ -268,9 +278,6 @@ object ParticipantModel {
       OP <: OperatingPoint
   ] {
     this: ParticipantModel[OP, DateTimeState] =>
-
-    override val initialState: (Long, ZonedDateTime) => DateTimeState =
-      (tick, simulationTime) => DateTimeState(tick, simulationTime)
 
     override def determineState(
         lastState: DateTimeState,
