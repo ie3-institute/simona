@@ -17,7 +17,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.WattsPerKelvin
-import org.scalatest.prop.{TableFor2, TableFor3}
+import org.scalatest.prop.{TableFor2, TableFor3, TableFor6}
 import squants.energy._
 import squants.thermal._
 import squants.time._
@@ -113,6 +113,124 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
               fail(s"Expected a thermalHouseState but got none $unexpected.")
           }
       }
+    }
+
+    "Check for the correct state over multiple simulation steps" in {
+      val house = thermalHouse(18, 22)
+      val ambientTemperature = Celsius(5)
+      val initialHouseState = startingState(house, ambientTemperature)
+
+      val testCases: TableFor6[Double, Long, Double, Double, Long, Double] =
+        Table(
+          (
+            "qDotFirstPeriod",
+            "firstTick",
+            "expectedTemperatureFirstPeriod",
+            "qDotSecondPeriod",
+            "secondTick",
+            "expectedTemperatureSecondPeriod",
+          ),
+          (30d, 36000, 302.63, 30d, 72000, 306.12),
+          (30d, 18000, 299.05, 30d, 72000, 306.12),
+          (30d, 7200, 295.87, 30d, 72000, 306.12),
+        )
+
+      forAll(testCases) {
+        (
+            qDotFirstPeriod: Double,
+            firstTick: Long,
+            expectedTemperatureFirstPeriod: Double,
+            qDotSecondPeriod: Double,
+            secondTick: Long,
+            expectedTemperatureSecondPeriod: Double,
+        ) =>
+          val thermalHouseState = house.determineState(
+            firstTick,
+            initialHouseState,
+            Kilowatts(qDotFirstPeriod),
+          )
+
+          thermalHouseState match {
+            case ThermalHouseState(
+                  tick,
+                  temperature,
+                  _,
+                ) =>
+              tick shouldBe firstTick
+              temperature should approximate(
+                Kelvin(expectedTemperatureFirstPeriod)
+              )
+            case unexpected =>
+              fail(s"Expected a thermalHouseState but got none $unexpected.")
+          }
+
+          val finalThermalHouseState = house.determineState(
+            secondTick,
+            thermalHouseState,
+            Kilowatts(qDotSecondPeriod),
+          )
+
+          finalThermalHouseState match {
+            case ThermalHouseState(
+                  tick,
+                  temperature,
+                  _,
+                ) =>
+              tick shouldBe secondTick
+              temperature should approximate(
+                Kelvin(expectedTemperatureSecondPeriod)
+              )
+            case unexpected =>
+              fail(s"Expected a thermalHouseState but got none $unexpected.")
+          }
+      }
+    }
+
+    "Check if the same state is reached by different ways of simulation steps" in {
+      val house = thermalHouse(18, 22)
+      val ambientTemperature = Celsius(5)
+      val initialHouseState = startingState(house, ambientTemperature)
+
+      val qDot = Kilowatts(30)
+      val firstTickCaseA = 18000
+      val firstTickCaseB = 7200
+
+      val finalTick = 72000
+
+      val thermalHouseStateCaseA = house.determineState(
+        firstTickCaseA,
+        initialHouseState,
+        qDot,
+      )
+
+      val thermalHouseStateCaseB = house.determineState(
+        firstTickCaseB,
+        initialHouseState,
+        qDot,
+      )
+
+      val finalThermalHouseStateCaseA = house.determineState(
+        finalTick,
+        thermalHouseStateCaseA,
+        qDot,
+      )
+      val finalThermalHouseStateCaseB = house.determineState(
+        finalTick,
+        thermalHouseStateCaseB,
+        qDot,
+      )
+
+      val finalThermalHouseStateCaseC = house.determineState(
+        finalTick,
+        initialHouseState,
+        qDot,
+      )
+      finalThermalHouseStateCaseA.innerTemperature should approximate(
+        finalThermalHouseStateCaseC.innerTemperature
+      )
+      finalThermalHouseStateCaseA.innerTemperature should approximate(
+        finalThermalHouseStateCaseB.innerTemperature
+      )
     }
 
     "Check for the correct next threshold of house with thermal feed in" in {
