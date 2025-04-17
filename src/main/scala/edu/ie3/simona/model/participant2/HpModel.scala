@@ -57,7 +57,7 @@ class HpModel private (
     with LazyLogging {
 
   override def determineState(
-      state: HpState,
+      lastState: HpState,
       operatingPoint: HpOperatingPoint,
       tick: Long,
       simulationTime: ZonedDateTime,
@@ -66,13 +66,13 @@ class HpModel private (
     val thermalGridState =
       thermalGrid.determineState(
         tick,
-        state.thermalGridState,
+        lastState.thermalGridState,
         operatingPoint,
       )
 
     val thermalDemands = thermalGrid.determineEnergyDemand(thermalGridState)
 
-    state.copy(
+    lastState.copy(
       tick = tick,
       thermalGridState = thermalGridState,
       lastHpOperatingPoint = operatingPoint,

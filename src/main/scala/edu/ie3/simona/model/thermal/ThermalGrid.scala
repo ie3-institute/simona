@@ -48,8 +48,7 @@ final case class ThermalGrid(
     heatStorage: Option[ThermalStorage],
 ) extends LazyLogging {
 
-  /** Determines the state of the ThermalGrid by using the current
-    * HpOperatingPoint.
+  /** Determines the state of the ThermalGrid by using the HpOperatingPoint.
     * @param tick
     *   The current tick of simulation.
     * @param lastState
