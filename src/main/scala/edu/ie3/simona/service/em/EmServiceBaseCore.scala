@@ -7,6 +7,7 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.api.data.em.ontology._
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse,
@@ -35,7 +36,17 @@ case class EmServiceBaseCore(
 
   override def handleExtMessage(tick: Long, extMSg: EmDataMessageFromExt)(
       implicit log: Logger
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = ???
+  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = extMSg match {
+    case provideEmSetPoints: ProvideEmSetPointData =>
+      handleSetPoint(tick, provideEmSetPoints, log)
+
+      (this, None)
+
+    case _ =>
+      throw new CriticalFailureException(
+        s"The EmServiceBaseCore is not able to handle the message: $extMSg"
+      )
+  }
 
   override def handleFlexResponse(
       tick: Long,
@@ -44,7 +55,14 @@ case class EmServiceBaseCore(
   )(implicit
       startTime: ZonedDateTime,
       log: Logger,
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = ???
+  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
+    receiver.map { ref =>
+      log.warn(s"$ref: $flexResponse")
+      ref ! flexResponse
+    }
+
+    (this, None)
+  }
 
   override def handleFlexRequest(
       flexRequest: FlexRequest,
@@ -52,7 +70,12 @@ case class EmServiceBaseCore(
   )(implicit
       startTime: ZonedDateTime,
       log: Logger,
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = ???
+  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
+    log.warn(s"$receiver: $flexRequest")
+    receiver ! flexRequest
+
+    (this, None)
+  }
 }
 
 object EmServiceBaseCore {

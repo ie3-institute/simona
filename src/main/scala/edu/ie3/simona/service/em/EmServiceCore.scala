@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.em
 
+import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.em.model.NoSetPointValue
 import edu.ie3.simona.api.data.em.ontology._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
@@ -124,4 +125,46 @@ trait EmServiceCore {
       startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt])
+}
+
+object EmServiceCore {
+
+  final case class EmHierarchy(
+      structure: Map[UUID, Set[UUID]] = Map.empty,
+      private val refToUuid: Map[ActorRef[EmAgent.Request], UUID] = Map.empty,
+      private val uuidToRef: Map[UUID, ActorRef[EmAgent.Request]] = Map.empty,
+      private val uuidToFlexResponse: Map[UUID, ActorRef[FlexResponse]] =
+        Map.empty,
+      private val flexResponseToUuid: Map[ActorRef[FlexResponse], UUID] =
+        Map.empty,
+  ) {
+
+    def add(
+        model: UUID,
+        ref: ActorRef[EmAgent.Request],
+        parentEm: Option[ActorRef[FlexResponse]] = None,
+        parentUuid: Option[UUID] = None,
+    ): EmHierarchy = parentEm.zip(parentUuid) match {
+      case Some((parent, uuid)) =>
+        copy(
+          uuidToRef = uuidToRef + (model -> ref),
+          refToUuid = refToUuid + (ref -> model),
+          uuidToFlexResponse = uuidToFlexResponse + (uuid -> parent),
+          flexResponseToUuid = flexResponseToUuid + (parent -> uuid),
+        )
+      case None =>
+        copy(
+          uuidToRef = uuidToRef + (model -> ref),
+          refToUuid = refToUuid + (ref -> model),
+        )
+    }
+
+    def getUuid(ref: ActorRef[FlexResponse]): UUID =
+      flexResponseToUuid(ref)
+
+    def getResponseRef(uuid: UUID): Option[ActorRef[FlexResponse]] =
+      uuidToFlexResponse.get(uuid)
+
+  }
+
 }

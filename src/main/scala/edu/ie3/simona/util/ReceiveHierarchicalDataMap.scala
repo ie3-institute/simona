@@ -6,17 +6,12 @@
 
 package edu.ie3.simona.util
 
-import org.slf4j.{Logger, LoggerFactory}
-
 final case class ReceiveHierarchicalDataMap[K, V](
-    withExpected: Boolean,
     structure: Map[K, Set[K]],
     allKeys: Set[K],
     expectedKeys: Set[K],
     receivedData: Map[K, V],
 ) {
-  private val log: Logger =
-    LoggerFactory.getLogger(ReceiveHierarchicalDataMap.getClass)
 
   def hasCompletedKeys: Boolean = structure.keySet.exists(isComplete)
 
@@ -29,8 +24,6 @@ final case class ReceiveHierarchicalDataMap[K, V](
       key: Option[K],
       subKey: K,
   ): ReceiveHierarchicalDataMap[K, V] = {
-    log.debug(s"Added agent '$subKey' with parent '$key' to structure.")
-
     val (updatedStructure, updatedKeys): (Map[K, Set[K]], Set[K]) = key match {
       case Some(parent) =>
         structure.get(parent) match {
@@ -119,21 +112,10 @@ object ReceiveHierarchicalDataMap {
 
   def empty[K, V]: ReceiveHierarchicalDataMap[K, V] =
     ReceiveHierarchicalDataMap(
-      withExpected = true,
       Map.empty,
       Set.empty,
       Set.empty,
       Map.empty,
     )
-
-  def empty[K, V](
-      withExpected: Boolean = true
-  ): ReceiveHierarchicalDataMap[K, V] = ReceiveHierarchicalDataMap(
-    withExpected,
-    Map.empty,
-    Set.empty,
-    Set.empty,
-    Map.empty,
-  )
 
 }

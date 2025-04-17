@@ -7,13 +7,17 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.em.ontology._
+import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.exceptions.{
+  CriticalFailureException,
+  InitializationException,
+  ServiceException,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.services.EmMessage
 import edu.ie3.simona.ontology.messages.services.EmMessage.{
   WrappedFlexRequest,
   WrappedFlexResponse,
@@ -23,7 +27,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ServiceRegistrationMessage,
   ServiceResponseMessage,
 }
-import edu.ie3.simona.ontology.messages.services.{EmMessage, ServiceMessage}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
@@ -36,7 +39,6 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
 
 object ExtEmDataService
@@ -122,9 +124,16 @@ object ExtEmDataService
       initServiceData: InitializeServiceStateData
   ): Try[(ExtEmDataStateData, Option[Long])] = initServiceData match {
     case InitExtEmData(extEmDataConnection, startTime) =>
-      val serviceCore = if (extEmDataConnection.useCommunication) {
-        EmCommunicationCore.empty
-      } else EmServiceBaseCore.empty
+      val serviceCore = extEmDataConnection.mode match {
+        case EmMode.SET_POINT =>
+          EmServiceBaseCore.empty
+        case EmMode.EM_COMMUNICATION =>
+          EmCommunicationCore.empty
+        case EmMode.EM_OPTIMIZATION =>
+          throw new CriticalFailureException(
+            s"Em mode ${EmMode.EM_OPTIMIZATION} is currently not supported!"
+          )
+      }
 
       val emDataInitializedStateData =
         ExtEmDataStateData(extEmDataConnection, startTime, serviceCore)
