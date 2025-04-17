@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentInitData,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages._
-import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException

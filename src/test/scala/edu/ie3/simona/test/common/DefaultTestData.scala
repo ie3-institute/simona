@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
-import edu.ie3.simona.model.participant2.load.{
+import edu.ie3.simona.model.participant.load.{
   LoadModelBehaviour,
   LoadReferenceType,
 }
