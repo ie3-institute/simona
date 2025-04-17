@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `HpModel` with its new implementation [#1236](https://github.com/ie3-institute/simona/issues/1236)
 - Add conversion utils between `ComparableQuantity` and `Squants` [#1313](https://github.com/ie3-institute/simona/issues/1313)
 - Implementing auto-merge for dependabot PRs [#1339](https://github.com/ie3-institute/simona/issues/1339)
+- Introduce operatingPoints also to `ThermalGrid` [#1338](https://github.com/ie3-institute/simona/issues/1338)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -241,6 +242,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix failing `ExtEvDataServiceSpec` [#1297](https://github.com/ie3-institute/simona/issues/1297)
 - Fixed pekko config not written as output [#1302](https://github.com/ie3-institute/simona/issues/1302)
 - Cleanups and log capturing in `ExtEvDataServiceSpec` [#1320](https://github.com/ie3-institute/simona/issues/1320)
+- Fix tolerance in `ThermalGridIT` [#1345](https://github.com/ie3-institute/simona/issues/1345)
+- Fix startingState of `ThermalHouse` and `ThermalStorage` [#1347](https://github.com/ie3-institute/simona/issues/1347)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
