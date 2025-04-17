@@ -17,13 +17,13 @@ import java.util.UUID
 
 /** Messages used to facilitate flexibility-based communication between
   * [[edu.ie3.simona.agent.em.EmAgent]] and
-  * [[edu.ie3.simona.agent.participant2.ParticipantAgent]]s.
+  * [[edu.ie3.simona.agent.participant.ParticipantAgent]]s.
   */
 object FlexibilityMessage {
 
   /** Trait that is extended by all messages that are supposed to be received by
     * a controlled asset model, which could be any
-    * [[edu.ie3.simona.agent.participant2.ParticipantAgent]] or
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent]] or
     * [[edu.ie3.simona.agent.em.EmAgent]], if it is EM-controlled.
     */
   sealed trait FlexRequest {

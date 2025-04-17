@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant2
+package edu.ie3.simona.agent.participant
 
 import breeze.numerics.{pow, sqrt}
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
@@ -38,7 +38,7 @@ object ParticipantAgent {
   /** This is extended by all requests that activate an [[ParticipantAgent]],
     * i.e. activations, flex requests and control messages.
     */
-  private[participant2] sealed trait ActivationRequest extends Request {
+  private[participant] sealed trait ActivationRequest extends Request {
     val tick: Long
   }
 
@@ -48,7 +48,7 @@ object ParticipantAgent {
     * @param tick
     *   The tick to activate.
     */
-  private[participant2] final case class ParticipantActivation(
+  private[participant] final case class ParticipantActivation(
       override val tick: Long
   ) extends ActivationRequest
 
@@ -58,7 +58,7 @@ object ParticipantAgent {
     * @param msg
     *   The wrapped flex request.
     */
-  private[participant2] final case class Flex(msg: FlexRequest)
+  private[participant] final case class Flex(msg: FlexRequest)
       extends ActivationRequest {
     override val tick: Long = msg.tick
   }

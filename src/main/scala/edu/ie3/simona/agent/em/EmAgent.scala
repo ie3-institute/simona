@@ -35,7 +35,7 @@ import scala.util.{Failure, Try}
 
 /** Energy management agent that receives flex options from and issues control
   * messages to connected agents
-  * ([[edu.ie3.simona.agent.participant2.ParticipantAgent]]s and subordinate
+  * ([[edu.ie3.simona.agent.participant.ParticipantAgent]]s and subordinate
   * [[EmAgent]]s)
   */
 object EmAgent {

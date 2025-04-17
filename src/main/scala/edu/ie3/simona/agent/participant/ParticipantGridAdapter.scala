@@ -4,10 +4,10 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant2
+package edu.ie3.simona.agent.participant
 
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant2.ParticipantGridAdapter._
+import edu.ie3.simona.agent.participant.ParticipantGridAdapter._
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroMVAr, zeroMW}

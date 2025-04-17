@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
   NodeToReceivedPower,
   NodeToReceivedSlackVoltage,
 }
-import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -34,7 +34,7 @@ import java.util.UUID
   *
   * @param nodeToReceivedPower
   *   mapping of node uuids to received p/q values from inferior [[GridAgent]] s
-  *   if any and [[edu.ie3.simona.agent.participant2.ParticipantAgent]] (==
+  *   if any and [[edu.ie3.simona.agent.participant.ParticipantAgent]] (==
   *   assets) if any
   * @param nodeToReceivedSlackVoltage
   *   mapping of node uuids to received slack voltages from superior

@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.model.grid.GridModel
 import org.apache.pekko.actor.typed.ActorRef
 

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.ontology.messages.services
 
-import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.util.scala.quantities.Irradiance

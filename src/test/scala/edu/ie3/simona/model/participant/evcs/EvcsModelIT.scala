@@ -8,9 +8,9 @@ package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
-import edu.ie3.simona.agent.participant2.ParticipantAgentInit
-import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
+import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
+import edu.ie3.simona.agent.participant.ParticipantAgentInit
+import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
 }
@@ -55,7 +55,7 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 /** Tests the combined functionality of
-  * [[edu.ie3.simona.agent.participant2.ParticipantAgent]] with an [[EvcsModel]]
+  * [[edu.ie3.simona.agent.participant.ParticipantAgent]] with an [[EvcsModel]]
   * and [[ExtEvDataService]].
   */
 class EvcsModelIT

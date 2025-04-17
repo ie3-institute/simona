@@ -13,7 +13,7 @@ import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidN
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
-import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
@@ -197,7 +197,7 @@ object GridAgentData {
     * grid, parameters for the power flow calculations, information of the
     * current sweep number needed by [[DBFSAlgorithm]], a value store for
     * received slack and power values from superior and inferior [[GridAgent]] s
-    * and [[edu.ie3.simona.agent.participant2.ParticipantAgent]] s (== assets).
+    * and [[edu.ie3.simona.agent.participant.ParticipantAgent]] s (== assets).
     *
     * @param gridEnv
     *   the grid environment

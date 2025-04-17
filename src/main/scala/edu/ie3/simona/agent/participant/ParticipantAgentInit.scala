@@ -4,11 +4,11 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant2
+package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent._
+import edu.ie3.simona.agent.participant.ParticipantAgent._
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig

@@ -8,8 +8,8 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.participant2.ParticipantAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,

@@ -12,14 +12,11 @@ import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
+import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
 }
-import edu.ie3.simona.agent.participant2.{
-  ParticipantAgent,
-  ParticipantAgentInit,
-}
+import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
 import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
 import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.config.SimonaConfig.AssetConfigs

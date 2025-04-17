@@ -4,15 +4,15 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant2
+package edu.ie3.simona.agent.participant
 
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
   ActivationRequest,
   DataInputMessage,
   DataProvision,
   NoDataProvision,
 }
-import edu.ie3.simona.agent.participant2.ParticipantInputHandler.ReceivedData
+import edu.ie3.simona.agent.participant.ParticipantInputHandler.ReceivedData
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.service.Data
 import org.apache.pekko.actor.typed.ActorRef
