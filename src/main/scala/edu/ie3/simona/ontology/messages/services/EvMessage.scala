@@ -7,7 +7,7 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceResponseMessage
 import edu.ie3.simona.service.Data.SecondaryData
 import org.apache.pekko.actor.typed.ActorRef

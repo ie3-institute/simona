@@ -31,7 +31,7 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant2.{
+import edu.ie3.simona.model.participant.{
   ParticipantModelShell,
   PrimaryDataParticipantModel,
 }

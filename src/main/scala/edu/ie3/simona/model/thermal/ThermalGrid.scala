@@ -14,7 +14,7 @@ import edu.ie3.datamodel.models.result.thermal.{
   ThermalHouseResult,
 }
 import edu.ie3.simona.exceptions.InvalidParameterException
-import edu.ie3.simona.model.participant2.HpModel.{
+import edu.ie3.simona.model.participant.HpModel.{
   HpOperatingPoint,
   HpState,
   ThermalGridOperatingPoint,

@@ -9,10 +9,10 @@ package edu.ie3.simona.agent.participant2
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant2.MockParticipantModel._
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.model.participant2.control.QControl.CosPhiFixed
-import edu.ie3.simona.model.participant2.ParticipantModel
-import edu.ie3.simona.model.participant2.ParticipantModel._
-import edu.ie3.simona.model.participant2.control.QControl
+import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
+import edu.ie3.simona.model.participant.ParticipantModel
+import edu.ie3.simona.model.participant.ParticipantModel._
+import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.service.{Data, ServiceType}
@@ -31,7 +31,7 @@ import java.util.UUID
 import javax.measure.quantity.{Power => QuantPower}
 
 /** Mock [[ParticipantModel]] to test various functionality of
-  * [[edu.ie3.simona.model.participant2.ParticipantModelShell]] and
+  * [[edu.ie3.simona.model.participant.ParticipantModelShell]] and
   * [[ParticipantAgent]].
   *
   * @param mockActivationTicks

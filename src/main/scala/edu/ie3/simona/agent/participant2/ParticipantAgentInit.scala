@@ -14,11 +14,11 @@ import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.InputModelContainer
-import edu.ie3.simona.model.participant2.ParticipantModel.{
+import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant2.{
+import edu.ie3.simona.model.participant.{
   ParticipantModelInit,
   ParticipantModelShell,
 }

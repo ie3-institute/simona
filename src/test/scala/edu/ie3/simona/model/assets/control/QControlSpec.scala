@@ -13,12 +13,12 @@ import edu.ie3.datamodel.models.input.system.characteristic.{
   QV => QVInput,
 }
 import edu.ie3.simona.exceptions.QControlException
-import edu.ie3.simona.model.participant2.control.QControl.{
+import edu.ie3.simona.model.participant.control.QControl.{
   CosPhiFixed,
   CosPhiP,
   QV,
 }
-import edu.ie3.simona.model.participant2.control.QControl
+import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits._

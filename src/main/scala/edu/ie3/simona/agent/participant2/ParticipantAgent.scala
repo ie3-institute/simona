@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   ProvidedPowerResponse,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.ParticipantModelShell
+import edu.ie3.simona.model.participant.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
@@ -29,7 +29,7 @@ import scala.reflect.ClassTag
 
 /** Agent that represents and acts on behalf of any system participant model,
   * which is defined as a subclass of
-  * [[edu.ie3.simona.model.participant2.ParticipantModel]].
+  * [[edu.ie3.simona.model.participant.ParticipantModel]].
   */
 object ParticipantAgent {
 
@@ -208,7 +208,7 @@ object ParticipantAgent {
       lastFlexOptions: Option[ProvideFlexOptions] = None,
   )
 
-  /** A request to the [[edu.ie3.simona.model.participant2.ParticipantModel]]
+  /** A request to the [[edu.ie3.simona.model.participant.ParticipantModel]]
     * outside of regular requests related to participant operation.
     */
   trait ParticipantRequest extends Request {
