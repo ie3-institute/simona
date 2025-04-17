@@ -92,7 +92,7 @@ class CylindricalThermalStorageSpec
       storage.bus shouldBe storageInput.getThermalBus
     }
 
-    "Check mutable state update correctly update the state" in {
+    "Check if state updates correctly" in {
       val cases = Table(
         ("storedEnergy", "tick", "qDot", "expectedStoredEnergy"),
         (0.0, 3600L, 0.0, 0.0),
@@ -117,7 +117,7 @@ class CylindricalThermalStorageSpec
 
     }
 
-    "Check thresholds for mutable state update correctly" in {
+    "Check thresholds are calculated correctly" in {
       val cases = Table(
         (
           "storedEnergy",

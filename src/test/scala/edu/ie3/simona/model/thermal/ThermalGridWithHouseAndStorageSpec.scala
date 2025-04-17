@@ -127,9 +127,9 @@ class ThermalGridWithHouseAndStorageSpec
         val tick = 10800L // after three hours
 
         val updatedThermalGridState =
-          thermalGrid.determineThermalGridState(
+          thermalGrid.determineState(
             tick,
-            initialHpState,
+            initialHpState.thermalGridState,
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
           )
 
@@ -155,9 +155,9 @@ class ThermalGridWithHouseAndStorageSpec
         val tick = 10800L // after three hours
 
         val updatedThermalGridState =
-          thermalGrid.determineThermalGridState(
+          thermalGrid.determineState(
             tick,
-            initialHpState,
+            initialHpState.thermalGridState,
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
           )
 
@@ -182,15 +182,10 @@ class ThermalGridWithHouseAndStorageSpec
             )
           )
 
-          val state = initialHpState.copy(
-            thermalGridState = gridState,
-            thermalDemands = thermalDemandOfHouseAndHeatStorage,
-          )
-
           val updatedThermalGridState =
-            thermalGrid.determineThermalGridState(
+            thermalGrid.determineState(
               tick,
-              state,
+              gridState,
               HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
             )
 
@@ -214,15 +209,6 @@ class ThermalGridWithHouseAndStorageSpec
             )
           )
 
-          val state = initialHpState.copy(
-            tick = tick,
-            thermalGridState = gridState,
-            thermalDemands = ThermalDemandWrapper(
-              ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-              ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-            ),
-          )
-
           val thGridOperatingPoint = ThermalGridOperatingPoint(
             testGridQDotInfeed,
             zeroKW,
@@ -230,9 +216,9 @@ class ThermalGridWithHouseAndStorageSpec
           )
 
           val updatedThermalGridState =
-            thermalGrid.determineThermalGridState(
-              state.tick,
-              state,
+            thermalGrid.determineState(
+              tick,
+              gridState,
               HpOperatingPoint(zeroKW, thGridOperatingPoint),
             )
 
@@ -260,16 +246,10 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        val state = initialHpState.copy(
-          tick = tick,
-          thermalGridState = gridState,
-          thermalDemands = thermalDemandOfHouseAndHeatStorage,
-        )
-
         val updatedThermalGridState =
-          thermalGrid.determineThermalGridState(
-            state.tick,
-            state,
+          thermalGrid.determineState(
+            tick,
+            gridState,
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
           )
 
@@ -412,28 +392,26 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "heat house from storage if house temperature is at lower boundary temperature" in {
-        val maybeHouseState =
-          ThermalHouseState(
-            state.tick,
-            testGridAmbientTemperature,
-            Celsius(
-              thermalHouseInput.getLowerTemperatureLimit
-                .to(Units.CELSIUS)
-                .getValue
-                .doubleValue
-            ),
-          )
+        val houseState = ThermalHouseState(
+          state.tick,
+          testGridAmbientTemperature,
+          Celsius(
+            thermalHouseInput.getLowerTemperatureLimit
+              .to(Units.CELSIUS)
+              .getValue
+              .doubleValue
+          ),
+        )
 
         val maybeHouseThreshold =
-          thermalHouse.determineNextThreshold(maybeHouseState, zeroKW)
+          thermalHouse.determineNextThreshold(houseState, zeroKW)
 
-        val maybeStorageState =
-          Some(ThermalStorageState(state.tick, KilowattHours(10)))
+        val storageState = ThermalStorageState(state.tick, KilowattHours(10))
 
         val hpState = state.copy(
           thermalGridState = state.thermalGridState.copy(
-            houseState = Some(maybeHouseState),
-            storageState = maybeStorageState,
+            houseState = Some(houseState),
+            storageState = Some(storageState),
           ),
           // The exact amount doesn't matter
           thermalDemands = ThermalDemandWrapper(

@@ -76,7 +76,7 @@ final case class ThermalHouse(
     ) {
 
   /** Calculates the energy demand at the instance in question by calculating
-    * the [[ThermalEnergyDemand]] to reach target temperature from actual inner
+    * the [[ThermalEnergyDemand]] to reach target temperature from current inner
     * temperature. Since [[ThermalEnergyDemand]] is two parted, requiredEnergy
     * and possibleEnergy, both have to be determined. RequiredEnergy: In case
     * the inner temperature is at or below the lower boundary temperature, the
@@ -88,16 +88,16 @@ final case class ThermalHouse(
     * accounted for, as we assume, that after determining the thermal demand, a
     * change in external feed in will take place.
     *
-    * @param currentThermalHouseState
-    *   Actual state, that is valid for this model.
+    * @param thermalHouseState
+    *   Current state, that is valid for this model.
     * @return
     *   The needed energy in the questioned tick.
     */
   def energyDemand(
-      currentThermalHouseState: ThermalHouseState
+      thermalHouseState: ThermalHouseState
   ): ThermalEnergyDemand = {
     // Since we updated the state before, we can directly take the innerTemperature
-    val currentInnerTemp = currentThermalHouseState.innerTemperature
+    val currentInnerTemp = thermalHouseState.innerTemperature
 
     val requiredEnergy =
       if (isInnerTemperatureTooLow(currentInnerTemp)) {
@@ -212,7 +212,7 @@ final case class ThermalHouse(
     *
     * @param tick
     *   The tick that the houseState should be updated to.
-    * @param thermalHouseState
+    * @param lastThermalHouseState
     *   The applicable state of thermalHouse until this tick.
     * @param qDot
     *   The thermal feed in to the thermal house.
@@ -221,18 +221,18 @@ final case class ThermalHouse(
     */
   def determineState(
       tick: Long,
-      thermalHouseState: ThermalHouseState,
+      lastThermalHouseState: ThermalHouseState,
       qDot: Power,
   ): ThermalHouseState = {
-    val duration = Seconds(tick - thermalHouseState.tick)
+    val duration = Seconds(tick - lastThermalHouseState.tick)
     val updatedInnerTemperature = newInnerTemperature(
       qDot,
       duration,
-      thermalHouseState.innerTemperature,
-      thermalHouseState.ambientTemperature,
+      lastThermalHouseState.innerTemperature,
+      lastThermalHouseState.ambientTemperature,
     )
 
-    thermalHouseState.copy(
+    lastThermalHouseState.copy(
       tick = tick,
       innerTemperature = updatedInnerTemperature,
     )

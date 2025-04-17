@@ -95,15 +95,13 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
     "updatedThermalGridState" should {
       "exactly calculate the state of the thermalGrid" in {
-
         val tick = 10800L // after three hours
 
-        val updatedThermalGridState =
-          thermalGrid.determineThermalGridState(
-            tick,
-            initialHpState,
-            HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
-          )
+        val updatedThermalGridState = thermalGrid.determineState(
+          tick,
+          initialHpState.thermalGridState,
+          HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
+        )
 
         updatedThermalGridState.houseState shouldBe Some(
           ThermalHouseState(
@@ -121,12 +119,11 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "exactly be the demand of the house" in {
         val tick = 10800L // after three hours
 
-        val updatedThermalGridState =
-          thermalGrid.determineThermalGridState(
-            tick,
-            initialHpState,
-            HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
-          )
+        val updatedThermalGridState = thermalGrid.determineState(
+          tick,
+          initialHpState.thermalGridState,
+          HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
+        )
 
         val thermalDemands =
           thermalGrid.determineEnergyDemand(updatedThermalGridState)
@@ -142,7 +139,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     }
 
     "handling thermal energy consumption from grid" should {
-
       "deliver the house state by just letting it cool down, if just no feed in is given" in {
         val (thermalGridOperatingPoint, reachedThreshold) =
           thermalGrid.handleConsumption(initialHpState)

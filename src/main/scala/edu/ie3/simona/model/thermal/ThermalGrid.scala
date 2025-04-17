@@ -48,27 +48,27 @@ final case class ThermalGrid(
     heatStorage: Option[ThermalStorage],
 ) extends LazyLogging {
 
-  /** Determines the state of the ThermalGrid by using the actual
+  /** Determines the state of the ThermalGrid by using the current
     * HpOperatingPoint.
     * @param tick
-    *   The actual tick of simulation.
-    * @param state
-    *   State of the heat pump.
+    *   The current tick of simulation.
+    * @param lastState
+    *   Last state of the thermal grid.
     * @param operatingPoint
     *   The operating point of the heat pump.
     * @return
     *   The updated [[ThermalGridState]].
     */
-  def determineThermalGridState(
+  def determineState(
       tick: Long,
-      state: HpState,
+      lastState: ThermalGridState,
       operatingPoint: HpOperatingPoint,
   ): ThermalGridState = {
     val houseQDot = operatingPoint.thermalOps.qDotHouse
     val heatStorageQDot = operatingPoint.thermalOps.qDotHeatStorage
 
     val updatedHouseState: Option[ThermalHouseState] =
-      house.zip(state.thermalGridState.houseState) match {
+      house.zip(lastState.houseState) match {
         case Some((thermalHouse, houseState)) =>
           Some(
             thermalHouse
@@ -82,7 +82,7 @@ final case class ThermalGrid(
       }
 
     val updatedStorageState: Option[ThermalStorageState] = {
-      heatStorage.zip(state.thermalGridState.storageState) match {
+      heatStorage.zip(lastState.storageState) match {
         case Some((storage, heatStorageState)) =>
           Some(
             storage.determineState(
@@ -454,9 +454,9 @@ final case class ThermalGrid(
     * @param lastOperatingPoint
     *   The last operating point of the heat pump.
     * @param currentOperatingPoint
-    *   The actual operating point of the heat pump.
+    *   The current operating point of the heat pump.
     * @param dateTime
-    *   The actual date and time of the actual simulation tick.
+    *   The current date and time of this simulation tick.
     * @return
     *   A [[Seq]] of results of the constituent thermal model.
     */

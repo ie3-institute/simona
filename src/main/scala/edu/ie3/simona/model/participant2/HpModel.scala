@@ -34,11 +34,7 @@ import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.DefaultQuantities.{
-  zeroCelsius,
-  zeroKW,
-  zeroKWh,
-}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities._
 import squants._
@@ -68,9 +64,9 @@ class HpModel private (
   ): HpState = {
 
     val thermalGridState =
-      thermalGrid.determineThermalGridState(
+      thermalGrid.determineState(
         tick,
-        state,
+        state.thermalGridState,
         operatingPoint,
       )
 
@@ -370,7 +366,7 @@ object HpModel {
     * @param lastHpOperatingPoint
     *   The last [[HpOperatingPoint]] of the heat pump.
     * @param thermalDemands
-    *   The actual thermal demands of the thermal grid elements (house,
+    *   The current thermal demands of the thermal grid elements (house,
     *   storage).
     */
   final case class HpState(

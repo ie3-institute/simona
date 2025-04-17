@@ -79,7 +79,7 @@ final case class CylindricalThermalStorage(
     *
     * @param tick
     *   Tick, where this change happens.
-    * @param thermalStorageState
+    * @param lastThermalStorageState
     *   Last state of the heat storage.
     * @param qDotHeatStorage
     *   Influx of the heat storage.
@@ -88,15 +88,15 @@ final case class CylindricalThermalStorage(
     */
   override def determineState(
       tick: Long,
-      thermalStorageState: ThermalStorageState,
+      lastThermalStorageState: ThermalStorageState,
       qDotHeatStorage: Power,
   ): ThermalStorageState = {
     /* Determine new state based on time difference and given state */
     val energyBalance =
       qDotHeatStorage * Seconds(
-        tick - thermalStorageState.tick
+        tick - lastThermalStorageState.tick
       )
-    val newEnergy = thermalStorageState.storedEnergy + energyBalance
+    val newEnergy = lastThermalStorageState.storedEnergy + energyBalance
     val updatedEnergy =
       if (isFull(newEnergy))
         maxEnergyThreshold

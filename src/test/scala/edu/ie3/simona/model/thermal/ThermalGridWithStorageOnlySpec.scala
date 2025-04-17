@@ -97,12 +97,11 @@ class ThermalGridWithStorageOnlySpec
       "deliver the capabilities of the storage" in {
         val tick = 10800L // after three hours
 
-        val updatedThermalGridState =
-          thermalGrid.determineThermalGridState(
-            tick,
-            initialHpState,
-            HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
-          )
+        val updatedThermalGridState = thermalGrid.determineState(
+          tick,
+          initialHpState.thermalGridState,
+          HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
+        )
 
         val thermalDemands =
           thermalGrid.determineEnergyDemand(updatedThermalGridState)
@@ -127,26 +126,11 @@ class ThermalGridWithStorageOnlySpec
         val initialLoading = KilowattHours(575d)
         val gridState = initialGridState.copy(storageState =
           initialGridState.storageState.map(storageState =>
-            storageState.copy(storedEnergy = initialLoading)
+            storageState.copy(tick = 10800, storedEnergy = initialLoading)
           )
         )
-        val state = HpState(
-          10800, // after three hours
-          gridState,
-          HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
-          onlyAdditionalDemandOfHeatStorage,
-        )
 
-        val updatedThermalGridState =
-          thermalGrid.determineThermalGridState(
-            state.tick,
-            state,
-            HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
-          )
-
-        val thermalDemands =
-          thermalGrid.determineEnergyDemand(updatedThermalGridState)
-
+        val thermalDemands = thermalGrid.determineEnergyDemand(gridState)
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
@@ -154,10 +138,6 @@ class ThermalGridWithStorageOnlySpec
         houseDemand.possible should approximate(zeroKWh)
         storageDemand.required should approximate(zeroKWh)
         storageDemand.possible should approximate(KilowattHours(575d))
-        updatedThermalGridState.houseState shouldBe None
-        updatedThermalGridState.storageState shouldBe Some(
-          ThermalStorageState(10800L, KilowattHours(575d))
-        )
       }
     }
 
