@@ -9,7 +9,7 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
-import edu.ie3.simona.model.participant2.ParticipantModel.ModelState
+import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import squants.{Energy, Power, Seconds}

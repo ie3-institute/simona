@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.SimpleInputContainer
+import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.TimeUtil
 import org.mockito.Mockito.when

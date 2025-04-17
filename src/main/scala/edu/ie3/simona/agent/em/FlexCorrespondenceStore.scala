@@ -10,9 +10,9 @@ import edu.ie3.simona.agent.em.FlexCorrespondenceStore.{
   FlexCorrespondence,
   WithTime,
 }
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.ontology.messages.flex.FlexOptions
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 
 import java.time.ZonedDateTime
 import java.util.UUID
