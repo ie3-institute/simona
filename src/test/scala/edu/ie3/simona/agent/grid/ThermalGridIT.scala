@@ -7,13 +7,13 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.agent.participant2.ParticipantAgentInit
-import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
+import edu.ie3.simona.agent.participant.ParticipantAgentInit
+import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
 }

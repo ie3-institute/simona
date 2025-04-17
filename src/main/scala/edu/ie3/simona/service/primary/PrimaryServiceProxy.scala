@@ -27,9 +27,9 @@ import edu.ie3.datamodel.io.source.{
   TimeSeriesMetaInformationSource,
 }
 import edu.ie3.datamodel.models.value.Value
-import edu.ie3.simona.agent.participant2.ParticipantAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.config.ConfigParams.{
   SqlParams,
   TimeStampedCsvParams,

@@ -12,9 +12,10 @@ import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{PValue, SValue, Value}
-import edu.ie3.simona.agent.participant2.ParticipantAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
+import edu.ie3.datamodel.models.value.SValue
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.config.ConfigParams.{
   CouchbaseParams,
   TimeStampedCsvParams,

@@ -6,14 +6,16 @@
 
 package edu.ie3.simona.service.ev
 
-import edu.ie3.simona.agent.participant2.ParticipantAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
+import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.api.data.ontology.{
   DataMessageFromExt,
   ScheduleDataServiceMessage,

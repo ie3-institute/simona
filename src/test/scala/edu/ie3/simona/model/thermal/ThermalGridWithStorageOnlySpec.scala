@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput,
 }
-import edu.ie3.simona.model.participant2.HpModel.{
+import edu.ie3.simona.model.participant.HpModel.{
   HpOperatingPoint,
   HpState,
   ThermalGridOperatingPoint,
