@@ -260,17 +260,23 @@ final case class ThermalHouse(
     *   The applicable state of thermalHouse until this tick.
     * @param qDot
     *   The thermal feed in to the thermal house.
+    * @param nextTryForPossibleThreshold
+    *   Next or initial possible threshold value that should be find by
+    *   recursive search.
     * @return
     *   The next threshold, that will be reached.
     */
   def determineNextThresholdRecursive(
-      state: ThermalHouseState,
-      qDotExternal: Power,
-      duration: Long = 1,
+      thermalHouseState: ThermalHouseState,
+      qDot: Power,
+      nextTryForPossibleThreshold: Long = 1,
   ): Option[ThermalThreshold] = {
 
-    val loss = ethLosses.calcQDot(state.innerTemperature, state.ambientTemperature)
-    val resultingQDot = qDotExternal - loss
+    val loss = ethLosses.calcQDot(
+      thermalHouseState.innerTemperature,
+      thermalHouseState.ambientTemperature,
+    )
+    val resultingQDot = qDot - loss
 
     val artificialDuration = Seconds(1)
 
@@ -279,25 +285,37 @@ final case class ThermalHouse(
     val temperatureChange = energyChange / ethCapa
 
     // Update the inner temperature
-    val updatedTemperature = state.innerTemperature + temperatureChange
+    val updatedTemperature =
+      thermalHouseState.innerTemperature + temperatureChange
 
-    val updatedState = state.copy(innerTemperature = updatedTemperature)
+    val updatedState =
+      thermalHouseState.copy(innerTemperature = updatedTemperature)
 
-    val updatedDuration = duration + 1
+    val updatedDuration = nextTryForPossibleThreshold + 1
     if (
       resultingQDot < zeroMW && isInnerTemperatureTooLow(
         updatedTemperature
       )
-    ) { Some(HouseTemperatureLowerBoundaryReached(state.tick + duration)) }
-    else if (
+    ) {
+      Some(
+        HouseTemperatureLowerBoundaryReached(
+          thermalHouseState.tick + nextTryForPossibleThreshold
+        )
+      )
+    } else if (
       resultingQDot > zeroMW && isInnerTemperatureTooHigh(
         updatedTemperature
       )
-    ) { Some(HouseTargetTemperatureReached(state.tick + duration)) }
-    else
+    ) {
+      Some(
+        HouseTargetTemperatureReached(
+          thermalHouseState.tick + nextTryForPossibleThreshold
+        )
+      )
+    } else
       determineNextThresholdRecursive(
         updatedState,
-        qDotExternal,
+        qDot,
         updatedDuration,
       )
   }
