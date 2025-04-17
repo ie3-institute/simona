@@ -65,7 +65,7 @@ class ThermalGridWithStorageOnlySpec
     val initialGridState =
       ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
     val initialHpState = HpState(
-      -1L,
+      0L,
       initialGridState,
       HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
       onlyThermalDemandOfHeatStorage,
