@@ -45,8 +45,8 @@ class CongestionTestBase
   protected val config: SimonaConfig = SimonaConfig(
     ConfigFactory
       .parseString("""
-                     |simona.congestionManagement.enableDetection = true
-                     |""".stripMargin)
+        |simona.congestionManagement.enableDetection = true
+        |""".stripMargin)
       .withFallback(typesafeConfig)
       .resolve()
   )
