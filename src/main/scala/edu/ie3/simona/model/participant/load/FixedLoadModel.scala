@@ -8,19 +8,11 @@ package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
+import edu.ie3.simona.model.participant.ParticipantModel.{ActivePowerOperatingPoint, FixedState, ParticipantFixedState, ParticipantModelFactory}
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ActivePowerOperatingPoint,
-  FixedState,
-  ParticipantFixedState,
-  ParticipantModelFactory,
-}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.ApparentPower
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  EnergyToSimona,
-  PowerConversionSimona,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{EnergyToSimona, PowerConversionSimona}
 import squants.Power
 import squants.time.Days
 

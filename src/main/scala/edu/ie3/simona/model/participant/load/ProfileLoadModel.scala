@@ -10,19 +10,13 @@ import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile
 import edu.ie3.datamodel.models.profile.{LoadProfile, StandardLoadProfile}
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.ParticipantModel.{ActivePowerOperatingPoint, AdditionalFactoryData, ParticipantModelFactory}
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant2.ParticipantModel
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ActivePowerOperatingPoint,
-  AdditionalFactoryData,
-  ParticipantModelFactory,
-}
-import LoadModel.{LoadModelState, ProfileLoadFactoryData}
+import edu.ie3.simona.model.participant.load.LoadModel.{LoadModelState, ProfileLoadFactoryData}
 import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.LoadData
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.simona.service.ServiceType.LoadProfileService
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
@@ -44,7 +38,7 @@ class ProfileLoadModel(
 
   override def determineOperatingPoint(
       state: LoadModelState
-  ): (ParticipantModel.ActivePowerOperatingPoint, Option[Long]) = {
+  ): (ActivePowerOperatingPoint, Option[Long]) = {
     val averagePower = state.averagePower
 
     (

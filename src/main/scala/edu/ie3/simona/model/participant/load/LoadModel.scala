@@ -7,28 +7,14 @@
 package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.datamodel.models.result.system.{
-  LoadResult,
-  SystemParticipantResult,
-}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ComplexPower,
-  PrimaryDataWithComplexPower,
-}
+import edu.ie3.datamodel.models.result.system.{LoadResult, SystemParticipantResult}
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
-import edu.ie3.simona.model.participant2.ParticipantModel
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ActivePowerOperatingPoint,
-  AdditionalFactoryData,
-  ModelState,
-  ParticipantModelFactory,
-}
+import edu.ie3.simona.model.participant.ParticipantFlexibility.ParticipantSimpleFlexibility
+import edu.ie3.simona.model.participant.ParticipantModel
+import edu.ie3.simona.model.participant.ParticipantModel.{ActivePowerOperatingPoint, AdditionalFactoryData, ModelState, ParticipantModelFactory}
+import edu.ie3.simona.service.Data.PrimaryData.{ComplexPower, PrimaryDataWithComplexPower}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  EnergyToSimona,
-  PowerConversionSimona,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{EnergyToSimona, PowerConversionSimona}
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.{Energy, Power}
 

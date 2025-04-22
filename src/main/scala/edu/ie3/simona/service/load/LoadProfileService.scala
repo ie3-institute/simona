@@ -7,8 +7,8 @@
 package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.models.profile.LoadProfile
-import edu.ie3.simona.agent.participant2.ParticipantAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
