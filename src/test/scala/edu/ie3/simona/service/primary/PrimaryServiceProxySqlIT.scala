@@ -7,8 +7,8 @@
 package edu.ie3.simona.service.primary
 
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
-import edu.ie3.simona.agent.participant2.ParticipantAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
   PrimaryRegistrationSuccessfulMessage,
   RegistrationFailedMessage,
 }
