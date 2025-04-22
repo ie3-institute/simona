@@ -16,11 +16,10 @@ import edu.ie3.simona.model.participant.ParticipantFlexibility.ParticipantSimple
 import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
+  AdditionalFactoryData,
   ModelState,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
@@ -76,6 +75,29 @@ abstract class LoadModel[S <: ModelState]
 
 object LoadModel {
 
+  /** Holds all relevant data for profile load model calculation
+    *
+    * @param averagePower
+    *   the average power for the current interval
+    */
+  final case class LoadModelState(
+      override val tick: Long,
+      averagePower: Power,
+  ) extends ModelState
+
+  /** Hold additional data for some load model factories.
+    * @param maxPower
+    *   The maximal power of the
+    *   [[edu.ie3.datamodel.models.profile.LoadProfile]].
+    * @param energyScaling
+    *   The energy scaling for the
+    *   [[edu.ie3.datamodel.models.profile.LoadProfile]].
+    */
+  final case class ProfileLoadFactoryData(
+      maxPower: Option[Power],
+      energyScaling: Option[Energy],
+  ) extends AdditionalFactoryData
+
   /** Calculates the scaling factor and scaled rated apparent power according to
     * the reference type
     *
@@ -128,10 +150,8 @@ object LoadModel {
     LoadModelBehaviour(config.modelBehaviour) match {
       case LoadModelBehaviour.FIX =>
         FixedLoadModel.Factory(input, config)
-      case LoadModelBehaviour.PROFILE =>
+      case LoadModelBehaviour.PROFILE | LoadModelBehaviour.RANDOM =>
         ProfileLoadModel.Factory(input, config)
-      case LoadModelBehaviour.RANDOM =>
-        RandomLoadModel.Factory(input, config)
     }
 
 }

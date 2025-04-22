@@ -71,9 +71,10 @@ object ParticipantAgent {
 
   /** Message confirming a successful registration with a secondary service.
     */
-  final case class RegistrationSuccessfulMessage(
+  final case class RegistrationSuccessfulMessage[D](
       override val serviceRef: ActorRef[_ >: ServiceMessage],
       firstDataTick: Long,
+      additionalData: Option[D] = None,
   ) extends RegistrationResponseMessage
 
   /** Message confirming a successful registration with the primary service.
