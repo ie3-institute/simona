@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.api
 
-import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData, Stop}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
@@ -16,20 +15,15 @@ import edu.ie3.simona.api.simulation.ontology.{
   TerminationMessage,
   CompletionMessage => ExtCompletionMessage,
 }
-import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ScheduleServiceActivation
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
@@ -37,7 +31,7 @@ import scala.jdk.OptionConverters._
 
 object ExtSimAdapter {
 
-  sealed trait AdapterMessage extends ControlResponseMessageFromExt
+  sealed trait Request
 
   /** The [[ExtSimAdapterData]] can only be constructed once the ExtSimAdapter
     * actor is created. Thus, we need an extra initialization message.
@@ -46,32 +40,32 @@ object ExtSimAdapter {
     *   The [[ExtSimAdapterData]] of the corresponding external simulation
     */
   final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
-      extends AdapterMessage
+      extends Request
 
-  final case class Stop(simulationSuccessful: Boolean) extends AdapterMessage
+  final case class Stop(simulationSuccessful: Boolean) extends Request
 
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
       currentTick: Option[Long] = None,
-  ) extends AdapterMessage
+  )
 
-  final case class WrappedActivation(activation: Activation)
-      extends AdapterMessage
-  final case class WrappedScheduleDataServiceMessage(
-      msg: ScheduleDataServiceMessage
-  ) extends AdapterMessage
+  final case class WrappedActivation(activation: Activation) extends Request
 
-  def adapter(
-      ref: ActorRef[ControlResponseMessageFromExt]
-  ): Behavior[ScheduleDataServiceMessage] = Behaviors.receiveMessagePartial {
-    extMsg =>
-      ref ! WrappedScheduleDataServiceMessage(extMsg)
+  final case class WrappedControlMessage(
+      controlMessage: ControlResponseMessageFromExt
+  ) extends Request
+
+  def controlMessageAdapter(
+      extSimAdapter: ActorRef[Request]
+  ): Behavior[ControlResponseMessageFromExt] =
+    Behaviors.receiveMessage[ControlResponseMessageFromExt] { msg =>
+      extSimAdapter ! WrappedControlMessage(msg)
       Behaviors.same
-  }
+    }
 
   def apply(
       scheduler: ActorRef[SchedulerMessage]
-  ): Behavior[ControlResponseMessageFromExt] = Behaviors.setup { ctx =>
+  ): Behavior[Request] = Behaviors.setup { ctx =>
     val activationAdapter = ctx.messageAdapter(WrappedActivation)
     initialize(scheduler, activationAdapter)
   }
@@ -79,7 +73,7 @@ object ExtSimAdapter {
   private def initialize(implicit
       scheduler: ActorRef[SchedulerMessage],
       activationAdapter: ActorRef[Activation],
-  ): Behavior[ControlResponseMessageFromExt] = Behaviors.receiveMessage {
+  ): Behavior[Request] = Behaviors.receiveMessagePartial {
     case Create(extSimData, unlockKey) =>
       // triggering first time at init tick
       scheduler ! ScheduleActivation(
@@ -94,7 +88,7 @@ object ExtSimAdapter {
   private[api] def receiveIdle(stateData: ExtSimAdapterStateData)(implicit
       scheduler: ActorRef[SchedulerMessage],
       activationAdapter: ActorRef[Activation],
-  ): Behavior[ControlResponseMessageFromExt] = Behaviors.receive {
+  ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, WrappedActivation(Activation(tick))) =>
       stateData.extSimData.queueExtMsg(
         new ActivationMessage(tick)
@@ -106,7 +100,7 @@ object ExtSimAdapter {
 
       receiveIdle(stateData.copy(currentTick = Some(tick)))
 
-    case (ctx, extCompl: ExtCompletionMessage) =>
+    case (ctx, WrappedControlMessage(extCompl: ExtCompletionMessage)) =>
       // when multiple triggers have been sent, a completion message
       // always refers to the oldest tick
 
@@ -122,9 +116,7 @@ object ExtSimAdapter {
 
     case (
           ctx,
-          WrappedScheduleDataServiceMessage(
-            scheduleDataService: ScheduleDataServiceMessage
-          ),
+          WrappedControlMessage(scheduleDataService: ScheduleDataServiceMessage),
         ) =>
       val tick = stateData.currentTick.getOrElse(
         throw new RuntimeException("No tick has been triggered")
@@ -146,7 +138,7 @@ object ExtSimAdapter {
 
       Behaviors.same
 
-    case (_, _: TerminationCompleted) =>
+    case (_, WrappedControlMessage(_: TerminationCompleted)) =>
       // external simulation has terminated as well, we can exit
       Behaviors.stopped
   }

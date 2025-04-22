@@ -15,10 +15,6 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
-import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ev.ExtEvDataConnection
-import edu.ie3.simona.api.simulation.ExtSimAdapterData
-import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException

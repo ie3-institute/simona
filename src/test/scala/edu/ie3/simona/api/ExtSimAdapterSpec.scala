@@ -10,12 +10,16 @@ import edu.ie3.simona.api.ExtSimAdapter.{
   ExtSimAdapterStateData,
   Stop,
   WrappedActivation,
-  WrappedScheduleDataServiceMessage,
+  WrappedControlMessage,
 }
-import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
+import edu.ie3.simona.api.data.ontology.{
+  DataMessageFromExt,
+  ScheduleDataServiceMessage,
+}
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
   ActivationMessage,
+  ControlResponseMessageFromExt,
   TerminationCompleted,
   TerminationMessage,
   CompletionMessage => ExtCompletionMessage,
@@ -25,20 +29,15 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ScheduleServiceActivation
-import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import edu.ie3.simona.test.common.{TestKitWithShutdown, TestSpawnerClassic}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey}
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.testkit.typed.Effect.Stopped
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   BehaviorTestKit,
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.testkit.TestKit.awaitCond
 import org.scalatest.prop.TableDrivenPropertyChecks.forAll
 import org.scalatest.prop.Tables.Table
@@ -65,8 +64,9 @@ class ExtSimAdapterSpec
       val lock = TestProbe[LockMsg]("lock")
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
-
-      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
+      val controlMsgAdapter =
+        testKit.spawn(ExtSimAdapter.controlMessageAdapter(extSimAdapter))
+      val extData = new ExtSimAdapterData(controlMsgAdapter, mainArgs)
 
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
@@ -80,10 +80,12 @@ class ExtSimAdapterSpec
   "An initialized ExtSimScheduler" must {
     "forward an activation trigger and a corresponding completion message properly" in {
       val lock = TestProbe[LockMsg]("lock")
+      val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
-
-      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
+      val controlMsgAdapter =
+        testKit.spawn(ExtSimAdapter.controlMessageAdapter(extSimAdapter))
+      val extData = new ExtSimAdapterData(controlMsgAdapter, mainArgs)
 
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
 
@@ -117,13 +119,16 @@ class ExtSimAdapterSpec
 
     "schedule the data service when it is told to" in {
       val lock = TestProbe[LockMsg]("lock")
+      val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
 
-      val extSimAdapter = testKit.spawn(
-        ExtSimAdapter(scheduler.ref)
-      )
-      val adapter = testKit.spawn(ExtSimAdapter.adapter(extSimAdapter))
-      val extData = new ExtSimAdapterData(adapter, mainArgs)
-      val dataService = TestProbe[ScheduleServiceActivation]("dataService")
+      val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
+
+      val controlMsgAdapter =
+        testKit.spawn(ExtSimAdapter.controlMessageAdapter(extSimAdapter))
+      val extData = new ExtSimAdapterData(controlMsgAdapter, mainArgs)
+      val dataService = TestProbe[DataMessageFromExt]("dataService")
+
+      extSimAdapter ! ExtSimAdapter.Create(extData, key1)
 
       val activationMessage = scheduler.expectMessageType[ScheduleActivation]
       activationMessage.tick shouldBe INIT_SIM_TICK
@@ -138,11 +143,10 @@ class ExtSimAdapterSpec
       extData.receiveMessageQueue.size() shouldBe 1
       extData.receiveMessageQueue.take()
 
-      extSimAdapter ! WrappedScheduleDataServiceMessage(
-        new ScheduleDataServiceMessage(
-          dataService.ref
-        )
+      extSimAdapter ! WrappedControlMessage(
+        new ScheduleDataServiceMessage(dataService.ref)
       )
+
       scheduler
         .expectMessageType[ScheduleActivation] // lock activation scheduled
 
@@ -156,7 +160,7 @@ class ExtSimAdapterSpec
       forAll(Table("simSuccessful", true, false)) { (simSuccessful: Boolean) =>
         val activationAdapter = TestProbe[Activation]
 
-        val probe = TestProbe[ScheduleDataServiceMessage]
+        val probe = TestProbe[ControlResponseMessageFromExt]
         val extData = new ExtSimAdapterData(probe.ref, mainArgs)
 
         val extSimAdapter = BehaviorTestKit(
@@ -182,7 +186,7 @@ class ExtSimAdapterSpec
         )
 
         // up until now, extSimAdapter should still be running
-        extSimAdapter.run(new TerminationCompleted())
+        extSimAdapter.run(WrappedControlMessage(new TerminationCompleted()))
 
         // extSimAdapter should have terminated now
         extSimAdapter.isAlive shouldBe false

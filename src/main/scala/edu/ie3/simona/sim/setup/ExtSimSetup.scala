@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.api.data.ExtInputDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
@@ -23,11 +22,6 @@ import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorContextOps,
-  TypedActorRefOps,
-}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -67,14 +61,19 @@ object ExtSimSetup {
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
       // external simulation always needs at least an ExtSimAdapter
-      val extSimAdapter = context.toClassic.simonaActorOf(
-        ExtSimAdapter.props(scheduler.toClassic),
-        s"$index",
+      val extSimAdapter = context.spawn(
+        ExtSimAdapter(scheduler),
+        s"ExtSimAdapter-$index",
+      )
+
+      val controlMessageAdapter = context.spawn(
+        ExtSimAdapter.controlMessageAdapter(extSimAdapter),
+        s"ExtSimAdapter-$index-external",
       )
 
       // creating the adapter data
       implicit val extSimAdapterData: ExtSimAdapterData =
-        new ExtSimAdapterData(extSimAdapter.toTyped, args)
+        new ExtSimAdapterData(controlMessageAdapter, args)
 
       Try {
         // sets up the external simulation
