@@ -8,9 +8,10 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.simona.agent.em.EmAgent.Actor
 import edu.ie3.simona.agent.em.FlexCorrespondenceStore.WithTime
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.ontology.messages.flex.FlexOptions
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import squants.Power
@@ -251,13 +252,13 @@ object EmDataCore {
       *   The updated [[AwaitingFlexOptions]] core
       */
     def handleFlexOptions(
-        flexOptions: ProvideFlexOptions
+        modelUuid: UUID,
+        flexOptions: FlexOptions,
     ): AwaitingFlexOptions =
       copy(
         correspondences =
-          correspondences.updateFlexOptions(flexOptions, activeTick),
-        awaitedConnectedAgents =
-          awaitedConnectedAgents.excl(flexOptions.modelUuid),
+          correspondences.updateFlexOptions(modelUuid, flexOptions, activeTick),
+        awaitedConnectedAgents = awaitedConnectedAgents.excl(modelUuid),
       )
 
     /** Checks whether all awaited flex options have been received, and we can
@@ -273,7 +274,7 @@ object EmDataCore {
       * @return
       *   all relevant flex options
       */
-    def getFlexOptions: Iterable[(UUID, ProvideFlexOptions)] =
+    def getFlexOptions: Iterable[(UUID, FlexOptions)] =
       correspondences.store.flatMap { case (model, correspondence) =>
         correspondence.receivedFlexOptions.map(model -> _.get)
       }

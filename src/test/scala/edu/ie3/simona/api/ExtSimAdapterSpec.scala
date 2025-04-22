@@ -24,6 +24,9 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ScheduleServiceActivation
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.simona.test.common.{TestKitWithShutdown, TestSpawnerClassic}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey}
@@ -63,7 +66,7 @@ class ExtSimAdapterSpec
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
 
-      val extData = new ExtSimAdapterData(extSimAdapter.toClassic, mainArgs)
+      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
@@ -80,9 +83,7 @@ class ExtSimAdapterSpec
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
 
-      val extData = new ExtSimAdapterData(extSimAdapter.toClassic, mainArgs)
-
-      val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
+      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
 
@@ -121,11 +122,8 @@ class ExtSimAdapterSpec
         ExtSimAdapter(scheduler.ref)
       )
       val adapter = testKit.spawn(ExtSimAdapter.adapter(extSimAdapter))
-      val extData = new ExtSimAdapterData(adapter.toClassic, mainArgs)
+      val extData = new ExtSimAdapterData(adapter, mainArgs)
       val dataService = TestProbe[ScheduleServiceActivation]("dataService")
-
-      val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
-      extSimAdapter ! ExtSimAdapter.Create(extData, key1)
 
       val activationMessage = scheduler.expectMessageType[ScheduleActivation]
       activationMessage.tick shouldBe INIT_SIM_TICK
@@ -142,7 +140,7 @@ class ExtSimAdapterSpec
 
       extSimAdapter ! WrappedScheduleDataServiceMessage(
         new ScheduleDataServiceMessage(
-          dataService.ref.toClassic
+          dataService.ref
         )
       )
       scheduler
@@ -159,7 +157,7 @@ class ExtSimAdapterSpec
         val activationAdapter = TestProbe[Activation]
 
         val probe = TestProbe[ScheduleDataServiceMessage]
-        val extData = new ExtSimAdapterData(probe.ref.toClassic, mainArgs)
+        val extData = new ExtSimAdapterData(probe.ref, mainArgs)
 
         val extSimAdapter = BehaviorTestKit(
           ExtSimAdapter.receiveIdle(

@@ -41,7 +41,7 @@ import java.time.{ZoneId, ZonedDateTime}
 import java.util
 import java.util.{Optional, UUID}
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava, SetHasAsJava}
 
 class WeatherSourceWrapperSpec extends UnitSpec {
 
@@ -58,14 +58,16 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       classOf[ZonedDateTime],
     )
     actor.setAccessible(true)
+
+    val date = ZonedDateTime.of(2021, 1, 15, 18, 0, 0, 0, ZoneId.of("UTC"))
+
     val source = actor.newInstance(
       WeatherSourceWrapperSpec.DummyPsdmWeatherSource,
       DummyIdCoordinateSource,
       360L,
       Quantities.getQuantity(10000, Units.METRE),
-      ZonedDateTime.now(),
+      date,
     )
-    val date = ZonedDateTime.of(2021, 1, 15, 18, 0, 0, 0, ZoneId.of("UTC"))
 
     "calculate the correct weighted value for 4 coordinates with 0.25 weight each" in {
       val weightedCoordinates = WeightedCoordinates(
@@ -133,6 +135,21 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate1a -> 1))
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       result.temp.unit shouldBe Kelvin
+    }
+
+    "return the correct data ticks" in {
+      val testData = Table(
+        ("start", "end", "expected"),
+        (0L, 10800L, (0L to 10800L by 3600L).toArray),
+        (1L, 10800L, (3600L to 10800L by 3600L).toArray),
+        (0L, 10799L, (0L to 7200L by 3600L).toArray),
+        (1L, 10799L, (3600L to 7200L by 3600L).toArray),
+      )
+
+      testData.forEvery {
+        case (start: Long, end: Long, expected: Array[Long]) =>
+          source.getDataTicks(start, end) shouldBe expected
+      }
     }
   }
 
@@ -258,6 +275,21 @@ object WeatherSourceWrapperSpec {
         DummyIdCoordinateSource,
         new IconTimeBasedWeatherValueFactory(),
       ) {
+
+    override def getTimeKeysAfter(
+        zonedDateTime: ZonedDateTime
+    ): util.Map[Point, util.List[ZonedDateTime]] = {
+      val startTime =
+        ZonedDateTime.of(2021, 1, 15, 18, 0, 0, 0, ZoneId.of("UTC"))
+
+      val time = Range
+        .inclusive(0, 3, 1)
+        .map(startTime.plusHours(_))
+        .filter(_.isAfter(zonedDateTime))
+        .asJava
+
+      Map(coordinate1a -> time).asJava
+    }
 
     private val dummyValues = Map(
       coordinate1a -> new WeatherValue(

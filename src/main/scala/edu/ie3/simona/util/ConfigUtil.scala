@@ -19,8 +19,20 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer3WResult,
 }
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  CouchbaseParams,
+  KafkaParams,
+  SqlParams,
+}
+import edu.ie3.simona.config.OutputConfig.{
+  GridOutputConfig,
+  ParticipantOutputConfig,
+  SimpleOutputConfig,
+}
+import edu.ie3.simona.config.RuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, EmRuntimeConfig}
+import edu.ie3.simona.config.SimonaConfig.AssetConfigs
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
@@ -36,8 +48,42 @@ import scala.util.{Failure, Success, Try, Using}
 
 object ConfigUtil {
 
+  final case class EmConfigUtil private (
+      private val configs: Map[UUID, EmRuntimeConfig],
+      private val defaultConfigs: EmRuntimeConfig,
+  ) {
+
+    /** Queries for a [[EmRuntimeConfig]], that applies for the given uuid and
+      * either returns the config for the requested uuid or the default config.
+      *
+      * @param uuid
+      *   Identifier of the requested load model
+      * @return
+      *   the requested config or a default value
+      */
+    def getOrDefault(uuid: UUID): EmRuntimeConfig =
+      configs.getOrElse(uuid, defaultConfigs)
+  }
+
+  object EmConfigUtil {
+
+    /** Creates an em config utility from the given em configuration. It builds
+      * a map from uuid to individual em config for faster access.
+      *
+      * @param subConfig
+      *   Configuration subtree for the behaviour of ems
+      * @return
+      *   a matching config utility
+      */
+    def apply(subConfig: AssetConfigs[EmRuntimeConfig]): EmConfigUtil =
+      EmConfigUtil(
+        buildUuidMapping(subConfig.individualConfigs),
+        subConfig.defaultConfig,
+      )
+  }
+
   final case class ParticipantConfigUtil private (
-      private val configs: Map[UUID, SimonaConfig.BaseRuntimeConfig],
+      private val configs: Map[UUID, BaseRuntimeConfig],
       private val defaultConfigs: Map[Class[_], BaseRuntimeConfig],
   ) {
 
@@ -78,7 +124,7 @@ object ConfigUtil {
       *   a matching config utility
       */
     def apply(
-        subConfig: SimonaConfig.Simona.Runtime.Participant
+        subConfig: RuntimeConfig.Participant
     ): ParticipantConfigUtil = {
       ParticipantConfigUtil(
         buildUuidMapping(
@@ -89,7 +135,6 @@ object ConfigUtil {
             subConfig.evcs.individualConfigs,
             subConfig.wec.individualConfigs,
             subConfig.storage.individualConfigs,
-            subConfig.em.individualConfigs,
           ).flatten
         ),
         Seq(
@@ -100,20 +145,9 @@ object ConfigUtil {
           subConfig.wec.defaultConfig,
           subConfig.hp.defaultConfig,
           subConfig.storage.defaultConfig,
-          subConfig.em.defaultConfig,
         ).map { conf => conf.getClass -> conf }.toMap,
       )
     }
-
-    private def buildUuidMapping(
-        configs: Seq[BaseRuntimeConfig]
-    ): Map[UUID, BaseRuntimeConfig] =
-      configs
-        .flatMap(modelConfig =>
-          modelConfig.uuids
-            .map(UUID.fromString(_) -> modelConfig)
-        )
-        .toMap
 
   }
 
@@ -182,11 +216,11 @@ object ConfigUtil {
   }
 
   object OutputConfigUtil {
-    def apply(
-        subConfig: SimonaConfig.Simona.Output.Participant
+    def participants(
+        subConfig: AssetConfigs[ParticipantOutputConfig]
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
-        case ParticipantBaseOutputConfig(
+        case ParticipantOutputConfig(
               _,
               simulationResult,
               flexResult,
@@ -195,7 +229,7 @@ object ConfigUtil {
           NotifierConfig(simulationResult, powerRequestReply, flexResult)
       }
       val configMap = subConfig.individualConfigs.map {
-        case ParticipantBaseOutputConfig(
+        case ParticipantOutputConfig(
               notifier,
               simulationResult,
               flexResult,
@@ -219,8 +253,8 @@ object ConfigUtil {
       new OutputConfigUtil(defaultConfig, configMap)
     }
 
-    def apply(
-        subConfig: SimonaConfig.Simona.Output.Thermal
+    def thermal(
+        subConfig: AssetConfigs[SimpleOutputConfig]
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case SimpleOutputConfig(_, simulationResult) =>
@@ -282,7 +316,6 @@ object ConfigUtil {
     */
   object NotifierIdentifier extends ParsableEnumeration {
     val BioMassPlant: Value = Value("bm")
-    val ChpPlant: Value = Value("chp")
     val Em: Value = Value("em")
     val Ev: Value = Value("ev")
     val Evcs: Value = Value("evcs")
@@ -317,7 +350,7 @@ object ConfigUtil {
       *   descriptive exception messages)
       */
     def checkBaseCsvParams(
-        params: SimonaConfig.BaseCsvParams,
+        params: BaseCsvParams,
         csvParamsName: String,
     ): Unit = params match {
       case BaseCsvParams(csvSep, directoryPath, _) =>
@@ -357,7 +390,7 @@ object ConfigUtil {
   object DatabaseConfigUtil extends LazyLogging {
 
     def checkSqlParams(
-        sql: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
+        sql: SqlParams
     ): Unit = {
       if (!sql.jdbcUrl.trim.startsWith("jdbc:")) {
         throw new InvalidConfigParameterException(
@@ -410,7 +443,7 @@ object ConfigUtil {
     }
 
     def checkCouchbaseParams(
-        couchbase: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams
+        couchbase: CouchbaseParams
     ): Unit = {
       if (couchbase.url.isEmpty)
         throw new InvalidConfigParameterException(
@@ -535,5 +568,15 @@ object ConfigUtil {
       }
     }
   }
+
+  private def buildUuidMapping[T <: BaseRuntimeConfig](
+      configs: Seq[T]
+  ): Map[UUID, T] =
+    configs
+      .flatMap(modelConfig =>
+        modelConfig.uuids
+          .map(UUID.fromString(_) -> modelConfig)
+      )
+      .toMap
 
 }

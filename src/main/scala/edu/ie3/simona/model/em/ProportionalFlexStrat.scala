@@ -8,7 +8,7 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import EmModelStrat.tolerance
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import squants.Power
 
 import java.util.UUID
@@ -32,36 +32,48 @@ object ProportionalFlexStrat extends EmModelStrat {
     */
   override def determineFlexControl(
       modelFlexOptions: Iterable[
-        (_ <: AssetInput, ProvideMinMaxFlexOptions)
+        (_ <: AssetInput, MinMaxFlexOptions)
       ],
       target: Power,
   ): Iterable[(UUID, Power)] = {
 
     // Input models are not needed here
     val flexOptions = modelFlexOptions
-      .map { case (_, flexOptions) =>
-        flexOptions
+      .map { case (asset, flexOptions) =>
+        asset.getUuid -> flexOptions
       }
 
     // sum up reference, minimum and maximum power of all connected devices
-    val (totalRef, totalMin, totalMax) = flexOptions.flexSum
+    val totalOptions = flexOptions.map { case (_, flexOptions) =>
+      flexOptions
+    }.flexSum
 
-    if (target.~=(totalRef)(tolerance)) {
+    if (target.~=(totalOptions.ref)(tolerance)) {
       Seq.empty
-    } else if (target < totalRef) {
+    } else if (target < totalOptions.ref) {
       val reducedOptions = flexOptions.map {
-        case ProvideMinMaxFlexOptions(uuid, refPower, minPower, _) =>
+        case (uuid, MinMaxFlexOptions(refPower, minPower, _)) =>
           (uuid, refPower, minPower)
       }
 
-      distributeFlexibility(target, totalRef, totalMin, reducedOptions)
+      distributeFlexibility(
+        target,
+        totalOptions.ref,
+        totalOptions.min,
+        reducedOptions,
+      )
     } else {
       val reducedOptions = flexOptions.map {
-        case ProvideMinMaxFlexOptions(uuid, refPower, _, maxPower) =>
+        case (uuid, MinMaxFlexOptions(refPower, _, maxPower)) =>
           (uuid, refPower, maxPower)
       }
 
-      distributeFlexibility(target, totalRef, totalMax, reducedOptions)
+      distributeFlexibility(
+        target,
+        totalOptions.ref,
+        totalOptions.max,
+        reducedOptions,
+      )
     }
   }
 
@@ -118,7 +130,7 @@ object ProportionalFlexStrat extends EmModelStrat {
 
   override def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: ProvideMinMaxFlexOptions,
-  ): ProvideMinMaxFlexOptions =
+      flexOptions: MinMaxFlexOptions,
+  ): MinMaxFlexOptions =
     flexOptions
 }

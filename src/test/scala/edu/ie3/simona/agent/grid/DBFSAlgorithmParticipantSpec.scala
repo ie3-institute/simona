@@ -14,27 +14,29 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangeVoltage,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
+import edu.ie3.simona.ontology.messages.services.{
+  ServiceMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
@@ -52,13 +54,13 @@ class DBFSAlgorithmParticipantSpec
     TestProbe("runtimeEvents")
   private val primaryService: TestProbe[ServiceMessage] =
     TestProbe("primaryService")
-  private val weatherService = TestProbe("weatherService")
+  private val weatherService = TestProbe[WeatherMessage]("weatherService")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
-    primaryServiceProxy = primaryService.ref.toClassic,
-    weather = weatherService.ref.toClassic,
+    primaryServiceProxy = primaryService.ref,
+    weather = weatherService.ref,
     evDataService = None,
   )
 
@@ -92,6 +94,7 @@ class DBFSAlgorithmParticipantSpec
         Seq.empty,
         subGridGateToActorRef,
         RefSystem("2000 MVA", "110 kV"),
+        VoltageLimits(0.9, 1.1),
       )
 
       val key =
@@ -101,29 +104,32 @@ class DBFSAlgorithmParticipantSpec
 
       gridAgentWithParticipants ! CreateGridAgent(gridAgentInitData, key)
 
-      val scheduleActivationMsg =
-        scheduler.expectMessageType[ScheduleActivation]
-      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
-      scheduleActivationMsg.unlockKey shouldBe Some(key)
-      val gridAgentActivation = scheduleActivationMsg.actor
-
-      // send init data to agent and expect a Completion
-      gridAgentWithParticipants ! WrappedActivation(Activation(INIT_SIM_TICK))
-
-      val scheduleLoadAgentMsg = scheduler.expectMessageType[ScheduleActivation]
-      scheduleLoadAgentMsg.tick shouldBe INIT_SIM_TICK
-      val loadAgent = scheduleLoadAgentMsg.actor
-
-      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
+      val loadAgent = scheduler
+        .receiveMessages(3)
+        .flatMap {
+          case ScheduleActivation(_, PRE_INIT_TICK, None) =>
+            // participant schedule lock
+            None
+          case ScheduleActivation(actor, INIT_SIM_TICK, Some(_)) =>
+            // load agent
+            Some(actor)
+          case ScheduleActivation(_, 3600, Some(_)) =>
+            // GridAgent
+            None
+          case other =>
+            fail(s"Unexpected scheduler message $other")
+        }
+        .headOption
+        .value
 
       loadAgent ! Activation(INIT_SIM_TICK)
 
-      primaryService.expectMessage(
-        PrimaryServiceRegistrationMessage(load1.getUuid)
-      )
+      val serviceRegistrationMsg = primaryService
+        .expectMessageType[PrimaryServiceRegistrationMessage]
+      serviceRegistrationMsg.inputModelUuid shouldBe load1.getUuid
 
-      loadAgent.toClassic ! RegistrationFailedMessage(
-        primaryService.ref.toClassic
+      serviceRegistrationMsg.requestingActor ! RegistrationFailedMessage(
+        primaryService.ref
       )
 
       scheduler.expectMessage(Completion(loadAgent, Some(0)))
@@ -132,7 +138,7 @@ class DBFSAlgorithmParticipantSpec
       loadAgent ! Activation(0)
 
       // the load agent should send a Completion
-      scheduler.expectMessage(Completion(loadAgent, None))
+      scheduler.expectMessage(Completion(loadAgent, Some(3600)))
 
     }
 

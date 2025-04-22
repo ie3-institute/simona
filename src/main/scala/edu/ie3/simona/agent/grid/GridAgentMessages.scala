@@ -34,6 +34,7 @@ object GridAgentMessages {
   final case class CreateGridAgent(
       gridAgentInitData: GridAgentInitData,
       unlockKey: ScheduleKey,
+      onlyOneSubGrid: Boolean = false,
   ) extends GridAgent.InternalRequest
 
   /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to

@@ -7,11 +7,12 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
-import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
+import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.Power
+import squants.energy.Kilowatts
 
 import java.util.UUID
 
@@ -35,9 +36,9 @@ final case class EmModelShell(
 
   def aggregateFlexOptions(
       allFlexOptions: Iterable[
-        (UUID, ProvideFlexOptions)
+        (UUID, FlexOptions)
       ]
-  ): (Power, Power, Power) = {
+  ): MinMaxFlexOptions = {
     val updatedAllFlexOptions = allFlexOptions.map {
       case (modelUuid, flexOptions) =>
         val assetInput = modelToParticipantInput.getOrElse(
@@ -48,7 +49,7 @@ final case class EmModelShell(
         )
 
         val minMaxFlexOptions = flexOptions match {
-          case flex: ProvideMinMaxFlexOptions => flex
+          case flex: MinMaxFlexOptions => flex
           case unsupported =>
             throw new CriticalFailureException(
               s"Received unsupported flex options $unsupported."
@@ -65,12 +66,12 @@ final case class EmModelShell(
   }
 
   def determineFlexControl(
-      allFlexOptions: Iterable[(UUID, ProvideFlexOptions)],
+      allFlexOptions: Iterable[(UUID, FlexOptions)],
       target: Power,
   ): Iterable[(UUID, Power)] = {
 
     val minMaxFlexOptions = allFlexOptions.toMap.view.mapValues {
-      case flex: ProvideMinMaxFlexOptions => flex
+      case flex: MinMaxFlexOptions => flex
       case unsupported =>
         throw new CriticalFailureException(
           s"Received unsupported flex options $unsupported."
@@ -101,7 +102,15 @@ final case class EmModelShell(
         )
 
       // sanity checks after strat calculation
-      EmTools.checkSetPower(flexOptions, power)
+      try {
+        EmTools.checkSetPower(flexOptions, power)
+      } catch {
+        case fe: FlexException =>
+          throw new CriticalFailureException(
+            s"Determining flex power failed for asset $model",
+            fe,
+          )
+      }
 
       model -> power
     }
@@ -126,9 +135,34 @@ object EmModelShell {
     }
 
     val aggregateFlex = modelConfig.aggregateFlex match {
-      case "SELF_OPT_EXCL_REG" => EmAggregateSelfOpt(false)
-      case "SELF_OPT"          => EmAggregateSelfOpt(true)
-      case "SIMPLE_SUM"        => EmAggregateSimpleSum
+      case "SELF_OPT_EXCL_REG" =>
+        EmAggregatePowerOpt(zeroKW, curtailRegenerative = false)
+      case "SELF_OPT" => EmAggregatePowerOpt(zeroKW, curtailRegenerative = true)
+      case "SIMPLE_SUM" => EmAggregateSimpleSum
+
+      case powerTargetAbsString
+          if powerTargetAbsString.startsWith("SELF_POWER_") =>
+        val pattern = """SELF_POWER_([\d.]+)(_EXCL_REG)?""".r
+        powerTargetAbsString match {
+          case pattern(value, exclReg) =>
+            try {
+              val powerTargetAbs = BigDecimal(value)
+              val curtailRegenerative = exclReg == null
+              EmAggregatePowerOpt(
+                Kilowatts(powerTargetAbs),
+                curtailRegenerative,
+              )
+            } catch {
+              case _: NumberFormatException =>
+                throw new CriticalFailureException(
+                  s"Invalid numeric value in aggregate flex strategy: $powerTargetAbsString"
+                )
+            }
+          case _ =>
+            throw new CriticalFailureException(
+              s"Invalid format for aggregate flex strategy: $powerTargetAbsString"
+            )
+        }
       case unknown =>
         throw new CriticalFailureException(
           s"Unknown aggregate flex strategy $unknown"

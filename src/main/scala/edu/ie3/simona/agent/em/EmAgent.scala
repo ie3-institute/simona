@@ -8,9 +8,7 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexControlledData
-import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
@@ -24,8 +22,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -33,6 +31,7 @@ import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.time.ZonedDateTime
+import scala.util.{Failure, Try}
 
 /** Energy management agent that receives flex options from and issues control
   * messages to connected agents
@@ -108,8 +107,7 @@ object EmAgent {
         .map { parentEm =>
           val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
 
-          parentEm ! RegisterParticipant(
-            inputModel.getUuid,
+          parentEm ! RegisterControlledAsset(
             flexAdapter,
             inputModel,
           )
@@ -151,12 +149,12 @@ object EmAgent {
       core: EmDataCore.Inactive,
   ): Behavior[Request] = Behaviors.receivePartial {
 
-    case (_, RegisterParticipant(model, actor, spi)) =>
-      val updatedModelShell = modelShell.addParticipant(model, spi)
-      val updatedCore = core.addParticipant(actor, model)
+    case (_, RegisterControlledAsset(actor, spi)) =>
+      val updatedModelShell = modelShell.addParticipant(spi.getUuid, spi)
+      val updatedCore = core.addParticipant(actor, spi.getUuid)
       inactive(emData, updatedModelShell, updatedCore)
 
-    case (_, ScheduleFlexRequest(participant, newTick, scheduleKey)) =>
+    case (_, ScheduleFlexActivation(participant, newTick, scheduleKey)) =>
       val (maybeSchedule, newCore) = core
         .handleSchedule(participant, newTick)
 
@@ -172,7 +170,7 @@ object EmAgent {
                 scheduleTick,
                 scheduleKey,
               ),
-            _.emAgent ! ScheduleFlexRequest(
+            _.emAgent ! ScheduleFlexActivation(
               modelShell.uuid,
               scheduleTick,
               scheduleKey,
@@ -224,48 +222,47 @@ object EmAgent {
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
   ): Behavior[Request] = Behaviors.receiveMessagePartial {
-    case flexOptions: ProvideFlexOptions =>
-      val updatedCore = flexOptionsCore.handleFlexOptions(flexOptions)
+    case provideFlex: ProvideFlexOptions =>
+      val updatedCore = flexOptionsCore.handleFlexOptions(
+        provideFlex.modelUuid,
+        provideFlex.flexOptions,
+      )
 
       if (updatedCore.isComplete) {
 
         val allFlexOptions = updatedCore.getFlexOptions
 
+        val emFlexOptions =
+          modelShell.aggregateFlexOptions(allFlexOptions)
+
+        if (emData.outputConfig.flexResult) {
+          val flexResult = new FlexOptionsResult(
+            flexOptionsCore.activeTick.toDateTime(
+              emData.simulationStartDate
+            ),
+            modelShell.uuid,
+            emFlexOptions.ref.toMegawatts.asMegaWatt,
+            emFlexOptions.min.toMegawatts.asMegaWatt,
+            emFlexOptions.max.toMegawatts.asMegaWatt,
+          )
+
+          emData.listener.foreach {
+            _ ! FlexOptionsResultEvent(flexResult)
+          }
+        }
+
         emData.parentData match {
           case Right(flexStateData) =>
-            // aggregate flex options and provide to parent
-            val (ref, min, max) =
-              modelShell.aggregateFlexOptions(allFlexOptions)
-
-            if (emData.outputConfig.flexResult) {
-              val flexResult = new FlexOptionsResult(
-                flexOptionsCore.activeTick.toDateTime(
-                  emData.simulationStartDate
-                ),
-                modelShell.uuid,
-                ref.toMegawatts.asMegaWatt,
-                min.toMegawatts.asMegaWatt,
-                max.toMegawatts.asMegaWatt,
-              )
-
-              emData.listener.foreach {
-                _ ! FlexOptionsResultEvent(flexResult)
-              }
-            }
-
-            val flexMessage = ProvideMinMaxFlexOptions(
+            // provide aggregate flex options to parent
+            flexStateData.emAgent ! ProvideFlexOptions(
               modelShell.uuid,
-              ref,
-              min,
-              max,
+              emFlexOptions,
             )
-
-            flexStateData.emAgent ! flexMessage
 
             val updatedEmData = emData.copy(
               parentData = Right(
                 flexStateData.copy(
-                  lastFlexOptions = Some(flexMessage)
+                  lastFlexOptions = Some(emFlexOptions)
                 )
               )
             )
@@ -328,10 +325,17 @@ object EmAgent {
         )
       )
 
-      val setPointActivePower = EmTools.determineFlexPower(
-        ownFlexOptions,
-        flexCtrl,
-      )
+      val setPointActivePower =
+        Try(EmTools.determineFlexPower(ownFlexOptions, flexCtrl))
+          .recoverWith(exception =>
+            Failure(
+              new CriticalFailureException(
+                s"Determining flex power failed for EmAgent ${modelShell.uuid}",
+                exception,
+              )
+            )
+          )
+          .get
 
       // flex options calculated by connected agents
       val receivedFlexOptions = flexOptionsCore.getFlexOptions

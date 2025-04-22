@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: SIMONA
+title: "SIMONA - A Discrete-Event Distribution Grid Simulation Environment"
 message: "If you use this software, please cite it as below."
 type: software
 authors:

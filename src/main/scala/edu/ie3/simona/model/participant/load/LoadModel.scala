@@ -1,143 +1,137 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2024. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
 
 package edu.ie3.simona.model.participant.load
 
-import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
-import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.{
-  ApparentPowerParticipant,
-  FlexChangeIndicator,
-  SystemParticipant,
+import edu.ie3.datamodel.models.result.system.{
+  LoadResult,
+  SystemParticipantResult,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.OperationInterval
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
+import edu.ie3.simona.model.participant.ParticipantFlexibility.ParticipantSimpleFlexibility
+import edu.ie3.simona.model.participant.ParticipantModel
+import edu.ie3.simona.model.participant.ParticipantModel.{
+  ActivePowerOperatingPoint,
+  ModelState,
+  ParticipantModelFactory,
+}
+import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
+import edu.ie3.simona.model.participant.load.random.RandomLoadModel
+import edu.ie3.simona.service.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithComplexPower,
+}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  EnergyToSimona,
+  PowerConversionSimona,
+}
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.{Energy, Power}
 
-import java.util.UUID
+import java.time.ZonedDateTime
 
-/** Abstract super class of a load model.
-  *
-  * @tparam D
-  *   Type of data, that is needed for model calculation
-  */
-abstract class LoadModel[D <: LoadRelevantData](
-    uuid: UUID,
-    id: String,
-    operationInterval: OperationInterval,
-    qControl: QControl,
-    sRated: ApparentPower,
-    cosPhiRated: Double,
-) extends SystemParticipant[D, ComplexPower, ConstantState.type](
-      uuid,
-      id,
-      operationInterval,
-      qControl,
-      sRated,
-      cosPhiRated,
-    )
-    with ApparentPowerParticipant[D, ConstantState.type] {
+abstract class LoadModel[S <: ModelState]
+    extends ParticipantModel[
+      ActivePowerOperatingPoint,
+      S,
+    ]
+    with ParticipantSimpleFlexibility[S] {
 
-  override def determineFlexOptions(
-      data: D,
-      lastState: ConstantState.type,
-  ): ProvideFlexOptions =
-    ProvideMinMaxFlexOptions.noFlexOption(
-      uuid,
-      calculateActivePower(lastState, data),
+  override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
+    ActivePowerOperatingPoint.zero
+
+  override def createResults(
+      state: S,
+      lastOperatingPoint: Option[ActivePowerOperatingPoint],
+      currentOperatingPoint: ActivePowerOperatingPoint,
+      complexPower: ComplexPower,
+      dateTime: ZonedDateTime,
+  ): Iterable[SystemParticipantResult] =
+    Iterable(
+      new LoadResult(
+        dateTime,
+        uuid,
+        complexPower.p.toMegawatts.asMegaWatt,
+        complexPower.q.toMegavars.asMegaVar,
+      )
     )
 
-  override def handleControlledPowerChange(
-      data: D,
-      lastState: ConstantState.type,
-      setPower: Power,
-  ): (ConstantState.type, FlexChangeIndicator) =
-    (lastState, FlexChangeIndicator())
+  override def createPrimaryDataResult(
+      data: PrimaryDataWithComplexPower[_],
+      dateTime: ZonedDateTime,
+  ): SystemParticipantResult =
+    new LoadResult(
+      dateTime,
+      uuid,
+      data.p.toMegawatts.asMegaWatt,
+      data.q.toMegavars.asMegaVar,
+    )
+
 }
 
-object LoadModel extends LazyLogging {
+object LoadModel {
 
-  /** Scale profile based load models' sRated based on a provided active power
-    * value
+  /** Calculates the scaling factor and scaled rated apparent power according to
+    * the reference type
     *
-    * When the load is scaled to the active power value, the models' sRated is
-    * multiplied by the ratio of the provided active power value and the active
-    * power value of the model (activePowerVal / (input.sRated*input.cosPhi)
-    *
-    * @param inputModel
-    *   the input model instance
-    * @param activePower
-    *   the active power value sRated should be scaled to
-    * @param safetyFactor
-    *   a safety factor to address potential higher sRated values than the
-    *   original scaling would provide (e.g. when using unrestricted probability
-    *   functions)
+    * @param referenceType
+    *   The type of reference according to which scaling is calculated
+    * @param input
+    *   The [[LoadInput]] of the model
+    * @param maxPower
+    *   The maximum power consumption possible for the model
+    * @param referenceEnergy
+    *   The (annual) reference energy relevant to the load model
     * @return
-    *   the inputs model sRated scaled to the provided active power
+    *   the reference scaling factor used for calculation of specific power
+    *   consumption values and the scaled rated apparent power
     */
-  def scaleSRatedActivePower(
-      inputModel: LoadInput,
-      activePower: Power,
-      safetyFactor: Double = 1d,
-  ): ApparentPower = {
-    val sRated = Kilovoltamperes(
-      inputModel.getsRated
-        .to(PowerSystemUnits.KILOVOLTAMPERE)
-        .getValue
-        .doubleValue
-    )
-    val pRated = sRated.toActivePower(inputModel.getCosPhiRated)
-    val referenceScalingFactor = activePower / pRated
-    sRated * referenceScalingFactor * safetyFactor
+  def scaleToReference(
+      referenceType: LoadReferenceType.Value,
+      input: LoadInput,
+      maxPower: Power,
+      referenceEnergy: Energy,
+  ): (Double, ApparentPower) = {
+    val sRated = input.getsRated.toApparent
+    val eConsAnnual = input.geteConsAnnual().toSquants
+
+    val referenceScalingFactor = referenceType match {
+      case LoadReferenceType.ACTIVE_POWER =>
+        val pRated = sRated.toActivePower(input.getCosPhiRated)
+        pRated / maxPower
+      case LoadReferenceType.ENERGY_CONSUMPTION =>
+        eConsAnnual / referenceEnergy
+    }
+
+    val scaledSRated = referenceType match {
+      case LoadReferenceType.ACTIVE_POWER =>
+        sRated
+      case LoadReferenceType.ENERGY_CONSUMPTION =>
+        val maxApparentPower = Kilovoltamperes(
+          maxPower.toKilowatts / input.getCosPhiRated
+        )
+        maxApparentPower * referenceScalingFactor
+    }
+
+    (referenceScalingFactor, scaledSRated)
   }
 
-  /** Scale profile based load model's sRated based on the provided yearly
-    * energy consumption
-    *
-    * When the load is scaled based on the consumed energy per year, the
-    * installed sRated capacity is not usable anymore instead, the load's rated
-    * apparent power is scaled on the maximum power occurring in the specified
-    * load profile multiplied by the ratio of the annual consumption and the
-    * standard load profile scale
-    *
-    * @param inputModel
-    *   the input model instance
-    * @param energyConsumption
-    *   the yearly energy consumption the models' sRated should be scaled to
-    * @param profileMaxPower
-    *   the maximum power value of the profile
-    * @param profileEnergyScaling
-    *   the energy scaling factor of the profile (= amount of yearly energy the
-    *   profile is scaled to)
-    * @param safetyFactor
-    *   a safety factor to address potential higher sRated values than the
-    *   original scaling would provide (e.g. when using unrestricted probability
-    *   functions)
-    * @return
-    *   he inputs model sRated scaled to the provided energy consumption
-    */
-  def scaleSRatedEnergy(
-      inputModel: LoadInput,
-      energyConsumption: Energy,
-      profileMaxPower: Power,
-      profileEnergyScaling: Energy,
-      safetyFactor: Double = 1d,
-  ): ApparentPower = {
-    val power = (profileMaxPower / inputModel.getCosPhiRated) * (
-      energyConsumption / profileEnergyScaling
-    ) * safetyFactor
-
-    Kilovoltamperes(power.toKilowatts)
-  }
+  def getFactory(
+      input: LoadInput,
+      config: LoadRuntimeConfig,
+  ): ParticipantModelFactory[_ <: ModelState] =
+    LoadModelBehaviour(config.modelBehaviour) match {
+      case LoadModelBehaviour.FIX =>
+        FixedLoadModel.Factory(input, config)
+      case LoadModelBehaviour.PROFILE =>
+        ProfileLoadModel.Factory(input, config)
+      case LoadModelBehaviour.RANDOM =>
+        RandomLoadModel.Factory(input, config)
+    }
 
 }

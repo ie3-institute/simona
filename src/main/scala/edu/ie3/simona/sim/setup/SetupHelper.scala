@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
-import com.typesafe.config.{Config => TypesafeConfig}
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
@@ -15,13 +15,16 @@ import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.config.RefSystemParser.ConfigRefSystems
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.GridConfigParser.{
+  ConfigRefSystems,
+  ConfigVoltageLimits,
+}
+import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.logging.logback.LogbackConfiguration
-import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
@@ -29,7 +32,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.Kilovolts
 
-/** Methods to support the setup of a simona simulation
+/** Methods to support the setup of a simona simulation.
   *
   * @version 0.1
   * @since 02.07.20
@@ -42,26 +45,27 @@ trait SetupHelper extends LazyLogging {
     * [[RefSystem]] to use being defined in the config.
     *
     * @param subGridContainer
-    *   Container of all models for this sub grid
+    *   Container of all models for this sub grid.
     * @param subGridToActorRef
     *   Mapping from sub grid number to [[edu.ie3.simona.agent.grid.GridAgent]]
-    *   's [[ActorRef]]
+    *   's [[ActorRef]].
     * @param gridGates
-    *   [[Set]] of all [[SubGridGate]] s connecting this sub grid with its
-    *   ancestors and children
+    *   [[Set]] of all [[SubGridGate]] s connecting this sub grid with its.
+    *   ancestors and children.
     * @param configRefSystems
-    *   Collection of reference systems defined in config
+    *   Collection of reference systems defined in config.
     * @param thermalGrids
-    *   Collection of applicable thermal grids
+    *   Collection of applicable thermal grids.
     * @return
     *   Initialization data for the [[edu.ie3.simona.agent.grid.GridAgent]]
-    *   representing this sub grid
+    *   representing this sub grid.
     */
   def buildGridAgentInitData(
       subGridContainer: SubGridContainer,
       subGridToActorRef: Map[Int, ActorRef[GridAgent.Request]],
       gridGates: Set[SubGridGate],
       configRefSystems: ConfigRefSystems,
+      configVoltageLimits: ConfigVoltageLimits,
       thermalGrids: Seq[ThermalGrid],
   ): GridAgentInitData = {
     val subGridGateToActorRef = buildGateToActorRef(
@@ -74,6 +78,8 @@ trait SetupHelper extends LazyLogging {
     val refSystem =
       getRefSystem(configRefSystems, subGridContainer)
 
+    val voltageLimits = getVoltageLimits(configVoltageLimits, subGridContainer)
+
     /* Prepare the subgrid container for the agents by adapting the transformer high voltage nodes to be slacks */
     val updatedSubGridContainer =
       ContainerUtils.withTrafoNodeAsSlack(subGridContainer)
@@ -84,20 +90,21 @@ trait SetupHelper extends LazyLogging {
       thermalGrids,
       subGridGateToActorRef,
       refSystem,
+      voltageLimits,
     )
   }
 
   /** Maps the [[SubGridGate]] s of a given sub grid to the corresponding actor
-    * references
+    * references.
     *
     * @param subGridToActorRefMap
-    *   Mapping from sub grid number to actor reference
+    *   Mapping from sub grid number to actor reference.
     * @param subGridGates
-    *   Gates from the given sub grid to other sub grids
+    *   Gates from the given sub grid to other sub grids.
     * @param currentSubGrid
-    *   Current grid number (only for building exception message)
+    *   Current grid number (only for building exception message).
     * @return
-    *   A mapping from [[SubGridGate]] to corresponding actor reference
+    *   A mapping from [[SubGridGate]] to corresponding actor reference.
     */
   def buildGateToActorRef(
       subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
@@ -133,16 +140,16 @@ trait SetupHelper extends LazyLogging {
       .toMap
 
   /** Get the actor reference from the map or throw an exception, if it is not
-    * apparent
+    * apparent.
     *
     * @param subGridToActorRefMap
-    *   Mapping from sub grid number to actor reference
+    *   Mapping from sub grid number to actor reference.
     * @param currentSubGrid
-    *   Current grid number (only for building exception message)
+    *   Current grid number (only for building exception message).
     * @param queriedSubGrid
-    *   The sub grid to look for
+    *   The sub grid to look for.
     * @return
-    *   The actor reference of the sub grid to look for
+    *   The actor reference of the sub grid to look for.
     */
   private def getActorRef(
       subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
@@ -162,11 +169,11 @@ trait SetupHelper extends LazyLogging {
     * [[SubGridContainer]] within the information provided by config.
     *
     * @param configRefSystems
-    *   Collection of reference systems definitions from config
+    *   Collection of reference systems definitions from config.
     * @param subGridContainer
-    *   Container model for the respective sub grid
+    *   Container model for the respective sub grid.
     * @return
-    *   The reference system to use
+    *   The reference system to use.
     */
   private def getRefSystem(
       configRefSystems: ConfigRefSystems,
@@ -200,18 +207,36 @@ trait SetupHelper extends LazyLogging {
     refSystem
   }
 
+  def getVoltageLimits(
+      configVoltageLimits: ConfigVoltageLimits,
+      subGridContainer: SubGridContainer,
+  ): VoltageLimits = configVoltageLimits
+    .find(
+      subGridContainer.getSubnet,
+      Some(subGridContainer.getPredominantVoltageLevel),
+    )
+    .getOrElse(
+      throw new InitializationException(
+        s"Unable to determine voltage limits for grid with id ${subGridContainer.getSubnet} @ " +
+          s"volt level ${subGridContainer.getPredominantVoltageLevel}. Please either provide voltage limits for the grid id or the whole volt level!"
+      )
+    )
+
   /** Build the result file hierarchy based on the provided configuration file.
     * The provided type safe config must be able to be parsed as
-    * [[SimonaConfig]], otherwise an exception is thrown
+    * [[SimonaConfig]], otherwise an exception is thrown.
     *
-    * @param config
-    *   the configuration file
+    * @param typeSafeConfig
+    *   All configuration parameters.
+    * @param simonaConfig
+    *   The configuration for SIMONA.
     * @return
-    *   the resulting result file hierarchy
+    *   The resulting result file hierarchy.
     */
-  def buildResultFileHierarchy(config: TypesafeConfig): ResultFileHierarchy = {
-
-    val simonaConfig = SimonaConfig(config)
+  def buildResultFileHierarchy(
+      typeSafeConfig: Config,
+      simonaConfig: SimonaConfig,
+  ): ResultFileHierarchy = {
 
     /* Determine the result models to write */
     val modelsToWrite =
@@ -229,7 +254,7 @@ trait SetupHelper extends LazyLogging {
       ),
       configureLogger =
         LogbackConfiguration.default(simonaConfig.simona.output.log.level),
-      config = Some(config),
+      config = Some((typeSafeConfig, simonaConfig)),
       addTimeStampToOutputDir =
         simonaConfig.simona.output.base.addTimestampToOutputDir,
     )
@@ -239,26 +264,30 @@ trait SetupHelper extends LazyLogging {
 object SetupHelper {
 
   /** Determine a comprehensive collection of all [[ResultEntity]] classes, that
-    * will have to be considered
+    * will have to be considered.
     *
     * @param outputConfig
-    *   configuration to consider
+    *   configuration to consider.
     * @return
-    *   Set of [[ResultEntity]] classes
+    *   Set of [[ResultEntity]] classes.
     */
   private def allResultEntitiesToWrite(
-      outputConfig: SimonaConfig.Simona.Output
+      outputConfig: OutputConfig
   ): Set[Class[_ <: ResultEntity]] =
     GridOutputConfigUtil(
       outputConfig.grid
     ).simulationResultEntitiesToConsider ++
-      (OutputConfigUtil(
-        outputConfig.participant
-      ).simulationResultIdentifiersToConsider(thermal =
-        false
-      ) ++ OutputConfigUtil(
-        outputConfig.thermal
-      ).simulationResultIdentifiersToConsider(thermal = true))
+      (OutputConfigUtil
+        .participants(
+          outputConfig.participant
+        )
+        .simulationResultIdentifiersToConsider(thermal =
+          false
+        ) ++ OutputConfigUtil
+        .thermal(
+          outputConfig.thermal
+        )
+        .simulationResultIdentifiersToConsider(thermal = true))
         .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
       (if (outputConfig.flex) Seq(classOf[FlexOptionsResult]) else Seq.empty)
 }

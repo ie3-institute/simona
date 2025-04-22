@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.model.participant.load.random
 
-import java.time.ZonedDateTime
-
 import edu.ie3.simona.model.participant.load.DayType
 import edu.ie3.util.TimeUtil
+
+import java.time.ZonedDateTime
 
 /** Stores a slice of random load parameters, that comprises a whole day (96
   * quarter-hours). The data describes a typical day, that can unequivocally be

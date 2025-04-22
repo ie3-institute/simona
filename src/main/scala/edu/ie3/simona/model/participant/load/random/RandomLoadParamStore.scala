@@ -6,14 +6,14 @@
 
 package edu.ie3.simona.model.participant.load.random
 
-import java.io.{InputStreamReader, Reader}
-import java.time.{Duration, ZonedDateTime}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.exceptions.FileIOException
 import edu.ie3.simona.model.participant.load.DayType
 import edu.ie3.simona.model.participant.load.random.RandomLoadParamStore.initializeDayTypeValues
 import org.apache.commons.csv.{CSVFormat, CSVRecord}
 
+import java.io.{InputStreamReader, Reader}
+import java.time.{Duration, ZonedDateTime}
 import scala.jdk.CollectionConverters._
 
 /** Storage for a collection of random load parameters.
@@ -42,7 +42,7 @@ final case class RandomLoadParamStore private (reader: Reader) {
   }
 }
 
-case object RandomLoadParamStore extends LazyLogging {
+object RandomLoadParamStore extends LazyLogging {
   val resolution: Duration = Duration.ofMinutes(15)
 
   /** Default value store, that uses information from a file

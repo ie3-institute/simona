@@ -17,6 +17,10 @@ object SimonaConstants {
   @deprecated("This pattern is not used anywhere")
   val DEFAULT_DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss"
 
+  /** Tick before the initialization of the simulation shall take place
+    */
+  val PRE_INIT_TICK: Long = -2L
+
   /** Tick, in which the initialization of the simulation shall take place
     */
   val INIT_SIM_TICK: Long = -1L

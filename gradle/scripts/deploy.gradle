@@ -5,7 +5,7 @@
 /**
  * Task to run a simona simulation on a dedicated server
  */
-task deployAndRun {
+tasks.register('deployAndRun') {
   doFirst {
     // load deploy properties
     def props = new Properties()
@@ -27,9 +27,9 @@ task deployAndRun {
       session(sessionData) {
         println "Preparing dirs ..."
         // remove dir first
-        execute("rm -rf " + tmp_dir_path)
+        executeCommand("rm -rf " + tmp_dir_path)
         // create dir
-        execute("mkdir " + tmp_dir_path)
+        executeCommand("mkdir " + tmp_dir_path)
 
         println "Uploading script ..."
         // upload scripts
@@ -37,13 +37,13 @@ task deployAndRun {
         into: tmp_dir_path
 
         println "Adjusting script permissions ..."
-        execute("chmod +x " + tmp_dir_path + "init-run.sh")
+        executeCommand("chmod +x " + tmp_dir_path + "init-run.sh")
 
         println "Executing script ..."
         execute("tmux new-session -d " + tmp_dir_path + "init-run.sh -b " + props.get('git.branch') + " -c " +
             props.get('git.commit') + " -s " + props.get('simona.config'))
         // remove tmp dir
-        execute("rm -rf " + tmp_dir_path)
+        executeCommand("rm -rf " + tmp_dir_path)
       }
     }
   }
@@ -79,5 +79,5 @@ static def validateProps(Properties props) {
 }
 
 private static def validateException(String key) {
-  throw new RuntimeException("Missing server deploment property key '" + key + "'")
+  throw new RuntimeException("Missing server deployment property key '" + key + "'")
 }

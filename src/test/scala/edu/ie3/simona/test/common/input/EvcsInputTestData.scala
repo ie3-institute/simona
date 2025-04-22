@@ -12,8 +12,10 @@ import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.simona.model.participant.evcs.EvcsModel
+import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.simona.test.common.model.MockEvModel
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 
 import java.util.UUID
 
@@ -29,18 +31,61 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     null,
     ChargingPointTypeUtils.ChargingStationType2,
     2,
-    0.95,
+    1,
     EvcsLocationType.HOME,
     true,
   )
 
-  protected val evcsStandardModel: EvcsModel = EvcsModel(
-    evcsInputModel,
-    1.0,
-    defaultSimulationStart,
-    defaultSimulationEnd,
-    "maxPower",
-    lowestEvSoc = 0.2,
+  protected val evcsInputContainer = SimpleInputContainer(evcsInputModel)
+
+  protected val ev1 = new MockEvModel(
+    UUID.fromString("0-0-0-1-1"),
+    "TestEv1",
+    5.0.asKiloWatt,
+    10.0.asKiloWatt,
+    10.0.asKiloWattHour,
+    5.0.asKiloWattHour,
+    18000L,
+  )
+
+  protected val ev2 = new MockEvModel(
+    UUID.fromString("0-0-0-1-2"),
+    "TestEv2",
+    5.0.asKiloWatt,
+    10.0.asKiloWatt,
+    10.0.asKiloWattHour,
+    7.5.asKiloWattHour,
+    18000L,
+  )
+
+  protected val ev3 = new MockEvModel(
+    UUID.fromString("0-0-0-1-3"),
+    "TestEv3",
+    10.0.asKiloWatt, // AC is relevant,
+    20.0.asKiloWatt, // DC is not
+    20.0.asKiloWattHour,
+    15.0.asKiloWattHour,
+    10800L,
+  )
+
+  protected val ev4 = new MockEvModel(
+    UUID.fromString("0-0-0-1-4"),
+    "TestEv4",
+    10.0.asKiloWatt, // AC is relevant,
+    20.0.asKiloWatt, // DC is not
+    10.0.asKiloWattHour,
+    0.0.asKiloWattHour,
+    10800L,
+  )
+
+  protected val ev5 = new MockEvModel(
+    UUID.fromString("0-0-0-1-5"),
+    "TestEv5",
+    5.0.asKiloWatt, // AC is relevant,
+    10.0.asKiloWatt, // DC is not
+    15.0.asKiloWattHour,
+    0.0.asKiloWattHour,
+    14400L,
   )
 
 }

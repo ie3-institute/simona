@@ -1,5 +1,5 @@
 /*
- * © 2022. TU Dortmund University,
+ * © 2024. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -7,46 +7,55 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.StorageInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.model.SystemComponent
+import edu.ie3.datamodel.models.result.system.{
+  StorageResult,
+  SystemParticipantResult,
+}
+import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
+import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.ParticipantModel.{
+  ActivePowerOperatingPoint,
+  ModelState,
+  ParticipantModelFactory,
+}
 import edu.ie3.simona.model.participant.StorageModel.{
   RefTargetSocParams,
-  StorageRelevantData,
   StorageState,
 }
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
-import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Dimensionless, Each, Energy, Power, Seconds}
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.service.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithComplexPower,
+}
+import edu.ie3.simona.service.ServiceType
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  DimensionlessToSimona,
+  EnergyToSimona,
+  PowerConversionSimona,
+}
+import squants.{Dimensionless, Energy, Power, Seconds}
 
 import java.time.ZonedDateTime
 import java.util.UUID
 
-final case class StorageModel(
-    uuid: UUID,
-    id: String,
-    operationInterval: OperationInterval,
-    qControl: QControl,
-    sRated: ApparentPower,
-    cosPhiRated: Double,
+class StorageModel private (
+    override val uuid: UUID,
+    override val id: String,
+    override val sRated: ApparentPower,
+    override val cosPhiRated: Double,
+    override val qControl: QControl,
     eStorage: Energy,
     pMax: Power,
     eta: Dimensionless,
-    initialSoc: Double,
     targetSoc: Option[Double],
-) extends SystemParticipant[StorageRelevantData, ComplexPower, StorageState](
-      uuid,
-      id,
-      operationInterval,
-      qControl,
-      sRated,
-      cosPhiRated,
-    ) {
+) extends ParticipantModel[
+      ActivePowerOperatingPoint,
+      StorageState,
+    ] {
 
   private val minEnergy = zeroKWh
 
@@ -73,64 +82,103 @@ final case class StorageModel(
     */
   private val toleranceMargin: Energy = pMax * Seconds(1d)
 
-  /** Minimal allowed energy with tolerance margin added
+  /** Minimal allowed energy with tolerance margin added.
     */
   private val minEnergyWithMargin: Energy =
     minEnergy + (toleranceMargin / eta.toEach)
 
-  /** Maximum allowed energy with tolerance margin added
+  /** Maximum allowed energy with tolerance margin added.
     */
   private val maxEnergyWithMargin: Energy =
     eStorage - (toleranceMargin * eta.toEach)
 
-  private val refTargetSoc = targetSoc.map { target =>
-    val targetEnergy = eStorage * target
+  private val refTargetSoc: Option[RefTargetSocParams] = targetSoc.map {
+    target =>
+      val targetEnergy = eStorage * target
 
-    val targetWithPosMargin =
-      targetEnergy + (toleranceMargin / eta.toEach)
+      val targetWithPosMargin =
+        targetEnergy + (toleranceMargin / eta.toEach)
 
-    val targetWithNegMargin =
-      targetEnergy - (toleranceMargin * eta.toEach)
+      val targetWithNegMargin =
+        targetEnergy - (toleranceMargin * eta.toEach)
 
-    RefTargetSocParams(
-      targetEnergy,
-      targetWithPosMargin,
-      targetWithNegMargin,
-    )
+      RefTargetSocParams(
+        targetEnergy,
+        targetWithPosMargin,
+        targetWithNegMargin,
+      )
   }
 
-  override def calculatePower(
+  override def determineState(
+      lastState: StorageState,
+      operatingPoint: ActivePowerOperatingPoint,
       tick: Long,
-      voltage: Dimensionless,
-      modelState: StorageState,
-      data: StorageRelevantData,
-  ): ComplexPower =
-    throw new NotImplementedError(
-      "Storage model cannot calculate power without flexibility control."
+      simulationTime: ZonedDateTime,
+  ): StorageState = {
+    val currentEnergy = ChargingHelper.calcEnergy(
+      lastState.storedEnergy,
+      operatingPoint.activePower,
+      lastState.tick,
+      tick,
+      eStorage,
+      minEnergy,
+      eta,
     )
 
-  override protected def calculateActivePower(
-      modelState: StorageState,
-      data: StorageRelevantData,
-  ): Power =
-    throw new NotImplementedError(
-      "Storage model cannot calculate power without flexibility control."
+    StorageState(currentEnergy, tick)
+  }
+
+  override def determineOperatingPoint(
+      state: StorageState
+  ): (ActivePowerOperatingPoint, Option[Long]) =
+    throw new CriticalFailureException(
+      "Storage model cannot calculate operation point without flexibility control."
+    )
+
+  override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
+    ActivePowerOperatingPoint.zero
+
+  override def createResults(
+      state: StorageState,
+      lastOperatingPoint: Option[ActivePowerOperatingPoint],
+      currentOperatingPoint: ActivePowerOperatingPoint,
+      complexPower: ComplexPower,
+      dateTime: ZonedDateTime,
+  ): Iterable[SystemParticipantResult] =
+    Iterable(
+      new StorageResult(
+        dateTime,
+        uuid,
+        complexPower.p.toMegawatts.asMegaWatt,
+        complexPower.q.toMegavars.asMegaVar,
+        (state.storedEnergy / eStorage).asPu,
+      )
+    )
+
+  override def createPrimaryDataResult(
+      data: PrimaryDataWithComplexPower[_],
+      dateTime: ZonedDateTime,
+  ): SystemParticipantResult =
+    new StorageResult(
+      dateTime,
+      uuid,
+      data.p.toMegawatts.asMegaWatt,
+      data.q.toMegavars.asMegaVar,
+      // Stored energy currently not supported by primary data time series
+      -1.asPu,
     )
 
   override def determineFlexOptions(
-      data: StorageRelevantData,
-      lastState: StorageState,
-  ): ProvideFlexOptions = {
-    val currentStoredEnergy =
-      determineCurrentState(lastState, data.currentTick)
+      state: StorageState
+  ): FlexOptions = {
 
-    val chargingPossible = !isFull(currentStoredEnergy)
-    val dischargingPossible = !isEmpty(currentStoredEnergy)
+    val chargingPossible = !isFull(state.storedEnergy)
+    val dischargingPossible = !isEmpty(state.storedEnergy)
 
     val refPower = refTargetSoc
       .map { targetParams =>
-        if (currentStoredEnergy <= targetParams.targetWithPosMargin) {
-          if (currentStoredEnergy >= targetParams.targetWithNegMargin) {
+        if (state.storedEnergy <= targetParams.targetWithPosMargin) {
+          if (state.storedEnergy >= targetParams.targetWithNegMargin) {
             // is within target +/- margin, no charging needed
             zeroKW
           } else {
@@ -139,7 +187,7 @@ final case class StorageModel(
           }
         } else {
           // above target + margin, discharge to target
-          pMax * (-1d)
+          pMax * -1d
         }
       }
       .getOrElse {
@@ -147,133 +195,85 @@ final case class StorageModel(
         zeroKW
       }
 
-    ProvideMinMaxFlexOptions(
-      uuid,
+    MinMaxFlexOptions(
       refPower,
-      if (dischargingPossible) pMax * (-1) else zeroKW,
+      if (dischargingPossible) pMax * -1 else zeroKW,
       if (chargingPossible) pMax else zeroKW,
     )
   }
 
-  private def calcNetPower(setPower: Power): Power =
-    if (setPower > zeroKW) {
-      // multiply eta if we're charging
-      setPower * eta.toEach
-    } else {
-      // divide by eta if we're discharging
-      // (draining the battery more than we get as output)
-      setPower / eta.toEach
-    }
-
-  override def handleControlledPowerChange(
-      data: StorageRelevantData,
-      lastState: StorageState,
+  override def determineOperatingPoint(
+      state: StorageState,
       setPower: Power,
-  ): (StorageState, FlexChangeIndicator) = {
-    val currentStoredEnergy =
-      determineCurrentState(lastState, data.currentTick)
-
+  ): (ActivePowerOperatingPoint, ParticipantModel.OperationChangeIndicator) = {
     val adaptedSetPower =
       if (
         // if power is close to zero, set it to zero
         (setPower ~= zeroKW)
         // do not keep charging if we're already full (including safety margin)
-        || (setPower > zeroKW && isFull(currentStoredEnergy))
+        || (setPower > zeroKW && isFull(state.storedEnergy))
         // do not keep discharging if we're already empty (including safety margin)
-        || (setPower < zeroKW && isEmpty(currentStoredEnergy))
+        || (setPower < zeroKW && isEmpty(state.storedEnergy))
       )
         zeroKW
       else
         setPower
 
-    // net power after considering efficiency
-    val netPower = calcNetPower(adaptedSetPower)
-
-    val currentState =
-      StorageState(
-        currentStoredEnergy,
-        adaptedSetPower,
-        data.currentTick,
-      )
-
     // if the storage is at minimum or maximum charged energy AND we are charging
     // or discharging, flex options will be different at the next activation
     val isEmptyOrFull =
-      isEmpty(currentStoredEnergy) || isFull(currentStoredEnergy)
+      isEmpty(state.storedEnergy) || isFull(state.storedEnergy)
     // if target soc is enabled, we can also be at that exact point
     val isAtTarget = refTargetSoc.exists { targetParams =>
-      currentStoredEnergy <= targetParams.targetWithPosMargin &&
-      currentStoredEnergy >= targetParams.targetWithNegMargin
+      state.storedEnergy <= targetParams.targetWithPosMargin &&
+      state.storedEnergy >= targetParams.targetWithNegMargin
     }
-    val isChargingOrDischarging = netPower != zeroKW
+    val isChargingOrDischarging = adaptedSetPower != zeroKW
     // if we've been triggered just before we hit the minimum or maximum energy,
     // and we're still discharging or charging respectively (happens in edge cases),
-    // we already set netPower to zero (see above) and also want to refresh flex options
+    // we already set the power to zero (see above) and also want to refresh flex options
     // at the next activation.
     // Similarly, if the ref target margin area is hit before hitting target SOC, we want
     // to refresh flex options.
     val hasObsoleteFlexOptions =
-      (isFull(currentStoredEnergy) && setPower > zeroKW) ||
-        (isEmpty(currentStoredEnergy) && setPower < zeroKW) ||
+      (isFull(state.storedEnergy) && setPower > zeroKW) ||
+        (isEmpty(state.storedEnergy) && setPower < zeroKW) ||
         (isAtTarget && setPower != zeroKW)
 
     val activateAtNextTick =
       ((isEmptyOrFull || isAtTarget) && isChargingOrDischarging) || hasObsoleteFlexOptions
 
-    // calculate the time span until we're full or empty, if applicable
-    val maybeTimeSpan =
-      if (!isChargingOrDischarging) {
-        // we're at 0 kW, do nothing
-        None
-      } else if (netPower > zeroKW) {
-        // we're charging, calculate time until we're full or at target energy
+    // when charging, calculate time until we're full or at target energy
+    val chargingEnergyTarget = () =>
+      refTargetSoc
+        .filter(_.targetWithNegMargin >= state.storedEnergy)
+        .map(_.targetSoc)
+        .getOrElse(eStorage)
 
-        val closestEnergyTarget = refTargetSoc
-          .flatMap { targetParams =>
-            Option.when(
-              currentStoredEnergy <= targetParams.targetWithNegMargin
-            )(targetParams.targetSoc)
-          }
-          .getOrElse(eStorage)
-
-        val energyToFull = closestEnergyTarget - currentStoredEnergy
-        Some(energyToFull / netPower)
-      } else {
-        // we're discharging, calculate time until we're at lowest energy allowed or at target energy
-
-        val closestEnergyTarget = refTargetSoc
-          .flatMap { targetParams =>
-            Option.when(
-              currentStoredEnergy >= targetParams.targetWithPosMargin
-            )(targetParams.targetSoc)
-          }
-          .getOrElse(minEnergy)
-
-        val energyToEmpty = currentStoredEnergy - closestEnergyTarget
-        Some(energyToEmpty / (netPower * (-1)))
-      }
+    // when discharging, calculate time until we're at lowest energy allowed or at target energy
+    val dischargingEnergyTarget = () =>
+      refTargetSoc
+        .filter(_.targetWithPosMargin <= state.storedEnergy)
+        .map(_.targetSoc)
+        .getOrElse(minEnergy)
 
     // calculate the tick from time span
-    val maybeNextTick = maybeTimeSpan.map { timeSpan =>
-      val timeSpanTicks = Math.round(timeSpan.toSeconds)
-      data.currentTick + timeSpanTicks
-    }
+    val maybeNextTick = ChargingHelper.calcNextEventTick(
+      state.storedEnergy,
+      adaptedSetPower,
+      state.tick,
+      chargingEnergyTarget,
+      dischargingEnergyTarget,
+      eta,
+    )
 
-    (currentState, FlexChangeIndicator(activateAtNextTick, maybeNextTick))
-  }
-
-  private def determineCurrentState(
-      lastState: StorageState,
-      currentTick: Long,
-  ): Energy = {
-    val timespan = Seconds(currentTick - lastState.tick)
-    val netPower = calcNetPower(lastState.chargingPower)
-    val energyChange = netPower * timespan
-
-    val newEnergy = lastState.storedEnergy + energyChange
-
-    // don't allow under- or overcharge e.g. due to tick rounding error
-    minEnergy.max(eStorage.min(newEnergy))
+    (
+      ActivePowerOperatingPoint(adaptedSetPower),
+      ParticipantModel.OperationChangeIndicator(
+        activateAtNextTick,
+        maybeNextTick,
+      ),
+    )
   }
 
   /** @param storedEnergy
@@ -293,26 +293,18 @@ final case class StorageModel(
     */
   private def isEmpty(storedEnergy: Energy): Boolean =
     storedEnergy <= minEnergyWithMargin
+
 }
 
 object StorageModel {
 
-  final case class StorageRelevantData(
-      currentTick: Long
-  ) extends CalcRelevantData
-
   /** @param storedEnergy
     *   The amount of currently stored energy
-    * @param chargingPower
-    *   The power with which the storage is (dis-)charging, valid until the next
-    *   state. Gross value that is valid outside the model, i.e. before
-    *   considering efficiency etc.
     * @param tick
     *   The tick at which this state is valid
     */
   final case class StorageState(
       storedEnergy: Energy,
-      chargingPower: Power,
       tick: Long,
   ) extends ModelState
 
@@ -330,59 +322,37 @@ object StorageModel {
       targetWithNegMargin: Energy,
   )
 
-  def apply(
-      inputModel: StorageInput,
-      scalingFactor: Double,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      initialSoc: Double,
-      targetSoc: Option[Double],
-  ): StorageModel = {
+  final case class Factory(
+      input: StorageInput,
+      config: StorageRuntimeConfig,
+  ) extends ParticipantModelFactory[StorageState] {
 
-    val scaledInput = inputModel.copy().scale(scalingFactor).build()
+    private val eStorage = input.getType.geteStorage.toSquants
 
-    /* Determine the operation interval */
-    val operationInterval: OperationInterval =
-      SystemComponent.determineOperationInterval(
-        simulationStartDate,
-        simulationEndDate,
-        scaledInput.getOperationTime,
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): StorageState = {
+      val initialStoredEnergy = eStorage * config.initialSoc
+      StorageState(storedEnergy = initialStoredEnergy, tick)
+    }
+
+    override def create(): StorageModel =
+      new StorageModel(
+        input.getUuid,
+        input.getId,
+        input.getType.getsRated.toApparent,
+        input.getType.getCosPhiRated,
+        QControl.apply(input.getqCharacteristics),
+        eStorage,
+        input.getType.getpMax.toSquants,
+        input.getType.getEta.toSquants,
+        config.targetSoc,
       )
 
-    // build the fixed feed in model
-    val model = StorageModel(
-      scaledInput.getUuid,
-      scaledInput.getId,
-      operationInterval,
-      QControl.apply(scaledInput.getqCharacteristics),
-      Kilovoltamperes(
-        scaledInput.getType.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
-      scaledInput.getType.getCosPhiRated,
-      KilowattHours(
-        scaledInput.getType.geteStorage
-          .to(PowerSystemUnits.KILOWATTHOUR)
-          .getValue
-          .doubleValue
-      ),
-      Kilowatts(
-        scaledInput.getType.getpMax
-          .to(PowerSystemUnits.KILOWATT)
-          .getValue
-          .doubleValue
-      ),
-      Each(
-        scaledInput.getType.getEta.to(PowerSystemUnits.PU).getValue.doubleValue
-      ),
-      initialSoc,
-      targetSoc,
-    )
-
-    model.enable()
-    model
   }
 
 }

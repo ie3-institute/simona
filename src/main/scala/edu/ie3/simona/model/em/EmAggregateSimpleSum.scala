@@ -7,21 +7,20 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import squants.Power
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 
 /** Aggregates reference, minimum and maximum power by just simply summing up
-  * each value
+  * each value.
   */
 object EmAggregateSimpleSum extends EmAggregateFlex {
 
   override def aggregateFlexOptions(
       flexOptions: Iterable[
-        (_ <: AssetInput, ProvideMinMaxFlexOptions)
+        (_ <: AssetInput, MinMaxFlexOptions)
       ]
-  ): (Power, Power, Power) = {
-    flexOptions.map { case (_, flex: ProvideMinMaxFlexOptions) =>
+  ): MinMaxFlexOptions =
+    flexOptions.map { case (_, flex: MinMaxFlexOptions) =>
       flex
     }.flexSum
-  }
+
 }

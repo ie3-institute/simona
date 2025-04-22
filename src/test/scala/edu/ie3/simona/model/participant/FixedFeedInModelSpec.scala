@@ -6,106 +6,51 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.FixedFeedInRuntimeConfig
+import edu.ie3.simona.model.participant.ParticipantModel.FixedState
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
-import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
-import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAVOLTAMPERE
-import edu.ie3.util.scala.quantities.{
-  ApparentPower,
-  Kilovoltamperes,
-  Megavoltamperes,
-  Voltamperes,
-}
-import org.scalatest.PrivateMethodTester
-import squants.energy.Kilowatts
+import edu.ie3.util.scala.quantities.{Kilovoltamperes, Megavoltamperes}
 
-class FixedFeedInModelSpec
-    extends UnitSpec
-    with FixedFeedInputTestData
-    with DefaultTestData
-    with PrivateMethodTester {
+class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
 
-  // Equals to 1 VA power
-  private implicit val powerTolerance: ApparentPower = Voltamperes(
-    1.0
-  )
+  "The fixed feed in model" should {
 
-  "The fixed feed in model object" should {
+    "build a correct FixedFeedModel from valid input" in {
 
-    "build a correct FixedFeedModel from correct input" in {
-      val simonaConfig: SimonaConfig =
-        createSimonaConfig(
-          LoadModelBehaviour.FIX,
-          LoadReference.ActivePower(Kilowatts(0.0)),
-        )
-      val modelConfig = ConfigUtil
-        .ParticipantConfigUtil(
-          simonaConfig.simona.runtime.participant
-        )
-        .getOrDefault[FixedFeedInRuntimeConfig](fixedFeedInput.getUuid)
+      val model = FixedFeedInModel.Factory(fixedFeedInput).create()
 
-      val actualModel = FixedFeedInModel.apply(
-        fixedFeedInput,
-        modelConfig,
-        defaultSimulationStart,
-        defaultSimulationEnd,
+      model.uuid shouldBe fixedFeedInput.getUuid
+      model.sRated shouldBe Megavoltamperes(
+        fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
       )
+      model.cosPhiRated shouldBe fixedFeedInput.getCosPhiRated
+      model.qControl shouldBe QControl(fixedFeedInput.getqCharacteristics)
 
-      inside(actualModel) {
-        case FixedFeedInModel(
-              uuid,
-              id,
-              operationInterval,
-              qControl,
-              sRated,
-              cosPhiRated,
-            ) =>
-          uuid shouldBe fixedFeedInput.getUuid
-          id shouldBe fixedFeedInput.getId
-          operationInterval shouldBe defaultOperationInterval
-          qControl shouldBe QControl(fixedFeedInput.getqCharacteristics)
-          sRated should approximate(
-            Megavoltamperes(
-              fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
-            )
-          )
-          cosPhiRated shouldBe fixedFeedInput.getCosPhiRated
-      }
     }
 
     "return approximately correct power calculations" in {
-      val expectedPower = Kilowatts(
+
+      val model = FixedFeedInModel.Factory(fixedFeedInput).create()
+
+      val expectedPower = Kilovoltamperes(
         fixedFeedInput
           .getsRated()
           .to(PowerSystemUnits.KILOWATT)
           .getValue
-          .doubleValue() * -1 * fixedFeedInput.getCosPhiRated
-      )
+          .doubleValue * -1
+      ).toActivePower(fixedFeedInput.getCosPhiRated)
 
-      val actualModel = new FixedFeedInModel(
-        fixedFeedInput.getUuid,
-        fixedFeedInput.getId,
-        defaultOperationInterval,
-        QControl.apply(fixedFeedInput.getqCharacteristics()),
-        Kilovoltamperes(
-          fixedFeedInput
-            .getsRated()
-            .to(PowerSystemUnits.KILOVOLTAMPERE)
-            .getValue
-            .doubleValue()
-        ),
-        fixedFeedInput.getCosPhiRated,
-      )
+      val (operatingPoint, nextTick) =
+        model.determineOperatingPoint(FixedState(0))
+      operatingPoint.activePower shouldBe expectedPower
+      nextTick shouldBe None
 
-      actualModel.calculateActivePower(
-        ModelState.ConstantState,
-        CalcRelevantData.FixedRelevantData,
-      ) shouldBe expectedPower
     }
+
   }
+
 }

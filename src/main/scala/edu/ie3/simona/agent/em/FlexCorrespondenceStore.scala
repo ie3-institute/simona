@@ -10,11 +10,9 @@ import edu.ie3.simona.agent.em.FlexCorrespondenceStore.{
   FlexCorrespondence,
   WithTime,
 }
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  IssueFlexControl,
-  ProvideFlexOptions,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexOptions
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -36,6 +34,8 @@ final case class FlexCorrespondenceStore(
   /** Updates the latest flex options for the flex provider, overwriting the
     * former flex options, if applicable
     *
+    * @param modelUuid
+    *   The UUID of the flex provider model
     * @param flexOptions
     *   The new flex options
     * @param tick
@@ -44,11 +44,12 @@ final case class FlexCorrespondenceStore(
     *   The updated flex options store
     */
   def updateFlexOptions(
-      flexOptions: ProvideFlexOptions,
+      modelUuid: UUID,
+      flexOptions: FlexOptions,
       tick: Long,
   ): FlexCorrespondenceStore =
     updateCorrespondence(
-      flexOptions.modelUuid,
+      modelUuid,
       _.copy(receivedFlexOptions = Some(WithTime(flexOptions, tick))),
     )
 
@@ -122,7 +123,7 @@ object FlexCorrespondenceStore {
     *   The latest result that has been received by the EmAgent
     */
   final case class FlexCorrespondence(
-      receivedFlexOptions: Option[WithTime[ProvideFlexOptions]] = None,
+      receivedFlexOptions: Option[WithTime[FlexOptions]] = None,
       issuedCtrlMsg: Option[WithTime[IssueFlexControl]] = None,
       receivedResult: Option[WithTime[ComplexPower]] = None,
   )

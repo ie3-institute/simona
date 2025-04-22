@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput,
 }
+import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.quantity.Quantities.getQuantity
 
 import java.util.UUID
@@ -25,10 +26,10 @@ trait ThermalStorageTestData extends ThermalGridTestData {
         "TestThermalBus",
       ),
       getQuantity(100, StandardUnits.VOLUME),
-      getQuantity(0, StandardUnits.VOLUME),
       getQuantity(30, StandardUnits.TEMPERATURE),
       getQuantity(40, StandardUnits.TEMPERATURE),
       getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      getQuantity(20.0, PowerSystemUnits.KILOWATT),
     )
 
   protected val thermalStorage: CylindricalThermalStorage =

@@ -12,7 +12,9 @@ import edu.ie3.datamodel.models.input.system.`type`.StorageTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
+import edu.ie3.simona.model.participant.ParticipantModel.ActivePowerOperatingPoint
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -24,6 +26,7 @@ import squants.{Energy, Power}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.quantity.Quantities.getQuantity
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
 class StorageModelSpec extends UnitSpec with Matchers {
@@ -31,6 +34,9 @@ class StorageModelSpec extends UnitSpec with Matchers {
   final val inputModel: StorageInput = createStorageInput()
   implicit val powerTolerance: Power = Kilowatts(1e-10)
   implicit val energyTolerance: Energy = KilowattHours(1e-10)
+
+  private val dateTime: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-02T03:04:05Z")
 
   def createStorageInput(): StorageInput = {
     val nodeInput = new NodeInput(
@@ -72,69 +78,131 @@ class StorageModelSpec extends UnitSpec with Matchers {
 
   def buildStorageModel(
       targetSoc: Option[Double] = Option.empty
-  ): StorageModel = {
-    StorageModel.apply(
-      inputModel,
-      1,
-      TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
-      TimeUtil.withDefaults.toZonedDateTime("2020-01-01T01:00:00Z"),
-      0d,
-      targetSoc,
-    )
-  }
+  ): StorageModel =
+    StorageModel
+      .Factory(
+        inputModel,
+        StorageRuntimeConfig(targetSoc = targetSoc),
+      )
+      .create()
 
   "StorageModel" should {
-    "Calculate flex options" in {
+
+    "Determine the current state" in {
       val storageModel = buildStorageModel()
-      val startTick = 3600L
+
+      val lastTick = 3600L
 
       val testCases = Table(
-        ("lastStored", "lastPower", "timeDelta", "pRef", "pMin", "pMax"),
-        // UNCHANGED STATE
-        // completely empty
-        (0.0, 0.0, 1, 0.0, 0.0, 10.0),
-        // at a tiny bit above empty
-        (0.011, 0.0, 1, 0.0, -10.0, 10.0),
-        // at mid-level charge
-        (60.0, 0.0, 1, 0.0, -10.0, 10.0),
-        // almost fully charged
-        (99.989, 0.0, 1, 0.0, -10.0, 10.0),
-        // fully charged
-        (100.0, 0.0, 1, 0.0, -10.0, 0.0),
-        // CHANGED STATE
-        // discharged to empty
-        (10.0, -9.0, 3600, 0.0, 0.0, 10.0),
-        // almost discharged to the lowest allowed charge
-        (10.0, -9.0, 3590, 0.0, -10.0, 10.0),
-        // charged to mid-level charge
-        (41.0, 10.0, 3600, 0.0, -10.0, 10.0),
-        // discharged to mid-level charge
-        (60.0, -9.0, 3600, 0.0, -10.0, 10.0),
-        // almost fully charged
-        (95.5, 4.98, 3600, 0.0, -10.0, 10.0),
-        // fully charged
-        (95.5, 5.0, 3600, 0.0, -10.0, 0.0),
+        ("lastEnergy", "power", "duration", "expEnergy"),
+        /* empty storage */
+        // zero power
+        (0.0, 0.0, 3600, 0.0),
+        // zero duration
+        (0.0, 5.0, 0, 0.0),
+        // charging a tiny bit
+        (0.0, 1.0, 1, 0.00025),
+        // charging until half
+        (0.0, 10.0, 20000, 50.0),
+        // charging until almost full
+        (0.0, 10.0, 39999, 99.9975),
+        // charging until full
+        (0.0, 10.0, 40000, 100.0),
+        // overcharging a tiny bit
+        (0.0, 10.0, 40001, 100.0),
+        // discharging
+        (0.0, -10.0, 3600, 0.0),
+        /* half full storage */
+        // zero power
+        (50.0, 0.0, 3600, 50.0),
+        // zero duration
+        (50.0, 5.0, 0, 50.0),
+        // charging a tiny bit
+        (50.0, 1.0, 1, 50.00025),
+        // charging until almost full
+        (50.0, 10.0, 19999, 99.9975),
+        // charging until full
+        (50.0, 10.0, 20000, 100.0),
+        // overcharging a tiny bit
+        (50.0, 10.0, 20001, 100.0),
+        // discharging a tiny bit
+        (50.0, -0.81, 1, 49.99975),
+        // discharging until almost empty
+        (50.0, -8.1, 19999, 0.0025),
+        // discharging until empty
+        (50.0, -8.1, 20000, 0.0),
+        // undercharging a tiny bit
+        (50.0, -8.1, 20001, 0.0),
+        /* full storage */
+        // zero power
+        (100.0, 0.0, 3600, 100.0),
+        // zero duration
+        (100.0, -5.0, 0, 100.0),
+        // discharging a tiny bit
+        (100.0, -0.81, 1, 99.99975),
+        // discharging until half
+        (100.0, -8.1, 20000, 50.0),
+        // discharging until almost empty
+        (100.0, -8.1, 39999, 0.0025),
+        // discharging until empty
+        (100.0, -8.1, 40000, 0.0),
+        // undercharging a tiny bit
+        (100.0, -8.1, 40001, 0.0),
+        // charging
+        (100.0, 10.0, 3600, 100.0),
       )
 
       forAll(testCases) {
-        (
-            lastStored: Double,
-            lastPower: Double,
-            timeDelta: Int,
-            pRef: Double,
-            pMin: Double,
-            pMax: Double,
-        ) =>
-          val data = StorageModel.StorageRelevantData(startTick + timeDelta)
-          val oldState = StorageModel.StorageState(
-            KilowattHours(lastStored),
-            Kilowatts(lastPower),
-            startTick,
+        (lastEnergy: Double, power: Double, duration: Int, expEnergy: Double) =>
+          val lastState = StorageModel.StorageState(
+            KilowattHours(lastEnergy),
+            lastTick,
           )
 
-          storageModel
-            .determineFlexOptions(data, oldState) match {
-            case result: ProvideMinMaxFlexOptions =>
+          val operatingPoint =
+            ActivePowerOperatingPoint(Kilowatts(power))
+
+          val currentTick = lastTick + duration
+
+          val newState = storageModel.determineState(
+            lastState,
+            operatingPoint,
+            currentTick,
+            dateTime,
+          )
+
+          newState.tick shouldBe currentTick
+          newState.storedEnergy should approximate(KilowattHours(expEnergy))
+      }
+    }
+
+    "Calculate flex options" in {
+      val storageModel = buildStorageModel()
+      val tick = 3600L
+
+      val testCases = Table(
+        ("storedEnergy", "pRef", "pMin", "pMax"),
+        // completely empty
+        (0.0, 0.0, 0.0, 10.0),
+        // at a tiny bit above empty
+        (0.011, 0.0, -10.0, 10.0),
+        // at mid-level charge
+        (60.0, 0.0, -10.0, 10.0),
+        // almost fully charged
+        (99.989, 0.0, -10.0, 10.0),
+        // fully charged
+        (100.0, 0.0, -10.0, 0.0),
+      )
+
+      forAll(testCases) {
+        (storedEnergy: Double, pRef: Double, pMin: Double, pMax: Double) =>
+          val state = StorageModel.StorageState(
+            KilowattHours(storedEnergy),
+            tick,
+          )
+
+          storageModel.determineFlexOptions(state) match {
+            case result: MinMaxFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
               result.max should approximate(Kilowatts(pMax))
@@ -143,13 +211,13 @@ class StorageModelSpec extends UnitSpec with Matchers {
           }
       }
     }
+
     "Calculate flex options with target SOC" in {
       val storageModel = buildStorageModel(Some(0.5d))
-      val startTick = 3600L
-      val data = StorageModel.StorageRelevantData(startTick + 1)
+      val tick = 3600L
 
       val testCases = Table(
-        ("lastStored", "pRef", "pMin", "pMax"),
+        ("storedEnergy", "pRef", "pMin", "pMax"),
         // completely empty
         (0.0, 10.0, 0.0, 10.0),
         // below margin of ref power target
@@ -169,16 +237,14 @@ class StorageModelSpec extends UnitSpec with Matchers {
       )
 
       forAll(testCases) {
-        (lastStored: Double, pRef: Double, pMin: Double, pMax: Double) =>
-          val oldState = StorageModel.StorageState(
-            KilowattHours(lastStored),
-            zeroKW,
-            startTick,
+        (storedEnergy: Double, pRef: Double, pMin: Double, pMax: Double) =>
+          val state = StorageModel.StorageState(
+            KilowattHours(storedEnergy),
+            tick,
           )
 
-          storageModel
-            .determineFlexOptions(data, oldState) match {
-            case result: ProvideMinMaxFlexOptions =>
+          storageModel.determineFlexOptions(state) match {
+            case result: MinMaxFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
               result.max should approximate(Kilowatts(pMax))
@@ -190,11 +256,11 @@ class StorageModelSpec extends UnitSpec with Matchers {
 
     "Handle controlled power change" in {
       val storageModel = buildStorageModel()
-      val startTick = 3600L
-      val data = StorageModel.StorageRelevantData(startTick + 1)
+      val tick = 3600L
+
       val testCases = Table(
         (
-          "lastStored",
+          "storedEnergy",
           "setPower",
           "expPower",
           "expActiveNext",
@@ -223,46 +289,41 @@ class StorageModelSpec extends UnitSpec with Matchers {
 
       forAll(testCases) {
         (
-            lastStored: Double,
+            storedEnergy: Double,
             setPower: Double,
             expPower: Double,
             expActiveNext: Boolean,
             expScheduled: Boolean,
             expDelta: Double,
         ) =>
-          val oldState = StorageModel.StorageState(
-            KilowattHours(lastStored),
-            zeroKW,
-            startTick,
+          val state = StorageModel.StorageState(
+            KilowattHours(storedEnergy),
+            tick,
           )
 
-          val (newState, flexChangeIndication) =
-            storageModel.handleControlledPowerChange(
-              data,
-              oldState,
+          val (operatingPoint, changeIndicator) =
+            storageModel.determineOperatingPoint(
+              state,
               Kilowatts(setPower),
             )
 
-          newState.chargingPower should approximate(Kilowatts(expPower))
-          newState.tick shouldBe (startTick + 1)
-          newState.storedEnergy should approximate(KilowattHours(lastStored))
+          operatingPoint.activePower should approximate(Kilowatts(expPower))
 
-          flexChangeIndication.changesAtTick.isDefined shouldBe expScheduled
-          flexChangeIndication.changesAtTick.forall(
-            _ == (startTick + 1 + expDelta)
+          changeIndicator.changesAtTick.isDefined shouldBe expScheduled
+          changeIndicator.changesAtTick.forall(
+            _ == (tick + expDelta)
           ) shouldBe true
-          flexChangeIndication.changesAtNextActivation shouldBe expActiveNext
+          changeIndicator.changesAtNextActivation shouldBe expActiveNext
       }
     }
 
     "Handle controlled power change with ref target SOC" in {
       val storageModel = buildStorageModel(Some(0.5d))
-      val startTick = 3600L
-      val data = StorageModel.StorageRelevantData(startTick + 1)
+      val tick = 3600L
 
       val testCases = Table(
         (
-          "lastStored",
+          "storedEnergy",
           "setPower",
           "expPower",
           "expActiveNext",
@@ -291,160 +352,124 @@ class StorageModelSpec extends UnitSpec with Matchers {
 
       forAll(testCases) {
         (
-            lastStored: Double,
+            storedEnergy: Double,
             setPower: Double,
             expPower: Double,
             expActiveNext: Boolean,
             expScheduled: Boolean,
             expDelta: Double,
         ) =>
-          val oldState = StorageModel.StorageState(
-            KilowattHours(lastStored),
-            zeroKW,
-            startTick,
+          val state = StorageModel.StorageState(
+            KilowattHours(storedEnergy),
+            tick,
           )
 
-          val (newState, flexChangeIndication) =
-            storageModel.handleControlledPowerChange(
-              data,
-              oldState,
+          val (operatingPoint, changeIndicator) =
+            storageModel.determineOperatingPoint(
+              state,
               Kilowatts(setPower),
             )
 
-          newState.chargingPower should approximate(Kilowatts(expPower))
-          newState.tick shouldBe (startTick + 1)
-          newState.storedEnergy should approximate(KilowattHours(lastStored))
+          operatingPoint.activePower should approximate(Kilowatts(expPower))
 
-          flexChangeIndication.changesAtTick.isDefined shouldBe expScheduled
-          flexChangeIndication.changesAtTick.forall(
-            _ == (startTick + 1 + expDelta)
+          changeIndicator.changesAtTick.isDefined shouldBe expScheduled
+          changeIndicator.changesAtTick.forall(
+            _ == (tick + expDelta)
           ) shouldBe true
-          flexChangeIndication.changesAtNextActivation shouldBe expActiveNext
+          changeIndicator.changesAtNextActivation shouldBe expActiveNext
       }
     }
 
     "Handle the edge case of discharging in tolerance margins" in {
       val storageModel = buildStorageModel()
-      val startTick = 1800L
-      val data = StorageModel.StorageRelevantData(startTick + 1)
+      val tick = 1800L
+
       // margin is at ~ 0.0030864 kWh
-      val oldState = StorageModel.StorageState(
+      val state = StorageModel.StorageState(
         KilowattHours(0.002d),
-        zeroKW,
-        startTick,
+        tick,
       )
 
-      val (newState, flexChangeIndication) =
-        storageModel.handleControlledPowerChange(
-          data,
-          oldState,
+      val (operatingPoint, changeIndicator) =
+        storageModel.determineOperatingPoint(
+          state,
           Kilowatts(-5d),
         )
 
-      newState.chargingPower should approximate(
-        zeroKW
-      )
-      newState.tick shouldBe (startTick + 1)
-      newState.storedEnergy should approximate(
-        oldState.storedEnergy
-      )
+      operatingPoint.activePower should approximate(zeroKW)
 
-      flexChangeIndication.changesAtTick.isDefined shouldBe false
-      flexChangeIndication.changesAtNextActivation shouldBe true
+      changeIndicator.changesAtTick.isDefined shouldBe false
+      changeIndicator.changesAtNextActivation shouldBe true
     }
 
     "Handle the edge case of charging in tolerance margins" in {
       val storageModel = buildStorageModel()
-      val startTick = 1800L
-      val data = StorageModel.StorageRelevantData(startTick + 1)
+      val tick = 1800L
+
       // margin is at ~ 99.9975 kWh
-      val oldState = StorageModel.StorageState(
+      val state = StorageModel.StorageState(
         KilowattHours(99.999d),
-        zeroKW,
-        startTick,
+        tick,
       )
 
-      val (newState, flexChangeIndication) =
-        storageModel.handleControlledPowerChange(
-          data,
-          oldState,
+      val (operatingPoint, changeIndicator) =
+        storageModel.determineOperatingPoint(
+          state,
           Kilowatts(9d),
         )
 
-      newState.chargingPower should approximate(
-        zeroKW
-      )
-      newState.tick shouldBe (startTick + 1)
-      newState.storedEnergy should approximate(
-        oldState.storedEnergy
-      )
+      operatingPoint.activePower should approximate(zeroKW)
 
-      flexChangeIndication.changesAtTick.isDefined shouldBe false
-      flexChangeIndication.changesAtNextActivation shouldBe true
+      changeIndicator.changesAtTick.isDefined shouldBe false
+      changeIndicator.changesAtNextActivation shouldBe true
     }
+
     "Handle the edge case of discharging in positive target margin" in {
       val storageModel = buildStorageModel(Some(0.3d))
-      val startTick = 1800L
-      val data = StorageModel.StorageRelevantData(startTick + 1)
+      val tick = 1800L
+
       // margin is at ~ 30.0025 kWh
-      val oldState = StorageModel.StorageState(
+      val state = StorageModel.StorageState(
         KilowattHours(30.0024d),
-        zeroKW,
-        startTick,
+        tick,
       )
 
-      val (newState, flexChangeIndication) =
-        storageModel.handleControlledPowerChange(
-          data,
-          oldState,
+      val (operatingPoint, changeIndicator) =
+        storageModel.determineOperatingPoint(
+          state,
           Kilowatts(-9d),
         )
 
-      newState.chargingPower should approximate(
-        Kilowatts(-9d)
+      operatingPoint.activePower should approximate(Kilowatts(-9d))
+
+      changeIndicator.changesAtTick should be(
+        Some(tick + 10800L)
       )
-      newState.tick shouldBe (startTick + 1)
-      newState.storedEnergy should approximate(
-        oldState.storedEnergy
-      )
-      flexChangeIndication.changesAtTick should be(
-        Some(startTick + 1L + 10801L)
-      )
-      flexChangeIndication.changesAtNextActivation should be(
-        true
-      )
+      changeIndicator.changesAtNextActivation shouldBe true
     }
+
     "Handle the edge case of charging in negative target margin" in {
       val storageModel = buildStorageModel(Some(0.4d))
-      val startTick = 1800L
-      val data = StorageModel.StorageRelevantData(startTick + 1)
+      val tick = 1800L
+
       // margin is at ~ 39.9975 kWh
-      val oldState = StorageModel.StorageState(
+      val state = StorageModel.StorageState(
         KilowattHours(39.998d),
-        zeroKW,
-        startTick,
+        tick,
       )
 
-      val (newState, flexChangeIndication) =
-        storageModel.handleControlledPowerChange(
-          data,
-          oldState,
+      val (operatingPoint, changeIndicator) =
+        storageModel.determineOperatingPoint(
+          state,
           Kilowatts(5d),
         )
 
-      newState.chargingPower should approximate(
-        Kilowatts(5d)
+      operatingPoint.activePower should approximate(Kilowatts(5d))
+
+      changeIndicator.changesAtTick should be(
+        Some(tick + 48001L)
       )
-      newState.tick shouldBe (startTick + 1)
-      newState.storedEnergy should approximate(
-        oldState.storedEnergy
-      )
-      flexChangeIndication.changesAtTick should be(
-        Some(startTick + 1L + 48002L)
-      )
-      flexChangeIndication.changesAtNextActivation should be(
-        true
-      )
+      changeIndicator.changesAtNextActivation shouldBe true
     }
   }
 }

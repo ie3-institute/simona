@@ -1,5 +1,5 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2024. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -7,104 +7,82 @@
 package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
-import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
-import edu.ie3.simona.model.participant.load.LoadReference.{
-  ActivePower,
-  EnergyConsumption,
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
+import edu.ie3.simona.model.participant.ParticipantModel
+import edu.ie3.simona.model.participant.ParticipantModel.{
+  ActivePowerOperatingPoint,
+  FixedState,
+  ParticipantFixedState,
+  ParticipantModelFactory,
 }
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.service.ServiceType
+import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  EnergyToSimona,
+  PowerConversionSimona,
+}
 import squants.Power
 import squants.time.Days
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
-/** Load model always consuming the same, constant power
-  *
-  * @param uuid
-  *   unique identifier
-  * @param id
-  *   human-readable id
-  * @param operationInterval
-  *   Interval, in which the system is in operation
-  * @param qControl
-  *   Type of reactive power control
-  * @param sRated
-  *   Rated apparent power
-  * @param cosPhiRated
-  *   Rated power factor
-  * @param reference
-  *   Scale the fixed output to this reference
-  */
-final case class FixedLoadModel(
-    uuid: UUID,
-    id: String,
-    operationInterval: OperationInterval,
-    qControl: QControl,
-    sRated: ApparentPower,
-    cosPhiRated: Double,
-    reference: LoadReference,
-) extends LoadModel[FixedLoadRelevantData.type](
-      uuid,
-      id,
-      operationInterval,
-      qControl,
-      sRated,
-      cosPhiRated,
-    ) {
+class FixedLoadModel(
+    override val uuid: UUID,
+    override val id: String,
+    override val sRated: ApparentPower,
+    override val cosPhiRated: Double,
+    override val qControl: QControl,
+    private val activePower: Power,
+) extends LoadModel[FixedState]
+    with ParticipantFixedState[ActivePowerOperatingPoint] {
 
-  val activePower: Power = reference match {
-    case ActivePower(power) => power
-    case EnergyConsumption(energyConsumption) =>
-      val duration = Days(365d)
-      energyConsumption / duration
-  }
+  override def determineOperatingPoint(
+      state: FixedState
+  ): (ActivePowerOperatingPoint, Option[Long]) =
+    (ActivePowerOperatingPoint(activePower), None)
 
-  /** Calculate the active power behaviour of the model
-    *
-    * @param data
-    *   Further needed, secondary data. Due to the nature of a fixed load model,
-    *   no further data is needed.
-    * @return
-    *   Active power
-    */
-  override def calculateActivePower(
-      modelState: ConstantState.type,
-      data: FixedLoadRelevantData.type = FixedLoadRelevantData,
-  ): Power = activePower
 }
 
 object FixedLoadModel {
-  case object FixedLoadRelevantData extends LoadRelevantData
 
-  def apply(
+  final case class Factory(
       input: LoadInput,
-      scalingFactor: Double,
-      operationInterval: OperationInterval,
-      reference: LoadReference,
-  ): FixedLoadModel = {
+      config: LoadRuntimeConfig,
+  ) extends ParticipantModelFactory[FixedState] {
 
-    val scaledInput = input.copy().scale(scalingFactor).build()
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
 
-    val model = FixedLoadModel(
-      scaledInput.getUuid,
-      scaledInput.getId,
-      operationInterval,
-      QControl(scaledInput.getqCharacteristics()),
-      Kilovoltamperes(
-        scaledInput.getsRated
-          .to(PowerSystemUnits.KILOVOLTAMPERE)
-          .getValue
-          .doubleValue
-      ),
-      scaledInput.getCosPhiRated,
-      reference,
-    )
-    model.enable()
-    model
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): FixedState = FixedState(tick)
+
+    override def create(): FixedLoadModel = {
+      val referenceType = LoadReferenceType(config.reference)
+
+      val sRated = input.getsRated.toApparent
+
+      val activePower: Power = referenceType match {
+        case LoadReferenceType.ACTIVE_POWER =>
+          sRated.toActivePower(input.getCosPhiRated)
+        case LoadReferenceType.ENERGY_CONSUMPTION =>
+          val eConsAnnual = input.geteConsAnnual().toSquants
+          eConsAnnual / Days(365d)
+      }
+
+      new FixedLoadModel(
+        input.getUuid,
+        input.getId,
+        sRated,
+        input.getCosPhiRated,
+        QControl.apply(input.getqCharacteristics),
+        activePower,
+      )
+    }
+
   }
+
 }

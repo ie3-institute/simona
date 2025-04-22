@@ -6,59 +6,74 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.{TestActorRef, TestProbe}
-import com.typesafe.config.ConfigFactory
+import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.value.{HeatDemandValue, PValue}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePower
-import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.datamodel.models.value.{HeatDemandValue, PValue, SValue}
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
+  DataProvision,
+  PrimaryRegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  Create,
+  WorkerRegistrationMessage,
+  WrappedActivation,
+}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.service.Data.PrimaryData
+import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   InitPrimaryServiceStateData,
   PrimaryServiceInitializedStateData,
-  ProvidePrimaryDataMessage,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
-import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
+import edu.ie3.simona.test.matchers.SquantsMatchers
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
+import org.apache.pekko.actor.typed.ActorRef
+import org.scalatest.Inside.inside
+import org.scalatest.PrivateMethodTester
+import org.scalatest.wordspec.AnyWordSpecLike
+import org.slf4j.{Logger, LoggerFactory}
 import squants.energy.{Kilowatts, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.nio.file.{Path, Paths}
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.language.implicitConversions
 import scala.util.{Failure, Success}
 
 class PrimaryServiceWorkerSpec
-    extends AgentSpec(
-      ActorSystem(
-        "PrimaryServiceWorkerSpec",
-        ConfigFactory
-          .parseString("""
-                       |pekko.loglevel="OFF"
-          """.stripMargin),
-      )
-    )
+    extends ScalaTestWithActorTestKit
+    with AnyWordSpecLike
+    with SquantsMatchers
+    with PrivateMethodTester
+    with LazyLogging
     with TimeSeriesTestData
-    with TestSpawnerClassic {
+    with TestSpawnerTyped {
+
+  implicit def wrap(msg: Activation): ServiceMessage =
+    WrappedActivation(msg)
+
   // this works both on Windows and Unix systems
   val baseDirectoryPath: Path = Paths
     .get(
@@ -69,8 +84,9 @@ class PrimaryServiceWorkerSpec
         .toURI
     )
 
-  val validInitData: CsvInitPrimaryServiceStateData =
+  val validInitData: CsvInitPrimaryServiceStateData[PValue] =
     CsvInitPrimaryServiceStateData(
+      valueClass = classOf[PValue],
       timeSeriesUuid = uuidP,
       csvSep = ";",
       directoryPath = baseDirectoryPath,
@@ -84,20 +100,17 @@ class PrimaryServiceWorkerSpec
   private implicit val powerTolerance: squants.Power = Watts(0.1)
 
   "A primary service actor" should {
-    val scheduler = TestProbe("scheduler")
+    val scheduler = TestProbe[SchedulerMessage]("scheduler")
+    val systemParticipant = TestProbe[Any]("dummySystemParticipant")
 
-    val serviceRef =
-      TestActorRef(
-        new PrimaryServiceWorker[PValue](
-          scheduler.ref,
-          classOf[PValue],
-        )
-      )
-    val service = serviceRef.underlyingActor
+    implicit val serviceRef: ActorRef[ServiceMessage] =
+      spawn(PrimaryServiceWorker(scheduler.ref))
+    implicit val log: Logger =
+      LoggerFactory.getLogger(classOf[PrimaryServiceWorkerSpec])
 
     "refuse instantiation on wrong init data" in {
       val maliciousInitData = WrongInitPrimaryServiceStateData()
-      service.init(maliciousInitData) match {
+      PrimaryServiceWorker.init(maliciousInitData) match {
         case Failure(exception) =>
           exception.getMessage shouldBe "Provided init data 'WrongInitPrimaryServiceStateData' for primary service are invalid!"
         case Success(_) =>
@@ -110,7 +123,7 @@ class PrimaryServiceWorkerSpec
         simulationStart = validInitData.simulationStart.plusHours(1)
       )
 
-      service.init(initData) match {
+      PrimaryServiceWorker.init(initData) match {
         case Failure(exception) =>
           exception.getMessage shouldBe "No appropriate data found within simulation time range in timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5'!"
         case Success(_) =>
@@ -123,7 +136,7 @@ class PrimaryServiceWorkerSpec
         simulationStart = validInitData.simulationStart.minusHours(1)
       )
 
-      service.init(initData) match {
+      PrimaryServiceWorker.init(initData) match {
         case Failure(exception) =>
           exception.getMessage shouldBe "The data for the timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5' starts after the start of this simulation (tick: 3600)! This is not allowed!"
         case Success(_) =>
@@ -135,7 +148,8 @@ class PrimaryServiceWorkerSpec
       // time series exists, but is malformed
       val tsUuid = UUID.fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c27")
 
-      val maliciousInitData = CsvInitPrimaryServiceStateData(
+      val maliciousInitData = CsvInitPrimaryServiceStateData[SValue](
+        valueClass = classOf[SValue],
         timeSeriesUuid = tsUuid,
         simulationStart =
           TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
@@ -145,7 +159,7 @@ class PrimaryServiceWorkerSpec
         fileNamingStrategy = new FileNamingStrategy(),
         timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
       )
-      service.init(maliciousInitData) match {
+      PrimaryServiceWorker.init(maliciousInitData) match {
         case Failure(exception) =>
           exception.getClass shouldBe classOf[IllegalArgumentException]
           exception.getMessage shouldBe "Unable to obtain time series with UUID '3fbfaa97-cff4-46d4-95ba-a95665e87c27'. Please check arguments!"
@@ -155,7 +169,7 @@ class PrimaryServiceWorkerSpec
     }
 
     "be instantiated correctly if faced to valid init data" in {
-      service.init(validInitData) match {
+      PrimaryServiceWorker.init(validInitData) match {
         case Success((stateData, maybeNextTick)) =>
           /* Initialisation was successful. Check state data and triggers, that will be sent to scheduler */
           stateData match {
@@ -163,6 +177,7 @@ class PrimaryServiceWorkerSpec
                   nextActivationTick,
                   activationTicks,
                   simulationStart,
+                  valueClass,
                   source,
                   subscribers,
                 ) =>
@@ -172,6 +187,7 @@ class PrimaryServiceWorkerSpec
                 1800L,
               ) // The first tick should already been popped
               simulationStart shouldBe validInitData.simulationStart
+              valueClass shouldBe classOf[PValue]
               source.getClass shouldBe classOf[CsvTimeSeriesSource[PValue]]
               subscribers.isEmpty shouldBe true
           }
@@ -183,41 +199,60 @@ class PrimaryServiceWorkerSpec
     }
 
     "init the service actor" in {
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
-      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      scheduler
+        .expectMessageType[ScheduleActivation] // lock activation scheduled
 
-      scheduler.send(
-        serviceRef,
-        SimonaService.Create(validInitData, key),
-      )
-      scheduler.expectMsg(
-        ScheduleActivation(serviceRef.toTyped, INIT_SIM_TICK, Some(key))
-      )
+      serviceRef ! Create(validInitData, key)
 
-      scheduler.send(serviceRef, Activation(INIT_SIM_TICK))
-      scheduler.expectMsg(Completion(serviceRef.toTyped, Some(0)))
+      val activationMsg = scheduler.expectMessageType[ScheduleActivation]
+      activationMsg.tick shouldBe INIT_SIM_TICK
+      activationMsg.unlockKey shouldBe Some(key)
+
+      serviceRef ! Activation(INIT_SIM_TICK)
+      scheduler.expectMessage(Completion(activationMsg.actor, Some(0)))
     }
 
     "refuse registration for wrong registration request" in {
-      serviceRef ! RegisterForWeatherMessage(51.4843281, 7.4116482)
-      expectNoMessage()
+      val schedulerProbe = TestProbe[SchedulerMessage]("schedulerProbe")
+
+      // we need to create another service, since we want to continue using the other in later tests
+      val service = spawn(PrimaryServiceWorker(schedulerProbe.ref))
+
+      val key =
+        ScheduleLock.singleKey(TSpawner, schedulerProbe.ref, INIT_SIM_TICK)
+
+      service ! Create(validInitData, key)
+
+      service ! Activation(INIT_SIM_TICK)
+
+      service ! RegisterForWeatherMessage(
+        systemParticipant.ref,
+        51.4843281,
+        7.4116482,
+      )
+
+      val deathWatch = createTestProbe("deathWatch")
+      deathWatch.expectTerminated(service.ref)
     }
 
-    val systemParticipant: TestProbe = TestProbe("dummySystemParticipant")
     "correctly register a forwarded request" in {
       serviceRef ! WorkerRegistrationMessage(systemParticipant.ref)
 
       /* Wait for request approval */
-      systemParticipant.expectMsg(
-        RegistrationSuccessfulMessage(serviceRef, Some(0L))
+      systemParticipant.expectMessage(
+        PrimaryRegistrationSuccessfulMessage(
+          serviceRef,
+          0L,
+          ActivePowerExtra,
+        )
       )
 
       /* We cannot directly check, if the requesting actor is among the subscribers, therefore we ask the actor to
        * provide data to all subscribed actors and check, if the subscribed probe gets one */
-      scheduler.send(serviceRef, Activation(0))
-      scheduler.expectMsgType[Completion]
-      systemParticipant.expectMsgAllClassOf(classOf[ProvidePrimaryDataMessage])
+      serviceRef ! Activation(0)
+      scheduler.expectMessageType[Completion]
+      systemParticipant.expectMessageType[DataProvision[PrimaryData]]
     }
 
     /* At this point, the test (self) is registered with the service */
@@ -226,6 +261,7 @@ class PrimaryServiceWorkerSpec
       Some(0L),
       SortedDistinctSeq(Seq(900L)),
       validInitData.simulationStart,
+      classOf[PValue],
       new CsvTimeSeriesSource[PValue](
         ";",
         baseDirectoryPath,
@@ -235,21 +271,15 @@ class PrimaryServiceWorkerSpec
         classOf[PValue],
         new TimeBasedSimpleValueFactory[PValue](classOf[PValue]),
       ),
-      Vector(self),
+      Vector(systemParticipant.ref),
     )
 
     "correctly distribute proper primary data" in {
-      val announcePrimaryData = PrivateMethod[
-        (
-            PrimaryServiceInitializedStateData[PValue],
-            Option[Long],
-        )
-      ](Symbol("announcePrimaryData"))
       val tick = 0L
       val primaryData = ActivePower(Kilowatts(50.0))
       val serviceStateData = validStateData.copy()
 
-      service invokePrivate announcePrimaryData(
+      PrimaryServiceWorker.announcePrimaryData(
         tick,
         primaryData,
         serviceStateData,
@@ -263,6 +293,7 @@ class PrimaryServiceWorkerSpec
                   _,
                   _,
                   _,
+                  _,
                 ) =>
               nextActivationTick shouldBe Some(900L)
               activationTicks.size shouldBe 0
@@ -271,8 +302,8 @@ class PrimaryServiceWorkerSpec
           maybeNextTick shouldBe Some(900L)
       }
       /* Check, if correct message is sent */
-      expectMsgClass(classOf[ProvidePrimaryDataMessage]) match {
-        case ProvidePrimaryDataMessage(
+      systemParticipant.expectMessageType[DataProvision[PrimaryData]] match {
+        case DataProvision(
               actualTick,
               actualServiceRef,
               actualData,
@@ -285,13 +316,6 @@ class PrimaryServiceWorkerSpec
       }
     }
 
-    val processDataAndAnnounce = PrivateMethod[
-      (
-          PrimaryServiceInitializedStateData[PValue],
-          Option[Long],
-      )
-    ](Symbol("processDataAndAnnounce"))
-
     "not sent anything, if conversion to primary data failed" in {
       val tick = 0L
       val maliciousValue = new HeatDemandValue(
@@ -301,7 +325,7 @@ class PrimaryServiceWorkerSpec
         activationTicks = SortedDistinctSeq(Seq(900L))
       )
 
-      service invokePrivate processDataAndAnnounce(
+      PrimaryServiceWorker.processDataAndAnnounce(
         tick,
         maliciousValue,
         stateData,
@@ -313,13 +337,14 @@ class PrimaryServiceWorkerSpec
                 _,
                 _,
                 _,
+                _,
               ),
               maybeNextTick,
             ) =>
           nextActivationTick shouldBe Some(900L)
           maybeNextTick shouldBe Some(900L)
       }
-      expectNoMessage()
+      systemParticipant.expectNoMessage()
     }
 
     "announce information, if conversion succeeds" in {
@@ -330,7 +355,7 @@ class PrimaryServiceWorkerSpec
         activationTicks = SortedDistinctSeq(Seq(900L))
       )
 
-      service invokePrivate processDataAndAnnounce(
+      PrimaryServiceWorker.processDataAndAnnounce(
         tick,
         value,
         serviceStateData,
@@ -343,6 +368,7 @@ class PrimaryServiceWorkerSpec
                   _,
                   _,
                   _,
+                  _,
                 ) =>
               nextActivationTick shouldBe Some(900L)
               activationTicks.size shouldBe 0
@@ -350,8 +376,8 @@ class PrimaryServiceWorkerSpec
         /* Rest has already been tested */
       }
 
-      expectMsg(
-        ProvidePrimaryDataMessage(
+      systemParticipant.expectMessage(
+        DataProvision(
           tick,
           serviceRef,
           ActivePower(Kilowatts(50.0)),
@@ -362,20 +388,23 @@ class PrimaryServiceWorkerSpec
 
     "should not announce anything, if time step is not covered in source" in {
 
-      scheduler.send(serviceRef, Activation(200))
+      serviceRef ! Activation(200)
 
-      scheduler.expectMsg(Completion(serviceRef.toTyped, Some(1800)))
-      expectNoMessage()
+      val completionMsg = scheduler.expectMessageType[Completion]
+      completionMsg.newTick shouldBe Some(1800)
+
+      systemParticipant.expectNoMessage()
     }
 
     "should announce something, if the time step is covered in source" in {
-      scheduler.send(serviceRef, Activation(900))
-      scheduler.expectMsg(Completion(serviceRef.toTyped))
+      serviceRef ! Activation(900)
+      val completionMsg = scheduler.expectMessageType[Completion]
+      completionMsg.newTick shouldBe None
 
       inside(
-        systemParticipant.expectMsgClass(classOf[ProvidePrimaryDataMessage])
+        systemParticipant.expectMessageType[DataProvision[PrimaryData]]
       ) {
-        case ProvidePrimaryDataMessage(
+        case DataProvision(
               tick,
               actualServiceRef,
               data,
@@ -398,13 +427,15 @@ object PrimaryServiceWorkerSpec {
   final case class WrongInitPrimaryServiceStateData(
       override val simulationStart: ZonedDateTime,
       override val timeSeriesUuid: UUID,
-  ) extends InitPrimaryServiceStateData
+      override val valueClass: Class[PValue],
+  ) extends InitPrimaryServiceStateData[PValue]
 
   object WrongInitPrimaryServiceStateData {
     def apply(): WrongInitPrimaryServiceStateData =
       new WrongInitPrimaryServiceStateData(
         ZonedDateTime.now(),
         UUID.randomUUID(),
+        classOf[PValue],
       )
   }
 }

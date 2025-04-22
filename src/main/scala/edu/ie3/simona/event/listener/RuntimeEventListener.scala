@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
@@ -42,7 +42,7 @@ object RuntimeEventListener {
     *   the [[RuntimeEventListener]] behavior
     */
   def apply(
-      listenerConf: SimonaConfig.Simona.Runtime.Listener,
+      listenerConf: RuntimeConfig.Listener,
       queue: Option[BlockingQueue[RuntimeEvent]],
       startDateTimeString: String,
   ): Behavior[Request] = Behaviors.setup { ctx =>
