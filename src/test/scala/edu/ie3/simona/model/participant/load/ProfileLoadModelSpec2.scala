@@ -26,7 +26,7 @@ import squants.Percent
 import squants.energy.{KilowattHours, Power, Watts}
 import tech.units.indriya.quantity.Quantities
 
-class ProfileLoadModelSpec
+class ProfileLoadModelSpec2
     extends UnitSpec
     with DoubleMatchers
     with LoadModelTestHelper
