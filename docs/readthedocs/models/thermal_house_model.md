@@ -7,8 +7,7 @@ This page documents the functionality of the thermal house available in SIMONA.
 
 ## Behaviour
 
-This house model represents the thermal behaviour of a building. It represents a simple shoebox with thermal capacity and transmission losses.
-The house can optionally be equipped with a {ref}`cts_model` as thermal storage. Both are connected by the {ref}`thermal_grid_model`.
+This house model represents the thermal behaviour of a building. It represents a simple shoebox with thermal capacity and  transmission losses for its heating demand. As well the hot water demand (tap water) based on the number of inhabitants and the housing type on hourly basis is considered. The house can optionally be equipped with a {ref}`cts_model` as thermal storage. Both are connected by the {ref}`thermal_grid_model`.
 
 The thermal house provides two different energy demands. The required demand indicates that the inner temperature of the house is below the lower temperature boundary and thus, requires mandatory heating. An additional demand indicates the amount of energy necessary to reach the target temperature. Additional demand not necessarily requires to be covered but could, e.g. for flexibility purposes.
 
