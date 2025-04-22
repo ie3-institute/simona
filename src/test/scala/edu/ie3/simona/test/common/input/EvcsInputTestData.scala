@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.SimpleInputContainer
+import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble

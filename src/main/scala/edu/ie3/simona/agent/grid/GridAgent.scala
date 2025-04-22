@@ -22,7 +22,7 @@ import edu.ie3.simona.agent.grid.congestion.{
   CongestionManagementParams,
   DCMAlgorithm,
 }
-import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent

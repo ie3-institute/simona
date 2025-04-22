@@ -92,139 +92,69 @@ class CylindricalThermalStorageSpec
       storage.bus shouldBe storageInput.getThermalBus
     }
 
-    "Check mutable state update correctly update the state with thresholds" in {
+    "Check if state updates correctly" in {
+      val cases = Table(
+        ("storedEnergy", "tick", "qDot", "expectedStoredEnergy"),
+        (0.0, 3600L, 0.0, 0.0),
+        (0.0, 0L, 10.0, 0.0),
+        (10.0, 3600L, 10.0, 20.0),
+        (20.0, 3600L, -10.0, 10.0),
+        (20.0, 7200L, -10.0, 0.0),
+        (10.0, 7200L, -10.0, 0.0),
+      )
+
+      forAll(cases) { (storedEnergy, tick, qDot, expectedStoredEnergy) =>
+        val storage = buildThermalStorage(storageInput, CubicMeters(70))
+        val lastState =
+          ThermalStorage.ThermalStorageState(0L, KilowattHours(storedEnergy))
+        val storageState =
+          storage.determineState(tick, lastState, Kilowatts(qDot))
+
+        storageState.storedEnergy should approximate(
+          KilowattHours(expectedStoredEnergy)
+        )
+      }
+
+    }
+
+    "Check thresholds are calculated correctly" in {
       val cases = Table(
         (
-          "tick",
           "storedEnergy",
           "qDot",
-          "newTick",
-          "newQDot",
-          "expectedStoredEnergy",
           "expectedThreshold",
         ),
         (
-          0L,
-          250.0,
+          1140.0,
           10.0,
-          3600L,
-          42.0,
-          260.0,
-          ThermalStorage.ThermalStorageThreshold.StorageFull(79885L),
+          ThermalStorage.ThermalStorageThreshold.StorageFull(3600L),
         ),
         (
-          0L,
-          20.0,
           10.0,
-          3600L,
-          -42.0,
-          30.0,
-          ThermalStorage.ThermalStorageThreshold.StorageEmpty(6171L),
-        ),
-        (
-          0L,
-          250.0,
           -10.0,
-          3600L,
-          42.0,
-          240.0,
-          ThermalStorage.ThermalStorageThreshold.StorageFull(81600L),
-        ),
-        (
-          0L,
-          20.0,
-          -10.0,
-          3600L,
-          -42.0,
-          10.0,
-          ThermalStorage.ThermalStorageThreshold.StorageEmpty(4457L),
-        ),
-        (
-          0L,
-          1000.0,
-          148.6,
-          3600L,
-          5000.0,
-          1148.6,
-          ThermalStorage.ThermalStorageThreshold.StorageFull(3601L),
-        ),
-        (
-          0L,
-          10.0,
-          -9.0,
-          3600L,
-          -3600.0,
-          1.0,
-          ThermalStorage.ThermalStorageThreshold.StorageEmpty(3601L),
+          ThermalStorage.ThermalStorageThreshold.StorageEmpty(3600L),
         ),
       )
 
       forAll(cases) {
         (
-            tick,
             storedEnergy,
             qDot,
-            newTick,
-            newQDot,
-            expectedStoredEnergy,
             expectedThreshold,
         ) =>
           val storage = buildThermalStorage(storageInput, CubicMeters(70))
-          val lastState = ThermalStorage.ThermalStorageState(
-            tick,
-            KilowattHours(storedEnergy),
-            Kilowatts(qDot),
-          )
-          val result =
-            storage.updateState(newTick, Kilowatts(newQDot), lastState)
+          val state =
+            ThermalStorage.ThermalStorageState(0L, KilowattHours(storedEnergy))
 
-          result._1.storedEnergy should approximate(
-            KilowattHours(expectedStoredEnergy)
-          )
+          val threshold =
+            storage.determineNextThreshold(state, Kilowatts(qDot))
 
-          result._2 match {
+          threshold match {
             case Some(threshold) => threshold shouldBe expectedThreshold
             case None            => fail("Expected a threshold but got None")
           }
       }
 
-    }
-
-    "Check mutable state update, if no threshold is reached update state without hitting a threshold" in {
-      val cases = Table(
-        (
-          "tick",
-          "storedEnergy",
-          "qDot",
-          "newTick",
-          "newQDot",
-          "expectedStoredEnergy",
-        ),
-        (0L, 250.0, 10.0, 3600L, 0.0, 260.0),
-        (0L, 20.0, -10.0, 3600L, 0.0, 10.0),
-      )
-
-      forAll(cases) {
-        (tick, storedEnergy, qDot, newTick, newQDot, expectedStoredEnergy) =>
-          val storage = buildThermalStorage(storageInput, CubicMeters(70))
-          val lastState = ThermalStorage.ThermalStorageState(
-            tick,
-            KilowattHours(storedEnergy),
-            Kilowatts(qDot),
-          )
-          val result =
-            storage.updateState(newTick, Kilowatts(newQDot), lastState)
-
-          result._1.storedEnergy should approximate(
-            KilowattHours(expectedStoredEnergy)
-          )
-
-          result._2 match {
-            case Some(threshold) =>
-              fail(s"Expected no threshold, but got: $threshold")
-            case None => succeed
-          }
-      }
     }
   }
 }

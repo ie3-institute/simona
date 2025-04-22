@@ -104,7 +104,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       )
       val key = ScheduleLock.singleKey(context, scheduler.toTyped, tick)
 
-      scheduleDataService.getDataService ! ScheduleServiceActivation(
+      scheduleDataService.dataService ! ScheduleServiceActivation(
         tick,
         key,
       )
