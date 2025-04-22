@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant2.load
+package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.datamodel.models.input.system.LoadInput
@@ -20,10 +20,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   AdditionalFactoryData,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant2.load.LoadModel.{
-  LoadModelState,
-  ProfileLoadFactoryData,
-}
+import LoadModel.{LoadModelState, ProfileLoadFactoryData}
 import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.LoadData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.ServiceType.LoadProfileService

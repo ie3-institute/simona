@@ -23,12 +23,12 @@ import edu.ie3.simona.config.RuntimeConfig.{
   StorageRuntimeConfig,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.load.LoadModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant2.evcs.EvcsModel
-import edu.ie3.simona.model.participant2.load.LoadModel
 
 import scala.reflect.ClassTag
 

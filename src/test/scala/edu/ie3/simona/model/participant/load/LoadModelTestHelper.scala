@@ -4,9 +4,10 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant2.load
+package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.exceptions.SourceException
+import edu.ie3.simona.model.participant.load.ProfileLoadModel
 import edu.ie3.simona.service.load.LoadProfileStore
 import squants.energy.KilowattHours
 import squants.time.Minutes

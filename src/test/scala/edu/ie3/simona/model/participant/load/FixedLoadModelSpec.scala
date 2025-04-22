@@ -4,9 +4,10 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant2.load
+package edu.ie3.simona.model.participant.load
 
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
+import edu.ie3.simona.model.participant.load.FixedLoadModel
 import edu.ie3.simona.model.participant2.ParticipantModel.FixedState
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.simona.test.common.UnitSpec

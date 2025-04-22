@@ -10,7 +10,7 @@ import edu.ie3.datamodel.io.source.LoadProfileSource
 import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
-import edu.ie3.simona.model.participant2.load.LoadModel.ProfileLoadFactoryData
+import edu.ie3.simona.model.participant.load.LoadModel.ProfileLoadFactoryData
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyToSimona,
   PowerConversionSimona,
