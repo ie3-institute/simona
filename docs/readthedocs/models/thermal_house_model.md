@@ -29,22 +29,101 @@ However, for flexibility usage, the energy management system can turn on the hea
 
 ## Physical Model
 
+### Thermal Calculations
+
+With
+
+$$
+\dot{Q} = \lambda \cdot A \cdot \frac{T_{inner} - T_{outer}}{d}
+$$
+*where*\
+**$\dot{Q}$** = Thermal Flux\
+**$\lambda$** = Thermal Conductivity in $\frac{W}{m \cdot K}$\
+**A** = Surface in $m^2$\
+**T** = Inner and Outer Temperature in $K$
+
+
+and
+
+$$
+\Delta{T} = \frac{\Delta{Q}}{m \cdot c}
+$$
+*where*\
+**T** = Temperature in $K$\
+**m** = Mass of the medium\
+**c** = Specific Heat Capacity of the medium
+
+
+
+$$
+\dot{T} = K_{1} - K_{2} \cdot T_{\theta}
+$$
+
+where K1 and K2 are 
+
+$$
+K1 = \frac{P}{m \cdot c} + \frac{\lambda \cdot A \cdot T_{ambient}}{d \cdot m \cdot c}
+$$
+
+$$
+K2 = \frac{\lambda \cdot A}{d \cdot m \cdot c}
+$$
+
+By replacing with the house parameters of thermal losses and thermal capacity
+
+$$
+\frac{\lambda \cdot A}{d} = thermal losses
+$$
+
+and
+
+$$
+m \cdot c = thermal capacity
+$$
+
+we get
+
+$$
+K1 = \frac{P}{ethCapa} + \frac{ethLosses \cdot T_{ambient}}{ethCapa}
+$$
+
+$$
+K2 = \frac{ethLosses}{ethCapa}
+$$
+
 ### Inner Temperature Calculation
+Thus, the inner temperature can be calculated by
 
 $$
-\K1 = \frac{P}{m \cdot c} + \frac{\lambda \cdot A \cdot T_out}{d \cdot m \cdot c}
+T_1 = \left(T_0 - \frac{K1}{K2}\right) \cdot e^{-K2 \cdot t} + \frac{K1}{K2}
 $$
+*where*\
+**$T_1$** = New Temperature in $K$\
+**$T_0$** = Last Temperature in $K$
+
+### Calculate next threshold
+
+Since for $t \rightarrow \infty$ 
 
 $$
-\K2 = \frac{\lambda \cdot A}{d \cdot m \cdot c}
+T_1 = \left(T_0 - \frac{K1}{K2}\right) \cdot e^{-K2 \cdot t} + \frac{K1}{K2}
 $$
 
+will be
+
 $$
-\TDot = K_{1} - K_{2} \cdot T_{\theta} \frac{\lambda \cdot A}{d \cdot m \cdot c}
+T_{\infty} = \frac{K1}{K2}
 $$
 
-*with*\
-**T** = 
+This allows to determine which boundary will be reached next. The exact time step can be calculated by
+
+$$
+t = \frac{1}{-K2} \cdot  \ln{ \left(\frac{T_1 - \frac{K1}{K2}}{T_0 - \frac{K1}{K2}} \right) } 
+$$
+*where*\
+**$T_1$** = New Temperature in $K$\
+**$T_0$** = Last Temperature in $K$
+
 
 
 ## Attributes, Units and Remarks
