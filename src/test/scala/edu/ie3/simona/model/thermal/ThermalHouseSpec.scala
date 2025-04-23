@@ -283,7 +283,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
 
     "Check for the correct next threshold of house with thermal feed in" in {
       val house = thermalHouse(18, 22)
-      val ambientTemperature = Temperature(5, Celsius)
+      val ambientTemperature = Celsius(5d)
       val initialHouseState = startingState(house, ambientTemperature)
 
       val testCases: TableFor3[Double, Double, Option[ThermalThreshold]] =
