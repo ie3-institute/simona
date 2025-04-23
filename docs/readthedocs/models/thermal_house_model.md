@@ -26,6 +26,27 @@ When {ref}`em` is applied to the heat source of this building, the thermal behav
 
 However, for flexibility usage, the energy management system can turn on the heat source whenever the thermal house has additional demand. Same for the thermal storage. When the heat source is EM controlled, the thermal storage will only be recharged when the flexibility strategy allows. E.g. when there is surplus energy from PV plant.
 
+
+## Physical Model
+
+### Inner Temperature Calculation
+
+$$
+\K1 = \frac{P}{m \cdot c} + \frac{\lambda \cdot A \cdot T_out}{d \cdot m \cdot c}
+$$
+
+$$
+\K2 = \frac{\lambda \cdot A}{d \cdot m \cdot c}
+$$
+
+$$
+\TDot = K_{1} - K_{2} \cdot T_{\theta} \frac{\lambda \cdot A}{d \cdot m \cdot c}
+$$
+
+*with*\
+**T** = 
+
+
 ## Attributes, Units and Remarks
 
 Please refer to  {doc}`PowerSystemDataModel - Thermal House Model <psdm:models/input/thermal/thermalhouse>` for Attributes and Units used in this Model.
