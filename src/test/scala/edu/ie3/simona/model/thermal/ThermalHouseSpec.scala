@@ -24,7 +24,8 @@ import squants.time._
 import squants.{Energy, Temperature}
 
 class ThermalHouseSpec extends UnitSpec with HpInputTestData {
-  implicit val tolerance: Temperature = Celsius(1e-2)
+
+  implicit val tolerance: Temperature = Celsius(1e-4)
   implicit val energyTolerance: Energy = KilowattHours(1e-4)
 
   "ThermalHouse" should {
@@ -37,7 +38,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         (17d, false, true),
         (17.98d, false, true),
         (18d, false, true),
-        (19.94d, false, false),
+        (19.98d, false, false),
         (20d, true, false),
         (22d, true, false),
         (22.02d, true, false),
@@ -69,7 +70,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         ambientTemperature,
       )
 
-      newInnerTemperature should approximate(Temperature(28.5665, Celsius))
+      newInnerTemperature should approximate(Temperature(28.5646, Celsius))
     }
 
     "Check for the correct state of house" in {
@@ -81,14 +82,14 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       val testCases: TableFor2[Double, Double] = Table(
         ("qDotHouse", "expectedTemperature(K)"),
         // loss is higher than gain
-        (0d, 292.674),
-        (1d, 292.7692),
-        (2d, 292.8644),
+        (0d, 292.67418),
+        (1d, 292.76935),
+        (2d, 292.86451),
         // Loss and gain should be equal resulting no temperature change
         (5d, 293.15),
         // gain is higher than loss
-        (6d, 293.25),
-        (10d, 293.626),
+        (6d, 293.2451),
+        (10d, 293.6258),
       )
 
       forAll(testCases) {
@@ -130,17 +131,17 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
             "secondTick",
             "expectedTemperatureSecondPeriod",
           ),
-          (20d, 30d, 36000, 29.48, 30d, 72000, 32.97),
-          (20d, 30d, 18000, 25.9, 30d, 72000, 32.97),
-          (20d, 30d, 7200, 22.72, 30d, 72000, 32.97),
-          (20d, 0d, 5151, 18.0, 30d, 72000, 32.35),
-          (20d, 1d, 5549, 18.0, 20d, 72000, 23.89),
-          (20d, 2d, 6013, 18.0, 10d, 72000, 15.48),
+          (20d, 30d, 36000, 29.4818, 30d, 72000, 32.97),
+          (20d, 30d, 18000, 25.9020, 30d, 72000, 32.97),
+          (20d, 30d, 7200, 22.719, 30d, 72000, 32.97),
+          (20d, 0d, 5151, 18.0002, 30d, 72000, 32.3454),
+          (20d, 1d, 5549, 18.0001, 20d, 72000, 23.8948),
+          (20d, 2d, 6013, 18.0002, 10d, 72000, 15.4799),
           (19d, 14d, 99999, 19.0, 14d, 72000, 19.00),
           (20d, 15d, 99999, 20.0, 15d, 72000, 20.00),
           (18d, 16d, 39550, 20.0, 10d, 72000, 17.03),
-          (18d, 20d, 12113, 20.0, 5d, 72000, 11.90),
-          (18d, 25d, 6563, 20.0, 0d, 72000, 7.43),
+          (18d, 20d, 12113, 20.0, 5d, 72000, 11.8947),
+          (18d, 25d, 6563, 19.9998, 0d, 72000, 7.436),
         )
 
       forAll(testCases) {
