@@ -43,7 +43,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.nio.file.Path
 import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /** Utility methods for loading csv and sql load profile sources.
   */
@@ -190,8 +190,13 @@ object LoadProfileSources {
 
     // filter out all profile, that cannot be built by the given factory
     allMetaInformation
-      .filter { case (profile, _) =>
-        Try(factory.parseProfile(profile)).isSuccess
+      .filter { case (profile, meta) =>
+        Try(factory.parseProfile(profile)) match {
+          case Failure(_) =>
+            false
+          case Success(value) =>
+            value.getKey.equals(meta.getProfile)
+        }
       }
       .foldLeft(emptyMap) { case (map, (profile, metaInformation)) =>
         val parsedProfile = factory.parseProfile(profile)

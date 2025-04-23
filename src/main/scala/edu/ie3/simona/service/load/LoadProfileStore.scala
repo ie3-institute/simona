@@ -39,7 +39,7 @@ final case class LoadProfileStore(
     * @return
     *   An option for [[squants.Power]].
     */
-  private implicit def convertPower(
+  implicit def convertPower(
       power: Optional[ComparableQuantity[Power]]
   ): Option[squants.Power] =
     power.toScala.map(_.toSquants)
@@ -51,7 +51,7 @@ final case class LoadProfileStore(
     * @return
     *   An option for [[squants.Power]].
     */
-  private implicit def convertEnergy(
+  implicit def convertEnergy(
       energy: Optional[ComparableQuantity[Energy]]
   ): Option[squants.Energy] =
     energy.toScala.map(_.toSquants)
@@ -97,7 +97,7 @@ final case class LoadProfileStore(
       time: ZonedDateTime,
       nr: Int,
   ): Seq[squants.Power] =
-    Range.inclusive(0, nr, 1).flatMap(_ => entry(time, RANDOM_LOAD_PROFILE))
+    Range(0, nr, 1).flatMap(_ => entry(time, RANDOM_LOAD_PROFILE))
 
   /** @param loadProfile
     *   Given load profile.
