@@ -165,7 +165,7 @@ class ThermalGridWithHouseAndStorageSpec
         val storageDemand = thermalDemands.heatStorageDemand
 
         houseDemand.required should approximate(zeroKWh)
-        houseDemand.possible should approximate(KilowattHours(1.044790833333))
+        houseDemand.possible should approximate(KilowattHours(1.04476746))
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
       }
@@ -256,8 +256,8 @@ class ThermalGridWithHouseAndStorageSpec
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
-        houseDemand.required should approximate(KilowattHours(45.597023333333))
-        houseDemand.possible should approximate(KilowattHours(45.597023333333))
+        houseDemand.required should approximate(KilowattHours(45.59701))
+        houseDemand.possible should approximate(KilowattHours(45.59701))
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
       }

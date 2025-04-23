@@ -62,7 +62,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       val currentInnerTemperature = Temperature(20, Celsius)
       val ambientTemperature = Temperature(10, Celsius)
 
-      val newInnerTemperature = thermalHouseTest.newInnerTemperatureRecursive(
+      val newInnerTemperature = thermalHouseTest.newInnerTemperature(
         thermalPower,
         duration,
         currentInnerTemperature,

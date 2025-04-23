@@ -27,7 +27,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
 import squants.thermal.{Kelvin, ThermalCapacity}
-import squants.time.{Hours, Seconds}
+import squants.time.Seconds
 import squants.{Energy, Power, Temperature, Time}
 import tech.units.indriya.unit.Units
 
@@ -184,45 +184,22 @@ final case class ThermalHouse(
     * @return
     *   new inner temperature
     */
-  def newInnerTemperatureRecursive(
+  def newInnerTemperature(
       thermalPower: Power,
       duration: Time,
       currentInnerTemperature: Temperature,
       ambientTemperature: Temperature,
   ): Temperature = {
-    if (duration <= Seconds(0)) {
-      return currentInnerTemperature
-    }
+    val k1 = (thermalPower.toWatts / (ethCapa.toJoulesPerKelvin /3600 )) + ((ethLosses.toWattsPerKelvin * ambientTemperature.toKelvinScale) /  (ethCapa.toJoulesPerKelvin / 3600))  // in K/h
+    val k1_perSec = k1 /3600
+    val k2 = ethLosses.toWattsPerKelvin/(ethCapa.toJoulesPerKelvin / 3600)  // in 1/h
+    val k2_perSec = k2 /3600
 
-    // FIXME Maybe this can be calculated according to desired granularity of scenario?
-    val divisor = 500d
-    // time step should be small
-    val timeStepApproach = Seconds(duration.toSeconds / divisor)
+    val exponent_k2 = -1 * k2_perSec * duration.toSeconds
+    val e_fkt_k2 = Math.exp(exponent_k2)
 
-    val deltaTime =
-      if (timeStepApproach > Seconds(1)) timeStepApproach else Seconds(1)
-
-    // Thermal energy gain and loss for this time step
-    val thermalEnergyGain = thermalPower * deltaTime
-    val thermalEnergyLoss = ethLosses.calcThermalEnergyChange(
-      currentInnerTemperature,
-      ambientTemperature,
-      deltaTime,
-    )
-
-    // Energy and temperature change
-    val energyChange = thermalEnergyGain - thermalEnergyLoss
-    val temperatureChange = energyChange / ethCapa
-
-    // Update the inner temperature
-    val newInnerTemperature = currentInnerTemperature + temperatureChange
-
-    newInnerTemperatureRecursive(
-      thermalPower,
-      duration - deltaTime,
-      newInnerTemperature,
-      ambientTemperature,
-    )
+    val temperature=(currentInnerTemperature.toKelvinScale - (k1_perSec / k2_perSec)) * e_fkt_k2 + (k1_perSec.doubleValue / k2_perSec.doubleValue)
+    Kelvin(temperature)
   }
 
   /** Update the current state of the house.
@@ -242,7 +219,7 @@ final case class ThermalHouse(
       qDot: Power,
   ): ThermalHouseState = {
     val duration = Seconds(tick - lastThermalHouseState.tick)
-    val updatedInnerTemperature = newInnerTemperatureRecursive(
+    val updatedInnerTemperature = newInnerTemperature(
       qDot,
       duration,
       lastThermalHouseState.innerTemperature,
