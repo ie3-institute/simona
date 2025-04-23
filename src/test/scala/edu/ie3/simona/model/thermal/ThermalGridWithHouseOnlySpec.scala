@@ -22,7 +22,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
 import squants.thermal.Celsius
-import squants.{Energy, Kelvin, Power, Temperature}
+import squants.{Energy, Power, Temperature}
 
 import scala.jdk.CollectionConverters._
 
