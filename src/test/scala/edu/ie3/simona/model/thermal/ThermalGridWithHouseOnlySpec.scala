@@ -181,7 +181,7 @@ class ThermalGridWithHouseOnlySpec
           thermalDemands.domesticHotWaterStorageDemand
 
         houseDemand.required should approximate(zeroKWh)
-        houseDemand.possible should approximate(KilowattHours(1.0447908333333))
+        houseDemand.possible should approximate(KilowattHours(1.04476746))
         storageDemand.required should approximate(zeroKWh)
         storageDemand.possible should approximate(zeroKWh)
         domesticHotWaterDemand.required should approximate(zeroKWh)

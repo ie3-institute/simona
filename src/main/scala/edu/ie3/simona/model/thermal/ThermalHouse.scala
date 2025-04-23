@@ -25,11 +25,12 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
 import squants.space.Litres
 import squants.thermal.{Celsius, Kelvin, ThermalCapacity}
-import squants.time.{Hours, Seconds}
+import squants.time.Seconds
 import squants.{Energy, Power, Temperature, Time, Volume}
 import tech.units.indriya.unit.Units
 
@@ -408,39 +409,15 @@ final case class ThermalHouse(
       currentInnerTemperature: Temperature,
       ambientTemperature: Temperature,
   ): Temperature = {
-    if (duration <= Seconds(0)) {
-      return currentInnerTemperature
-    }
+    val (k1, k2) = getFactorsK1AndK2(thermalPower, ambientTemperature)
 
-    // FIXME Maybe this can be calculated according to desired granularity of scenario?
-    val divisor = 500d
-    // time step should be small
-    val timeStepApproach = Seconds(duration.toSeconds / divisor)
+    val exponent_k2 = -1 * k2 * duration.toSeconds
 
-    val deltaTime =
-      if (timeStepApproach > Seconds(1)) timeStepApproach else Seconds(1)
-
-    // Thermal energy gain and loss for this time step
-    val thermalEnergyGain = thermalPower * deltaTime
-    val thermalEnergyLoss = ethLosses.calcThermalEnergyChange(
-      currentInnerTemperature,
-      ambientTemperature,
-      deltaTime,
-    )
-
-    // Energy and temperature change
-    val energyChange = thermalEnergyGain - thermalEnergyLoss
-    val temperatureChange = energyChange / ethCapa
-
-    // Update the inner temperature
-    val newInnerTemperature = currentInnerTemperature + temperatureChange
-
-    newInnerTemperatureRecursive(
-      thermalPower,
-      duration - deltaTime,
-      newInnerTemperature,
-      ambientTemperature,
-    )
+    val temperature =
+      (currentInnerTemperature.toKelvinScale - (k1 / k2)) * Math.exp(
+        exponent_k2
+      ) + (k1 / k2)
+    Kelvin(temperature)
   }
 
   /** Update the current state of the house.
@@ -490,61 +467,66 @@ final case class ThermalHouse(
       qDot: Power,
       nextTryForPossibleThreshold: Long = 1,
   ): Option[ThermalThreshold] = {
+    val limitTemperature = Kelvin(
+      qDot.toWatts / ethLosses.toWattsPerKelvin
+    ) + Kelvin(thermalHouseState.ambientTemperature.toKelvinScale)
 
-    val loss = ethLosses.calcQDot(
-      thermalHouseState.innerTemperature,
-      thermalHouseState.ambientTemperature,
-    )
-    val resultingQDot = qDot - loss
-
-    val artificialDuration = Seconds(1)
-
-    val energyChange = resultingQDot * artificialDuration
-    // Energy and temperature change
-    val temperatureChange = energyChange / ethCapa
-
-    // Update the inner temperature
-    val updatedTemperature =
-      thermalHouseState.innerTemperature + temperatureChange
-
-    val updatedState =
-      thermalHouseState.copy(innerTemperature = updatedTemperature)
-
-    val updatedDuration = nextTryForPossibleThreshold + 1
-    if (
-      resultingQDot < zeroMW && isInnerTemperatureTooLow(
-        updatedTemperature
-      )
-    ) {
-      Some(
-        HouseTemperatureLowerBoundaryReached(
-          thermalHouseState.tick + nextTryForPossibleThreshold
-        )
-      )
-    } else if (
-      resultingQDot > zeroMW && isInnerTemperatureTooHigh(
-        updatedTemperature
-      )
-    ) {
-
-      Some(
-        HouseTargetTemperatureReached(
-          thermalHouseState.tick + nextTryForPossibleThreshold
-        )
-      )
-    } else if (nextTryForPossibleThreshold >= 2 * 86400) {
-      // House is maybe in balance, so we stop here and give back an activation two days later
-      Some(
-        HouseTemperatureLowerBoundaryReached(
-          thermalHouseState.tick + nextTryForPossibleThreshold
-        )
-      )
-    } else
-      determineNextThresholdRecursive(
-        updatedState,
+    if (isInnerTemperatureTooLow(limitTemperature + temperatureTolerance))
+      /* Losses and gain of house are not in balance, thus temperature will reach some limit sooner or later */
+      /* House has more losses than gain */
+      {
+        nextActivation(
+          thermalHouseState.tick,
+          lowerBoundaryTemperature,
+          thermalHouseState.innerTemperature,
+          thermalHouseState.ambientTemperature,
+          qDot,
+        ).map(HouseTemperatureLowerBoundaryReached)
+      } else if (
+      isInnerTemperatureTooHigh(limitTemperature - temperatureTolerance)
+    ) { /* House has more gain than losses */
+      nextActivation(
+        thermalHouseState.tick,
+        targetTemperature,
+        thermalHouseState.innerTemperature,
+        thermalHouseState.ambientTemperature,
         qDot,
-        updatedDuration,
-      )
+      ).map(HouseTargetTemperatureReached)
+    } else {
+      /* House is in perfect balance */
+      None
+    }
+  }
+
+  private def nextActivation(
+      tick: Long,
+      nextInnerTemperatureToReach: Temperature,
+      currentInnerTemperature: Temperature,
+      ambientTemperature: Temperature,
+      qDot: Power,
+  ): Option[Long] = {
+    val (k1, k2) = getFactorsK1AndK2(qDot, ambientTemperature)
+
+    val durationValue = Math.log(
+      (nextInnerTemperatureToReach - Kelvin(
+        k1 / k2
+      )) / (currentInnerTemperature - Kelvin(k1 / k2))
+    ) / (k2 * -1)
+
+    val duration = Math.floor(durationValue).toLong
+    Some(tick + duration)
+  }
+
+  private def getFactorsK1AndK2(
+      qDot: Power,
+      ambientTemperature: Temperature,
+  ): (Double, Double) = {
+    val k1 =
+      qDot.toWatts / ethCapa.toWattSecondsPerKelvin + ethLosses.toWattsPerKelvin * ambientTemperature.toKelvinScale / ethCapa.toWattSecondsPerKelvin // in K/Sec
+    val k2 =
+      ethLosses.toWattsPerKelvin / ethCapa.toWattSecondsPerKelvin // in 1/Sec
+
+    (k1, k2)
   }
 }
 

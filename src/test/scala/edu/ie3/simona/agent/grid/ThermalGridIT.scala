@@ -297,7 +297,7 @@ class ThermalGridIT
 
       /* TICK 3416
       ThermalStorage is fully heated up
-      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.37 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.36 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -351,7 +351,7 @@ class ThermalGridIT
 
       /* TICK 3600
       New weather data (unchanged) incoming + Domestic hot water storage will cover hot water demand
-      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.94 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.92 kWh
       House demand water   : requiredDemand = 0.037 kWh, possibleDemand = 0.037 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -445,8 +445,10 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(4381)))
       resultListener.expectNoMessage()
 
-      /* TICK 4381
-      House reaches target temperature
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(4412)))
+
+      /* TICK 4254
+      House reaches target temperature boundary
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -454,7 +456,7 @@ class ThermalGridIT
       Heat pump: turned off
        */
 
-      heatPumpAgent ! Activation(4381)
+      heatPumpAgent ! Activation(4412)
 
       Range(0, 2)
         .map { _ =>
@@ -465,7 +467,7 @@ class ThermalGridIT
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 4381.toDateTime
+                hpResult._1 shouldBe 4412.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
             }
@@ -478,7 +480,7 @@ class ThermalGridIT
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 4381.toDateTime
+                time shouldBe 4412.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
@@ -528,7 +530,7 @@ class ThermalGridIT
       /* TICK 21600
       House would reach lowerTempBoundary at tick 50797.
       But now it's getting colder which should decrease inner temp of house faster.
-      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 11.9 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 11.56 kWh
       House demand water   : requiredDemand = 0.16 kWh, possibleDemand = 0.16 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -867,7 +869,7 @@ class ThermalGridIT
       /* TICK 28800
         New weather data: it's getting warmer again
         FIXME
-        House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.55 kWh
+        House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.75 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -1885,7 +1887,7 @@ Heat pump: turns on - since now we have flexibility potential available which ca
       /* TICK 5216
       Storage is fully heated up, meanwhile house cooled a bit.
       PV: -6.3 kW
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 3.6 kWh
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 3.59 kWh
       House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       DomesticWaterStorage : tba
@@ -2015,7 +2017,7 @@ Heat pump: stays on since it was on and the house has additional demand
       /* TICK 5400
       PV: 0.0 kW
       New weather data, sun is gone again, thus we should now heat the house by storage.
-      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 3.17 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 3.15 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turns off
        */
@@ -2082,17 +2084,17 @@ Heat pump: stays on since it was on and the house has additional demand
             }
         }
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(6829)))
+      scheduler.expectMessage(Completion(emAgentActivation, Some(6824)))
 
-      /* TICK 6829
+      /* TICK 6824
      The house reaches target temperature
      PV: 0.0 kW
      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-     ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.15 kWh
+     ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
      Heat pump: stays off
        */
 
-      emAgentActivation ! Activation(6829)
+      emAgentActivation ! Activation(6824)
 
       Range(0, 4)
         .map { _ =>
@@ -2103,13 +2105,13 @@ Heat pump: stays on since it was on and the house has additional demand
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 6829.toDateTime
+                hpResult._1 shouldBe 6824.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 6829.toDateTime
+                emResult._1 shouldBe 6824.toDateTime
                 emResult._3 should equalWithTolerance(0.0.asMegaWatt)
                 emResult._4 should equalWithTolerance(0.0.asMegaVar)
             }
@@ -2122,12 +2124,11 @@ Heat pump: stays on since it was on and the house has additional demand
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 6829.toDateTime
+                time shouldBe 6824.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                  20.asDegreeCelsius
+                  19.99.asDegreeCelsius
                 )(temperatureTolerance)
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -2135,9 +2136,9 @@ Heat pump: stays on since it was on and the house has additional demand
                     energy,
                   ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
-                time shouldBe 6829.toDateTime
+                time shouldBe 6824.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
-                energy should equalWithTolerance(0.0062959.asMegaWattHour)
+                energy should equalWithTolerance(0.0063104.asMegaWattHour)
             }
         }
 
@@ -2147,7 +2148,7 @@ Heat pump: stays on since it was on and the house has additional demand
      The sun is back again, storage first.
      PV: -5.2 kW
      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
-     ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.15 kWh
+     ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
      Heat pump: turned on
        */
 
@@ -2202,7 +2203,7 @@ Heat pump: stays on since it was on and the house has additional demand
                 time shouldBe 9200.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.0062959.asMegaWattHour
+                  0.0063104.asMegaWattHour
                 )
               case DomesticHotWaterStorageResult(
                     time,
@@ -2271,17 +2272,17 @@ Heat pump: stays on since it was on and the house has additional demand
             }
         }
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(10556)))
+      scheduler.expectMessage(Completion(emAgentActivation, Some(10551)))
 
-      /* TICK 10556
+      /* TICK 10551
       Storage is full, now heating the house till target temperature.
       PV: -5.2 kW
-      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.58 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.57 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on
        */
 
-      emAgentActivation ! Activation(10556)
+      emAgentActivation ! Activation(10551)
 
       Range(0, 4)
         .map { _ =>
@@ -2292,13 +2293,13 @@ Heat pump: stays on since it was on and the house has additional demand
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 10556.toDateTime
+                hpResult._1 shouldBe 10551.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 10556.toDateTime
+                emResult._1 shouldBe 10551.toDateTime
                 emResult._3 should equalWithTolerance(
                   -0.0013527980811294546.asMegaWatt
                 )
@@ -2315,10 +2316,10 @@ Heat pump: stays on since it was on and the house has additional demand
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 10556.toDateTime
+                time shouldBe 10551.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                  19.66.asDegreeCelsius
+                  19.65.asDegreeCelsius
                 )(temperatureTolerance)
               case CylindricalThermalStorageResult(
                     time,
@@ -2327,15 +2328,15 @@ Heat pump: stays on since it was on and the house has additional demand
                     energy,
                   ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
-                time shouldBe 10556.toDateTime
+                time shouldBe 10551.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(11644)))
+      scheduler.expectMessage(Completion(emAgentActivation, Some(11638)))
 
-      /* TICK 11644
+      /* TICK 11638
       House reaches target temperature boundary.
       PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2343,7 +2344,7 @@ Heat pump: stays on since it was on and the house has additional demand
       Heat pump: turned off
        */
 
-      emAgentActivation ! Activation(11644)
+      emAgentActivation ! Activation(11638)
 
       Range(0, 4)
         .map { _ =>
@@ -2354,13 +2355,13 @@ Heat pump: stays on since it was on and the house has additional demand
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 11644.toDateTime
+                hpResult._1 shouldBe 11638.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 11644.toDateTime
+                emResult._1 shouldBe 11638.toDateTime
                 emResult._3 should equalWithTolerance(
                   -0.005152798081129455.asMegaWatt
                 )
@@ -2377,10 +2378,10 @@ Heat pump: stays on since it was on and the house has additional demand
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 11644.toDateTime
+                time shouldBe 11638.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                  20.asDegreeCelsius
+                  19.99.asDegreeCelsius
                 )(temperatureTolerance)
               case DomesticHotWaterStorageResult(
                     time,
@@ -2511,14 +2512,14 @@ Heat pump: stays on since it was on and the house has additional demand
                 time shouldBe 12000.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                  19.97.asDegreeCelsius
+                  19.96.asDegreeCelsius
                 )(temperatureTolerance)
             }
         }
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(12137)))
+      scheduler.expectMessage(Completion(emAgentActivation, Some(12139)))
 
-      /* TICK 12137
+      /* TICK 12139
       PV: 0.0 kW
       House reaches the target temperature.
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2526,7 +2527,7 @@ Heat pump: stays on since it was on and the house has additional demand
       Heat pump: turned off
        */
 
-      emAgentActivation ! Activation(12137)
+      emAgentActivation ! Activation(12139)
 
       Range(0, 3)
         .map { _ =>
@@ -2537,13 +2538,13 @@ Heat pump: stays on since it was on and the house has additional demand
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 12137.toDateTime
+                hpResult._1 shouldBe 12139.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 12137.toDateTime
+                emResult._1 shouldBe 12139.toDateTime
                 emResult._3 should equalWithTolerance(
                   -0.005202125041125976.asMegaWatt
                 )
@@ -2560,7 +2561,7 @@ Heat pump: stays on since it was on and the house has additional demand
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 12137.toDateTime
+                time shouldBe 12139.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   20.asDegreeCelsius
@@ -2755,8 +2756,8 @@ Heat pump: stays on since it was on and the house has additional demand
       /* TICK 25200
         The sun comes out and it's getting warmer.
         PV: -4.4 kW
-        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.21 kWh
-        ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 3.04 kWh
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.66 kWh
+        ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
         Heat pump: will be turned on and will continue heating the house
        */
 
@@ -2897,8 +2898,8 @@ Domestic hot water storage stops discharging.
       /* TICK 27500
         Additional trigger caused by (unchanged) weather data should not change this.
         PV: -3.9 kW
-        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 7.67 kWh
-        ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 3.04 kWh
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.14 kWh
+        ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
         Heat pump: stays on
        */
       emAgentActivation ! Activation(27500)
@@ -2950,7 +2951,7 @@ Domestic hot water storage stops discharging.
         The sun is gone again, it's getting colder as well.
         PV: 0.0 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-        ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 3.04 kWh
+        ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
         FIXME Heat pump: stays on - to serve the remaining heat demand of the storage.
        */
 
@@ -3108,7 +3109,7 @@ FIXME
         House reach lower temperature boundary
         PV: 0.0 kW
         House demand heating : requiredDemand = 15.00 kWh, possibleDemand = 15.00 kWh
-        ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 2.15 kWh
+        ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 2.05 kWh
         Heat pump: stays off - demand will be covered by storage.
        */
 
@@ -3239,7 +3240,7 @@ Domestic hot water storage stops discharging
         Thus, the Hp will stop operation since it can be turned off
         (lower Temp < innerTemp < targetTemp && storage must not directly recharged).
         PV: 0.0 kW
-        House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.92 kWh
+        House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.89 kWh
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays off
        */

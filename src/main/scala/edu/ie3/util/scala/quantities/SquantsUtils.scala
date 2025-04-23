@@ -6,10 +6,11 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.Each
-import squants.electro.Volts
+import squants.electro.{ElectricPotential, Volts}
 import squants.energy.Energy
 import squants.space.{CubicMeters, Volume}
+import squants.thermal.ThermalCapacity
+import squants.{Dimensionless, Each}
 
 object SquantsUtils {
   implicit class RichEnergy(energy: Energy) {
@@ -18,20 +19,28 @@ object SquantsUtils {
     )
   }
   implicit class RichPower(power: squants.Power) {
-    def /(that: ReactivePower): squants.Dimensionless = Each(
+    def /(that: ReactivePower): Dimensionless = Each(
       power.toWatts / that.toVars
     )
   }
 
   implicit class RichElectricPotential(
-      electricPotential: squants.electro.ElectricPotential
+      electricPotential: ElectricPotential
   ) {
-    def multiplyWithDimensionles(
+    def multiplyWithDimensionless(
         that: squants.Dimensionless
-    ): squants.electro.ElectricPotential = Volts(
+    ): ElectricPotential = Volts(
       electricPotential.toVolts * that.toEach
     )
 
   }
 
+  implicit class RichThermalCapacity(
+      thermalCapacity: ThermalCapacity
+  ) {
+    def toWattHoursPerKelvin(): Double =
+      this.thermalCapacity.toJoulesPerKelvin / 3600
+    def toWattSecondsPerKelvin(): Double =
+      this.thermalCapacity.toJoulesPerKelvin // Joule == Ws
+  }
 }

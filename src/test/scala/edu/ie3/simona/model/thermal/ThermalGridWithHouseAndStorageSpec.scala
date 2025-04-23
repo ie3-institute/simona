@@ -201,7 +201,7 @@ class ThermalGridWithHouseAndStorageSpec
         val waterStorageDemand = thermalDemands.domesticHotWaterStorageDemand
 
         houseDemand.required should approximate(zeroKWh)
-        houseDemand.possible should approximate(KilowattHours(1.044790833333))
+        houseDemand.possible should approximate(KilowattHours(1.04476746))
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
         waterStorageDemand.required should approximate(KilowattHours(0d))
@@ -224,16 +224,19 @@ class ThermalGridWithHouseAndStorageSpec
               HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
             )
 
-          updatedThermalGridState.houseState shouldBe Some(
-            ThermalHouseState(
-              10800,
-              testGridAmbientTemperature,
-              Celsius(15.960198438354825),
-            )
-          )
-          updatedThermalGridState.heatStorageState shouldBe Some(
-            ThermalStorageState(10800, zeroKWh)
-          )
+          updatedThermalGridState match {
+            case ThermalGridState(
+                  Some(ThermalHouseState(houseTick, _, innerTemperature)),
+                  Some(ThermalStorageState(storageTick, storedEnergy)),
+                ) =>
+              houseTick shouldBe 10800
+              storageTick shouldBe houseTick
+              innerTemperature should approximate(Celsius(15.96))
+              storedEnergy shouldBe zeroKWh
+            case _ => fail("Thermal grid state couldn't matched")
+          }
+
+        }
 
           // OperatingPoint zero for waterStorage
           updatedThermalGridState.domesticHotWaterStorageState shouldBe Some(
@@ -351,8 +354,8 @@ class ThermalGridWithHouseAndStorageSpec
         val storageDemand = thermalDemands.heatStorageDemand
         val waterStorageDemand = thermalDemands.domesticHotWaterStorageDemand
 
-        houseDemand.required should approximate(KilowattHours(45.597023333333))
-        houseDemand.possible should approximate(KilowattHours(45.597023333333))
+        houseDemand.required should approximate(KilowattHours(45.59701))
+        houseDemand.possible should approximate(KilowattHours(45.59701))
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
         waterStorageDemand.required should approximate(KilowattHours(0d))
@@ -567,7 +570,9 @@ class ThermalGridWithHouseAndStorageSpec
           )
 
         val maybeHouseThreshold =
-          thermalHouse.determineNextThresholdRecursive(maybeHouseState, zeroKW)
+          thermalHouse.determineNextThresholdRecursive(maybeHouseState,
+            zeroKW,
+          )
 
         val maybeStorageState =
           Some(ThermalStorageState(state.tick, KilowattHours(10)))

@@ -146,7 +146,14 @@ class ThermalHouseSpec
           (20d, 30d, 36000, 29.48, 30d, 72000, 32.97),
           (20d, 30d, 18000, 25.9, 30d, 72000, 32.97),
           (20d, 30d, 7200, 22.72, 30d, 72000, 32.97),
-          (6d, 30d, 23709, 20.0, 30d, 72000, 31.08),
+          (20d, 0d, 5151, 18.0, 30d, 72000, 32.35),
+          (20d, 1d, 5549, 18.0, 20d, 72000, 23.89),
+          (20d, 2d, 6013, 18.0, 10d, 72000, 15.48),
+          (19d, 14d, 99999, 19.0, 14d, 72000, 19.00),
+          (20d, 15d, 99999, 20.0, 15d, 72000, 20.00),
+          (18d, 16d, 39550, 20.0, 10d, 72000, 17.03),
+          (18d, 20d, 12113, 20.0, 5d, 72000, 11.90),
+          (18d, 25d, 6563, 20.0, 0d, 72000, 7.43),
         )
 
       forAll(testCases) {
@@ -263,16 +270,16 @@ class ThermalHouseSpec
         house.determineState(18000, initialHouseState, qDot)
 
       val finalThresholdCaseA =
-        house.determineNextThresholdRecursive(inBetweenStateCaseA, qDot)
+        house.determineNextThreshold(inBetweenStateCaseA, qDot)
       val finalThresholdCaseB =
-        house.determineNextThresholdRecursive(inBetweenStateCaseB, qDot)
+        house.determineNextThreshold(inBetweenStateCaseB, qDot)
 
-      val finalThresholdCaseC = house.determineNextThresholdRecursive(
+      val finalThresholdCaseC = house.determineNextThreshold(
         initialHouseState,
         qDot,
       )
 
-      val tolerance = 4d
+      val tolerance = 1d
       (finalThresholdCaseA, finalThresholdCaseB, finalThresholdCaseC) match {
         case (Some(thresholdA), Some(thresholdB), Some(thresholdC)) => {
           thresholdA.tick.doubleValue should approximate(
@@ -281,50 +288,44 @@ class ThermalHouseSpec
           thresholdB.tick.doubleValue should approximate(
             thresholdC.tick.doubleValue
           )(tolerance)
-          thresholdC shouldBe HouseTargetTemperatureReached(23709)
+          thresholdC shouldBe HouseTargetTemperatureReached(23732)
         }
         case _ => fail("Could not match thresholds.")
       }
     }
 
     "Check for the correct next threshold of house with thermal feed in" in {
-      val tick = 3600
       val house = thermalHouse(18, 22)
-      val ambientTemperature = Temperature(15, Celsius)
+      val ambientTemperature = Temperature(5, Celsius)
       val initialHouseState = startingState(house, ambientTemperature)
 
       val testCases: TableFor3[Double, Double, Option[ThermalThreshold]] =
         Table(
-          ("lastOperatingPoint", "newOperatingPoint", "expectedThreshold"),
+          ("currentInnerTemp", "newOperatingPoint", "expectedThreshold"),
           // some OperatingPoints not capable to heat the house sufficient
-          (0d, 0d, Some(HouseTemperatureLowerBoundaryReached(18269))),
-          (1d, 1d, Some(HouseTemperatureLowerBoundaryReached(24773))),
-          (2d, 2d, Some(HouseTemperatureLowerBoundaryReached(39191))),
-          // OperatingPoint that keeps the house in perfect balance, in theory no threshold, thus we at least activate a day later
-          (
-            5d,
-            5d,
-            Some(HouseTemperatureLowerBoundaryReached(2 * 86400 + 3600)),
-          ),
+          (20d, 0d, Some(HouseTemperatureLowerBoundaryReached(5151))),
+          (20d, 1d, Some(HouseTemperatureLowerBoundaryReached(5549))),
+          (20d, 2d, Some(HouseTemperatureLowerBoundaryReached(6013))),
+          (20d, 10d, Some(HouseTemperatureLowerBoundaryReached(18389))),
+          // OperatingPoint that keeps the house in perfect balance
+          (19d, 14d, None),
+          (20d, 15d, None),
           // some OperatingPoints that increase the house inner temperature after some cooling down first
-          (0d, 6d, Some(HouseTargetTemperatureReached(17257))),
-          (0d, 10d, Some(HouseTargetTemperatureReached(6802))),
+          (18d, 16d, Some(HouseTargetTemperatureReached(39550))),
+          (18d, 20d, Some(HouseTargetTemperatureReached(12113))),
+          (18d, 25d, Some(HouseTargetTemperatureReached(6563))),
         )
 
       forAll(testCases) {
         (
-            lastOp: Double,
+            currentInnerTemp: Double,
             newOp: Double,
             expectedThreshold: Option[ThermalThreshold],
         ) =>
-          val lastOperatingPoint = Kilowatts(lastOp)
           val newOperatingPoint = Kilowatts(newOp)
+          val state =
+            initialHouseState.copy(innerTemperature = Celsius(currentInnerTemp))
 
-          val state = house.determineState(
-            tick,
-            initialHouseState,
-            lastOperatingPoint,
-          )
           val threshold = house.determineNextThresholdRecursive(
             state,
             newOperatingPoint,

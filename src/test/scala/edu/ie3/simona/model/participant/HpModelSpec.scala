@@ -34,7 +34,7 @@ class HpModelSpec
     with HpInputTestData
     with ThermalHouseTestData {
   implicit val powerTolerance: Power = Kilowatts(1e-10)
-  implicit val energyTolerance: Energy = KilowattHours(1e-10)
+  implicit val energyTolerance: Energy = KilowattHours(1e-5)
   implicit val tempTolerance: Temperature = Kelvin(1e-3)
 
   // build the HpModel
@@ -65,7 +65,7 @@ class HpModelSpec
             thermalState(Celsius(17), ambientTemperature)
           ),
           15.7309,
-          (42.6911468252153, 42.6911468252153),
+          (42.6888473, 42.6888473),
           (0.0, 0.0),
         ),
         (
@@ -73,7 +73,7 @@ class HpModelSpec
             thermalState(Celsius(18), ambientTemperature)
           ),
           16.54958,
-          (34.5041678002461, 34.5041678002461),
+          (34.501539, 34.501539),
           (0.0, 0.0),
         ),
         (
@@ -81,7 +81,7 @@ class HpModelSpec
             thermalState(Celsius(20), ambientTemperature)
           ),
           18.186979,
-          (0.0, 18.1302097503072),
+          (0.0, 18.12692469),
           (0.0, 0.0),
         ),
         (
@@ -89,7 +89,7 @@ class HpModelSpec
             thermalState(Celsius(22), ambientTemperature)
           ),
           19.82437,
-          (0.0, 1.75625170036824),
+          (0.0, 1.7523096),
           (0.0, 0.0),
         ),
         (
@@ -113,8 +113,8 @@ class HpModelSpec
               ),
             ),
           ),
-          16.3171887, // TODO CHECK THIS?!
-          (36.8281122472325, 36.8281122472325),
+          16.3142322,
+          (36.8576777, 36.8576777),
           (0.0, 0.0),
         ),
         (
@@ -130,8 +130,8 @@ class HpModelSpec
               ),
             ),
           ),
-          17.9545845802706, // TODO CHECK THIS?!
-          (20.4541541972941, 20.4541541972941),
+          17.9516937,
+          (20.4830627, 20.4830627),
           (0.0, 0.0),
         ),
         (
@@ -147,7 +147,7 @@ class HpModelSpec
               ),
             ),
           ),
-          30.2350531177, // TODO CHECK THIS?!
+          30.232655,
           (0.0, 0.0),
           (0.0, 0.0),
         ),
@@ -904,8 +904,8 @@ class HpModelSpec
           "expectedHpQDot",
           "expectedTick",
         ),
-        (0, 0d, 0d, Some(4196)),
-        (5000, 1d, 95d, Some(11492)),
+        (0, 0d, 0d, Some(4240)),
+        (5000, 1d, 95d, Some(11563)),
       )
 
       forAll(cases) {
@@ -954,10 +954,10 @@ class HpModelSpec
           "expectedHpQDot",
           "expectedTick",
         ),
-        (0L, 0d, 0d, 0d, Some(4196)),
-        (5000L, 95d, 1d, 95d, Some(11492)),
-        (0L, 80d, 0d, 95d, Some(4196)),
-        (5000L, 80d, 1d, 95d, Some(11492)),
+        (0L, 0d, 0d, 0d, Some(4240)),
+        (5000L, 95d, 1d, 95d, Some(11563)),
+        (0L, 80d, 0d, 95d, Some(4240)),
+        (5000L, 80d, 1d, 95d, Some(11563)),
       )
 
       forAll(cases) {
