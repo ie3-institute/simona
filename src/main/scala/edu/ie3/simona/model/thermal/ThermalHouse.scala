@@ -24,6 +24,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
 import squants.thermal.{Kelvin, ThermalCapacity}
@@ -190,18 +191,14 @@ final case class ThermalHouse(
       currentInnerTemperature: Temperature,
       ambientTemperature: Temperature,
   ): Temperature = {
-    val k1 =
-      (thermalPower.toWatts / (ethCapa.toJoulesPerKelvin / 3600)) + ((ethLosses.toWattsPerKelvin * ambientTemperature.toKelvinScale) / (ethCapa.toJoulesPerKelvin / 3600)) // in K/h
-    val k1_perSec = k1 / 3600
-    val k2 =
-      ethLosses.toWattsPerKelvin / (ethCapa.toJoulesPerKelvin / 3600) // in 1/h
-    val k2_perSec = k2 / 3600
+    val (k1, k2) = getFactorsK1AndK2(thermalPower, ambientTemperature)
 
-    val exponent_k2 = -1 * k2_perSec * duration.toSeconds
-    val e_fkt_k2 = Math.exp(exponent_k2)
+    val exponent_k2 = -1 * k2 * duration.toSeconds
 
     val temperature =
-      (currentInnerTemperature.toKelvinScale - (k1_perSec / k2_perSec)) * e_fkt_k2 + (k1_perSec.doubleValue / k2_perSec.doubleValue)
+      (currentInnerTemperature.toKelvinScale - (k1 / k2)) * Math.exp(
+        exponent_k2
+      ) + (k1 / k2)
     Kelvin(temperature)
   }
 
@@ -285,21 +282,29 @@ final case class ThermalHouse(
       ambientTemperature: Temperature,
       qDot: Power,
   ): Option[Long] = {
-    val k1 =
-      (qDot.toWatts / (ethCapa.toJoulesPerKelvin / 3600)) + ((ethLosses.toWattsPerKelvin * ambientTemperature.toKelvinScale) / (ethCapa.toJoulesPerKelvin / 3600)) // in K/h
-    val k1_perSec = k1 / 3600
-    val k2 =
-      ethLosses.toWattsPerKelvin / (ethCapa.toJoulesPerKelvin / 3600) // in 1/h
-    val k2_perSec = k2 / 3600
+    val (k1, k2) = getFactorsK1AndK2(qDot, ambientTemperature)
 
     val durationValue = Math.log(
-      (nextInnerTemperatureToReach.toKelvinScale - (k1_perSec / k2_perSec)) / (currentInnerTemperature.toKelvinScale - (k1_perSec / k2_perSec))
-    ) / (k2_perSec * -1)
+      (nextInnerTemperatureToReach - Kelvin(
+        k1 / k2
+      )) / (currentInnerTemperature - Kelvin(k1 / k2))
+    ) / (k2 * -1)
 
     val duration = Math.floor(durationValue).toLong
     Some(tick + duration)
   }
 
+  private def getFactorsK1AndK2(
+      qDot: Power,
+      ambientTemperature: Temperature,
+  ): (Double, Double) = {
+    val k1 =
+      qDot.toWatts / ethCapa.toWattSecondsPerKelvin + ethLosses.toWattsPerKelvin * ambientTemperature.toKelvinScale / ethCapa.toWattSecondsPerKelvin // in K/Sec
+    val k2 =
+      ethLosses.toWattsPerKelvin / ethCapa.toWattSecondsPerKelvin // in 1/Sec
+
+    (k1, k2)
+  }
 }
 
 object ThermalHouse {

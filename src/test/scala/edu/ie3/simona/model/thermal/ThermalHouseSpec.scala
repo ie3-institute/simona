@@ -17,7 +17,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.WattsPerKelvin
-import org.scalatest.prop.{TableFor2, TableFor3, TableFor6, TableFor7}
+import org.scalatest.prop.{TableFor2, TableFor3, TableFor7}
 import squants.energy._
 import squants.thermal._
 import squants.time._
