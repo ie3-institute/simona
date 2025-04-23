@@ -281,7 +281,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalGrid.handleConsumption(state)
 
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(164685)
+          HouseTemperatureLowerBoundaryReached(166482)
         )
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
       }
@@ -370,7 +370,7 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        val maybeHouseThreshold = thermalHouse.determineNextThresholdRecursive(
+        val maybeHouseThreshold = thermalHouse.determineNextThreshold(
           houseState,
           zeroKW,
         )
@@ -385,7 +385,7 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
             nextThreshold shouldBe Some(
-              HouseTemperatureLowerBoundaryReached(164685)
+              HouseTemperatureLowerBoundaryReached(166482)
             )
         }
       }
@@ -403,7 +403,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         val maybeHouseThreshold =
-          thermalHouse.determineNextThresholdRecursive(
+          thermalHouse.determineNextThreshold(
             houseState,
             zeroKW,
           )
@@ -487,7 +487,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalStorage.pThermalMax * -1,
         )
 
-        threshold shouldBe Some(HouseTargetTemperatureReached(6318))
+        threshold shouldBe Some(HouseTargetTemperatureReached(6344))
       }
     }
   }
@@ -522,7 +522,7 @@ class ThermalGridWithHouseAndStorageSpec
           externalQDot,
         )
 
-      reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7310))
+      reachedThreshold shouldBe Some(HouseTargetTemperatureReached(7345))
       thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
         externalQDot,
         externalQDot,

@@ -777,8 +777,8 @@ class HpModelSpec
           "expectedHpQDot",
           "expectedTick",
         ),
-        (0, 0d, 0d, Some(4196)),
-        (5000, 1d, 95d, Some(11492)),
+        (0, 0d, 0d, Some(4240)),
+        (5000, 1d, 95d, Some(11563)),
       )
 
       forAll(cases) {
@@ -823,10 +823,10 @@ class HpModelSpec
           "expectedHpQDot",
           "expectedTick",
         ),
-        (0L, 0d, 0d, 0d, Some(4196)),
-        (5000L, 95d, 1d, 95d, Some(11492)),
-        (0L, 80d, 0d, 95d, Some(4196)),
-        (5000L, 80d, 1d, 95d, Some(11492)),
+        (0L, 0d, 0d, 0d, Some(4240)),
+        (5000L, 95d, 1d, 95d, Some(11563)),
+        (0L, 80d, 0d, 95d, Some(4240)),
+        (5000L, 80d, 1d, 95d, Some(11563)),
       )
 
       forAll(cases) {
