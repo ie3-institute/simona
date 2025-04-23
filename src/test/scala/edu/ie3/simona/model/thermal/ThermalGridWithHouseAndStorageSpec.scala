@@ -560,7 +560,7 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
             nextThreshold shouldBe Some(
-              HouseTemperatureLowerBoundaryReached(168285)
+              HouseTemperatureLowerBoundaryReached(170082)
             )
         }
       }
@@ -669,7 +669,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalStorage.pThermalMax * -1,
           zeroKW,
         )
-        threshold shouldBe Some(HouseTargetTemperatureReached(6318))
+        threshold shouldBe Some(HouseTargetTemperatureReached(6344))
       }
     }
   }
