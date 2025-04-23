@@ -326,7 +326,7 @@ class ThermalHouseSpec
           val state =
             initialHouseState.copy(innerTemperature = Celsius(currentInnerTemp))
 
-          val threshold = house.determineNextThresholdRecursive(
+          val threshold = house.determineNextThreshold(
             state,
             newOperatingPoint,
           )

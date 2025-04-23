@@ -1343,7 +1343,9 @@ The results are checked implicitly through the state of stored energy at the nex
       The results are checked implicitly through the state of stored energy at the next result check.
        */
 
-      val fifthActivationTicksBlock = Seq(50400, 50538, 54000, 54119, 57600, 57717, 61200, 61327, 64800, 64954, 68400, 68576, 72000, 72179, 75600, 75673 ,76163)
+      val fifthActivationTicksBlock =
+        Seq(50400, 50538, 54000, 54119, 57600, 57717, 61200, 61327, 64800,
+          64954, 68400, 68576, 72000, 72179, 75600, 75673, 76163)
 
       val fifthTickPairs = fifthActivationTicksBlock.zipWithIndex.collect {
         case (tick, index) if index < fifthActivationTicksBlock.length - 1 =>
@@ -1430,7 +1432,7 @@ The results are checked implicitly through the state of stored energy at the nex
     }
   }
 
-  //TODO in the end, check if there is a case where domestic storage and house splits the thermal qDot of Hp
+  // TODO in the end, check if there is a case where domestic storage and house splits the thermal qDot of Hp
 
   "A Thermal Grid with thermal house, thermal storage and heat pump that is controlled by an energy management" should {
     "be initialized correctly and run through some activations" in {

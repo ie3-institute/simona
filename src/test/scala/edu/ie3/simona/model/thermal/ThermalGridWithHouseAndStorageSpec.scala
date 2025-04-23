@@ -227,16 +227,25 @@ class ThermalGridWithHouseAndStorageSpec
           updatedThermalGridState match {
             case ThermalGridState(
                   Some(ThermalHouseState(houseTick, _, innerTemperature)),
-                  Some(ThermalStorageState(storageTick, storedEnergy)),
+                  Some(
+                    ThermalStorageState(
+                      heatStorageTick,
+                      heatStorageStoredEnergy,
+                    )
+                  ),
+                  Some(
+                    ThermalStorageState(
+                      waterStorageTick,
+                      waterStorageStoredEnergy,
+                    )
+                  ),
                 ) =>
               houseTick shouldBe 10800
-              storageTick shouldBe houseTick
+              heatStorageTick shouldBe houseTick
               innerTemperature should approximate(Celsius(15.96))
-              storedEnergy shouldBe zeroKWh
+              heatStorageStoredEnergy shouldBe zeroKWh
             case _ => fail("Thermal grid state couldn't matched")
           }
-
-        }
 
           // OperatingPoint zero for waterStorage
           updatedThermalGridState.domesticHotWaterStorageState shouldBe Some(
@@ -539,7 +548,7 @@ class ThermalGridWithHouseAndStorageSpec
         val hpState = state.copy(thermalGridState = maybeThermalGridState)
 
         val maybeThreshold =
-          thermalHouse.determineNextThresholdRecursive(maybeHouseState, zeroKW)
+          thermalHouse.determineNextThreshold(maybeHouseState, zeroKW)
 
         thermalGrid.reviseFeedInFromStorage(
           hpState,
@@ -570,9 +579,7 @@ class ThermalGridWithHouseAndStorageSpec
           )
 
         val maybeHouseThreshold =
-          thermalHouse.determineNextThresholdRecursive(maybeHouseState,
-            zeroKW,
-          )
+          thermalHouse.determineNextThreshold(maybeHouseState, zeroKW)
 
         val maybeStorageState =
           Some(ThermalStorageState(state.tick, KilowattHours(10)))

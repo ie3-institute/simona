@@ -462,7 +462,7 @@ final case class ThermalHouse(
     * @return
     *   The next threshold, that will be reached.
     */
-  def determineNextThresholdRecursive(
+  def determineNextThreshold(
       thermalHouseState: ThermalHouseState,
       qDot: Power,
       nextTryForPossibleThreshold: Long = 1,
