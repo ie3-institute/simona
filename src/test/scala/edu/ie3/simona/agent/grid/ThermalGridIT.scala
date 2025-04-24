@@ -328,7 +328,7 @@ class ThermalGridIT
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(4412)))
 
-      /* TICK 4254
+      /* TICK 4412
       House reaches target temperature boundary
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -1562,7 +1562,7 @@ class ThermalGridIT
 
       scheduler.expectMessage(Completion(emAgentActivation, Some(24413)))
 
-      /* TICK 24303
+      /* TICK 24413
         House reaches lower boundary, since we don't have surplus energy from pv, we would use the energy from storage to heat the house.
         PV: 0.0 kW
         House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
@@ -1753,7 +1753,7 @@ class ThermalGridIT
 
       scheduler.expectMessage(Completion(emAgentActivation, Some(30923)))
 
-      /* TICK 30785
+      /* TICK 30923
         House reaches target temperature, since Hp is running we now charge the storage.
         PV: -3.9 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
