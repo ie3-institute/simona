@@ -193,14 +193,15 @@ final case class ThermalHouse(
   ): Temperature = {
     val (k1, k2) = getFactorsK1AndK2(thermalPower, ambientTemperature)
     // k1/k2 represents the temperature for limes t -> infinity
-    val longTermTemperature = Kelvin(
-      k1 / k2
-    )
+    val longTermTemperature = k1 / k2
     val exponent_k2 = -1 * k2 * duration.toSeconds
 
-    (currentInnerTemperature - longTermTemperature) * Math.exp(
-      exponent_k2
-    ) + longTermTemperature
+    val temperatureValue =
+      (currentInnerTemperature.toKelvinScale - longTermTemperature) * Math.exp(
+        exponent_k2
+      ) + longTermTemperature
+
+    Kelvin(temperatureValue)
   }
 
   /** Update the current state of the house.
