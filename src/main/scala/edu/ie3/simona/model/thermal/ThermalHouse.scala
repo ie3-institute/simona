@@ -198,11 +198,9 @@ final case class ThermalHouse(
     )
     val exponent_k2 = -1 * k2 * duration.toSeconds
 
-    val temperatureValue =
-      (currentInnerTemperature - longTermTemperature) * Math.exp(
-        exponent_k2
-      ) + longTermTemperature
-    Kelvin(temperatureValue)
+    (currentInnerTemperature - longTermTemperature) * Math.exp(
+      exponent_k2
+    ) + longTermTemperature
   }
 
   /** Update the current state of the house.
