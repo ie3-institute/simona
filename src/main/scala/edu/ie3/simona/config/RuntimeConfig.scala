@@ -259,4 +259,20 @@ object RuntimeConfig {
       override val scaling: Double = 1.0,
       override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
+
+  /** Runtime configuration for photovoltaic plants.
+    * @param calculateMissingReactivePowerWithModel
+    *   if missing reactive power may be filled up with model function (default:
+    *   false)
+    * @param scaling
+    *   the scaling factor of the power output (default: 1.0)
+    * @param uuids
+    *   of the models that should use this config, for the default config this
+    *   value is ignored
+    */
+  final case class BmRuntimeConfig(
+      override val calculateMissingReactivePowerWithModel: Boolean = false,
+      override val scaling: Double = 1.0,
+      override val uuids: List[String] = List.empty,
+  ) extends BaseRuntimeConfig
 }

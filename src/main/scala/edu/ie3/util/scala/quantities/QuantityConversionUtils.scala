@@ -8,13 +8,17 @@ package edu.ie3.util.scala.quantities
 
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.interfaces.{
+  Currency,
+  EnergyPrice,
   SpecificConductance,
   SpecificResistance,
 }
+import edu.ie3.util.scala.quantities
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.{KilowattHours, Kilowatts}
+import squants.market.{EUR, Money}
 import squants.space.SquareMeters
-import squants.{Amperes, Each, Percent, Radians}
+import squants.{Amperes, Each, Radians}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.unit.Units._
 
@@ -109,6 +113,24 @@ object QuantityConversionUtils {
     def toSquants: squants.Energy = KilowattHours(
       quantity.to(KILOVARHOUR).getValue.doubleValue
     )
+  }
+
+  implicit class EnergyPriceToSimona(
+      quantity: ComparableQuantity[EnergyPrice]
+  ) {
+
+    /** Returns a quantity with unit [[EuroPerKilowatthour]].
+      */
+    def toSquants: quantities.EnergyPrice = EuroPerKilowatthour(
+      quantity.to(EURO_PER_KILOWATTHOUR).getValue.doubleValue
+    )
+  }
+
+  implicit class CurrencyToSimona(quantity: ComparableQuantity[Currency]) {
+
+    /** Returns a quantity with unit [[EUR]].
+      */
+    def toSquants: Money = EUR(quantity.to(EURO).getValue.doubleValue)
   }
 
   /** Implicit class that contains method to convert a given

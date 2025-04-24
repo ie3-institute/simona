@@ -39,7 +39,9 @@ class BmModelSpec extends UnitSpec {
     isCostControlled = true,
     EUR(0.05),
     EuroPerKilowatthour(0.51d),
+    EuroPerKilowatthour(0.51d),
     0.05,
+    isMarketReaction = true,
   )
 
   "A BmModel" should {

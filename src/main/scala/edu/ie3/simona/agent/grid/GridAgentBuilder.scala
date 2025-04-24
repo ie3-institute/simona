@@ -389,6 +389,18 @@ class GridAgentBuilder(
           environmentRefs.scheduler,
           maybeControllingEm,
         )
+      case input: BmInput =>
+        buildParticipant(
+          SimpleInputContainer(input),
+          participantConfigUtil.getOrDefault[BmRuntimeConfig](
+            input.getUuid
+          ),
+          outputConfigUtil.getOrDefault(NotifierIdentifier.BioMassPlant),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
+          maybeControllingEm,
+        )
       case input: WecInput =>
         buildParticipant(
           SimpleInputContainer(input),
