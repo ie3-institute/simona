@@ -141,7 +141,7 @@ class ThermalGridWithHouseAndStorageSpec
             storageTick shouldBe houseTick
             innerTemperature should approximate(Celsius(18.93))
             storedEnergy shouldBe zeroKWh
-          case _ => fail("Thermal grid state couldn't matched")
+          case _ => fail("Thermal grid state couldn't be matched.")
         }
       }
     }
@@ -194,7 +194,7 @@ class ThermalGridWithHouseAndStorageSpec
               storageTick shouldBe houseTick
               innerTemperature should approximate(Celsius(15.96))
               storedEnergy shouldBe zeroKWh
-            case _ => fail("Thermal grid state couldn't matched")
+            case _ => fail("Thermal grid state couldn't be matched.")
           }
 
         }
@@ -229,7 +229,7 @@ class ThermalGridWithHouseAndStorageSpec
               storageTick shouldBe houseTick
               innerTemperature should approximate(Celsius(15.9602))
               storedEnergy shouldBe KilowattHours(45)
-            case _ => fail("Thermal grid state couldn't matched")
+            case _ => fail("Thermal grid state couldn't be matched.")
           }
         }
       }

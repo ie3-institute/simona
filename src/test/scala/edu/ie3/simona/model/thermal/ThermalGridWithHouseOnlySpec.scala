@@ -110,7 +110,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
               ) =>
             houseTick shouldBe 10800L
             innerTemperature should approximate(Celsius(18.93))
-          case _ => fail("Thermal grid state couldn't matched")
+          case _ => fail("Thermal grid state couldn't be matched.")
         }
       }
     }
