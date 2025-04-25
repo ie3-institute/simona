@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.config
 
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigValue}
+import edu.ie3.simona.config.SimonaConfig.writer
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.util.TimeUtil
 import pureconfig._
@@ -20,12 +21,21 @@ import scala.language.implicitConversions
 
 final case class SimonaConfig(
     simona: SimonaConfig.Simona
-)
+) {
+
+  /** Returns the default config values.
+    */
+  def defaults: ConfigValue = writer.to(this)
+}
 
 object SimonaConfig {
   // pure config start
   implicit def productHint[T]: ProductHint[T] =
     ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  /** Returns a writer for [[SimonaConfig]].
+    */
+  private def writer: ConfigWriter[SimonaConfig] = ConfigWriter[SimonaConfig]
 
   def apply(typeSafeConfig: Config): SimonaConfig =
     apply(ConfigSource.fromConfig(typeSafeConfig))

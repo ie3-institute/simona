@@ -15,6 +15,7 @@ import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
+import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.api.data.ontology.{
   DataMessageFromExt,
@@ -63,8 +64,7 @@ class ExtEvDataServiceSpec
 
   implicit def wrap(
       msg: EvDataMessageFromExt
-  ): WrappedExternalMessage =
-    WrappedExternalMessage(msg)
+  ): WrappedExternalMessage = WrappedExternalMessage(msg)
 
   private val evcs1UUID =
     UUID.fromString("06a14909-366e-4e94-a593-1016e1455b30")

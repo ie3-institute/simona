@@ -28,7 +28,7 @@ ext {
   confluentKafkaVersion = '7.9.0'
   scapegoatVersion = '3.1.8'
 
-  junitVersion = '1.12.1'
+  junitVersion = '1.12.2'
   testContainerVersion = '0.43.0'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
@@ -85,7 +85,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.7.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.8.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
