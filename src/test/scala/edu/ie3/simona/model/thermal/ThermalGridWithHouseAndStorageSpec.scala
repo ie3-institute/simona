@@ -287,9 +287,7 @@ class ThermalGridWithHouseAndStorageSpec
               waterStorageTick shouldBe houseTick
               innerTemperature should approximate(Celsius(15.9602))
               heatStoredEnergy shouldBe KilowattHours(45)
-              waterStoredEnergy should approximate(
-                KilowattHours(12.18) - Kilowatts(1) * Hours(3)
-              )
+              waterStoredEnergy should approximate(KilowattHours(9.18))
             case _ => fail("Thermal grid state couldn't be matched.")
           }
         }
