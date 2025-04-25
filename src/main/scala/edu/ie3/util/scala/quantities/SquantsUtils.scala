@@ -38,9 +38,9 @@ object SquantsUtils {
   implicit class RichThermalCapacity(
       thermalCapacity: ThermalCapacity
   ) {
-    def toWattHoursPerKelvin(): Double =
+    def toWattHoursPerKelvin: Double =
       this.thermalCapacity.toJoulesPerKelvin / 3600
-    def toWattSecondsPerKelvin(): Double =
+    def toWattSecondsPerKelvin: Double =
       this.thermalCapacity.toJoulesPerKelvin // Joule == Ws
   }
 }

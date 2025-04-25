@@ -37,7 +37,8 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.{
   zeroCelsius,
   zeroKW,
   zeroKWh,
-}import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
+}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities._
 import squants._
 
@@ -349,7 +350,7 @@ object HpModel {
     *   The thermal power input of the
     *   [[edu.ie3.simona.model.thermal.ThermalStorage]].
     */
-  final case class ThermalGridOperatingPoint private (
+  final case class ThermalGridOperatingPoint(
       qDotHp: Power,
       qDotHouse: Power,
       qDotHeatStorage: Power,

@@ -1189,8 +1189,9 @@ class ThermalGridIT
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 6824.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(19.99.asDegreeCelsius)
-
+                indoorTemperature should equalWithTolerance(
+                  19.99.asDegreeCelsius
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1379,7 +1380,9 @@ class ThermalGridIT
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 11638.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(19.99.asDegreeCelsius)
+                indoorTemperature should equalWithTolerance(
+                  19.99.asDegreeCelsius
+                )
             }
         }
 

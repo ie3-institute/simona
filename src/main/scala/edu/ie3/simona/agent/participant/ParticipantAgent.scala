@@ -25,8 +25,6 @@ import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import squants.{Dimensionless, Each}
 
-import scala.reflect.ClassTag
-
 /** Agent that represents and acts on behalf of any system participant model,
   * which is defined as a subclass of
   * [[edu.ie3.simona.model.participant.ParticipantModel]].
@@ -85,9 +83,7 @@ object ParticipantAgent {
     * @tparam P
     *   The type of primary data to be received.
     */
-  final case class PrimaryRegistrationSuccessfulMessage[
-      P <: PrimaryData: ClassTag
-  ](
+  final case class PrimaryRegistrationSuccessfulMessage[P <: PrimaryData](
       override val serviceRef: ActorRef[_ >: ServiceMessage],
       firstDataTick: Long,
       primaryDataExtra: PrimaryDataExtra[P],
