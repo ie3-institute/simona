@@ -23,8 +23,8 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.agent.grid.GridAgentMessages._
-import edu.ie3.simona.agent.participant2.ParticipantAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
   GridSimulationFinished,
   RequestAssetPowerMessage,
 }
@@ -243,7 +243,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   .map(_.vTarget)
                   .getOrElse(Each(1d))
               val vSlack =
-                refSystem.nominalVoltage.multiplyWithDimensionles(vTarget)
+                refSystem.nominalVoltage.multiplyWithDimensionless(vTarget)
 
               (
                 vSlack,

@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.service.ev
 
-import edu.ie3.simona.agent.participant2.ParticipantAgent
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   RegistrationSuccessfulMessage,
 }
@@ -21,7 +21,7 @@ import edu.ie3.simona.exceptions.{
   InitializationException,
   ServiceException,
 }
-import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.EvMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{

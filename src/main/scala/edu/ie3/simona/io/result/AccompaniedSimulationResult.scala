@@ -7,7 +7,7 @@
 package edu.ie3.simona.io.result
 
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithComplexPower
+import edu.ie3.simona.service.Data.PrimaryData.PrimaryDataWithComplexPower
 
 /** A class to offer means to transport accompanying results alongside of
   * [[PrimaryDataWithComplexPower]], e.g. heat results obtained during a

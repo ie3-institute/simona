@@ -16,13 +16,13 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.datamodel.models.input.{OperatorInput, container}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.WithHeatInputContainer
+import edu.ie3.simona.model.InputModelContainer.WithHeatInputContainer
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal._
 import edu.ie3.util.quantities.PowerSystemUnits
+import squants.Temperature
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Power, Temperature}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -180,14 +180,14 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
   )
 
   protected def thermalState(
-      temperature: Temperature,
-      qDot: Power = Kilowatts(0d),
+      innerHouseTemperature: Temperature,
+      ambientTemperature: Temperature,
   ): ThermalGridState = ThermalGridState(
     Some(
       ThermalHouseState(
         0L,
-        temperature,
-        qDot,
+        ambientTemperature,
+        innerHouseTemperature,
       )
     ),
     None,

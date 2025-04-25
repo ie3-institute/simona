@@ -8,10 +8,10 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.simona.agent.em.EmAgent.Actor
 import edu.ie3.simona.agent.em.FlexCorrespondenceStore.WithTime
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexOptions
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import squants.Power

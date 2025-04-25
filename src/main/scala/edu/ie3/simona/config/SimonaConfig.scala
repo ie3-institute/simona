@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.config
 
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigValue}
+import edu.ie3.simona.config.SimonaConfig.writer
 import edu.ie3.simona.exceptions.CriticalFailureException
 import pureconfig.error._
 import pureconfig.generic._
@@ -18,7 +19,12 @@ import scala.deriving.Mirror
 
 final case class SimonaConfig(
     simona: SimonaConfig.Simona
-) derives ConfigConvert
+) derives ConfigConvert {
+
+  /** Returns the default config values.
+    */
+  def defaults: ConfigValue = writer.to(this)
+}
 
 object SimonaConfig {
   // pure config start
@@ -28,6 +34,10 @@ object SimonaConfig {
   extension (c: ConfigConvert.type)
     inline def derived[A](using m: Mirror.Of[A]): ConfigConvert[A] =
       deriveConvert[A]
+
+  /** Returns a writer for [[SimonaConfig]].
+    */
+  private def writer: ConfigWriter[SimonaConfig] = ConfigWriter[SimonaConfig]
 
   def apply(typeSafeConfig: Config): SimonaConfig =
     apply(ConfigSource.fromConfig(typeSafeConfig))
