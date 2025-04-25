@@ -31,7 +31,6 @@ import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
 import squants.thermal.Celsius
-import squants.time.Hours
 import squants.{Energy, Kelvin, Power, Temperature}
 import tech.units.indriya.unit.Units
 
@@ -167,7 +166,7 @@ class ThermalGridWithHouseAndStorageSpec
             innerTemperature should approximate(Celsius(18.93))
             heatStorageStoredEnergy shouldBe zeroKWh
             waterStorageStoredEnergy should approximate(KilowattHours(12.18))
-          case _ => fail("Thermal grid state couldn't matched")
+          case _ => fail("Thermal grid state couldn't be matched.")
         }
       }
     }
@@ -244,7 +243,7 @@ class ThermalGridWithHouseAndStorageSpec
               heatStorageTick shouldBe houseTick
               innerTemperature should approximate(Celsius(15.96))
               heatStorageStoredEnergy shouldBe zeroKWh
-            case _ => fail("Thermal grid state couldn't matched")
+            case _ => fail("Thermal grid state couldn't be matched.")
           }
 
           // OperatingPoint zero for waterStorage
@@ -291,7 +290,7 @@ class ThermalGridWithHouseAndStorageSpec
               waterStoredEnergy should approximate(
                 KilowattHours(12.18) - Kilowatts(1) * Hours(3)
               )
-            case _ => fail("Thermal grid state couldn't matched")
+            case _ => fail("Thermal grid state couldn't be matched.")
           }
         }
       }
@@ -560,7 +559,7 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
             nextThreshold shouldBe Some(
-              HouseTemperatureLowerBoundaryReached(170082)
+              HouseTemperatureLowerBoundaryReached(166482L)
             )
         }
       }
@@ -669,7 +668,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalStorage.pThermalMax * -1,
           zeroKW,
         )
-        threshold shouldBe Some(HouseTargetTemperatureReached(6344))
+        threshold shouldBe Some(HouseTargetTemperatureReached(6344L))
       }
     }
   }

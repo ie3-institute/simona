@@ -28,7 +28,7 @@ import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
 import squants.thermal.Celsius
-import squants.{Energy, Kelvin, Power, Temperature}
+import squants.{Energy, Power, Temperature}
 
 import scala.jdk.CollectionConverters._
 
@@ -146,7 +146,7 @@ class ThermalGridWithHouseOnlySpec
             innerTemperature should approximate(Celsius(18.93))
             waterStorageStoredEnergy should approximate(KilowattHours(12.18))
 
-          case _ => fail("Thermal grid state couldn't matched")
+          case _ => fail("Thermal grid state couldn't be matched.")
         }
       }
     }

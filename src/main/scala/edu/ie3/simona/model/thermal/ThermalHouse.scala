@@ -410,14 +410,16 @@ final case class ThermalHouse(
       ambientTemperature: Temperature,
   ): Temperature = {
     val (k1, k2) = getFactorsK1AndK2(thermalPower, ambientTemperature)
-
+    // k1/k2 represents the temperature for limes t -> infinity
+    val longTermTemperature = k1 / k2
     val exponent_k2 = -1 * k2 * duration.toSeconds
 
-    val temperature =
-      (currentInnerTemperature.toKelvinScale - (k1 / k2)) * Math.exp(
+    val temperatureValue =
+      (currentInnerTemperature.toKelvinScale - longTermTemperature) * Math.exp(
         exponent_k2
-      ) + (k1 / k2)
-    Kelvin(temperature)
+      ) + longTermTemperature
+
+    Kelvin(temperatureValue)
   }
 
   /** Update the current state of the house.
@@ -506,11 +508,13 @@ final case class ThermalHouse(
       qDot: Power,
   ): Option[Long] = {
     val (k1, k2) = getFactorsK1AndK2(qDot, ambientTemperature)
+    // k1/k2 represents the temperature for limes t -> infinity
+    val longTermTemperature = Kelvin(
+      k1 / k2
+    )
 
     val durationValue = Math.log(
-      (nextInnerTemperatureToReach - Kelvin(
-        k1 / k2
-      )) / (currentInnerTemperature - Kelvin(k1 / k2))
+      (nextInnerTemperatureToReach - longTermTemperature) / (currentInnerTemperature - longTermTemperature)
     ) / (k2 * -1)
 
     val duration = Math.floor(durationValue).toLong
@@ -521,10 +525,12 @@ final case class ThermalHouse(
       qDot: Power,
       ambientTemperature: Temperature,
   ): (Double, Double) = {
+    val ethCapaValue = ethCapa.toWattSecondsPerKelvin
+    val ethLossesValue = ethLosses.toWattsPerKelvin
+
     val k1 =
-      qDot.toWatts / ethCapa.toWattSecondsPerKelvin + ethLosses.toWattsPerKelvin * ambientTemperature.toKelvinScale / ethCapa.toWattSecondsPerKelvin // in K/Sec
-    val k2 =
-      ethLosses.toWattsPerKelvin / ethCapa.toWattSecondsPerKelvin // in 1/Sec
+      qDot.toWatts / ethCapaValue + ethLossesValue * ambientTemperature.toKelvinScale / ethCapaValue // in K/Sec
+    val k2 = ethLossesValue / ethCapaValue // in 1/Sec
 
     (k1, k2)
   }
