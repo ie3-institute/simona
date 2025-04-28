@@ -237,7 +237,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   .map(_.vTarget)
                   .getOrElse(Each(1d))
               val vSlack =
-                refSystem.nominalVoltage.multiplyWithDimensionles(vTarget)
+                refSystem.nominalVoltage.multiplyWithDimensionless(vTarget)
 
               (
                 vSlack,
