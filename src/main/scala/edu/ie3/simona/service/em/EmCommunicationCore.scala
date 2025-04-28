@@ -101,8 +101,6 @@ final case class EmCommunicationCore(
       }
 
     case provideFlexRequests: ProvideFlexRequestData =>
-      log.info(s"Handling of: $provideFlexRequests")
-
       // entities for which flex options are requested
       val emEntities: Set[UUID] = provideFlexRequests
         .flexRequests()
@@ -112,7 +110,6 @@ final case class EmCommunicationCore(
 
       val refs = emEntities.map(uuidToFlexAdapter)
 
-      log.warn(s"Em refs: $refs")
       refs.foreach(_ ! FlexActivation(tick))
 
       (
@@ -129,8 +126,6 @@ final case class EmCommunicationCore(
       )
 
     case provideFlexOptions: ProvideEmFlexOptionData =>
-      log.info(s"Handling of: $provideFlexOptions")
-
       provideFlexOptions
         .flexOptions()
         .asScala
@@ -170,8 +165,6 @@ final case class EmCommunicationCore(
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = flexResponse match {
     case scheduleFlexActivation: ScheduleFlexActivation =>
-      log.warn(s"Flex activation: $scheduleFlexActivation")
-
       if (scheduleFlexActivation.tick == INIT_SIM_TICK) {
         receiver match {
           case Right(ref) =>
@@ -231,8 +224,6 @@ final case class EmCommunicationCore(
             flexOptionResponse
         }
 
-        log.warn(s"Updated data map: $updated")
-
         if (updated.hasCompletedKeys) {
           // all responses received, forward them to external simulation in a bundle
 
@@ -260,16 +251,13 @@ final case class EmCommunicationCore(
         }
       }
 
-    case FlexResult(modelUuid, result) =>
-      log.info(s"Flex result '$result' for model '$modelUuid'.")
+    case _: FlexResult =>
       (this, None)
 
     case completion: FlexCompletion =>
       receiver.map(_ ! completion)
-      log.warn(s"Completion: $completion")
 
-      val model = completion.modelUuid
-      val updated = completions.addData(model, completion)
+      val updated = completions.addData(completion.modelUuid, completion)
 
       if (updated.isComplete) {
         val allKeys = updated.receivedData.keySet
@@ -304,21 +292,15 @@ final case class EmCommunicationCore(
       } else {
         val uuid = flexAdapterToUuid(receiver)
 
-        log.warn(s"Receiver: $uuid")
-
         val updated = flexRequestReceived.addData(
           uuid,
           true,
         )
 
-        log.warn(s"$updated")
-
         if (updated.hasCompletedKeys) {
 
           val (dataMap, _, updatedFlexRequest) =
             updated.getFinishedDataHierarchical
-
-          log.warn(s"Data to be send: $dataMap")
 
           val map = dataMap.map { case (sender, receivers) =>
             sender -> new FlexRequestResult(
@@ -357,8 +339,6 @@ final case class EmCommunicationCore(
         }
 
         val updated = setPointResponse.addData(uuid, power)
-
-        log.warn(s"Updated set point response: $updated")
 
         if (updated.hasCompletedKeys) {
 

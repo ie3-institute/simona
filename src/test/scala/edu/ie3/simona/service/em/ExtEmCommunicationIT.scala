@@ -9,17 +9,13 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.SimpleInputContainer
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.agent.participant2.ParticipantAgentInit.ParticipantRefs
-import edu.ie3.simona.agent.participant2.{
-  ParticipantAgent,
-  ParticipantAgentInit,
-}
+import edu.ie3.simona.agent.participant.ParticipantAgentInit.ParticipantRefs
+import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
 import edu.ie3.simona.api.data.em.model.{
   FlexOptionRequest,
   FlexOptions,
@@ -43,6 +39,7 @@ import edu.ie3.simona.config.RuntimeConfig.{
   StorageRuntimeConfig,
 }
 import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -127,7 +124,7 @@ class ExtEmCommunicationIT
     resultListener = Iterable(resultListener.ref),
   )
 
-  "An ExtEmDataService im communication mode" should {
+  "An ExtEmDataService in communication mode" should {
     val service = spawn(ExtEmDataService(scheduler.ref))
     val serviceRef = service.ref
     implicit val adapter: ActorRef[DataMessageFromExt] =

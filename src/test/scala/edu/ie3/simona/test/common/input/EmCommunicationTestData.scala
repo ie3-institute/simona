@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.system.{LoadInput, PvInput, StorageInput}
 import edu.ie3.datamodel.models.input.{EmInput, NodeInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.agent.participant2.ParticipantAgentInit.SimulationParameters
+import edu.ie3.simona.agent.participant.ParticipantAgentInit.SimulationParameters
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig

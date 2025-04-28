@@ -263,7 +263,7 @@ class ExtEmDataServiceSpec
       extEmDataConnection.sendExtMsg(
         new RequestEmFlexResults(
           INIT_SIM_TICK,
-          Map.empty[UUID, util.List[UUID]].asJava,
+          List.empty[UUID].asJava,
         )
       )
 
@@ -282,7 +282,7 @@ class ExtEmDataServiceSpec
       extEmDataConnection.sendExtMsg(
         new RequestEmFlexResults(
           0,
-          Map(emAgentSupUUID -> List(emAgent1UUID).asJava).asJava,
+          List(emAgentSupUUID).asJava,
         )
       )
 
@@ -304,14 +304,14 @@ class ExtEmDataServiceSpec
 
       emService ! WrappedFlexResponse(
         ProvideFlexOptions(
-          emAgent1UUID,
+          emAgentSupUUID,
           MinMaxFlexOptions(
             Kilowatts(5),
             Kilowatts(0),
             Kilowatts(10),
           ),
         ),
-        Left(emAgent1UUID),
+        Left(emAgentSupUUID),
       )
 
       awaitCond(

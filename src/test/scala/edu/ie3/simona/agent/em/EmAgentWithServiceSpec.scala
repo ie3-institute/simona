@@ -7,8 +7,6 @@
 package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.result.system.EmResult
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
@@ -24,6 +22,7 @@ import edu.ie3.simona.ontology.messages.services.EmMessage.{
   WrappedFlexResponse,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.SquantsMatchers
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -60,14 +59,6 @@ class EmAgentWithServiceSpec
     simulationResultInfo = true,
     powerRequestReply = false,
     flexResult = true, // also test FlexOptionsResult if EM-controlled
-  )
-
-  override protected val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
-    calculateMissingReactivePowerWithModel = false,
-    scaling = 1,
-    uuids = List("default"),
-    aggregateFlex = "SELF_OPT_EXCL_REG",
-    curtailRegenerative = false,
   )
 
   private implicit val activePowerTolerance: Power = Kilowatts(1e-10)

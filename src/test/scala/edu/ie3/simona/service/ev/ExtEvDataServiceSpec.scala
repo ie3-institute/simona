@@ -22,7 +22,7 @@ import edu.ie3.simona.api.data.ontology.{
   ScheduleDataServiceMessage,
 }
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
-import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,

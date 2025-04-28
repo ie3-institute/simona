@@ -107,14 +107,14 @@ object ExtEmDataService
           scheduleFlexActivation: ScheduleFlexActivation,
           receiver,
         ) =>
-      log.info(s"Received response message: $scheduleFlexActivation")
+      log.debug(s"Received response message: $scheduleFlexActivation")
 
       receiver match {
         case Right(ref) =>
-          log.info(s"Forwarding the message to: $ref")
+          log.debug(s"Forwarding the message to: $ref")
           ref ! scheduleFlexActivation
         case Left(_) =>
-          log.info(s"Unlocking msg: $scheduleFlexActivation")
+          log.debug(s"Unlocking msg: $scheduleFlexActivation")
 
           scheduleFlexActivation.scheduleKey.foreach(_.unlock())
       }
