@@ -54,9 +54,7 @@ trait ExtDataSupport[T >: ServiceMessage] {
 
       idle(updatedStateData, constantData)
 
-    case (ctx, extResponseMsg: ServiceResponseMessage) =>
-      ctx.log.warn(s"Response: $extResponseMsg")
-
+    case (_, extResponseMsg: ServiceResponseMessage) =>
       val updatedStateData = handleDataResponseMessage(extResponseMsg)
 
       idle(updatedStateData, constantData)

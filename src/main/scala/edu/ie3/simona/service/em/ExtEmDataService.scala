@@ -130,9 +130,7 @@ object ExtEmDataService
         case EmMode.EM_COMMUNICATION =>
           EmCommunicationCore.empty
         case EmMode.EM_OPTIMIZATION =>
-          throw new CriticalFailureException(
-            s"Em mode ${EmMode.EM_OPTIMIZATION} is currently not supported!"
-          )
+          EmServiceBaseCore.empty
       }
 
       val emDataInitializedStateData =

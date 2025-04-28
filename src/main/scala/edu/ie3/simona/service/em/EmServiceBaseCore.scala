@@ -33,6 +33,7 @@ final case class EmServiceBaseCore(
     flexOptions: ReceiveDataMap[UUID, ExtendedFlexOptionsResult] =
       ReceiveDataMap.empty,
     completions: ReceiveDataMap[UUID, FlexCompletion] = ReceiveDataMap.empty,
+    disaggregatedFlex: Boolean = false,
     sendOptionsToExt: Boolean = false,
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[ProvideEmSetPointData] = None,
@@ -54,6 +55,11 @@ final case class EmServiceBaseCore(
     case requestEmFlexResults: RequestEmFlexResults =>
       val tick = requestEmFlexResults.tick
       val emEntities = requestEmFlexResults.emEntities.asScala
+      val disaggregated = requestEmFlexResults.disaggregated
+
+      if (disaggregated) {
+        log.warn(s"Disaggregated flex options are currently not supported!")
+      }
 
       emEntities.map(uuidToFlexAdapter).foreach { ref =>
         ref ! FlexActivation(tick)
@@ -62,6 +68,7 @@ final case class EmServiceBaseCore(
       (
         copy(
           flexOptions = ReceiveDataMap(emEntities.toSet),
+          disaggregatedFlex = disaggregated,
           sendOptionsToExt = true,
         ),
         None,
@@ -132,6 +139,9 @@ final case class EmServiceBaseCore(
           // we received all flex options and can now handle set points
 
           val data = updated.receivedData
+
+          log.warn(s"Expect data from: ${updated.getExpectedKeys}")
+
           val updatedCore = copy(
             flexOptions = ReceiveDataMap(updated.receivedData.keySet),
             canHandleSetPoints = true,
@@ -172,6 +182,7 @@ final case class EmServiceBaseCore(
             copy(
               lastFinishedTick = tick,
               completions = ReceiveDataMap(allKeys),
+              disaggregatedFlex = false,
               sendOptionsToExt = false,
               canHandleSetPoints = false,
             ),
@@ -192,7 +203,7 @@ final case class EmServiceBaseCore(
       startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
-    log.warn(s"$receiver: $flexRequest")
+    log.debug(s"$receiver: $flexRequest")
     receiver ! flexRequest
 
     (this, None)
