@@ -126,7 +126,7 @@ class ThermalGridIT
 
       val hpAgent = spawn(
         ParticipantAgentInit(
-        hpInputContainerLittleWaterStorage,
+          hpInputContainerLittleWaterStorage,
           HpRuntimeConfig(),
           outputConfigOn,
           participantRefs,

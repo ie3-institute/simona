@@ -55,23 +55,31 @@ trait ThermalGridITInputTestData
       Quantities.getQuantity(5.0, PowerSystemUnits.KILOWATT),
     )
 
-  protected val thermalGridForThermalGridITLittleWaterStorage = new container.ThermalGrid(
-    thermalBusInput,
-    Seq(typicalThermalHouse).asJava,
-    Seq[ThermalStorageInput](typicalThermalStorage).asJava,
-    Seq[ThermalStorageInput](littleDomesticHotWaterStorageInput).asJava,
-  )
+  protected val thermalGridForThermalGridITLittleWaterStorage =
+    new container.ThermalGrid(
+      thermalBusInput,
+      Seq(typicalThermalHouse).asJava,
+      Seq[ThermalStorageInput](typicalThermalStorage).asJava,
+      Seq[ThermalStorageInput](littleDomesticHotWaterStorageInput).asJava,
+    )
 
-  protected val thermalGridForThermalGridITSmallWaterStorage = new container.ThermalGrid(
-    thermalBusInput,
-    Seq(typicalThermalHouse).asJava,
-    Seq[ThermalStorageInput](typicalThermalStorage).asJava,
-    Seq[ThermalStorageInput](smallDomesticHotWaterStorageInput).asJava,
-  )
+  protected val thermalGridForThermalGridITSmallWaterStorage =
+    new container.ThermalGrid(
+      thermalBusInput,
+      Seq(typicalThermalHouse).asJava,
+      Seq[ThermalStorageInput](typicalThermalStorage).asJava,
+      Seq[ThermalStorageInput](smallDomesticHotWaterStorageInput).asJava,
+    )
 
   protected val hpInputContainerLittleWaterStorage =
-    WithHeatInputContainer(typicalHpInputModel, thermalGridForThermalGridITLittleWaterStorage)
+    WithHeatInputContainer(
+      typicalHpInputModel,
+      thermalGridForThermalGridITLittleWaterStorage,
+    )
 
-protected val hpInputContainerSmallWaterStorage =
-  WithHeatInputContainer(typicalHpInputModel, thermalGridForThermalGridITSmallWaterStorage)
+  protected val hpInputContainerSmallWaterStorage =
+    WithHeatInputContainer(
+      typicalHpInputModel,
+      thermalGridForThermalGridITSmallWaterStorage,
+    )
 }
