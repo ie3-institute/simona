@@ -608,7 +608,8 @@ final case class ThermalGrid(
     } else {
 
       val time = state.simulationTime
-      val nextFullHour: ZonedDateTime = time.plusHours(1).withMinute(0).withSecond(0).withNano(0)
+      val nextFullHour: ZonedDateTime =
+        time.plusHours(1).withMinute(0).withSecond(0).withNano(0)
       val simulationStartTime = time.minusSeconds(state.tick)
       val nextThreshold = nextFullHour.toTick(simulationStartTime)
 

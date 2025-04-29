@@ -34,7 +34,7 @@ trait ThermalGridITInputTestData
       OperatorInput.NO_OPERATOR_ASSIGNED,
       OperationTime.notLimited(),
       thermalBusInput,
-      Quantities.getQuantity(28.7, Units.LITRE),
+      Quantities.getQuantity(10.0, Units.LITRE),
       Quantities.getQuantity(55.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(10.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),

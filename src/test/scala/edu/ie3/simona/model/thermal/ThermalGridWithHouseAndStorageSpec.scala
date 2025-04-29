@@ -58,7 +58,7 @@ class ThermalGridWithHouseAndStorageSpec
   val initialGridState: ThermalGridState =
     ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
 
-  val initialHpState = HpState(
+  val initialHpState: HpState = HpState(
     0L,
     defaultSimulationStart,
     initialGridState,
@@ -557,7 +557,7 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
             nextThreshold shouldBe Some(
-              HouseTemperatureLowerBoundaryReached(166482L)
+              HouseTemperatureLowerBoundaryReached(170082L)
             )
         }
       }

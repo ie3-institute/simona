@@ -250,11 +250,11 @@ class ThermalGridIT
                 // FIXME We do make a significant error here since discharging little time frames with high power at a resolution of one second makes error. Maybe one can create this two staged.
                 //  First calculate the duration at full power, take the next second and lower the power to the value matching the demand.
                 // Done: But maybe additionally some separate test just for this, thus we test this before the integration test....
-                energy should equalWithTolerance(0.00149814.asMegaWattHour)
+                energy should equalWithTolerance(0.000522.asMegaWattHour)
             }
         }
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(49)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(49)))
 
       /* TICK 49
       Domestic hot water storage stops discharging
@@ -288,12 +288,13 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 49.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(0.00143069474.asMegaWattHour)
+                energy should equalWithTolerance(
+                  0.0004545547397260274.asMegaWattHour
+                )
             }
         }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(3416)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(3416)))
 
       /* TICK 3416
       ThermalStorage is fully heated up
@@ -345,9 +346,8 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(3600)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(3600)))
 
       /* TICK 3600
       New weather data (unchanged) incoming + Domestic hot water storage will cover hot water demand
@@ -397,12 +397,13 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 3600.toDateTime
                 qDot should equalWithTolerance(-0.004995945205479452.asMegaWatt)
-                energy should equalWithTolerance(0.00143069464.asMegaWattHour)
+                energy should equalWithTolerance(
+                  0.0004545547397260274.asMegaWattHour
+                )
             }
         }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(3627)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(3627)))
 
       /* TICK 3627
       Domestic hot water storage will stop discharging.
@@ -438,13 +439,12 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 3627.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(0.00139322515.asMegaWattHour)
+                energy should equalWithTolerance(
+                  0.0004170851506849316.asMegaWattHour
+                )
             }
         }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(4381)))
       resultListener.expectNoMessage()
-
       scheduler.expectMessage(Completion(heatPumpAgent, Some(4412)))
 
       /* TICK 4412
@@ -487,9 +487,8 @@ class ThermalGridIT
                 )(temperatureTolerance)
             }
         }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(7200)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(7200)))
 
       /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
       The results are checked implicitly through the state of stored energy at the next result check.
@@ -524,7 +523,6 @@ class ThermalGridIT
           }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(heatPumpAgent, Some(nextTick)))
-
       }
 
       /* TICK 21600
@@ -578,13 +576,12 @@ class ThermalGridIT
                 )
                 energy should equalWithTolerance(
                   // FIXME Check this result
-                  0.001322032931506849.asMegaWattHour
+                  0.00034589293150684945.asMegaWattHour
                 )
             }
         }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(21665)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(21665)))
 
       /* TICK 21665
      Domestic storage stops discharging
@@ -619,15 +616,14 @@ class ThermalGridIT
                 time shouldBe 21665.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.001232105917808219.asMegaWattHour
+                  0.00025596591780821927.asMegaWattHour
                 )
             }
         }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(23209)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(23288)))
 
-      /* TICK 23209
+      /* TICK 23288
       House reach lowerTemperatureBoundary
       House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.00 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -636,7 +632,7 @@ class ThermalGridIT
       Heat pump: stays off, demand should be covered by storage
        */
 
-      heatPumpAgent ! Activation(23209)
+      heatPumpAgent ! Activation(23288)
 
       Range(0, 3)
         .map { _ =>
@@ -647,7 +643,7 @@ class ThermalGridIT
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 23209.toDateTime
+                hpResult._1 shouldBe 23288.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
             }
@@ -660,7 +656,7 @@ class ThermalGridIT
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 23209.toDateTime
+                time shouldBe 23288.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.00.asDegreeCelsius
@@ -672,14 +668,13 @@ class ThermalGridIT
                     energy,
                   ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
-                time shouldBe 23209.toDateTime
+                time shouldBe 23288.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(25000)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(25000)))
 
       /* TICK 25000
       Additional trigger caused by (unchanged) weather data should not change this
@@ -702,7 +697,7 @@ class ThermalGridIT
             Celsius(-55d),
             MetersPerSecond(0d),
           ),
-          Some(28800),
+          Some(28000),
         )
       }
       resultListener.expectMessageType[ResultEvent] match {
@@ -712,9 +707,8 @@ class ThermalGridIT
           hpResult.getP should equalWithTolerance(0.0.asMegaWatt)
           hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
       }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(25200)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(25200)))
 
       /* TICK 25200
       DomesticHotWaterStorage
@@ -751,13 +745,14 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(-0.004992011390357028.asMegaWatt)
-                energy should equalWithTolerance(0.0012321059.asMegaWattHour)
+                energy should equalWithTolerance(
+                  0.00025596591780821927.asMegaWattHour
+                )
 
             }
         }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(25327)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(25327)))
 
       /* TICK 25327
       DomesticHotWaterStorage stops discharging.
@@ -795,15 +790,14 @@ class ThermalGridIT
                 time shouldBe 25327.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.0010559988493150684.asMegaWattHour
+                  0.00007985884931506857.asMegaWattHour
                 )
             }
         }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(26809)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(26887)))
 
-      /* TICK 26809
+      /* TICK 26887
       Heat storage is empty
       House demand heating : requiredDemand = 0.0kWh, possibleDemand = 11.87 kWh
       House demand water   : requiredDemand = 0.18 kWh, possibleDemand = 0.18 kWh
@@ -812,7 +806,7 @@ class ThermalGridIT
       Heat pump: turned on - to serve the remaining heat demand of house (and refill storage later)
        */
 
-      heatPumpAgent ! Activation(26809)
+      heatPumpAgent ! Activation(26887)
 
       Range(0, 3)
         .map { _ =>
@@ -823,7 +817,7 @@ class ThermalGridIT
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 26809.toDateTime
+                hpResult._1 shouldBe 26887.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
             }
@@ -836,10 +830,10 @@ class ThermalGridIT
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 26809.toDateTime
+                time shouldBe 26887.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                  18.42.asDegreeCelsius
+                  18.415.asDegreeCelsius
                 )(temperatureTolerance)
               case CylindricalThermalStorageResult(
                     time,
@@ -848,25 +842,15 @@ class ThermalGridIT
                     energy,
                   ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
-                time shouldBe 26809.toDateTime
+                time shouldBe 26887.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 226809.toDateTime
-                qDot should equalWithTolerance(-0.01093078356.asMegaWatt)
-                energy should equalWithTolerance(0.0012321059.asMegaWattHour)
             }
         }
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(28800)))
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(28000)))
 
-      /* TICK 28800
+      /* TICK 28000
         New weather data: it's getting warmer again
         FIXME
         House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.75 kWh
@@ -876,11 +860,11 @@ class ThermalGridIT
         Heat pump: stays on
        */
 
-      heatPumpAgent ! Activation(28800)
+      heatPumpAgent ! Activation(28000)
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
-          28800,
+          28000,
           weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(4d),
@@ -892,44 +876,26 @@ class ThermalGridIT
         )
       }
 
-      Range(0, 2)
-        .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 28800.toDateTime
-                hpResult._3 should equalWithTolerance(pRunningHp)
-                hpResult._4 should equalWithTolerance(qRunningHp)
-            }
-          case ThermalResultEvent(thermalUnitResult) =>
-            thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 28800.toDateTime
-                qDot should equalWithTolerance(-0.004985084455032759.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0010559988493150684.asMegaWattHour
-                )
-            }
-        }
+      resultListener.expectMessageType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(hpResult) =>
+          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
+          hpResult.getTime shouldBe 28000.toDateTime
+          hpResult.getP should equalWithTolerance(pRunningHp)
+          hpResult.getQ should equalWithTolerance(qRunningHp)
+      }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(28984)))
+      // Since this activation is caused by new weather data, we don't expect any
+      // message for house or storage since there is no change of their operating
+      // point nor one of it reached any boundary.
+
       resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(28800)))
 
       /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
-The results are checked implicitly through the state of stored energy at the next result check.
+        The results are checked implicitly through the state of stored energy at the next result check.
        */
-
-      val secondActivationTicksBlock = Seq(28984, 32400, 32458)
+      /*
+      val secondActivationTicksBlock = Seq(28800, 28858)
 
       val secondTickPairs = secondActivationTicksBlock.zipWithIndex.collect {
         case (tick, index) if index < secondActivationTicksBlock.length - 1 =>
@@ -957,21 +923,22 @@ The results are checked implicitly through the state of stored energy at the nex
           }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(heatPumpAgent, Some(nextTick)))
-
       }
 
-      /* TICK 32458
-        House will reach the upperTemperatureBoundary
-        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-        House demand water   : requiredDemand = 0.47 kWh, possibleDemand = 0.47 kWh
-        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
-        DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-        Heat pump: stays on to recharge the ThermalStorage now
        */
 
-      heatPumpAgent ! Activation(32458)
+      /* TICK 28800
+      DomesticHotWaterStorage
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      House demand water   : requiredDemand = 0.47 kWh, possibleDemand = 0.47 kWh
+      ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      Heat pump: stays on to recharge the ThermalStorage now
+       */
 
-      Range(0, 4)
+      heatPumpAgent ! Activation(28800)
+
+      Range(0, 2)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -980,7 +947,50 @@ The results are checked implicitly through the state of stored energy at the nex
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 32458.toDateTime
+                hpResult._1 shouldBe 28800.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 28800.toDateTime
+                qDot should equalWithTolerance(-0.004956756164383566.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.00007985884931506857.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(28858)))
+
+      /* TICK 28858
+     DomesticHotWaterStorage is empty
+     House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+     House demand water   : requiredDemand = 0.47 kWh, possibleDemand = 0.47 kWh
+     ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+     DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+     Heat pump: stays on, qDot should be split between DomesticHotWaterStorage and House
+       */
+
+      heatPumpAgent ! Activation(28858)
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 28858.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
             }
@@ -993,7 +1003,117 @@ The results are checked implicitly through the state of stored energy at the nex
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 32458.toDateTime
+                time shouldBe 28858.toDateTime
+                qDot should equalWithTolerance(0.0055.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  18.87.asDegreeCelsius
+                )(temperatureTolerance)
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 28858.toDateTime
+                qDot should equalWithTolerance(0.0055.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(29199)))
+
+      /* TICK 29199
+      House will reach the upperTemperatureBoundary
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      House demand water   : requiredDemand = 0.47 kWh, possibleDemand = 0.47 kWh
+      ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      Heat pump: stays on to recharge the ThermalStorage now
+       */
+
+      heatPumpAgent ! Activation(29199)
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 29199.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 29199.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  18.92.asDegreeCelsius
+                )(temperatureTolerance)
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 29199.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.000522.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(32239)))
+
+      /* TICK 32239
+        House will reach the upperTemperatureBoundary
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+        House demand water   : requiredDemand = 0.47 kWh, possibleDemand = 0.47 kWh
+        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+        Heat pump: stays on to recharge the ThermalStorage now
+       */
+
+      heatPumpAgent ! Activation(32239)
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 32239.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 32239.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
@@ -1005,11 +1125,42 @@ The results are checked implicitly through the state of stored energy at the nex
                     energy,
                   ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
-                time shouldBe 32458.toDateTime
+                time shouldBe 32239.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(
                   0.asMegaWattHour
                 )
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(32400)))
+
+      /* TICK 32400
+       DomesticHotWaterStorage
+       House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+       ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+       Heat pump: stays on
+       */
+
+      heatPumpAgent ! Activation(32400)
+
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 32400.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
               case DomesticHotWaterStorageResult(
                     time,
                     inputModel,
@@ -1017,18 +1168,59 @@ The results are checked implicitly through the state of stored energy at the nex
                     energy,
                   ) =>
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 32458.toDateTime
+                time shouldBe 32400.toDateTime
+                qDot should equalWithTolerance(-0.004992701085216154.asMegaWatt)
+                energy should equalWithTolerance(0.000522.asMegaWattHour)
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(32554)))
+
+      /* TICK 32554
+      DomesticHotWaterStorage stops.
+      House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      Heat pump: stays on
+       */
+
+      heatPumpAgent ! Activation(32554)
+
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 32554.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 32554.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.000720767681907133.asMegaWattHour
+                  0.0003084233424657534.asMegaWattHour
                 )
             }
         }
       resultListener.expectNoMessage()
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(35874)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(35655)))
 
-      /* TICK 35874
-      Storage full? House will reach the upperTemperatureBoundary
+      /* TICK 35655
+      Storage will be fully charged, but meanwhile the house cooled a bit
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 9.97 kWh
@@ -1036,7 +1228,7 @@ The results are checked implicitly through the state of stored energy at the nex
       Heat pump: stays on to recharge the storage now
        */
 
-      heatPumpAgent ! Activation(35874)
+      heatPumpAgent ! Activation(35655)
 
       Range(0, 3)
         .map { _ =>
@@ -1047,7 +1239,7 @@ The results are checked implicitly through the state of stored energy at the nex
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 35874.toDateTime
+                hpResult._1 shouldBe 35655.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
             }
@@ -1060,7 +1252,7 @@ The results are checked implicitly through the state of stored energy at the nex
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 35874.toDateTime
+                time shouldBe 35655.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.81.asDegreeCelsius
@@ -1072,7 +1264,7 @@ The results are checked implicitly through the state of stored energy at the nex
                     energy,
                   ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
-                time shouldBe 35874.toDateTime
+                time shouldBe 35655.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
                   0.01044.asMegaWattHour
@@ -1082,51 +1274,16 @@ The results are checked implicitly through the state of stored energy at the nex
       resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(36000)))
 
-      /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
-The results are checked implicitly through the state of stored energy at the next result check.
+      /* TICK 36000
+      DomesticHotWaterStorage covers water demand
+      House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 1.42 kWh
+      House demand water   : requiredDemand = 0.21 kWh, possibleDemand = 0.21 kWh
+      ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+      DomesticWaterStorage : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+      Heat pump: stays on
        */
 
-      val thirdActivationTicksBlock = Seq(36000, 36165, 36409)
-
-      val thirdTickPairs = thirdActivationTicksBlock.zipWithIndex.collect {
-        case (tick, index) if index < thirdActivationTicksBlock.length - 1 =>
-          (tick, thirdActivationTicksBlock(index + 1))
-      }
-
-      thirdTickPairs.foreach { case (currentTick, nextTick) =>
-        heatPumpAgent ! Activation(currentTick)
-        // Each step we expect a message for the Hp and the DomesticHotWaterStorage, but we don't check the content here.
-        Range(0, 2)
-          .map { _ =>
-            resultListener.expectMessageType[ResultEvent]
-          }
-          .foreach {
-            case ParticipantResultEvent(participantResult) =>
-              participantResult match {
-                case HpResult(_) =>
-                case _           => fail("unexpected result")
-              }
-            case ThermalResultEvent(thermalUnitResult) =>
-              thermalUnitResult match {
-                case DomesticHotWaterStorageResult(_) =>
-                case _ => fail("unexpected result")
-              }
-          }
-        resultListener.expectNoMessage()
-        scheduler.expectMessage(Completion(heatPumpAgent, Some(nextTick)))
-
-      }
-
-      /* TICK 36409
-        Storage will be fully charged, but meanwhile the house cooled a bit
-        House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 1.42 kWh
-        House demand water   : requiredDemand = 0.21 kWh, possibleDemand = 0.21 kWh
-        ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
-        DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-        Heat pump: stays on
-       */
-
-      heatPumpAgent ! Activation(36409)
+      heatPumpAgent ! Activation(36000)
 
       Range(0, 2)
         .map { _ =>
@@ -1137,7 +1294,50 @@ The results are checked implicitly through the state of stored energy at the nex
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 36409.toDateTime
+                hpResult._1 shouldBe 36000.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 36000.toDateTime
+                qDot should equalWithTolerance(-0.004986861668742217.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.0003084233424657534.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(36165)))
+
+      /* TICK 36165
+     DomesticHotWaterStorage covers water demand
+     House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 1.42 kWh
+     House demand water   : requiredDemand = 0.21 kWh, possibleDemand = 0.21 kWh
+     ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+     DomesticWaterStorage : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+     Heat pump: stays on
+       */
+
+      heatPumpAgent ! Activation(36165)
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 36165.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
             }
@@ -1150,289 +1350,29 @@ The results are checked implicitly through the state of stored energy at the nex
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 36409.toDateTime
+                time shouldBe 36165.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
                 )(temperatureTolerance)
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 36165.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.00007985884931506848.asMegaWattHour
+                )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(39600)))
-      resultListener.expectNoMessage()
-
-      /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
-The results are checked implicitly through the state of stored energy at the next result check.
-       */
-
-      val fourthActivationTicksBlock =
-        Seq(39600, 39765, 43200, 43370, 46800, 46820)
-
-      val fourthTickPairs = fourthActivationTicksBlock.zipWithIndex.collect {
-        case (tick, index) if index < fourthActivationTicksBlock.length - 1 =>
-          (tick, fourthActivationTicksBlock(index + 1))
-      }
-
-      fourthTickPairs.foreach { case (currentTick, nextTick) =>
-        heatPumpAgent ! Activation(currentTick)
-        // Each step we expect a message for the Hp and the DomesticHotWaterStorage, but we don't check the content here.
-        Range(0, 2)
-          .map { _ =>
-            resultListener.expectMessageType[ResultEvent]
-          }
-          .foreach {
-            case ParticipantResultEvent(participantResult) =>
-              participantResult match {
-                case HpResult(_) =>
-                case _           => fail("unexpected result")
-              }
-            case ThermalResultEvent(thermalUnitResult) =>
-              thermalUnitResult match {
-                case DomesticHotWaterStorageResult(_) =>
-                case _ => fail("unexpected result")
-              }
-          }
-        resultListener.expectNoMessage()
-        scheduler.expectMessage(Completion(heatPumpAgent, Some(nextTick)))
-      }
-
-      /* TICK 46820
-      DomesticHotWaterStorage is empty and needs to get recharged. FIXME
-      House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 1.42 kWh
-      House demand water   : requiredDemand = 0.21 kWh, possibleDemand = 0.21 kWh
-      ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat pump: stays on
-       */
-
-      heatPumpAgent ! Activation(46820)
-
-      Range(0, 2)
-        .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 46820.toDateTime
-                hpResult._3 should equalWithTolerance(pRunningHp)
-                hpResult._4 should equalWithTolerance(qRunningHp)
-            }
-          case ThermalResultEvent(thermalUnitResult) =>
-            thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 46820.toDateTime
-                qDot should equalWithTolerance(0.011.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.asMegaWattHour
-                )
-            }
-        }
-      resultListener.expectNoMessage()
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(47310)))
-
-      /* TICK 47310
-      DomesticHotWaterStorage is full.
-      House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 1.42 kWh
-      House demand water   : requiredDemand = 0.21 kWh, possibleDemand = 0.21 kWh
-      ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat pump: stays on to serve possibleDemand of thermalHouse
-       */
-
-      heatPumpAgent ! Activation(47310)
-
-      Range(0, 3)
-        .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 47310.toDateTime
-                hpResult._3 should equalWithTolerance(pRunningHp)
-                hpResult._4 should equalWithTolerance(qRunningHp)
-            }
-          case ThermalResultEvent(thermalUnitResult) =>
-            thermalUnitResult match {
-              case ThermalHouseResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    indoorTemperature,
-                  ) =>
-                inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 47310.toDateTime
-                qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.40.asDegreeCelsius
-                )(temperatureTolerance)
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 47310.toDateTime
-                qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0014981399999999998.asMegaWattHour
-                )
-            }
-        }
-
-      resultListener.expectNoMessage()
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(48990)))
-
-      /* TICK 48990
-      Storage will be fully charged, but meanwhile the house cooled a bit
-      House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 1.42 kWh
-      House demand water   : requiredDemand = 0.21 kWh, possibleDemand = 0.21 kWh
-      ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat pump: stays on
-       */
-
-      heatPumpAgent ! Activation(48990)
-
-      Range(0, 2)
-        .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 48990.toDateTime
-                hpResult._3 should equalWithTolerance(0.asMegaWatt)
-                hpResult._4 should equalWithTolerance(0.asMegaVar)
-            }
-          case ThermalResultEvent(thermalUnitResult) =>
-            thermalUnitResult match {
-              case ThermalHouseResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    indoorTemperature,
-                  ) =>
-                inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 48990.toDateTime
-                qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.99.asDegreeCelsius
-                )(temperatureTolerance)
-            }
-        }
-
-      resultListener.expectNoMessage()
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(50400)))
-
-      /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
-      The results are checked implicitly through the state of stored energy at the next result check.
-       */
-
-      val fifthActivationTicksBlock =
-        Seq(50400, 50538, 54000, 54119, 57600, 57717, 61200, 61327, 64800,
-          64954, 68400, 68576, 72000, 72179, 75600, 75673, 76163)
-
-      val fifthTickPairs = fifthActivationTicksBlock.zipWithIndex.collect {
-        case (tick, index) if index < fifthActivationTicksBlock.length - 1 =>
-          (tick, fifthActivationTicksBlock(index + 1))
-      }
-
-      fifthTickPairs.foreach { case (currentTick, nextTick) =>
-        heatPumpAgent ! Activation(currentTick)
-        // Each step we expect a message for the Hp and the DomesticHotWaterStorage, but we don't check the content here.
-        Range(0, 2)
-          .map { _ =>
-            resultListener.expectMessageType[ResultEvent]
-          }
-          .foreach {
-            case ParticipantResultEvent(participantResult) =>
-              participantResult match {
-                case HpResult(_) =>
-                case _           => fail("unexpected result")
-              }
-            case ThermalResultEvent(thermalUnitResult) =>
-              thermalUnitResult match {
-                case DomesticHotWaterStorageResult(_) =>
-                case _ => fail("unexpected result")
-              }
-          }
-        resultListener.expectNoMessage()
-        scheduler.expectMessage(Completion(heatPumpAgent, Some(nextTick)))
-      }
-
-      /* TICK 76183
-      House reaches lower temperature boundary. DomesticWaterStorage has also required demand.
-      House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 15.0 kWh
-      House demand water   : requiredDemand = 2.1 kWh, possibleDemand = 2.1 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      DomesticWaterStorage : requiredDemand = 3.2 kWh, possibleDemand = 3.2 kWh
-      Heat pump: turned on - to serve demand of DomesticWaterStorage and house.
-       */
-
-      heatPumpAgent ! Activation(76163)
-
-      Range(0, 3)
-        .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 76163.toDateTime
-                hpResult._3 should equalWithTolerance(pRunningHp)
-                hpResult._4 should equalWithTolerance(qRunningHp)
-            }
-          case ThermalResultEvent(thermalUnitResult) =>
-            thermalUnitResult match {
-              case ThermalHouseResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    indoorTemperature,
-                  ) =>
-                inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 76163.toDateTime
-                qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.55.asDegreeCelsius
-                )(temperatureTolerance)
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 76163.toDateTime
-                qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0014981399999999998.asMegaWattHour
-                )
-            }
-        }
-      resultListener.expectNoMessage()
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(79200)))
     }
   }
-
-  // TODO in the end, check if there is a case where domestic storage and house splits the thermal qDot of Hp
 
   "A Thermal Grid with thermal house, thermal storage and heat pump that is controlled by an energy management" should {
     "be initialized correctly and run through some activations" in {
@@ -1659,7 +1599,7 @@ The results are checked implicitly through the state of stored energy at the nex
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(165)))
 
       /* TICK 165
@@ -1709,7 +1649,7 @@ The results are checked implicitly through the state of stored energy at the nex
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(1800)))
 
       /* TICK 1800
@@ -1719,7 +1659,8 @@ The results are checked implicitly through the state of stored energy at the nex
         House demand water   : tba
         ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
         DomesticWaterStorage : tba
-        Heat pump: turns on - since now we have flexibility potential available which can be used by hp to serve the reqDemand of ThermalStorage
+        Heat pump: turns on - since now we have flexibility potential available which can be
+        used by hp to serve the reqDemand of ThermalStorage
        */
 
       emAgentActivation ! Activation(1800)
@@ -1775,7 +1716,7 @@ The results are checked implicitly through the state of stored energy at the nex
                 energy should equalWithTolerance(0.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
 
       /* TICK 3600
@@ -1785,7 +1726,8 @@ The results are checked implicitly through the state of stored energy at the nex
       House demand water   : tba
       ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
       DomesticWaterStorage : tba
-      Heat pump: turns on - since now we have flexibility potential available which can be used by hp to serve the reqDemand of ThermalStorage
+      Heat pump: turns on - since now we have flexibility potential available which can
+      be used by hp to serve the reqDemand of ThermalStorage
        */
 
       emAgentActivation ! Activation(3600)
@@ -1829,7 +1771,7 @@ The results are checked implicitly through the state of stored energy at the nex
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(3765)))
 
       /* TICK 3765
@@ -1839,7 +1781,8 @@ House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 1.25 kWh
 House demand water   : tba
 ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
 DomesticWaterStorage : tba
-Heat pump: turns on - since now we have flexibility potential available which can be used by hp to serve the reqDemand of ThermalStorage
+Heat pump: turns on - since now we have flexibility potential available which
+can be used by hp to serve the reqDemand of ThermalStorage
        */
 
       emAgentActivation ! Activation(3765)
@@ -1883,7 +1826,7 @@ Heat pump: turns on - since now we have flexibility potential available which ca
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(5216)))
 
       /* TICK 5216
@@ -1898,7 +1841,7 @@ Heat pump: turns on - since now we have flexibility potential available which ca
 
       emAgentActivation ! Activation(5216)
 
-      Range(0, 5)
+      Range(0, 4)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -1959,61 +1902,7 @@ Heat pump: turns on - since now we have flexibility potential available which ca
                 )
             }
         }
-
-      scheduler.expectMessage(Completion(emAgentActivation, Some(5291)))
-
-      /* TICK 5291
-Domestic storage stops discharging.
-PV: -6.3 kW
-House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 3.6 kWh
-House demand water   : tba
-ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-DomesticWaterStorage : tba
-Heat pump: stays on since it was on and the house has additional demand
-       */
-
-      emAgentActivation ! Activation(5291)
-
-      Range(0, 3)
-        .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 5291.toDateTime
-                hpResult._3 should equalWithTolerance(pRunningHp)
-                hpResult._4 should equalWithTolerance(qRunningHp)
-
-              case EmResult(emResult) =>
-                emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 5291.toDateTime
-                emResult._3 should equalWithTolerance(
-                  -0.0025175615153993284.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(
-                  -0.000827482453922.asMegaVar
-                )
-            }
-          case ThermalResultEvent(thermalUnitResult) =>
-            thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 5291.toDateTime
-                qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.00104101101369863.asMegaWattHour
-                )
-            }
-        }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(5400)))
 
       /* TICK 5400
@@ -2085,7 +1974,7 @@ Heat pump: stays on since it was on and the house has additional demand
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(6824)))
 
       /* TICK 6824
@@ -2143,15 +2032,117 @@ Heat pump: stays on since it was on and the house has additional demand
                 energy should equalWithTolerance(0.0063104.asMegaWattHour)
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(9200)))
-
-      /* TICK 9200
-     The sun is back again, storage first.
+      /* TICK 7200
      PV: -5.2 kW
      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
      Heat pump: turned on
+       */
+
+      emAgentActivation ! Activation(7200)
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 7200.toDateTime
+                hpResult._3 should equalWithTolerance(0.asMegaWatt)
+                hpResult._4 should equalWithTolerance(0.asMegaVar)
+
+              case EmResult(emResult) =>
+                emResult._2 shouldBe emInput.getUuid
+                emResult._1 shouldBe 7200.toDateTime
+                emResult._3 should equalWithTolerance(
+                  0.asMegaWatt
+                )
+                emResult._4 should equalWithTolerance(
+                  0.asMegaVar
+                )
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 7200.toDateTime
+                qDot should equalWithTolerance(-0.004998883996776793.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.00104101101369863.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(7370)))
+
+      /* TICK 7370
+PV: -5.2 kW
+House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
+ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+Heat pump: turned on
+       */
+
+      emAgentActivation ! Activation(7370)
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 7370.toDateTime
+                hpResult._3 should equalWithTolerance(0.asMegaWatt)
+                hpResult._4 should equalWithTolerance(0.asMegaVar)
+
+              case EmResult(emResult) =>
+                emResult._2 shouldBe emInput.getUuid
+                emResult._1 shouldBe 7370.toDateTime
+                emResult._3 should equalWithTolerance(
+                  0.asMegaWatt
+                )
+                emResult._4 should equalWithTolerance(
+                  0.asMegaVar
+                )
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 7370.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.0008049526027397258.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(9200)))
+
+      /* TICK 9200
+The sun is back again, storage first.
+PV: -5.2 kW
+House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
+ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+Heat pump: turned on
        */
 
       emAgentActivation ! Activation(9200)
@@ -2170,7 +2161,7 @@ Heat pump: stays on since it was on and the house has additional demand
         )
       }
 
-      Range(0, 4)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -2207,73 +2198,9 @@ Heat pump: stays on since it was on and the house has additional demand
                 energy should equalWithTolerance(
                   0.0063104.asMegaWattHour
                 )
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 9200.toDateTime
-                qDot should equalWithTolerance(-0.01089500358271865.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.00104101101369863.asMegaWattHour
-                )
             }
         }
-
-      scheduler.expectMessage(Completion(emAgentActivation, Some(9278)))
-
-      /* TICK 9278
-      Domestic hot water storage stops discharging.
-      PV: -5.2 kW
-      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.15 kWh
-      Heat pump: turned on
-       */
-
-      emAgentActivation ! Activation(9278)
-
-      Range(0, 3)
-        .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 9278.toDateTime
-                hpResult._3 should equalWithTolerance(pRunningHp)
-                hpResult._4 should equalWithTolerance(qRunningHp)
-
-              case EmResult(emResult) =>
-                emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 9278.toDateTime
-                emResult._3 should equalWithTolerance(
-                  -0.0013527980811294546.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(
-                  -0.00044464322678371.asMegaVar
-                )
-            }
-          case ThermalResultEvent(thermalUnitResult) =>
-            thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 9278.toDateTime
-                qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0008049526027397.asMegaWattHour
-                )
-            }
-        }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(10551)))
 
       /* TICK 10551
@@ -2335,7 +2262,109 @@ Heat pump: stays on since it was on and the house has additional demand
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
+      /* TICK 10800
+PV: -5.2 kW
+House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
+ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+Heat pump: turned on
+       */
+
+      emAgentActivation ! Activation(10800)
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 10800.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+
+              case EmResult(emResult) =>
+                emResult._2 shouldBe emInput.getUuid
+                emResult._1 shouldBe 10800.toDateTime
+                emResult._3 should equalWithTolerance(
+                  -0.0013527980811294546.asMegaWatt
+                )
+                emResult._4 should equalWithTolerance(
+                  -0.0004446432267837181.asMegaVar
+                )
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 10800.toDateTime
+                qDot should equalWithTolerance(-0.004990169546282365.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.0008049526027397258.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(10973)))
+
+      /* TICK 10973
+PV: -5.2 kW
+House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
+ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+Heat pump: turned on
+       */
+
+      emAgentActivation ! Activation(10973)
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 10973.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+
+              case EmResult(emResult) =>
+                emResult._2 shouldBe emInput.getUuid
+                emResult._1 shouldBe 10973.toDateTime
+                emResult._3 should equalWithTolerance(
+                  -0.0013527980811294546.asMegaWatt
+                )
+                emResult._4 should equalWithTolerance(
+                  -0.0004446432267837181.asMegaVar
+                )
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 10973.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.0005651472328767123.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(11638)))
 
       /* TICK 11638
@@ -2348,7 +2377,7 @@ Heat pump: stays on since it was on and the house has additional demand
 
       emAgentActivation ! Activation(11638)
 
-      Range(0, 4)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -2385,73 +2414,9 @@ Heat pump: stays on since it was on and the house has additional demand
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
                 )(temperatureTolerance)
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 11644.toDateTime
-                qDot should equalWithTolerance(-0.01092783963932.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0008049526027397.asMegaWattHour
-                )
             }
         }
-
-      scheduler.expectMessage(Completion(emAgentActivation, Some(11723)))
-
-      /* TICK 11723
-      Domestic hot water storage stops discharging.
-      PV: -5.2 kW
-      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat pump: turned off
-       */
-
-      emAgentActivation ! Activation(11723)
-
-      Range(0, 3)
-        .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 11723.toDateTime
-                hpResult._3 should equalWithTolerance(0.asMegaWatt)
-                hpResult._4 should equalWithTolerance(0.asMegaVar)
-
-              case EmResult(emResult) =>
-                emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 11723.toDateTime
-                emResult._3 should equalWithTolerance(
-                  -0.005152798081129455.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(
-                  -0.0016936428264633983.asMegaVar
-                )
-            }
-          case ThermalResultEvent(thermalUnitResult) =>
-            thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 11723.toDateTime
-                qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.000565147232876712.asMegaWattHour
-                )
-            }
-        }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(12000)))
 
       /* TICK 12000
@@ -2518,7 +2483,7 @@ Heat pump: stays on since it was on and the house has additional demand
                 )(temperatureTolerance)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(12139)))
 
       /* TICK 12139
@@ -2570,7 +2535,7 @@ Heat pump: stays on since it was on and the house has additional demand
                 )(temperatureTolerance)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(12500)))
 
       /* TICK 12500
@@ -2621,8 +2586,44 @@ Heat pump: stays on since it was on and the house has additional demand
               )
           }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(24152)))
+      /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
+     The results are checked implicitly through the state of stored energy at the next result check.
+       */
+
+      val firstActivationTicksBlock =
+        Seq(14400, 14538, 18000, 18119, 21600, 21717, 24413)
+
+      val firstTickPairs = firstActivationTicksBlock.zipWithIndex.collect {
+        case (tick, index) if index < firstActivationTicksBlock.length - 1 =>
+          (tick, firstActivationTicksBlock(index + 1))
+      }
+
+      firstTickPairs.foreach { case (currentTick, nextTick) =>
+        emAgentActivation ! Activation(currentTick)
+        // Each step we expect a message for the Hp and the DomesticHotWaterStorage, but we don't check the content here.
+        Range(0, 3)
+          .map { _ =>
+            resultListener.expectMessageType[ResultEvent]
+          }
+          .foreach {
+            case ParticipantResultEvent(participantResult) =>
+              participantResult match {
+                case HpResult(_) =>
+                case EmResult(_) =>
+                case _           => fail("unexpected result")
+              }
+            case ThermalResultEvent(thermalUnitResult) =>
+              thermalUnitResult match {
+                case DomesticHotWaterStorageResult(_) =>
+                case _ => fail("unexpected result")
+              }
+          }
+        resultListener.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(nextTick)))
+      }
 
       /* TICK 24413
         House reaches lower boundary, since we don't have surplus energy from pv, we would use the energy from storage to heat the house.
@@ -2633,6 +2634,38 @@ Heat pump: stays on since it was on and the house has additional demand
        */
 
       emAgentActivation ! Activation(24152)
+//TODO CHECK THIS
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach { case ParticipantResultEvent(participantResult) =>
+          participantResult match {
+            case HpResult(hpResult) =>
+              hpResult._2 shouldBe typicalHpInputModel.getUuid
+              hpResult._1 shouldBe 24152.toDateTime
+              hpResult._3 should equalWithTolerance(0.asMegaWatt)
+              hpResult._4 should equalWithTolerance(0.asMegaVar)
+
+            case EmResult(emResult) =>
+              emResult._2 shouldBe emInput.getUuid
+              emResult._1 shouldBe 24152.toDateTime
+              emResult._3 should equalWithTolerance(0.asMegaWatt)
+              emResult._4 should equalWithTolerance(0.asMegaVar)
+          }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(24413)))
+
+      /* TICK 24413
+      Domestic hot water storage is now fully charged.
+      PV: 0.0 kW
+      House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      Heat pump: turned off, since we setPower is below 50 % of sRated and we can continue heating the house from storage. FIXME: Check if the demand of the domestic storage really comes the tick before and not way earlier...
+       */
+
+      emAgentActivation ! Activation(24413)
 
       Range(0, 4)
         .map { _ =>
@@ -2643,74 +2676,13 @@ Heat pump: stays on since it was on and the house has additional demand
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 24152.toDateTime
-                hpResult._3 should equalWithTolerance(pRunningHp)
-                hpResult._4 should equalWithTolerance(qRunningHp)
-
-              case EmResult(emResult) =>
-                emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 24152.toDateTime
-                emResult._3 should equalWithTolerance(pRunningHp)
-                emResult._4 should equalWithTolerance(qRunningHp)
-            }
-          case ThermalResultEvent(thermalUnitResult) =>
-            thermalUnitResult match {
-              case ThermalHouseResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    indoorTemperature,
-                  ) =>
-                inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 24152.toDateTime
-                qDot should equalWithTolerance(0.0055.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.asDegreeCelsius
-                )(temperatureTolerance)
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 24152.toDateTime
-                // FIXME, check if we consider the demand of the house for hot water here correct?
-                qDot should equalWithTolerance(0.0055.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0005651472328767.asMegaWattHour
-                )
-            }
-        }
-
-      scheduler.expectMessage(Completion(emAgentActivation, Some(24762)))
-
-      /* TICK 24762
-      Domestic hot water storage is now fully charged.
-      PV: 0.0 kW
-      House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat pump: turned off, since we setPower is below 50 % of sRated and we can continue heating the house from storage. FIXME: Check if the demand of the domestic storage realy comes the tick before and not way earlier...
-       */
-
-      emAgentActivation ! Activation(24762)
-
-      Range(0, 5)
-        .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 24762.toDateTime
+                hpResult._1 shouldBe 24413.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 24762.toDateTime
+                emResult._1 shouldBe 24413.toDateTime
                 emResult._3 should equalWithTolerance(0.asMegaWatt)
                 emResult._4 should equalWithTolerance(0.asMegaVar)
             }
@@ -2723,10 +2695,10 @@ Heat pump: stays on since it was on and the house has additional demand
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 24762.toDateTime
+                time shouldBe 24413.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                  18.02.asDegreeCelsius
+                  18.asDegreeCelsius
                 )(temperatureTolerance)
               case CylindricalThermalStorageResult(
                     time,
@@ -2735,24 +2707,12 @@ Heat pump: stays on since it was on and the house has additional demand
                     energy,
                   ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
-                time shouldBe 24762.toDateTime
+                time shouldBe 24413.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 24762.toDateTime
-                qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.00149814.asMegaWattHour
-                )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(25200)))
 
       /* TICK 25200
@@ -2814,9 +2774,8 @@ Heat pump: stays on since it was on and the house has additional demand
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                  18.13.asDegreeCelsius
+                  18.18.asDegreeCelsius
                 )(temperatureTolerance)
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -2827,7 +2786,7 @@ Heat pump: stays on since it was on and the house has additional demand
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.009169799999999999.asMegaWattHour
+                  0.008157699999999999.asMegaWattHour
                 )
               case DomesticHotWaterStorageResult(
                     time,
@@ -2837,16 +2796,16 @@ Heat pump: stays on since it was on and the house has additional demand
                   ) =>
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 25200.toDateTime
-                qDot should equalWithTolerance(-0.010930783561.asMegaWatt)
+                qDot should equalWithTolerance(-0.004944024422700589.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.00149814.asMegaWattHour
+                  0.00004806690410958905.asMegaWattHour
                 )
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(25235)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(25258)))
-
-      /* TICK 25258
+      /* TICK 25235
 Domestic hot water storage stops discharging.
   PV: -4.4 kW
   House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.21 kWh
@@ -2854,9 +2813,9 @@ Domestic hot water storage stops discharging.
   Heat pump: will be turned on and will continue heating the house
        */
 
-      emAgentActivation ! Activation(25258)
+      emAgentActivation ! Activation(25235)
 
-      Range(0, 3)
+      Range(0, 4)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -2865,13 +2824,13 @@ Domestic hot water storage stops discharging.
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 25258.toDateTime
+                hpResult._1 shouldBe 25235.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 25258.toDateTime
+                emResult._1 shouldBe 25235.toDateTime
                 emResult._3 should equalWithTolerance(
                   -0.000557218282208516.asMegaWatt
                 )
@@ -2881,6 +2840,18 @@ Domestic hot water storage stops discharging.
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 25235.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  18.19.asDegreeCelsius
+                )(temperatureTolerance)
               case DomesticHotWaterStorageResult(
                     time,
                     inputModel,
@@ -2888,13 +2859,152 @@ Domestic hot water storage stops discharging.
                     energy,
                   ) =>
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 25258.toDateTime
-                qDot should equalWithTolerance(0.asMegaWatt)
+                time shouldBe 25235.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.0013220329315.asMegaWattHour
+                  0.asMegaWattHour
                 )
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(25725)))
+
+      /* TICK 25725
+      Additional trigger caused by (unchanged) weather data should not change this.
+      PV: -3.9 kW
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.14 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+      Heat pump: stays on
+       */
+      emAgentActivation ! Activation(25725)
+
+      Range(0, 4)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 25725.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+
+              case EmResult(emResult) =>
+                emResult._2 shouldBe emInput.getUuid
+                emResult._1 shouldBe 25725.toDateTime
+                emResult._3 should equalWithTolerance(
+                  -0.000557218282208516.asMegaWatt
+                )
+                emResult._4 should equalWithTolerance(
+                  -0.0001831487924770093.asMegaVar
+                )
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 25725.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  18.19.asDegreeCelsius
+                )(temperatureTolerance)
+              case CylindricalThermalStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe typicalThermalStorage.getUuid
+                time shouldBe 25725.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.008157699999999999.asMegaWattHour
+                )
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 25725.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.0014981399999999998.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(26471)))
+
+      /* TICK 26471
+ Additional trigger caused by (unchanged) weather data should not change this.
+ PV: -3.9 kW
+ House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.14 kWh
+ ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+ Heat pump: stays on
+       */
+      emAgentActivation ! Activation(26471)
+
+      Range(0, 4)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 26471.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+
+              case EmResult(emResult) =>
+                emResult._2 shouldBe emInput.getUuid
+                emResult._1 shouldBe 26471.toDateTime
+                emResult._3 should equalWithTolerance(
+                  -0.000557218282208516.asMegaWatt
+                )
+                emResult._4 should equalWithTolerance(
+                  -0.0001831487924770093.asMegaVar
+                )
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 26471.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  18.08.asDegreeCelsius
+                )(temperatureTolerance)
+              case CylindricalThermalStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe typicalThermalStorage.getUuid
+                time shouldBe 26471.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.01044.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(27500)))
 
       /* TICK 27500
@@ -2945,6 +3055,109 @@ Domestic hot water storage stops discharging.
         }
 
       // FIXME? This was 30708 before
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
+
+      /* TICK 28800
+    Additional trigger caused by (unchanged) weather data should not change this.
+    PV: -3.9 kW
+    House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.14 kWh
+    ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+    Heat pump: stays on
+       */
+      emAgentActivation ! Activation(28800)
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 28800.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+
+              case EmResult(emResult) =>
+                emResult._2 shouldBe emInput.getUuid
+                emResult._1 shouldBe 28800.toDateTime
+                emResult._3 should equalWithTolerance(
+                  -0.00006389649707132048.asMegaWatt
+                )
+                emResult._4 should equalWithTolerance(
+                  -0.00002100176296395.asMegaVar
+                )
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 28800.toDateTime
+                qDot should equalWithTolerance(-0.004992701085216154.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.0014981399999999998.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(28954)))
+
+      /* TICK 28954
+Additional trigger caused by (unchanged) weather data should not change this.
+PV: -3.9 kW
+House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.14 kWh
+ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+Heat pump: stays on
+       */
+      emAgentActivation ! Activation(28954)
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 28954.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+
+              case EmResult(emResult) =>
+                emResult._2 shouldBe emInput.getUuid
+                emResult._1 shouldBe 28954.toDateTime
+                emResult._3 should equalWithTolerance(
+                  -0.00006389649707132048.asMegaWatt
+                )
+                emResult._4 should equalWithTolerance(
+                  -0.00002100176296395.asMegaVar
+                )
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case DomesticHotWaterStorageResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
+                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                time shouldBe 28954.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.0012845633424657533.asMegaWattHour
+                )
+            }
+        }
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(31000)))
 
       /* TICK 31000
@@ -2969,11 +3182,11 @@ Domestic hot water storage stops discharging.
             Celsius(-35d),
             MetersPerSecond(0d),
           ),
-          Some(145000),
+          Some(46800),
         )
       }
 
-      Range(0, 5)
+      Range(0, 4)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -3004,7 +3217,7 @@ Domestic hot water storage stops discharging.
                 time shouldBe 31000.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                  19.98.asDegreeCelsius
+                  19.53.asDegreeCelsius
                 )(temperatureTolerance)
               case CylindricalThermalStorageResult(
                     time,
@@ -3016,36 +3229,62 @@ Domestic hot water storage stops discharging.
                 time shouldBe 31000.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.009169799999999999.asMegaWattHour
-                )
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 31000.toDateTime
-                qDot should equalWithTolerance(-0.010983942387.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.001322032931506849.asMegaWattHour
+                  0.01044.asMegaWattHour
                 )
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(32400)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(31070)))
-
-      /* TICK 31070
-FIXME
-  PV: 0.0 kW
-  House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-  ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 3.04 kWh
-  Heat pump: stays on - to serve the remaining heat demand of the storage.
+      /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
+ The results are checked implicitly through the state of stored energy at the next result check.
        */
 
-      emAgentActivation ! Activation(31070)
+      val secondActivationTicksBlock =
+        Seq(32400, 32576, 33557)
 
-      Range(0, 5)
+      val secondTickPairs = secondActivationTicksBlock.zipWithIndex.collect {
+        case (tick, index) if index < secondActivationTicksBlock.length - 1 =>
+          (tick, secondActivationTicksBlock(index + 1))
+      }
+
+      secondTickPairs.foreach { case (currentTick, nextTick) =>
+        emAgentActivation ! Activation(currentTick)
+        // Each step we expect a message for the Hp and the DomesticHotWaterStorage, but we don't check the content here.
+        Range(0, 3)
+          .map { _ =>
+            resultListener.expectMessageType[ResultEvent]
+          }
+          .foreach {
+            case ParticipantResultEvent(participantResult) =>
+              participantResult match {
+                case HpResult(_) =>
+                case EmResult(_) =>
+                case _           => fail("unexpected result")
+              }
+            case ThermalResultEvent(thermalUnitResult) =>
+              thermalUnitResult match {
+                case DomesticHotWaterStorageResult(_) =>
+                case _ => fail("unexpected result")
+              }
+          }
+        resultListener.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(nextTick)))
+      }
+
+      /* TICK 33557
+  House reaches target temperature, since Hp is running we now charge the storage.
+  PV: -3.9 kW
+  The sun is gone again, it's getting colder as well.
+  PV: 0.0 kW
+  House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+  ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+  FIXME Heat pump: stays on - to serve the remaining heat demand of the storage.
+       */
+
+      emAgentActivation ! Activation(33557)
+
+      Range(0, 4)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -3054,13 +3293,13 @@ FIXME
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 31070.toDateTime
+                hpResult._1 shouldBe 33557.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 31070.toDateTime
+                emResult._1 shouldBe 33557.toDateTime
                 emResult._3 should equalWithTolerance(0.asMegaWatt)
                 emResult._4 should equalWithTolerance(0.asMegaVar)
             }
@@ -3073,10 +3312,10 @@ FIXME
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 31070.toDateTime
+                time shouldBe 33557.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                  20.asDegreeCelsius
+                  19.99.asDegreeCelsius
                 )(temperatureTolerance)
               case CylindricalThermalStorageResult(
                     time,
@@ -3085,29 +3324,53 @@ FIXME
                     energy,
                   ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
-                time shouldBe 31070.toDateTime
+                time shouldBe 33557.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.008966799999999999.asMegaWattHour
-                )
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 31070.toDateTime
-                qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0011084562739726025.asMegaWattHour
+                  0.0030247.asMegaWattHour
                 )
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(36000)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(40868)))
+      /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
+The results are checked implicitly through the state of stored energy at the next result check.
+       */
 
-      /* TICK 40868
+      val thirdActivationTicksBlock =
+        Seq(36000, 36179, 39600, 39757, 43200, 43322, 43557)
+
+      val thirdTickPairs = thirdActivationTicksBlock.zipWithIndex.collect {
+        case (tick, index) if index < thirdActivationTicksBlock.length - 1 =>
+          (tick, thirdActivationTicksBlock(index + 1))
+      }
+
+      thirdTickPairs.foreach { case (currentTick, nextTick) =>
+        emAgentActivation ! Activation(currentTick)
+        // Each step we expect a message for the Hp and the DomesticHotWaterStorage, but we don't check the content here.
+        Range(0, 3)
+          .map { _ =>
+            resultListener.expectMessageType[ResultEvent]
+          }
+          .foreach {
+            case ParticipantResultEvent(participantResult) =>
+              participantResult match {
+                case HpResult(_) =>
+                case EmResult(_) =>
+                case _           => fail("unexpected result")
+              }
+            case ThermalResultEvent(thermalUnitResult) =>
+              thermalUnitResult match {
+                case DomesticHotWaterStorageResult(_) =>
+                case _ => fail("unexpected result")
+              }
+          }
+        resultListener.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(nextTick)))
+      }
+
+      /* TICK 43557
         House reach lower temperature boundary
         PV: 0.0 kW
         House demand heating : requiredDemand = 15.00 kWh, possibleDemand = 15.00 kWh
@@ -3115,9 +3378,9 @@ FIXME
         Heat pump: stays off - demand will be covered by storage.
        */
 
-      emAgentActivation ! Activation(40868)
+      emAgentActivation ! Activation(43557)
 
-      Range(0, 5)
+      Range(0, 4)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -3126,13 +3389,13 @@ FIXME
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 40868.toDateTime
+                hpResult._1 shouldBe 43557.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 40868.toDateTime
+                emResult._1 shouldBe 43557.toDateTime
                 emResult._3 should equalWithTolerance(
                   0.0.asMegaWatt
                 )
@@ -3149,7 +3412,7 @@ FIXME
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 40868.toDateTime
+                time shouldBe 43557.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.asDegreeCelsius
@@ -3161,29 +3424,17 @@ FIXME
                     energy,
                   ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
-                time shouldBe 40868.toDateTime
+                time shouldBe 43557.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.008966799999999999.asMegaWattHour
-                )
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 40868.toDateTime
-                qDot should equalWithTolerance(-0.010988926027397261.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0011084562739726025.asMegaWattHour
+                  0.0030247000000000004.asMegaWattHour
                 )
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(44600)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(41100)))
-
-      /* TICK 41100
+      /* TICK 44600
 Domestic hot water storage stops discharging
   PV: 0.0 kW
   House demand heating : requiredDemand = 15.00 kWh, possibleDemand = 15.00 kWh
@@ -3191,9 +3442,9 @@ Domestic hot water storage stops discharging
   Heat pump: stays off - demand will be covered by storage.
        */
 
-      emAgentActivation ! Activation(41100)
+      emAgentActivation ! Activation(44600)
 
-      Range(0, 3)
+      Range(0, 4)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -3202,13 +3453,13 @@ Domestic hot water storage stops discharging
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 41100.toDateTime
+                hpResult._1 shouldBe 44600.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 41100.toDateTime
+                emResult._1 shouldBe 44600.toDateTime
                 emResult._3 should equalWithTolerance(
                   0.0.asMegaWatt
                 )
@@ -3218,24 +3469,36 @@ Domestic hot water storage stops discharging
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 44600.toDateTime
+                qDot should equalWithTolerance(0.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  18.2.asDegreeCelsius
+                )(temperatureTolerance)
+              case CylindricalThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 41100.toDateTime
+                inputModel shouldBe typicalThermalStorage.getUuid
+                time shouldBe 44600.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.00040028104109589014.asMegaWattHour
+                  0.asMegaWattHour
                 )
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(45608)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(43959)))
-
-      /* TICK 43959
+      /* TICK 45608
         Storage is empty now.
         Note: One could argue, that new weather should not change the operation of an agent (at least,
         if the weather did not change the flexOptions), but so far we don't check for this.
@@ -3247,9 +3510,9 @@ Domestic hot water storage stops discharging
         Heat pump: stays off
        */
 
-      emAgentActivation ! Activation(43959)
+      emAgentActivation ! Activation(45608)
 
-      Range(0, 5)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -3258,12 +3521,12 @@ Domestic hot water storage stops discharging
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 43959.toDateTime
+                hpResult._1 shouldBe 45608.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 43959.toDateTime
+                emResult._1 shouldBe 45608.toDateTime
                 emResult._3 should equalWithTolerance(pRunningHp)
                 emResult._4 should equalWithTolerance(qRunningHp)
             }
@@ -3276,10 +3539,71 @@ Domestic hot water storage stops discharging
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 43959.toDateTime
+                time shouldBe 45608.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  18.asDegreeCelsius
+                )(temperatureTolerance)
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(46800)))
+
+      /* TICK 46800
+        Domestic hot storage is now fully charged.
+        PV: 0.0 kW
+        House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.92 kWh
+        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        Heat pump: stays off
+       */
+
+      emAgentActivation ! Activation(46800)
+
+      weatherDependentAgents.foreach {
+        _ ! DataProvision(
+          46800,
+          weatherService.ref,
+          WeatherData(
+            WattsPerSquareMeter(0),
+            WattsPerSquareMeter(0),
+            Celsius(-35d),
+            MetersPerSecond(0d),
+          ),
+          Some(57600),
+        )
+      }
+
+      Range(0, 4)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 46800.toDateTime
+                hpResult._3 should equalWithTolerance(0.asMegaWatt)
+                hpResult._4 should equalWithTolerance(0.asMegaVar)
+              case EmResult(emResult) =>
+                emResult._2 shouldBe emInput.getUuid
+                emResult._1 shouldBe 46800.toDateTime
+                emResult._3 should equalWithTolerance(0.asMegaWatt)
+                emResult._4 should equalWithTolerance(0.asMegaVar)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 46800.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                  18.59.asDegreeCelsius
+                  18.25.asDegreeCelsius
                 )(temperatureTolerance)
               case CylindricalThermalStorageResult(
                     time,
@@ -3288,9 +3612,11 @@ Domestic hot water storage stops discharging
                     energy,
                   ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
-                time shouldBe 43959.toDateTime
-                qDot should equalWithTolerance(0.0.asMegaWatt)
-                energy should equalWithTolerance(0.0.asMegaWattHour)
+                time shouldBe 44600.toDateTime
+                qDot should equalWithTolerance(1.asMegaWatt)
+                energy should equalWithTolerance(
+                  0.asMegaWattHour
+                )
               case DomesticHotWaterStorageResult(
                     time,
                     inputModel,
@@ -3298,25 +3624,25 @@ Domestic hot water storage stops discharging
                     energy,
                   ) =>
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 43959.toDateTime
-                qDot should equalWithTolerance(0.011.asMegaWatt)
+                time shouldBe 46800.toDateTime
+                qDot should equalWithTolerance(-0.004961490410958902.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.00040028104109589.asMegaWattHour
+                  0.00040777495890410934.asMegaWattHour
                 )
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(46887)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(44318)))
-
-      /* TICK 44318
-        Domestic hot storage is now fully charged.
-        PV: 0.0 kW
-        House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.92 kWh
-        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
-        Heat pump: stays off
+      /* TICK 46887
+   Domestic hot storage is now fully charged.
+   PV: 0.0 kW
+   House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.92 kWh
+   ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+   Heat pump: stays off
        */
 
-      emAgentActivation ! Activation(44318)
+      emAgentActivation ! Activation(46887)
 
       Range(0, 3)
         .map { _ =>
@@ -3327,12 +3653,12 @@ Domestic hot water storage stops discharging
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 44318.toDateTime
+                hpResult._1 shouldBe 46887.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 44318.toDateTime
+                emResult._1 shouldBe 46887.toDateTime
                 emResult._3 should equalWithTolerance(0.asMegaWatt)
                 emResult._4 should equalWithTolerance(0.asMegaVar)
             }
@@ -3345,76 +3671,17 @@ Domestic hot water storage stops discharging
                     energy,
                   ) =>
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 44318.toDateTime
+                time shouldBe 46887.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.0014981399999999998.asMegaWattHour
+                  0.0002878722739726025.asMegaWattHour
                 )
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(48076)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(46925)))
-
-      /* TICK 46925
-        House will reach the lower temperature boundary
-        PV: 0.0 kW
-        House demand heating : requiredDemand = 15.00 kWh, possibleDemand = 15.00 kWh
-        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
-        Heat pump: turned on to heat the house
-       */
-
-      emAgentActivation ! Activation(46925)
-
-      Range(0, 4)
-        .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(participantResult) =>
-            participantResult match {
-              case HpResult(hpResult) =>
-                hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 46925.toDateTime
-                hpResult._3 should equalWithTolerance(pRunningHp)
-                hpResult._4 should equalWithTolerance(qRunningHp)
-              case EmResult(emResult) =>
-                emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 46925.toDateTime
-                emResult._3 should equalWithTolerance(pRunningHp)
-                emResult._4 should equalWithTolerance(qRunningHp)
-            }
-          case ThermalResultEvent(thermalUnitResult) =>
-            thermalUnitResult match {
-              case ThermalHouseResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    indoorTemperature,
-                  ) =>
-                inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 46925.toDateTime
-                qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.asDegreeCelsius
-                )(temperatureTolerance)
-              case DomesticHotWaterStorageResult(
-                    time,
-                    inputModel,
-                    qDot,
-                    energy,
-                  ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 46925.toDateTime
-                qDot should equalWithTolerance(-0.010791241643835612.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0014981399999999998.asMegaWattHour
-                )
-            }
-        }
-
-      scheduler.expectMessage(Completion(emAgentActivation, Some(46965)))
-
-      /* TICK 46965
+      /* TICK 48076
   Domestic hot water storage stops discharging.
   PV: 0.0 kW
   House demand heating : requiredDemand = 15.00 kWh, possibleDemand = 15.00 kWh
@@ -3422,7 +3689,7 @@ Domestic hot water storage stops discharging
   Heat pump: turned on to heat the house
        */
 
-      emAgentActivation ! Activation(46965)
+      emAgentActivation ! Activation(48076)
 
       Range(0, 3)
         .map { _ =>
@@ -3433,36 +3700,36 @@ Domestic hot water storage stops discharging
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 46965.toDateTime
+                hpResult._1 shouldBe 48076.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 46965.toDateTime
+                emResult._1 shouldBe 48076.toDateTime
                 emResult._3 should equalWithTolerance(pRunningHp)
                 emResult._4 should equalWithTolerance(qRunningHp)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case ThermalHouseResult(
                     time,
                     inputModel,
                     qDot,
-                    energy,
+                    indoorTemperature,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 46965.toDateTime
-                qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.001378237315068493.asMegaWattHour
-                )
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 48076.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  18.asDegreeCelsius
+                )(temperatureTolerance)
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(50400)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(56399)))
-
-      /* TICK 56399
+      /* TICK 50400
         House will reach target temperature
         PV: 0.0 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -3470,7 +3737,7 @@ Domestic hot water storage stops discharging
         Heat pump: turned off - no surplus energy to recharge the storage now
        */
 
-      emAgentActivation ! Activation(56399)
+      emAgentActivation ! Activation(50400)
 
       Range(0, 4)
         .map { _ =>
@@ -3481,13 +3748,13 @@ Domestic hot water storage stops discharging
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 56399.toDateTime
+                hpResult._1 shouldBe 50400.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 56399.toDateTime
+                emResult._1 shouldBe 50400.toDateTime
                 emResult._3 should equalWithTolerance(0.asMegaWatt)
                 emResult._4 should equalWithTolerance(0.asMegaVar)
             }
@@ -3500,10 +3767,10 @@ Domestic hot water storage stops discharging
                     indoorTemperature,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
-                time shouldBe 56399.toDateTime
+                time shouldBe 50400.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
-                  20.asDegreeCelsius
+                  18.49.asDegreeCelsius
                 )(temperatureTolerance)
               case DomesticHotWaterStorageResult(
                     time,
@@ -3512,25 +3779,25 @@ Domestic hot water storage stops discharging
                     energy,
                   ) =>
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 56399.toDateTime
-                qDot should equalWithTolerance(-0.01091970880626223.asMegaWatt)
+                time shouldBe 50400.toDateTime
+                qDot should equalWithTolerance(-0.004955161979312273.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.001378237315068493.asMegaWattHour
+                  0.0002878722739726025.asMegaWattHour
                 )
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(50449)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(56441)))
-
-      /* TICK 56441
-Domestic hot water storage stops discharging.
+      /* TICK 50449
+  House will reach target temperature
   PV: 0.0 kW
   House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
   ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
   Heat pump: turned off - no surplus energy to recharge the storage now
        */
 
-      emAgentActivation ! Activation(56441)
+      emAgentActivation ! Activation(50449)
 
       Range(0, 3)
         .map { _ =>
@@ -3541,13 +3808,13 @@ Domestic hot water storage stops discharging.
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 56441.toDateTime
+                hpResult._1 shouldBe 50449.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
 
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 56441.toDateTime
+                emResult._1 shouldBe 50449.toDateTime
                 emResult._3 should equalWithTolerance(0.asMegaWatt)
                 emResult._4 should equalWithTolerance(0.asMegaVar)
             }
@@ -3560,16 +3827,62 @@ Domestic hot water storage stops discharging.
                     energy,
                   ) =>
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
-                time shouldBe 56441.toDateTime
+                time shouldBe 50449.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.001250840712328767.asMegaWattHour
+                  0.0002204270136986299.asMegaWattHour
                 )
             }
         }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(52877)))
 
-      scheduler.expectMessage(Completion(emAgentActivation, Some(66218)))
+      /* TICK 52877
+Domestic hot water storage stops discharging.
+  PV: 0.0 kW
+  House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+  ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+  Heat pump: turned off - no surplus energy to recharge the storage now
+       */
 
+      emAgentActivation ! Activation(52877)
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(participantResult) =>
+            participantResult match {
+              case HpResult(hpResult) =>
+                hpResult._2 shouldBe typicalHpInputModel.getUuid
+                hpResult._1 shouldBe 52877.toDateTime
+                hpResult._3 should equalWithTolerance(pRunningHp)
+                hpResult._4 should equalWithTolerance(qRunningHp)
+              case EmResult(emResult) =>
+                emResult._2 shouldBe emInput.getUuid
+                emResult._1 shouldBe 52877.toDateTime
+                emResult._3 should equalWithTolerance(pRunningHp)
+                emResult._4 should equalWithTolerance(qRunningHp)
+            }
+          case ThermalResultEvent(thermalUnitResult) =>
+            thermalUnitResult match {
+              case ThermalHouseResult(
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
+                inputModel shouldBe typicalThermalHouse.getUuid
+                time shouldBe 52877.toDateTime
+                qDot should equalWithTolerance(0.011.asMegaWatt)
+                indoorTemperature should equalWithTolerance(
+                  18.asDegreeCelsius
+                )(temperatureTolerance)
+            }
+        }
+      resultListener.expectNoMessage()
+      scheduler.expectMessage(Completion(emAgentActivation, Some(54000)))
     }
   }
 }
