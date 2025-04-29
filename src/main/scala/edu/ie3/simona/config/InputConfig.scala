@@ -22,8 +22,8 @@ import edu.ie3.simona.config.ConfigParams._
 final case class InputConfig(
     extSimDir: Option[String],
     grid: Grid,
-    primary: Primary = Primary.empty,
-    weather: Weather = Weather.empty,
+    primary: Primary = Primary(),
+    weather: Weather = Weather(),
 )
 
 object InputConfig {
@@ -56,22 +56,10 @@ object InputConfig {
       influxDb1xParams: Option[TimeStampedInfluxDb1xParams] = None,
       sqlParams: Option[TimeStampedSqlParams] = None,
   )
-  object Primary {
-
-    /** Returns an empty [[Primary]] with default params.
-      */
-    def empty: Primary = Primary()
-  }
 
   final case class Weather(
-      datasource: WeatherDatasource = WeatherDatasource.empty
+      datasource: WeatherDatasource = WeatherDatasource()
   )
-  object Weather {
-
-    /** Returns an empty [[Weather]] with default params.
-      */
-    def empty: Weather = Weather()
-  }
 
   /** Source containing the grid data.
     * @param csvParams
@@ -113,7 +101,7 @@ object InputConfig {
     *   None).
     */
   final case class WeatherDatasource(
-      coordinateSource: CoordinateSource = CoordinateSource.empty,
+      coordinateSource: CoordinateSource = CoordinateSource(),
       couchbaseParams: Option[CouchbaseParams] = None,
       csvParams: Option[BaseCsvParams] = None,
       influxDb1xParams: Option[BaseInfluxDb1xParams] = None,
@@ -124,12 +112,6 @@ object InputConfig {
       sqlParams: Option[BaseSqlParams] = None,
       timestampPattern: Option[String] = None,
   )
-  object WeatherDatasource {
-
-    /** Returns an empty [[WeatherDatasource]] with default params.
-      */
-    def empty: WeatherDatasource = WeatherDatasource()
-  }
 
   /** Case class with options for coordinate source parameters.
     * @param csvParams
@@ -149,11 +131,5 @@ object InputConfig {
       sampleParams: Option[SampleParams] = None,
       sqlParams: Option[BaseSqlParams] = None,
   )
-  object CoordinateSource {
-
-    /** Returns an empty [[CoordinateSource]] with default params.
-      */
-    def empty: CoordinateSource = CoordinateSource()
-  }
 
 }
