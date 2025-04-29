@@ -606,48 +606,11 @@ final case class ThermalGrid(
     } else {
 
       val time = state.simulationTime
+      val nextFullHour: ZonedDateTime = time.plusHours(1).withMinute(0).withSecond(0).withNano(0)
       val simulationStartTime = time.minusSeconds(state.tick)
-      val nextFullHour: ZonedDateTime = ZonedDateTime.of(
-        time.getYear,
-        time.getMonthValue,
-        time.getDayOfMonth,
-        time.getHour + 1,
-        0,
-        0,
-        0,
-        time.getZone,
-      )
-
       val nextThreshold = nextFullHour.toTick(simulationStartTime)
 
       (zeroKW, Some(SimpleThermalThreshold(nextThreshold)))
-      /*
-
-      val maxDischargingThreshold = domesticHotWaterStorage.zip(
-        state.thermalGridState.domesticHotWaterStorageState
-      ) match {
-        case Some((storage, storageState)) =>
-          val assumedWorstCaseQDot = if (storageState.storedEnergy > 0.5 * storage.getMaxEnergyThreshold)
-          storage.getpThermalMax * 0.3
-          else   storage.getpThermalMax
-
-          Some(
-            SimpleThermalThreshold(
-            tick +  Math
-                .floor(
-                  (storageState.storedEnergy /assumedWorstCaseQDot).toSeconds
-                )
-                .toLong
-            )
-          )
-
-        case _ => None
-
-
-
-      }
-      (zeroKW, maxDischargingThreshold)
-    }*/
     }
   }
 
