@@ -8,11 +8,20 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemParticipantInputCopyBuilder
 import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, BmRuntimeConfig, EvcsRuntimeConfig, LoadRuntimeConfig, StorageRuntimeConfig}
+import edu.ie3.simona.config.RuntimeConfig.{
+  BaseRuntimeConfig,
+  BmRuntimeConfig,
+  EvcsRuntimeConfig,
+  LoadRuntimeConfig,
+  StorageRuntimeConfig,
+}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.InputModelContainer
 import edu.ie3.simona.model.InputModelContainer.WithHeatInputContainer
-import edu.ie3.simona.model.participant.ParticipantModel.{ModelState, ParticipantModelFactory}
+import edu.ie3.simona.model.participant.ParticipantModel.{
+  ModelState,
+  ParticipantModelFactory,
+}
 import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.load.LoadModel
 import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
