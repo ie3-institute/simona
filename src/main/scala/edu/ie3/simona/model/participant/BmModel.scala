@@ -117,8 +117,8 @@ final case class BmModel(
       usage: Double,
       eff: Double,
   ): Power = {
-    val currOpex = opex / eff
-    val avgOpex = (currOpex + opex) / 2
+    val currCapex = capex / eff
+    val avgOpex = (currCapex + capex) / 2
 
     if (
       isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
