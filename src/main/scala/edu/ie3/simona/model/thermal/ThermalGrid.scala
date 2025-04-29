@@ -304,10 +304,12 @@ final case class ThermalGrid(
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
 
     if (
-      state.thermalDemands.houseDemand.hasRequiredDemand && state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand
-    )
+      state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand && (state.thermalDemands.houseDemand.hasRequiredDemand ||
+        (state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW && state.lastHpOperatingPoint.thermalOps.qDotHp > zeroKW))
+    ) {
+      // if the DomesticHotWaterStorage has reqDemand AND house has reqDemand or was heated in lastState by Hp, we would like to split the qDot between house and waterStorage
       handleCase(state, qDot / 2, zeroKW, qDot / 2)
-    else if (state.thermalDemands.houseDemand.hasRequiredDemand)
+    } else if (state.thermalDemands.houseDemand.hasRequiredDemand)
       handleCase(state, qDot, zeroKW, zeroKW)
     else if (
       state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand
