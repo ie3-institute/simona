@@ -126,7 +126,7 @@ class ThermalGridIT
 
       val hpAgent = spawn(
         ParticipantAgentInit(
-          typicalHpInputContainer,
+        hpInputContainerLittleWaterStorage,
           HpRuntimeConfig(),
           outputConfigOn,
           participantRefs,
@@ -1438,7 +1438,7 @@ class ThermalGridIT
 
       val hpAgent = spawn(
         ParticipantAgentInit(
-          typicalHpInputContainer,
+          hpInputContainerSmallWaterStorage,
           HpRuntimeConfig(),
           outputConfigOn,
           participantRefs,
@@ -1591,7 +1591,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(-0.004986861668742217.asMegaWatt)
                 energy should equalWithTolerance(
@@ -1641,7 +1641,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 165.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
@@ -1763,7 +1763,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 3600.toDateTime
                 qDot should equalWithTolerance(-0.004986861668742217.asMegaWatt)
                 energy should equalWithTolerance(
@@ -1818,7 +1818,7 @@ can be used by hp to serve the reqDemand of ThermalStorage
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 3765.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
@@ -1894,7 +1894,7 @@ can be used by hp to serve the reqDemand of ThermalStorage
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 5216.toDateTime
                 qDot should equalWithTolerance(-0.010971095671.asMegaWatt)
                 energy should equalWithTolerance(
@@ -2075,7 +2075,7 @@ can be used by hp to serve the reqDemand of ThermalStorage
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 7200.toDateTime
                 qDot should equalWithTolerance(-0.004998883996776793.asMegaWatt)
                 energy should equalWithTolerance(
@@ -2126,7 +2126,7 @@ Heat pump: turned on
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 7370.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
@@ -2305,7 +2305,7 @@ Heat pump: turned on
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 10800.toDateTime
                 qDot should equalWithTolerance(-0.004990169546282365.asMegaWatt)
                 energy should equalWithTolerance(
@@ -2356,7 +2356,7 @@ Heat pump: turned on
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 10973.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
@@ -2794,7 +2794,7 @@ Heat pump: turned on
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(-0.004944024422700589.asMegaWatt)
                 energy should equalWithTolerance(
@@ -2848,7 +2848,7 @@ Domestic hot water storage stops discharging.
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 25235.toDateTime
-                qDot should equalWithTolerance(0.asMegaWatt)
+                qDot should equalWithTolerance(0.0055.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.19.asDegreeCelsius
                 )(temperatureTolerance)
@@ -2858,9 +2858,9 @@ Domestic hot water storage stops discharging.
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 25235.toDateTime
-                qDot should equalWithTolerance(0.011.asMegaWatt)
+                qDot should equalWithTolerance(0.0055.asMegaWatt)
                 energy should equalWithTolerance(
                   0.asMegaWattHour
                 )
@@ -2933,7 +2933,7 @@ Domestic hot water storage stops discharging.
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 25725.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
@@ -3098,7 +3098,7 @@ Domestic hot water storage stops discharging.
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 28800.toDateTime
                 qDot should equalWithTolerance(-0.004992701085216154.asMegaWatt)
                 energy should equalWithTolerance(
@@ -3149,7 +3149,7 @@ Heat pump: stays on
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 28954.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
@@ -3623,7 +3623,7 @@ Domestic hot water storage stops discharging
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 46800.toDateTime
                 qDot should equalWithTolerance(-0.004961490410958902.asMegaWatt)
                 energy should equalWithTolerance(
@@ -3670,7 +3670,7 @@ Domestic hot water storage stops discharging
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 46887.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
@@ -3778,7 +3778,7 @@ Domestic hot water storage stops discharging
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 50400.toDateTime
                 qDot should equalWithTolerance(-0.004955161979312273.asMegaWatt)
                 energy should equalWithTolerance(
@@ -3826,7 +3826,7 @@ Domestic hot water storage stops discharging
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
+                inputModel shouldBe smallDomesticHotWaterStorageInput.getUuid
                 time shouldBe 50449.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
