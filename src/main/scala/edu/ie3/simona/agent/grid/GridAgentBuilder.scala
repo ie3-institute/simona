@@ -143,7 +143,7 @@ class GridAgentBuilder(
                 curSysPart,
               ) =>
             curSysPart match {
-              case entity @ (_: BmInput | _: ChpInput | _: EvInput) =>
+              case entity @ (_: ChpInput | _: EvInput) =>
                 (
                   notProcessedElements + entity.getClass.getSimpleName,
                   availableSystemParticipants,
