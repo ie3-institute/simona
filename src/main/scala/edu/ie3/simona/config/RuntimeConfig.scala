@@ -74,6 +74,7 @@ object RuntimeConfig {
     *   runtime configs for wind energy converters
     */
   final case class Participant(
+      bm: AssetConfigs[BmRuntimeConfig] = BmRuntimeConfig(),
       evcs: AssetConfigs[EvcsRuntimeConfig] = EvcsRuntimeConfig(),
       fixedFeedIn: AssetConfigs[FixedFeedInRuntimeConfig] =
         FixedFeedInRuntimeConfig(),
