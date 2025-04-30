@@ -248,6 +248,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix startingState of `ThermalHouse` and `ThermalStorage` [#1347](https://github.com/ie3-institute/simona/issues/1347)
 - Fix default config values not written to output config file [#1355](https://github.com/ie3-institute/simona/issues/1355)
 - Calculate `ThermalHouse` inner temperature correct [#1349](https://github.com/ie3-institute/simona/issues/1349)
+- Fix some default config values not being used [#1362](https://github.com/ie3-institute/simona/issues/1362)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
