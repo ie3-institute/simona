@@ -23,7 +23,7 @@ final case class Congestions(
 
   /** Returns true if any congestion occurred.
     */
-  def any: Boolean =
+  def hasCongestion: Boolean =
     voltageCongestions || lineCongestions || transformerCongestions
 
   /** Returns true if there is either a line or transformer congestion

@@ -13,9 +13,9 @@ import edu.ie3.simona.agent.grid.GridAgent.{
   unsupported,
 }
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentConstantData
-import edu.ie3.simona.agent.grid.congestion.CMMessages._
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages._
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages._
-import edu.ie3.simona.agent.grid.congestion.CMData.{
+import edu.ie3.simona.agent.grid.congestion.data.{
   AwaitingData,
   CongestionManagementData,
 }
@@ -109,7 +109,7 @@ trait CongestionDetection {
       // check if there are any congestions in the grid
       val congestions = stateData.congestions
 
-      if (congestions.any) {
+      if (congestions.hasCongestion) {
         ctx.log.info(
           s"In the grid ${stateData.subgridNo}, the following congestions were found: $congestions"
         )
@@ -143,7 +143,7 @@ trait CongestionDetection {
       val congestions = stateData.congestions.combine(updatedData.values)
 
       // checking for any congestion in the complete grid
-      if (!congestions.any) {
+      if (!congestions.hasCongestion) {
         ctx.log.info(
           s"No congestions found. Finishing the congestion management."
         )

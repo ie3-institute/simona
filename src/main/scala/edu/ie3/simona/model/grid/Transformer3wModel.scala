@@ -26,13 +26,13 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   OhmToSimona,
   PowerConversionSimona,
   SiemensToSimona,
   VoltageToSimona,
 }
-import squants.Power
 import squants.electro.Siemens
 
 import java.time.ZonedDateTime
@@ -96,7 +96,7 @@ final case class Transformer3wModel(
     override protected val transformerTappingModel: TransformerTappingModel,
     amount: Int,
     powerFlowCase: Transformer3wPowerFlowCase,
-    sRated: Power,
+    sRated: ApparentPower,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
@@ -266,11 +266,11 @@ case object Transformer3wModel extends LazyLogging {
 
     val sRated = powerFlowCase match {
       case PowerFlowCaseA =>
-        trafo3wType.getsRatedA().toSquants
+        trafo3wType.getsRatedA.toApparent
       case PowerFlowCaseB =>
-        trafo3wType.getsRatedB().toSquants
+        trafo3wType.getsRatedB.toApparent
       case PowerFlowCaseC =>
-        trafo3wType.getsRatedC().toSquants
+        trafo3wType.getsRatedC.toApparent
     }
 
     val operationInterval =

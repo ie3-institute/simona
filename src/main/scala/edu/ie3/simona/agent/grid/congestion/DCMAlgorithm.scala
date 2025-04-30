@@ -12,8 +12,8 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
 }
-import edu.ie3.simona.agent.grid.congestion.CMMessages.StartStep
-import edu.ie3.simona.agent.grid.congestion.CMData.{
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.StartStep
+import edu.ie3.simona.agent.grid.congestion.data.{
   AwaitingData,
   CongestionManagementData,
 }
@@ -22,6 +22,10 @@ import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}
 
+/** Trait that is normally mixed into every [[GridAgent]] to enable distributed
+  * congestion management (DCM) algorithm execution. It is considered to be the
+  * standard behaviour of a [[GridAgent]].
+  */
 trait DCMAlgorithm extends CongestionDetection {
 
   /** Method for starting the congestion management.

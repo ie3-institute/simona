@@ -7,11 +7,14 @@
 package edu.ie3.simona.agent.grid.congestion.detection
 
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.grid.congestion.CMData.{
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
+  FinishStep,
+  StartStep,
+}
+import edu.ie3.simona.agent.grid.congestion.data.{
   AwaitingData,
   CongestionManagementData,
 }
-import edu.ie3.simona.agent.grid.congestion.CMMessages.{FinishStep, StartStep}
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.{
   CongestionCheckRequest,
   CongestionResponse,
@@ -19,17 +22,24 @@ import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.{
 }
 import edu.ie3.simona.agent.grid.congestion.{
   CongestedComponents,
-  CongestionTestBase,
+  CongestionTestBaseData,
   Congestions,
 }
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
+import edu.ie3.simona.test.common.UnitSpec
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.apache.pekko.actor.typed.ActorRef
 
 import scala.concurrent.duration.DurationInt
 import scala.language.implicitConversions
 
-class CongestionDetectionSpec extends CongestionTestBase {
+class CongestionDetectionSpec
+    extends ScalaTestWithActorTestKit
+    with UnitSpec
+    with CongestionTestBaseData {
 
   val superiorAgent: TestProbe[GridAgent.Request] = TestProbe("superiorAgent")
   val inferiorAgent: TestProbe[GridAgent.Request] = TestProbe("inferiorAgent")

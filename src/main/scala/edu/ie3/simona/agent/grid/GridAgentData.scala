@@ -11,10 +11,7 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.{
-  buildInferiorGridRefs,
-  buildSuperiorGridRefs,
-}
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.buildSuperiorGridRefs
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
@@ -136,6 +133,7 @@ object GridAgentData {
         nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
+        superiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,
         congestionManagementParams: CongestionManagementParams,
         actorName: String,
@@ -153,6 +151,10 @@ object GridAgentData {
         case (gate, _) => inferiorGridGates.contains(gate)
       }
 
+      val superiorGridGateToActorRef = subgridGateToActorRef.filter {
+        case (gate, _) => superiorGridGates.contains(gate)
+      }
+
       GridAgentBaseData(
         gridEnv,
         powerFlowParams,
@@ -165,9 +167,27 @@ object GridAgentData {
         ),
         sweepValueStores,
         actorName,
+        buildInferiorGridRefs(
+          inferiorGridGateToActorRef.keySet.toVector,
+          subgridGateToActorRef,
+        ),
+        buildSuperiorGridRefs(
+          superiorGridGateToActorRef.keySet.toVector,
+          subgridGateToActorRef,
+        ),
       )
     }
 
+    /** This method build a map for the inferior grid agent refs. The value
+      * consists of the uuids of the nodes in our own grid, that are connected
+      * to the inferior grid via a transformer.
+      * @param inferiorGridGates
+      *   All [[SubGridGate]]s to inferior grids we know.
+      * @param subgridGateToActorRef
+      *   A map [[SubGridGate]] to grid agent ref.
+      * @return
+      *   A map: grid agent ref to node uuids.
+      */
     def buildInferiorGridRefs(
         inferiorGridGates: Vector[SubGridGate],
         subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
@@ -186,9 +206,19 @@ object GridAgentData {
           inferiorGridGates
         }
         .map { case (inferiorGridAgentRef, inferiorGridGateNodes) =>
-          (inferiorGridAgentRef, inferiorGridGateNodes.distinct)
+          (inferiorGridAgentRef, inferiorGridGateNodes)
         }
 
+    /** This method build a map for the superior grid agent refs. The value
+      * consists of the uuids of the nodes in our own grid, that are connected
+      * to the superior grid via a transformer.
+      * @param superiorGridGates
+      *   All [[SubGridGate]]s to superior grids we know.
+      * @param subGridGateToActorRef
+      *   A map [[SubGridGate]] to grid agent ref.
+      * @return
+      *   A map: grid agent ref to node uuids.
+      */
     def buildSuperiorGridRefs(
         superiorGridGates: Vector[SubGridGate],
         subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
@@ -241,17 +271,22 @@ object GridAgentData {
     * and [[edu.ie3.simona.agent.participant.ParticipantAgent]] s (== assets).
     *
     * @param gridEnv
-    *   the grid environment
+    *   The grid environment.
     * @param powerFlowParams
-    *   power flow configuration parameters
+    *   Power flow configuration parameters.
     * @param congestionManagementParams
-    *   parameters for the congestions management
+    *   Parameters for the congestions management.
     * @param currentSweepNo
-    *   the current sweep number
+    *   The current sweep number.
     * @param receivedValueStore
-    *   a value store for received values
+    *   A value store for received values.
     * @param sweepValueStores
-    *   a value store for sweep results
+    *   A value store for sweep results.
+    * @param inferiorGridRefs
+    *   A map of actor refs to all inferior grids.
+    * @param superiorGridRefs
+    *   A map of actor refs to all superior grids with the corresponding
+    *   superior nodes.
     */
   final case class GridAgentBaseData private (
       gridEnv: GridEnvironment,
@@ -261,6 +296,8 @@ object GridAgentData {
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
       actorName: String,
+      inferiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] = Map.empty,
+      superiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] = Map.empty,
   ) extends GridAgentData
       with GridAgentDataHelper {
 
@@ -284,45 +321,20 @@ object GridAgentData {
       assetAndGridPowerValuesReady & slackVoltageValuesReady
     }
 
-    private var _inferiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] =
-      buildInferiorGridRefs(inferiorGridGates, gridEnv.subgridGateToActorRef)
-
-    private var _superiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] =
-      buildSuperiorGridRefs(superiorGridGates, gridEnv.subgridGateToActorRef)
-
-    /** @param rebuild
-      *   true, if the actor ref should be updated
-      * @return
-      *   a set of actor refs to all inferior grids
+    /** Updates the [[inferiorGridRefs]] and the [[superiorGridRefs]]. This can
+      * be necessary, if a transformer is switched on or off.
       */
-    def inferiorGridRefs(
-        rebuild: Boolean = false
-    ): Map[ActorRef[GridAgent.Request], Seq[UUID]] = {
-      if (rebuild) {
-        _inferiorGridRefs = buildInferiorGridRefs(
+    def updated(): GridAgentBaseData =
+      copy(
+        inferiorGridRefs = buildSuperiorGridRefs(
           inferiorGridGates,
           gridEnv.subgridGateToActorRef,
-        )
-      }
-      _inferiorGridRefs
-    }
-
-    /** @param rebuild
-      *   true, if the actor ref should be updated
-      * @return
-      *   a set of actor refs to all superior grids with the corresponding
-      *   superior nodes
-      */
-    def superiorGridRefs(
-        rebuild: Boolean = false
-    ): Map[ActorRef[GridAgent.Request], Seq[UUID]] = {
-      if (rebuild) {
-        _superiorGridRefs =
-          buildSuperiorGridRefs(subgridGates, gridEnv.subgridGateToActorRef)
-      }
-
-      _superiorGridRefs
-    }
+        ),
+        superiorGridRefs = buildSuperiorGridRefs(
+          superiorGridGates,
+          gridEnv.subgridGateToActorRef,
+        ),
+      )
 
     /** Update this [[GridAgentBaseData]] with [[ReceivedPowerValues]] and
       * return a copy of this [[GridAgentBaseData]] for further processing

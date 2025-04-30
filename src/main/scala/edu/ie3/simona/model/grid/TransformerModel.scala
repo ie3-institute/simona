@@ -17,13 +17,14 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   OhmToSimona,
   PowerConversionSimona,
   SiemensToSimona,
   VoltageToSimona,
 }
-import squants.{Each, Power}
+import squants.Each
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -79,7 +80,7 @@ final case class TransformerModel(
     voltRatioNominal: BigDecimal,
     iNomHv: squants.electro.ElectricCurrent,
     iNomLv: squants.electro.ElectricCurrent,
-    sRated: Power,
+    sRated: ApparentPower,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
@@ -205,7 +206,7 @@ case object TransformerModel {
       voltRatioNominal,
       iNomHv,
       iNomLv,
-      trafoType.getsRated().toSquants,
+      trafoType.getsRated.toApparent,
       r,
       x,
       g,

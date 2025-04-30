@@ -25,10 +25,14 @@ import edu.ie3.simona.test.common.model.grid.{
 }
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Kilovoltamperes,
+  Voltamperes,
+}
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.Each
 import squants.electro.Amperes
-import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
@@ -44,6 +48,7 @@ class TransformerModelSpec
   implicit val electricCurrentTolerance: squants.electro.ElectricCurrent =
     Amperes(1e-9)
   implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-9)
+  implicit val powerTolerance: ApparentPower = Voltamperes(1e-3)
 
   "A valid TransformerInput " should {
     "be validated without an exception" in new TransformerTestData {
@@ -127,7 +132,7 @@ class TransformerModelSpec
           voltRatioNominal shouldBe BigDecimal("25")
           iNomHv should approximate(Amperes(36.373066958946424d))
           iNomLv should approximate(Amperes(909.3266739736606d))
-          sRated shouldBe Kilowatts(630)
+          sRated should approximate(Kilovoltamperes(630))
           r should approximate(Each(7.357e-3))
           x should approximate(Each(24.30792e-3))
           g should approximate(Each(0.0))

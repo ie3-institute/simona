@@ -13,8 +13,8 @@ import edu.ie3.simona.model.grid.{
 }
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits._
-import squants.energy.Watts
-import squants.{Amperes, Each, Power}
+import edu.ie3.util.scala.quantities.{ApparentPower, Megavoltamperes}
+import squants.{Amperes, Each}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
@@ -128,7 +128,7 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
   protected val iNomLv: squants.electro.ElectricCurrent =
     Amperes(2309.401076758503d)
 
-  protected val sRated: Power = Watts(1)
+  protected val sRated: ApparentPower = Megavoltamperes(40)
 
   // / transformer
   protected val transformer2wModel = new TransformerModel(

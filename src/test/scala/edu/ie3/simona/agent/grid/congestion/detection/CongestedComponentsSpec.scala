@@ -10,15 +10,14 @@ import edu.ie3.simona.agent.grid.congestion.CongestedComponents
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.result.CongestedComponentsTestData
-import squants.Power
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.electro.{Amperes, Kilovolts}
-import squants.energy.Kilowatts
 
 class CongestedComponentsSpec
     extends UnitSpec
     with CongestedComponentsTestData {
 
-  private implicit val tolerance: Power = Kilowatts(1)
+  private implicit val tolerance: ApparentPower = Kilovoltamperes(1)
 
   "A CongestedComponents" should {
 
@@ -105,7 +104,7 @@ class CongestedComponentsSpec
       congested.transformer2Ws.size shouldBe 1
       val (model, power) = congested.transformer2Ws.toSeq(0)
       model shouldBe transformerMap(transformer1.getUuid)
-      power should approximate(Kilowatts(202000))
+      power should approximate(Kilovoltamperes(202000))
 
       congested.transformer3Ws shouldBe Iterable.empty
     }
@@ -137,7 +136,7 @@ class CongestedComponentsSpec
       congested.transformer3Ws.size shouldBe 1
       val (model, power) = congested.transformer3Ws.toSeq(0)
       model shouldBe transformerMap(transformer3W.getUuid)
-      power should approximate(Kilowatts(65000))
+      power should approximate(Kilovoltamperes(65000))
     }
   }
 }

@@ -21,26 +21,24 @@ import edu.ie3.simona.ontology.messages.services.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped, UnitSpec}
+import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
+  ActorTestKitBase,
   TestProbe,
 }
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.Mockito.when
 
 import java.time.ZonedDateTime
 import scala.concurrent.duration.DurationInt
 
-class CongestionTestBase
-    extends ScalaTestWithActorTestKit
-    with UnitSpec
-    with ConfigTestData
+trait CongestionTestBaseData
+    extends ConfigTestData
     with DbfsTestGrid
     with TestSpawnerTyped {
+  this: ActorTestKitBase =>
 
   protected val config: SimonaConfig = SimonaConfig(
     ConfigFactory
@@ -112,7 +110,7 @@ class CongestionTestBase
 
     when(data.isSuperior).thenReturn(isSuperior)
     when(data.congestionManagementParams).thenReturn(cmParams)
-    when(data.inferiorGridRefs(anyBoolean())).thenReturn(map)
+    when(data.inferiorGridRefs).thenReturn(map)
 
     data
   }

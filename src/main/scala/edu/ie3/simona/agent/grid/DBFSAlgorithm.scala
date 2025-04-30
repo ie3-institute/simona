@@ -44,7 +44,6 @@ import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior, Scheduler}
 import org.apache.pekko.util.Timeout
 import squants.Each
 
-import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -98,14 +97,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           // 2. inferior grids p/q values
           askInferiorGridsForPowers(
             gridAgentBaseData.currentSweepNo,
-            gridAgentBaseData.inferiorGridRefs(),
+            gridAgentBaseData.inferiorGridRefs,
             gridAgentBaseData.powerFlowParams.sweepTimeout,
           )(ctx)
 
           // 3. superior grids slack voltage
           askSuperiorGridsForSlackVoltages(
             gridAgentBaseData.currentSweepNo,
-            gridAgentBaseData.superiorGridRefs(),
+            gridAgentBaseData.superiorGridRefs,
             gridAgentBaseData.powerFlowParams.sweepTimeout,
           )(ctx)
 
@@ -422,7 +421,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           // request the updated slack voltages from the superior grid
           askSuperiorGridsForSlackVoltages(
             gridAgentBaseData.currentSweepNo,
-            gridAgentBaseData.superiorGridRefs(),
+            gridAgentBaseData.superiorGridRefs,
             gridAgentBaseData.powerFlowParams.sweepTimeout,
           )(ctx)
 
@@ -700,7 +699,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               val askForInferiorGridPowersOpt =
                 askInferiorGridsForPowers(
                   gridAgentBaseData.currentSweepNo,
-                  gridAgentBaseData.inferiorGridRefs(),
+                  gridAgentBaseData.inferiorGridRefs,
                   gridAgentBaseData.powerFlowParams.sweepTimeout,
                 )(ctx)
 

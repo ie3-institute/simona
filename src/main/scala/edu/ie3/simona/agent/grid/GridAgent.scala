@@ -33,7 +33,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
@@ -186,6 +185,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         nodeToAssetAgentsMap,
         gridAgentInitData.superiorGridNodeUuids,
         gridAgentInitData.inferiorGridGates,
+        gridAgentInitData.superiorGridGates,
         PowerFlowParams(
           cfg.powerflow.maxSweepPowerDeviation,
           cfg.powerflow.newtonraphson.epsilon.toVector.sorted,

@@ -60,7 +60,7 @@ trait FiveLinesWithNodes {
       isSlack,
       Each(1.0d),
       GermanVoltageLevelUtils.parse(vNominal),
-      -1,
+      10000,
     )
   }
 
