@@ -242,6 +242,8 @@ trait SetupHelper extends LazyLogging {
     val modelsToWrite =
       SetupHelper.allResultEntitiesToWrite(simonaConfig.simona.output)
 
+    val simonaLogConfig = simonaConfig.simona.output.log
+
     ResultFileHierarchy(
       simonaConfig.simona.output.base.dir,
       simonaConfig.simona.simulationName,
@@ -252,8 +254,8 @@ trait SetupHelper extends LazyLogging {
           simonaConfig.simona.simulationName,
         ),
       ),
-      configureLogger =
-        LogbackConfiguration.default(simonaConfig.simona.output.log.level),
+      configureLogger = LogbackConfiguration
+        .default(simonaLogConfig.level, simonaLogConfig.consoleLevel),
       config = Some((typeSafeConfig, simonaConfig)),
       addTimeStampToOutputDir =
         simonaConfig.simona.output.base.addTimestampToOutputDir,

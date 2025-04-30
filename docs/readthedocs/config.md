@@ -181,6 +181,23 @@ simona.output.thermal.individualConfigs = [
 Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
 
+## Logging level configuration
+
+To specify which log statements should be logged in the `simona.log` file and which log statements should be printed to
+the console, SIMONA offers the user two following configuration:
+
+```
+simona.output.log.level = "INFO"
+```
+
+This configuration sets the default log level for the log file as well as the console.
+If the console should use a different log level, this level must be selected in the following example.
+
+```
+simona.output.log.consoleLevel = "DEBUG"
+```
+
+
 ## Runtime configuration 
 
 Specification of the runtime of subgrids and voltage levels:
