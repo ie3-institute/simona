@@ -245,6 +245,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleanups and log capturing in `ExtEvDataServiceSpec` [#1320](https://github.com/ie3-institute/simona/issues/1320)
 - Fix tolerance in `ThermalGridIT` [#1345](https://github.com/ie3-institute/simona/issues/1345)
 - Fix startingState of `ThermalHouse` and `ThermalStorage` [#1347](https://github.com/ie3-institute/simona/issues/1347)
+- Added auto-approval to dependabot workflow and restrictions to updates [#1353](https://github.com/ie3-institute/simona/issues/1353)
 - Fix default config values not written to output config file [#1355](https://github.com/ie3-institute/simona/issues/1355)
 - Calculate `ThermalHouse` inner temperature correct [#1349](https://github.com/ie3-institute/simona/issues/1349)
 - Fix some default config values not being used [#1362](https://github.com/ie3-institute/simona/issues/1362)
