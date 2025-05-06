@@ -29,7 +29,7 @@ import javax.measure.quantity._
   */
 object QuantityConversionUtils {
 
-  /** Implicit class that contains method to convert a given
+  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[Dimensionless]] into
     * [[squants.Dimensionless]].
     * @param quantity
@@ -46,7 +46,7 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains method to convert a given
+  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[ElectricPotential]] into
     * [[squants.electro.ElectricPotential]].
     * @param quantity
@@ -63,7 +63,7 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains method to convert a given
+  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[ElectricCurrent]] into
     * [[squants.electro.ElectricCurrent]].
     * @param quantity
@@ -80,7 +80,7 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains method to convert a given
+  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[Power]] into [[squants.Power]] or
     * [[ApparentPower]].
     * @param quantity
@@ -101,7 +101,7 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains method to convert a given
+  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[Energy]] into [[squants.Energy]].
     * @param quantity
     *   To convert.
@@ -115,6 +115,12 @@ object QuantityConversionUtils {
     )
   }
 
+  /** Implicit class that contains a method to convert a given
+    * [[ComparableQuantity]] with unit [[EnergyPrice]] into
+    * [[quantities.EnergyPrice]].
+    * @param quantity
+    *   To convert.
+    */
   implicit class EnergyPriceToSimona(
       quantity: ComparableQuantity[EnergyPrice]
   ) {
@@ -126,6 +132,11 @@ object QuantityConversionUtils {
     )
   }
 
+  /** Implicit class that contains a method to convert a given
+    * [[ComparableQuantity]] with unit [[Currency]] into [[Money]].
+    * @param quantity
+    *   To convert.
+    */
   implicit class CurrencyToSimona(quantity: ComparableQuantity[Currency]) {
 
     /** Returns a quantity with unit [[EUR]].
@@ -133,7 +144,7 @@ object QuantityConversionUtils {
     def toSquants: Money = EUR(quantity.to(EURO).getValue.doubleValue)
   }
 
-  /** Implicit class that contains method to convert a given
+  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[ElectricResistance]] into
     * [[squants.electro.ElectricalResistance]].
     * @param quantity
@@ -150,7 +161,7 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains method to convert a given
+  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[SpecificResistance]] into
     * [[squants.electro.ElectricalResistance]].
     * @param quantity
@@ -176,7 +187,7 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains method to convert a given
+  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[ElectricConductance]] into
     * [[squants.electro.ElectricalConductance]].
     * @param quantity
@@ -190,7 +201,7 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains method to convert a given
+  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[SpecificConductance]] into
     * [[squants.electro.ElectricalConductance]].
     * @param quantity
@@ -216,7 +227,7 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains method to convert a given
+  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[Area]] into [[squants.Area]].
     * @param quantity
     *   To convert.
@@ -230,7 +241,7 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains method to convert a given
+  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[Angle]] into [[squants.Angle]].
     * @param quantity
     *   To convert.
