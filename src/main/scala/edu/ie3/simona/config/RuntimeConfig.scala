@@ -249,7 +249,7 @@ object RuntimeConfig {
       override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
 
-  /** Runtime configuration for photovoltaic plants.
+  /** Runtime configuration for biomass plants.
     * @param calculateMissingReactivePowerWithModel
     *   If missing reactive power may be filled up with model function (default:
     *   false).

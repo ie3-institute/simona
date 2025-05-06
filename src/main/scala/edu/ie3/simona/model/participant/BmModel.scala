@@ -51,7 +51,6 @@ final case class BmModel(
     private val opex: EnergyPrice,
     private val feedInTariff: EnergyPrice,
     private val loadGradient: Double,
-    private val isMarketReaction: Boolean,
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
       BmState,
@@ -117,13 +116,10 @@ final case class BmModel(
       usage: Double,
       eff: Double,
   ): Power = {
-    val currCapex = capex / eff
-    val avgOpex = (currCapex + capex) / 2
+    val currOpex = opex / eff
+    val avgOpex = (currOpex + opex) / 2
 
-    if (
-      isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
-        .doubleValue()
-    )
+    if (isCostControlled && avgOpex < feedInTariff)
       pRated * -1
     else
       pRated * usage * eff * -1
@@ -201,6 +197,7 @@ object BmModel {
         tick: Long,
         simulationTime: ZonedDateTime,
     ): BmState = BmState(tick, simulationTime, zeroCelsius, Option(zeroKW))
+
     override def create(): BmModel = {
       val bmType = input.getType
       val loadGradient = bmType.getActivePowerGradient
@@ -219,7 +216,6 @@ object BmModel {
         bmType.getOpex.toSquants,
         input.getFeedInTariff.toSquants,
         loadGradient,
-        input.isMarketReaction,
       )
     }
   }

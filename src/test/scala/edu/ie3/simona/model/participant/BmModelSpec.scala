@@ -38,10 +38,9 @@ class BmModelSpec extends UnitSpec {
     QControl(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
     isCostControlled = true,
     EUR(0.05),
-    EuroPerKilowatthour(0.51d),
-    EuroPerKilowatthour(0.51d),
+    EuroPerKilowatthour(0.05),
+    EuroPerKilowatthour(0.129),
     0.05,
-    isMarketReaction = true,
   )
 
   "A BmModel" should {
