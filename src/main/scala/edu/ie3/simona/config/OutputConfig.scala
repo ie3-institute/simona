@@ -34,9 +34,9 @@ final case class OutputConfig(
     base: Base,
     flex: Boolean = false,
     grid: GridOutputConfig,
-    log: Log = Log.empty,
+    log: Log = Log(),
     participant: AssetConfigs[ParticipantOutputConfig],
-    sink: Sink = Sink.empty,
+    sink: Sink = Sink(),
     thermal: AssetConfigs[SimpleOutputConfig],
 )
 
@@ -111,18 +111,15 @@ object OutputConfig {
 
   /** The configuration for the logger.
     * @param level
-    *   Of the logger.
+    *   Of the logger (default: INFO).
+    * @param consoleLevel
+    *   Option for a separate console log level (default: None -> uses file
+    *   level).
     */
   final case class Log(
-      level: String = "INFO"
+      level: String = "INFO",
+      consoleLevel: Option[String] = None,
   )
-
-  object Log {
-
-    /** Returns an empty [[Log]] with default params.
-      */
-    def empty: Log = Log()
-  }
 
   /** Configuration for output sink.
     * @param csv
@@ -138,11 +135,4 @@ object OutputConfig {
       influxDb1x: Option[BaseInfluxDb1xParams] = None,
       kafka: Option[ResultKafkaParams] = None,
   )
-
-  object Sink {
-
-    /** Returns an empty [[Sink]] with default params.
-      */
-    def empty: Sink = Sink()
-  }
 }
