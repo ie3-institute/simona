@@ -125,12 +125,10 @@ object ExtEmDataService
   ): Try[(ExtEmDataStateData, Option[Long])] = initServiceData match {
     case InitExtEmData(extEmDataConnection, startTime) =>
       val serviceCore = extEmDataConnection.mode match {
-        case EmMode.SET_POINT =>
+        case EmMode.BASE =>
           EmServiceBaseCore.empty
         case EmMode.EM_COMMUNICATION =>
           EmCommunicationCore.empty
-        case EmMode.EM_OPTIMIZATION =>
-          EmServiceBaseCore.empty
       }
 
       val emDataInitializedStateData =
