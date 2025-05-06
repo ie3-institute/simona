@@ -39,9 +39,9 @@ final case class OutputConfig(
     base: Base,
     flex: Boolean = false,
     grid: GridOutputConfig,
-    log: Log = Log.empty,
+    log: Log = Log(),
     participant: AssetConfigs[ParticipantOutputConfig],
-    sink: Sink = Sink.empty,
+    sink: Sink = Sink(),
     thermal: AssetConfigs[SimpleOutputConfig],
 ) derives ConfigConvert
 
@@ -130,13 +130,6 @@ object OutputConfig {
       level: String = "INFO"
   ) derives ConfigConvert
 
-  object Log {
-
-    /** Returns an empty [[Log]] with default params.
-      */
-    def empty: Log = Log()
-  }
-
   /** Configuration for output sink.
     * @param csv
     *   Used for [[edu.ie3.datamodel.io.sink.CsvFileSink]] (default: None).
@@ -151,11 +144,4 @@ object OutputConfig {
       influxDb1x: Option[BaseInfluxDb1xParams] = None,
       kafka: Option[ResultKafkaParams] = None,
   ) derives ConfigConvert
-
-  object Sink {
-
-    /** Returns an empty [[Sink]] with default params.
-      */
-    def empty: Sink = Sink()
-  }
 }

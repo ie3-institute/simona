@@ -30,7 +30,7 @@ import scala.deriving.Mirror
 final case class RuntimeConfig(
     em: AssetConfigs[EmRuntimeConfig] = AssetConfigs(EmRuntimeConfig()),
     listener: Listener = Listener(),
-    participant: Participant = Participant.empty(),
+    participant: Participant = Participant(),
     selectedSubgrids: Option[List[Int]] = None,
     selectedVoltLvls: Option[List[VoltLvlConfig]] = None,
 ) derives ConfigConvert
@@ -79,30 +79,16 @@ object RuntimeConfig {
     *   runtime configs for wind energy converters
     */
   final case class Participant(
-      evcs: AssetConfigs[EvcsRuntimeConfig],
-      fixedFeedIn: AssetConfigs[FixedFeedInRuntimeConfig],
-      hp: AssetConfigs[HpRuntimeConfig],
-      load: AssetConfigs[LoadRuntimeConfig],
-      pv: AssetConfigs[PvRuntimeConfig],
+      evcs: AssetConfigs[EvcsRuntimeConfig] = EvcsRuntimeConfig(),
+      fixedFeedIn: AssetConfigs[FixedFeedInRuntimeConfig] =
+        FixedFeedInRuntimeConfig(),
+      hp: AssetConfigs[HpRuntimeConfig] = HpRuntimeConfig(),
+      load: AssetConfigs[LoadRuntimeConfig] = LoadRuntimeConfig(),
+      pv: AssetConfigs[PvRuntimeConfig] = PvRuntimeConfig(),
       requestVoltageDeviationThreshold: Double = 1e-14,
-      storage: AssetConfigs[StorageRuntimeConfig],
-      wec: AssetConfigs[WecRuntimeConfig],
+      storage: AssetConfigs[StorageRuntimeConfig] = StorageRuntimeConfig(),
+      wec: AssetConfigs[WecRuntimeConfig] = WecRuntimeConfig(),
   ) derives ConfigConvert
-
-  object Participant {
-
-    /** Returns a [[Participant]] object with default values.
-      */
-    def empty(): Participant = Participant(
-      evcs = EvcsRuntimeConfig(),
-      fixedFeedIn = FixedFeedInRuntimeConfig(),
-      hp = HpRuntimeConfig(),
-      load = LoadRuntimeConfig(),
-      pv = PvRuntimeConfig(),
-      storage = StorageRuntimeConfig(),
-      wec = WecRuntimeConfig(),
-    )
-  }
 
   /** Basic trait for all runtime configs.
     */

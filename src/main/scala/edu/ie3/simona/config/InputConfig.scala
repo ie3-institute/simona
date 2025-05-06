@@ -27,8 +27,8 @@ import scala.deriving.Mirror
 final case class InputConfig(
     extSimDir: Option[String],
     grid: Grid,
-    primary: Primary = Primary.empty,
-    weather: Weather = Weather.empty,
+    primary: Primary = Primary(),
+    weather: Weather = Weather(),
 ) derives ConfigConvert
 
 object InputConfig {
@@ -67,22 +67,10 @@ object InputConfig {
       influxDb1xParams: Option[TimeStampedInfluxDb1xParams] = None,
       sqlParams: Option[TimeStampedSqlParams] = None,
   ) derives ConfigConvert
-  object Primary {
-
-    /** Returns an empty [[Primary]] with default params.
-      */
-    def empty: Primary = Primary()
-  }
 
   final case class Weather(
-      datasource: WeatherDatasource = WeatherDatasource.empty
+      datasource: WeatherDatasource = WeatherDatasource()
   ) derives ConfigConvert
-  object Weather {
-
-    /** Returns an empty [[Weather]] with default params.
-      */
-    def empty: Weather = Weather()
-  }
 
   /** Source containing the grid data.
     * @param csvParams
@@ -124,7 +112,7 @@ object InputConfig {
     *   None).
     */
   final case class WeatherDatasource(
-      coordinateSource: CoordinateSource = CoordinateSource.empty,
+      coordinateSource: CoordinateSource = CoordinateSource(),
       couchbaseParams: Option[CouchbaseParams] = None,
       csvParams: Option[BaseCsvParams] = None,
       influxDb1xParams: Option[BaseInfluxDb1xParams] = None,
@@ -135,12 +123,6 @@ object InputConfig {
       sqlParams: Option[BaseSqlParams] = None,
       timestampPattern: Option[String] = None,
   ) derives ConfigConvert
-  object WeatherDatasource {
-
-    /** Returns an empty [[WeatherDatasource]] with default params.
-      */
-    def empty: WeatherDatasource = WeatherDatasource()
-  }
 
   /** Case class with options for coordinate source parameters.
     * @param csvParams
@@ -160,11 +142,5 @@ object InputConfig {
       sampleParams: Option[SampleParams] = None,
       sqlParams: Option[BaseSqlParams] = None,
   ) derives ConfigConvert
-  object CoordinateSource {
-
-    /** Returns an empty [[CoordinateSource]] with default params.
-      */
-    def empty: CoordinateSource = CoordinateSource()
-  }
 
 }
