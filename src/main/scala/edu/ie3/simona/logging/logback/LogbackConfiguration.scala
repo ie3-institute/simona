@@ -83,7 +83,7 @@ object LogbackConfiguration extends LazyLogging {
     val consoleAppender = new ConsoleAppender[ILoggingEvent]
     consoleAppender.setEncoder(layoutEncoder)
     consoleAppender.setContext(loggerContext)
-    consoleAppender.setName("simona-console")
+    consoleAppender.setName("STDOUT")
     consoleAppender.addFilter(filter)
     consoleAppender.start()
     consoleAppender

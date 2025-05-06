@@ -184,13 +184,14 @@ Data sources and data sinks are explained in the [I/O-capabilities](https://powe
 ## Logging level configuration
 
 To specify which log statements should be logged in the `simona.log` file and which log statements should be printed to
-the console, SIMONA offers the user two following configuration:
+the console, SIMONA offers the user two configuration options.
+
+The first options sets the default log level for the log file as well as the console.
 
 ```
 simona.output.log.level = "INFO"
 ```
 
-This configuration sets the default log level for the log file as well as the console.
 If the console should use a different log level, this level must be selected in the following example.
 
 ```

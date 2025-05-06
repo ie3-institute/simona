@@ -6,10 +6,6 @@
   -->
 
 <configuration>
-    <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
     <!-- File appender is configured and added by edu.ie3.simona.logging.logback.LogbackConfiguration -->
     <!-- Console appender is configured and added by edu.ie3.simona.logging.logback.LogbackConfiguration -->
-    <root level="debug">
-        <appender-ref ref="STDOUT"/>
-    </root>
 </configuration>
