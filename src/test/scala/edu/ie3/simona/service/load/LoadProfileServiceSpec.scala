@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
   RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
-import edu.ie3.simona.model.participant.load.LoadModel.ProfileLoadFactoryData
+import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,

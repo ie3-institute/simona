@@ -47,4 +47,14 @@ object LoadProfileMessage {
       averagePower: Power
   ) extends SecondaryData
 
+  /** Container class for the load profile information at a certain point in
+    * time.
+    *
+    * @param powerSupplier
+    *   A supplier, that will return a random load value.
+    */
+  final case class LoadDataFunction(
+      powerSupplier: () => Power
+  ) extends SecondaryData
+
 }

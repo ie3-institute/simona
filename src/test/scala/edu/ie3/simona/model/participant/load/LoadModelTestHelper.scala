@@ -7,6 +7,8 @@
 package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.exceptions.SourceException
+import edu.ie3.simona.model.participant.ParticipantModel.ActivePowerOperatingPoint
+import edu.ie3.simona.model.participant.load.ProfileLoadModel.LoadModelState
 import edu.ie3.simona.service.load.LoadProfileStore
 import squants.energy.KilowattHours
 import squants.time.Minutes
@@ -47,6 +49,7 @@ trait LoadModelTestHelper {
 
     (0L until quarterHoursInYear)
       .map { quarterHour =>
+        val tick = quarterHour * 15 * 60
         val dateTime =
           simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES)
 
@@ -57,7 +60,12 @@ trait LoadModelTestHelper {
           throw new SourceException("No load value present!")
         )
 
-        averagePower * model.referenceScalingFactor
+        val state = LoadModelState(tick, averagePower)
+
+        model.determineOperatingPoint(state) match {
+          case (ActivePowerOperatingPoint(p), _) =>
+            p
+        }
       }
   }
 

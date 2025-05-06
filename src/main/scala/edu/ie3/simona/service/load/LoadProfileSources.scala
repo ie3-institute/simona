@@ -57,7 +57,7 @@ object LoadProfileSources {
     *   The definition of additional sources. If no definition is given, only
     *   the build in load profiles can be used.
     * @return
-    *   the option for the build in [[LoadProfileTimeSeries]] as well as a map:
+    *   The option for the build in [[LoadProfileTimeSeries]] as well as a map:
     *   load profile to source
     */
   def buildSources(
@@ -68,8 +68,57 @@ object LoadProfileSources {
       sourceDefinition.sqlParams,
     ).find(_.isDefined).flatten
 
-    // build the needed sources
-    val sourceOptions = definedSources match {
+    // get the provided sources
+    val sourceOptions = getSourceOptions(definedSources)
+
+    // build the load profile sources
+    sourceOptions match {
+      case Some(
+            (
+              dataSource: DataSource,
+              metaInformationSource: TimeSeriesMetaInformationSource,
+            )
+          ) =>
+        // get the meta information
+        val metaInformation: Map[String, LoadProfileMetaInformation] =
+          metaInformationSource.getLoadProfileMetaInformation.asScala.toMap
+
+        // build all defined sources
+        val bdew = buildSourcesFrom(
+          dataSource,
+          metaInformation,
+          new BdewLoadProfileFactory(),
+          classOf[BdewLoadValues],
+        )
+        val random = buildSourcesFrom(
+          dataSource,
+          metaInformation,
+          new RandomLoadProfileFactory(),
+          classOf[RandomLoadValues],
+        )
+        val allSources = bdew ++ random
+
+        // check if all sources are build
+        checkSources(allSources.keySet, metaInformation.keySet)
+
+        allSources
+      case _ =>
+        Map.empty
+    }
+  }
+
+  /** Method for checking the provided options and returning an option for the
+    * sources.
+    * @param definedSources
+    *   Option for source parameters.
+    * @return
+    *   An option for the [[DataSource]] as well as the
+    *   [[TimeSeriesMetaInformationSource]].
+    */
+  private def getSourceOptions(
+      definedSources: Option[Any]
+  ): Option[(DataSource, TimeSeriesMetaInformationSource)] =
+    definedSources match {
       case Some(BaseCsvParams(csvSep, directoryPath, _)) =>
         val csvDataSource =
           new CsvDataSource(
@@ -105,40 +154,6 @@ object LoadProfileSources {
       case _ =>
         None
     }
-
-    // build the load profile sources
-    sourceOptions match {
-      case Some(
-            (
-              dataSource: DataSource,
-              metaInformationSource: TimeSeriesMetaInformationSource,
-            )
-          ) =>
-        implicit val source: DataSource = dataSource
-
-        // get the meta information
-        implicit val metaInformation: Map[String, LoadProfileMetaInformation] =
-          metaInformationSource.getLoadProfileMetaInformation.asScala.toMap
-
-        // build all defined sources
-        val bdew = buildSourcesFrom(
-          new BdewLoadProfileFactory(),
-          classOf[BdewLoadValues],
-        )
-        val random = buildSourcesFrom(
-          new RandomLoadProfileFactory(),
-          classOf[RandomLoadValues],
-        )
-        val allSources = bdew ++ random
-
-        // check if all sources are build
-        checkSources(allSources.keySet, metaInformation.keySet)
-
-        allSources
-      case _ =>
-        Map.empty
-    }
-  }
 
   /** Method for checking the build sources.
     * @param profiles
@@ -180,11 +195,10 @@ object LoadProfileSources {
       P <: LoadProfile,
       V <: LoadValues,
   ](
-      factory: LoadProfileFactory[P, V],
-      entryClass: Class[V],
-  )(implicit
       datasource: DataSource,
       allMetaInformation: Map[String, LoadProfileMetaInformation],
+      factory: LoadProfileFactory[P, V],
+      entryClass: Class[V],
   ): Map[LoadProfile, LoadProfileSource[_, _]] = {
     val emptyMap = Map.empty[LoadProfile, LoadProfileSource[_, _]]
 

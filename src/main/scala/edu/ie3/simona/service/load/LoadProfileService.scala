@@ -18,6 +18,7 @@ import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.{
   LoadData,
+  LoadDataFunction,
   RegisterForLoadProfileService,
 }
 import edu.ie3.simona.ontology.messages.services.{
@@ -136,7 +137,7 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
   }
 
   /** Try to register the sending agent with its load profile for load profile
-    * value provision
+    * value provision.
     *
     * @param agentToBeRegistered
     *   the agent that wants to be registered
@@ -158,7 +159,7 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
 
     serviceStateData.profileToRefs.get(loadProfile) match {
       case None =>
-        /* The load profile itself is not known yet. Try to figure out, which weather coordinates are relevant */
+        /* The load profile itself is not known yet. Try to figure out, which load profile is relevant */
 
         if (serviceStateData.loadProfileStore.contains(loadProfile)) {
           // we can provide data for the agent
@@ -171,7 +172,7 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
           )
 
           serviceStateData.copy(profileToRefs =
-            serviceStateData.profileToRefs + (loadProfile -> Vector(
+            serviceStateData.profileToRefs + (loadProfile -> Seq(
               agentToBeRegistered
             ))
           )
@@ -200,18 +201,12 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
             serviceStateData.profileToRefs + (loadProfile -> (actorRefs :+ agentToBeRegistered))
         )
 
-      case Some(actorRefs) if actorRefs.contains(agentToBeRegistered) =>
+      case _ =>
         // actor is already registered, do nothing
         ctx.log.warn(
           "Sending actor {} is already registered",
           agentToBeRegistered,
         )
-        serviceStateData
-
-      case _ =>
-        // actor is not registered and we don't have data for it
-        // inform the agentToBeRegistered that the registration failed as we don't have data for it
-        agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
         serviceStateData
     }
   }
@@ -232,17 +227,17 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
     serviceStateData.profileToRefs.foreach { case (loadProfile, actorRefs) =>
       loadProfile match {
         case LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE =>
-          loadProfileStore
-            .sampleRandomEntries(time, actorRefs.size)
-            .zip(actorRefs)
-            .foreach { case (averagePower, recipient) =>
-              recipient ! DataProvision(
-                tick,
-                ctx.self,
-                LoadData(averagePower),
-                Some(nextTick),
-              )
-            }
+          val loadFunction = loadProfileStore.randomEntrySupplier(time)
+
+          /* Providing random load value function to the requester */
+          actorRefs.foreach(recipient =>
+            recipient ! DataProvision(
+              tick,
+              ctx.self,
+              LoadDataFunction(loadFunction),
+              Some(nextTick),
+            )
+          )
 
         case _ =>
           loadProfileStore.entry(time, loadProfile) match {

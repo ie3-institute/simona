@@ -9,7 +9,7 @@ package edu.ie3.simona.model.participant.load
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
 import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.load.LoadModel.ProfileLoadFactoryData
+import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
 import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData

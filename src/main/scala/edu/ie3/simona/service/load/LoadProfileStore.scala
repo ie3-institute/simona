@@ -10,7 +10,8 @@ import edu.ie3.datamodel.io.source.LoadProfileSource
 import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
-import edu.ie3.simona.model.participant.load.LoadModel.ProfileLoadFactoryData
+import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyToSimona,
   PowerConversionSimona,
@@ -85,19 +86,18 @@ final case class LoadProfileStore(
       .flatMap(_.getValue(time).toScala)
       .flatMap(_.getP)
 
-  /** Samples entries for random load profile.
-    * @param time
-    *   The requested time.
-    * @param nr
-    *   The number of values to sample.
-    * @return
-    *   A list of load values in kW.
+  /** Returns a function, that will provide a random load value for the given
+    * time.
     */
-  def sampleRandomEntries(
-      time: ZonedDateTime,
-      nr: Int,
-  ): Seq[squants.Power] =
-    Range(0, nr, 1).flatMap(_ => entry(time, RANDOM_LOAD_PROFILE))
+  def randomEntrySupplier(time: ZonedDateTime): () => squants.Power = () =>
+    entry(time, RANDOM_LOAD_PROFILE) match {
+      case Some(value) =>
+        value
+      case None =>
+        throw new CriticalFailureException(
+          s"Couldn't sample random load value!"
+        )
+    }
 
   /** @param loadProfile
     *   Given load profile.

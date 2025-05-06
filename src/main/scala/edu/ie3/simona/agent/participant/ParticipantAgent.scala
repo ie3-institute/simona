@@ -13,6 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   ProvidedPowerResponse,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.model.participant.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
@@ -71,10 +72,10 @@ object ParticipantAgent {
 
   /** Message confirming a successful registration with a secondary service.
     */
-  final case class RegistrationSuccessfulMessage[D](
+  final case class RegistrationSuccessfulMessage(
       override val serviceRef: ActorRef[_ >: ServiceMessage],
       firstDataTick: Long,
-      additionalData: Option[D] = None,
+      additionalData: Option[AdditionalFactoryData] = None,
   ) extends RegistrationResponseMessage
 
   /** Message confirming a successful registration with the primary service.

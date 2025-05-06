@@ -15,16 +15,17 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   AdditionalFactoryData,
+  ModelState,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.LoadModel.{
-  LoadModelState,
-  ProfileLoadFactoryData,
+import edu.ie3.simona.model.participant.load.ProfileLoadModel.LoadModelState
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.{
+  LoadData,
+  LoadDataFunction,
 }
-import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.LoadData
-import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.simona.service.ServiceType.LoadProfileService
+import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.energy.Energy
@@ -82,9 +83,13 @@ class ProfileLoadModel(
       nodalVoltage: Dimensionless,
   ): LoadModelState = {
 
-    val loadData = receivedData
-      .collectFirst { case loadData: LoadData =>
-        loadData
+    val averagePower = receivedData
+      .collectFirst {
+        case loadData: LoadData =>
+          loadData.averagePower
+
+        case loadFunction: LoadDataFunction =>
+          loadFunction.powerSupplier()
       }
       .getOrElse(
         throw new CriticalFailureException(
@@ -92,11 +97,34 @@ class ProfileLoadModel(
         )
       )
 
-    state.copy(averagePower = loadData.averagePower)
+    state.copy(averagePower = averagePower)
   }
 }
 
 object ProfileLoadModel {
+
+  /** Holds all relevant data for profile load model calculation
+    *
+    * @param averagePower
+    *   the average power for the current interval
+    */
+  final case class LoadModelState(
+      override val tick: Long,
+      averagePower: Power,
+  ) extends ModelState
+
+  /** Hold additional data for some load model factories.
+    * @param maxPower
+    *   The maximal power of the
+    *   [[edu.ie3.datamodel.models.profile.LoadProfile]].
+    * @param energyScaling
+    *   The energy scaling for the
+    *   [[edu.ie3.datamodel.models.profile.LoadProfile]].
+    */
+  final case class ProfileLoadFactoryData(
+      maxPower: Option[Power],
+      energyScaling: Option[Energy],
+  ) extends AdditionalFactoryData
 
   final case class Factory(
       input: LoadInput,
@@ -110,6 +138,12 @@ object ProfileLoadModel {
     ): Factory = data match {
       case ProfileLoadFactoryData(maxPower, energyScaling) =>
         copy(maxPower = maxPower, energyScaling = energyScaling)
+
+      case unexpected =>
+        throw new CriticalFailureException(
+          s"Received unexpected data '$unexpected', while updating the profile load model factory."
+        )
+
     }
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =

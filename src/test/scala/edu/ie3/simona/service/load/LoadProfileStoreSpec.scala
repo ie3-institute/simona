@@ -61,9 +61,11 @@ class LoadProfileStoreSpec extends UnitSpec {
     }
 
     "sample multiple random values for random load profile" in {
-      val powers = store.sampleRandomEntries(time, 5)
+      val supplier = store.randomEntrySupplier(time)
 
-      powers.size shouldBe 5
+      val powers = Range(0, 10).map(_ => supplier())
+
+      powers.size shouldBe 10
       powers.toSet.size > 1 shouldBe true
     }
 
