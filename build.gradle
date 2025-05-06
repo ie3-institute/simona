@@ -128,7 +128,7 @@ dependencies {
   /* config */
   implementation 'com.typesafe:config:1.4.3'
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
-  implementation "com.github.pureconfig:pureconfig_${scalaVersion}:0.17.8"
+  implementation "com.github.pureconfig:pureconfig_${scalaVersion}:0.17.9"
 
   // JTS
   implementation ("org.locationtech.jts:jts-core:${jtsVersion}") {
