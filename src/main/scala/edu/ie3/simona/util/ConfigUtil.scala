@@ -129,6 +129,7 @@ object ConfigUtil {
       ParticipantConfigUtil(
         buildUuidMapping(
           Seq(
+            subConfig.bm.individualConfigs,
             subConfig.load.individualConfigs,
             subConfig.fixedFeedIn.individualConfigs,
             subConfig.pv.individualConfigs,
@@ -138,6 +139,7 @@ object ConfigUtil {
           ).flatten
         ),
         Seq(
+          subConfig.bm.defaultConfig,
           subConfig.load.defaultConfig,
           subConfig.fixedFeedIn.defaultConfig,
           subConfig.pv.defaultConfig,
