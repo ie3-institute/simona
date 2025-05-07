@@ -7,15 +7,17 @@
 package edu.ie3.simona.util
 
 final case class ReceiveHierarchicalDataMap[K, V](
+    private val allKeys: Set[K],
+    private val expectedKeys: Set[K],
     structure: Map[K, Set[K]],
-    allKeys: Set[K],
-    expectedKeys: Set[K],
     receivedData: Map[K, V],
 ) {
 
   def hasCompletedKeys: Boolean = structure.keySet.exists(isComplete)
 
-  def isComplete(key: K): Boolean = structure
+  def isComplete: Boolean = expectedKeys.isEmpty
+
+  private def isComplete(key: K): Boolean = structure
     .get(key)
     .map(_.intersect(expectedKeys))
     .forall(_.forall(receivedData.contains))
@@ -80,6 +82,8 @@ final case class ReceiveHierarchicalDataMap[K, V](
     )
   }
 
+  def getExpectedKeys: Set[K] = expectedKeys
+
   def getFinishedData: (Map[K, V], ReceiveHierarchicalDataMap[K, V]) = {
     val dataMap = if (expectedKeys.nonEmpty) {
       structure.keySet
@@ -110,11 +114,19 @@ final case class ReceiveHierarchicalDataMap[K, V](
 
 object ReceiveHierarchicalDataMap {
 
+  def apply[K, V](expected: Set[K]): ReceiveHierarchicalDataMap[K, V] =
+    ReceiveHierarchicalDataMap(
+      Set.empty,
+      expected,
+      Map.empty,
+      Map.empty,
+    )
+
   def empty[K, V]: ReceiveHierarchicalDataMap[K, V] =
     ReceiveHierarchicalDataMap(
+      Set.empty,
+      Set.empty,
       Map.empty,
-      Set.empty,
-      Set.empty,
       Map.empty,
     )
 

@@ -12,9 +12,9 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
-import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.{ReceiveDataMap, ReceiveHierarchicalDataMap}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
@@ -30,9 +30,10 @@ final case class EmServiceBaseCore(
     override val lastFinishedTick: Long = PRE_INIT_TICK,
     override val uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]] =
       Map.empty,
-    flexOptions: ReceiveDataMap[UUID, ExtendedFlexOptionsResult] =
+    override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
-    completions: ReceiveDataMap[UUID, FlexCompletion] = ReceiveDataMap.empty,
+    flexOptions: ReceiveHierarchicalDataMap[UUID, ExtendedFlexOptionsResult] =
+      ReceiveHierarchicalDataMap.empty,
     disaggregatedFlex: Boolean = false,
     sendOptionsToExt: Boolean = false,
     canHandleSetPoints: Boolean = false,
@@ -67,7 +68,7 @@ final case class EmServiceBaseCore(
 
       (
         copy(
-          flexOptions = ReceiveDataMap(emEntities.toSet),
+          flexOptions = ReceiveHierarchicalDataMap(emEntities.toSet),
           disaggregatedFlex = disaggregated,
           sendOptionsToExt = true,
         ),
@@ -89,7 +90,7 @@ final case class EmServiceBaseCore(
 
         (
           copy(
-            flexOptions = ReceiveDataMap(emEntities.toSet),
+            flexOptions = ReceiveHierarchicalDataMap(emEntities.toSet),
             setPointOption = Some(provideEmSetPoints),
           ),
           None,
@@ -118,7 +119,7 @@ final case class EmServiceBaseCore(
           case ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
-              ) if flexOptions.getExpectedKeys.contains(modelUuid) =>
+              ) =>
             flexOptions.addData(
               modelUuid,
               new ExtendedFlexOptionsResult(
@@ -136,14 +137,25 @@ final case class EmServiceBaseCore(
         }
 
         if (updated.isComplete) {
-          // we received all flex options and can now handle set points
+          // we received all flex options
 
-          val data = updated.receivedData
+          val expectedKeys = updated.getExpectedKeys
+          val receiveDataMap = updated.receivedData
+          val data = expectedKeys.map(key => key -> receiveDataMap(key)).toMap
 
-          log.warn(s"Expect data from: ${updated.getExpectedKeys}")
+          if (disaggregatedFlex) {
+            // we add the disaggregated flex options
+            val structure = updated.structure
+
+            data.foreach { case (key, value) =>
+              structure(key).foreach { inferior =>
+                value.addDisaggregated(inferior, receiveDataMap(inferior))
+              }
+            }
+          }
 
           val updatedCore = copy(
-            flexOptions = ReceiveDataMap(updated.receivedData.keySet),
+            flexOptions = ReceiveHierarchicalDataMap(updated.getExpectedKeys),
             canHandleSetPoints = true,
           )
 

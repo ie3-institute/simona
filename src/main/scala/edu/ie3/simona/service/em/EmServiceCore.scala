@@ -9,12 +9,7 @@ package edu.ie3.simona.service.em
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.em.model.NoSetPointValue
 import edu.ie3.simona.api.data.em.ontology._
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexRequest,
-  FlexResponse,
-  IssueNoControl,
-  IssuePowerControl,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.services.EmMessage.{
   WrappedFlexRequest,
   WrappedFlexResponse,
@@ -23,6 +18,8 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   RegisterForEmDataService,
   ServiceResponseMessage,
 }
+import edu.ie3.simona.service.em.EmServiceCore.EmHierarchy
+import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
@@ -41,6 +38,8 @@ trait EmServiceCore {
   def lastFinishedTick: Long
 
   def uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]]
+
+  def completions: ReceiveDataMap[UUID, FlexCompletion]
 
   implicit class SquantsToQuantity(private val value: Power) {
     def toQuantity: ComparableQuantity[PsdmPower] = value.toMegawatts.asMegaWatt

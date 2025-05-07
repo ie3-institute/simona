@@ -42,6 +42,8 @@ final case class EmCommunicationCore(
     override val lastFinishedTick: Long = PRE_INIT_TICK,
     override val uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]] =
       Map.empty,
+    override val completions: ReceiveDataMap[UUID, FlexCompletion] =
+      ReceiveDataMap.empty,
     hierarchy: EmHierarchy = EmHierarchy(),
     flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
     uuidToPRef: Map[UUID, ComparableQuantity[Power]] = Map.empty,
@@ -51,17 +53,16 @@ final case class EmCommunicationCore(
     flexOptionResponse: DataMap[UUID, ExtendedFlexOptionsResult] =
       ReceiveHierarchicalDataMap.empty,
     setPointResponse: DataMap[UUID, PValue] = ReceiveHierarchicalDataMap.empty,
-    completions: ReceiveDataMap[UUID, FlexCompletion] = ReceiveDataMap.empty,
 ) extends EmServiceCore {
 
   override def handleRegistration(
-      registerMsg: RegisterForEmDataService
+      registrationMsg: RegisterForEmDataService
   ): EmServiceCore = {
-    val uuid = registerMsg.modelUuid
-    val ref = registerMsg.requestingActor
-    val flexAdapter = registerMsg.flexAdapter
-    val parentEm = registerMsg.parentEm
-    val parentUuid = registerMsg.parentUuid
+    val uuid = registrationMsg.modelUuid
+    val ref = registrationMsg.requestingActor
+    val flexAdapter = registrationMsg.flexAdapter
+    val parentEm = registrationMsg.parentEm
+    val parentUuid = registrationMsg.parentUuid
 
     val updatedHierarchy = hierarchy.add(uuid, ref, parentEm, parentUuid)
 
