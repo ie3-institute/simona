@@ -215,8 +215,8 @@ object ParticipantModel {
     */
   trait ParticipantModelFactory[S <: ModelState] {
 
-    /** Updates the factory with additional data. (default: simply retuning this
-      * factory).
+    /** Updates the factory with additional data. (default: throws a
+      * [[CriticalFailureException]]).
       * @param data
       *   Used to update.
       * @return

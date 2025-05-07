@@ -51,7 +51,7 @@ object LoadProfileMessage {
     * time.
     *
     * @param powerSupplier
-    *   A supplier, that will return a random load value.
+    *   A supplier, that will return a load value.
     */
   final case class LoadDataFunction(
       powerSupplier: () => Power
