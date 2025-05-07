@@ -18,7 +18,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   RegisterForEmDataService,
   ServiceResponseMessage,
 }
-import edu.ie3.simona.service.em.EmServiceCore.EmHierarchy
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
@@ -120,8 +119,7 @@ trait EmServiceCore {
 
 object EmServiceCore {
 
-  final case class EmHierarchy(
-      structure: Map[UUID, Set[UUID]] = Map.empty,
+  final case class EmRefMaps(
       private val refToUuid: Map[ActorRef[EmAgent.Request], UUID] = Map.empty,
       private val uuidToRef: Map[UUID, ActorRef[EmAgent.Request]] = Map.empty,
       private val uuidToFlexResponse: Map[UUID, ActorRef[FlexResponse]] =
@@ -135,7 +133,7 @@ object EmServiceCore {
         ref: ActorRef[EmAgent.Request],
         parentEm: Option[ActorRef[FlexResponse]] = None,
         parentUuid: Option[UUID] = None,
-    ): EmHierarchy = parentEm.zip(parentUuid) match {
+    ): EmRefMaps = parentEm.zip(parentUuid) match {
       case Some((parent, uuid)) =>
         copy(
           uuidToRef = uuidToRef + (model -> ref),
@@ -153,9 +151,8 @@ object EmServiceCore {
     def getUuid(ref: ActorRef[FlexResponse]): UUID =
       flexResponseToUuid(ref)
 
-    def getResponseRef(uuid: UUID): Option[ActorRef[FlexResponse]] =
+    def getResponse(uuid: UUID): Option[ActorRef[FlexResponse]] =
       uuidToFlexResponse.get(uuid)
-
   }
 
 }

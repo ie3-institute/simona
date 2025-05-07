@@ -54,7 +54,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
-import java._
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
@@ -264,6 +263,7 @@ class ExtEmDataServiceSpec
         new RequestEmFlexResults(
           INIT_SIM_TICK,
           List.empty[UUID].asJava,
+          false,
         )
       )
 
@@ -283,6 +283,7 @@ class ExtEmDataServiceSpec
         new RequestEmFlexResults(
           0,
           List(emAgentSupUUID).asJava,
+          false,
         )
       )
 

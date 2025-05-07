@@ -18,7 +18,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
 import edu.ie3.simona.service.em.EmCommunicationCore.DataMap
-import edu.ie3.simona.service.em.EmServiceCore.EmHierarchy
+import edu.ie3.simona.service.em.EmServiceCore.EmRefMaps
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveHierarchicalDataMap}
@@ -44,7 +44,7 @@ final case class EmCommunicationCore(
       Map.empty,
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
-    hierarchy: EmHierarchy = EmHierarchy(),
+    refs: EmRefMaps = EmRefMaps(),
     flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
     uuidToPRef: Map[UUID, ComparableQuantity[Power]] = Map.empty,
     toSchedule: Map[UUID, ScheduleFlexActivation] = Map.empty,
@@ -64,10 +64,10 @@ final case class EmCommunicationCore(
     val parentEm = registrationMsg.parentEm
     val parentUuid = registrationMsg.parentUuid
 
-    val updatedHierarchy = hierarchy.add(uuid, ref, parentEm, parentUuid)
+    val updatedRefs = refs.add(uuid, ref, parentEm, parentUuid)
 
     copy(
-      hierarchy = updatedHierarchy,
+      refs = updatedRefs,
       uuidToFlexAdapter = uuidToFlexAdapter + (uuid -> flexAdapter),
       flexAdapterToUuid = flexAdapterToUuid + (flexAdapter -> uuid),
       flexRequestReceived =
@@ -131,7 +131,7 @@ final case class EmCommunicationCore(
         .flexOptions()
         .asScala
         .foreach { case (agent, flexOptions) =>
-          hierarchy.getResponseRef(agent) match {
+          refs.getResponse(agent) match {
             case Some(receiver) =>
               flexOptions.asScala.foreach { option =>
                 receiver ! ProvideFlexOptions(
@@ -199,7 +199,7 @@ final case class EmCommunicationCore(
 
         val receiverUuid = receiver match {
           case Right(otherRef) =>
-            hierarchy.getUuid(otherRef)
+            refs.getUuid(otherRef)
           case Left(self: UUID) =>
             self
         }

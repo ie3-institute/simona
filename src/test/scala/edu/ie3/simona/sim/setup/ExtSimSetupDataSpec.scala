@@ -78,7 +78,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val evRef = TestProbe[ServiceMessage]("ev_service").ref
 
       val emConnection =
-        new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
+        new ExtEmDataConnection(emptyListInput, EmMode.BASE)
       val emRef = TestProbe[ServiceMessage]("em_service").ref
 
       val cases = Table(
@@ -141,7 +141,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val evRef = TestProbe[ServiceMessage]("ev_service").ref
 
       val emConnection =
-        new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
+        new ExtEmDataConnection(emptyListInput, EmMode.BASE)
       val emRef = TestProbe[ServiceMessage]("em_service").ref
 
       val resultConnection =
@@ -174,7 +174,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
     "return emDataService correctly" in {
       val emConnection =
-        new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
+        new ExtEmDataConnection(emptyListInput, EmMode.BASE)
       val emRef = TestProbe("em_service").ref
 
       val cases = Table(
@@ -215,7 +215,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
     "return emDataService correctly" in {
       val emConnection =
-        new ExtEmDataConnection(emptyListInput, EmMode.SET_POINT)
+        new ExtEmDataConnection(emptyListInput, EmMode.BASE)
       val emRef = TestProbe[ServiceMessage]("em_service").ref
 
       val cases = Table(

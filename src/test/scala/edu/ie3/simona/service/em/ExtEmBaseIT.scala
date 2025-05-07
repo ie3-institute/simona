@@ -94,11 +94,6 @@ class ExtEmBaseIT
   private val emNode4Uuid =
     UUID.fromString("ff0b995a-86ff-4f4d-987e-e475a64f2180")
 
-  private val connection = new ExtEmDataConnection(
-    List(emSupUuid, emNode3Uuid, emNode4Uuid).asJava,
-    EmMode.SET_POINT,
-  )
-
   private val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
   private val resultListener = TestProbe[ResultEvent]("ResultListener")
   private val primaryServiceProxy =
@@ -122,6 +117,10 @@ class ExtEmBaseIT
     implicit val adapter: ActorRef[DataMessageFromExt] =
       spawn(ExtEmDataService.adapter(service))
 
+    val connection = new ExtEmDataConnection(
+      List(emSupUuid, emNode3Uuid, emNode4Uuid).asJava,
+      EmMode.BASE,
+    )
     connection.setActorRefs(adapter, extSimAdapter.ref)
 
     val emAgentSup = spawn(
@@ -296,7 +295,7 @@ class ExtEmBaseIT
     // load
     loadAgentNode4 ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
-    "with requesting flex options works correctly" in {
+    "work correctly when requesting flex options" in {
       /* TICK: 0 */
 
       val weatherData0 = DataProvision(
@@ -316,7 +315,7 @@ class ExtEmBaseIT
 
       // we request the em option for the superior em agent
       connection.sendExtMsg(
-        new RequestEmFlexResults(0L, List(emSupUuid).asJava)
+        new RequestEmFlexResults(0L, List(emSupUuid).asJava, false)
       )
 
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
@@ -371,7 +370,7 @@ class ExtEmBaseIT
 
       // we request the em option for the superior em agent
       connection.sendExtMsg(
-        new RequestEmFlexResults(900L, List(emSupUuid).asJava)
+        new RequestEmFlexResults(900L, List(emSupUuid).asJava, false)
       )
 
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
@@ -413,10 +412,10 @@ class ExtEmBaseIT
       connection.receiveWithType(classOf[EmCompletion])
     }
 
-    "without requesting flex options works correctly" in {
+    "work correctly when requesting disaggregated flex options" in {
       /* TICK: 1800 */
 
-      val weatherData0 = DataProvision(
+      val weatherData1800 = DataProvision(
         1800L,
         weatherService.ref,
         WeatherData(
@@ -428,16 +427,68 @@ class ExtEmBaseIT
         Some(2700L),
       )
 
-      pvAgentNode3 ! weatherData0
-      pvAgentNode4 ! weatherData0
+      pvAgentNode3 ! weatherData1800
+      pvAgentNode4 ! weatherData1800
 
-      // we send a new set point
-      val setPoints0: Map[UUID, PValue] =
+      // we request the em option for the superior em agent
+      connection.sendExtMsg(
+        new RequestEmFlexResults(1800L, List(emSupUuid).asJava, true)
+      )
+
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
+      serviceActivation ! Activation(1800L)
+
+      val receivedFlexOptions1800 = connection
+        .receiveWithType(classOf[FlexOptionsResponse])
+        .receiverToFlexOptions()
+        .asScala
+
+      receivedFlexOptions1800.size shouldBe 1
+      val flexOptions1800 = receivedFlexOptions1800(emSupUuid)
+      flexOptions1800.getSender shouldBe emSupUuid
+      flexOptions1800.getReceiver shouldBe emSupUuid
+      flexOptions1800.getpMin should equalWithTolerance(
+        0.002200000413468004.asMegaWatt
+      )
+      flexOptions1800.getpRef should equalWithTolerance(
+        0.002200000413468004.asMegaWatt
+      )
+      flexOptions1800.getpMax should equalWithTolerance(
+        0.006200000413468004.asMegaWatt
+      )
+
+      flexOptions1800.hasDisaggregated shouldBe true
+      val disaggregated1800 = flexOptions1800.getDisaggregated.asScala
+
+      val node3Flex1800 = disaggregated1800(emNode3Uuid)
+      node3Flex1800.getpMin should equalWithTolerance(
+        0.asMegaWatt
+      )
+      node3Flex1800.getpRef should equalWithTolerance(
+        0.asMegaWatt
+      )
+      node3Flex1800.getpMax should equalWithTolerance(
+        0.004.asMegaWatt
+      )
+
+      val node4Flex1800 = disaggregated1800(emNode4Uuid)
+      node4Flex1800.getpMin should equalWithTolerance(
+        0.002200000413468004.asMegaWatt
+      )
+      node4Flex1800.getpRef should equalWithTolerance(
+        0.002200000413468004.asMegaWatt
+      )
+      node4Flex1800.getpMax should equalWithTolerance(
+        0.002200000413468004.asMegaWatt
+      )
+
+      // we return a new set point
+      val setPoints1800: Map[UUID, PValue] =
         Map(emSupUuid -> new NoSetPointValue(0.002200000413468004.asMegaWatt))
 
       connection.sendSetPoints(
         1800L,
-        setPoints0.asJava,
+        setPoints1800.asJava,
         Optional.of(2700L),
         log,
       )
@@ -449,7 +500,7 @@ class ExtEmBaseIT
 
       /* TICK: 2700 */
 
-      val weatherData900 = DataProvision(
+      val weatherData2700 = DataProvision(
         2700L,
         weatherService.ref,
         WeatherData(
@@ -461,16 +512,68 @@ class ExtEmBaseIT
         Some(3600L),
       )
 
-      pvAgentNode3 ! weatherData900
-      pvAgentNode4 ! weatherData900
+      pvAgentNode3 ! weatherData2700
+      pvAgentNode4 ! weatherData2700
 
-      // we send a new set point
-      val setPoints900: Map[UUID, PValue] =
+      // we request the em option for the superior em agent
+      connection.sendExtMsg(
+        new RequestEmFlexResults(2700L, List(emSupUuid).asJava, true)
+      )
+
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
+      serviceActivation ! Activation(2700L)
+
+      val receivedFlexOptions2700 = connection
+        .receiveWithType(classOf[FlexOptionsResponse])
+        .receiverToFlexOptions()
+        .asScala
+
+      receivedFlexOptions2700.size shouldBe 1
+      val flexOptions2700 = receivedFlexOptions2700(emSupUuid)
+      flexOptions2700.getSender shouldBe emSupUuid
+      flexOptions2700.getReceiver shouldBe emSupUuid
+      flexOptions2700.getpMin should equalWithTolerance(
+        0.002200000413468004.asMegaWatt
+      )
+      flexOptions2700.getpRef should equalWithTolerance(
+        0.002200000413468004.asMegaWatt
+      )
+      flexOptions2700.getpMax should equalWithTolerance(
+        0.006200000413468004.asMegaWatt
+      )
+
+      flexOptions2700.hasDisaggregated shouldBe true
+      val disaggregated2700 = flexOptions2700.getDisaggregated.asScala
+
+      val node3Flex2700 = disaggregated2700(emNode3Uuid)
+      node3Flex2700.getpMin should equalWithTolerance(
+        0.asMegaWatt
+      )
+      node3Flex2700.getpRef should equalWithTolerance(
+        0.asMegaWatt
+      )
+      node3Flex2700.getpMax should equalWithTolerance(
+        0.004.asMegaWatt
+      )
+
+      val node4Flex2700 = disaggregated2700(emNode4Uuid)
+      node4Flex2700.getpMin should equalWithTolerance(
+        0.002200000413468004.asMegaWatt
+      )
+      node4Flex2700.getpRef should equalWithTolerance(
+        0.002200000413468004.asMegaWatt
+      )
+      node4Flex2700.getpMax should equalWithTolerance(
+        0.002200000413468004.asMegaWatt
+      )
+
+      // we return a new set point
+      val setPoints2700: Map[UUID, PValue] =
         Map(emSupUuid -> new PValue(0.006200000413468004.asMegaWatt))
 
       connection.sendSetPoints(
         2700L,
-        setPoints900.asJava,
+        setPoints2700.asJava,
         Optional.of(3600L),
         log,
       )
@@ -479,9 +582,75 @@ class ExtEmBaseIT
       serviceActivation ! Activation(2700L)
 
       connection.receiveWithType(classOf[EmCompletion])
-
     }
 
-  }
+    "work correctly without requesting flex options" in {
+      /* TICK: 3600 */
 
+      val weatherData3600 = DataProvision(
+        3600L,
+        weatherService.ref,
+        WeatherData(
+          WattsPerSquareMeter(0),
+          WattsPerSquareMeter(0),
+          Celsius(0d),
+          MetersPerSecond(0d),
+        ),
+        Some(4500L),
+      )
+
+      pvAgentNode3 ! weatherData3600
+      pvAgentNode4 ! weatherData3600
+
+      // we send a new set point
+      val setPoints3600: Map[UUID, PValue] =
+        Map(emSupUuid -> new NoSetPointValue(0.002200000413468004.asMegaWatt))
+
+      connection.sendSetPoints(
+        3600L,
+        setPoints3600.asJava,
+        Optional.of(4500L),
+        log,
+      )
+
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
+      serviceActivation ! Activation(3600L)
+
+      connection.receiveWithType(classOf[EmCompletion])
+
+      /* TICK: 4500 */
+
+      val weatherData4500 = DataProvision(
+        4500L,
+        weatherService.ref,
+        WeatherData(
+          WattsPerSquareMeter(0),
+          WattsPerSquareMeter(0),
+          Celsius(0d),
+          MetersPerSecond(0d),
+        ),
+        Some(5400L),
+      )
+
+      pvAgentNode3 ! weatherData4500
+      pvAgentNode4 ! weatherData4500
+
+      // we send a new set point
+      val setPoints4500: Map[UUID, PValue] =
+        Map(emSupUuid -> new PValue(0.006200000413468004.asMegaWatt))
+
+      connection.sendSetPoints(
+        4500L,
+        setPoints4500.asJava,
+        Optional.of(5400L),
+        log,
+      )
+
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
+      serviceActivation ! Activation(4500L)
+
+      connection.receiveWithType(classOf[EmCompletion])
+
+    }
+  }
 }

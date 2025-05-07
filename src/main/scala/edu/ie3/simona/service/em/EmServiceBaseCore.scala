@@ -12,9 +12,9 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
+import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.simona.util.{ReceiveDataMap, ReceiveHierarchicalDataMap}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
@@ -30,10 +30,12 @@ final case class EmServiceBaseCore(
     override val lastFinishedTick: Long = PRE_INIT_TICK,
     override val uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]] =
       Map.empty,
+    flexOptions: ReceiveDataMap[UUID, ExtendedFlexOptionsResult] =
+      ReceiveDataMap.empty,
+    additionalFlexOptions: Map[UUID, ExtendedFlexOptionsResult] = Map.empty,
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
-    flexOptions: ReceiveHierarchicalDataMap[UUID, ExtendedFlexOptionsResult] =
-      ReceiveHierarchicalDataMap.empty,
+    structure: Map[UUID, Set[UUID]] = Map.empty,
     disaggregatedFlex: Boolean = false,
     sendOptionsToExt: Boolean = false,
     canHandleSetPoints: Boolean = false,
@@ -42,13 +44,37 @@ final case class EmServiceBaseCore(
 
   override def handleRegistration(
       registrationMsg: RegisterForEmDataService
-  ): EmServiceBaseCore =
+  ): EmServiceBaseCore = {
+    val modelUuid = registrationMsg.modelUuid
+    val parentUuid = registrationMsg.parentUuid
+
+    val updatedStructure = parentUuid match {
+      case Some(parent) =>
+        structure.get(parent) match {
+          case Some(subEm) =>
+            val allSubEms = subEm + modelUuid
+
+            structure ++ Map(parent -> allSubEms)
+          case None =>
+            structure ++ Map(parent -> Set(modelUuid))
+        }
+
+      case None if !structure.contains(modelUuid) =>
+        structure ++ Map(modelUuid -> Set.empty[UUID])
+
+      case _ =>
+        // we already added the model as parent
+        // therefore, no changes are needed
+        structure
+    }
+
     copy(
-      uuidToFlexAdapter = uuidToFlexAdapter ++ Map(
-        registrationMsg.modelUuid -> registrationMsg.flexAdapter
-      ),
-      completions = completions.addExpectedKeys(Set(registrationMsg.modelUuid)),
+      uuidToFlexAdapter =
+        uuidToFlexAdapter ++ Map(modelUuid -> registrationMsg.flexAdapter),
+      completions = completions.addExpectedKeys(Set(modelUuid)),
+      structure = updatedStructure,
     )
+  }
 
   override def handleExtMessage(tick: Long, extMSg: EmDataMessageFromExt)(
       implicit log: Logger
@@ -68,7 +94,7 @@ final case class EmServiceBaseCore(
 
       (
         copy(
-          flexOptions = ReceiveHierarchicalDataMap(emEntities.toSet),
+          flexOptions = ReceiveDataMap(emEntities.toSet),
           disaggregatedFlex = disaggregated,
           sendOptionsToExt = true,
         ),
@@ -90,7 +116,7 @@ final case class EmServiceBaseCore(
 
         (
           copy(
-            flexOptions = ReceiveHierarchicalDataMap(emEntities.toSet),
+            flexOptions = ReceiveDataMap(emEntities.toSet),
             setPointOption = Some(provideEmSetPoints),
           ),
           None,
@@ -115,47 +141,53 @@ final case class EmServiceBaseCore(
 
     flexResponse match {
       case provideFlexOptions: ProvideFlexOptions =>
-        val updated = provideFlexOptions match {
+        val (updated, updatedAdditional) = provideFlexOptions match {
           case ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            flexOptions.addData(
+            val result = new ExtendedFlexOptionsResult(
+              tick.toDateTime(startTime),
               modelUuid,
-              new ExtendedFlexOptionsResult(
-                tick.toDateTime(startTime),
-                modelUuid,
-                modelUuid,
-                min.toQuantity,
-                ref.toQuantity,
-                max.toQuantity,
-              ),
+              modelUuid,
+              min.toQuantity,
+              ref.toQuantity,
+              max.toQuantity,
             )
 
+            if (flexOptions.getExpectedKeys.contains(modelUuid)) {
+              (
+                flexOptions.addData(modelUuid, result),
+                additionalFlexOptions,
+              )
+            } else {
+              (
+                flexOptions,
+                additionalFlexOptions.updated(modelUuid, result),
+              )
+            }
+
           case _ =>
-            flexOptions
+            (flexOptions, additionalFlexOptions)
         }
 
         if (updated.isComplete) {
           // we received all flex options
 
-          val expectedKeys = updated.getExpectedKeys
-          val receiveDataMap = updated.receivedData
-          val data = expectedKeys.map(key => key -> receiveDataMap(key)).toMap
+          val data = updated.receivedData
 
           if (disaggregatedFlex) {
             // we add the disaggregated flex options
-            val structure = updated.structure
 
             data.foreach { case (key, value) =>
               structure(key).foreach { inferior =>
-                value.addDisaggregated(inferior, receiveDataMap(inferior))
+                value.addDisaggregated(inferior, updatedAdditional(inferior))
               }
             }
           }
 
           val updatedCore = copy(
-            flexOptions = ReceiveHierarchicalDataMap(updated.getExpectedKeys),
+            flexOptions = ReceiveDataMap.empty,
             canHandleSetPoints = true,
           )
 
@@ -176,7 +208,15 @@ final case class EmServiceBaseCore(
             }
           }
 
-        } else (copy(flexOptions = updated), None)
+        } else {
+          (
+            copy(
+              flexOptions = updated,
+              additionalFlexOptions = updatedAdditional,
+            ),
+            None,
+          )
+        }
 
       case completion: FlexCompletion =>
         val updated = completions.addData(completion.modelUuid, completion)

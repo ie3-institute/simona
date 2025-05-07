@@ -60,9 +60,6 @@ final case class ReceiveHierarchicalDataMap[K, V](
     )
   }
 
-  def addExpectedKeys(keys: Set[K]): ReceiveHierarchicalDataMap[K, V] =
-    copy(expectedKeys = expectedKeys ++ keys)
-
   def addSubKeysToExpectedKeys(keys: Set[K]): ReceiveHierarchicalDataMap[K, V] =
     copy(expectedKeys = expectedKeys ++ keys.flatMap(structure.get).flatten)
 
