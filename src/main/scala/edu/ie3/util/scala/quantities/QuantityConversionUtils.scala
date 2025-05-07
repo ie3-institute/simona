@@ -133,18 +133,6 @@ object QuantityConversionUtils {
   }
 
   /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[Currency]] into [[Money]].
-    * @param quantity
-    *   To convert.
-    */
-  implicit class CurrencyToSimona(quantity: ComparableQuantity[Currency]) {
-
-    /** Returns a quantity with unit [[EUR]].
-      */
-    def toSquants: Money = EUR(quantity.to(EURO).getValue.doubleValue)
-  }
-
-  /** Implicit class that contains a method to convert a given
     * [[ComparableQuantity]] with unit [[ElectricResistance]] into
     * [[squants.electro.ElectricalResistance]].
     * @param quantity

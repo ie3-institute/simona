@@ -27,14 +27,13 @@ import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  CurrencyToSimona,
   EnergyPriceToSimona,
   PowerConversionSimona,
 }
 import edu.ie3.util.scala.quantities.{ApparentPower, EnergyPrice}
 import squants.energy.Megawatts
 import squants.thermal.Temperature
-import squants.{Dimensionless, Money, Power}
+import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -47,7 +46,6 @@ final case class BmModel(
     override val cosPhiRated: Double,
     override val qControl: QControl,
     private val isCostControlled: Boolean,
-    private val capex: Money,
     private val opex: EnergyPrice,
     private val feedInTariff: EnergyPrice,
     private val loadGradient: Double,
@@ -212,7 +210,6 @@ object BmModel {
         bmType.getCosPhiRated,
         QControl(input.getqCharacteristics()),
         input.isCostControlled,
-        bmType.getCapex.toSquants,
         bmType.getOpex.toSquants,
         input.getFeedInTariff.toSquants,
         loadGradient,
