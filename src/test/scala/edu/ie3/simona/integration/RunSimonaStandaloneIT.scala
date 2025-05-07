@@ -56,6 +56,12 @@ class RunSimonaStandaloneIT
             ConfigValueFactory.fromAnyRef("2011-01-01T02:00:00Z"),
           )
           .withFallback(
+            ConfigFactory.parseString("""
+                |simona.output.log.level = "INFO"
+                |simona.output.log.consoleLevel = "ERROR"
+                |""".stripMargin)
+          )
+          .withFallback(
             ConfigFactory
               .parseString("""
                            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]

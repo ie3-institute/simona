@@ -22,6 +22,7 @@ import edu.ie3.simona.event.ResultEvent.{
 }
 import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
+import edu.ie3.simona.logging.logback.LogbackConfiguration
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -35,6 +36,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.apache.pekko.testkit.TestKit.awaitCond
 
 import java.io.{File, FileInputStream}
+import java.nio.file.Path
 import java.util.UUID
 import java.util.zip.GZIPInputStream
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -84,6 +86,7 @@ class ResultEventListenerSpec
         classes,
         resultSinkType,
       ),
+      configureLogger = LogbackConfiguration.default("INFO", Some("ERROR"))(_),
     )
   }
 

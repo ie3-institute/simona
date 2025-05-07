@@ -712,6 +712,13 @@ object ConfigFailFast extends LazyLogging {
       throw new InvalidConfigParameterException(
         s"Invalid log level \"${subConfig.level}\". Valid log levels: ${validLogLevels.mkString(", ")}"
       )
+
+    subConfig.consoleLevel.foreach { level =>
+      if (!validLogLevels.contains(level))
+        throw new InvalidConfigParameterException(
+          s"Invalid console log level \"$level\". Valid log levels: ${validLogLevels.mkString(", ")}"
+        )
+    }
   }
 
   /** Checks resolution of power flow calculation

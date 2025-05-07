@@ -13,6 +13,7 @@ import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.listener.ResultEventListener
 import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.simona.io.result.plain.PlainWriter
+import edu.ie3.simona.logging.logback.LogbackConfiguration
 import edu.ie3.simona.test.KafkaSpecLike
 import edu.ie3.simona.test.KafkaSpecLike.Topic
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -106,6 +107,8 @@ class ResultEntityKafkaSpec
                 20,
               ),
             ),
+            configureLogger =
+              LogbackConfiguration.default("INFO", Some("ERROR"))(_),
           )
         )
       )
