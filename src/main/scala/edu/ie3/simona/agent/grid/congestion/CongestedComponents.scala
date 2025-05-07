@@ -7,6 +7,12 @@
 package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.datamodel.models.result.NodeResult
+import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
+import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult.{
+  PortA,
+  PortB,
+  PortC,
+}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{
@@ -15,15 +21,16 @@ import edu.ie3.simona.model.grid.{
   TransformerModel,
   VoltageLimits,
 }
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.CurrentToSimona
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  CurrentToSimona,
+  DimensionlessToSimona,
+}
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.electro.{ElectricPotential, Kilovolts}
-import squants.energy.Power
 import squants.{Amperes, ElectricCurrent}
 import tech.units.indriya.unit.Units
 
 import java.lang.Math.sqrt
-import scala.language.implicitConversions
 
 case class CongestedComponents(
     voltages: Iterable[NodeResult],
@@ -90,10 +97,6 @@ object CongestedComponents {
       .filter { case (line, res) => res > line.iNom }
 
     // checking for transformer congestions
-    implicit def asApparent(power: Power): ApparentPower = Kilovoltamperes(
-      power.toKilowatts
-    )
-
     val transformer2w = gridComponents.transformers.map { transformer =>
       transformer.uuid -> transformer
     }.toMap
@@ -102,14 +105,11 @@ object CongestedComponents {
         .map { res =>
           val transformer = transformer2w(res.getInputModel)
 
-          val vMag = Kilovolts(
-            nodeRes(
-              transformer.lvNodeUuid
-            ).getvMag().getValue.doubleValue() * vNom.toKilovolts
-          )
+          val vMag =
+            vNom * nodeRes(transformer.lvNodeUuid).getvMag.toSquants.toEach
 
-          val power: ApparentPower = sqrt(3.0) * res.getiBMag.toSquants * vMag
-          transformer -> power
+          val power = sqrt(3.0) * res.getiBMag.toSquants * vMag
+          transformer -> Kilovoltamperes(power.toKilowatts)
         }
         .filter { case (transformer, result) => result > transformer.sRated }
 
@@ -121,14 +121,19 @@ object CongestedComponents {
         .map { res =>
           val transformer = transformer3w(res.input)
 
-          val vMag = Kilovolts(
-            nodeRes(
+          val nodeUuid = res match {
+            case _: PortA =>
+              transformer.hvNodeUuid
+            case _: PortB =>
+              transformer.mvNodeUuid
+            case _: PortC =>
               transformer.lvNodeUuid
-            ).getvMag().getValue.doubleValue() * vNom.toKilovolts
-          )
+          }
 
-          val power: ApparentPower = sqrt(3.0) * res.currentMagnitude * vMag
-          transformer -> power
+          val vMag = vNom * nodeRes(nodeUuid).getvMag.toSquants.toEach
+
+          val power = sqrt(3.0) * res.currentMagnitude * vMag
+          transformer -> Kilovoltamperes(power.toKilowatts)
         }
         .filter { case (transformer, result) => result > transformer.sRated }
 

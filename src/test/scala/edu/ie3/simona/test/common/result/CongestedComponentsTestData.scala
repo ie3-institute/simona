@@ -7,31 +7,32 @@
 package edu.ie3.simona.test.common.result
 
 import edu.ie3.datamodel.models.OperationTime
+import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   Transformer2WResult,
 }
-import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.model.grid._
 import edu.ie3.simona.test.common.ConfigTestData
+import edu.ie3.simona.test.common.input.NodeInputTestData
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import squants.electro.Kilovolts
 import squants.energy.Kilowatts
 import squants.{Amperes, Radians}
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
 
-trait CongestedComponentsTestData extends ConfigTestData with DbfsTestGrid {
+trait CongestedComponentsTestData
+    extends ConfigTestData
+    with NodeInputTestData
+    with DbfsTestGrid {
 
   val startTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime(
     simonaConfig.simona.time.startDateTime
@@ -41,41 +42,28 @@ trait CongestedComponentsTestData extends ConfigTestData with DbfsTestGrid {
 
   protected val voltageLimits: VoltageLimits = VoltageLimits(0.9, 1.1)
 
-  // additional inputs
-  val nodeEHV = new NodeInput(
-    UUID.randomUUID(),
-    "EHV Node",
-    OperatorInput.NO_OPERATOR_ASSIGNED,
-    OperationTime.notLimited(),
-    Quantities.getQuantity(1.0, PU),
-    false,
-    NodeInput.DEFAULT_GEO_POSITION,
-    GermanVoltageLevelUtils.EHV_220KV,
-    100,
-  )
-
   val trafoType3W = new Transformer3WTypeInput(
     UUID.randomUUID(),
     "EHV-EHV-HV",
-    200000.asKiloVoltAmpere,
-    140000.asKiloVoltAmpere,
-    60000.asKiloVoltAmpere,
+    300.asMegaVoltAmpere,
+    300.asMegaVoltAmpere,
+    100.asMegaVoltAmpere,
     380.asKiloVolt,
-    220.asKiloVolt,
     110.asKiloVolt,
-    4.3218.asOhm,
-    0.7938.asOhm,
-    0.7938.asOhm,
-    144.061.asOhm,
-    26.4601.asOhm,
-    26.4601.asOhm,
-    555.5.asNanoSiemens,
-    -1.27.asNanoSiemens,
-    1.asPercent,
+    30.asKiloVolt,
+    0.1444.asOhm,
+    0.5776.asOhm,
+    1.1552.asOhm,
+    24.066121.asOhm,
+    60.164118.asOhm,
+    199.750106.asOhm,
+    12.985.asNanoSiemens,
+    -519.4864.asNanoSiemens,
+    1.5.asPercent,
     0.asDegreeGeom,
     0,
-    -16,
-    16,
+    -10,
+    10,
   )
 
   val transformer3W = new Transformer3WInput(
@@ -84,8 +72,8 @@ trait CongestedComponentsTestData extends ConfigTestData with DbfsTestGrid {
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     supNodeB,
-    nodeEHV,
     node2,
+    nodeInputNoSlackMs30Kv,
     1,
     trafoType3W,
     0,
@@ -222,11 +210,11 @@ trait CongestedComponentsTestData extends ConfigTestData with DbfsTestGrid {
     0,
   )
 
-  val transformerResult3W: PartialTransformer3wResult.PortC =
-    PartialTransformer3wResult.PortC(
+  val transformerResult3W: PartialTransformer3wResult.PortB =
+    PartialTransformer3wResult.PortB(
       startTime,
       transformer3W.getUuid,
-      Amperes(307.353),
+      Amperes(1423.2795),
       Radians(0),
     )
 }

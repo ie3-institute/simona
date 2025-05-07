@@ -136,7 +136,7 @@ class CongestedComponentsSpec
       congested.transformer3Ws.size shouldBe 1
       val (model, power) = congested.transformer3Ws.toSeq(0)
       model shouldBe transformerMap(transformer3W.getUuid)
-      power should approximate(Kilovoltamperes(65000))
+      power should approximate(Kilovoltamperes(301000))
     }
   }
 }
