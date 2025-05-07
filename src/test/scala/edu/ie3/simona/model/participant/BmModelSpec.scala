@@ -12,7 +12,6 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{EuroPerKilowatthour, Kilovoltamperes}
 import squants.energy.{Kilowatts, Megawatts}
-import squants.market.EUR
 import squants.thermal.Celsius
 import squants.{Power, Temperature}
 
@@ -37,8 +36,8 @@ class BmModelSpec extends UnitSpec {
     1d,
     QControl(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
     isCostControlled = true,
-    EUR(0.05),
-    EuroPerKilowatthour(0.51d),
+    EuroPerKilowatthour(0.05),
+    EuroPerKilowatthour(0.129),
     0.05,
   )
 

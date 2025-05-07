@@ -16,15 +16,15 @@ import scala.language.implicitConversions
 
 /** Runtime configurations for simona.
   * @param em
-  *   runtime configs for energy management systems
+  *   Runtime configs for energy management systems.
   * @param listener
-  *   runtime listener configuration
+  *   Runtime listener configuration.
   * @param participant
-  *   runtime configuration
+  *   Runtime configuration.
   * @param selectedSubgrids
-  *   option for selected sub grids (default: None)
+  *   Option for selected sub grids (default: None).
   * @param selectedVoltLvls
-  *   option for selected voltage levels (default: None)
+  *   Option for selected voltage levels (default: None).
   */
 final case class RuntimeConfig(
     em: AssetConfigs[EmRuntimeConfig] = AssetConfigs(EmRuntimeConfig()),
@@ -47,11 +47,11 @@ object RuntimeConfig {
   /** Wraps an [[BaseRuntimeConfig]] with a [[AssetConfigs]].
     *
     * @param config
-    *   to wrap
+    *   To wrap.
     * @tparam T
-    *   type of config
+    *   Type of config.
     * @return
-    *   a [[AssetConfigs]]
+    *   A [[AssetConfigs]].
     */
   implicit def wrap[T <: BaseRuntimeConfig](config: T): AssetConfigs[T] =
     AssetConfigs(config)
@@ -62,24 +62,27 @@ object RuntimeConfig {
   )
 
   /** Runtime configurations for participants.
+    * @param bm
+    *   Runtime configs for biomass power plants.
     * @param evcs
-    *   runtime configs for electrical vehicle charging stations
+    *   Runtime configs for electrical vehicle charging stations.
     * @param fixedFeedIn
-    *   runtime configs for fixed feed ins
+    *   Runtime configs for fixed feed ins.
     * @param hp
-    *   runtime configs for heat pumps
+    *   Runtime configs for heat pumps.
     * @param load
-    *   runtime configs for loads
+    *   Runtime configs for loads.
     * @param pv
-    *   runtime configs for photovoltaic plants
+    *   Runtime configs for photovoltaic plants.
     * @param requestVoltageDeviationThreshold
-    *   threshold for the voltage deviation
+    *   Threshold for the voltage deviation.
     * @param storage
-    *   runtime configs for electrical storages
+    *   Runtime configs for electrical storages.
     * @param wec
-    *   runtime configs for wind energy converters
+    *   Runtime configs for wind energy converters.
     */
   final case class Participant(
+      bm: AssetConfigs[BmRuntimeConfig] = BmRuntimeConfig(),
       evcs: AssetConfigs[EvcsRuntimeConfig] = EvcsRuntimeConfig(),
       fixedFeedIn: AssetConfigs[FixedFeedInRuntimeConfig] =
         FixedFeedInRuntimeConfig(),
@@ -101,17 +104,17 @@ object RuntimeConfig {
 
   /** Runtime configuration for electric vehicle charging stations.
     * @param calculateMissingReactivePowerWithModel
-    *   if missing reactive power may be filled up with model function (default:
-    *   false)
+    *   If missing reactive power may be filled up with model function (default:
+    *   false).
     * @param scaling
-    *   the scaling factor of the power output (default: 1.0)
+    *   The scaling factor of the power output (default: 1.0).
     * @param uuids
-    *   of the models that should use this config, for the default config this
-    *   value is ignored
+    *   Of the models that should use this config, for the default config this
+    *   value is ignored.
     * @param chargingStrategy
-    *   the charging strategy to use
+    *   The charging strategy to use.
     * @param lowestEvSoc
-    *   the lowest SOC possible for EV batteries (inverse of max dod)
+    *   The lowest SOC possible for EV batteries (inverse of max dod).
     */
   final case class EvcsRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
@@ -123,17 +126,17 @@ object RuntimeConfig {
 
   /** Runtime configuration for energy management systems.
     * @param calculateMissingReactivePowerWithModel
-    *   if missing reactive power may be filled up with model function (default:
-    *   false)
+    *   If missing reactive power may be filled up with model function (default:
+    *   false).
     * @param scaling
-    *   the scaling factor of the power output (default: 1.0)
+    *   The scaling factor of the power output (default: 1.0).
     * @param uuids
-    *   of the models that should use this config, for the default config this
-    *   value is ignored
+    *   Of the models that should use this config, for the default config this
+    *   value is ignored.
     * @param aggregateFlex
-    *   strategy for aggregating flexibilities (default: SELF_OPT_EXCL_REG)
+    *   Strategy for aggregating flexibilities (default: SELF_OPT_EXCL_REG).
     * @param curtailRegenerative
-    *   if regenerative generation can be curtailed (default: false)
+    *   If regenerative generation can be curtailed (default: false).
     */
   final case class EmRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
@@ -145,13 +148,13 @@ object RuntimeConfig {
 
   /** Runtime configuration for fixed feed ins.
     * @param calculateMissingReactivePowerWithModel
-    *   if missing reactive power may be filled up with model function (default:
-    *   false)
+    *   If missing reactive power may be filled up with model function (default:
+    *   false).
     * @param scaling
-    *   the scaling factor of the power output (default: 1.0)
+    *   The scaling factor of the power output (default: 1.0).
     * @param uuids
-    *   of the models that should use this config, for the default config this
-    *   value is ignored
+    *   Of the models that should use this config, for the default config this
+    *   value is ignored.
     */
   final case class FixedFeedInRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
@@ -161,13 +164,13 @@ object RuntimeConfig {
 
   /** Runtime configuration for heat pumps.
     * @param calculateMissingReactivePowerWithModel
-    *   if missing reactive power may be filled up with model function (default:
-    *   false)
+    *   If missing reactive power may be filled up with model function (default:
+    *   false).
     * @param scaling
-    *   the scaling factor of the power output (default: 1.0)
+    *   The scaling factor of the power output (default: 1.0).
     * @param uuids
-    *   of the models that should use this config, for the default config this
-    *   value is ignored
+    *   Of the models that should use this config, for the default config this
+    *   value is ignored.
     */
   final case class HpRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
@@ -177,18 +180,18 @@ object RuntimeConfig {
 
   /** Runtime configuration for loads.
     * @param calculateMissingReactivePowerWithModel
-    *   if missing reactive power may be filled up with model function (default:
-    *   false)
+    *   If missing reactive power may be filled up with model function (default:
+    *   false).
     * @param scaling
-    *   the scaling factor of the power output (default: 1.0)
+    *   The scaling factor of the power output (default: 1.0).
     * @param uuids
-    *   of the models that should use this config, for the default config this
-    *   value is ignored
+    *   Of the models that should use this config, for the default config this
+    *   value is ignored.
     * @param modelBehaviour
-    *   the behaviour of the loads (default: fix)
+    *   The behaviour of the loads (default: fix).
     * @param reference
-    *   defined to which reference a load model behaviour might be scaled
-    *   (default: power)
+    *   Defined to which reference a load model behaviour might be scaled
+    *   (default: power).
     */
   final case class LoadRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
@@ -200,13 +203,13 @@ object RuntimeConfig {
 
   /** Runtime configuration for photovoltaic plants.
     * @param calculateMissingReactivePowerWithModel
-    *   if missing reactive power may be filled up with model function (default:
-    *   false)
+    *   If missing reactive power may be filled up with model function (default:
+    *   false).
     * @param scaling
-    *   the scaling factor of the power output (default: 1.0)
+    *   The scaling factor of the power output (default: 1.0).
     * @param uuids
-    *   of the models that should use this config, for the default config this
-    *   value is ignored
+    *   Of the models that should use this config, for the default config this
+    *   value is ignored.
     */
   final case class PvRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
@@ -216,17 +219,17 @@ object RuntimeConfig {
 
   /** Runtime configuration for electrical storages.
     * @param calculateMissingReactivePowerWithModel
-    *   if missing reactive power may be filled up with model function (default:
-    *   false)
+    *   If missing reactive power may be filled up with model function (default:
+    *   false).
     * @param scaling
-    *   the scaling factor of the power output (default: 1.0)
+    *   The scaling factor of the power output (default: 1.0).
     * @param uuids
-    *   of the models that should use this config, for the default config this
-    *   value is ignored
+    *   Of the models that should use this config, for the default config this
+    *   value is ignored.
     * @param initialSoc
-    *   the initial state of charge in percent of the storage (default: 0.0)
+    *   The initial state of charge in percent of the storage (default: 0.0).
     * @param targetSoc
-    *   option for a targeted state of charge (default: None)
+    *   Option for a targeted state of charge (default: None).
     */
   final case class StorageRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
@@ -238,17 +241,33 @@ object RuntimeConfig {
 
   /** Runtime configuration for wind energy converters.
     * @param calculateMissingReactivePowerWithModel
-    *   if missing reactive power may be filled up with model function (default:
-    *   false)
+    *   If missing reactive power may be filled up with model function (default:
+    *   false).
     * @param scaling
-    *   the scaling factor of the power output (default: 1.0)
+    *   The scaling factor of the power output (default: 1.0).
     * @param uuids
-    *   of the models that should use this config, for the default config this
-    *   value is ignored
+    *   Of the models that should use this config, for the default config this
+    *   value is ignored.
     */
   final case class WecRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
       override val uuids: List[String] = defaultUuids,
+  ) extends BaseRuntimeConfig
+
+  /** Runtime configuration for biomass plants.
+    * @param calculateMissingReactivePowerWithModel
+    *   If missing reactive power may be filled up with model function (default:
+    *   false).
+    * @param scaling
+    *   The scaling factor of the power output (default: 1.0).
+    * @param uuids
+    *   Of the models that should use this config, for the default config this
+    *   value is ignored.
+    */
+  final case class BmRuntimeConfig(
+      override val calculateMissingReactivePowerWithModel: Boolean = false,
+      override val scaling: Double = 1.0,
+      override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
 }
