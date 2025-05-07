@@ -114,10 +114,14 @@ object OutputConfig {
 
   /** The configuration for the logger.
     * @param level
-    *   Of the logger.
+    *   Of the logger (default: INFO).
+    * @param consoleLevel
+    *   Option for a separate console log level (default: None -> uses file
+    *   level).
     */
   final case class Log(
-      level: String = "INFO"
+      level: String = "INFO",
+      consoleLevel: Option[String] = None,
   )
 
   /** Configuration for output sink.
