@@ -133,7 +133,7 @@ class ConfigUtilSpec
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs shouldBe Map.empty[UUID, LoadRuntimeConfig]
-        defaultConfigs.size shouldBe 7
+        defaultConfigs.size shouldBe 8
 
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
           case Some(
@@ -193,7 +193,7 @@ class ConfigUtilSpec
           UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
         )
 
-        defaultConfigs.size shouldBe 7
+        defaultConfigs.size shouldBe 8
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
           case Some(
                 LoadRuntimeConfig(
@@ -404,7 +404,7 @@ class ConfigUtilSpec
           UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
         )
 
-        defaultConfigs.size shouldBe 7
+        defaultConfigs.size shouldBe 8
         inside(defaultConfigs.get(classOf[FixedFeedInRuntimeConfig])) {
           case Some(
                 FixedFeedInRuntimeConfig(
