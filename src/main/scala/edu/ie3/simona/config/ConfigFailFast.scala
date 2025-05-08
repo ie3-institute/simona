@@ -612,8 +612,6 @@ object ConfigFailFast extends LazyLogging {
     } else {
       sourceConfigs.headOption match {
         case Some(csvParams: TimeStampedCsvParams) =>
-          // note: if inheritance is supported by tscfg,
-          // the following method should be called for all different supported sources!
           checkTimePattern(csvParams.timePattern)
         case Some(sqlParams: TimeStampedSqlParams) =>
           checkTimePattern(sqlParams.timePattern)
