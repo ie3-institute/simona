@@ -7,17 +7,14 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
-import edu.ie3.simona.config.InputConfig.WeatherDatasource
-import edu.ie3.simona.config.InputConfig.CoordinateSource
-import edu.ie3.simona.config.OutputConfig.Sink
-import edu.ie3.simona.config.ConfigParams.{
-  BaseCsvParams,
-  BaseInfluxDb1xParams,
-  PsdmSinkCsvParams,
-  ResultKafkaParams,
-  SampleParams,
+import edu.ie3.simona.config.ConfigParams._
+import edu.ie3.simona.config.InputConfig.{
+  CoordinateSource,
+  WeatherDatasource,
+  Primary => PrimaryConfig,
 }
+import edu.ie3.simona.config.OutputConfig.Sink
+import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
 import edu.ie3.simona.config.SimonaConfig.{
@@ -1129,7 +1126,117 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
       }
 
-      /* Checking of primary source configuration is delegated to the specific actor. Tests are placed there */
+      "Checking the primary data sources" should {
+        val checkPrimaryDataSource =
+          PrivateMethod[Unit](Symbol("checkPrimaryDataSource"))
+
+        "lead to complaining about too much source definitions" in {
+          val maliciousConfig = PrimaryConfig(
+            Some(CouchbaseParams("", "", "", "", "", "", "")),
+            Some(TimeStampedCsvParams("", "", isHierarchic = false, "")),
+            None,
+            None,
+          )
+
+          val exception = intercept[InvalidConfigParameterException](
+            ConfigFailFast invokePrivate checkPrimaryDataSource(maliciousConfig)
+          )
+          exception.getMessage shouldBe "2 time series source types defined. Please define only one type!\nAvailable types:\n\tcsv\n\tsql"
+        }
+
+        "lead to complaining about too few source definitions" in {
+          val maliciousConfig = PrimaryConfig(
+            None,
+            None,
+            None,
+            None,
+          )
+
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate checkPrimaryDataSource(maliciousConfig)
+          }
+        }
+
+        "not let couchbase parameters pass for mapping configuration" in {
+          val maliciousConfig = PrimaryConfig(
+            Some(CouchbaseParams("", "", "", "", "", "", "")),
+            None,
+            None,
+            None,
+          )
+
+          val exception = intercept[InvalidConfigParameterException](
+            ConfigFailFast invokePrivate checkPrimaryDataSource(maliciousConfig)
+          )
+          exception.getMessage shouldBe "Invalid configuration 'CouchbaseParams(,,,,,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
+        }
+
+        "let csv parameters pass for mapping configuration" in {
+          val mappingConfig = PrimaryConfig(
+            None,
+            Some(TimeStampedCsvParams("", "", isHierarchic = false, "")),
+            None,
+            None,
+          )
+
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate checkPrimaryDataSource(mappingConfig)
+          }
+        }
+
+        "not let influx db parameters pass for mapping configuration" in {
+          val maliciousConfig = PrimaryConfig(
+            None,
+            None,
+            Some(TimeStampedInfluxDb1xParams("", 0, "", "")),
+            None,
+          )
+
+          val exception = intercept[InvalidConfigParameterException](
+            ConfigFailFast invokePrivate checkPrimaryDataSource(maliciousConfig)
+          )
+          exception.getMessage shouldBe "Invalid configuration 'TimeStampedInfluxDb1xParams(,0,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
+        }
+
+        "fails on invalid time pattern with csv" in {
+          val invalidTimePatternConfig = PrimaryConfig(
+            None,
+            Some(TimeStampedCsvParams("", "", isHierarchic = false, "xYz")),
+            None,
+            None,
+          )
+
+          intercept[InvalidConfigParameterException](
+            ConfigFailFast invokePrivate checkPrimaryDataSource(
+              invalidTimePatternConfig
+            )
+          ).getMessage shouldBe "Invalid timePattern 'xYz' found. " +
+            "Please provide a valid pattern!\nException: java.lang.IllegalArgumentException: Illegal pattern character 'x'"
+
+        }
+
+        "succeeds on valid time pattern with csv" in {
+          val validTimePatternConfig = PrimaryConfig(
+            None,
+            Some(
+              TimeStampedCsvParams(
+                "",
+                "",
+                isHierarchic = false,
+                "yyyy-MM-dd'T'HH:mm'Z[UTC]'",
+              )
+            ),
+            None,
+            None,
+          )
+
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate checkPrimaryDataSource(
+              validTimePatternConfig
+            )
+          }
+        }
+      }
 
       "Checking weather data sources" should {
         val checkWeatherDataSource =

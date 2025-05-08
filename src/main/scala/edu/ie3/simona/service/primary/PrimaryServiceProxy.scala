@@ -29,16 +29,9 @@ import edu.ie3.datamodel.io.source.{
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
-import edu.ie3.simona.config.ConfigParams.{
-  SqlParams,
-  TimeStampedCsvParams,
-  TimeStampedSqlParams,
-}
+import edu.ie3.simona.config.ConfigParams.{SqlParams, TimeStampedCsvParams}
 import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
-import edu.ie3.simona.exceptions.{
-  InitializationException,
-  InvalidConfigParameterException,
-}
+import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -72,7 +65,6 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
 
 import java.nio.file.Paths
-import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.Option.when
@@ -112,15 +104,12 @@ object PrimaryServiceProxy {
     *   Simulation time of the first instant in simulation
     * @param primaryConfig
     *   The configuration for the sources
-    * @param mappingSource
-    *   The mapping source
     */
   final case class PrimaryServiceStateData(
       modelToTimeSeries: Map[UUID, UUID],
       timeSeriesToSourceRef: Map[UUID, SourceRef],
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
-      mappingSource: TimeSeriesMappingSource,
   ) extends ServiceStateData
 
   /** Giving reference to the target time series and source worker.
@@ -135,68 +124,6 @@ object PrimaryServiceProxy {
       metaInformation: IndividualTimeSeriesMetaInformation,
       worker: Option[ActorRef[ServiceMessage]],
   )
-
-  /** Check if the config holds correct information to instantiate a mapping
-    * source
-    *
-    * @param primaryConfig
-    *   Config entries for primary source
-    */
-  def checkConfig(primaryConfig: PrimaryConfig): Unit = {
-
-    def checkTimePattern(dtfPattern: String): Unit =
-      Try {
-        new SimpleDateFormat(dtfPattern)
-      } match {
-        case Failure(exception) =>
-          throw new InvalidConfigParameterException(
-            s"Invalid timePattern '$dtfPattern' for a time series source. Please provide a valid pattern!" +
-              s"\nException: $exception"
-          )
-        case Success(_) =>
-        // this is fine
-      }
-
-    val supportedSources =
-      Set("csv", "sql")
-
-    val sourceConfigs = Seq(
-      primaryConfig.couchbaseParams,
-      primaryConfig.csvParams,
-      primaryConfig.influxDb1xParams,
-      primaryConfig.sqlParams,
-    ).filter(_.isDefined).flatten
-    if (sourceConfigs.size > 1)
-      throw new InvalidConfigParameterException(
-        s"${sourceConfigs.size} time series source types defined. " +
-          s"Please define only one type!\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"
-      )
-    else if (sourceConfigs.isEmpty)
-      throw new InvalidConfigParameterException(
-        s"No time series source type defined. Please define exactly one type!" +
-          s"\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"
-      )
-    else {
-      sourceConfigs.headOption match {
-        case Some(csvParams: TimeStampedCsvParams) =>
-          // note: if inheritance is supported by tscfg,
-          // the following method should be called for all different supported sources!
-          checkTimePattern(csvParams.timePattern)
-        case Some(sqlParams: TimeStampedSqlParams) =>
-          checkTimePattern(sqlParams.timePattern)
-        case Some(x) =>
-          throw new InvalidConfigParameterException(
-            s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources
-                .mkString("\n\t")}"
-          )
-        case None =>
-          throw new InvalidConfigParameterException(
-            s"No configuration for a time series mapping source provided.\nPlease provide one of the available sources:\n\t${supportedSources
-                .mkString("\n\t")}"
-          )
-      }
-    }
-  }
 
   def apply(
       scheduler: ActorRef[SchedulerMessage],
@@ -272,52 +199,67 @@ object PrimaryServiceProxy {
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
   )(implicit log: Logger): Try[PrimaryServiceStateData] = {
-    createSources(primaryConfig).map {
-      case (mappingSource, metaInformationSource) =>
-        val modelToTimeSeries = mappingSource.getMapping.asScala.toMap
-        val timeSeriesToSourceRef = modelToTimeSeries.values
-          .to(LazyList)
-          .distinct
-          .flatMap { timeSeriesUuid =>
-            metaInformationSource
-              .getTimeSeriesMetaInformation(timeSeriesUuid)
-              .toScala match {
-              case Some(metaInformation) =>
-                /* Only register those entries, that meet the supported column schemes */
-                when(
-                  PrimaryServiceWorker.supportedColumnSchemes
-                    .contains(metaInformation.getColumnScheme)
-                ) {
-                  timeSeriesUuid -> SourceRef(metaInformation, None)
-                }
-              case None =>
-                log.warn(
-                  "Unable to acquire meta information for time series '{}'. Leave that out.",
-                  timeSeriesUuid,
-                )
-                None
-            }
-          }
-          .toMap
-        PrimaryServiceStateData(
-          modelToTimeSeries,
-          timeSeriesToSourceRef,
-          simulationStart,
-          primaryConfig,
-          mappingSource,
-        )
-    }
-  }
-
-  private def createSources(
-      primaryConfig: PrimaryConfig
-  ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] = {
-    Seq(
+    val sourceOption = Seq(
       primaryConfig.sqlParams,
       primaryConfig.influxDb1xParams,
       primaryConfig.csvParams,
       primaryConfig.couchbaseParams,
-    ).filter(_.isDefined).flatten.headOption match {
+    ).filter(_.isDefined).flatten.headOption
+
+    if (sourceOption.isEmpty) {
+      log.warn("No primary data source configured!")
+
+      Success(
+        PrimaryServiceStateData(
+          Map.empty,
+          Map.empty,
+          simulationStart,
+          primaryConfig,
+        )
+      )
+    } else {
+      createSources(sourceOption).map {
+        case (mappingSource, metaInformationSource) =>
+          val modelToTimeSeries = mappingSource.getMapping.asScala.toMap
+          val timeSeriesToSourceRef = modelToTimeSeries.values
+            .to(LazyList)
+            .distinct
+            .flatMap { timeSeriesUuid =>
+              metaInformationSource
+                .getTimeSeriesMetaInformation(timeSeriesUuid)
+                .toScala match {
+                case Some(metaInformation) =>
+                  /* Only register those entries, that meet the supported column schemes */
+                  when(
+                    PrimaryServiceWorker.supportedColumnSchemes
+                      .contains(metaInformation.getColumnScheme)
+                  ) {
+                    timeSeriesUuid -> SourceRef(metaInformation, None)
+                  }
+                case None =>
+                  log.warn(
+                    "Unable to acquire meta information for time series '{}'. Leave that out.",
+                    timeSeriesUuid,
+                  )
+                  None
+              }
+            }
+            .toMap
+          PrimaryServiceStateData(
+            modelToTimeSeries,
+            timeSeriesToSourceRef,
+            simulationStart,
+            primaryConfig,
+          )
+      }
+    }
+
+  }
+
+  private def createSources(
+      sourceOption: Option[Product]
+  ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] = {
+    sourceOption match {
       case Some(TimeStampedCsvParams(csvSep, directoryPath, _, _)) =>
         val fileNamingStrategy = new FileNamingStrategy()
         Success(
