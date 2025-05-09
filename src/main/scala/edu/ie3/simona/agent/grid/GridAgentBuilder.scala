@@ -143,7 +143,7 @@ class GridAgentBuilder(
                 curSysPart,
               ) =>
             curSysPart match {
-              case entity @ (_: BmInput | _: ChpInput | _: EvInput) =>
+              case entity @ (_: ChpInput | _: EvInput) =>
                 (
                   notProcessedElements + entity.getClass.getSimpleName,
                   availableSystemParticipants,
@@ -384,6 +384,18 @@ class GridAgentBuilder(
             input.getUuid
           ),
           outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant),
+          participantRefs,
+          simParams,
+          environmentRefs.scheduler,
+          maybeControllingEm,
+        )
+      case input: BmInput =>
+        buildParticipant(
+          SimpleInputContainer(input),
+          participantConfigUtil.getOrDefault[BmRuntimeConfig](
+            input.getUuid
+          ),
+          outputConfigUtil.getOrDefault(NotifierIdentifier.BioMassPlant),
           participantRefs,
           simParams,
           environmentRefs.scheduler,

@@ -6,21 +6,23 @@
 
 package edu.ie3.simona.model.participant.load
 
-import edu.ie3.simona.model.participant.ParticipantModel.{
-  ActivePowerOperatingPoint,
-  DateTimeState,
-}
-import squants.{Dimensionless, Each, Energy, Power, Quantity}
+import edu.ie3.datamodel.exceptions.SourceException
+import edu.ie3.simona.model.participant.ParticipantModel.ActivePowerOperatingPoint
+import edu.ie3.simona.model.participant.load.ProfileLoadModel.LoadModelState
+import edu.ie3.simona.service.load.LoadProfileStore
 import squants.energy.KilowattHours
 import squants.time.Minutes
+import squants.{Dimensionless, Each, Energy, Power, Quantity}
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
 trait LoadModelTestHelper {
 
+  private val store = LoadProfileStore()
+
   protected def calculateEnergyDiffForYear(
-      model: LoadModel[DateTimeState],
+      model: ProfileLoadModel,
       simulationStartDate: ZonedDateTime,
       expectedEnergy: Energy,
   ): Dimensionless = {
@@ -40,7 +42,7 @@ trait LoadModelTestHelper {
   }
 
   protected def calculatePowerForYear(
-      model: LoadModel[DateTimeState],
+      model: ProfileLoadModel,
       simulationStartDate: ZonedDateTime,
   ): Iterable[Power] = {
     val quarterHoursInYear = 365L * 96L
@@ -48,13 +50,19 @@ trait LoadModelTestHelper {
     (0L until quarterHoursInYear)
       .map { quarterHour =>
         val tick = quarterHour * 15 * 60
-        val state = DateTimeState(
-          tick,
-          simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES),
+        val dateTime =
+          simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES)
+
+        val averagePower = (model match {
+          case profileLoadModel: ProfileLoadModel =>
+            store.entry(dateTime, profileLoadModel.loadProfile)
+        }).getOrElse(
+          throw new SourceException("No load value present!")
         )
 
-        model
-          .determineOperatingPoint(state) match {
+        val state = LoadModelState(tick, averagePower)
+
+        model.determineOperatingPoint(state) match {
           case (ActivePowerOperatingPoint(p), _) =>
             p
         }

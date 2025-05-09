@@ -8,6 +8,7 @@ package edu.ie3.simona.service.weather
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   RegistrationFailedMessage,
@@ -83,7 +84,7 @@ class WeatherServiceSpec
 
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
 
-  private val agent = TestProbe[Any]("agent")
+  private val agent = TestProbe[ParticipantAgent.Request]("agent")
 
   // build the weather service
   private val weatherService = testKit.spawn(

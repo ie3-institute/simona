@@ -21,6 +21,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.{
+  LoadProfileMessage,
   ServiceMessage,
   WeatherMessage,
 }
@@ -54,6 +55,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
     TestProbe("runtimeEvents")
   private val primaryService = TestProbe[ServiceMessage]("primaryService")
   private val weatherService = TestProbe[WeatherMessage]("weatherService")
+  private val loadProfileService =
+    TestProbe[LoadProfileMessage]("loadProfileService")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
@@ -68,6 +71,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
+    loadProfiles = loadProfileService.ref,
     evDataService = None,
   )
 

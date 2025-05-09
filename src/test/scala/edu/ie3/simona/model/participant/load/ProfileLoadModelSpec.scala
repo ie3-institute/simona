@@ -4,16 +4,22 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load.profile
+package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
+import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.load.LoadModelTestHelper
+import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
+import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.simona.test.matchers.DoubleMatchers
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  EnergyToSimona,
+  PowerConversionSimona,
+}
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
   Kilovoltamperes,
@@ -35,7 +41,14 @@ class ProfileLoadModelSpec
   private val simulationStartDate =
     TimeUtil.withDefaults.toZonedDateTime("2022-01-01T00:00:00Z")
 
+  private val loadProfileStore = LoadProfileStore()
+
   "A profile load model" should {
+
+    def additionalData(loadProfile: LoadProfile): ProfileLoadFactoryData =
+      loadProfileStore
+        .getProfileLoadFactoryData(loadProfile)
+        .getOrElse(fail(s"No data found for profile: $loadProfile"))
 
     "be instantiated correctly with power reference" in {
 
@@ -62,6 +75,7 @@ class ProfileLoadModelSpec
               .build(),
             config,
           )
+          .update(additionalData(profile))
           .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
@@ -97,6 +111,7 @@ class ProfileLoadModelSpec
               .build(),
             config,
           )
+          .update(additionalData(profile))
           .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
@@ -114,15 +129,12 @@ class ProfileLoadModelSpec
           reference = "energy",
         )
 
-        val targetEnergyConsumption = KilowattHours(
-          loadInput
-            .geteConsAnnual()
-            .to(PowerSystemUnits.KILOWATTHOUR)
-            .getValue
-            .doubleValue
-        )
+        val targetEnergyConsumption = loadInput.geteConsAnnual.toSquants
 
-        val model = ProfileLoadModel.Factory(input, config).create()
+        val model = ProfileLoadModel
+          .Factory(input, config)
+          .update(additionalData(profile))
+          .create()
 
         /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
          * [https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf], 1.5 %
@@ -144,15 +156,13 @@ class ProfileLoadModelSpec
         val input = loadInput.copy().loadprofile(profile).build()
         val config = LoadRuntimeConfig(modelBehaviour = "profile")
 
-        val model = ProfileLoadModel.Factory(input, config).create()
+        val model = ProfileLoadModel
+          .Factory(input, config)
+          .update(additionalData(profile))
+          .create()
 
-        val targetMaximumPower = Kilovoltamperes(
-          input
-            .getsRated()
-            .to(PowerSystemUnits.KILOVOLTAMPERE)
-            .getValue
-            .doubleValue
-        ).toActivePower(input.getCosPhiRated)
+        val targetMaximumPower =
+          input.getsRated.toApparent.toActivePower(input.getCosPhiRated)
 
         val maximumPower = calculatePowerForYear(
           model,
@@ -165,6 +175,125 @@ class ProfileLoadModelSpec
         implicit val tolerance: Power = Watts(1)
         maximumPower should approximate(targetMaximumPower)
       }
+    }
+
+  }
+
+  "A profile load model with random profile" should {
+
+    val randomProfileLoadFactoryData = ProfileLoadFactoryData(
+      Some(Watts(159)),
+      Some(KilowattHours(716.5416966513656)),
+    )
+
+    "be instantiated correctly with power reference" in {
+
+      forAll(
+        Table(
+          ("sRated", "expectedScalingFactor"),
+          (167.368421, 1.0),
+          (1000.0, 5.9748428),
+        )
+      ) { (sRated, expectedScalingFactor) =>
+        val config = LoadRuntimeConfig(modelBehaviour = "random")
+        val model = ProfileLoadModel
+          .Factory(
+            randomLoadInput
+              .copy()
+              .sRated(
+                Quantities.getQuantity(sRated, PowerSystemUnits.VOLTAMPERE)
+              )
+              .build(),
+            config,
+          )
+          .update(randomProfileLoadFactoryData)
+          .create()
+
+        model.referenceScalingFactor should approximate(expectedScalingFactor)
+      }
+    }
+
+    "be instantiated correctly with energy reference" in {
+
+      forAll(
+        Table(
+          ("eConsAnnual", "expectedScalingFactor", "expectedSRated"),
+          (1000.0, 1.3955921, 256.936),
+          (2000.0, 2.7911842, 513.8717),
+          (3000.0, 4.1867763, 770.808),
+        )
+      ) { (eConsAnnual, expectedScalingFactor, expectedSRated) =>
+        val config = LoadRuntimeConfig(
+          modelBehaviour = "random",
+          reference = "energy",
+        )
+        val model = ProfileLoadModel
+          .Factory(
+            randomLoadInput
+              .copy()
+              .eConsAnnual(
+                Quantities
+                  .getQuantity(eConsAnnual, PowerSystemUnits.KILOWATTHOUR)
+              )
+              .build(),
+            config,
+          )
+          .update(randomProfileLoadFactoryData)
+          .create()
+
+        model.referenceScalingFactor should approximate(expectedScalingFactor)
+        model.sRated should approximate(Voltamperes(expectedSRated))
+      }
+    }
+
+    "reach the targeted annual energy consumption in a simulated year" in {
+      val config = LoadRuntimeConfig(
+        modelBehaviour = "random",
+        reference = "energy",
+      )
+
+      val model = ProfileLoadModel
+        .Factory(
+          randomLoadInput,
+          config,
+        )
+        .update(randomProfileLoadFactoryData)
+        .create()
+
+      val targetEnergyConsumption = randomLoadInput.geteConsAnnual.toSquants
+
+      calculateEnergyDiffForYear(
+        model,
+        simulationStartDate,
+        targetEnergyConsumption,
+      ) should be < Percent(1d)
+    }
+
+    "approximately reach the maximum power in a simulated year" in {
+      val config = LoadRuntimeConfig(modelBehaviour = "random")
+
+      val model = ProfileLoadModel
+        .Factory(
+          randomLoadInput,
+          config,
+        )
+        .update(randomProfileLoadFactoryData)
+        .create()
+
+      val targetMaximumPower = randomLoadInput.getsRated.toApparent
+        .toActivePower(randomLoadInput.getCosPhiRated)
+
+      val powers = calculatePowerForYear(
+        model,
+        simulationStartDate,
+      ).toIndexedSeq.sorted.toArray
+
+      val quantile95 = get95Quantile(powers)
+
+      getRelativeDifference(
+        quantile95,
+        targetMaximumPower,
+      ) should be < Percent(2d)
     }
 
   }
