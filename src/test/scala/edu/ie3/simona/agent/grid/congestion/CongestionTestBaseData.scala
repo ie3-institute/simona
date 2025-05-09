@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.services.{
+  LoadProfileMessage,
   ServiceMessage,
   WeatherMessage,
 }
@@ -63,12 +64,16 @@ trait CongestionTestBaseData
   protected val weatherService: TestProbe[WeatherMessage] = TestProbe(
     "weatherService"
   )
+  protected val loadProfileService: TestProbe[LoadProfileMessage] = TestProbe(
+    "loadProfileService"
+  )
 
   protected val environmentRefs: EnvironmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
+    loadProfiles = loadProfileService.ref,
     evDataService = None,
   )
 
