@@ -22,7 +22,7 @@ ext {
   javaVersion = JavaVersion.VERSION_17
 
   scalaVersion = '3'
-  scalaBinaryVersion = '3.6.4'
+  scalaBinaryVersion = '3.7.0'
   pekkoVersion = '1.1.3'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.9.0'
@@ -34,7 +34,7 @@ ext {
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 
   scala3compilerOptions = [
-    "-source:3.6-migration",
+    "-source:3.7-migration",
     "-print-tasty",
     "-feature",
     "-language:implicitConversions",
@@ -78,13 +78,13 @@ repositories {
 dependencies {
 
   // ie³ internal repository
-  implementation('com.github.ie3-institute:PowerSystemUtils:3.0.0') {
+  implementation('com.github.ie3-institute:PowerSystemUtils:3.1.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:6.0.0') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:7.0.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -97,7 +97,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.8.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.9.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
