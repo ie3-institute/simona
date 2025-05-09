@@ -14,6 +14,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage
 import edu.ie3.simona.ontology.messages.services.{
   ServiceMessage,
   WeatherMessage,
@@ -107,6 +108,21 @@ trait SimonaSetup {
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[WeatherMessage]
+
+  /** Creates a load profile service
+    *
+    * @param context
+    *   Actor context to use
+    * @param scheduler
+    *   Actor reference to it's according scheduler to use
+    * @return
+    *   An actor reference to the service as well as matching data to initialize
+    *   the service
+    */
+  def loadProfileService(
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ActorRef[LoadProfileMessage]
 
   /** Loads external simulations and provides corresponding actors and init data
     *

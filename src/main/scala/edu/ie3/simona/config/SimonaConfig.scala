@@ -115,7 +115,7 @@ object SimonaConfig {
       input: InputConfig,
       output: OutputConfig,
       powerflow: Simona.Powerflow,
-      runtime: RuntimeConfig = RuntimeConfig.default,
+      runtime: RuntimeConfig = RuntimeConfig(),
       simulationName: String,
       time: Simona.Time = Simona.Time(),
   )
