@@ -20,10 +20,7 @@ import edu.ie3.simona.config.ConfigParams.{
   TimeStampedInfluxDb1xParams,
 }
 import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
-import edu.ie3.simona.exceptions.{
-  InitializationException,
-  InvalidConfigParameterException,
-}
+import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -129,7 +126,6 @@ class PrimaryServiceProxySpec
     ),
     simulationStart,
     validPrimaryConfig,
-    mappingSource,
   )
 
   implicit def wrap(msg: Activation): WrappedActivation =
@@ -153,112 +149,6 @@ class PrimaryServiceProxySpec
     m
   }
 
-  "Testing a primary service config" should {
-    "lead to complaining about too much source definitions" in {
-      val maliciousConfig = PrimaryConfig(
-        Some(CouchbaseParams("", "", "", "", "", "", "")),
-        Some(TimeStampedCsvParams("", "", isHierarchic = false, "")),
-        None,
-        None,
-      )
-
-      val exception = intercept[InvalidConfigParameterException](
-        PrimaryServiceProxy.checkConfig(maliciousConfig)
-      )
-      exception.getMessage shouldBe "2 time series source types defined. Please define only one type!\nAvailable types:\n\tcsv\n\tsql"
-    }
-
-    "lead to complaining about too few source definitions" in {
-      val maliciousConfig = PrimaryConfig(
-        None,
-        None,
-        None,
-        None,
-      )
-
-      val exception = intercept[InvalidConfigParameterException](
-        PrimaryServiceProxy.checkConfig(maliciousConfig)
-      )
-      exception.getMessage shouldBe "No time series source type defined. Please define exactly one type!\nAvailable types:\n\tcsv\n\tsql"
-    }
-
-    "not let couchbase parameters pass for mapping configuration" in {
-      val maliciousConfig = PrimaryConfig(
-        Some(CouchbaseParams("", "", "", "", "", "", "")),
-        None,
-        None,
-        None,
-      )
-
-      val exception = intercept[InvalidConfigParameterException](
-        PrimaryServiceProxy.checkConfig(maliciousConfig)
-      )
-      exception.getMessage shouldBe "Invalid configuration 'CouchbaseParams(,,,,,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
-    }
-
-    "let csv parameters pass for mapping configuration" in {
-      val mappingConfig = PrimaryConfig(
-        None,
-        Some(TimeStampedCsvParams("", "", isHierarchic = false, "")),
-        None,
-        None,
-      )
-
-      noException shouldBe thrownBy {
-        PrimaryServiceProxy.checkConfig(mappingConfig)
-      }
-    }
-
-    "not let influx db parameters pass for mapping configuration" in {
-      val maliciousConfig = PrimaryConfig(
-        None,
-        None,
-        Some(TimeStampedInfluxDb1xParams("", 0, "", "")),
-        None,
-      )
-
-      val exception = intercept[InvalidConfigParameterException](
-        PrimaryServiceProxy.checkConfig(maliciousConfig)
-      )
-      exception.getMessage shouldBe "Invalid configuration 'TimeStampedInfluxDb1xParams(,0,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
-    }
-
-    "fails on invalid time pattern with csv" in {
-      val invalidTimePatternConfig = PrimaryConfig(
-        None,
-        Some(TimeStampedCsvParams("", "", isHierarchic = false, "xYz")),
-        None,
-        None,
-      )
-
-      intercept[InvalidConfigParameterException](
-        PrimaryServiceProxy.checkConfig(invalidTimePatternConfig)
-      ).getMessage shouldBe "Invalid timePattern 'xYz' for a time series source. " +
-        "Please provide a valid pattern!\nException: java.lang.IllegalArgumentException: Illegal pattern character 'x'"
-
-    }
-
-    "succeeds on valid time pattern with csv" in {
-      val validTimePatternConfig = PrimaryConfig(
-        None,
-        Some(
-          TimeStampedCsvParams(
-            "",
-            "",
-            isHierarchic = false,
-            "yyyy-MM-dd'T'HH:mm'Z[UTC]'",
-          )
-        ),
-        None,
-        None,
-      )
-
-      noException shouldBe thrownBy {
-        PrimaryServiceProxy.checkConfig(validTimePatternConfig)
-      }
-    }
-  }
-
   val initStateData: InitPrimaryServiceProxyStateData =
     InitPrimaryServiceProxyStateData(
       validPrimaryConfig,
@@ -269,7 +159,7 @@ class PrimaryServiceProxySpec
   )
 
   "Building state data from given config" should {
-    "fail, in case no config is given" in {
+    "succeed with empty state data, in case no config is given" in {
       val maliciousConfig = PrimaryConfig(
         None,
         None,
@@ -281,11 +171,14 @@ class PrimaryServiceProxySpec
         maliciousConfig,
         simulationStart,
       ) match {
-        case Success(_) =>
-          fail("Building state data with missing config should fail")
-        case Failure(exception) =>
-          exception.getClass shouldBe classOf[IllegalArgumentException]
-          exception.getMessage shouldBe "You have to provide exactly one config for the mapping source."
+        case Success(emptyStateData) =>
+          emptyStateData.modelToTimeSeries shouldBe Map.empty
+          emptyStateData.timeSeriesToSourceRef shouldBe Map.empty
+          emptyStateData.simulationStart shouldBe simulationStart
+          emptyStateData.primaryConfig shouldBe maliciousConfig
+
+        case Failure(_) =>
+          fail("We expect to receive an empty state data.")
       }
     }
 
@@ -320,7 +213,6 @@ class PrimaryServiceProxySpec
                 timeSeriesToSourceRef,
                 simulationStart,
                 primaryConfig,
-                mappingSource,
               )
             ) =>
           modelToTimeSeries shouldBe Map(
@@ -546,7 +438,6 @@ class PrimaryServiceProxySpec
               timeSeriesToSourceRef,
               simulationStart,
               primaryConfig,
-              mappingSource,
             ) =>
           modelToTimeSeries shouldBe proxyStateData.modelToTimeSeries
           timeSeriesToSourceRef shouldBe Map(
@@ -555,7 +446,6 @@ class PrimaryServiceProxySpec
           )
           simulationStart shouldBe proxyStateData.simulationStart
           primaryConfig shouldBe proxyStateData.primaryConfig
-          mappingSource shouldBe proxyStateData.mappingSource
       }
     }
   }
@@ -663,7 +553,6 @@ class PrimaryServiceProxySpec
         ),
         simulationStart,
         validPrimaryConfig,
-        mappingSource,
       )
 
       val testKit = BehaviorTestKit(PrimaryServiceProxy.onMessage(stateData))

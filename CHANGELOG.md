@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduce operatingPoints also to `ThermalGrid` [#1338](https://github.com/ie3-institute/simona/issues/1338)
 - Added configuration for console log level [#1364](https://github.com/ie3-institute/simona/issues/1364)
 - Introduced `BmModel` to `ParticipantAgent` [#1332](https://github.com/ie3-institute/simona/issues/1332)
+- Added load profile service [#951](https://github.com/ie3-institute/simona/issues/951)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -181,6 +182,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed determining FlexOptions of `Evcs` [#1322](https://github.com/ie3-institute/simona/issues/1322)
 - Refactor handleFeedIn and handleConsumption of `ThermalGrid` due to qDotIntoGrid [#1343](https://github.com/ie3-institute/simona/issues/1343)
 - Adapted to typed actor in simonaAPI [#1311](https://github.com/ie3-institute/simona/issues/1311)
+- Making primary data source optional [#134](https://github.com/ie3-institute/simona/issues/134)
+- Refactoring uuids in default runtime configs [#1336](https://github.com/ie3-institute/simona/issues/1336)
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
 
 ### Fixed

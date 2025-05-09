@@ -15,4 +15,6 @@ object ServiceType {
   case object PriceService extends ServiceType
 
   case object EvMovementService extends ServiceType
+
+  case object LoadProfileService extends ServiceType
 }

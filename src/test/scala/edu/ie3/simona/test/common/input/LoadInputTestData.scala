@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
+import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile
 import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATTHOUR, VOLTAMPERE}
@@ -31,6 +32,20 @@ trait LoadInputTestData extends NodeInputTestData {
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
     null,
     BdewStandardLoadProfile.H0,
+    Quantities.getQuantity(3000d, KILOWATTHOUR),
+    Quantities.getQuantity(282.74d, VOLTAMPERE),
+    0.95,
+  )
+
+  protected val randomLoadInput = new LoadInput(
+    UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
+    "testLoad",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    nodeInputNoSlackNs04KvA,
+    new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+    null,
+    RandomLoadProfile.RANDOM_LOAD_PROFILE,
     Quantities.getQuantity(3000d, KILOWATTHOUR),
     Quantities.getQuantity(282.74d, VOLTAMPERE),
     0.95,

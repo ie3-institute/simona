@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.input.system.{LoadInput, SystemParticipantInput}
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent._
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
@@ -15,6 +15,7 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.InputModelContainer
 import edu.ie3.simona.model.participant.ParticipantModel.{
+  AdditionalFactoryData,
   ModelState,
   ParticipantModelFactory,
 }
@@ -27,6 +28,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.RegisterForLoadProfileService
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
@@ -315,6 +317,20 @@ object ParticipantAgentInit {
           participantRef,
           participantInput.getUuid,
         )
+
+      case ServiceType.LoadProfileService =>
+        participantInput match {
+          case load: LoadInput =>
+            serviceRef ! RegisterForLoadProfileService(
+              participantRef,
+              load.getLoadProfile,
+            )
+
+          case _ =>
+            throw new CriticalFailureException(
+              s"${participantInput.identifier} cannot register for load profile service!"
+            )
+        }
     }
 
   /** Waiting for replies from secondary services. If all replies have been
@@ -331,7 +347,14 @@ object ParticipantAgentInit {
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] =
     Behaviors.receivePartial {
-      case (_, RegistrationSuccessfulMessage(serviceRef, nextDataTick)) =>
+      case (
+            _,
+            RegistrationSuccessfulMessage(
+              serviceRef,
+              nextDataTick,
+              additionalData,
+            ),
+          ) =>
         // received registration success message from secondary service
         if (!expectedRegistrations.contains(serviceRef))
           throw new CriticalFailureException(
@@ -342,10 +365,15 @@ object ParticipantAgentInit {
         val newExpectedFirstData =
           expectedFirstData.updated(serviceRef, nextDataTick)
 
+        val updatedFactory = additionalData match {
+          case Some(data: AdditionalFactoryData) => modelFactory.update(data)
+          case None                              => modelFactory
+        }
+
         if (newExpectedRegistrations.isEmpty)
           // all secondary services set up, ready to go
           completeInitialization(
-            modelFactory,
+            updatedFactory,
             participantInput,
             notifierConfig,
             newExpectedFirstData,
@@ -356,7 +384,7 @@ object ParticipantAgentInit {
         else
           // there's at least one more service to go, let's wait for confirmation
           waitingForServices(
-            modelFactory,
+            updatedFactory,
             participantInput,
             notifierConfig,
             participantRefs,

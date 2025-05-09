@@ -19,8 +19,6 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
@@ -128,10 +126,8 @@ object LoadModel {
     LoadModelBehaviour(config.modelBehaviour) match {
       case LoadModelBehaviour.FIX =>
         FixedLoadModel.Factory(input, config)
-      case LoadModelBehaviour.PROFILE =>
+      case LoadModelBehaviour.PROFILE | LoadModelBehaviour.RANDOM =>
         ProfileLoadModel.Factory(input, config)
-      case LoadModelBehaviour.RANDOM =>
-        RandomLoadModel.Factory(input, config)
     }
 
 }

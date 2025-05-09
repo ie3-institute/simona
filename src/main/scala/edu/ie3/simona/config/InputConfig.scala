@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.config
 
-import edu.ie3.simona.config.InputConfig.{Grid, Primary, Weather}
+import edu.ie3.simona.config.InputConfig.{Grid, LoadProfile, Primary, Weather}
 import edu.ie3.simona.config.ConfigParams._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto.deriveConvert
@@ -19,6 +19,8 @@ import scala.deriving.Mirror
   *   Option for the directory, where external simulation are placed in.
   * @param grid
   *   Mainly the source for grid data.
+  * @param loadProfile
+  *   Source for load profile data (default: empty).
   * @param primary
   *   Source for primary data (default: empty).
   * @param weather
@@ -27,6 +29,7 @@ import scala.deriving.Mirror
 final case class InputConfig(
     extSimDir: Option[String],
     grid: Grid,
+    loadProfile: LoadProfile = LoadProfile.empty,
     primary: Primary = Primary(),
     weather: Weather = Weather(),
 ) derives ConfigConvert
@@ -47,7 +50,36 @@ object InputConfig {
       datasource: GridDatasource
   ) derives ConfigConvert
 
-  /** Case class with options for primary data source parameters
+  /** Case class with option for load profile data source.
+    *
+    * @param datasource
+    *   Containing load profiles.
+    */
+  final case class LoadProfile(
+      datasource: LoadProfile.Datasource = LoadProfile.Datasource()
+  )
+  object LoadProfile {
+
+    /** Returns an empty [[LoadProfile]] with default params.
+      */
+    def empty: LoadProfile = LoadProfile()
+
+    /** Case class with options for load profile data source parameters.
+      *
+      * @param csvParams
+      *   Used for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]] (default:
+      *   None).
+      * @param sqlParams
+      *   Used for [[edu.ie3.datamodel.io.source.sql.SqlDataSource]] (default:
+      *   None).
+      */
+    final case class Datasource(
+        csvParams: Option[BaseCsvParams] = None,
+        sqlParams: Option[SqlParams] = None,
+    )
+  }
+
+  /** Case class with options for primary data source parameters.
     * @param couchbaseParams
     *   Used for [[edu.ie3.datamodel.io.connectors.CouchbaseConnector]]
     *   (default: None).
