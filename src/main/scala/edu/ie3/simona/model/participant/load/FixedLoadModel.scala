@@ -8,7 +8,6 @@ package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   FixedState,

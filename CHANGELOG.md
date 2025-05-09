@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduce operatingPoints also to `ThermalGrid` [#1338](https://github.com/ie3-institute/simona/issues/1338)
 - Added configuration for console log level [#1364](https://github.com/ie3-institute/simona/issues/1364)
 - Introduced `BmModel` to `ParticipantAgent` [#1332](https://github.com/ie3-institute/simona/issues/1332)
+- Added load profile service [#951](https://github.com/ie3-institute/simona/issues/951)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
