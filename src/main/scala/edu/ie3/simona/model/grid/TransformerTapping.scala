@@ -17,7 +17,7 @@ import tech.units.indriya.quantity.Quantities
   * necessary to override updateTapPos (e.g. in [[Transformer3wModel]]). The
   * provided [[TransformerTappingModel]] *should* be protected and not be
   * accessible from outside to prevent direct access to internal functions!
-  * Instead all the functions provided here should be used for tap position
+  * Instead, all the functions provided here should be used for tap position
   * manipulation.
   */
 trait TransformerTapping {
@@ -45,6 +45,7 @@ trait TransformerTapping {
   /** Increase transformer tap position by the provided delta value
     *
     * @param deltaTap
+    *   number of tap positions to increase
     */
   def incrTapPos(deltaTap: Int = 1): Unit =
     tapRatio = transformerTappingModel.incrTapPos(deltaTap)
@@ -52,6 +53,7 @@ trait TransformerTapping {
   /** Decrease transformer tap position by the provided delta value
     *
     * @param deltaTap
+    *   number of tap positions to decrease
     */
   def decrTapPos(deltaTap: Int = 1): Unit =
     tapRatio = transformerTappingModel.decrTapPos(deltaTap)
@@ -72,7 +74,7 @@ trait TransformerTapping {
     */
   def computeDeltaTap(
       vChangeRequest: Quantity[Dimensionless],
-      deadBand: Quantity[Dimensionless] = Quantities.getQuantity(0.75, PU)
+      deadBand: Quantity[Dimensionless] = Quantities.getQuantity(0.75, PU),
   ): Int =
     transformerTappingModel.computeDeltaTap(vChangeRequest, deadBand)
 

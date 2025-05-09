@@ -6,49 +6,52 @@
 
 package edu.ie3.simona.service.weather
 
+import edu.ie3.datamodel.exceptions.SourceException
+import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.{
   CosmoIdCoordinateFactory,
   IconIdCoordinateFactory,
-  IdCoordinateFactory
+  SqlIdCoordinateFactory,
 }
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
-import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
-import edu.ie3.datamodel.models.StandardUnits
+import edu.ie3.datamodel.io.source.csv.{CsvDataSource, CsvIdCoordinateSource}
+import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.value.WeatherValue
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
-import edu.ie3.simona.exceptions.{
-  InvalidConfigParameterException,
-  ServiceException
+import edu.ie3.simona.config.InputConfig
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  BaseSqlParams,
+  SampleParams,
 }
+import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
-  WeightedCoordinates
+  WeightedCoordinates,
 }
-import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
-  checkCouchbaseParams,
-  checkInfluxDb1xParams,
-  checkSqlParams
-}
+import edu.ie3.simona.service.weather.WeatherSourceWrapper.buildPSDMSource
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.{Coordinate, Point}
+import squants.motion.MetersPerSecond
+import squants.thermal.Kelvin
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.nio.file.Paths
 import java.time.ZonedDateTime
-import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, Length}
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 trait WeatherSource {
   protected val idCoordinateSource: IdCoordinateSource
+  protected val maxCoordinateDistance: ComparableQuantity[Length]
 
   /** Determine the relevant coordinates around the queried one together with
     * their weighting factors in averaging
@@ -58,9 +61,6 @@ trait WeatherSource {
     * @param amountOfInterpolationCoords
     *   The minimum required amount of coordinates with weather data surrounding
     *   the given coordinate that will be used for interpolation
-    * @param maxInterpolationCoordinateDistance
-    *   The allowed max distance of agent coordinates to the surrounding weather
-    *   coordinates
     * @return
     *   The result of the attempt to determine the closest coordinates with
     *   their weighting
@@ -68,12 +68,10 @@ trait WeatherSource {
   def getWeightedCoordinates(
       coordinate: WeatherSource.AgentCoordinates,
       amountOfInterpolationCoords: Int,
-      maxInterpolationCoordinateDistance: Quantity[Length]
   ): Try[WeatherSource.WeightedCoordinates] = {
     getNearestCoordinatesWithDistances(
       coordinate,
       amountOfInterpolationCoords,
-      maxInterpolationCoordinateDistance
     ) match {
       case Success(nearestCoordinates) =>
         determineWeights(nearestCoordinates)
@@ -81,7 +79,7 @@ trait WeatherSource {
         Failure(
           new ServiceException(
             "Determination of coordinate weights failed.",
-            exception
+            exception,
           )
         )
     }
@@ -97,71 +95,34 @@ trait WeatherSource {
     * @param amountOfInterpolationCoords
     *   The minimum required amount of coordinates with weather data surrounding
     *   the given coordinate that will be used for interpolation
-    * @param maxInterpolationCoordinateDistance
-    *   The allowed max distance of agent coordinates to the surrounding weather
-    *   coordinates
     * @return
     */
   def getNearestCoordinatesWithDistances(
       coordinate: WeatherSource.AgentCoordinates,
       amountOfInterpolationCoords: Int,
-      maxInterpolationCoordinateDistance: Quantity[Length]
   ): Try[Iterable[CoordinateDistance]] = {
     val queryPoint = coordinate.toPoint
 
-    /* Go and get the nearest coordinates, that are known to the weather source */
-    val nearestCoords = idCoordinateSource
-      .getNearestCoordinates(queryPoint, amountOfInterpolationCoords)
-      .asScala
+    /* Go and get the corner coordinates, that are within a given distance */
+    val possibleCornerPoints = idCoordinateSource.findCornerPoints(
+      queryPoint,
+      maxCoordinateDistance,
+    )
 
-    nearestCoords.find(coordinateDistance =>
-      coordinateDistance.getCoordinateB.equalsExact(queryPoint, 1e-6)
-    ) match {
-      case Some(exactHit) =>
-        /* The queried coordinate hit one of the weather coordinates. Don't average and take it directly */
-        Success(Vector(exactHit))
-      case None if nearestCoords.size < amountOfInterpolationCoords =>
+    possibleCornerPoints.size() match {
+      case 1 =>
+        // found one exact match
+        Success(possibleCornerPoints.asScala)
+      case nr if nr == amountOfInterpolationCoords =>
+        // found enough points for interpolating
+        Success(possibleCornerPoints.asScala)
+      case invalidNo =>
         Failure(
           ServiceException(
-            s"There are not enough coordinates for averaging. Found ${nearestCoords.size} but need $amountOfInterpolationCoords."
+            s"There are not enough coordinates for averaging. Found $invalidNo within the given distance of " +
+              s"$maxCoordinateDistance but need $amountOfInterpolationCoords. Please make sure that there are enough coordinates within the given distance."
           )
         )
-      case None =>
-        /* Check if enough coordinates are within the coordinate distance limit */
-        val nearestCoordsInMaxDistance = nearestCoords.filter(coordDistance =>
-          coordDistance.getDistance
-            .isLessThan(maxInterpolationCoordinateDistance)
-        )
-        if (nearestCoordsInMaxDistance.size < amountOfInterpolationCoords) {
-          Failure(
-            ServiceException(
-              s"There are not enough coordinates within the max coordinate distance of $maxInterpolationCoordinateDistance. Found ${nearestCoordsInMaxDistance.size} but need $amountOfInterpolationCoords."
-            )
-          )
-        } else {
-          /* Check, if the queried coordinate is surrounded at each quadrant */
-          val (topLeft, topRight, bottomLeft, bottomRight) = nearestCoords
-            .map(_.getCoordinateB)
-            .foldLeft((false, false, false, false)) {
-              case ((tl, tr, bl, br), point) =>
-                (
-                  tl || (point.getX < queryPoint.getX && point.getY > queryPoint.getY),
-                  tr || (point.getX > queryPoint.getX && point.getY > queryPoint.getY),
-                  bl || (point.getX < queryPoint.getX && point.getY < queryPoint.getY),
-                  br || (point.getX > queryPoint.getX && point.getY < queryPoint.getY)
-                )
-            }
-
-          /* There has to be a coordinate in each quadrant */
-          if (topLeft && topRight && bottomLeft && bottomRight)
-            Success(nearestCoords)
-          else
-            Failure(
-              ServiceException(
-                s"The queried point shall be surrounded by $amountOfInterpolationCoords weather coordinates, which are in each quadrant. This is not the case."
-              )
-            )
-        }
     }
   }
 
@@ -207,7 +168,7 @@ trait WeatherSource {
           val weightMap = nearestCoordinates
             .map(coordinateDistance => {
               /* Maybe some words on the calculus of the weight here: We intend to have a weight, that linear increases
-               * from zero to one, the closer the coordinate is to the coordinate in question. Therefore we calculate the
+               * from zero to one, the closer the coordinate is to the coordinate in question. Therefore, we calculate the
                * proximity of each node as a linear function between 1 at 0m distance to the questioned coordinate to zero
                * at the sum of all coordinates' distances (1 - d / d_sum). However, summing up this proximity over all
                * n coordinates brings n*1 from the left part of the sum and -1 as the sum of all distances shares.
@@ -248,7 +209,7 @@ trait WeatherSource {
     */
   def getWeather(
       tick: Long,
-      weightedCoordinates: WeightedCoordinates
+      weightedCoordinates: WeightedCoordinates,
   ): WeatherData
 
   /** Get the weather data for the given tick and agent coordinates having a
@@ -263,7 +224,7 @@ trait WeatherSource {
     */
   def getWeather(
       tick: Long,
-      agentToWeightedCoordinates: Map[AgentCoordinates, WeightedCoordinates]
+      agentToWeightedCoordinates: Map[AgentCoordinates, WeightedCoordinates],
   ): Map[AgentCoordinates, WeatherData] = agentToWeightedCoordinates.map {
     case (agentCoordinates, weightedCoordinates) =>
       agentCoordinates -> getWeather(tick, weightedCoordinates)
@@ -282,138 +243,44 @@ trait WeatherSource {
     */
   def getDataTicks(
       requestFrameStart: Long,
-      requestFrameEnd: Long
+      requestFrameEnd: Long,
   ): Array[Long]
 }
 
 object WeatherSource {
 
   def apply(
-      dataSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource,
-      simulationStart: ZonedDateTime
-  ): WeatherSource =
-    checkConfig(dataSourceConfig)(simulationStart)
+      weatherDataSourceCfg: InputConfig.WeatherDatasource
+  )(implicit simulationStart: ZonedDateTime): WeatherSource = {
+    // get coordinate source
+    implicit val coordinateSourceFunction: IdCoordinateSource =
+      buildCoordinateSource(weatherDataSourceCfg.coordinateSource)
 
-  /** Check the provided weather data source configuration to ensure its
-    * validity. If the configuration is valid, a function to build the
-    * corresponding [[WeatherSource]] instance is returned. For any invalid
-    * configuration parameters exceptions are thrown.
-    *
-    * @param weatherDataSourceCfg
-    *   the config to be checked
-    * @return
-    *   a function that can be used to actually build the configured weather
-    *   data source
-    */
-  def checkConfig(
-      weatherDataSourceCfg: SimonaConfig.Simona.Input.Weather.Datasource
-  ): ZonedDateTime => WeatherSource = {
-
-    // check and get coordinate source
-    val coordinateSourceFunction: () => IdCoordinateSource =
-      checkCoordinateSource(
-        weatherDataSourceCfg.coordinateSource
-      )
-
-    /* Check, if the column scheme is supported */
-    if (!WeatherScheme.isEligibleInput(weatherDataSourceCfg.scheme))
-      throw new InvalidConfigParameterException(
-        s"The weather data scheme '${weatherDataSourceCfg.scheme}' is not supported. Supported schemes:\n\t${WeatherScheme.values
-            .mkString("\n\t")}"
-      )
-
-    // check weather source parameters
-    val supportedWeatherSources =
-      Set("influxdb1x", "csv", "sql", "couchbase", "sample")
     val definedWeatherSources = Vector(
       weatherDataSourceCfg.sampleParams,
       weatherDataSourceCfg.csvParams,
       weatherDataSourceCfg.influxDb1xParams,
       weatherDataSourceCfg.couchbaseParams,
-      weatherDataSourceCfg.sqlParams
-    ).filter(_.isDefined)
+      weatherDataSourceCfg.sqlParams,
+    ).find(_.isDefined).flatten
 
-    val timestampPattern: Option[String] = weatherDataSourceCfg.timestampPattern
-    val scheme: String = weatherDataSourceCfg.scheme
-    val resolution: Option[Long] = weatherDataSourceCfg.resolution
-
-    // check that only one source is defined
-    if (definedWeatherSources.size > 1)
-      throw new InvalidConfigParameterException(
-        s"Multiple weather sources defined: '${definedWeatherSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
-          s"Please define only one source!\nAvailable sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
+    if (definedWeatherSources.isEmpty) {
+      // should not happen, due to the config fail fast check
+      throw new SourceException(
+        s"Expected a WeatherSource, but no source where defined in $weatherDataSourceCfg."
       )
-    val weatherSourceFunction: ZonedDateTime => WeatherSource =
-      definedWeatherSources.headOption match {
-        case Some(
-              Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
-            ) =>
-          checkBaseCsvParams(baseCsvParams, "WeatherSource")
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              csvSep,
-              directoryPath,
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution
-            )(simulationStart)
-        case Some(Some(params: CouchbaseParams)) =>
-          checkCouchbaseParams(params)
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              params,
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution
-            )(simulationStart)
-        case Some(Some(params @ InfluxDb1xParams(database, _, url))) =>
-          checkInfluxDb1xParams("WeatherSource", url, database)
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              params,
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution
-            )(simulationStart)
-        case Some(Some(params: SqlParams)) =>
-          checkSqlParams(params)
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              params,
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution
-            )(simulationStart)
-        case Some(Some(_: SampleParams)) =>
-          // sample weather, no check required
-          // coordinate source must be sample coordinate source
-          // calling the function here is not an issue as the sample coordinate source is already
-          // an object (= no overhead costs)
-          coordinateSourceFunction() match {
-            case _: SampleWeatherSource.SampleIdCoordinateSource.type =>
-              // all fine
-              (simulationStart: ZonedDateTime) =>
-                new SampleWeatherSource()(simulationStart)
-            case coordinateSource =>
-              // cannot use sample weather source with other combination of weather source than sample weather source
-              throw new InvalidConfigParameterException(
-                s"Invalid coordinate source " +
-                  s"'${coordinateSource.getClass.getSimpleName}' defined for SampleWeatherSource. " +
-                  "Please adapt the configuration to use sample coordinate source for weather data!"
-              )
-          }
-        case None | Some(_) =>
-          throw new InvalidConfigParameterException(
-            s"No weather source defined! This is currently not supported! Please provide the config parameters for one " +
-              s"of the following weather sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
-          )
-      }
+    }
 
-    weatherSourceFunction
+    implicit val resolution: Long = weatherDataSourceCfg.resolution
+    implicit val distance: ComparableQuantity[Length] =
+      Quantities.getQuantity(
+        weatherDataSourceCfg.maxCoordinateDistance,
+        Units.METRE,
+      )
+
+    buildPSDMSource(weatherDataSourceCfg, definedWeatherSources)
+      .map(WeatherSourceWrapper.apply)
+      .getOrElse(new SampleWeatherSource())
   }
 
   /** Check the provided coordinate id data source configuration to ensure its
@@ -427,76 +294,55 @@ object WeatherSource {
     *   a function that can be used to actually build the configured coordinate
     *   id data source
     */
-  private def checkCoordinateSource(
-      coordinateSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
-  ): () => IdCoordinateSource = {
-    val supportedCoordinateSources = Set("csv", "sample")
+  private def buildCoordinateSource(
+      coordinateSourceConfig: InputConfig.CoordinateSource
+  ): IdCoordinateSource = {
     val definedCoordSources = Vector(
       coordinateSourceConfig.sampleParams,
-      coordinateSourceConfig.csvParams
-    ).filter(_.isDefined)
+      coordinateSourceConfig.csvParams,
+      coordinateSourceConfig.sqlParams,
+    ).find(_.isDefined).flatten
 
-    // check that only one source is defined
-    if (definedCoordSources.size > 1)
-      throw new InvalidConfigParameterException(
-        s"Multiple coordinate sources defined: '${definedCoordSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
-          s"Please define only one source!\nAvailable sources:\n\t${supportedCoordinateSources.mkString("\n\t")}"
-      )
-
-    // check source parameters
-    definedCoordSources.headOption match {
+    definedCoordSources match {
       case Some(
-            Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
+            BaseCsvParams(csvSep, directoryPath, _)
           ) =>
-        checkBaseCsvParams(baseCsvParams, "CoordinateSource")
-        val idCoordinateFactory = checkCoordinateFactory(
-          coordinateSourceConfig.gridModel
-        )
-        () =>
-          new CsvIdCoordinateSource(
+        val idCoordinateFactory =
+          coordinateSourceConfig.gridModel.toLowerCase match {
+            case "icon"  => new IconIdCoordinateFactory()
+            case "cosmo" => new CosmoIdCoordinateFactory()
+          }
+
+        new CsvIdCoordinateSource(
+          idCoordinateFactory,
+          new CsvDataSource(
             csvSep,
-            directoryPath,
+            Paths.get(directoryPath),
             new FileNamingStrategy(),
-            idCoordinateFactory
-          )
+          ),
+        )
       case Some(
-            Some(
-              _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
+            BaseSqlParams(
+              jdbcUrl,
+              password,
+              schemaName,
+              tableName,
+              userName,
             )
           ) =>
+        new SqlIdCoordinateSource(
+          new SqlConnector(jdbcUrl, userName, password),
+          schemaName,
+          tableName,
+          new SqlIdCoordinateFactory(),
+        )
+      case Some(_: SampleParams) =>
         // sample coordinates, no check required
-        () => SampleWeatherSource.SampleIdCoordinateSource
-      case None | Some(_) =>
-        throw new InvalidConfigParameterException(
-          s"No coordinate source defined! This is currently not supported! Please provide the config parameters for one " +
-            s"of the following coordinate sources:\n\t${supportedCoordinateSources.mkString("\n\t")}"
-        )
-    }
-  }
-
-  /** Check the provided coordinate grid model configuration to ensure its
-    * validity. If the configuration is valid, the corresponding
-    * IdCoordinateSource is returned. For any invalid configuration parameters
-    * exceptions are thrown.
-    *
-    * @param gridModel
-    *   the grid model string to be checked
-    * @return
-    *   a function that can be used to actually build the id coordinate factory
-    *   for the grid model
-    */
-  private def checkCoordinateFactory(
-      gridModel: String
-  ): IdCoordinateFactory = {
-    if (gridModel.isEmpty)
-      throw new InvalidConfigParameterException("No grid model defined!")
-    gridModel.toLowerCase() match {
-      case "icon"  => new IconIdCoordinateFactory()
-      case "cosmo" => new CosmoIdCoordinateFactory()
-      case _ =>
-        throw new InvalidConfigParameterException(
-          s"Grid model '$gridModel' is not supported!"
-        )
+        SampleWeatherSource.SampleIdCoordinateSource
+      case None =>
+        throw new SourceException(
+          s"Expected an IdCoordinateSource, but no source where defined in $coordinateSourceConfig."
+        );
     }
   }
 
@@ -508,24 +354,58 @@ object WeatherSource {
     * "empty" concept best.
     */
   val EMPTY_WEATHER_DATA: WeatherData = WeatherData(
-    Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
-    Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
-    Quantities.getQuantity(0d, Units.KELVIN).to(StandardUnits.TEMPERATURE),
-    Quantities.getQuantity(0d, StandardUnits.WIND_VELOCITY)
+    WattsPerSquareMeter(0.0),
+    WattsPerSquareMeter(0.0),
+    Kelvin(0d),
+    MetersPerSecond(0d),
   )
 
   def toWeatherData(
       weatherValue: WeatherValue
   ): WeatherData = {
     WeatherData(
-      weatherValue.getSolarIrradiance.getDiffuseIrradiance
-        .orElse(EMPTY_WEATHER_DATA.diffIrr),
-      weatherValue.getSolarIrradiance.getDirectIrradiance
-        .orElse(EMPTY_WEATHER_DATA.dirIrr),
-      weatherValue.getTemperature.getTemperature
-        .orElse(EMPTY_WEATHER_DATA.temp),
-      weatherValue.getWind.getVelocity.orElse(EMPTY_WEATHER_DATA.windVel)
+      weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala match {
+        case Some(irradiance) =>
+          WattsPerSquareMeter(
+            irradiance
+              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
+              .getValue
+              .doubleValue()
+          )
+        case None => EMPTY_WEATHER_DATA.diffIrr
+      },
+      weatherValue.getSolarIrradiance.getDirectIrradiance.toScala match {
+        case Some(irradiance) =>
+          WattsPerSquareMeter(
+            irradiance
+              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
+              .getValue
+              .doubleValue()
+          )
+        case None => EMPTY_WEATHER_DATA.dirIrr
+      },
+      weatherValue.getTemperature.getTemperature.toScala match {
+        case Some(temperature) =>
+          Kelvin(
+            temperature
+              .to(Units.KELVIN)
+              .getValue
+              .doubleValue()
+          )
+        case None => EMPTY_WEATHER_DATA.temp
+      },
+      weatherValue.getWind.getVelocity.toScala match {
+        case Some(windVel) =>
+          MetersPerSecond(
+            windVel
+              .to(Units.METRE_PER_SECOND)
+              .getValue
+              .doubleValue()
+          )
+        case None => EMPTY_WEATHER_DATA.windVel
+      },
     )
+
   }
 
   /** Weather package private case class to combine the provided agent
@@ -533,7 +413,7 @@ object WeatherSource {
     */
   private[weather] final case class AgentCoordinates(
       latitude: Double,
-      longitude: Double
+      longitude: Double,
   ) {
     def toPoint: Point =
       GeoUtils.DEFAULT_GEOMETRY_FACTORY.createPoint(
@@ -545,7 +425,7 @@ object WeatherSource {
     * coordinates
     *
     * @param weighting
-    *   Mapping from weather coordinate to it's weight in averaging
+    *   Mapping from weather coordinate to its weight in averaging
     */
   private[weather] final case class WeightedCoordinates(
       weighting: Map[Point, Double]
@@ -558,5 +438,4 @@ object WeatherSource {
     val ICON: Value = Value("icon")
     val COSMO: Value = Value("cosmo")
   }
-
 }

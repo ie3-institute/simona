@@ -6,15 +6,12 @@
 
 package edu.ie3.simona.test.common.input
 
-import java.util.UUID
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.util.TimeUtil
 
-import java.time.ZonedDateTime
+import java.util.UUID
 
 trait WecInputTestData extends WecTypeInputTestData {
 
@@ -25,8 +22,9 @@ trait WecInputTestData extends WecTypeInputTestData {
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvB,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
     wecTypeInputEnerconE82,
-    false
+    false,
   )
 
 }

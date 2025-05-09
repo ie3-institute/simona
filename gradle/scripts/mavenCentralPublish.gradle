@@ -1,30 +1,25 @@
 /* Maven publish - start */
 
-task sourcesJar(type: Jar) {
-  archiveClassifier = "sources"
+tasks.register("sourcesJar", Jar) {
+  archiveClassifier.set("sources")
   from sourceSets.main.allJava
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
-  archiveClassifier = "javadoc"
-  from javadoc.destinationDir
+tasks.register("javadocJar", Jar) {
+  dependsOn tasks.named("javadoc", Javadoc)
+  archiveClassifier.set("javadoc")
+  from { tasks.named("javadoc", Javadoc).get().destinationDir }
 }
-
 
 if (project.hasProperty('user') && project.hasProperty('password') && project.hasProperty('deployVersion')) {
 
   // snapshot version differs from normal version
   String versionString = project.getProperty('deployVersion')
 
-  signing {
-    required { !versionString.endsWith('SNAPSHOT') }
-    if (required)
-      sign(publishing.publications)
-  }
 
   publishing {
     publications {
-      mavenJava(MavenPublication) {
+      create("mavenJava", MavenPublication) {
 
         versionMapping {
           // resolves dynamic versioning to current version number
@@ -67,13 +62,13 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
         }
 
         removeTestDependenciesFromPom(pom)
-        groupId group
-        artifactId 'simona'
-        version versionString
+        groupId = group
+        artifactId = 'simona'
+        version = versionString
 
         from components.java
-        artifact sourcesJar
-        artifact javadocJar
+        artifact tasks.named("sourcesJar")
+        artifact tasks.named("javadocJar")
       }
     }
     repositories {
@@ -87,18 +82,21 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
         }
       }
     }
+    signing {
+      useInMemoryPgpKeys(
+          findProperty('signingKey') as String,
+          findProperty('signingPassword') as String
+          )
+      sign publications.mavenJava
+    }
   }
 
-
-  model {
-    tasks.generatePomFileForMavenJavaPublication {
-      destination = file("$buildDir/generated-pom.xml")
-    }
+  tasks.named("generatePomFileForMavenJavaPublication") {
+    destination = layout.buildDirectory.file("generated-pom.xml").get().asFile
   }
 }
 
 def removeTestDependenciesFromPom(pom) {
-
   pom.withXml {
     def root = asNode()
     // eliminate test-scoped dependencies (no need in maven central POMs)

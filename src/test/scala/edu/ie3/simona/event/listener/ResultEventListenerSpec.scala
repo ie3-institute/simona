@@ -6,34 +6,39 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.ActorSystem
-import akka.testkit.{TestFSMRef, TestProbe}
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.ConfigValueFactory
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
   Transformer2WResult,
-  Transformer3WResult
+  Transformer3WResult,
 }
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
-  PowerFlowResultEvent
+  PowerFlowResultEvent,
 }
+import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
-import edu.ie3.simona.ontology.messages.StopMessage
+import edu.ie3.simona.logging.logback.LogbackConfiguration
 import edu.ie3.simona.test.common.result.PowerFlowResultData
-import edu.ie3.simona.test.common.{AgentSpec, IOTestCommons, UnitSpec}
+import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.io.FileIOUtils
-import org.scalatest.BeforeAndAfterEach
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ActorTestKit,
+  ScalaTestWithActorTestKit,
+}
+import org.apache.pekko.testkit.TestKit.awaitCond
 
 import java.io.{File, FileInputStream}
+import java.nio.file.Path
+import java.util.UUID
 import java.util.zip.GZIPInputStream
-import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -41,22 +46,14 @@ import scala.io.Source
 import scala.language.postfixOps
 
 class ResultEventListenerSpec
-    extends AgentSpec(
-      ActorSystem(
-        "ResultEventListenerSpec",
-        ConfigFactory
-          .parseString(
-            """
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
-            |akka.coordinated-shutdown.phases.actor-system-terminate.timeout = 500s
-        """.stripMargin
-          )
+    extends ScalaTestWithActorTestKit(
+      ActorTestKit.ApplicationTestConfig.withValue(
+        "org.apache.pekko.actor.testkit.typed.filter-leeway",
+        ConfigValueFactory.fromAnyRef("10s"),
       )
     )
     with UnitSpec
     with IOTestCommons
-    with BeforeAndAfterEach
     with PowerFlowResultData
     with ThreeWindingResultTestData
     with Transformer3wResultSupport {
@@ -67,26 +64,31 @@ class ResultEventListenerSpec
     classOf[Transformer2WResult],
     classOf[Transformer3WResult],
     classOf[SwitchResult],
-    classOf[LineResult]
+    classOf[LineResult],
   )
 
-  private val timeout = 20 seconds
+  private val timeoutDuration: Duration = 30.seconds
 
   // the OutputFileHierarchy
   private def resultFileHierarchy(
       runId: Int,
       fileFormat: String,
-      classes: Set[Class[_ <: ResultEntity]] = resultEntitiesToBeWritten
-  ): ResultFileHierarchy =
+      classes: Set[Class[_ <: ResultEntity]] = resultEntitiesToBeWritten,
+      compressResults: Boolean = false,
+  ): ResultFileHierarchy = {
+    val resultSinkType: ResultSinkType =
+      Csv(fileFormat, "", "", compressResults)
+
     ResultFileHierarchy(
       outputDir = testTmpDir + File.separator + runId,
       simulationName,
       ResultEntityPathConfig(
         classes,
-        ResultSinkType.Csv(fileFormat = fileFormat)
+        resultSinkType,
       ),
-      createDirs = true
+      configureLogger = LogbackConfiguration.default("INFO", Some("ERROR"))(_),
     )
+  }
 
   def createDir(
       resultFileHierarchy: ResultFileHierarchy
@@ -118,18 +120,18 @@ class ResultEventListenerSpec
         val fileHierarchy = resultFileHierarchy(1, ".csv")
         Await.ready(
           Future.sequence(createDir(fileHierarchy)),
-          60 seconds
+          60 seconds,
         )
 
         // after the creation of the listener, it is expected that a corresponding raw result data file is present
-        val outputFile = new File(
-          fileHierarchy.rawOutputDataFilePaths.getOrElse(
+        val outputFile = fileHierarchy.rawOutputDataFilePaths
+          .getOrElse(
             classOf[PvResult],
             fail(
               s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-            )
+            ),
           )
-        )
+          .toFile
 
         assert(outputFile.exists)
         assert(outputFile.isFile)
@@ -138,16 +140,15 @@ class ResultEventListenerSpec
       "check if actor dies when it should die" in {
         val fileHierarchy =
           resultFileHierarchy(2, ".ttt", Set(classOf[Transformer3WResult]))
-        val testProbe = TestProbe()
-        val listener = testProbe.childActorOf(
-          ResultEventListener.props(
+        val deathWatch = createTestProbe("deathWatch")
+        val listener = spawn(
+          ResultEventListener(
             fileHierarchy
           )
         )
 
-        testProbe watch listener
-        testProbe expectTerminated (listener, 2 seconds)
-
+        listener ! DelayedStopHelper.FlushAndStop
+        deathWatch expectTerminated (listener, 10 seconds)
       }
     }
 
@@ -155,40 +156,43 @@ class ResultEventListenerSpec
       "process a valid participants result correctly" in {
         val specificOutputFileHierarchy = resultFileHierarchy(3, ".csv")
 
-        val listenerRef = system.actorOf(
-          ResultEventListener
-            .props(
-              specificOutputFileHierarchy
-            )
+        val listenerRef = spawn(
+          ResultEventListener(
+            specificOutputFileHierarchy
+          )
         )
 
         listenerRef ! ParticipantResultEvent(dummyPvResult)
 
-        val outputFile = new File(
-          specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
+        val outputFile = specificOutputFileHierarchy.rawOutputDataFilePaths
+          .getOrElse(
             classOf[PvResult],
             fail(
               s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-            )
+            ),
           )
-        )
+          .toFile
 
         // wait until output file exists (headers are flushed out immediately):
-        awaitCond(outputFile.exists(), interval = 500.millis, max = timeout)
+        awaitCond(
+          outputFile.exists(),
+          interval = 500.millis,
+          max = timeoutDuration,
+        )
 
         // stop listener so that result is flushed out
-        listenerRef ! StopMessage(true)
+        listenerRef ! DelayedStopHelper.FlushAndStop
 
         // wait until all lines have been written out:
         awaitCond(
           getFileLinesLength(outputFile) == 2,
           interval = 500.millis,
-          max = timeout
+          max = timeoutDuration,
         )
 
         val resultFileSource = Source.fromFile(outputFile)
 
-        val resultFileLines = resultFileSource.getLines().toVector
+        val resultFileLines = resultFileSource.getLines().toSeq
 
         resultFileLines.size shouldBe 2
         resultFileLines.lastOption.getOrElse(
@@ -202,77 +206,74 @@ class ResultEventListenerSpec
 
       "process a valid power flow result correctly" in {
         val specificOutputFileHierarchy = resultFileHierarchy(4, ".csv")
-        val listenerRef = system.actorOf(
-          ResultEventListener
-            .props(
-              specificOutputFileHierarchy
-            )
+        val listenerRef = spawn(
+          ResultEventListener(
+            specificOutputFileHierarchy
+          )
         )
 
         listenerRef ! PowerFlowResultEvent(
-          Vector(dummyNodeResult),
-          Vector(dummySwitchResult),
-          Vector(dummyLineResult),
-          Vector(dummyTrafo2wResult),
-          Vector.empty[PartialTransformer3wResult]
+          Iterable(dummyNodeResult),
+          Iterable(dummySwitchResult),
+          Iterable(dummyLineResult),
+          Iterable(dummyTrafo2wResult),
+          Iterable.empty[PartialTransformer3wResult],
         )
 
         val outputFiles = Map(
-          dummyNodeResultString -> new File(
-            specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
+          dummyNodeResultString -> specificOutputFileHierarchy.rawOutputDataFilePaths
+            .getOrElse(
               classOf[NodeResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[NodeResult].getSimpleName}' from outputFileHierarchy!'"
-              )
-            )
-          ),
-          dummySwitchResultString -> new File(
+              ),
+            ),
+          dummySwitchResultString ->
             specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
               classOf[SwitchResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[SwitchResult].getSimpleName}' from outputFileHierarchy!'"
-              )
-            )
-          ),
-          dummyLineResultDataString -> new File(
-            specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
+              ),
+            ),
+          dummyLineResultDataString -> specificOutputFileHierarchy.rawOutputDataFilePaths
+            .getOrElse(
               classOf[LineResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[LineResult].getSimpleName}' from outputFileHierarchy!'"
-              )
-            )
-          ),
-          dummyTrafo2wResultDataString -> new File(
-            specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
+              ),
+            ),
+          dummyTrafo2wResultDataString -> specificOutputFileHierarchy.rawOutputDataFilePaths
+            .getOrElse(
               classOf[Transformer2WResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[Transformer2WResult].getSimpleName}' from outputFileHierarchy!'"
-              )
-            )
-          )
-        )
+              ),
+            ),
+        ).map { case (dummyString, path) =>
+          (dummyString, path.toFile)
+        }
 
         // wait until all output files exist (headers are flushed out immediately):
         awaitCond(
           outputFiles.values.map(_.exists()).forall(identity),
           interval = 500.millis,
-          max = timeout
+          max = timeoutDuration,
         )
 
         // stop listener so that result is flushed out
-        listenerRef ! StopMessage(true)
+        listenerRef ! DelayedStopHelper.FlushAndStop
 
         // wait until all lines have been written out:
         awaitCond(
           !outputFiles.values.exists(file => getFileLinesLength(file) < 2),
           interval = 500.millis,
-          max = timeout
+          max = timeoutDuration,
         )
 
         outputFiles.foreach { case (resultRowString, outputFile) =>
           val resultFileSource = Source.fromFile(outputFile)
 
-          val resultFileLines = resultFileSource.getLines().toVector
+          val resultFileLines = resultFileSource.getLines().toSeq
 
           resultFileLines.size shouldBe 2
           resultFileLines.lastOption.getOrElse(
@@ -287,224 +288,75 @@ class ResultEventListenerSpec
     }
 
     "handling three winding transformer results" should {
-      val registerPartialTransformer3wResult =
-        PrivateMethod[Map[Transformer3wKey, AggregatedTransformer3wResult]](
-          Symbol("registerPartialTransformer3wResult")
+      def powerflow3wResult(
+          partialResult: PartialTransformer3wResult
+      ): PowerFlowResultEvent =
+        PowerFlowResultEvent(
+          Iterable.empty[NodeResult],
+          Iterable.empty[SwitchResult],
+          Iterable.empty[LineResult],
+          Iterable.empty[Transformer2WResult],
+          Iterable(partialResult),
         )
-      val fileHierarchy =
-        resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
-      val listener = TestFSMRef(
-        new ResultEventListener(
-          fileHierarchy
-        )
-      )
-
-      "register a fresh entry, when nothing yet is apparent" in {
-        val actual =
-          listener.underlyingActor invokePrivate registerPartialTransformer3wResult(
-            resultA,
-            Map.empty[Transformer3wKey, AggregatedTransformer3wResult]
-          )
-        actual.size shouldBe 1
-        actual.get(Transformer3wKey(inputModel, time)) match {
-          case Some(AggregatedTransformer3wResult(Some(a), None, None)) =>
-            a shouldBe resultA
-          case Some(value) => fail(s"Received the wrong value: '$value'")
-          case None        => fail("Expected to get a result")
-        }
-      }
-
-      "neglects, if something yet has been sent" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            None,
-            None
-          )
-        )
-
-        val actual =
-          listener.underlyingActor invokePrivate registerPartialTransformer3wResult(
-            resultA,
-            results
-          )
-        actual.size shouldBe 1
-        actual.get(Transformer3wKey(inputModel, time)) match {
-          case Some(AggregatedTransformer3wResult(Some(a), None, None)) =>
-            a shouldBe resultA
-          case Some(value) => fail(s"Received the wrong value: '$value'")
-          case None        => fail("Expected to get a result")
-        }
-      }
-
-      "appends a new result, if that key yet is apparent" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            None,
-            None
-          )
-        )
-
-        val actual =
-          listener.underlyingActor invokePrivate registerPartialTransformer3wResult(
-            resultB,
-            results
-          )
-        actual.size shouldBe 1
-        actual.get(Transformer3wKey(inputModel, time)) match {
-          case Some(AggregatedTransformer3wResult(Some(a), Some(b), None)) =>
-            a shouldBe resultA
-            b shouldBe resultB
-          case Some(value) => fail(s"Received the wrong value: '$value'")
-          case None        => fail("Expected to get a result")
-        }
-      }
-
-      val flushComprehensiveResults =
-        PrivateMethod[Map[Transformer3wKey, AggregatedTransformer3wResult]](
-          Symbol("flushComprehensiveResults")
-        )
-      val resultANext = resultA.copy(time = resultA.time.plusHours(1L))
-
-      /** Dummy sink, that only puts the received results to a mutable set
-        *
-        * @param results
-        *   All results, that have been received
-        */
-      final case class DummySink(
-          results: mutable.Set[ResultEntity] = mutable.Set.empty[ResultEntity]
-      ) extends ResultEntitySink {
-        override def handleResultEntity(resultEntity: ResultEntity): Unit =
-          results.add(resultEntity)
-        override def close(): Unit = {}
-      }
-      val sink = DummySink()
-      val sinks = Map(
-        classOf[Transformer3WResult] -> sink
-      )
-      "not flush anything, if nothing is ready to be flushed" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            None,
-            Some(resultC)
-          ),
-          Transformer3wKey(
-            resultANext.input,
-            resultANext.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultANext),
-            None,
-            None
-          )
-        )
-        val actual =
-          listener.underlyingActor invokePrivate flushComprehensiveResults(
-            results,
-            sinks
-          )
-        actual.size shouldBe 2
-        sink.results.isEmpty shouldBe true
-      }
-
-      "flush comprehensive results" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            Some(resultB),
-            Some(resultC)
-          ),
-          Transformer3wKey(
-            resultANext.input,
-            resultANext.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultANext),
-            None,
-            None
-          )
-        )
-        val actual =
-          listener.underlyingActor invokePrivate flushComprehensiveResults(
-            results,
-            sinks
-          )
-        actual.size shouldBe 1
-        sink.results.headOption match {
-          case Some(result) => result shouldBe expected
-          case None         => fail("Expected to get a result.")
-        }
-      }
 
       "correctly reacts on received results" in {
-        val outputFile = new File(
-          fileHierarchy.rawOutputDataFilePaths.getOrElse(
+        val fileHierarchy =
+          resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
+        val listener = spawn(
+          ResultEventListener(
+            fileHierarchy
+          )
+        )
+
+        val outputFile = fileHierarchy.rawOutputDataFilePaths
+          .getOrElse(
             classOf[Transformer3WResult],
             fail(
               s"Cannot get filepath for raw result file of class '${classOf[Transformer3WResult].getSimpleName}' from outputFileHierarchy!'"
-            )
+            ),
           )
-        )
-        /* The result file is created at start up and only contains a head line. */
+          .toFile
+
+        /* The result file is created at start up and only contains a headline. */
         awaitCond(
           outputFile.exists(),
           interval = 500.millis,
-          max = timeout
+          max = timeoutDuration,
         )
         getFileLinesLength(outputFile) shouldBe 1
 
         /* Face the listener with data, as long as they are not comprehensive */
-        listener ! PowerFlowResultEvent(
-          Vector.empty[NodeResult],
-          Vector.empty[SwitchResult],
-          Vector.empty[LineResult],
-          Vector.empty[Transformer2WResult],
-          Vector(resultA)
-        )
-        listener ! PowerFlowResultEvent(
-          Vector.empty[NodeResult],
-          Vector.empty[SwitchResult],
-          Vector.empty[LineResult],
-          Vector.empty[Transformer2WResult],
-          Vector(resultC)
-        )
+        listener ! powerflow3wResult(resultA)
+
+        listener ! powerflow3wResult(resultC)
+
+        /* Also add unrelated result for different input model */
+        val otherResultA = resultA.copy(input = UUID.randomUUID())
+        listener ! powerflow3wResult(otherResultA)
+
+        /* Add result A again, which should lead to a failure internally,
+        but everything should still continue normally
+         */
+        listener ! powerflow3wResult(resultA)
 
         /* Make sure, that there still is no content in file */
         getFileLinesLength(outputFile) shouldBe 1
 
-        /* Complete awaited results */
-        listener ! PowerFlowResultEvent(
-          Vector.empty[NodeResult],
-          Vector.empty[SwitchResult],
-          Vector.empty[LineResult],
-          Vector.empty[Transformer2WResult],
-          Vector(resultB)
-        )
+        /* Complete awaited result */
+        listener ! powerflow3wResult(resultB)
 
         // stop listener so that result is flushed out
-        listener ! StopMessage(true)
+        listener ! DelayedStopHelper.FlushAndStop
 
         /* Await that the result is written */
         awaitCond(
           getFileLinesLength(outputFile) == 2,
           interval = 500.millis,
-          max = timeout
+          max = timeoutDuration,
         )
         /* Check the result */
         val resultFileSource = Source.fromFile(outputFile)
-        val resultFileLines = resultFileSource.getLines().toVector
+        val resultFileLines = resultFileSource.getLines().toSeq
 
         resultFileLines.size shouldBe 2
         val resultLine = resultFileLines.lastOption.getOrElse(
@@ -513,11 +365,8 @@ class ResultEventListenerSpec
           )
         )
 
-        ("[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12},2.0,1.0,4.0,3.0,6.0,5.0,40d02538-d8dd-421c-8e68-400f1da170c7,-5," + time.toString
-          .replaceAll("\\[", "\\\\["))
-          .replaceAll("\\.", "\\\\.")
-          .r
-          .matches(resultLine) shouldBe true
+        resultLine shouldBe "2.0,1.0,4.0,3.0,6.0,5.0,40d02538-d8dd-421c-8e68-400f1da170c7,-5," + TimeUtil.withDefaults
+          .toString(time)
 
         resultFileSource.close()
       }
@@ -525,12 +374,12 @@ class ResultEventListenerSpec
 
     "shutting down" should {
       "shutdown and compress the data when requested to do so without any errors" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(6, ".csv.gz")
-        val listenerRef = system.actorOf(
-          ResultEventListener
-            .props(
-              specificOutputFileHierarchy
-            )
+        val specificOutputFileHierarchy =
+          resultFileHierarchy(6, ".csv.gz", compressResults = true)
+        val listenerRef = spawn(
+          ResultEventListener(
+            specificOutputFileHierarchy
+          )
         )
         ResultSinkType.Csv(fileFormat = ".csv.gz")
 
@@ -538,57 +387,72 @@ class ResultEventListenerSpec
 
         val outputFile = new File(
           ".gz$".r.replaceAllIn(
-            specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
-              classOf[PvResult],
-              fail(
-                s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
+            specificOutputFileHierarchy.rawOutputDataFilePaths
+              .getOrElse(
+                classOf[PvResult],
+                fail(
+                  s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
+                ),
               )
-            ),
-            ""
+              .toString,
+            "",
           )
         )
 
-        awaitCond(outputFile.exists(), interval = 500.millis, max = timeout)
+        awaitCond(
+          outputFile.exists(),
+          interval = 500.millis,
+          max = timeoutDuration,
+        )
+
+        assert(outputFile.exists(), "Output file does not exist")
 
         // stopping the actor should wait until existing messages within an actor are fully processed
         // otherwise it might happen, that the shutdown is triggered even before the just send ParticipantResultEvent
         // reached the listener
         // this also triggers the compression of result files
-        listenerRef ! StopMessage(true)
+        listenerRef ! DelayedStopHelper.FlushAndStop
+
+        // shutdown the actor system
+        system.terminate()
 
         // wait until file exists
         awaitCond(
-          new File(
-            specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
+          specificOutputFileHierarchy.rawOutputDataFilePaths
+            .getOrElse(
               classOf[PvResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-              )
+              ),
             )
-          ).exists,
-          timeout
+            .toFile
+            .exists,
+          timeoutDuration,
         )
+
+        val compressedFile = specificOutputFileHierarchy.rawOutputDataFilePaths
+          .getOrElse(
+            classOf[PvResult],
+            fail(
+              s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
+            ),
+          )
+          .toFile
+        assert(compressedFile.exists(), "Compressed file does not exist")
 
         val resultFileSource = Source.fromInputStream(
           new GZIPInputStream(
-            new FileInputStream(
-              specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
-                classOf[PvResult],
-                fail(
-                  s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-                )
-              )
-            )
+            new FileInputStream(compressedFile)
           )
         )
 
-        val resultFileLines = resultFileSource.getLines().toVector
+        val resultFileLines = resultFileSource.getLines().toSeq
         resultFileLines.size shouldBe 2
         resultFileLines.lastOption.getOrElse(
           fail(
             "Cannot get line that should have been written out by the listener!"
           )
-        ) shouldBe "7f404c4c-fc12-40de-95c9-b5827a40f18b,e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z[UTC]"
+        ) shouldBe "e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z"
 
         resultFileSource.close()
       }

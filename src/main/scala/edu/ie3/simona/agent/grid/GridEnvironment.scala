@@ -6,11 +6,12 @@
 
 package edu.ie3.simona.agent.grid
 
-import java.util.UUID
-
-import akka.actor.ActorRef
 import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.model.grid.GridModel
+import org.apache.pekko.actor.typed.ActorRef
+
+import java.util.UUID
 
 /** Wrapper class containing all information on the grid environment a
   * [[GridAgent]] has access to
@@ -25,6 +26,6 @@ import edu.ie3.simona.model.grid.GridModel
   */
 final case class GridEnvironment(
     gridModel: GridModel,
-    subgridGateToActorRef: Map[SubGridGate, ActorRef],
-    nodeToAssetAgents: Map[UUID, Set[ActorRef]]
+    subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+    nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
 )

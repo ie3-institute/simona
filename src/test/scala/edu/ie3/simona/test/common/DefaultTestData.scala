@@ -6,18 +6,21 @@
 
 package edu.ie3.simona.test.common
 
-import java.time.{ZoneId, ZonedDateTime}
-
 import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
+import edu.ie3.simona.model.participant.load.{
+  LoadModelBehaviour,
+  LoadReferenceType,
+}
 import edu.ie3.util.scala.OperationInterval
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
-import tech.units.indriya.quantity.Quantities
+import squants.electro.Kilovolts
+import squants.energy.Kilowatts
+
+import java.time.{ZoneId, ZonedDateTime}
 
 /** Default values to be used in tests. Should be extended as needed.
   */
@@ -46,7 +49,7 @@ trait DefaultTestData {
     SystemComponent.determineOperationInterval(
       defaultSimulationStart,
       defaultSimulationEnd,
-      defaultOperationTime
+      defaultOperationTime,
     )
 
   // default Lat/Long
@@ -59,9 +62,11 @@ trait DefaultTestData {
   )
 
   protected val default400Kva10KvRefSystem: RefSystem = RefSystem(
-    Quantities.getQuantity(400, KILOVOLTAMPERE),
-    Quantities.getQuantity(10, KILOVOLT)
+    Kilowatts(400d),
+    Kilovolts(10d),
   )
+
+  protected val defaultVoltageLimits: VoltageLimits = VoltageLimits(0.9, 1.1)
 
   /** Creates a [[SimonaConfig]], that provides the desired participant model
     * configurations
@@ -74,15 +79,15 @@ trait DefaultTestData {
     *   Suitable configuration
     */
   def createSimonaConfig(
-      modelBehaviour: LoadModelBehaviour.Value,
-      reference: LoadReference
+      modelBehaviour: LoadModelBehaviour.Value = LoadModelBehaviour.FIX,
+      reference: LoadReferenceType.Value = LoadReferenceType.ACTIVE_POWER,
   ): SimonaConfig = {
     val typesafeConfig: Config = ConfigFactory.parseString(
       s"""
          |simona.simulationName = "ParticipantAgentTest"
          |
-         |simona.time.startDateTime = "01/01/2020 00:00:00"
-         |simona.time.endDateTime = "01/01/2020 01:00:00"
+         |simona.time.startDateTime = "01/01/2020 00:00:00Z"
+         |simona.time.endDateTime = "01/01/2020 01:00:00Z"
          |
          |simona.input.grid.datasource.id = "csv"
          |simona.output.base.dir = "testOutput/"
@@ -98,6 +103,7 @@ trait DefaultTestData {
          |    notifier = "default"
          |    powerRequestReply = false
          |    simulationResult = false
+         |    flexResult = false
          |}
          |simona.output.participant.individualConfigs = []
          |
@@ -115,7 +121,7 @@ trait DefaultTestData {
          |      uuids = ["4eeaf76a-ec17-4fc3-872d-34b7d6004b03"]
          |      scaling = 1.0
          |      modelBehaviour = "${modelBehaviour.toString}"
-         |      reference = "${reference.key}"
+         |      reference = "${reference.toString}"
          |    }
          |  ]
          |}
@@ -149,6 +155,13 @@ trait DefaultTestData {
          |    }
          |  ]
          |}
+         |simona.output.thermal = {
+         |  defaultConfig = {
+         |    notifier = "default",
+         |    simulationResult = false
+         |  }
+         |  individualConfigs = []
+         |}
          |
          |simona.runtime.participant.wec = {
          |  defaultConfig = {
@@ -180,8 +193,47 @@ trait DefaultTestData {
          |  ]
          |}
          |
+         |simona.runtime.participant.hp = {
+         |  defaultConfig = {
+         |    calculateMissingReactivePowerWithModel = false
+         |    uuids = ["default"]
+         |    scaling = 1.0
+         |  }
+         |  individualConfigs = [
+         |    {
+         |      calculateMissingReactivePowerWithModel = false
+         |      uuids = ["9abe950d-362e-4ffe-b686-500f84d8f368"]
+         |      scaling = 1.0
+         |    }
+         |  ]
+         |}
+         |
+         |simona.runtime.participant.storage = {
+         |  defaultConfig = {
+         |    calculateMissingReactivePowerWithModel = false
+         |    uuids = ["default"]
+         |    scaling = 1.0
+         |  }
+         |  individualConfigs = [
+         |    {
+         |      calculateMissingReactivePowerWithModel = false
+         |      uuids = ["9abe950d-362e-4ffe-b686-500f84d8f368"]
+         |      scaling = 1.0
+         |    }
+         |  ]
+         |}
+         |
+         |simona.runtime.participant.em = {
+         |  defaultConfig = {
+         |    calculateMissingReactivePowerWithModel = false
+         |    uuids = ["default"]
+         |    scaling = 1.0
+         |  }
+         |  individualConfigs = []
+         |}
+         |
          |simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
-         |simona.powerflow.skipOnFailure = true
+         |simona.powerflow.stopOnFailure = true
          |simona.powerflow.newtonraphson.epsilon = [1E-12]
          |simona.powerflow.newtonraphson.iterations = 50
          |simona.powerflow.resolution = "3600s"

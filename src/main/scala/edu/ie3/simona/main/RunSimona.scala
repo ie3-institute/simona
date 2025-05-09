@@ -6,21 +6,18 @@
 
 package edu.ie3.simona.main
 
-import java.util.Locale
-
-import akka.actor.{ActorRef, ActorSystem}
-import akka.pattern.gracefulStop
-import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.util.scala.quantities.QuantityUtil
+import org.apache.pekko.util.Timeout
 
-import scala.concurrent.Future
+import java.nio.file.Path
+import java.util.Locale
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Random
 
 /** Trait to be mixed in all implementations that should be used to run a simona
-  * simulation. For a sample implemenation see [[RunSimonaStandalone]].
+  * simulation. For a sample implementation see [[RunSimonaStandalone]].
   *
   * @version 0.1
   * @since 01.07.20
@@ -39,60 +36,83 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
 
     printOpener()
 
-    setup(args).foreach(run)
+    val simonaSetup = setup(args)
 
-    printGoodbye()
+    val successful = run(simonaSetup)
 
-    Thread.sleep(
-      1000
-    ) // prevents cutting of the log when having a fast simulation
-    System.exit(0)
-  }
+    printGoodbye(successful, simonaSetup.logOutputDir)
 
-  def shutdownGracefully(
-      simonaSim: ActorRef
-  )(implicit timeout: FiniteDuration): Future[Boolean] = {
-    gracefulStop(simonaSim, timeout)
+    // prevents cutting of the log when having a fast simulation
+    Thread.sleep(1000)
+
+    System.exit(if (successful) 0 else 1)
   }
 
   // a fancy opener
-  protected def printOpener(): Unit = {
+  private def printOpener(): Unit = {
     logger.info(
-      s"Starting SIMONA with interface '${getClass.getSimpleName.replaceAll("\\$", "")}'.\n" + "   _____ ______  _______  _   _____       ___    ____ \n  / ___//  _/  |/  / __ \\/ | / /   |     |__ \\  / __ \\\n  \\__ \\ / // /|_/ / / / /  |/ / /| |     __/ / / / / /\n ___/ // // /  / / /_/ / /|  / ___ |    / __/_/ /_/ / \n/____/___/_/  /_/\\____/_/ |_/_/  |_|   /____(_)____/  \n                                                      "
+      s"Starting SIMONA with interface '${getClass.getSimpleName.replaceAll("\\$", "")}'.\n" + "   _____ ______  _______  _   _____ \n  / ___//  _/  |/  / __ \\/ | / /   |\n  \\__ \\ / // /|_/ / / / /  |/ / /| |\n ___/ // // /  / / /_/ / /|  / ___ |\n/____/___/_/  /_/\\____/_/ |_/_/  |_|\n                                    "
     )
   }
 
-  def printGoodbye(): Unit = {
+  private def printGoodbye(
+      successful: Boolean,
+      logOutputDir: Path,
+  ): Unit = {
     val myWords = Array(
       "\"Vielleicht ist heute ein besonders guter Tag zum Sterben.\" - Worf (in Star Trek: Der erste Kontakt)",
       "\"Assimiliert das!\" - Worf (in Star Trek: Der erste Kontakt)",
       "\"Lebe lang und erfolgreich.\" - Gruppe von Vulkanier (in Star Trek: Der erste Kontakt)",
       "\"Ich bin der Anfang, das Ende, die Eine, die Viele ist. Ich bin die Borg.\" - Borg-Königin (in Star Trek: Der erste Kontakt)",
-      "\"A horse! A horse! My kingdom for a horse!\" - King Richard III (in Shakespeare's Richard III, 1594)"
+      "\"A horse! A horse! My kingdom for a horse!\" - King Richard III (in Shakespeare's Richard III, 1594)",
+      "\"Und wenn du lange in einen Abgrund blickst, blickt der Abgrund auch in dich hinein\" - F. Nietzsche",
+      "\"Before anything else, preparation is the key to success.\" - Alexander Graham Bell",
     )
 
     val rand = new Random
     val randIdx = rand.nextInt(myWords.length)
     logger.info(myWords(randIdx))
     logger.info("Goodbye!")
+
+    if (!successful) {
+      // to ensure that the link to the log is printed last
+      Thread.sleep(1000)
+
+      val path = logOutputDir.resolve("simona.log").toUri
+
+      logger.error(
+        s"Simulation stopped due to the occurrence of an error! The full log can be found here: $path"
+      )
+    }
   }
 
-  /** Method to be implemented to setup everything that is necessary for a
-    * sequence of simulations. This is by creating an instance of
-    * [[SimonaSetup]] implementation
+  /** Method to be implemented to set up everything that is necessary for a
+    * simulation. This is by creating an instance of [[SimonaSetup]]
+    * implementation
     *
     * @param args
     *   arguments provided by the command line
     * @return
-    *   the setup instances
+    *   the setup instance
     */
-  def setup(args: Array[String]): Seq[T]
+  def setup(args: Array[String]): T
 
   /** Actually run the simona simulation using the provided [[SimonaSetup]]
     *
     * @param simonaSetup
     *   the setup data that should be used
+    * @return
+    *   Whether the simualtion was successful or not
     */
-  def run(simonaSetup: T): Unit
+  def run(simonaSetup: T): Boolean
+
+}
+
+object RunSimona {
+
+  /** Reported back from the scheduler if an error occurred during the
+    * simulation
+    */
+  final case class SimonaEnded(successful: Boolean)
 
 }

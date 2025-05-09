@@ -38,7 +38,7 @@ trait KafkaSpecLike extends BeforeAndAfterAll {
         new NewTopic(
           topic.name,
           topic.partitions,
-          topic.replicationFactor
+          topic.replicationFactor,
         )
       }.asJava
     )
@@ -58,6 +58,6 @@ object KafkaSpecLike {
   final case class Topic(
       name: String,
       partitions: Int,
-      replicationFactor: Short
+      replicationFactor: Short,
   )
 }

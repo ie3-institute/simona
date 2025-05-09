@@ -1,239 +1,416 @@
 /*
- * © 2021. TU Dortmund University,
+ * © 2020. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
 
 package edu.ie3.simona.model.participant
 
+import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.models.input.container.{ThermalGrid => PsdmThermalGrid}
+import edu.ie3.datamodel.models.input.system.HpInput
+import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.system.{
+  HpResult,
+  SystemParticipantResult,
+}
+import edu.ie3.simona.model.participant.HpModel.{HpOperatingPoint, HpState}
+import edu.ie3.simona.model.participant.ParticipantModel.{
+  ModelState,
+  OperatingPoint,
+  OperationChangeIndicator,
+  ParticipantModelFactory,
+}
+import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.thermal.ThermalGrid
+import edu.ie3.simona.model.thermal.ThermalGrid._
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.service.Data.PrimaryData.{
+  ComplexPower,
+  ComplexPowerAndHeat,
+  PrimaryDataWithComplexPower,
+}
+import edu.ie3.simona.service.{Data, ServiceType}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
+import edu.ie3.util.scala.quantities._
+import squants._
+
+import java.time.ZonedDateTime
 import java.util.UUID
 
-import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.input.system.HpInput
-import edu.ie3.simona.model.participant.HpModel._
-import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.thermal.ThermalHouse
-import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities
-import javax.measure.quantity.{Power, Temperature, Time}
-import tech.units.indriya.ComparableQuantity
-import edu.ie3.simona.util.TickUtil.TickLong
+class HpModel private (
+    override val uuid: UUID,
+    override val id: String,
+    override val sRated: ApparentPower,
+    override val cosPhiRated: Double,
+    override val qControl: QControl,
+    private val pThermal: Power,
+    private val thermalGrid: ThermalGrid,
+) extends ParticipantModel[
+      HpOperatingPoint,
+      HpState,
+    ]
+    with LazyLogging {
 
-/** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
-  * [[HpState]].
-  *
-  * @param uuid
-  *   the element's uuid
-  * @param id
-  *   the element's human readable id
-  * @param operationInterval
-  *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
-  * @param qControl
-  *   Type of reactive power control
-  * @param sRated
-  *   Rated apparent power
-  * @param cosPhiRated
-  *   Rated power factor
-  * @param pThermal
-  *   Thermal output of heat pump
-  * @param thermalHouse
-  *   Thermal house with a variable inner temperature, temperature boundaries,
-  *   transmission coefficient and heat energy storage capacity
-  */
-final case class HpModel(
-    uuid: UUID,
-    id: String,
-    operationInterval: OperationInterval,
-    scalingFactor: Double,
-    qControl: QControl,
-    sRated: ComparableQuantity[Power],
-    cosPhiRated: Double,
-    pThermal: ComparableQuantity[Power],
-    thermalHouse: ThermalHouse
-) extends SystemParticipant[HpData](
-      uuid,
-      id,
-      operationInterval,
-      scalingFactor,
-      qControl,
-      sRated,
-      cosPhiRated
-    ) {
+  override def determineState(
+      lastState: HpState,
+      operatingPoint: HpOperatingPoint,
+      tick: Long,
+      simulationTime: ZonedDateTime,
+  ): HpState = {
 
-  private val pRated: ComparableQuantity[Power] =
-    sRated
-      .multiply(cosPhiRated)
-      .multiply(scalingFactor)
-      .to(StandardUnits.ACTIVE_POWER_IN)
+    val thermalGridState =
+      thermalGrid.determineState(
+        tick,
+        lastState.thermalGridState,
+        operatingPoint,
+      )
 
-  /** As this is a state-full model (with respect to the current operation
-    * condition and inner temperature), the power calculation operates on the
-    * current state of the model, which has to be calculated beforehand by
-    * [[HpModel.calculateNextState]]. This state then is fed into the power
-    * calculation logic by <i>hpData</i>.
-    *
-    * @param hpData
-    *   data of heat pump including state of the heat pump
-    * @return
-    *   active power
-    */
-  override protected def calculateActivePower(
-      hpData: HpData
-  ): ComparableQuantity[Power] = {
-    calculateNextState(hpData)
-    hpData.hpState.activePower
-  }
+    val thermalDemands = thermalGrid.determineEnergyDemand(thermalGridState)
 
-  /** Given a [[HpData]] object, containing the [[HpState]], other values and
-    * the current time tick, this function calculates the heat pump's next state
-    * To get the actual active power of this state use [[calculateActivePower]]
-    * with the generated state
-    *
-    * @param hpData
-    *   data of heat pump including state of the heat pump
-    * @return
-    *   next [[HpState]]
-    */
-  def calculateNextState(hpData: HpData): HpState = {
-    val turnOn = operatesInNextState(hpData)
-    calcState(hpData, turnOn)
-  }
-
-  /** Depending on the input, this function decides whether the heat pump will
-    * run in the next state or not. As hysteresis is considered, four possible
-    * cases can be distinguished: <ul> <li>Case 1: Inner temperature is too high
-    * -> Heat pump should not run in next state <li>Case 2: Inner temperature is
-    * too low -> Heat pump should run in next state <li>Case 3: Heat pump is
-    * running and inner temperature is between boundaries -> Heat pump should
-    * run in next state (until over upper boundary) <li>Case 4: Heat pump is not
-    * running and inner temperature is between boundaries -> Heat pump should
-    * not run in next state (until below lower boundary) </ul>
-    *
-    * @return
-    *   boolean defining if heat pump runs in next time step
-    */
-  def operatesInNextState(hpData: HpData): Boolean = {
-    val isRunning = hpData.hpState.isRunning
-    val tooHigh =
-      thermalHouse.isInnerTemperatureTooHigh(hpData.hpState.innerTemperature)
-    val tooLow =
-      thermalHouse.isInnerTemperatureTooLow(hpData.hpState.innerTemperature)
-
-    tooLow || (isRunning && !tooLow && !tooHigh)
-  }
-
-  /** Calculate state depending on whether heat pump is needed or not. Also
-    * calculate inner temperature change of thermal house and update its inner
-    * temperature.
-    *
-    * @param hpData
-    *   data of heat pump including state of the heat pump
-    * @param isRunning
-    *   determines whether the heat pump is running or not
-    * @return
-    *   next [[HpState]]
-    */
-  private def calcState(hpData: HpData, isRunning: Boolean): HpState = {
-    val (newActivePower, newThermalPower) =
-      if (isRunning)
-        (pRated, pThermal.multiply(scalingFactor))
-      else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
-
-    val duration: ComparableQuantity[Time] =
-      hpData.hpState.lastTimeTick.durationUntil(hpData.currentTimeTick)
-
-    val newInnerTemperature = thermalHouse.newInnerTemperature(
-      newThermalPower,
-      duration,
-      hpData.hpState.innerTemperature,
-      hpData.ambientTemperature
-    )
-
-    HpState(
-      isRunning,
-      hpData.currentTimeTick,
-      newActivePower,
-      newInnerTemperature
+    lastState.copy(
+      tick = tick,
+      thermalGridState = thermalGridState,
+      lastHpOperatingPoint = operatingPoint,
+      thermalDemands = thermalDemands,
     )
   }
 
+  override def handleInput(
+      state: HpState,
+      receivedData: Seq[Data],
+      nodalVoltage: Dimensionless,
+  ): HpState = {
+    receivedData
+      .collectFirst { case weatherData: WeatherData =>
+        weatherData
+      }
+      .map(newData =>
+        state.copy(
+          thermalGridState = state.thermalGridState.copy(houseState =
+            state.thermalGridState.houseState
+              .map(_.copy(ambientTemperature = newData.temp))
+          )
+        )
+      )
+      .getOrElse(state)
+  }
+
+  override def determineFlexOptions(
+      state: HpState
+  ): FlexOptions = {
+    val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
+
+    // Determining the operation point and limitations at this tick
+    val (turnOn, canOperate, canBeOutOfOperation) =
+      determineHpOperatingOptions(
+        state.thermalGridState,
+        state.thermalDemands,
+        wasRunningLastOp,
+      )
+
+    MinMaxFlexOptions(
+      if (turnOn) sRated.toActivePower(cosPhiRated) else zeroKW,
+      if (canBeOutOfOperation) zeroKW else sRated.toActivePower(cosPhiRated),
+      if (canOperate) sRated.toActivePower(cosPhiRated) else zeroKW,
+    )
+  }
+
+  /** Calculate the active power behaviour of the model.
+    *
+    * @param state
+    *   The current state including weather data.
+    * @return
+    *   The active power.
+    */
+  override def determineOperatingPoint(
+      state: HpState
+  ): (HpOperatingPoint, Option[Long]) =
+    findOperatingPointAndNextThreshold(state, None)
+
+  /** Calculate the active power behaviour of the model.
+    *
+    * @param state
+    *   The current state including weather data.
+    * @param setPower
+    *   The power set by the energy management.
+    * @return
+    *   The active power.
+    */
+  override def determineOperatingPoint(
+      state: HpState,
+      setPower: Power,
+  ): (HpOperatingPoint, OperationChangeIndicator) = {
+    val (operatingPoint, nextTick) =
+      findOperatingPointAndNextThreshold(state, Some(setPower))
+
+    (
+      operatingPoint,
+      OperationChangeIndicator(
+        changesAtNextActivation = true,
+        changesAtTick = nextTick,
+      ),
+    )
+  }
+
+  override def zeroPowerOperatingPoint: HpOperatingPoint =
+    HpOperatingPoint.zero
+
+  /** Depending on the input, this function calculates the next operating point
+    * of the heat pump and the next threshold.
+    *
+    * @param state
+    *   Currently applicable HpState.
+    * @param setPower
+    *   The setPower from Em, if there is some.
+    * @return
+    *   The operating point of the Hp and the next threshold if there is one.
+    */
+  private def findOperatingPointAndNextThreshold(
+      state: HpState,
+      setPower: Option[Power],
+  ): (HpOperatingPoint, Option[Long]) = {
+
+    /* Determine active and thermal power of the Hp */
+    val (newActivePowerHp, qDotIntoGrid) = determineHpOperation(state, setPower)
+
+    /* Determine how qDot is used in thermalGrid and get threshold */
+    val (thermalGridOperatingPoint, maybeThreshold) =
+      if (qDotIntoGrid > zeroKW) {
+        thermalGrid.handleFeedIn(
+          state,
+          qDotIntoGrid,
+        )
+      } else
+        thermalGrid.handleConsumption(state)
+
+    val operatingPoint =
+      HpOperatingPoint(
+        newActivePowerHp,
+        thermalGridOperatingPoint,
+      )
+
+    val nextTick = maybeThreshold match {
+      case Some(threshold) => Some(threshold.tick)
+      case None            => None
+    }
+
+    (operatingPoint, nextTick)
+  }
+
+  /** Depending on the input, this function calculates the active power and
+    * thermal power (qDot) of the heat pump.
+    *
+    * @param state
+    *   Currently applicable HpState.
+    * @param setPower
+    *   The setPower from Em, if there is some.
+    * @return
+    *   The new active power of the heat pump and the thermal power (qDot) from
+    *   the heat pump, feed into the thermal grid.
+    */
+  private def determineHpOperation(
+      state: HpState,
+      setPower: Option[Power],
+  ): (Power, Power) = {
+    val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
+    val turnOn = setPower match {
+      case Some(value) =>
+        /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
+        value > (sRated.toActivePower(cosPhiRated) * 0.5)
+      case None =>
+        determineHpOperatingOptions(
+          state.thermalGridState,
+          state.thermalDemands,
+          wasRunningLastOp,
+        )._1
+    }
+
+    if (turnOn) (pRated, pThermal)
+    else (zeroKW, zeroKW)
+  }
+
+  /** Depending on the input, this function determines the different operating
+    * options of the heat pump. The heat pump is foreseen to operate, if the
+    * thermal grid either has a demand that needs to be met or the heat pump
+    * currently is in operation and the grid is able to handle some possible
+    * energy demand.
+    *
+    * @param thermalGridState
+    *   State of the thermalGrid.
+    * @param thermalDemands
+    *   ThermalEnergyDemand of the house and the thermal storage.
+    * @param wasRunningLastPeriod
+    *   Indicates if the Hp was running till this tick.
+    * @return
+    *   Boolean defining if the heat pump will run as default behaviour, if it
+    *   can be in operation and can be out of operation as flexibility options.
+    */
+  private def determineHpOperatingOptions(
+      thermalGridState: ThermalGridState,
+      thermalDemands: ThermalDemandWrapper,
+      wasRunningLastPeriod: Boolean,
+  ): (Boolean, Boolean, Boolean) = {
+
+    val demandHouse = thermalDemands.houseDemand
+    val demandThermalStorage = thermalDemands.heatStorageDemand
+    val noThermalStorageOrEmpty = thermalGridState.isThermalStorageEmpty
+
+    val turnHpOn =
+      (demandHouse.hasRequiredDemand && noThermalStorageOrEmpty) ||
+        (demandHouse.hasPossibleDemand && wasRunningLastPeriod ||
+          demandThermalStorage.hasRequiredDemand ||
+          (demandThermalStorage.hasPossibleDemand && wasRunningLastPeriod))
+
+    val canOperate =
+      demandHouse.hasRequiredDemand || demandHouse.hasPossibleDemand ||
+        demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasPossibleDemand
+    val canBeOutOfOperation =
+      !(demandHouse.hasRequiredDemand && noThermalStorageOrEmpty)
+
+    (
+      turnHpOn,
+      canOperate,
+      canBeOutOfOperation,
+    )
+  }
+
+  override def createResults(
+      state: HpState,
+      lastOperatingPoint: Option[HpOperatingPoint],
+      currentOperatingPoint: HpOperatingPoint,
+      complexPower: ComplexPower,
+      dateTime: ZonedDateTime,
+  ): Iterable[ResultEntity] = {
+    Iterable(
+      new HpResult(
+        dateTime,
+        uuid,
+        complexPower.p.toMegawatts.asMegaWatt,
+        complexPower.q.toMegavars.asMegaVar,
+        currentOperatingPoint.thermalOps.qDotHp.toMegawatts.asMegaWatt,
+      )
+    ) ++ thermalGrid.results(
+      state,
+      lastOperatingPoint,
+      currentOperatingPoint,
+      dateTime,
+    )
+  }
+
+  override def createPrimaryDataResult(
+      data: PrimaryDataWithComplexPower[_],
+      dateTime: ZonedDateTime,
+  ): SystemParticipantResult = {
+    data match {
+      case result: ComplexPowerAndHeat =>
+        new HpResult(
+          dateTime,
+          uuid,
+          result.p.toMegawatts.asMegaWatt,
+          result.q.toMegavars.asMegaVar,
+          result.qDot.toMegawatts.asMegaWatt,
+        )
+      case unknown =>
+        throw new IllegalArgumentException(
+          s"Unknown data type when matching for primary data results $unknown!"
+        )
+    }
+  }
 }
 
-/** Create valid [[HpModel]] by calling the apply function.
-  */
-case object HpModel {
-
-  /** As the HpModel class is a dynamic model, it requires a state for its
-    * calculations. The state contains all variables needed including the inner
-    * temperature.
-    *
-    * @param isRunning
-    *   indicates if CHP is turned on
-    * @param lastTimeTick
-    *   contains last time tick
-    * @param activePower
-    *   result active power
-    * @param innerTemperature
-    *   inner temperature of the thermal house
-    */
-  final case class HpState(
-      isRunning: Boolean,
-      lastTimeTick: Long,
-      activePower: ComparableQuantity[Power],
-      innerTemperature: ComparableQuantity[Temperature]
-  )
-
-  /** Main data required for simulation/calculation, containing a [[HpState]]
-    * and the current time tick. <p> [[HpData.currentTimeTick]] and
-    * [[HpState.lastTimeTick]] form a time interval for the current state
-    * calculation. One time tick represents one second (3600 time ticks = 1
-    * hour).
-    *
-    * @param hpState
-    *   a [[HpState]]
-    * @param currentTimeTick
-    *   contains current time tick
-    */
-  final case class HpData(
-      hpState: HpState,
-      currentTimeTick: Long,
-      ambientTemperature: ComparableQuantity[Temperature]
-  ) extends CalcRelevantData
-
-  /** Internal method to construct a new [[HpModel]] based on a provided
-    * [[HpInput]]
-    *
-    * @param hpInput
-    *   instance of [[HpInput]] this chp model should be built from
-    * @param operationInterval
-    *   operation interval of the simulation
-    * @param qControl
-    *   (no usage)
-    * @param thermalHouse
-    *   thermal house defining transmission coefficient and heat energy storage
-    *   capacity
-    * @return
-    *   a ready-to-use [[HpModel]] with referenced electric parameters
-    */
-  def apply(
-      hpInput: HpInput,
-      operationInterval: OperationInterval,
-      qControl: QControl,
-      thermalHouse: ThermalHouse
-  ): HpModel = {
-    new HpModel(
-      hpInput.getUuid,
-      hpInput.getId,
-      operationInterval,
-      scalingFactor = 1.0,
-      qControl,
-      hpInput.getType.getsRated,
-      hpInput.getType.getCosPhiRated,
-      hpInput.getType.getpThermal,
-      thermalHouse
-    )
+object HpModel {
+  final case class HpOperatingPoint(
+      override val activePower: Power,
+      thermalOps: ThermalGridOperatingPoint,
+  ) extends OperatingPoint {
+    override val reactivePower: Option[ReactivePower] = None
   }
 
+  object HpOperatingPoint {
+    def zero: HpOperatingPoint =
+      HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero)
+  }
+
+  /** Operating point of the thermal grid.
+    *
+    * @param qDotHp
+    *   The thermal power output of the heat pump.
+    * @param qDotHouse
+    *   The thermal power input of the
+    *   [[edu.ie3.simona.model.thermal.ThermalHouse]].
+    * @param qDotHeatStorage
+    *   The thermal power input of the
+    *   [[edu.ie3.simona.model.thermal.ThermalStorage]].
+    */
+  final case class ThermalGridOperatingPoint private (
+      qDotHp: Power,
+      qDotHouse: Power,
+      qDotHeatStorage: Power,
+  )
+  object ThermalGridOperatingPoint {
+    def zero: ThermalGridOperatingPoint =
+      ThermalGridOperatingPoint(zeroKW, zeroKW, zeroKW)
+  }
+
+  /** Holds all relevant data for a hp model calculation.
+    *
+    * @param tick
+    *   The current tick.
+    * @param thermalGridState
+    *   The applicable state of the [[ThermalGrid]].
+    * @param lastHpOperatingPoint
+    *   The last [[HpOperatingPoint]] of the heat pump.
+    * @param thermalDemands
+    *   The current thermal demands of the thermal grid elements (house,
+    *   storage).
+    */
+  final case class HpState(
+      override val tick: Long,
+      thermalGridState: ThermalGridState,
+      lastHpOperatingPoint: HpOperatingPoint,
+      thermalDemands: ThermalDemandWrapper,
+  ) extends ModelState
+
+  final case class Factory(
+      input: HpInput,
+      thermalGrid: PsdmThermalGrid,
+  ) extends ParticipantModelFactory[HpState] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.WeatherService)
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): HpState = {
+      val therGrid = ThermalGrid(thermalGrid)
+      val initialState = ThermalGrid.startingState(therGrid, zeroCelsius)
+      val thermalDemand = therGrid.determineEnergyDemand(initialState)
+
+      HpState(
+        tick,
+        initialState,
+        HpOperatingPoint.zero,
+        thermalDemand,
+      )
+    }
+
+    override def create(): HpModel = {
+      val bmType = input.getType
+
+      new HpModel(
+        input.getUuid,
+        input.getId,
+        bmType.getsRated.toApparent,
+        input.getType.getCosPhiRated,
+        QControl(input.getqCharacteristics),
+        bmType.getpThermal.toSquants,
+        ThermalGrid(thermalGrid),
+      )
+    }
+  }
 }

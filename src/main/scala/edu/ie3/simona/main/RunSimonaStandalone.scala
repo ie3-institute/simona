@@ -6,34 +6,26 @@
 
 package edu.ie3.simona.main
 
-import akka.actor.ActorSystem
-
-import java.util.concurrent.TimeUnit
-import akka.pattern.ask
-import akka.util.Timeout
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  InitSimMessage,
-  SimulationFailureMessage,
-  SimulationSuccessfulMessage
-}
+import edu.ie3.simona.main.RunSimona._
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
+import org.apache.pekko.actor.typed.scaladsl.AskPattern._
+import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
+import org.apache.pekko.util.Timeout
 
 import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
 
 /** Run a standalone simulation of simona
   *
-  * @version 0.1
   * @since 01.07.20
   */
 object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
-  override implicit val timeout: Timeout = Timeout(50000, TimeUnit.SECONDS)
+  override implicit val timeout: Timeout = Timeout(12.hours)
 
-  override def setup(
-      args: Array[String]
-  ): Seq[SimonaStandaloneSetup] = {
+  override def setup(args: Array[String]): SimonaStandaloneSetup = {
     // get the config and prepare it with the provided args
     val (arguments, parsedConfig) = ArgsParser.prepareConfig(args)
 
@@ -41,38 +33,33 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
     val simonaConfig = SimonaConfig(parsedConfig)
     ConfigFailFast.check(parsedConfig, simonaConfig)
 
-    Seq(
-      SimonaStandaloneSetup(
-        parsedConfig,
-        SimonaStandaloneSetup.buildResultFileHierarchy(parsedConfig),
-        mainArgs = arguments.mainArgs
-      )
+    SimonaStandaloneSetup(
+      parsedConfig,
+      simonaConfig,
+      SimonaStandaloneSetup
+        .buildResultFileHierarchy(parsedConfig, simonaConfig),
+      mainArgs = arguments.mainArgs,
     )
   }
 
-  override def run(
-      simonaSetup: SimonaStandaloneSetup
-  ): Unit = {
-    val actorSystem: ActorSystem = simonaSetup.buildActorSystem.apply()
-    // build the simulation container actor
-    val simonaSim = actorSystem.actorOf(
-      SimonaSim.props(simonaSetup)
+  override def run(simonaSetup: SimonaStandaloneSetup): Boolean = {
+    val simonaSim = ActorSystem(
+      SimonaSim(simonaSetup),
+      name = "Simona",
+      config = simonaSetup.typeSafeConfig,
     )
 
+    implicit val scheduler: Scheduler = simonaSim.scheduler
+
     // run the simulation
-    val terminated = simonaSim ? InitSimMessage
+    val terminated = simonaSim.ask[SimonaEnded](ref => SimonaSim.Start(ref))
 
     Await.result(terminated, timeout.duration) match {
-      case SimulationFailureMessage | SimulationSuccessfulMessage =>
-        Await.ready(shutdownGracefully(simonaSim), timeout.duration)
-        Await.ready(actorSystem.terminate(), timeout.duration)
+      case SimonaEnded(successful) =>
+        simonaSim.terminate()
 
-      case unknown =>
-        throw new RuntimeException(
-          s"Unexpected message from SimonaSim $unknown"
-        )
+        successful
     }
-
   }
 
 }

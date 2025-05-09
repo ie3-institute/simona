@@ -12,16 +12,11 @@ import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.simona.test.common.model.MockEvModel
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 
-import java.time.ZonedDateTime
 import java.util.UUID
 
 trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
@@ -29,40 +24,68 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
   protected val evcsInputModel = new EvcsInput(
     UUID.randomUUID(),
     "Dummy_EvcsModel",
-    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
     ChargingPointTypeUtils.ChargingStationType2,
     2,
-    0.95,
+    1,
     EvcsLocationType.HOME,
-    true
+    true,
   )
 
-  protected val simonaConfig: SimonaConfig =
-    createSimonaConfig(
-      LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
-    )
+  protected val evcsInputContainer = SimpleInputContainer(evcsInputModel)
 
-  private val configUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+  protected val ev1 = new MockEvModel(
+    UUID.fromString("0-0-0-1-1"),
+    "TestEv1",
+    5.0.asKiloWatt,
+    10.0.asKiloWatt,
+    10.0.asKiloWattHour,
+    5.0.asKiloWattHour,
+    18000L,
   )
 
-  protected val defaultOutputConfig: ParticipantNotifierConfig =
-    ParticipantNotifierConfig(
-      simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-      simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
-    )
+  protected val ev2 = new MockEvModel(
+    UUID.fromString("0-0-0-1-2"),
+    "TestEv2",
+    5.0.asKiloWatt,
+    10.0.asKiloWatt,
+    10.0.asKiloWattHour,
+    7.5.asKiloWattHour,
+    18000L,
+  )
 
-  protected val modelConfig: SimonaConfig.EvcsRuntimeConfig =
-    configUtil.getOrDefault[SimonaConfig.EvcsRuntimeConfig](
-      evcsInputModel.getUuid
-    )
+  protected val ev3 = new MockEvModel(
+    UUID.fromString("0-0-0-1-3"),
+    "TestEv3",
+    10.0.asKiloWatt, // AC is relevant,
+    20.0.asKiloWatt, // DC is not
+    20.0.asKiloWattHour,
+    15.0.asKiloWattHour,
+    10800L,
+  )
 
-  protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
-  protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 02:00:00")
+  protected val ev4 = new MockEvModel(
+    UUID.fromString("0-0-0-1-4"),
+    "TestEv4",
+    10.0.asKiloWatt, // AC is relevant,
+    20.0.asKiloWatt, // DC is not
+    10.0.asKiloWattHour,
+    0.0.asKiloWattHour,
+    10800L,
+  )
+
+  protected val ev5 = new MockEvModel(
+    UUID.fromString("0-0-0-1-5"),
+    "TestEv5",
+    5.0.asKiloWatt, // AC is relevant,
+    10.0.asKiloWatt, // DC is not
+    15.0.asKiloWattHour,
+    0.0.asKiloWattHour,
+    14400L,
+  )
+
 }

@@ -1,0 +1,82 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+' set fixed order
+participant Scheduler
+participant EmAgent
+participant PvAgent
+participant StorageAgent
+participant WeatherService
+
+autonumber
+
+==Init==
+
+PvAgent -> WeatherService: RegisterForWeatherMessage
+activate PvAgent
+activate WeatherService
+PvAgent -> EmAgent: RegisterParticipant
+deactivate PvAgent
+
+WeatherService -> PvAgent: RegistrationSuccessfulMessage
+deactivate WeatherService
+activate PvAgent
+PvAgent -> EmAgent: ScheduleFlexRequest(tick=0)
+deactivate PvAgent
+activate EmAgent
+
+EmAgent -> Scheduler: ScheduleActivation(tick=0)
+deactivate EmAgent
+
+StorageAgent -> EmAgent: RegisterParticipant
+StorageAgent -> EmAgent: ScheduleFlexRequest(tick=0)
+
+note left
+EmAgent has already been
+scheduled for tick 0, thus
+we don't do it again here
+end note
+
+==Tick 0==
+
+Scheduler -> WeatherService: Activation(tick=0)
+activate WeatherService
+
+WeatherService -> PvAgent: ProvideWeatherMessage
+
+WeatherService -> Scheduler: Completion(nextTick=3600)
+deactivate WeatherService
+
+Scheduler -> EmAgent: Activation(tick=0)
+activate EmAgent
+
+EmAgent -> StorageAgent: FlexActivation(tick=0)
+activate StorageAgent
+
+EmAgent -> PvAgent: FlexActivation(tick=0)
+activate PvAgent
+
+PvAgent -> EmAgent: ProvideFlexOptions
+deactivate PvAgent
+
+StorageAgent -> EmAgent: ProvideFlexOptions
+deactivate StorageAgent
+
+EmAgent -> PvAgent: IssueNoControl(tick=0)
+activate PvAgent
+
+EmAgent -> StorageAgent: IssuePowerControl(tick=0)
+activate StorageAgent
+
+PvAgent -> EmAgent: FlexResult
+PvAgent -> EmAgent: FlexCompletion(nextTick=3600)
+deactivate PvAgent
+
+StorageAgent -> EmAgent: FlexResult
+StorageAgent -> EmAgent: FlexCompletion(nextTick=8400)
+deactivate StorageAgent
+
+EmAgent -> Scheduler: Completion(nextTick=3600)
+deactivate EmAgent
+
+@enduml

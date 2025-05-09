@@ -21,7 +21,7 @@ class SwitchModelSpec extends UnitSpec with DefaultTestData {
       val switchModel: SwitchModel = SwitchModel(
         switchInput,
         defaultSimulationStart,
-        defaultSimulationEnd
+        defaultSimulationEnd,
       )
 
       inside(switchModel) {
@@ -30,7 +30,7 @@ class SwitchModelSpec extends UnitSpec with DefaultTestData {
               id,
               operationInterval,
               nodeAUuid,
-              nodeBUuid
+              nodeBUuid,
             ) =>
           uuid should be(switchInput.getUuid)
           id should be(switchInput.getId)

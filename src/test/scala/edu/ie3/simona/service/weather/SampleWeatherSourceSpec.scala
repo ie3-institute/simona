@@ -6,20 +6,21 @@
 
 package edu.ie3.simona.service.weather
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
-  WeightedCoordinates
+  WeightedCoordinates,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
-import tech.units.indriya.quantity.Quantities
+import squants.{Temperature, Velocity}
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import scala.util.{Failure, Success}
@@ -29,20 +30,22 @@ class SampleWeatherSourceSpec
     with MockitoSugar
     with TableDrivenPropertyChecks {
   implicit val simulationStart: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2011-01-01T00:00:00Z")
+  implicit val toleranceIrradiance: Irradiance = WattsPerSquareMeter(0.1)
+  implicit val toleranceVelocity: Velocity = MetersPerSecond(0.01)
+  implicit val toleranceTemperature: Temperature = Celsius(0.01)
   val source: SampleWeatherSource = new SampleWeatherSource()
 
   "The sample weather source" should {
     "always return the queried coordinate itself as nearest coordinate" in {
       val queryCoordinate = AgentCoordinates(
         NodeInput.DEFAULT_GEO_POSITION.getY,
-        NodeInput.DEFAULT_GEO_POSITION.getX
+        NodeInput.DEFAULT_GEO_POSITION.getX,
       )
 
       source.getWeightedCoordinates(
         queryCoordinate,
         4,
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
       ) match {
         case Success(WeightedCoordinates(weighting)) =>
           weighting.corresponds(
@@ -55,7 +58,7 @@ class SampleWeatherSourceSpec
         case Failure(exception) =>
           fail(
             "Querying the nearest coordinates was supposed to pass.",
-            exception
+            exception,
           )
       }
     }
@@ -66,7 +69,7 @@ class SampleWeatherSourceSpec
         (0L, 86400L, (0L to 86400L by 3600L).toArray),
         (1L, 86400L, (3600L to 86400L by 3600L).toArray),
         (0L, 86399L, (0L to 82800L by 3600L).toArray),
-        (1L, 86399L, (3600L to 82800L by 3600L).toArray)
+        (1L, 86399L, (3600L to 82800L by 3600L).toArray),
       )
 
       testData.forEvery {
@@ -77,30 +80,23 @@ class SampleWeatherSourceSpec
 
     val getWeatherPrivate = PrivateMethod[WeatherData](Symbol("getWeather"))
     val tick =
-      TimeUtil.withDefaults.toZonedDateTime("2011-02-01 15:00:00").toTick
+      TimeUtil.withDefaults.toZonedDateTime("2011-02-01T15:00:00Z").toTick
 
     "return correct weather data in value and unit" in {
       val actual = source invokePrivate getWeatherPrivate(tick)
 
       /* Units meet expectation */
-      actual.diffIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
-      actual.dirIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
-      actual.temp.getUnit shouldBe StandardUnits.TEMPERATURE
-      actual.windVel.getUnit shouldBe StandardUnits.WIND_VELOCITY
+      actual.diffIrr.unit shouldBe WattsPerSquareMeter
+      actual.dirIrr.unit shouldBe WattsPerSquareMeter
+      actual.temp.unit shouldBe Celsius
+      actual.windVel.unit shouldBe MetersPerSecond
 
       /* Values meet expectations */
-      actual.diffIrr should equalWithTolerance(
-        Quantities.getQuantity(72.7656, StandardUnits.SOLAR_IRRADIANCE)
-      )
-      actual.dirIrr should equalWithTolerance(
-        Quantities.getQuantity(80.1172, StandardUnits.SOLAR_IRRADIANCE)
-      )
-      actual.windVel should equalWithTolerance(
-        Quantities.getQuantity(11.11602, StandardUnits.WIND_VELOCITY)
-      )
-      actual.temp should equalWithTolerance(
-        Quantities.getQuantity(6.459, StandardUnits.TEMPERATURE)
-      )
+      actual.diffIrr should approximate(WattsPerSquareMeter(72.7656))
+      actual.dirIrr should approximate(WattsPerSquareMeter(80.1172))
+      actual.windVel should approximate(MetersPerSecond(11.11602))
+      actual.temp should approximate(Celsius(6.459))
+
     }
 
     "return correct weather data neglecting the given coordinate" in {
@@ -109,25 +105,17 @@ class SampleWeatherSourceSpec
 
       source.getWeather(tick, weightedCoordinates) match {
         case WeatherData(diffIrr, dirIrr, temp, windVel) =>
-          diffIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
-          diffIrr should equalWithTolerance(
-            Quantities.getQuantity(72.7656, StandardUnits.SOLAR_IRRADIANCE)
-          )
+          diffIrr.unit shouldBe WattsPerSquareMeter
+          diffIrr should approximate(WattsPerSquareMeter(72.7656))
 
-          dirIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
-          dirIrr should equalWithTolerance(
-            Quantities.getQuantity(80.1172, StandardUnits.SOLAR_IRRADIANCE)
-          )
+          dirIrr.unit shouldBe WattsPerSquareMeter
+          dirIrr should approximate(WattsPerSquareMeter(80.1172))
 
-          temp.getUnit shouldBe StandardUnits.TEMPERATURE
-          temp should equalWithTolerance(
-            Quantities.getQuantity(6.459, StandardUnits.TEMPERATURE)
-          )
+          temp.unit shouldBe Celsius
+          temp should approximate(Celsius(6.459d))
 
-          windVel.getUnit shouldBe StandardUnits.WIND_VELOCITY
-          windVel should equalWithTolerance(
-            Quantities.getQuantity(11.11602, StandardUnits.WIND_VELOCITY)
-          )
+          windVel.unit shouldBe MetersPerSecond
+          windVel should approximate(MetersPerSecond(11.11602d))
       }
     }
   }

@@ -11,13 +11,16 @@ import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector._
 import edu.ie3.datamodel.models.input.container.SubGridContainer
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
+import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
   PowerFlowCaseB,
-  PowerFlowCaseC
+  PowerFlowCaseC,
 }
 import edu.ie3.simona.util.CollectionUtils
 import org.jgrapht.Graph
@@ -26,7 +29,6 @@ import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters._
 
 /** Representation of one physical electrical grid. It holds the references to
@@ -36,7 +38,9 @@ import scala.jdk.CollectionConverters._
 final case class GridModel(
     subnetNo: Int,
     mainRefSystem: RefSystem,
-    gridComponents: GridComponents
+    gridComponents: GridComponents,
+    voltageLimits: VoltageLimits,
+    gridControls: GridControls,
 ) {
 
   // init nodeUuidToIndexMap
@@ -50,7 +54,7 @@ final case class GridModel(
         nodeModel.uuid,
         throw new InvalidGridException(
           s"Requested slack node with uuid ${nodeModel.uuid} is not part of nodeToIndexMap!"
-        )
+        ),
       )
     )
     .toVector
@@ -58,16 +62,23 @@ final case class GridModel(
   def nodeUuidToIndexMap: Map[UUID, Int] = _nodeUuidToIndexMap
 }
 
-case object GridModel {
+object GridModel {
 
   def apply(
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
+      voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
-      endDate: ZonedDateTime
-  ): GridModel = {
-    buildAndValidate(subGridContainer, refSystem, startDate, endDate)
-  }
+      endDate: ZonedDateTime,
+      simonaConfig: SimonaConfig,
+  ): GridModel = buildAndValidate(
+    subGridContainer,
+    refSystem,
+    voltageLimits,
+    startDate,
+    endDate,
+    simonaConfig,
+  )
 
   /** structure that represents all grid components that are needed by a grid
     * model
@@ -77,7 +88,7 @@ case object GridModel {
       lines: Set[LineModel],
       transformers: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
-      switches: Set[SwitchModel]
+      switches: Set[SwitchModel],
   )
 
   /** Checks the availability of node calculation models, that are connected by
@@ -93,7 +104,7 @@ case object GridModel {
     */
   private def getConnectedNodes(
       connector: ConnectorInput,
-      nodes: Seq[NodeModel]
+      nodes: Seq[NodeModel],
   ): (NodeModel, NodeModel) = {
     val nodeAOpt: Option[NodeModel] =
       nodes.find(_.uuid.equals(connector.getNodeA.getUuid))
@@ -131,7 +142,7 @@ case object GridModel {
     */
   private def getConnectedNodes(
       transformerInput: Transformer3WInput,
-      nodes: Seq[NodeModel]
+      nodes: Seq[NodeModel],
   ): (NodeModel, NodeModel, NodeModel) = {
     val (nodeA, nodeB) =
       getConnectedNodes(transformerInput.asInstanceOf[ConnectorInput], nodes)
@@ -165,7 +176,7 @@ case object GridModel {
 
   def composeAdmittanceMatrix(
       nodeUuidToIndexMap: Map[UUID, Int],
-      gridComponents: GridComponents
+      gridComponents: GridComponents,
   ): DenseMatrix[Complex] = {
 
     val _returnAdmittanceMatrixIfValid
@@ -176,7 +187,7 @@ case object GridModel {
             { entry: Complex =>
               !entry.imag.isNaN & !entry.real.isNaN & entry.imag.isFinite & entry.real.isFinite
             },
-            admittanceMatrix
+            admittanceMatrix,
           )
         )
           throw new RuntimeException(s"Admittance matrix is illegal.")
@@ -186,22 +197,22 @@ case object GridModel {
 
     /*
     Nodes that are connected via a [closed] switch map to the same idx as we fuse them during the power flow.
-    Therefore the admittance matrix has to be of the size of the distinct node idxs.
+    Therefore, the admittance matrix has to be of the size of the distinct node idxs.
      */
     val linesAdmittanceMatrix = buildAssetAdmittanceMatrix(
       nodeUuidToIndexMap,
       gridComponents.lines,
-      getLinesAdmittance
+      getLinesAdmittance,
     )
     val trafoAdmittanceMatrix = buildAssetAdmittanceMatrix(
       nodeUuidToIndexMap,
       gridComponents.transformers,
-      getTransformerAdmittance
+      getTransformerAdmittance,
     )
     val trafo3wAdmittanceMatrix = buildAssetAdmittanceMatrix(
       nodeUuidToIndexMap,
       gridComponents.transformers3w,
-      getTransformer3wAdmittance
+      getTransformer3wAdmittance,
     )
 
     _returnAdmittanceMatrixIfValid(
@@ -214,8 +225,8 @@ case object GridModel {
       assets: Set[C],
       getAssetAdmittance: (
           Map[UUID, Int],
-          C
-      ) => (Int, Int, Complex, Complex, Complex)
+          C,
+      ) => (Int, Int, Complex, Complex, Complex),
   ): DenseMatrix[Complex] = {
     val matrixDimension = nodeUuidToIndexMap.values.toSeq.distinct.size
 
@@ -237,20 +248,20 @@ case object GridModel {
 
   private def getLinesAdmittance(
       nodeUuidToIndexMap: Map[UUID, Int],
-      line: LineModel
+      line: LineModel,
   ): (Int, Int, Complex, Complex, Complex) = {
 
     val (i: Int, j: Int) =
       (
         nodeUuidToIndexMap.getOrElse(
           line.nodeAUuid,
-          throwNodeNotFoundException(line.nodeAUuid)
+          throwNodeNotFoundException(line.nodeAUuid),
         ),
         nodeUuidToIndexMap
           .getOrElse(
             line.nodeBUuid,
-            throwNodeNotFoundException(line.nodeBUuid)
-          )
+            throwNodeNotFoundException(line.nodeBUuid),
+          ),
       )
 
     // yaa == ybb => we use yaa only
@@ -261,25 +272,25 @@ case object GridModel {
 
   private def getTransformerAdmittance(
       nodeUuidToIndexMap: Map[UUID, Int],
-      trafo: TransformerModel
+      trafo: TransformerModel,
   ): (Int, Int, Complex, Complex, Complex) = {
 
     val (i: Int, j: Int) =
       (
         nodeUuidToIndexMap.getOrElse(
           trafo.hvNodeUuid,
-          throwNodeNotFoundException(trafo.hvNodeUuid)
+          throwNodeNotFoundException(trafo.hvNodeUuid),
         ),
         nodeUuidToIndexMap.getOrElse(
           trafo.lvNodeUuid,
-          throwNodeNotFoundException(trafo.lvNodeUuid)
-        )
+          throwNodeNotFoundException(trafo.lvNodeUuid),
+        ),
       )
 
     val (yab, yaa, ybb) = (
       TransformerModel.yij(trafo),
       TransformerModel.y0(trafo, ConnectorPort.A),
-      TransformerModel.y0(trafo, ConnectorPort.B)
+      TransformerModel.y0(trafo, ConnectorPort.B),
     )
 
     (i, j, yab, yaa, ybb)
@@ -287,7 +298,7 @@ case object GridModel {
 
   private def getTransformer3wAdmittance(
       nodeUuidToIndexMap: Map[UUID, Int],
-      trafo3w: Transformer3wModel
+      trafo3w: Transformer3wModel,
   ): (Int, Int, Complex, Complex, Complex) = {
 
     // start with power flow case specific parameters
@@ -298,7 +309,7 @@ case object GridModel {
             trafo3w.hvNodeUuid,
             trafo3w.nodeInternalUuid,
             Transformer3wModel
-              .y0(trafo3w, Transformer3wModel.Transformer3wPort.INTERNAL)
+              .y0(trafo3w, Transformer3wModel.Transformer3wPort.INTERNAL),
           )
 
         case PowerFlowCaseB =>
@@ -313,7 +324,7 @@ case object GridModel {
         nodeUuidToIndexMap
           .getOrElse(nodeAUuid, throwNodeNotFoundException(nodeAUuid)),
         nodeUuidToIndexMap
-          .getOrElse(nodeBUuid, throwNodeNotFoundException(nodeBUuid))
+          .getOrElse(nodeBUuid, throwNodeNotFoundException(nodeBUuid)),
       )
 
     // these parameters are the same for all cases
@@ -324,7 +335,7 @@ case object GridModel {
   }
 
   /** This checks whether the provided grid model graph is connected, that means
-    * if every node can be reached from every other node trough a sequence of
+    * if every node can be reached from every other node through a sequence of
     * edges. Also checks for referenced nodes that are missing. This check
     * considers the state (enabled/disabled) of the elements.
     *
@@ -399,7 +410,7 @@ case object GridModel {
       noLines && noTransformers2w && noTransformers3w && (noOfNodes > noOfSlackNodes)
     )
       throw new InvalidGridException(
-        "The grid contains no basic branch elements (lines or transformers)."
+        f"The grid with subnet number ${gridModel.subnetNo} contains additional nodes beside the slack nodes and no basic branch elements (lines or transformers). This is invalid."
       )
 
     // slack
@@ -409,11 +420,11 @@ case object GridModel {
       )
 
     // electrical struct data
-    if (gridModel.mainRefSystem.nominalPower.getValue.doubleValue < 0.0)
+    if (gridModel.mainRefSystem.nominalPower.value.doubleValue < 0.0)
       throw new InvalidGridException(
         s"Nominal Power of a grid cannot be < 0. Please correct the value of the reference system for grid no ${gridModel.subnetNo}"
       )
-    if (gridModel.mainRefSystem.nominalVoltage.getValue.doubleValue < 0.0)
+    if (gridModel.mainRefSystem.nominalVoltage.value.doubleValue < 0.0)
       throw new InvalidGridException(
         s"Nominal Voltage of a grid cannot be < 0. Please correct the value of the reference system for grid no ${gridModel.subnetNo}"
       )
@@ -431,26 +442,71 @@ case object GridModel {
       throw new InvalidGridException(
         s"The grid model for subnet ${gridModel.subnetNo} has multiple nodes with the same name!"
       )
+  }
 
-    // multiple switches @ one node -> not supported yet!
-    val switchVector = gridModel.gridComponents.switches.foldLeft(
-      Vector.empty[UUID]
-    )((vector, switch) => (vector :+ switch.nodeAUuid) :+ switch.nodeBUuid)
-    val uniqueSwitchNodeIds = switchVector.toSet.toList
-    if (switchVector.diff(uniqueSwitchNodeIds).nonEmpty) {
-      throw new InvalidGridException(
-        s"The grid model for subnet ${gridModel.subnetNo} has nodes with multiple switches. This is not supported yet! Duplicates are located @ nodes: ${switchVector
-            .diff(uniqueSwitchNodeIds)}"
-      )
+  /** Checks all ControlGroups if a) Transformer of ControlGroup and Measurement
+    * belongs to the same sub grid. b) Measurements are measure voltage
+    * magnitude.
+    *
+    * @param subGridContainer
+    *   Container of all models for this sub grid
+    * @param maybeControlConfig
+    *   Config of ControlGroup
+    */
+  private def validateControlGroups(
+      subGridContainer: SubGridContainer,
+      maybeControlConfig: Option[SimonaConfig.Simona.Control],
+  ): Unit = {
+    maybeControlConfig.foreach { control =>
+      val measurementUnits =
+        subGridContainer.getRawGrid.getMeasurementUnits.asScala
+          .map(measurement => measurement.getUuid -> measurement)
+          .toMap
+
+      val transformerUnits2W =
+        subGridContainer.getRawGrid.getTransformer2Ws.asScala
+          .map(transformer2w => transformer2w.getUuid -> transformer2w)
+          .toMap
+
+      val transformerUnits3W =
+        subGridContainer.getRawGrid.getTransformer3Ws.asScala
+          .map(transformer3w => transformer3w.getUuid -> transformer3w)
+          .toMap
+
+      control.transformer.foreach { controlGroup =>
+        controlGroup.transformers.map(UUID.fromString).foreach { transformer =>
+          val transformerUnit2W = transformerUnits2W.get(transformer)
+          val transformerUnit3W = transformerUnits3W.get(transformer)
+
+          if (transformerUnit2W.isDefined || transformerUnit3W.isDefined) {
+            controlGroup.measurements
+              .map(UUID.fromString)
+              .foreach { measurement =>
+                val measurementUnit = measurementUnits.getOrElse(
+                  measurement,
+                  throw new GridAgentInitializationException(
+                    s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement unit whose UUID does not exist in this subnet."
+                  ),
+                )
+                if (!measurementUnit.getVMag)
+                  throw new GridAgentInitializationException(
+                    s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement unit which does not measure voltage magnitude."
+                  )
+              }
+          }
+
+        }
+      }
     }
-
   }
 
   private def buildAndValidate(
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
+      voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
-      endDate: ZonedDateTime
+      endDate: ZonedDateTime,
+      simonaConfig: SimonaConfig,
   ): GridModel = {
 
     // build
@@ -479,7 +535,7 @@ case object GridModel {
               transformer2wInput,
               refSystem,
               startDate,
-              endDate
+              endDate,
             )
           } else {
             throw new InvalidGridException(
@@ -498,7 +554,7 @@ case object GridModel {
             refSystem,
             subGridContainer.getSubnet,
             startDate,
-            endDate
+            endDate,
           )
       }.toSet
 
@@ -531,15 +587,40 @@ case object GridModel {
         lines,
         transformers,
         transformer3ws,
-        switches
+        switches,
       )
 
-    val gridModel =
-      GridModel(subGridContainer.getSubnet, refSystem, gridComponents)
+    /* Build transformer control groups */
+    val transformerControlGroups = simonaConfig.simona.control
+      .map { controlConfig =>
+        TransformerControlGroupModel.buildControlGroups(
+          subGridContainer.getRawGrid.getMeasurementUnits.asScala.toSet,
+          controlConfig.transformer,
+        )
+      }
+      .getOrElse(Set.empty)
+
+    val gridModel = GridModel(
+      subGridContainer.getSubnet,
+      refSystem,
+      gridComponents,
+      voltageLimits,
+      GridControls(transformerControlGroups),
+    )
+
+    /** Check and validates the grid. Especially the consistency of the grid
+      * model the connectivity of the grid model if there is InitData for
+      * superior or inferior GridGates if there exists voltage measurements for
+      * transformerControlGroups
+      */
 
     // validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
+    validateControlGroups(
+      subGridContainer,
+      simonaConfig.simona.control,
+    )
 
     // return
     gridModel
@@ -556,40 +637,82 @@ case object GridModel {
   def updateUuidToIndexMap(gridModel: GridModel): Unit = {
 
     val switches = gridModel.gridComponents.switches
-    val nodes = gridModel.gridComponents.nodes
+    val nodes = gridModel.gridComponents.nodes.distinct
 
-    val nodesAndSwitches: ListSet[SystemComponent] = ListSet
-      .empty[SystemComponent] ++ switches ++ nodes
-
-    val updatedNodeToUuidMap = nodesAndSwitches
-      .filter(_.isInOperation)
-      .filter {
-        case switch: SwitchModel => switch.isClosed
-        case _: NodeModel        => true
+    // map for each node that is directly connected to a switch,
+    // to all nodes that are directly connected via switch
+    val nodeConnections: Map[UUID, Set[UUID]] =
+      switches.filter(_.isClosed).foldLeft(Map.empty[UUID, Set[UUID]]) {
+        (acc, switch) =>
+          acc
+            .updated(
+              switch.nodeAUuid,
+              acc.getOrElse(switch.nodeAUuid, Set.empty) + switch.nodeBUuid,
+            )
+            .updated(
+              switch.nodeBUuid,
+              acc.getOrElse(switch.nodeBUuid, Set.empty) + switch.nodeAUuid,
+            )
       }
-      .zipWithIndex
-      .foldLeft(Map.empty[UUID, Int]) {
-        case (map, (gridComponent, componentId)) =>
-          gridComponent match {
-            case switchModel: SwitchModel =>
-              map ++ Map(
-                switchModel.nodeAUuid -> componentId,
-                switchModel.nodeBUuid -> componentId
-              )
 
-            case nodeModel: NodeModel =>
-              if (!map.contains(nodeModel.uuid)) {
-                val idx = map.values.toList.sorted.lastOption
-                  .getOrElse(
-                    -1
-                  ) + 1 // if we didn't found anything in the list, we don't have switches and want to start @ 0
-                map + (nodeModel.uuid -> idx)
-              } else {
-                map
-              }
+    // create sets of nodes to be fused together and assign common indices
+    val switchConnectedNodes =
+      findConnectedNodes(nodeConnections).zipWithIndex.flatMap {
+        case (nodes, idx) => nodes.map(_ -> idx)
+      }.toMap
+
+    // also account for all missing nodes (not connected to a switch)
+    val offset = switchConnectedNodes.values.maxOption.map(_ + 1).getOrElse(0)
+    val (updatedNodeToUuidMap, _) = nodes
+      .filter(_.isInOperation)
+      .foldLeft(Map.empty[UUID, Int], offset) {
+        case ((map, nextIdx), nodeModel) =>
+          switchConnectedNodes.get(nodeModel.uuid) match {
+            case Some(idx) => (map + (nodeModel.uuid -> idx), nextIdx)
+            case None =>
+              (map + (nodeModel.uuid -> nextIdx), nextIdx + 1)
           }
       }
 
     gridModel._nodeUuidToIndexMap = updatedNodeToUuidMap
+  }
+
+  /** Build sets of connected nodes via depth-first search
+    *
+    * @param nodeConnections
+    *   The connected nodes for each node
+    * @return
+    *   The sets of nodes
+    */
+  private def findConnectedNodes(
+      nodeConnections: Map[UUID, Set[UUID]]
+  ): Seq[Seq[UUID]] = {
+
+    def dfs(node: UUID, visited: Set[UUID] = Set.empty): Set[UUID] = {
+      nodeConnections
+        .getOrElse(node, Set.empty)
+        .foldLeft(visited + node) { case (accVisited, neighbor) =>
+          if (accVisited.contains(neighbor))
+            accVisited
+          else
+            dfs(neighbor, accVisited)
+        }
+    }
+
+    val (_, components) =
+      nodeConnections.keys.foldLeft((Set.empty[UUID], Seq.empty[Seq[UUID]])) {
+        case ((visited, components), node) =>
+          if (visited.contains(node)) {
+            (visited, components)
+          } else {
+            val component = dfs(node)
+            val updatedVisited = visited ++ component
+            val updatedComponents = components :+ component.toSeq
+
+            (updatedVisited, updatedComponents)
+          }
+      }
+
+    components
   }
 }

@@ -6,144 +6,141 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, Props, Stash}
+import edu.ie3.simona.actor.SimonaActorNaming
+import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
+  GridAgentConstantData,
   GridAgentInitData,
-  GridAgentUninitializedData
 }
-import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
-import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
-import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
+import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
-import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
-import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeGridAgentTrigger,
-  StartGridSimulationTrigger
+  Completion,
+  ScheduleActivation,
 }
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import scala.language.postfixOps
+import scala.language.{implicitConversions, postfixOps}
 
-object GridAgent {
-  def props(
+object GridAgent extends DBFSAlgorithm {
+
+  /** Trait for requests made to the [[GridAgent]] */
+  sealed trait Request
+
+  /** Necessary because we want to extend messages in other classes, but we do
+    * want to keep the messages only available inside this package.
+    */
+  private[grid] trait InternalRequest extends Request
+  private[grid] trait InternalReply extends Request
+
+  def apply(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
-      listener: Iterable[ActorRef]
-  ): Props =
-    Props(
-      new GridAgent(
+      listener: Iterable[ActorRef[ResultEvent]],
+  ): Behavior[Request] = Behaviors.withStash(100) { buffer =>
+    Behaviors.setup[Request] { context =>
+      val activationAdapter: ActorRef[Activation] =
+        context.messageAdapter[Activation](msg => WrappedActivation(msg))
+
+      // this determines the agents regular time bin it wants to be triggered e.g. one hour
+      val resolution: Long = simonaConfig.simona.powerflow.resolution.toSeconds
+
+      val simStartTime: ZonedDateTime = TimeUtil.withDefaults
+        .toZonedDateTime(simonaConfig.simona.time.startDateTime)
+
+      val agentValues = GridAgentConstantData(
         environmentRefs,
         simonaConfig,
-        listener
+        listener,
+        resolution,
+        simStartTime,
+        activationAdapter,
       )
-    )
-}
 
-class GridAgent(
-    val environmentRefs: EnvironmentRefs,
-    simonaConfig: SimonaConfig,
-    val listener: Iterable[ActorRef]
-) extends SimonaAgent[GridAgentData]
-    with DBFSAlgorithm
-    with Stash {
-
-  // val initialization
-  protected val resolution: Long = simonaConfig.simona.powerflow.resolution.get(
-    ChronoUnit.SECONDS
-  ) // this determines the agents regular time bin it wants to be triggered e.g one hour
-
-  protected val simStartTime: ZonedDateTime = TimeUtil.withDefaults
-    .toZonedDateTime(simonaConfig.simona.time.startDateTime)
-
-  private val gridAgentController =
-    new GridAgentController(
-      context,
-      environmentRefs,
-      simStartTime,
-      TimeUtil.withDefaults
-        .toZonedDateTime(simonaConfig.simona.time.endDateTime),
-      simonaConfig.simona.runtime.participant,
-      simonaConfig.simona.output.participant,
-      resolution,
-      listener,
-      log
-    )
-
-  override def postStop(): Unit = {
-    log.debug("{} shutdown", self)
+      uninitialized(agentValues, buffer, simonaConfig)
+    }
   }
 
-  override def preStart(): Unit = {
-    log.debug("{} started!", self)
-  }
-
-  // general agent states
-  // first fsm state of the agent
-  startWith(Uninitialized, GridAgentUninitializedData)
-
-  when(Uninitialized) {
-
-    case Event(
-          TriggerWithIdMessage(
-            InitializeGridAgentTrigger(
-              gridAgentInitData: GridAgentInitData
-            ),
-            triggerId,
-            _
-          ),
-          _
+  private def uninitialized(implicit
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[Request],
+      simonaConfig: SimonaConfig,
+  ): Behavior[Request] = Behaviors.receivePartial {
+    case (
+          ctx,
+          CreateGridAgent(gridAgentInitData, unlockKey, onlyOneSubGrid),
         ) =>
       // fail fast sanity checks
-      failFast(gridAgentInitData)
+      failFast(
+        gridAgentInitData,
+        SimonaActorNaming.actorName(ctx.self),
+        onlyOneSubGrid,
+      )
 
-      log.debug(
-        s"Inferior Subnets: {}; Inferior Subnet Nodes: {}",
+      ctx.log.debug(
+        s"Inferior sub grids: {}; Inferior sub grid nodes: {}",
         gridAgentInitData.inferiorGridIds,
-        gridAgentInitData.inferiorGridNodeUuids
+        gridAgentInitData.inferiorGridNodeUuids,
       )
 
-      log.debug(
-        s"Superior Subnets: {}; Superior Subnet Nodes: {}",
+      ctx.log.debug(
+        s"Superior sub grids: {}; Superior sub grid nodes: {}",
         gridAgentInitData.superiorGridIds,
-        gridAgentInitData.superiorGridNodeUuids
+        gridAgentInitData.superiorGridNodeUuids,
       )
-
-      log.debug("Received InitializeTrigger.")
 
       // build the assets concurrently
       val subGridContainer = gridAgentInitData.subGridContainer
       val refSystem = gridAgentInitData.refSystem
+      val thermalGridsByBusId = gridAgentInitData.thermalIslandGrids.map {
+        thermalGrid => thermalGrid.bus().getUuid -> thermalGrid
+      }.toMap
+      ctx.log.debug(s"Thermal island grids: ${thermalGridsByBusId.size}")
 
       // get the [[GridModel]]
       val gridModel = GridModel(
         subGridContainer,
         refSystem,
-        TimeUtil.withDefaults
-          .toZonedDateTime(simonaConfig.simona.time.startDateTime),
+        gridAgentInitData.voltageLimits,
         TimeUtil.withDefaults.toZonedDateTime(
-          simonaConfig.simona.time.endDateTime
-        )
+          constantData.simonaConfig.simona.time.startDateTime
+        ),
+        TimeUtil.withDefaults.toZonedDateTime(
+          constantData.simonaConfig.simona.time.endDateTime
+        ),
+        simonaConfig,
+      )
+
+      val gridAgentBuilder = new GridAgentBuilder(
+        ctx,
+        constantData.environmentRefs,
+        constantData.simStartTime,
+        TimeUtil.withDefaults
+          .toZonedDateTime(constantData.simonaConfig.simona.time.endDateTime),
+        constantData.simonaConfig.simona.runtime.em,
+        constantData.simonaConfig.simona.runtime.participant,
+        constantData.simonaConfig.simona.output.participant,
+        constantData.resolution,
+        constantData.listener,
+        ctx.log,
       )
 
       /* Reassure, that there are also calculation models for the given uuids */
-      val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef]] =
-        gridAgentController.buildSystemParticipants(subGridContainer).map {
-          case (uuid: UUID, actorSet) =>
+      val nodeToAssetAgentsMap
+          : Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
+        gridAgentBuilder
+          .buildSystemParticipants(subGridContainer, thermalGridsByBusId)
+          .map { case (uuid: UUID, actorSet) =>
             val nodeUuid = gridModel.gridComponents.nodes
               .find(_.uuid == uuid)
               .getOrElse(
@@ -153,7 +150,7 @@ class GridAgent(
               )
               .uuid
             nodeUuid -> actorSet
-        }
+          }
 
       // create the GridAgentBaseData
       val gridAgentBaseData = GridAgentBaseData(
@@ -163,69 +160,62 @@ class GridAgent(
         gridAgentInitData.superiorGridNodeUuids,
         gridAgentInitData.inferiorGridGates,
         PowerFlowParams(
-          simonaConfig.simona.powerflow.maxSweepPowerDeviation,
-          simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
-          simonaConfig.simona.powerflow.newtonraphson.iterations,
-          simonaConfig.simona.powerflow.sweepTimeout
+          constantData.simonaConfig.simona.powerflow.maxSweepPowerDeviation,
+          constantData.simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
+          constantData.simonaConfig.simona.powerflow.newtonraphson.iterations,
+          constantData.simonaConfig.simona.powerflow.sweepTimeout,
+          constantData.simonaConfig.simona.powerflow.stopOnFailure,
         ),
-        log,
-        actorName
+        SimonaActorNaming.actorName(ctx.self),
       )
 
-      log.debug("Je suis initialized")
-
-      goto(Idle) using gridAgentBaseData replying CompletionMessage(
-        triggerId,
-        Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(resolution), self))
-        )
+      constantData.environmentRefs.scheduler ! ScheduleActivation(
+        constantData.activationAdapter,
+        constantData.resolution,
+        Some(unlockKey),
       )
+
+      idle(gridAgentBaseData)
   }
 
-  when(Idle) {
-
-    // needs to be set here to handle if the messages arrive too early
-    // before a transition to GridAgentBehaviour took place
-    case Event(RequestGridPowerMessage(_, _), _: GridAgentBaseData) =>
-      stash()
-      stay()
-
-    case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
-          gridAgentBaseData: GridAgentBaseData
-        ) =>
-      log.debug("received activity start trigger {}", triggerId)
-
-      unstashAll()
-
-      goto(SimulateGrid) using gridAgentBaseData replying CompletionMessage(
-        triggerId,
-        Some(
-          Vector(
-            ScheduleTriggerMessage(
-              StartGridSimulationTrigger(currentTick),
-              self
-            )
-          )
-        )
+  /** Method that defines the idle [[Behavior]] of the agent.
+    *
+    * @param gridAgentBaseData
+    *   state data of the actor
+    * @param constantData
+    *   immutable [[GridAgent]] values
+    * @param buffer
+    *   for [[GridAgent.Request]]s
+    * @return
+    *   a [[Behavior]]
+    */
+  private[grid] def idle(
+      gridAgentBaseData: GridAgentBaseData
+  )(implicit
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[Request],
+  ): Behavior[Request] = Behaviors.receivePartial {
+    case (_, WrappedActivation(activation: Activation)) =>
+      constantData.environmentRefs.scheduler ! Completion(
+        constantData.activationAdapter,
+        Some(activation.tick),
       )
+      buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
 
-    case Event(StopMessage(_), data: GridAgentBaseData) =>
-      // shutdown children
-      data.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
-        actors.foreach(context.stop)
-      }
-
-      // we are done
-      stop()
+    case (_, msg: Request) =>
+      // needs to be set here to handle if the messages arrive too early
+      // before a transition to GridAgentBehaviour took place
+      buffer.stash(msg)
+      Behaviors.same
   }
 
-  // everything else
-  whenUnhandled(myUnhandled())
-
-  private def failFast(gridAgentInitData: GridAgentInitData): Unit = {
+  private def failFast(
+      gridAgentInitData: GridAgentInitData,
+      actorName: String,
+      onlyOneSubGrid: Boolean,
+  ): Unit = {
     if (
-      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
+      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty && !onlyOneSubGrid
     )
       throw new GridAgentInitializationException(
         s"$actorName has neither superior nor inferior grids! This can either " +

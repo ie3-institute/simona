@@ -8,11 +8,10 @@ package edu.ie3.util.scala.io
 
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.sink.CsvFileSink
-import edu.ie3.datamodel.io.source.csv.{
-  CsvGraphicSource,
-  CsvRawGridSource,
-  CsvTypeSource
-}
+import edu.ie3.datamodel.io.source.{GraphicSource, RawGridSource, TypeSource}
+import edu.ie3.datamodel.io.source.csv.CsvDataSource
+
+import java.nio.file.Paths
 
 /** When manually deleting lines and nodes, their graphic information won't get
   * updated. This causes issues when reading in the grid afterwards. This script
@@ -26,27 +25,26 @@ object GraphicDataCleaner {
 
     /* config params */
     val csvSep = ","
-    val baseFolder = ""
-    val targetFolder = ""
+    val baseFolder = Paths.get("")
+    val targetFolder = Paths.get("")
     val fileNamingStrategy = new FileNamingStrategy()
 
     /* setup */
-    val csvTypeSource: CsvTypeSource =
-      new CsvTypeSource(csvSep, baseFolder, fileNamingStrategy)
+    val dataSource: CsvDataSource =
+      new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
 
-    val csvRawGridSource: CsvRawGridSource = new CsvRawGridSource(
-      csvSep,
-      baseFolder,
-      fileNamingStrategy,
-      csvTypeSource
+    val csvTypeSource: TypeSource =
+      new TypeSource(dataSource)
+
+    val csvRawGridSource: RawGridSource = new RawGridSource(
+      csvTypeSource,
+      dataSource,
     )
 
-    val csvGraphicSource: CsvGraphicSource = new CsvGraphicSource(
-      csvSep,
-      baseFolder,
-      fileNamingStrategy,
+    val csvGraphicSource: GraphicSource = new GraphicSource(
       csvTypeSource,
-      csvRawGridSource
+      csvRawGridSource,
+      dataSource,
     )
 
     /* read - by default, the csvGraphicSource only returns valid, that means elements with all

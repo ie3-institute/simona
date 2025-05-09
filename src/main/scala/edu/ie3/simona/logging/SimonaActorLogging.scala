@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.logging
 
-import akka.actor.{Actor, ActorLogging}
-import akka.event.LoggingAdapter
+import org.apache.pekko.actor.{Actor, ActorLogging}
+import org.apache.pekko.event.LoggingAdapter
 
 trait SimonaActorLogging extends ActorLogging with SimonaLogging {
   this: Actor =>

@@ -1,5 +1,3 @@
-def docBaseDirPath = project.projectDir.toString() + File.separator + project.docsDirName.toString()
-
 /*
  * Additional tasks, that are defined by default:
  *   - sphinx -> Generate HTML output of *.rst files in <projectDir>/docs/readthedocs
@@ -9,21 +7,37 @@ def docBaseDirPath = project.projectDir.toString() + File.separator + project.do
  * Configuring the sphinx plugin
  */
 sphinx {
-  description 'Generate high level HTML documentation output.'
-  group 'Documentation'
+  description = 'Generate high level HTML documentation output.'
+  group = 'Documentation'
 
-  sourceDirectory = "${docBaseDirPath}/readthedocs"
-  outputDirectory = (project.hasProperty('sphinxOutput')) ? project.getProperty('sphinxOutput') : "${project.buildDir}/docs/readthedocs"
+  sourceDirectory = "${project.projectDir}/docs/readthedocs"
+  outputDirectory = (project.hasProperty('sphinxOutput')) ? project.getProperty('sphinxOutput') : "${project.rootDir}/build/docs/readthedocs"
 }
 
 /**
  * Task to generate the JavaDoc
  */
-javadoc() {
-  description 'Generates java API doc at the correct place.'
-  group 'Documentation'
+tasks.javadoc {
+  description = 'Generates java API doc at the correct place.'
+  group = 'Documentation'
 
   source = sourceSets.main.allJava
-  destinationDir = file(docBaseDirPath + 'javadoc')
+  destinationDir = file("${project.projectDir}/docs/javadoc")
   classpath = project.sourceSets.main.compileClasspath
+}
+
+/**
+ * Task to generate the ScalaDoc
+ */
+tasks.scaladoc {
+  description = 'Generates scala API doc at the correct place.'
+  group = 'Documentation'
+
+  source = sourceSets.main.allSource
+  destinationDir = file("${project.projectDir}/docs/scaladoc")
+  classpath = project.sourceSets.main.compileClasspath
+
+  // Exclude SimonaConfig because implicits used by pureconfig's
+  // ConfigSource.load and ConfigWriter.apply lead to failure of scaladoc
+  exclude("edu/ie3/simona/config/SimonaConfig.scala")
 }

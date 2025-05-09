@@ -7,23 +7,58 @@
 package edu.ie3.simona.service
 
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.ontology.messages.services.EvMessage.EvResponseMessage
-import edu.ie3.simona.service.ServiceStateData.ServiceBaseStateData
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ScheduleServiceActivation,
+  ServiceResponseMessage,
+  WrappedExternalMessage,
+}
+import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
-trait ExtDataSupport[
-    S <: ServiceBaseStateData
-] {
-  this: SimonaService[S] =>
+/** Trait that enables handling of external data.
+  *
+  * @tparam T
+  *   the type of messages this service accepts.
+  */
+trait ExtDataSupport[T >: ServiceMessage] {
+  this: SimonaService[T] =>
 
-  override def idleExternal(implicit stateData: S): Receive = {
-    case extMsg: DataMessageFromExt =>
+  /** Creates an adapter, that enables a service with [[ExtDataSupport]] to
+    * receive a [[DataMessageFromExt]] by wrapping it in an
+    * [[WrappedExternalMessage]].
+    * @param service
+    *   For which an adapter should be created
+    * @return
+    *   The behavior of the adapter.
+    */
+  def adapter(service: ActorRef[T]): Behavior[DataMessageFromExt] =
+    Behaviors.receiveMessagePartial[DataMessageFromExt] {
+      case scheduleServiceActivation: ScheduleServiceActivation =>
+        // TODO: Refactor this with scala3
+        service ! scheduleServiceActivation
+        Behaviors.same
+
+      case extMsg =>
+        service ! WrappedExternalMessage(extMsg)
+        Behaviors.same
+    }
+
+  override protected def idleExternal(implicit
+      stateData: S,
+      constantData: ServiceConstantStateData,
+  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = {
+    case (_, WrappedExternalMessage(extMsg)) =>
       val updatedStateData = handleDataMessage(extMsg)(stateData)
-      context become idle(updatedStateData)
 
-    case extResponseMsg: EvResponseMessage =>
+      idle(updatedStateData, constantData)
+
+    case (_, extResponseMsg: ServiceResponseMessage) =>
       val updatedStateData =
         handleDataResponseMessage(extResponseMsg)(stateData)
-      context become idle(updatedStateData)
+
+      idle(updatedStateData, constantData)
   }
 
   /** Handle a message from outside the simulation
@@ -49,6 +84,6 @@ trait ExtDataSupport[
     *   the updated state data
     */
   protected def handleDataResponseMessage(
-      extResponseMsg: EvResponseMessage
+      extResponseMsg: ServiceResponseMessage
   )(implicit serviceStateData: S): S
 }

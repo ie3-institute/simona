@@ -77,7 +77,7 @@ class DeploySpec extends UnitSpec {
         case Failure(exception) =>
           fail(
             s"Cannot build class from execution class '$classString' in run-simona-cmd.sh!",
-            exception
+            exception,
           )
         case Success(clazz) => clazz
       }

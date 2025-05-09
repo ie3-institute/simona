@@ -6,17 +6,54 @@
 
 package edu.ie3.simona.ontology.messages.services
 
-import akka.actor.ActorRef
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.api.data.ontology.DataMessageFromExt
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.services.EvMessage.EvInternal
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.LoadProfileMessageInternal
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherInternal
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
+import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
-import edu.ie3.simona.agent.participant.data.Data
 
 /** Collections of all messages, that are send to and from the different
   * services
   */
 sealed trait ServiceMessage
+    extends EvInternal
+    with LoadProfileMessageInternal
+    with WeatherInternal
 
-case object ServiceMessage {
+object ServiceMessage {
+
+  final case class WrappedActivation(activation: Activation)
+      extends ServiceMessage
+
+  final case class WrappedExternalMessage(
+      extMsg: DataMessageFromExt
+  ) extends ServiceMessage
+
+  /** Service initialization data can sometimes only be constructed once the
+    * service actor is created (e.g.
+    * [[edu.ie3.simona.service.ev.ExtEvDataService]]). Thus, we need an extra
+    * initialization message.
+    */
+  final case class Create(
+      initializeStateData: InitializeServiceStateData,
+      unlockKey: ScheduleKey,
+  ) extends ServiceMessage
+
+  final case class ScheduleServiceActivation(
+      tick: Long,
+      unlockKey: ScheduleKey,
+  ) extends ServiceMessage
+      with DataMessageFromExt
+
+  /** Message used in response to a service request.
+    */
+  trait ServiceResponseMessage extends ServiceMessage
 
   /** Message used to register for a service
     */
@@ -24,11 +61,15 @@ case object ServiceMessage {
 
   /** Message to register with a primary data service.
     *
+    * @param requestingActor
+    *   The actor requesting registration for primary data
     * @param inputModelUuid
     *   Identifier of the input model
     */
-  final case class PrimaryServiceRegistrationMessage(inputModelUuid: UUID)
-      extends ServiceRegistrationMessage
+  final case class PrimaryServiceRegistrationMessage(
+      requestingActor: ActorRef[ParticipantAgent.Request],
+      inputModelUuid: UUID,
+  ) extends ServiceRegistrationMessage
 
   /** This message can be sent from a proxy to a subordinate worker in order to
     * forward the original registration request. This message may only be used,
@@ -37,31 +78,21 @@ case object ServiceMessage {
     * @param requestingActor
     *   Reference to the requesting actor
     */
-  final case class WorkerRegistrationMessage(requestingActor: ActorRef)
-      extends ServiceRegistrationMessage
+  final case class WorkerRegistrationMessage(
+      requestingActor: ActorRef[ParticipantAgent.Request]
+  ) extends ServiceRegistrationMessage
 
-  sealed trait RegistrationResponseMessage extends ServiceMessage
-
-  case object RegistrationResponseMessage {
-
-    /** Message, that is used to confirm a successful registration
-      */
-    final case class RegistrationSuccessfulMessage(nextDataTick: Option[Long])
-        extends RegistrationResponseMessage
-
-    /** Message, that is used to announce a failed registration
-      */
-    case object RegistrationFailedMessage extends RegistrationResponseMessage
-  }
-
-  /** Actual provision of data
+  /** Indicate the [[edu.ie3.simona.service.ev.ExtEvDataService]] that the
+    * requesting agent wants to receive EV movements
     *
-    * @tparam D
-    *   type of data that is delivered
+    * @param requestingActor
+    *   The actor requesting registration for ev data
+    * @param evcs
+    *   the charging station
     */
-  trait ProvisionMessage[D <: Data] extends ServiceMessage {
-    val tick: Long
-    val data: D
-    val nextDataTick: Option[Long]
-  }
+  final case class RegisterForEvDataMessage(
+      requestingActor: ActorRef[ParticipantAgent.Request],
+      evcs: UUID,
+  ) extends ServiceRegistrationMessage
+
 }

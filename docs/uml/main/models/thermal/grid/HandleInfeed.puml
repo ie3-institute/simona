@@ -1,0 +1,15 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+if (house exists?) then (no)
+  :Fill storage;
+else if (house below upper temp?) then (yes)
+    :Heat the house;
+else if (storage exists?) then (yes)
+:Fill storage;
+endif
+:Return updated state and reached threshold;
+stop
+
+@enduml

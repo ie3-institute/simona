@@ -6,39 +6,36 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{ImplicitSender, TestProbe}
-import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangePower
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  ProvideGridPowerMessage,
-  RequestGridPowerMessage
-}
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation,
 }
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  FinishGridSimulationTrigger,
-  InitializeGridAgentTrigger,
-  StartGridSimulationTrigger
+import edu.ie3.simona.ontology.messages.services.{
+  LoadProfileMessage,
+  ServiceMessage,
+  WeatherMessage,
 }
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.simona.test.common.{
-  ConfigTestData,
-  TestKitWithShutdown,
-  UnitSpec
+import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped, UnitSpec}
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.util.scala.quantities.Megavars
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
 }
-import edu.ie3.util.quantities.PowerSystemUnits._
-import tech.units.indriya.quantity.Quantities
+import org.apache.pekko.actor.typed.ActorRef
+import squants.energy.Megawatts
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
@@ -50,192 +47,133 @@ import scala.language.postfixOps
   * [[GridAgent]] are simulated by the TestKit.
   */
 class DBFSAlgorithmSupGridSpec
-    extends TestKitWithShutdown(
-      ActorSystem(
-        "DBFSAlgorithmSpec",
-        ConfigFactory
-          .parseString("""
-          |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-          |akka.loglevel="OFF"
-        """.stripMargin)
-      )
-    )
+    extends ScalaTestWithActorTestKit
     with UnitSpec
     with ConfigTestData
-    with ImplicitSender
-    with DbfsTestGrid {
+    with DbfsTestGrid
+    with TestSpawnerTyped {
 
-  private val scheduler: TestProbe = TestProbe("scheduler")
-  private val primaryService: TestProbe = TestProbe("primaryService")
-  private val weatherService: TestProbe = TestProbe("weatherService")
-  private val hvGrid: TestProbe = TestProbe("hvGrid")
+  private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
+  private val runtimeEvents: TestProbe[RuntimeEvent] =
+    TestProbe("runtimeEvents")
+  private val primaryService: TestProbe[ServiceMessage] =
+    TestProbe("primaryService")
+  private val weatherService = TestProbe[WeatherMessage]("weatherService")
+  private val loadProfileService =
+    TestProbe[LoadProfileMessage]("loadProfileService")
+  private val hvGrid: TestProbe[GridAgent.Request] = TestProbe("hvGrid")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
+    runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
-    evDataService = None
+    loadProfiles = loadProfileService.ref,
+    evDataService = None,
   )
 
-  val resultListener: TestProbe = TestProbe("resultListener")
+  val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
 
   "A GridAgent actor in superior position with async test" should {
-
-    val superiorGridAgentFSM = system.actorOf(
-      GridAgent.props(
+    val superiorGridAgentFSM: ActorRef[GridAgent.Request] = testKit.spawn(
+      GridAgent(
         environmentRefs,
         simonaConfig,
-        listener = Iterable(resultListener.ref)
+        listener = Iterable(resultListener.ref),
       )
     )
 
-    s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
-      val triggerId = 0
-
-      val subnetGatesToActorRef: Map[SubGridGate, ActorRef] =
+    s"initialize itself when it receives an init activation" in {
+      val subnetGatesToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]] =
         ehvSubGridGates.map(gate => gate -> hvGrid.ref).toMap
 
       val gridAgentInitData =
         GridAgentInitData(
           ehvGridContainer,
+          Seq.empty[ThermalGrid],
           subnetGatesToActorRef,
-          RefSystem("5000 MVA", "380 kV")
+          RefSystem("5000 MVA", "380 kV"),
+          VoltageLimits(0.9, 1.1),
         )
 
-      // send init data to agent
-      scheduler.send(
-        superiorGridAgentFSM,
-        TriggerWithIdMessage(
-          InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId,
-          superiorGridAgentFSM
-        )
-      )
+      val key =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
-      scheduler.expectMsg(
-        CompletionMessage(
-          0,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600),
-                superiorGridAgentFSM
-              )
-            )
-          )
-        )
-      )
+      superiorGridAgentFSM ! CreateGridAgent(gridAgentInitData, key)
 
+      val scheduleActivationMsg =
+        scheduler.expectMessageType[ScheduleActivation]
+      scheduleActivationMsg.tick shouldBe 3600
+      scheduleActivationMsg.unlockKey shouldBe Some(key)
     }
 
-    s"go to $SimulateGrid when it receives an activity start trigger" in {
-      val activityStartTriggerId = 1
-
+    s"go to SimulateGrid when it receives an activity start trigger" in {
       // send init data to agent
-      scheduler.send(
-        superiorGridAgentFSM,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600),
-          activityStartTriggerId,
-          superiorGridAgentFSM
-        )
-      )
+      superiorGridAgentFSM ! WrappedActivation(Activation(3600))
 
       // we expect a completion message
-      scheduler.expectMsg(
-        CompletionMessage(
-          1,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                StartGridSimulationTrigger(3600),
-                superiorGridAgentFSM
-              )
-            )
-          )
-        )
-      )
-
+      scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
     }
 
     s"start the simulation, do 2 sweeps and should end afterwards when no deviation on nodal " +
-      s"power is recognized in the superior when a $StartGridSimulationTrigger is send" in {
+      s"power is recognized in the superior when an activation is sent is send" in {
 
         for (sweepNo <- 0 to 1) {
 
-          val startGridSimulationTriggerId = sweepNo + 2
           val requestedConnectionNodeUuids =
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
-          scheduler.send(
-            superiorGridAgentFSM,
-            TriggerWithIdMessage(
-              StartGridSimulationTrigger(3600),
-              startGridSimulationTriggerId,
-              superiorGridAgentFSM
-            )
-          )
+          superiorGridAgentFSM ! WrappedActivation(Activation(3600))
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          hvGrid.expectMsgPF() {
-            case requestGridPowerMessage: RequestGridPowerMessage =>
+          val message = hvGrid.expectMessageType[RequestGridPower]
+
+          val lastSender = message match {
+            case requestGridPowerMessage: RequestGridPower =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
               requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
+
+              requestGridPowerMessage.sender
             case x =>
               fail(
                 s"Invalid message received when expecting a request for grid power values! Message was $x"
               )
-
           }
 
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          hvGrid.send(
-            hvGrid.lastSender,
-            ProvideGridPowerMessage(
-              requestedConnectionNodeUuids.map { uuid =>
-                ExchangePower(
-                  uuid,
-                  Quantities.getQuantity(0, KILOWATT),
-                  Quantities.getQuantity(0, KILOVAR)
-                )
-              }
-            )
+          lastSender ! GridPowerResponse(
+            requestedConnectionNodeUuids.map { uuid =>
+              ExchangePower(
+                uuid,
+                Megawatts(0.0),
+                Megavars(0.0),
+              )
+            }
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
-          // and waits until the newly scheduled StartGridSimulationTrigger is send
+          // and waits until the newly scheduled StartGridSimulationTrigger is sent
           // wait 30 seconds max for power flow to finish
-          scheduler.expectMsgPF(30 seconds) {
-            case CompletionMessage(
-                  2,
-                  Some(
-                    Seq(
-                      ScheduleTriggerMessage(
-                        StartGridSimulationTrigger(3600),
-                        _
-                      )
-                    )
-                  )
-                ) =>
+          scheduler.expectMessageType[Completion](130 seconds) match {
+            case Completion(_, Some(3600)) =>
             // we expect another completion message when the agent is in SimulateGrid again
-            case CompletionMessage(
-                  3,
-                  Some(
-                    Seq(
-                      ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
-                    )
-                  )
-                ) =>
+            case Completion(_, Some(7200)) =>
               // agent should be in Idle again and listener should contain power flow result data
-              resultListener.expectMsgPF() {
+              val resultMessage = resultListener.expectMessageType[ResultEvent]
+
+              resultMessage match {
                 case powerFlowResultEvent: PowerFlowResultEvent =>
                   powerFlowResultEvent.nodeResults.headOption match {
                     case Some(value) =>
                       value.getvMag().getValue shouldBe 1
                       value.getvAng().getValue shouldBe 0
+                    case None =>
+                      fail(s"Expected a result but got none.")
                   }
 
                   // due to the fact that the used grid does not contain anything besides the one ehv node
@@ -246,7 +184,10 @@ class DBFSAlgorithmSupGridSpec
                   powerFlowResultEvent.transformer3wResults shouldBe empty
               }
 
-              hvGrid.expectMsg(FinishGridSimulationTrigger(3600))
+              // no failed power flow
+              runtimeEvents.expectNoMessage()
+
+              hvGrid.expectMessage(FinishGridSimulationTrigger(3600))
 
             case x =>
               fail(
@@ -257,7 +198,7 @@ class DBFSAlgorithmSupGridSpec
 
       }
 
-    s"start the simulation when a $StartGridSimulationTrigger is sent, do 5 sweeps and should end afterwards, if the " +
+    s"start the simulation when an activation is sent is sent, do 5 sweeps and should end afterwards, if the " +
       s"nodal power exchange converges not before the fifth sweep." in {
 
         // configuration of the test
@@ -268,76 +209,51 @@ class DBFSAlgorithmSupGridSpec
         val deviations =
           Array(
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0),
             ),
             (
-              Quantities.getQuantity(100, KILOWATT),
-              Quantities.getQuantity(100, KILOVAR)
+              Megawatts(0.1),
+              Megavars(0.1),
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(100, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.1),
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0),
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
-            )
+              Megawatts(0.0),
+              Megavars(0.0),
+            ),
           )
 
         // bring agent in simulate grid state
-        val activityStartTriggerId = 1
-
-        scheduler.send(
-          superiorGridAgentFSM,
-          TriggerWithIdMessage(
-            ActivityStartTrigger(3600),
-            activityStartTriggerId,
-            superiorGridAgentFSM
-          )
-        )
+        superiorGridAgentFSM ! WrappedActivation(Activation(3600))
 
         // we expect a completion message
-        scheduler.expectMsg(
-          CompletionMessage(
-            1,
-            Some(
-              Seq(
-                ScheduleTriggerMessage(
-                  StartGridSimulationTrigger(3600),
-                  superiorGridAgentFSM
-                )
-              )
-            )
-          )
-        )
+        scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
 
         // go on with testing the sweep behaviour
         for (sweepNo <- 0 to maxNumberOfTestSweeps) {
 
-          val startGridSimulationTriggerId = sweepNo + 4
           val requestedConnectionNodeUuids =
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
-          scheduler.send(
-            superiorGridAgentFSM,
-            TriggerWithIdMessage(
-              StartGridSimulationTrigger(3600),
-              startGridSimulationTriggerId,
-              superiorGridAgentFSM
-            )
-          )
+          superiorGridAgentFSM ! WrappedActivation(Activation(3600))
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          hvGrid.expectMsgPF() {
-            case requestGridPowerMessage: RequestGridPowerMessage =>
+          val message = hvGrid.expectMessageType[GridAgent.Request]
+
+          val lastSender = message match {
+            case requestGridPowerMessage: RequestGridPower =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
               requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
+
+              requestGridPowerMessage.sender
             case x =>
               fail(
                 s"Invalid message received when expecting a request for grid power values! Message was $x"
@@ -347,53 +263,38 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          hvGrid.send(
-            hvGrid.lastSender,
-            ProvideGridPowerMessage(
-              requestedConnectionNodeUuids.map { uuid =>
-                ExchangePower(
-                  uuid,
-                  deviations(sweepNo)._1,
-                  deviations(sweepNo)._2
-                )
-              }
-            )
+          lastSender ! GridPowerResponse(
+            requestedConnectionNodeUuids.map { uuid =>
+              ExchangePower(
+                uuid,
+                deviations(sweepNo)._1,
+                deviations(sweepNo)._2,
+              )
+            }
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
-          // and waits until the newly scheduled StartGridSimulationTrigger is send
+          // and waits until the newly scheduled StartGridSimulationTrigger is sent
 
           // Simulate Grid
           // wait 30 seconds max for power flow to finish
-          scheduler.expectMsgPF(30 seconds) {
-            case CompletionMessage(
-                  _,
-                  Some(
-                    Seq(
-                      ScheduleTriggerMessage(
-                        StartGridSimulationTrigger(3600),
-                        _
-                      )
-                    )
-                  )
-                ) =>
+          scheduler.expectMessageType[Completion](30 seconds) match {
+            case Completion(_, Some(3600)) =>
             // when we received a FinishGridSimulationTrigger (as inferior grid agent)
             // we expect another completion message then as well (scheduler view)
-            case CompletionMessage(
-                  _,
-                  Some(
-                    Seq(
-                      ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
-                    )
-                  )
-                ) =>
+            case Completion(_, Some(7200)) =>
               // after doing cleanup stuff, our agent should go back to idle again and listener should contain power flow result data
-              resultListener.expectMsgPF() {
+              val resultMessage =
+                resultListener.expectMessageType[ResultEvent]
+
+              resultMessage match {
                 case powerFlowResultEvent: PowerFlowResultEvent =>
                   powerFlowResultEvent.nodeResults.headOption match {
                     case Some(value) =>
                       value.getvMag().getValue shouldBe 1
                       value.getvAng().getValue shouldBe 0
+                    case None =>
+                      fail(s"Expected a result but got none.")
                   }
 
                   // due to the fact that the used grid does not contain anything besides the one ehv node
@@ -404,7 +305,10 @@ class DBFSAlgorithmSupGridSpec
                   powerFlowResultEvent.transformer3wResults shouldBe empty
               }
 
-              hvGrid.expectMsg(FinishGridSimulationTrigger(3600))
+              // no failed power flow
+              runtimeEvents.expectNoMessage()
+
+              hvGrid.expectMessage(FinishGridSimulationTrigger(3600))
 
             case x =>
               fail(

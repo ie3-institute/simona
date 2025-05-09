@@ -40,7 +40,7 @@ trait WecTypeInputTestData extends DefaultTestData with NodeInputTestData {
     ),
     Quantities.getQuantity(15, StandardUnits.EFFICIENCY),
     Quantities.getQuantity(5281, StandardUnits.ROTOR_AREA),
-    Quantities.getQuantity(98, StandardUnits.HUB_HEIGHT)
+    Quantities.getQuantity(98, StandardUnits.HUB_HEIGHT),
   )
 
 }

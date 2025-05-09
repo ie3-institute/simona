@@ -6,44 +6,43 @@
 
 package edu.ie3.simona.model.grid
 
-import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
-import java.util.UUID
-
 import breeze.math.Complex
 import breeze.numerics.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
-  Transformer2WInput
+  Transformer2WInput,
 }
 import edu.ie3.powerflow.NewtonRaphsonPF
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.powerflow.model.{NodeData, PowerFlowResult}
-import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.{
   TapTestData,
   TransformerTestData,
-  TransformerTestGrid
+  TransformerTestGrid,
 }
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.QuantityUtil
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
+import squants.Each
+import squants.electro.Amperes
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
-class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
+import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
+import java.util.UUID
+
+class TransformerModelSpec
+    extends UnitSpec
+    with TableDrivenPropertyChecks
+    with ConfigTestData {
   val quantityTolerance: Double = 1e-5
   val testingTolerancePf = 1e-9
-
-  def mainRefSystem: RefSystem = {
-    val nominalPower = Quantities.getQuantity(400, KILOVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(0.4, KILOVOLT)
-    RefSystem(nominalPower, nominalVoltage)
-    /* Z_Ref = 0.4 Ω, Y_Ref = 2.5 Siemens */
-  }
+  implicit val electricCurrentTolerance: squants.electro.ElectricCurrent =
+    Amperes(1e-9)
+  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-9)
 
   "A valid TransformerInput " should {
     "be validated without an exception" in new TransformerTestData {
@@ -53,7 +52,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
       noException shouldBe thrownBy {
         TransformerModel.validateInputModel(
           unmodifiedTransformerInputModel,
-          mainRefSystem
+          mainRefSystem,
         )
       }
     }
@@ -72,7 +71,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
               ConnectorPort.B
             else
               ConnectorPort.A
-          }
+          },
         )
 
       val dut: TransformerModel =
@@ -80,7 +79,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           inputModel,
           mainRefSystem,
           defaultSimulationStart,
-          defaultSimulationEnd
+          defaultSimulationEnd,
         )
 
       inside(dut) {
@@ -98,7 +97,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
               r,
               x,
               g,
-              b
+              b,
             ) =>
           uuid should be(inputModel.getUuid)
           id should be(inputModel.getId)
@@ -116,7 +115,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
                   _,
                   _,
                   _,
-                  tapSide
+                  tapSide,
                 ) =>
               _currentTapPos shouldBe 0
               tapSide shouldBe ConnectorPort.A
@@ -124,36 +123,12 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
           amount shouldBe inputModel.getParallelDevices
           voltRatioNominal shouldBe BigDecimal("25")
-          QuantityUtil.isEquivalentAbs(
-            iNomHv,
-            Quantities.getQuantity(36.3730670, AMPERE),
-            quantityTolerance
-          ) shouldBe true
-          QuantityUtil.isEquivalentAbs(
-            iNomLv,
-            Quantities.getQuantity(909.326674, AMPERE),
-            quantityTolerance
-          ) shouldBe true
-          QuantityUtil.isEquivalentAbs(
-            r,
-            Quantities.getQuantity(7.357e-3, PU),
-            quantityTolerance
-          ) shouldBe true
-          QuantityUtil.isEquivalentAbs(
-            x,
-            Quantities.getQuantity(24.30792e-3, PU),
-            quantityTolerance
-          ) shouldBe true
-          QuantityUtil.isEquivalentAbs(
-            g,
-            Quantities.getQuantity(0.0, PU),
-            quantityTolerance
-          ) shouldBe true
-          QuantityUtil.isEquivalentAbs(
-            b,
-            Quantities.getQuantity(-3.75e-3, PU),
-            quantityTolerance
-          ) shouldBe true
+          iNomHv should approximate(Amperes(36.373066958946424d))
+          iNomLv should approximate(Amperes(909.3266739736606d))
+          r should approximate(Each(7.357e-3))
+          x should approximate(Each(24.30792e-3))
+          g should approximate(Each(0.0))
+          b should approximate(Each(-3.75e-3))
       }
 
       /* The following tests are with regard to the tap position = 0 */
@@ -185,7 +160,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           transformerInputTapHv,
           mainRefSystem,
           defaultSimulationStart,
-          defaultSimulationEnd
+          defaultSimulationEnd,
         )
 
       transformer2w.isInOperation shouldBe true
@@ -199,7 +174,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           transformerInputTapHv,
           mainRefSystem,
           earlySimulationStart,
-          defaultSimulationEnd
+          defaultSimulationEnd,
         )
 
       transformer2w.isInOperation shouldBe false
@@ -214,7 +189,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           transformerInputTapHv,
           mainRefSystem,
           defaultSimulationStart,
-          defaultSimulationEnd
+          defaultSimulationEnd,
         )
 
       dut invokePrivate tapRatio() shouldBe 1.0
@@ -286,8 +261,8 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             -8,
             -0.08d,
             0.75d,
-            -2
-          ) /* Limit to min tap (should be -3 limited to -2) */
+            -2,
+          ), /* Limit to min tap (should be -3 limited to -2) */
         )
 
       forAll(cases) {
@@ -295,7 +270,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             currentTapPos: Int,
             vChangeVal: Double,
             deadBandVal: Double,
-            expected: Int
+            expected: Int,
         ) =>
           {
             val vChange = Quantities.getQuantity(vChangeVal, PU)
@@ -304,7 +279,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             transformerModelTapHv.updateTapPos(currentTapPos)
             transformerModelTapHv.computeDeltaTap(
               vChange,
-              deadBand
+              deadBand,
             ) shouldBe expected
           }
       }
@@ -317,7 +292,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             tapPos: Int,
             yijExpected: Complex,
             yiiExpected: Complex,
-            yjjExpected: Complex
+            yjjExpected: Complex,
         ) =>
           {
             val transformer = tapSide match {
@@ -381,7 +356,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             tapPos: Int,
             p: BigDecimal,
             e: Double,
-            f: Double
+            f: Double,
         ) =>
           {
             logger.debug(
@@ -402,8 +377,10 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             val gridModel = GridModel(
               grid,
               refSystem,
+              defaultVoltageLimits,
               defaultSimulationStart,
-              defaultSimulationEnd
+              defaultSimulationEnd,
+              simonaConfig,
             )
 
             gridModel.gridComponents.transformers
@@ -412,20 +389,20 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             val admittanceMatrix =
               GridModel.composeAdmittanceMatrix(
                 nodeUuidToIndexMap,
-                gridModel.gridComponents
+                gridModel.gridComponents,
               )
 
             val operationPoint =
               Array(
                 PresetData(0, NodeType.SL, Complex.zero),
-                PresetData(1, NodeType.PQ, Complex(p.doubleValue, 0d))
+                PresetData(1, NodeType.PQ, Complex(p.doubleValue, 0d)),
               )
 
             val powerFlow = new NewtonRaphsonPF(
               epsilon,
               maxIterations,
               admittanceMatrix,
-              Option.apply(Vector(0, 1))
+              Option.apply(Vector(0, 1)),
             )
             val result = powerFlow.calculate(operationPoint, startData)
 

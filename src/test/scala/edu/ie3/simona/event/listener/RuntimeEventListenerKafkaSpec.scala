@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import com.sksamuel.avro4s.RecordFormat
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.RuntimeEvent.{Done, Error}
+import edu.ie3.simona.config.{ConfigParams, RuntimeConfig}
+import edu.ie3.simona.event.RuntimeEvent.{Done, Error, PowerFlowFailed}
 import edu.ie3.simona.io.runtime.RuntimeEventKafkaSink.SimonaEndMessage
 import edu.ie3.simona.test.KafkaSpecLike
 import edu.ie3.simona.test.KafkaSpecLike.Topic
@@ -31,10 +31,11 @@ import scala.language.postfixOps
 
 class RuntimeEventListenerKafkaSpec
     extends ScalaTestWithActorTestKit
-    with KafkaSpecLike
     with UnitSpec
+    with KafkaSpecLike
     with GivenWhenThen
-    with TableDrivenPropertyChecks {
+    with TableDrivenPropertyChecks
+    with RuntimeTestData {
   private var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] = _
 
   private implicit lazy val resultFormat: RecordFormat[SimonaEndMessage] =
@@ -51,25 +52,23 @@ class RuntimeEventListenerKafkaSpec
       new TopicPartition(testTopic.name, _)
     )
 
-  private val startDateTimeString = "2011-01-01 00:00:00"
-
   private val mockSchemaRegistryUrl = "mock://unused:8081"
 
   deserializer.configure(
     Map(SCHEMA_REGISTRY_URL_CONFIG -> mockSchemaRegistryUrl).asJava,
-    false
+    false,
   )
 
   override def beforeAll(): Unit = {
     super.beforeAll()
     val config = Map[String, AnyRef](
       "group.id" -> "test",
-      "bootstrap.servers" -> kafka.bootstrapServers
+      "bootstrap.servers" -> kafka.bootstrapServers,
     )
     testConsumer = new KafkaConsumer[Bytes, SimonaEndMessage](
       config.asJava,
       Serdes.Bytes().deserializer(),
-      deserializer
+      deserializer,
     )
 
     testConsumer.assign(topicPartitions.asJava)
@@ -85,53 +84,63 @@ class RuntimeEventListenerKafkaSpec
       // build the listener
       val listenerRef = spawn(
         RuntimeEventListener(
-          SimonaConfig.Simona.Runtime.Listener(
+          RuntimeConfig.Listener(
             None,
             Some(
-              SimonaConfig.RuntimeKafkaParams(
+              ConfigParams.RuntimeKafkaParams(
                 bootstrapServers = kafka.bootstrapServers,
                 linger = 0,
                 runId = runId.toString,
                 schemaRegistryUrl = mockSchemaRegistryUrl,
-                topic = testTopic.name
+                topic = testTopic.name,
               )
-            )
+            ),
           ),
           None,
-          startDateTimeString
+          startDateTimeString,
         )
       )
 
       When("receiving the SimonaEndMessages")
 
-      val errMsg = "Test error msg"
       val cases = Table(
         ("event", "expectedMsg"),
         (
-          Done(1800L, 3L, 0, errorInSim = false),
-          SimonaEndMessage(runId, 0, error = false)
+          Done(1800L, duration, errorInSim = false),
+          SimonaEndMessage(runId, 1, error = false),
         ),
         (
-          Done(3600L, 3L, 2, errorInSim = true),
-          SimonaEndMessage(runId, 2, error = true)
+          Done(3600L, duration, errorInSim = true),
+          SimonaEndMessage(runId, 1, error = true),
         ),
-        (Error(errMsg), SimonaEndMessage(runId, -1, error = true))
+        (Error(errMsg), SimonaEndMessage(runId, -1, error = true)),
       )
 
       Then("records can be fetched from Kafka")
 
       testConsumer.seekToBeginning(topicPartitions.asJava)
 
+      // one failed power flow
+      listenerRef ! PowerFlowFailed
+
       forAll(cases) { case (event, expectedMsg) =>
         listenerRef ! event
 
-        eventually(timeout(20 seconds), interval(1 second)) {
-          val records: List[SimonaEndMessage] =
-            testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+        val receivedRecord =
+          eventually(timeout(20 seconds), interval(1 second)) {
+            val records =
+              testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
 
-          records should have length 1
-          records should contain(expectedMsg)
-        }
+            // run until one record is received. After each second, if no record
+            // was received, the length check below fails and we retry
+            records should have length 1
+
+            // return final record to be checked
+            records.headOption.value
+          }
+
+        receivedRecord shouldBe expectedMsg
+
       }
 
     }

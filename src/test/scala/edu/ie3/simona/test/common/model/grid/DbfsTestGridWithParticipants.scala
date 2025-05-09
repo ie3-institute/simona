@@ -12,14 +12,14 @@ import edu.ie3.datamodel.models.input.connector._
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer2WTypeInput
 import edu.ie3.datamodel.models.input.container.{
   RawGridElements,
-  SystemParticipants
+  SystemParticipants,
 }
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
-  OperatorInput
+  OperatorInput,
 }
 import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
@@ -48,7 +48,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.HV,
-    1
+    1,
   )
 
   protected val supNodeA = new NodeInput(
@@ -60,7 +60,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
     true,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.EHV_380KV,
-    1000
+    1000,
   )
 
   // 1 transformer from hv to ehv
@@ -79,7 +79,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
     false,
     0,
     -5,
-    5
+    5,
   )
 
   private val transformer1 = new Transformer2WInput(
@@ -92,7 +92,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
     1,
     trafoType,
     0,
-    false
+    false,
   )
 
   protected val load1 = new LoadInput(
@@ -102,11 +102,11 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
     OperationTime.notLimited(),
     node1,
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+    null,
     LoadProfile.DefaultLoadProfiles.NO_LOAD_PROFILE,
-    false,
     Quantities.getQuantity(300000, KILOWATTHOUR): ComparableQuantity[Energy],
     Quantities.getQuantity(150, MEGAVOLTAMPERE): ComparableQuantity[Power],
-    0.9
+    0.9,
   )
 
   protected val (hvGridContainer, hvSubGridGates) = {
@@ -121,7 +121,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
       transformers.asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
 
     val systemParticipants = new SystemParticipants(
@@ -135,7 +135,6 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
       Set.empty[PvInput].asJava,
       Set.empty[StorageInput].asJava,
       Set.empty[WecInput].asJava,
-      Set.empty[EmInput].asJava
     )
 
     /* Sub grid gates are the apparent gates to superior grids + artificial one to underlying grids */
@@ -145,7 +144,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
       ) ++ rawGridElements.getTransformer3Ws.asScala.flatMap(transformer =>
         Seq(
           SubGridGate.fromTransformer3W(transformer, ConnectorPort.B),
-          SubGridGate.fromTransformer3W(transformer, ConnectorPort.C)
+          SubGridGate.fromTransformer3W(transformer, ConnectorPort.C),
         )
       )
 
@@ -154,9 +153,9 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
         gridName = "gridAgentWithParticipants",
         subgrid = 1,
         rawGridElements = rawGridElements,
-        systemParticipants = systemParticipants
+        systemParticipants = systemParticipants,
       ),
-      subGridGates
+      subGridGates,
     )
   }
 

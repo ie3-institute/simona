@@ -12,15 +12,13 @@ To create the output directory name, the name of the simulation is used as a str
   `simona.simulationName = "vn_simona"`
 
 ### Time parameters
-Starting date and time of the simulation
-  - Format: "YYYY-MM-DD HH:MM:SS"
+Starting date and time of the simulation in ISO-8601 date and time format with offset
 
-  `simona.time.startDateTime = "2011-01-01 00:00:00"`
+  `simona.time.startDateTime = "2011-01-01T00:00:00Z"`
 
-Ending date and time of the simulation
-  - Format: "YYYY-MM-DD HH:MM:SS"
+Ending date and time of the simulation in ISO-8601 date and time format with offset
 
-  `simona.time.endDateTime = "2011-01-01 02:00:00"`
+  `simona.time.endDateTime = "2011-01-01T02:00:00Z"`
 
 The preset ReadyCheckWindow should be maintained 
 
@@ -39,7 +37,9 @@ Setting of the data source
 
   `simona.input.grid.datasource.id = "csv"`
 
-Specify the folder path containing the csv data of the grid components and the csv separator (e.g. "," or ";")
+Specify the folder path containing the csv data of the grid components and the csv separator (e.g. "," or ";").
+The directory structure is determined by the boolean `isHierarchic`. 
+If files are placed within [a specific set of subdirectories](https://powersystemdatamodel.readthedocs.io/en/latest/io/csvfiles.html#default-directory-hierarchy), `isHierarchic: true` needs to be set.
 
 ```
 simona.input.primary.csvParams = {  
@@ -55,6 +55,7 @@ simona.input.weather.datasource = {
   scheme = "icon"
   sampleParams.use = true
   coordinateSource.sampleParams.use = true
+  maxCoordinateDistance = 50000
 }
 ```
 
@@ -69,6 +70,7 @@ simona.input.weather.datasource = {
   
     - The sample values should only be used to test the functionality. The performance of a reasonable simulation with sensitive results should be based on real weather data.
     - Supported weather data sources are: influxdb1x, csv, sql, couchbase, sample
+  - The parameter `maxCoordinateDistance` is used to specify the radius in which weather data should be searched in. The given distance should be in meter.
 
 Further model classes which can be used to parse a data set as input to power system simulations are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#time-series). 
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM. 
@@ -92,8 +94,12 @@ simona.output.sink.csv {
   fileFormat = ".csv"
   filePrefix = ""
   fileSuffix = ""
+  compressOutputs = false
 }
 ```
+
+While using a csv sink, the raw data output files can be zipped directly when `compressOutputs = true` is used.
+
 
 #### Output configuration of the grid
 
@@ -145,8 +151,53 @@ simona.output.participant.individualConfigs = [
 ]
 ```
 
+#### Output configuration of thermal elements
+
+To use the default configuration the default notifier has to be used. By setting "simulationResult" to true, the thermal elements is enabled to return its results.
+
+```
+simona.output.thermal.defaultConfig = {
+  notifier = "default",
+  simulationResult = true
+}
+```
+
+The default configuration applies to all models except the ones with individual configurations assigned.
+If individual configurations have to be performed for certain thermal elements, these must be listed with the corresponding notifier as in the following example.
+
+```
+simona.output.thermal.individualConfigs = [
+  {
+    notifier = "house",
+    simulationResult = true
+  },
+  {
+    notifier = "cylindricalstorage",
+    simulationResult = true
+  }
+]
+```
+
 Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
+
+## Logging level configuration
+
+To specify which log statements should be logged in the `simona.log` file and which log statements should be printed to
+the console, SIMONA offers the user two configuration options.
+
+The first options sets the default log level for the log file as well as the console.
+
+```
+simona.output.log.level = "INFO"
+```
+
+If the console should use a different log level, this level must be selected in the following example.
+
+```
+simona.output.log.consoleLevel = "DEBUG"
+```
+
 
 ## Runtime configuration 
 
@@ -162,7 +213,7 @@ The participant runtime can be either based on default configuration or individu
 simona.runtime.participant.load = {
   defaultConfig = {
     calculateMissingReactivePowerWithModel = false
-    uuids = ["default"]
+    uuids = []
     scaling = 1.0
     modelBehaviour = "fix"
     reference = "power"
@@ -175,11 +226,12 @@ The reactive power is determined based on the chosen Q-control of the participan
 
     calculateMissingReactivePowerWithModel = true
 
-Using the default configuration the universally unique identifier can be set to "default". 
+Using the default configuration, the universally unique identifier should be empty. 
+Alternatively, the parameter can be omitted to use the default empty list.
 
-    uuids = ["default"]
+    uuids = []
 
-Choosing the scaling factor of the power output: 
+Choosing the scaling factor of relevant participant parameters such as rated power or annual power consumption: 
 
     scaling = 1.0
 
@@ -194,28 +246,67 @@ The load reference can scale the load model behaviour to reach the given annual 
 If an individual configuration is to be assigned, the default configuration parameters must be adjusted accordingly.
 Runtime configurations of other system participants are done similarly, except that model behavior and reference are not defined.
 
-## Event configuration 
+### Storage runtime configuration
 
-Tba:
+The storage model takes parameters for the initial state of charge (SOC) and the target SOC for electrical energy storages, with 0.0 <= SOC <= 1.0.
+The initial SOC defaults to 0%, while the target SOC is optional. When no target SOC is set, the reference behavior (see flexibility messages) of storages is 0 kW. 
 
-  `simona.event.listener = []`
+    initialSoc = "0.0"
+    targetSoc = "1.0"
+
+Individual configuration can be assigned accordingly.
 
 ## Grid configuration 
+
+### Reference System
+The reference system contains a list of voltage levels. Each element includes the nominal apparent power, the nominal 
+voltage and the separate configuration of each voltage level. The voltage level configuration is composed of the identifier 
+and the nominal voltage.
+
+The configuration of a reference system is optional. If no configuration is provided by the user, the default
+[reference system](models/reference_system) that includes all common german voltage levels is used. For those users 
+who need other voltage levels than the common german voltage levels or different nominal apparent powers, they can configure
+their reference systems as shown below.
 
 The reference system can be configured as follows: 
 
 ```
 simona.gridConfig.refSystems = [
-  {sNom = "100 kVA", vNom = "0.4 kV", voltLvls = [{id = "NS", vNom = "0.4 kV"}]},
-  {sNom = "60 MVA", vNom = "20 kV", voltLvls = [{id = "MS", vNom = "20 kV"}]},
-  {sNom = "600 MVA", vNom = "110 kV", voltLvls = [{id = "HS", vNom = "110 kV"}]},
-  {sNom = "1000 MVA", vNom = "380 kV", voltLvls = [{id = "HoeS", vNom = "380 kV"}]}
+  {sNom = "100 kVA", vNom = "0.4 kV", voltLvls = [{id = "LV", vNom = "0.4 kV"}]},
+  {sNom = "60 MVA", vNom = "20 kV", voltLvls = [{id = "MV", vNom = "20 kV"}]},
+  {sNom = "600 MVA", vNom = "110 kV", voltLvls = [{id = "HV", vNom = "110 kV"}]},
+  {sNom = "1000 MVA", vNom = "380 kV", voltLvls = [{id = "EHV", vNom = "380 kV"}]}
 ]
 ```
 
-The reference system contains a list of voltage levels. Each element includes the nominal apparent power, the nominal voltage and the separate configuration of each voltage level. The voltage level configuration is composed of the identifier and the nominal voltage.
+Further typical voltage levels which can be used in the simulation and the configuration of individual reference systems
+are described in the documentation of [reference system](models/reference_system).
 
-Further typical voltage levels which can be used in the simulation and the configuration of individual reference systems are described in the documentation of [reference system](models/reference_system).
+### Voltage limits
+
+The voltage limits contains a list of voltage levels. Each element includes the minimal and maximal allowed voltage and
+the separate configuration of each voltage level. The voltage level configuration is composed of the identifier and the
+nominal voltage. 
+
+The configuration of a voltage limits is optional. If no configuration is provided by the user, the default
+[voltage limits](models/voltage_limits) that includes all common german voltage levels is used. For those users
+who need other voltage levels than the common german voltage levels or different voltage limits, they can configure
+their limits as shown below.
+
+The voltage limits can be configured as follows:
+
+```
+simona.gridConfig.voltageLimits = [
+  {vMin = 0.9, vMax = 1.1, voltLvls = [{id = "Lv", vNom = "0.4 kV"}]},
+  {vMin = 0.9, vMax = 1.1, voltLvls = [{id = "Mv", vNom = "20 kV"}]},
+  {vMin = 0.9, vMax = 1.1, voltLvls = [{id = "Hv", vNom = "110 kV"}]},
+  {vMin = 0.9, vMax = 1.05, voltLvls = [{id = "EHV", vNom = "380 kV"}]},
+]
+```
+
+Further typical voltage levels which can be used in the simulation and the configuration of individual voltage limits
+are described in the documentation of [voltage limits](models/voltage_limits).
+
 
 ## Power flow configuration 
 
@@ -234,3 +325,42 @@ Secondary convergence criterion for the power flow calculation is the number of 
 Resolution of the power flow calculation: 
 
   `simona.powerflow.resolution = "3600s"`
+
+## Transformer Control Group configuration
+
+It's possible to add a voltage control function to a transformer or group of transformers. This requires measurements within the network to be under voltage control and at least one corresponding transformer.
+The voltage control will attempt to adjust the voltage by changing the tap position of the corresponding transformer. If changing the tap position would cause a voltage limit to be exceeded, the initial voltage deviation cannot be reduced by the voltage control system.
+
+Transformer control groups must contain at least one transformer and one measurement. And can be configured as shown in this example for two transformer control groups:
+```
+simona.control.transformer = [
+{
+transformers = ["31a2b9bf-e785-4475-aa44-1c34646e8c79"],
+measurements = ["923f2d69-3093-4198-86e4-13d2d1c220f8"],
+vMin = 0.98,
+vMax = 1.02
+}
+, {
+transformers = ["1132dbf4-e8a1-44ae-8415-f42d4497aa1d"],
+measurements = ["7686b818-a0ba-465c-8e4e-f7d3c4e171fc"],
+vMin = 0.98,
+vMax = 1.02
+}
+]
+```
+
+UUID of transformer in control group:
+
+`transformers = ["31a2b9bf-e785-4475-aa44-1c34646e8c79"]`
+
+UUID of measurement in control group:
+
+`measurements = ["923f2d69-3093-4198-86e4-13d2d1c220f8"]`
+
+Minimum Voltage Limit in p.u.:
+
+`vMin = 0.98`
+
+Maximum Voltage Limit in p.u.:
+
+`vMax = 1.02`

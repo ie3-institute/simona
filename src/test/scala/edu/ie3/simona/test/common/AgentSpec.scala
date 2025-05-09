@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.test.common
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.ImplicitSender
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.ImplicitSender
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should
@@ -21,7 +21,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 class AgentSpec(actorSystem: ActorSystem)
     extends TestKitWithShutdown(actorSystem)
     with ImplicitSender
-    with SchedulerMessageFunctions
     with AnyWordSpecLike
     with should.Matchers
     with PrivateMethodTester

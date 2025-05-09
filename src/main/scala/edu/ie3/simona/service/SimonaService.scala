@@ -6,190 +6,281 @@
 
 package edu.ie3.simona.service
 
-import akka.actor.{Actor, ActorRef, Stash}
-import edu.ie3.simona.logging.SimonaActorLogging
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeServiceTrigger
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  Create,
+  ScheduleServiceActivation,
+  ServiceRegistrationMessage,
+  WrappedActivation,
 }
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
-  ServiceBaseStateData
+  ServiceBaseStateData,
+  ServiceConstantStateData,
 }
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.{
+  ActorContext,
+  Behaviors,
+  StashBuffer,
+}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
+import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
 /** Abstract description of a service agent, that is able to announce new
   * information to registered participants
   *
-  * @param scheduler
-  *   actor reference of the scheduler
-  * @tparam S
-  *   the service specific type of the [[ServiceStateData]]
+  * @tparam T
+  *   The type of messages this service accepts
   */
 abstract class SimonaService[
-    S <: ServiceBaseStateData
-](protected val scheduler: ActorRef)
-    extends Actor
-    with Stash
-    with SimonaActorLogging {
+    T >: ServiceMessage
+] {
 
-  override def receive: Receive = uninitialized
+  /** The service specific type of the [[ServiceStateData]]
+    */
+  type S <: ServiceBaseStateData
+
+  def apply(
+      scheduler: ActorRef[SchedulerMessage],
+      bufferSize: Int = 10000,
+  ): Behavior[T] = Behaviors.withStash(bufferSize) { buffer =>
+    Behaviors.setup { ctx =>
+      val activationAdapter: ActorRef[Activation] =
+        ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
+
+      val constantData: ServiceConstantStateData =
+        ServiceConstantStateData(
+          scheduler,
+          activationAdapter,
+        )
+
+      uninitialized(constantData, buffer)
+    }
+  }
 
   /** Receive method that is used before the service is initialized. Represents
     * the state "Uninitialized".
     *
     * @return
-    *   idleInternal methods for the uninitialized state
+    *   IdleInternal methods for the uninitialized state
     */
-  private def uninitialized: Receive = {
-
-    // initialize trigger message received from scheduler
-    case TriggerWithIdMessage(
-          InitializeServiceTrigger(
-            initializeStateData: InitializeServiceStateData
+  def uninitialized(implicit
+      constantData: ServiceConstantStateData,
+      buffer: StashBuffer[T],
+  ): Behavior[T] = Behaviors.receive {
+    case (
+          _,
+          Create(
+            initializeStateData: InitializeServiceStateData,
+            unlockKey: ScheduleKey,
           ),
-          triggerId,
-          _
         ) =>
+      constantData.scheduler ! ScheduleActivation(
+        constantData.activationAdapter,
+        INIT_SIM_TICK,
+        Some(unlockKey),
+      )
+
+      initializing(initializeStateData)
+
+    // not ready yet to handle registrations, stash request away
+    case (_, msg: ServiceRegistrationMessage) =>
+      buffer.stash(msg)
+      Behaviors.same
+
+  }
+
+  private def initializing(
+      initializeStateData: InitializeServiceStateData
+  )(implicit
+      constantData: ServiceConstantStateData,
+      buffer: StashBuffer[T],
+  ): Behavior[T] = Behaviors.receive {
+    case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
       // init might take some time and could go wrong if invalid initialize service data is received
       // execute complete and unstash only if init is carried out successfully
-      init(
-        initializeStateData
-      ) match {
-        case Success((serviceStateData, maybeTriggersToBeScheduled)) =>
-          scheduler ! CompletionMessage(triggerId, maybeTriggersToBeScheduled)
-          unstashAll()
-          context become idle(serviceStateData)
+      init(initializeStateData) match {
+        case Success((serviceStateData, maybeNewTick)) =>
+          constantData.scheduler ! Completion(
+            constantData.activationAdapter,
+            maybeNewTick,
+          )
+          buffer.unstashAll(idle(serviceStateData, constantData))
         case Failure(exception) =>
           // initialize service trigger with invalid data
-          log.error(
+          ctx.log.error(
             "Error during service initialization." +
               s"\nReceivedData: {}" +
               s"\nException: {}",
             initializeStateData,
-            exception
+            exception,
           )
-          throw exception // if a service fails startup we don't want to go on with the simulation
+
+          // if a service fails startup we don't want to go on with the simulation
+          throw new CriticalFailureException(
+            "Error during service initialization.",
+            exception,
+          )
       }
 
     // not ready yet to handle registrations, stash request away
-    case _: ServiceRegistrationMessage | _: ActivityStartTrigger =>
-      stash()
+    case (_, msg: ServiceRegistrationMessage) =>
+      buffer.stash(msg)
+      Behaviors.same
+
+    case (_, msg: WrappedActivation) =>
+      buffer.stash(msg)
+      Behaviors.same
 
     // unhandled message
-    case x =>
-      log.error(s"Received unhandled message: $x")
-      unhandled(x)
-
+    case (ctx, x) =>
+      ctx.log.error(s"Received unhandled message: $x")
+      Behaviors.unhandled
   }
 
   /** Default receive method when the service is initialized. Requires the
     * actual state data of this service to be ready to be used.
     *
     * @param stateData
-    *   the state data of this service
+    *   The state data of this service
     * @return
-    *   default idleInternal method when the service is initialized
+    *   Default idleInternal method when the service is initialized
     */
-  final protected def idle(implicit stateData: S): Receive =
-    idleExternal.applyOrElse(_, idleInternal(stateData))
+  final protected def idle(implicit
+      stateData: S,
+      constantData: ServiceConstantStateData,
+  ): Behavior[T] = Behaviors.receive[T] { case (ctx, msg) =>
+    idleInternal
+      .orElse(idleExternal)
+      .applyOrElse((ctx, msg), unhandled.tupled)
+  }
 
-  private def idleInternal(implicit stateData: S): Receive = {
+  private def idleInternal(implicit
+      stateData: S,
+      constantData: ServiceConstantStateData,
+  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = {
     // agent registration process
-    case registrationMsg: ServiceRegistrationMessage =>
+    case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
-      handleRegistrationRequest(registrationMsg) match {
-        case Success(stateData) => context become idle(stateData)
+      handleRegistrationRequest(registrationMsg)(stateData, ctx) match {
+        case Success(stateData) => idle(stateData, constantData)
         case Failure(exception) =>
-          log.error(
+          ctx.log.error(
             "Error during registration." +
               "\nMsg: {}" +
               "\nException: {}",
             registrationMsg,
-            exception
+            exception,
           )
-          unhandled(registrationMsg)
+
+          throw new CriticalFailureException(
+            "Error during registration.",
+            exception,
+          )
       }
 
-    // activity start trigger for this service
-    case TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId, _) =>
-      /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
-      val (updatedStateData, maybeNewTriggers) =
-        announceInformation(tick)(stateData)
-      scheduler ! CompletionMessage(triggerId, maybeNewTriggers)
-      context become idle(updatedStateData)
+    case (_, ScheduleServiceActivation(tick, unlockKey)) =>
+      constantData.scheduler ! ScheduleActivation(
+        constantData.activationAdapter,
+        tick,
+        Some(unlockKey),
+      )
 
-    // unhandled message
-    case x =>
-      log.error("Unhandled message received:{}", x)
-      unhandled(x)
+      idle
+
+    // activity start trigger for this service
+    case (ctx, WrappedActivation(Activation(tick))) =>
+      /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
+      val (updatedStateData, maybeNextTick) =
+        announceInformation(tick)(stateData, ctx)
+
+      constantData.scheduler ! Completion(
+        constantData.activationAdapter,
+        maybeNextTick,
+      )
+
+      idle(updatedStateData, constantData)
+  }
+
+  private def unhandled: (ActorContext[T], T) => Behavior[T] = {
+    case (ctx, msg) =>
+      ctx.log.error("Unhandled message received:{}", msg)
+      Behaviors.unhandled
   }
 
   /** Internal api method that allows handling incoming messages from external
-    * simulations
+    * simulations.
     *
     * @param stateData
-    *   the state data of this service
+    *   The state data of this service.
     * @return
-    *   empty behavior to ensure it only is called if it is overridden
+    *   Empty partial function as default. To override, extend
+    *   [[ExtDataSupport]].
     */
-  private[service] def idleExternal(implicit stateData: S): Receive =
-    Actor.emptyBehavior
+  protected def idleExternal(implicit
+      stateData: S,
+      constantData: ServiceConstantStateData,
+  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = PartialFunction.empty
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
-    * the initialized service and b) optional triggers that should be send to
-    * the [[edu.ie3.simona.scheduler.SimScheduler]] together with the completion
-    * message that is send in response to the trigger that is send to start the
+    * the initialized service and b) optional triggers that should be sent to
+    * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
+    * message that is sent in response to the trigger that is sent to start the
     * initialization process
     *
     * @param initServiceData
-    *   the data that should be used for initialization
+    *   The data that should be used for initialization
     * @return
-    *   the state data of this service and optional triggers that should be
-    *   included in the completion message
+    *   The state data of this service and optional tick that should be included
+    *   in the completion message
     */
   def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(S, Option[Seq[ScheduleTriggerMessage]])]
+  ): Try[(S, Option[Long])]
 
   /** Handle a request to register for information from this service
     *
     * @param registrationMessage
-    *   registration message to handle
+    *   Registration message to handle
     * @param serviceStateData
-    *   current state data of the actor
+    *   Current state data of the actor
     * @return
-    *   the service stata data that should be used in the next state (normally
+    *   The service stata data that should be used in the next state (normally
     *   with updated values)
     */
   protected def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
   )(implicit
-      serviceStateData: S
+      serviceStateData: S,
+      ctx: ActorContext[T],
   ): Try[S]
 
   /** Send out the information to all registered recipients
     *
     * @param tick
-    *   current tick data should be announced for
+    *   Current tick data should be announced for
     * @param serviceStateData
-    *   the current state data of this service
+    *   The current state data of this service
     * @return
-    *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is send
+    *   The service stata data that should be used in the next state (normally
+    *   with updated values) together with the completion message that is sent
     *   in response to the trigger that was sent to start this announcement
     */
   protected def announceInformation(tick: Long)(implicit
-      serviceStateData: S
-  ): (S, Option[Seq[ScheduleTriggerMessage]])
+      serviceStateData: S,
+      ctx: ActorContext[T],
+  ): (S, Option[Long])
 
 }

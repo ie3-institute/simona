@@ -10,18 +10,30 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.connectors.{
   CouchbaseConnector,
   InfluxDbConnector,
-  SqlConnector
+  SqlConnector,
 }
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
   Transformer2WResult,
-  Transformer3WResult
+  Transformer3WResult,
 }
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig._
-import edu.ie3.simona.event.notifier.{Notifier, ParticipantNotifierConfig}
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  CouchbaseParams,
+  KafkaParams,
+  SqlParams,
+}
+import edu.ie3.simona.config.OutputConfig.{
+  GridOutputConfig,
+  ParticipantOutputConfig,
+  SimpleOutputConfig,
+}
+import edu.ie3.simona.config.RuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, EmRuntimeConfig}
+import edu.ie3.simona.config.SimonaConfig.AssetConfigs
+import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.common.KafkaException
@@ -36,9 +48,43 @@ import scala.util.{Failure, Success, Try, Using}
 
 object ConfigUtil {
 
+  final case class EmConfigUtil private (
+      private val configs: Map[UUID, EmRuntimeConfig],
+      private val defaultConfigs: EmRuntimeConfig,
+  ) {
+
+    /** Queries for a [[EmRuntimeConfig]], that applies for the given uuid and
+      * either returns the config for the requested uuid or the default config.
+      *
+      * @param uuid
+      *   Identifier of the requested load model
+      * @return
+      *   the requested config or a default value
+      */
+    def getOrDefault(uuid: UUID): EmRuntimeConfig =
+      configs.getOrElse(uuid, defaultConfigs)
+  }
+
+  object EmConfigUtil {
+
+    /** Creates an em config utility from the given em configuration. It builds
+      * a map from uuid to individual em config for faster access.
+      *
+      * @param subConfig
+      *   Configuration subtree for the behaviour of ems
+      * @return
+      *   a matching config utility
+      */
+    def apply(subConfig: AssetConfigs[EmRuntimeConfig]): EmConfigUtil =
+      EmConfigUtil(
+        buildUuidMapping(subConfig.individualConfigs),
+        subConfig.defaultConfig,
+      )
+  }
+
   final case class ParticipantConfigUtil private (
-      private val configs: Map[UUID, SimonaConfig.BaseRuntimeConfig],
-      private val defaultConfigs: Map[Class[_], BaseRuntimeConfig]
+      private val configs: Map[UUID, BaseRuntimeConfig],
+      private val defaultConfigs: Map[Class[_], BaseRuntimeConfig],
   ) {
 
     /** Queries for a [[BaseRuntimeConfig]] of type [[T]], that applies for the
@@ -64,7 +110,6 @@ object ConfigUtil {
               )
           }
       }
-
   }
 
   object ParticipantConfigUtil {
@@ -74,42 +119,37 @@ object ConfigUtil {
       * participants config for faster access.
       *
       * @param subConfig
-      *   Configuration sub tree for the behaviour of system participants
+      *   Configuration subtree for the behaviour of system participants
       * @return
       *   a matching config utility
       */
     def apply(
-        subConfig: SimonaConfig.Simona.Runtime.Participant
+        subConfig: RuntimeConfig.Participant
     ): ParticipantConfigUtil = {
       ParticipantConfigUtil(
         buildUuidMapping(
           Seq(
+            subConfig.bm.individualConfigs,
             subConfig.load.individualConfigs,
             subConfig.fixedFeedIn.individualConfigs,
             subConfig.pv.individualConfigs,
             subConfig.evcs.individualConfigs,
-            subConfig.wec.individualConfigs
-          ).reduceOption(_ ++ _).getOrElse(Seq.empty)
+            subConfig.wec.individualConfigs,
+            subConfig.storage.individualConfigs,
+          ).flatten
         ),
         Seq(
+          subConfig.bm.defaultConfig,
           subConfig.load.defaultConfig,
           subConfig.fixedFeedIn.defaultConfig,
           subConfig.pv.defaultConfig,
           subConfig.evcs.defaultConfig,
-          subConfig.wec.defaultConfig
-        ).map { conf => conf.getClass -> conf }.toMap
+          subConfig.wec.defaultConfig,
+          subConfig.hp.defaultConfig,
+          subConfig.storage.defaultConfig,
+        ).map { conf => conf.getClass -> conf }.toMap,
       )
     }
-
-    private def buildUuidMapping(
-        configs: Seq[BaseRuntimeConfig]
-    ): Map[UUID, BaseRuntimeConfig] =
-      configs
-        .flatMap(modelConfig =>
-          modelConfig.uuids
-            .map(UUID.fromString(_) -> modelConfig)
-        )
-        .toMap
 
   }
 
@@ -120,18 +160,18 @@ object ConfigUtil {
     * @param defaultConfig
     *   Default config to use, when there is no specific one
     * @param configs
-    *   Mapping from notifier identifier to it's notifier configuration
+    *   Mapping from notifier identifier to its notifier configuration
     */
-  final case class BaseOutputConfigUtil(
-      private val defaultConfig: ParticipantNotifierConfig,
+  final case class OutputConfigUtil(
+      private val defaultConfig: NotifierConfig,
       private val configs: Map[
         NotifierIdentifier.Value,
-        ParticipantNotifierConfig
-      ]
+        NotifierConfig,
+      ],
   ) {
     def getOrDefault(
         notifierId: NotifierIdentifier.Value
-    ): ParticipantNotifierConfig =
+    ): NotifierConfig =
       configs.getOrElse(notifierId, defaultConfig)
 
     /** Get all identifiers of [[Notifier]] implementations, that will announce
@@ -140,13 +180,18 @@ object ConfigUtil {
       * @return
       *   A set of applicable notifiers
       */
-    def simulationResultIdentifiersToConsider: Set[NotifierIdentifier.Value] =
+    def simulationResultIdentifiersToConsider(
+        thermal: Boolean
+    ): Set[NotifierIdentifier.Value] = {
       if (defaultConfig.simulationResultInfo) {
+        val notifiers =
+          if (thermal) NotifierIdentifier.getThermalIdentifiers
+          else NotifierIdentifier.getParticipantIdentifiers
         /* Generally inform about all simulation results, but not on those, that are explicitly marked */
-        NotifierIdentifier.values -- configs.flatMap {
+        notifiers -- configs.flatMap {
           case (
                 notifierId,
-                ParticipantNotifierConfig(resultInfo, _)
+                NotifierConfig(resultInfo, _, _),
               ) if !resultInfo =>
             Some(notifierId)
           case _ => None
@@ -156,41 +201,89 @@ object ConfigUtil {
         configs.flatMap {
           case (
                 notifierId,
-                ParticipantNotifierConfig(resultInfo, _)
+                NotifierConfig(resultInfo, _, _),
               ) if resultInfo =>
             Some(notifierId)
           case _ => None
         }.toSet
       }
+    }
 
-    def simulationResultEntitiesToConsider: Set[Class[_ <: ResultEntity]] =
-      simulationResultIdentifiersToConsider.map(notifierId =>
+    def simulationResultEntitiesToConsider(
+        thermal: Boolean
+    ): Set[Class[_ <: ResultEntity]] =
+      simulationResultIdentifiersToConsider(thermal).map(notifierId =>
         EntityMapperUtil.getResultEntityClass(notifierId)
       )
   }
 
-  object BaseOutputConfigUtil {
-    def apply(
-        subConfig: SimonaConfig.Simona.Output.Participant
-    ): BaseOutputConfigUtil = {
+  object OutputConfigUtil {
+    def participants(
+        subConfig: AssetConfigs[ParticipantOutputConfig]
+    ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
-        case BaseOutputConfig(_, powerRequestReply, simulationResult) =>
-          ParticipantNotifierConfig(simulationResult, powerRequestReply)
+        case ParticipantOutputConfig(
+              _,
+              simulationResult,
+              flexResult,
+              powerRequestReply,
+            ) =>
+          NotifierConfig(simulationResult, powerRequestReply, flexResult)
       }
       val configMap = subConfig.individualConfigs.map {
-        case BaseOutputConfig(notifier, powerRequestReply, simulationResult) =>
+        case ParticipantOutputConfig(
+              notifier,
+              simulationResult,
+              flexResult,
+              powerRequestReply,
+            ) =>
           try {
             val id = NotifierIdentifier(notifier)
-            id -> ParticipantNotifierConfig(simulationResult, powerRequestReply)
+            id -> NotifierConfig(
+              simulationResult,
+              powerRequestReply,
+              flexResult,
+            )
           } catch {
             case e: NoSuchElementException =>
               throw new InvalidConfigParameterException(
                 s"Cannot parse $notifier to known result event notifier.",
-                e
+                e,
               )
           }
       }.toMap
-      new BaseOutputConfigUtil(defaultConfig, configMap)
+      new OutputConfigUtil(defaultConfig, configMap)
+    }
+
+    def thermal(
+        subConfig: AssetConfigs[SimpleOutputConfig]
+    ): OutputConfigUtil = {
+      val defaultConfig = subConfig.defaultConfig match {
+        case SimpleOutputConfig(_, simulationResult) =>
+          NotifierConfig(
+            simulationResult,
+            powerRequestReply = false,
+            flexResult = false,
+          )
+      }
+      val configMap = subConfig.individualConfigs.map {
+        case SimpleOutputConfig(notifier, simulationResult) =>
+          try {
+            val id = NotifierIdentifier(notifier)
+            id -> NotifierConfig(
+              simulationResult,
+              powerRequestReply = false,
+              flexResult = false,
+            )
+          } catch {
+            case e: NoSuchElementException =>
+              throw new InvalidConfigParameterException(
+                s"Cannot parse $notifier to known result event notifier.",
+                e,
+              )
+          }
+      }.toMap
+      new OutputConfigUtil(defaultConfig, configMap)
     }
   }
 
@@ -225,7 +318,7 @@ object ConfigUtil {
     */
   object NotifierIdentifier extends ParsableEnumeration {
     val BioMassPlant: Value = Value("bm")
-    val ChpPlant: Value = Value("chp")
+    val Em: Value = Value("em")
     val Ev: Value = Value("ev")
     val Evcs: Value = Value("evcs")
     val FixedFeedIn: Value = Value("fixedfeedin")
@@ -233,6 +326,19 @@ object ConfigUtil {
     val PvPlant: Value = Value("pv")
     val Storage: Value = Value("storage")
     val Wec: Value = Value("wec")
+    val Hp: Value = Value("hp")
+    val House: Value = Value("house")
+    val CylindricalStorage: Value = Value("cylindricalstorage")
+
+    /** All participant identifiers */
+    def getParticipantIdentifiers: Set[Value] =
+      (NotifierIdentifier.values -- getThermalIdentifiers).toSet
+
+    /** All thermal identifiers */
+    def getThermalIdentifiers: Set[Value] = Set(
+      NotifierIdentifier.House,
+      NotifierIdentifier.CylindricalStorage,
+    )
   }
 
   object CsvConfigUtil {
@@ -246,8 +352,8 @@ object ConfigUtil {
       *   descriptive exception messages)
       */
     def checkBaseCsvParams(
-        params: SimonaConfig.BaseCsvParams,
-        csvParamsName: String
+        params: BaseCsvParams,
+        csvParamsName: String,
     ): Unit = params match {
       case BaseCsvParams(csvSep, directoryPath, _) =>
         if (!(csvSep.equals(";") || csvSep.equals(",")))
@@ -267,7 +373,7 @@ object ConfigUtil {
     def checkCsvParams(
         csvParamsName: String,
         csvSep: String,
-        folderPath: String
+        folderPath: String,
     ): Unit = {
       if (!(csvSep.equals(";") || csvSep.equals(",")))
         throw new InvalidConfigParameterException(
@@ -281,13 +387,12 @@ object ConfigUtil {
           s"The provided folderPath for .csv-files '$folderPath' for '$csvParamsName' configuration is invalid! Please correct the path!"
         )
     }
-
   }
 
   object DatabaseConfigUtil extends LazyLogging {
 
     def checkSqlParams(
-        sql: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
+        sql: SqlParams
     ): Unit = {
       if (!sql.jdbcUrl.trim.startsWith("jdbc:")) {
         throw new InvalidConfigParameterException(
@@ -322,7 +427,8 @@ object ConfigUtil {
       ) match {
         case Failure(exception) =>
           throw new IllegalArgumentException(
-            s"Unable to reach configured SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'. Exception: $exception"
+            s"Unable to reach configured SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'. Exception: $exception",
+            exception,
           )
         case Success(connection) =>
           val validConnection = connection.isValid(5000)
@@ -339,7 +445,7 @@ object ConfigUtil {
     }
 
     def checkCouchbaseParams(
-        couchbase: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams
+        couchbase: CouchbaseParams
     ): Unit = {
       if (couchbase.url.isEmpty)
         throw new InvalidConfigParameterException(
@@ -372,12 +478,13 @@ object ConfigUtil {
           couchbase.url,
           couchbase.bucketName,
           couchbase.userName,
-          couchbase.password
+          couchbase.password,
         )
       ) match {
         case Failure(exception) =>
           throw new IllegalArgumentException(
-            s"Unable to reach configured Couchbase database with url '${couchbase.url}', bucket '${couchbase.bucketName}' and user name '${couchbase.userName}'. Exception: $exception"
+            s"Unable to reach configured Couchbase database with url '${couchbase.url}', bucket '${couchbase.bucketName}' and user name '${couchbase.userName}'. Exception: $exception",
+            exception,
           )
         case Success(connector) =>
           val validConnection = connector.isConnectionValid
@@ -396,14 +503,15 @@ object ConfigUtil {
     def checkInfluxDb1xParams(
         influxDb1xParamsName: String,
         url: String,
-        database: String
+        database: String,
     ): Unit = {
       Try(
         new InfluxDbConnector(url, database).isConnectionValid
       ) match {
         case Failure(exception) =>
           throw new IllegalArgumentException(
-            s"Unable to reach configured influxDb1x with url '$url' for '$influxDb1xParamsName' configuration and database '$database'. Exception: $exception"
+            s"Unable to reach configured influxDb1x with url '$url' for '$influxDb1xParamsName' configuration and database '$database'. Exception: $exception",
+            exception,
           )
         case Success(validConnection) if !validConnection =>
           throw new IllegalArgumentException(
@@ -418,7 +526,7 @@ object ConfigUtil {
 
     def checkKafkaParams(
         kafkaParams: KafkaParams,
-        topics: Seq[String]
+        topics: Seq[String],
     ): Unit = {
       try {
         UUID.fromString(kafkaParams.runId)
@@ -426,7 +534,7 @@ object ConfigUtil {
         case e: IllegalArgumentException =>
           throw new InvalidConfigParameterException(
             s"The UUID '${kafkaParams.runId}' cannot be parsed as it is invalid.",
-            e
+            e,
           )
       }
 
@@ -441,17 +549,17 @@ object ConfigUtil {
         case Failure(ke: KafkaException) =>
           throw new InvalidConfigParameterException(
             s"Exception creating kafka client for broker ${kafkaParams.bootstrapServers}.",
-            ke
+            ke,
           )
         case Failure(ee: ExecutionException) =>
           throw new InvalidConfigParameterException(
             s"Connection with kafka broker ${kafkaParams.bootstrapServers} failed.",
-            ee
+            ee,
           )
         case Failure(other) =>
           throw new InvalidConfigParameterException(
             s"Checking kafka config failed with unexpected exception.",
-            other
+            other,
           )
         case Success(missingTopics) if missingTopics.nonEmpty =>
           throw new InvalidConfigParameterException(
@@ -462,5 +570,15 @@ object ConfigUtil {
       }
     }
   }
+
+  private def buildUuidMapping[T <: BaseRuntimeConfig](
+      configs: Seq[T]
+  ): Map[UUID, T] =
+    configs
+      .flatMap(modelConfig =>
+        modelConfig.uuids
+          .map(UUID.fromString(_) -> modelConfig)
+      )
+      .toMap
 
 }

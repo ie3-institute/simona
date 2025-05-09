@@ -6,31 +6,32 @@
 
 package edu.ie3.simona.actor
 
-import akka.actor.{ActorRef, ActorRefFactory, Props}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.apache.pekko.actor.{ActorRefFactory, Props, ActorRef => ClassicRef}
 
-import java.util.UUID
+import scala.util.Random
 
 object SimonaActorNaming {
 
   implicit class RichActorRefFactory(private val refFactory: ActorRefFactory)
       extends AnyVal {
 
-    def simonaActorOf(props: Props, actorId: String): ActorRef =
-      refFactory.actorOf(props, actorName(props, actorId))
-
-    def simonaActorOf(props: Props): ActorRef =
-      refFactory.actorOf(props, actorName(props, simonaActorUuid))
+    def simonaActorOf(props: Props, actorId: String): ClassicRef =
+      refFactory.actorOf(props, actorName(props, simonaActorId(actorId)))
   }
 
-  /** Constructs a uuid and cuts it down to 6 digits for convenience. Although
-    * this is dangerous as duplicates might be possible, it should be sufficient
-    * in our case as the uniqueness is only required in one actor system
+  /** Constructs an id for convenience actor naming. Although this is dangerous
+    * as duplicates might be possible, it should be sufficient in our case as
+    * the uniqueness is only required in one actor system
     *
     * @return
-    *   a shortened uuid string
+    *   an Id string
     */
-  private def simonaActorUuid: String =
-    UUID.randomUUID().toString.substring(0, 5)
+  private def simonaActorId(actorId: String): String = {
+    val randomNumber = Random.nextInt(1000).toString
+    s"$actorId-$randomNumber"
+  }
 
   /** Constructs an actor name based on the simona convention for actor names.
     * The provided combination of class and id has to be unique for the whole
@@ -60,15 +61,15 @@ object SimonaActorNaming {
     *   the actor name based on simona conventions as string
     */
   def actorName(typeName: String, actorId: String): String =
-    s"${typeName}_${cleanActorIdForAkka(actorId)}"
+    s"${typeName}_${cleanActorIdForPekko(actorId)}"
 
-  /** Extracts the actor name from given [[ActorRef]]. Cluster singletons are
+  /** Extracts the actor name from given [[ClassicRef]]. Cluster singletons are
     * taken care of separately.
     *
     * @return
     *   the actor name extract from the ActorRef
     */
-  def actorName(actorRef: ActorRef): String =
+  def actorName(actorRef: ClassicRef): String =
     actorRef.path.name match {
       case "singleton" =>
         // singletons end in /${actorName}/singleton
@@ -76,6 +77,14 @@ object SimonaActorNaming {
       case other =>
         other
     }
+
+  /** Extracts the actor name from given [[ActorRef]]. Cluster singletons are
+    * taken care of separately.
+    *
+    * @return
+    *   the actor name extract from the ActorRef
+    */
+  def actorName(actorRef: ActorRef[_]): String = actorName(actorRef.toClassic)
 
   /** Constructs the type name from given props.
     *
@@ -104,7 +113,7 @@ object SimonaActorNaming {
   def typeName(clz: Class[_]): String =
     clz.getSimpleName.replace("$", "")
 
-  /** Akka prevents the usage of specific special characters as names. This
+  /** Pekko prevents the usage of specific special characters as names. This
     * method cleans a given string and makes it usable as actor name
     *
     * @param inputString
@@ -112,9 +121,9 @@ object SimonaActorNaming {
     * @return
     *   a cleaned string that can be used as actor name
     */
-  private def cleanActorIdForAkka(inputString: String): String = {
+  private def cleanActorIdForPekko(inputString: String): String = {
     val regexFilter =
-      "[^A-Za-z0-9-_.*$+:@&=,!~';.]" // akka prevents using other special chars than the ones here
+      "[^A-Za-z0-9-_.*$+:@&=,!~';.]" // pekko prevents using other special chars than the ones here
     inputString.replaceAll(regexFilter, "")
   }
 

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import java.time.Duration
+import scala.concurrent.duration.FiniteDuration
 
 /** Holds all power flow configuration parameters used in
   * [[edu.ie3.simona.agent.grid]]
@@ -21,11 +21,14 @@ import java.time.Duration
   * @param maxIterations
   *   Maximum amount of iterations in a [[edu.ie3.powerflow.NewtonRaphsonPF]]
   * @param sweepTimeout
-  *   [[akka.pattern.ask]] timeout for a sweep
+  *   [[org.apache.pekko.pattern.ask]] timeout for a sweep
+  * @param stopOnFailure
+  *   Whether to stop the GridAgent after a power flow calculation failed
   */
 final case class PowerFlowParams(
     maxSweepPowerDeviation: Double,
     epsilon: Vector[Double],
     maxIterations: Int,
-    sweepTimeout: Duration
+    sweepTimeout: FiniteDuration,
+    stopOnFailure: Boolean,
 )

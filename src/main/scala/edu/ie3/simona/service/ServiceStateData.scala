@@ -6,10 +6,9 @@
 
 package edu.ie3.simona.service
 
-import akka.actor.ActorRef
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.typed.ActorRef
 
 trait ServiceStateData
 
@@ -21,32 +20,9 @@ object ServiceStateData {
 
   trait ServiceBaseStateData extends ServiceStateData
 
-  /** Indicate that the service is initialized
-    */
-  trait ServiceActivationBaseStateData extends ServiceBaseStateData {
-    val maybeNextActivationTick: Option[Long]
-    val activationTicks: SortedDistinctSeq[Long]
+  final case class ServiceConstantStateData(
+      scheduler: ActorRef[SchedulerMessage],
+      activationAdapter: ActorRef[Activation],
+  ) extends ServiceStateData
 
-    /** Get the next upcoming tick and removes it from the list of scheduled
-      * ticks
-      *
-      * @return
-      *   The next upcoming tick and the remaining ones
-      */
-    def popNextTick: (Option[Long], SortedDistinctSeq[Long]) =
-      activationTicks.pop
-  }
-
-  object ServiceActivationBaseStateData {
-
-    /** Build an optional [[Seq]] of [[ScheduleTriggerMessage]] s based on the
-      * given optional next tick and the sender
-      */
-    val tickToScheduleTriggerMessages
-        : (Option[Long], ActorRef) => Option[Seq[ScheduleTriggerMessage]] =
-      (maybeTick, sender) =>
-        maybeTick.map(tick =>
-          Seq(ScheduleTriggerMessage(ActivityStartTrigger(tick), sender))
-        )
-  }
 }

@@ -8,9 +8,9 @@ package edu.ie3.simona.io.file
 
 import java.io.File
 import java.nio.file.{Files, Path}
-
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.simona.io.result.ResultSinkType
+import edu.ie3.simona.logging.logback.LogbackConfiguration
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
@@ -47,41 +47,21 @@ class ResultFileHierarchySpec
           runOutputDir,
           ResultEntityPathConfig(
             Set(classOf[PvResult]),
-            ResultSinkType.Csv("csv", "pref", "suff")
-          )
+            ResultSinkType.Csv("csv", "pref", "suff"),
+          ),
+          configureLogger =
+            LogbackConfiguration.default("INFO", Some("ERROR"))(_),
         )
 
-      val runOutputDirWithDate =
-        "vn_simona_".concat(validOutputFileHierarchy.runStartTimeUTC)
+      validOutputFileHierarchy.tmpDir.toString shouldBe validOutputFileHierarchy.runOutputDir.toString + fileSeparator + "tmp"
+      validOutputFileHierarchy.configOutputDir.toString shouldBe validOutputFileHierarchy.runOutputDir.toString + fileSeparator + "configs"
+      validOutputFileHierarchy.logOutputDir.toString shouldBe validOutputFileHierarchy.runOutputDir.toString + fileSeparator + "log"
 
-      relativizePath(
-        validOutputFileHierarchy.baseOutputDir
-      ).toString shouldBe baseOutputDir
-      relativizePath(
-        validOutputFileHierarchy.runOutputDir
-      ).toString shouldBe baseOutputDir + fileSeparator + runOutputDirWithDate
-      relativizePath(
-        validOutputFileHierarchy.tmpDir
-      ).toString shouldBe baseOutputDir + fileSeparator + runOutputDirWithDate + fileSeparator + "tmp"
-      relativizePath(
-        validOutputFileHierarchy.configOutputDir
-      ).toString shouldBe baseOutputDir + fileSeparator + runOutputDirWithDate + fileSeparator + "configs"
-      relativizePath(
-        validOutputFileHierarchy.rawOutputDataDir
-      ).toString shouldBe baseOutputDir + fileSeparator + runOutputDirWithDate + fileSeparator + "rawOutputData"
-      relativizePath(
-        validOutputFileHierarchy.graphOutputDir
-      ).toString shouldBe baseOutputDir + fileSeparator + runOutputDirWithDate + fileSeparator + "graphs"
-      relativizePath(
-        validOutputFileHierarchy.kpiOutputDir
-      ).toString shouldBe baseOutputDir + fileSeparator + runOutputDirWithDate + fileSeparator + "kpi"
-
-      relativizePath(
-        validOutputFileHierarchy.rawOutputDataFilePaths(classOf[PvResult])
-      ).toString shouldBe baseOutputDir + fileSeparator + runOutputDirWithDate + fileSeparator + "rawOutputData" + fileSeparator + "pref_pv_res_suff.csv"
+      validOutputFileHierarchy
+        .rawOutputDataFilePaths(classOf[PvResult])
+        .toString shouldBe validOutputFileHierarchy.runOutputDir.toString + fileSeparator + "rawOutputData" + fileSeparator + "pref_pv_res_suff.csv"
 
     }
-    "not write directories automatically on instantiation" in {} // todo
 
     "write directories automatically on instantiation when requested so" in {
       // delete file if they exist
@@ -95,9 +75,10 @@ class ResultFileHierarchySpec
           runOutputDir,
           ResultEntityPathConfig(
             Set(classOf[PvResult]),
-            ResultSinkType.Csv("csv", "pref", "suff")
+            ResultSinkType.Csv("csv", "pref", "suff"),
           ),
-          createDirs = true
+          configureLogger =
+            LogbackConfiguration.default("INFO", Some("ERROR"))(_),
         )
 
       // check for existence of run output dir
@@ -106,36 +87,18 @@ class ResultFileHierarchySpec
       ) shouldBe true
 
       // check for existence of other folders
-      assert(
-        Files.exists(new File(validOutputFileHierarchy.baseOutputDir).toPath)
-      )
-      assert(Files.exists(new File(validOutputFileHierarchy.tmpDir).toPath))
-      assert(
-        Files.exists(new File(validOutputFileHierarchy.configOutputDir).toPath)
-      )
-      assert(
-        Files.exists(new File(validOutputFileHierarchy.rawOutputDataDir).toPath)
-      )
-      assert(
-        Files.exists(new File(validOutputFileHierarchy.graphOutputDir).toPath)
-      )
-      assert(
-        Files.exists(new File(validOutputFileHierarchy.kpiOutputDir).toPath)
-      )
+      assert(Files.exists(validOutputFileHierarchy.configOutputDir))
+      assert(Files.exists(validOutputFileHierarchy.logOutputDir))
+      assert(Files.exists(validOutputFileHierarchy.tmpDir))
 
       // check if tmp directory can be deleted by output file hierarchy
       ResultFileHierarchy.deleteTmpDir(validOutputFileHierarchy)
-      assert(!Files.exists(new File(validOutputFileHierarchy.tmpDir).toPath))
+      assert(!Files.exists(validOutputFileHierarchy.tmpDir))
 
     }
 
     "should add a timestamp automatically on instantiation" in {} // todo
 
-  }
-
-  private def relativizePath(fullPath: String): Path = {
-    new File(new File("").getAbsolutePath).toPath
-      .relativize(new File(fullPath).toPath)
   }
 
   // todo output model path config compression should always be disabled -> test for this

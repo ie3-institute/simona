@@ -3,11 +3,11 @@
 This page documents the functionality of the cylindrical thermal storage available in SIMONA.
 
 ## Behaviour
-This storage model operates on volumes, although the functions it provides for other models all operate with energy. Internally the storage model converts energy to volume and vice versa with formulas specified below. Furthermore it is assumed that the storage medium is water. Also the model holds a variable for the current storage level.
+This storage model operates on volumes, although the functions it provides for other models all operate with energy. Internally the storage model converts energy to volume and vice versa with formulas specified below. Furthermore, it is assumed that the storage medium is water. Also, the model holds a variable for the current storage level.
 
 ## Attributes, Units and Remarks
 
-Please refer to  {doc}`PowerSystemDataModel - CTS Model <psdm:models/input/participant/cylindricalstorage>` for Attributes and Units used in this Model.
+Please refer to  {doc}`PowerSystemDataModel - CTS Model <psdm:models/input/thermal/cylindricalstorage>` for Attributes and Units used in this Model.
 
 ## Calculations
 ### Maximal storage capacity
@@ -39,9 +39,9 @@ $$
 $$
 
 Reference:
-```{eval-rst} 
-* :cite:ts:`Quaschning.2013`
-```
+
+* {cite:cts}`Quaschning.2013`
+
 
 That is the mathematical description of loading and unloading processes concerning the buffer storage. Whenever heat is stored within the storage or removed from the storage this equation is used. This includes the case that the whole heat demand is satisfied by the storage.
 

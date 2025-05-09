@@ -6,15 +6,12 @@
 
 package edu.ie3.simona.ontology.messages.services
 
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ProvisionMessage,
-  ServiceRegistrationMessage
-}
-import edu.ie3.util.quantities.interfaces.Irradiance
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.{Speed, Temperature}
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import edu.ie3.simona.service.Data.SecondaryData
+import edu.ie3.util.scala.quantities.Irradiance
+import org.apache.pekko.actor.typed.ActorRef
+import squants.{Temperature, Velocity}
 
 sealed trait WeatherMessage
 
@@ -26,35 +23,24 @@ sealed trait WeatherMessage
   */
 object WeatherMessage {
 
+  private[services] trait WeatherInternal extends WeatherMessage
+
   /** Indicate the [[edu.ie3.simona.service.weather.WeatherService]] that the
     * requesting agent wants to receive weather for the provided coordinates
     *
+    * @param requestingActor
+    *   The actor requesting registration for weather data
     * @param latitude
     *   Latitude of the requested location
     * @param longitude
     *   Longitude of the requested location
     */
   final case class RegisterForWeatherMessage(
+      requestingActor: ActorRef[ParticipantAgent.Request],
       latitude: Double,
-      longitude: Double
+      longitude: Double,
   ) extends WeatherMessage
       with ServiceRegistrationMessage
-
-  /** Provide weather for the requested tick
-    *
-    * @param tick
-    *   The tick, for which the data is requested for
-    * @param data
-    *   Actual information
-    * @param nextDataTick
-    *   Foreseen next tick, where data is available
-    */
-  final case class ProvideWeatherMessage(
-      override val tick: Long,
-      override val data: WeatherData,
-      override val nextDataTick: Option[Long]
-  ) extends WeatherMessage
-      with ProvisionMessage[WeatherData]
 
   /** Container class for the entirety of weather information at a certain point
     * in time and at a certain coordinate
@@ -69,10 +55,10 @@ object WeatherMessage {
     *   Wind velocity
     */
   final case class WeatherData(
-      diffIrr: ComparableQuantity[Irradiance],
-      dirIrr: ComparableQuantity[Irradiance],
-      temp: ComparableQuantity[Temperature],
-      windVel: ComparableQuantity[Speed]
+      diffIrr: Irradiance,
+      dirIrr: Irradiance,
+      temp: Temperature,
+      windVel: Velocity,
   ) extends SecondaryData
 
 }

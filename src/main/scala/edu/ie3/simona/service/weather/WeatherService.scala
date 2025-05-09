@@ -6,60 +6,45 @@
 
 package edu.ie3.simona.service.weather
 
-import akka.actor.{ActorRef, Props}
-import edu.ie3.simona.exceptions.InitializationException
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
+  DataProvision,
   RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
+  RegistrationSuccessfulMessage,
 }
+import edu.ie3.simona.config.InputConfig
+import edu.ie3.simona.exceptions.InitializationException
+import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
-import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
-  ServiceActivationBaseStateData
+  ServiceBaseStateData,
 }
-import edu.ie3.simona.service.weather.WeatherService.{
-  InitWeatherServiceStateData,
-  WeatherInitializedStateData
-}
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
-  WeightedCoordinates
+  WeightedCoordinates,
 }
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
-import tech.units.indriya.quantity.Quantities
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 import java.time.ZonedDateTime
-import javax.measure.Quantity
-import javax.measure.quantity.Length
 import scala.util.{Failure, Success, Try}
 
-object WeatherService {
+/** Weather Service is responsible to register other actors that require weather
+  * information and provide weather information when requested
+  *
+  * @version 0.1
+  * @since 2019-07-28
+  */
+object WeatherService extends SimonaService[WeatherMessage] {
 
-  def props(
-      scheduler: ActorRef,
-      startDateTime: ZonedDateTime,
-      simulationEnd: ZonedDateTime,
-      amountOfInterpolationCoordinates: Int = 4,
-      maxInterpolationCoordinateDistance: Quantity[Length] =
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
-  ): Props =
-    Props(
-      new WeatherService(
-        scheduler,
-        startDateTime,
-        simulationEnd,
-        amountOfInterpolationCoordinates,
-        maxInterpolationCoordinateDistance
-      )
-    )
+  override type S = WeatherInitializedStateData
 
   /** @param weatherSource
     *   weather source to receive information from
@@ -76,14 +61,15 @@ object WeatherService {
     */
   final case class WeatherInitializedStateData(
       weatherSource: WeatherSource,
-      coordsToActorRefMap: Map[AgentCoordinates, Vector[ActorRef]] =
-        Map.empty[AgentCoordinates, Vector[ActorRef]],
+      coordsToActorRefMap: Map[AgentCoordinates, Vector[
+        ActorRef[ParticipantAgent.Request]
+      ]] = Map.empty,
       weightedWeatherCoordinates: Map[AgentCoordinates, WeightedCoordinates] =
         Map.empty[AgentCoordinates, WeightedCoordinates],
-      override val maybeNextActivationTick: Option[Long],
-      override val activationTicks: SortedDistinctSeq[Long] =
-        SortedDistinctSeq.empty
-  ) extends ServiceActivationBaseStateData
+      maybeNextActivationTick: Option[Long],
+      activationTicks: SortedDistinctSeq[Long] = SortedDistinctSeq.empty,
+      amountOfInterpolationCoords: Int = 4,
+  ) extends ServiceBaseStateData
 
   /** Weather service state data used for initialization of the weather service
     *
@@ -91,34 +77,17 @@ object WeatherService {
     *   the definition of the source to use
     */
   final case class InitWeatherServiceStateData(
-      sourceDefinition: SimonaConfig.Simona.Input.Weather.Datasource
+      sourceDefinition: InputConfig.WeatherDatasource,
+      startDateTime: ZonedDateTime,
+      simulationEnd: ZonedDateTime,
   ) extends InitializeServiceStateData
-
-  val FALLBACK_WEATHER_STEM_DISTANCE = 3600L
-}
-
-/** Weather Service is responsible to register other actors that require weather
-  * information and provide weather information when requested
-  *
-  * @version 0.1
-  * @since 2019-07-28
-  */
-final case class WeatherService(
-    override val scheduler: ActorRef,
-    private implicit val simulationStart: ZonedDateTime,
-    simulationEnd: ZonedDateTime,
-    private val amountOfInterpolationCoords: Int,
-    private val maxInterpolationCoordinateDistance: Quantity[Length]
-) extends SimonaService[
-      WeatherInitializedStateData
-    ](scheduler) {
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
-    * the initialized service and b) optional triggers that should be send to
-    * the [[edu.ie3.simona.scheduler.SimScheduler]] together with the completion
-    * message that is send in response to the trigger that is send to start the
+    * the initialized service and b) optional triggers that should be sent to
+    * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
+    * message that is sent in response to the trigger that is sent to start the
     * initialization process
     *
     * @param initServiceData
@@ -129,18 +98,23 @@ final case class WeatherService(
     */
   override def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(WeatherInitializedStateData, Option[Seq[ScheduleTriggerMessage]])] =
+  ): Try[(WeatherInitializedStateData, Option[Long])] =
     initServiceData match {
-      case InitWeatherServiceStateData(sourceDefinition) =>
-        val weatherSource =
-          WeatherSource(sourceDefinition, simulationStart)
+      case InitWeatherServiceStateData(
+            sourceDefinition,
+            startDateTime,
+            simulationEnd,
+          ) =>
+        implicit val simulationStart: ZonedDateTime = startDateTime
+
+        val weatherSource = WeatherSource(sourceDefinition)
 
         /* What is the first tick to be triggered for? And what are further activation ticks */
         val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
           weatherSource
             .getDataTicks(
               SimonaConstants.FIRST_TICK_IN_SIMULATION,
-              simulationEnd.toTick
+              simulationEnd.toTick,
             )
             .toSeq
         ).pop
@@ -148,13 +122,12 @@ final case class WeatherService(
         val weatherInitializedStateData = WeatherInitializedStateData(
           weatherSource,
           activationTicks = furtherActivationTicks,
-          maybeNextActivationTick = maybeNextTick
+          maybeNextActivationTick = maybeNextTick,
         )
 
         Success(
           weatherInitializedStateData,
-          ServiceActivationBaseStateData
-            .tickToScheduleTriggerMessages(maybeNextTick, self)
+          maybeNextTick,
         )
 
       case invalidData =>
@@ -178,11 +151,18 @@ final case class WeatherService(
   override def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
   )(implicit
-      serviceStateData: WeatherInitializedStateData
+      serviceStateData: WeatherInitializedStateData,
+      ctx: ActorContext[WeatherMessage],
   ): Try[WeatherInitializedStateData] =
     registrationMessage match {
-      case RegisterForWeatherMessage(latitude, longitude) =>
-        Success(handleRegistrationRequest(sender(), latitude, longitude))
+      case RegisterForWeatherMessage(
+            agentToBeRegistered,
+            latitude,
+            longitude,
+          ) =>
+        Success(
+          handleRegistrationRequest(agentToBeRegistered, latitude, longitude)
+        )
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
@@ -208,37 +188,39 @@ final case class WeatherService(
     *   information if the registration has been carried out successfully
     */
   private def handleRegistrationRequest(
-      agentToBeRegistered: ActorRef,
+      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
       latitude: Double,
-      longitude: Double
+      longitude: Double,
   )(implicit
-      serviceStateData: WeatherInitializedStateData
+      serviceStateData: WeatherInitializedStateData,
+      ctx: ActorContext[WeatherMessage],
   ): WeatherInitializedStateData = {
-    log.debug(
+    ctx.log.debug(
       "Received weather registration from {} for [Lat:{}, Long:{}]",
       agentToBeRegistered.path.name,
       latitude,
-      longitude
+      longitude,
     )
 
     // collate the provided coordinates into a single entity
     val agentCoord = AgentCoordinates(
       latitude,
-      longitude
+      longitude,
     )
+
+    val registrationResponse = serviceStateData.maybeNextActivationTick
+      .map(RegistrationSuccessfulMessage(ctx.self, _))
+      .getOrElse(RegistrationFailedMessage(ctx.self))
 
     serviceStateData.coordsToActorRefMap.get(agentCoord) match {
       case None =>
         /* The coordinate itself is not known yet. Try to figure out, which weather coordinates are relevant */
         serviceStateData.weatherSource.getWeightedCoordinates(
           agentCoord,
-          amountOfInterpolationCoords,
-          maxInterpolationCoordinateDistance
+          serviceStateData.amountOfInterpolationCoords,
         ) match {
           case Success(weightedCoordinates) =>
-            agentToBeRegistered ! RegistrationSuccessfulMessage(
-              serviceStateData.maybeNextActivationTick
-            )
+            agentToBeRegistered ! registrationResponse
 
             /* Enhance the mapping from agent coordinate to requesting actor's ActorRef as well as the necessary
              * weather coordinates for later averaging. */
@@ -248,22 +230,20 @@ final case class WeatherService(
                   agentToBeRegistered
                 )),
               weightedWeatherCoordinates =
-                serviceStateData.weightedWeatherCoordinates + (agentCoord -> weightedCoordinates)
+                serviceStateData.weightedWeatherCoordinates + (agentCoord -> weightedCoordinates),
             )
           case Failure(exception) =>
-            log.error(
+            ctx.log.error(
+              s"Unable to obtain necessary information to register for coordinate $agentCoord.",
               exception,
-              s"Unable to obtain necessary information to register for coordinate $agentCoord."
             )
-            sender() ! RegistrationFailedMessage
+            agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
             serviceStateData
         }
 
       case Some(actorRefs) if !actorRefs.contains(agentToBeRegistered) =>
         // coordinate is already known (= we have data for it), but this actor is not registered yet
-        agentToBeRegistered ! RegistrationSuccessfulMessage(
-          serviceStateData.maybeNextActivationTick
-        )
+        agentToBeRegistered ! registrationResponse
 
         serviceStateData.copy(
           coordsToActorRefMap =
@@ -272,16 +252,16 @@ final case class WeatherService(
 
       case Some(actorRefs) if actorRefs.contains(agentToBeRegistered) =>
         // actor is already registered, do nothing
-        log.warning(
+        ctx.log.warn(
           "Sending actor {} is already registered",
-          agentToBeRegistered
+          agentToBeRegistered,
         )
         serviceStateData
 
       case _ =>
-        // actor is not registered and we don't have data for it
+        // actor is not registered, and we don't have data for it
         // inform the agentToBeRegistered that the registration failed as we don't have data for it
-        agentToBeRegistered ! RegistrationFailedMessage
+        agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
         serviceStateData
     }
   }
@@ -294,17 +274,18 @@ final case class WeatherService(
     *   the current state data of this service
     * @return
     *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is send
+    *   with updated values) together with the completion message that is sent
     *   in response to the trigger that was sent to start this announcement
     */
   override protected def announceInformation(tick: Long)(implicit
-      serviceStateData: WeatherInitializedStateData
-  ): (WeatherInitializedStateData, Option[Seq[ScheduleTriggerMessage]]) = {
+      serviceStateData: WeatherInitializedStateData,
+      ctx: ActorContext[WeatherMessage],
+  ): (WeatherInitializedStateData, Option[Long]) = {
 
     /* Pop the next activation tick and update the state data */
     val (
       maybeNextTick: Option[Long],
-      updatedStateData: WeatherInitializedStateData
+      updatedStateData: WeatherInitializedStateData,
     ) = {
       val (nextTick, remainderTicks) = serviceStateData.activationTicks.pop
       (nextTick, serviceStateData.copy(activationTicks = remainderTicks))
@@ -312,7 +293,7 @@ final case class WeatherService(
 
     // get the weather and send it to the subscribed agents
     // no sanity check needed here as we can assume that we always have weather available
-    // when we announce it. Otherwise the registration would have failed already!
+    // when we announce it. Otherwise, the registration would have failed already!
     updatedStateData.weatherSource
       .getWeather(tick, updatedStateData.weightedWeatherCoordinates)
       .foreach { case coordinate -> weatherResult =>
@@ -320,18 +301,19 @@ final case class WeatherService(
           .get(coordinate)
           .foreach(recipients =>
             recipients.foreach(
-              _ ! ProvideWeatherMessage(tick, weatherResult, maybeNextTick)
+              _ ! DataProvision(
+                tick,
+                ctx.self,
+                weatherResult,
+                maybeNextTick,
+              )
             )
           )
       }
 
     (
       updatedStateData,
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
-        maybeNextTick,
-        self
-      )
+      maybeNextTick,
     )
   }
-
 }

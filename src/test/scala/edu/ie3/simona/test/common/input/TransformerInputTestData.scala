@@ -12,16 +12,16 @@ import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
   Transformer2WInput,
-  Transformer3WInput
+  Transformer3WInput,
 }
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
-  RawGridElements
+  RawGridElements,
 }
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
-  OperatorInput
+  OperatorInput,
 }
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.DefaultTestData
@@ -35,15 +35,32 @@ import scala.jdk.CollectionConverters._
 
 /** Test data for a [[Transformer2WInput]].
   *
-  * Transformer type: d_v = 1.5 % tap_min = -13 tap_max = 13 tap_neut = 0
-  * is_autotap = true tapSide = high voltage side (ConnectorPort.B -> None in
-  * [[edu.ie3.simona.model.grid.TransformerTappingModel]]) r = 30.25 Ω x =
-  * 4.5375 Ω g = 0 b = 1.1 nS s_rated = 40000 kVA
-  * -> iNomHv = 209.9455524325912 A
-  * -> iNomLv = 2309.401076758503 A capex = 100.000 € opex = 0 €
+  * {{{
+  * Transformer type:
+  *   d_v = 1.5 %
+  *   tap_min = -13
+  *   tap_max = 13
+  *   tap_neut = 0
+  *   is_autotap = true
+  *   tapSide = high voltage side (ConnectorPort.B -> None in
+  *     [[edu.ie3.simona.model.grid.TransformerTappingModel]])
+  *   r = 30.25 Ω
+  *   x = 4.5375 Ω
+  *   g = 0
+  *   b = 1.1 nS
+  *   s_rated = 40000 kVA -> iNomHv = 209.9455524325912 A
+  *     -> iNomLv = 2309.401076758503 A
+  *   capex = 100.000 €
+  *   opex = 0 €
   *
-  * Transformer model: tap_side = hv (element port A) tap_pos = 0 auto_tap =
-  * false amount = 1 vHv = 110 kV vLv = 10 kV
+  * Transformer model:
+  *   tap_side = hv (element port A)
+  *   tap_pos = 0
+  *   auto_tap = false
+  *   amount = 1
+  *   vHv = 110 kV
+  *   vLv = 10 kV
+  * }}}
   */
 trait TransformerInputTestData extends DefaultTestData {
   private val nodeA = new NodeInput(
@@ -55,7 +72,7 @@ trait TransformerInputTestData extends DefaultTestData {
     true,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.HV,
-    1
+    1,
   )
   private val nodeB = new NodeInput(
     UUID.fromString("d46ac046-70c0-478f-8ab1-92d70f0ba172"),
@@ -66,7 +83,7 @@ trait TransformerInputTestData extends DefaultTestData {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.MV_10KV,
-    2
+    2,
   )
 
   protected val transformerType = new Transformer2WTypeInput(
@@ -84,7 +101,7 @@ trait TransformerInputTestData extends DefaultTestData {
     false,
     0,
     -13,
-    13
+    13,
   )
 
   val transformerInput = new Transformer2WInput(
@@ -97,7 +114,7 @@ trait TransformerInputTestData extends DefaultTestData {
     1,
     transformerType,
     10,
-    false
+    false,
   )
 
   protected val gridContainer: JointGridContainer = {
@@ -107,11 +124,11 @@ trait TransformerInputTestData extends DefaultTestData {
       Set(transformerInput).asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
     TestGridFactory.createJointGrid(
       gridName = "twoWindingTestGrid",
-      rawGridElements = rawGridElements
+      rawGridElements = rawGridElements,
     )
   }
 }

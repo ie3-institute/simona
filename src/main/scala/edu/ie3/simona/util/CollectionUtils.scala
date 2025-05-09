@@ -6,15 +6,13 @@
 
 package edu.ie3.simona.util
 
-import tech.units.indriya.ComparableQuantity
+import squants.Quantity
 
-import javax.measure.Quantity
 import scala.annotation.tailrec
 import scala.collection.immutable.HashSet
-import scala.math.Ordering
 import scala.math.Ordering.Double
 
-case object CollectionUtils {
+object CollectionUtils {
 
   /** fast implementation to test if a list contains duplicates. See
     * https://stackoverflow.com/questions/3871491/functional-programming-does-a-list-only-contain-unique-items
@@ -81,7 +79,7 @@ case object CollectionUtils {
     *   otherwise
     */
   @tailrec
-  def isSorted[T](list: List[T])(implicit ord: Ordering[T]): Boolean =
+  private def isSorted[T](list: List[T])(implicit ord: Ordering[T]): Boolean =
     list match {
       case Nil      => true // an empty list is sorted
       case _ :: Nil => true // a single-element list is sorted
@@ -100,18 +98,16 @@ case object CollectionUtils {
     * smallest map key is provided.
     *
     * @param map
-    *   containing containing the (k,v) pairs (e.g. x,y pairs)
+    *   containing the (k,v) pairs (e.g. x,y pairs)
     * @param key
     *   the key values are needed for
     * @return
     *   either a Seq with one or two (k,v) pairs
     */
-  def closestKeyValuePairs[A <: Quantity[A], O <: Quantity[
-    O
-  ]](
-      map: Map[ComparableQuantity[A], ComparableQuantity[O]],
-      key: ComparableQuantity[A]
-  ): Seq[(ComparableQuantity[A], ComparableQuantity[O])] = {
+  def closestKeyValuePairs[A <: Quantity[A], O <: Quantity[O]](
+      map: Map[A, O],
+      key: A,
+  ): Seq[(A, O)] = {
     import scala.collection.immutable.TreeMap
     implicit val ordering: Double.IeeeOrdering.type =
       Ordering.Double.IeeeOrdering
@@ -119,7 +115,7 @@ case object CollectionUtils {
 
     Seq(
       treeMap.rangeTo(key).lastOption,
-      treeMap.rangeFrom(key).headOption
+      treeMap.rangeFrom(key).headOption,
     ).flatten.distinct
       .map { case (k, v) => (k, v) }
   }
