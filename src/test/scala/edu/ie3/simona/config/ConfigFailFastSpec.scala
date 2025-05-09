@@ -593,19 +593,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         val checkBaseRuntimeConfigs =
           PrivateMethod[Unit](Symbol("checkBaseRuntimeConfigs"))
 
-        val defaultString: String = "default"
-
-        "throw an InvalidConfigParameterException if the list of UUIDs of the base model config is empty" in {
+        "throw an InvalidConfigParameterException if the list of UUIDs of the individual model config is empty" in {
           val baseRuntimeConfig = ConfigFactory.parseString(
             """simona.runtime.participant.load = {
-              |  defaultConfig = {
+              |  individualConfigs = [{
               |    calculateMissingReactivePowerWithModel = false
               |    uuids = []
               |    scaling = 1.3
               |    modelBehaviour = "profile"
               |    reference = "power"
-              |  }
-              |  individualConfigs = []
+              |  }]
               |}""".stripMargin
           )
           val config =
@@ -616,22 +613,22 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString,
             )
           }.getMessage shouldBe "There has to be at least one identifier for each participant."
         }
 
-        "throw an InvalidConfigParameterException if a valid single key is given and the UUID of the base model config is not valid" in {
+        "throw an InvalidConfigParameterException if the UUID of an individual config is not valid" in {
           val baseRuntimeConfig = ConfigFactory.parseString(
             """simona.runtime.participant.load = {
-              |  defaultConfig = {
-              |    calculateMissingReactivePowerWithModel = false
-              |    uuids = ["blabla"]
-              |    scaling = 1.3
-              |    modelBehaviour = "profile"
-              |    reference = "power"
-              |  }
-              |  individualConfigs = []
+              |  individualConfigs = [
+              |    {
+              |      calculateMissingReactivePowerWithModel = false
+              |      uuids = ["blabla"]
+              |      scaling = 1.3
+              |      modelBehaviour = "profile"
+              |      reference = "power"
+              |    }
+              |  ]
               |}""".stripMargin
           )
           val config =
@@ -642,35 +639,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString,
             )
-          }.getMessage shouldBe "Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
-        }
-
-        "throw an InvalidConfigParameterException if the UUID of the base model config is not valid" in {
-          val baseRuntimeConfig = ConfigFactory.parseString(
-            """simona.runtime.participant.load = {
-              |  defaultConfig = {
-              |    calculateMissingReactivePowerWithModel = false
-              |    uuids = ["blabla"]
-              |    scaling = 1.3
-              |    modelBehaviour = "profile"
-              |    reference = "power"
-              |  }
-              |  individualConfigs = []
-              |}""".stripMargin
-          )
-          val config =
-            baseRuntimeConfig.withFallback(typesafeConfig).resolve()
-          val simonaConfig = SimonaConfig(config)
-
-          intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
-              simonaConfig.simona.runtime.participant.load.defaultConfig,
-              simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString,
-            )
-          }.getMessage shouldBe s"Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
+          }.getMessage shouldBe s"The UUID 'blabla' cannot be parsed as it is invalid."
         }
 
         "throw an InvalidConfigParameterException if the scaling factor of the load model config is negative" in {
@@ -694,7 +664,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString,
             )
           }.getMessage shouldBe "The scaling factor for system participants with UUID '49f250fa-41ff-4434-a083-79c98d260a76' may not be negative."
         }
@@ -735,7 +704,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString,
             )
           }.getMessage shouldBe "The basic model configurations contain ambiguous definitions."
         }

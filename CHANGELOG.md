@@ -182,6 +182,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor handleFeedIn and handleConsumption of `ThermalGrid` due to qDotIntoGrid [#1343](https://github.com/ie3-institute/simona/issues/1343)
 - Adapted to typed actor in simonaAPI [#1311](https://github.com/ie3-institute/simona/issues/1311)
 - Making primary data source optional [#134](https://github.com/ie3-institute/simona/issues/134)
+- Refactoring uuids in default runtime configs [#1336](https://github.com/ie3-institute/simona/issues/1336)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
