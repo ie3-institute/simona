@@ -7,17 +7,14 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
-import edu.ie3.simona.config.InputConfig.WeatherDatasource
-import edu.ie3.simona.config.InputConfig.CoordinateSource
-import edu.ie3.simona.config.OutputConfig.Sink
-import edu.ie3.simona.config.ConfigParams.{
-  BaseCsvParams,
-  BaseInfluxDb1xParams,
-  PsdmSinkCsvParams,
-  ResultKafkaParams,
-  SampleParams,
+import edu.ie3.simona.config.ConfigParams._
+import edu.ie3.simona.config.InputConfig.{
+  CoordinateSource,
+  WeatherDatasource,
+  Primary => PrimaryConfig,
 }
+import edu.ie3.simona.config.OutputConfig.Sink
+import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
 import edu.ie3.simona.config.SimonaConfig.{
@@ -596,19 +593,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         val checkBaseRuntimeConfigs =
           PrivateMethod[Unit](Symbol("checkBaseRuntimeConfigs"))
 
-        val defaultString: String = "default"
-
-        "throw an InvalidConfigParameterException if the list of UUIDs of the base model config is empty" in {
+        "throw an InvalidConfigParameterException if the list of UUIDs of the individual model config is empty" in {
           val baseRuntimeConfig = ConfigFactory.parseString(
             """simona.runtime.participant.load = {
-              |  defaultConfig = {
+              |  individualConfigs = [{
               |    calculateMissingReactivePowerWithModel = false
               |    uuids = []
               |    scaling = 1.3
               |    modelBehaviour = "profile"
               |    reference = "power"
-              |  }
-              |  individualConfigs = []
+              |  }]
               |}""".stripMargin
           )
           val config =
@@ -619,22 +613,22 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString,
             )
           }.getMessage shouldBe "There has to be at least one identifier for each participant."
         }
 
-        "throw an InvalidConfigParameterException if a valid single key is given and the UUID of the base model config is not valid" in {
+        "throw an InvalidConfigParameterException if the UUID of an individual config is not valid" in {
           val baseRuntimeConfig = ConfigFactory.parseString(
             """simona.runtime.participant.load = {
-              |  defaultConfig = {
-              |    calculateMissingReactivePowerWithModel = false
-              |    uuids = ["blabla"]
-              |    scaling = 1.3
-              |    modelBehaviour = "profile"
-              |    reference = "power"
-              |  }
-              |  individualConfigs = []
+              |  individualConfigs = [
+              |    {
+              |      calculateMissingReactivePowerWithModel = false
+              |      uuids = ["blabla"]
+              |      scaling = 1.3
+              |      modelBehaviour = "profile"
+              |      reference = "power"
+              |    }
+              |  ]
               |}""".stripMargin
           )
           val config =
@@ -645,35 +639,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString,
             )
-          }.getMessage shouldBe "Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
-        }
-
-        "throw an InvalidConfigParameterException if the UUID of the base model config is not valid" in {
-          val baseRuntimeConfig = ConfigFactory.parseString(
-            """simona.runtime.participant.load = {
-              |  defaultConfig = {
-              |    calculateMissingReactivePowerWithModel = false
-              |    uuids = ["blabla"]
-              |    scaling = 1.3
-              |    modelBehaviour = "profile"
-              |    reference = "power"
-              |  }
-              |  individualConfigs = []
-              |}""".stripMargin
-          )
-          val config =
-            baseRuntimeConfig.withFallback(typesafeConfig).resolve()
-          val simonaConfig = SimonaConfig(config)
-
-          intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
-              simonaConfig.simona.runtime.participant.load.defaultConfig,
-              simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString,
-            )
-          }.getMessage shouldBe s"Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
+          }.getMessage shouldBe s"The UUID 'blabla' cannot be parsed as it is invalid."
         }
 
         "throw an InvalidConfigParameterException if the scaling factor of the load model config is negative" in {
@@ -697,7 +664,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString,
             )
           }.getMessage shouldBe "The scaling factor for system participants with UUID '49f250fa-41ff-4434-a083-79c98d260a76' may not be negative."
         }
@@ -738,7 +704,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString,
             )
           }.getMessage shouldBe "The basic model configurations contain ambiguous definitions."
         }
@@ -1185,7 +1150,117 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
       }
 
-      /* Checking of primary source configuration is delegated to the specific actor. Tests are placed there */
+      "Checking the primary data sources" should {
+        val checkPrimaryDataSource =
+          PrivateMethod[Unit](Symbol("checkPrimaryDataSource"))
+
+        "lead to complaining about too much source definitions" in {
+          val maliciousConfig = PrimaryConfig(
+            Some(CouchbaseParams("", "", "", "", "", "", "")),
+            Some(TimeStampedCsvParams("", "", isHierarchic = false, "")),
+            None,
+            None,
+          )
+
+          val exception = intercept[InvalidConfigParameterException](
+            ConfigFailFast invokePrivate checkPrimaryDataSource(maliciousConfig)
+          )
+          exception.getMessage shouldBe "2 time series source types defined. Please define only one type!\nAvailable types:\n\tcsv\n\tsql"
+        }
+
+        "lead to complaining about too few source definitions" in {
+          val maliciousConfig = PrimaryConfig(
+            None,
+            None,
+            None,
+            None,
+          )
+
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate checkPrimaryDataSource(maliciousConfig)
+          }
+        }
+
+        "not let couchbase parameters pass for mapping configuration" in {
+          val maliciousConfig = PrimaryConfig(
+            Some(CouchbaseParams("", "", "", "", "", "", "")),
+            None,
+            None,
+            None,
+          )
+
+          val exception = intercept[InvalidConfigParameterException](
+            ConfigFailFast invokePrivate checkPrimaryDataSource(maliciousConfig)
+          )
+          exception.getMessage shouldBe "Invalid configuration 'CouchbaseParams(,,,,,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
+        }
+
+        "let csv parameters pass for mapping configuration" in {
+          val mappingConfig = PrimaryConfig(
+            None,
+            Some(TimeStampedCsvParams("", "", isHierarchic = false, "")),
+            None,
+            None,
+          )
+
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate checkPrimaryDataSource(mappingConfig)
+          }
+        }
+
+        "not let influx db parameters pass for mapping configuration" in {
+          val maliciousConfig = PrimaryConfig(
+            None,
+            None,
+            Some(TimeStampedInfluxDb1xParams("", 0, "", "")),
+            None,
+          )
+
+          val exception = intercept[InvalidConfigParameterException](
+            ConfigFailFast invokePrivate checkPrimaryDataSource(maliciousConfig)
+          )
+          exception.getMessage shouldBe "Invalid configuration 'TimeStampedInfluxDb1xParams(,0,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
+        }
+
+        "fails on invalid time pattern with csv" in {
+          val invalidTimePatternConfig = PrimaryConfig(
+            None,
+            Some(TimeStampedCsvParams("", "", isHierarchic = false, "xYz")),
+            None,
+            None,
+          )
+
+          intercept[InvalidConfigParameterException](
+            ConfigFailFast invokePrivate checkPrimaryDataSource(
+              invalidTimePatternConfig
+            )
+          ).getMessage shouldBe "Invalid timePattern 'xYz' found. " +
+            "Please provide a valid pattern!\nException: java.lang.IllegalArgumentException: Illegal pattern character 'x'"
+
+        }
+
+        "succeeds on valid time pattern with csv" in {
+          val validTimePatternConfig = PrimaryConfig(
+            None,
+            Some(
+              TimeStampedCsvParams(
+                "",
+                "",
+                isHierarchic = false,
+                "yyyy-MM-dd'T'HH:mm'Z[UTC]'",
+              )
+            ),
+            None,
+            None,
+          )
+
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate checkPrimaryDataSource(
+              validTimePatternConfig
+            )
+          }
+        }
+      }
 
       "Checking weather data sources" should {
         val checkWeatherDataSource =

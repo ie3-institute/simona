@@ -97,11 +97,15 @@ object SimonaSim {
         val weatherService =
           simonaSetup.weatherService(ctx, scheduler)
 
+        // load profile service
+        val loadProfileService = simonaSetup.loadProfileService(ctx, scheduler)
+
         val environmentRefs = EnvironmentRefs(
           scheduler,
           runtimeEventListener,
           primaryServiceProxy,
           weatherService,
+          loadProfileService,
           extSimulationData.evDataService,
         )
 
