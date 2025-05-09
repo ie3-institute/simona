@@ -226,8 +226,8 @@ The reactive power is determined based on the chosen Q-control of the participan
 
     calculateMissingReactivePowerWithModel = true
 
-Using the default configuration the universally unique identifier should be empty. Alternatively, the parameter can dropped
-to use the default empty list.
+Using the default configuration, the universally unique identifier should be empty. 
+Alternatively, the parameter can be omitted to use the default empty list.
 
     uuids = []
 
