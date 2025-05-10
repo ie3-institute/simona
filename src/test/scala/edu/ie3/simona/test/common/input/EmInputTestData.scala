@@ -149,7 +149,7 @@ trait EmInputTestData
     thermalBusInput,
     Seq(adaptedThermalHouse).asJava,
     Seq.empty[ThermalStorageInput].asJava,
-    Seq.empty[ThermalStorageInput].asJava,
+    Seq[ThermalStorageInput](defaultDomesticHotWaterStorageInput).asJava,
   )
 
   protected val adaptedWithHeatContainer =

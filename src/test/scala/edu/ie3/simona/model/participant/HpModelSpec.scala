@@ -47,6 +47,7 @@ class HpModelSpec
       val ambientTemperature = Celsius(10)
       val defaultState = HpState(
         0,
+        defaultSimulationStart,
         thermalState(Celsius(17d), ambientTemperature),
         HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
         noThermalDemand,
@@ -104,7 +105,12 @@ class HpModelSpec
             thermalGridState = thermalState(Celsius(0), ambientTemperature),
             lastHpOperatingPoint = HpOperatingPoint(
               Kilowatts(80),
-              ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
+              ThermalGridOperatingPoint(
+                Kilowatts(80),
+                Kilowatts(80),
+                zeroKW,
+                zeroKW,
+              ),
             ),
           ),
           16.3142322,
@@ -116,7 +122,12 @@ class HpModelSpec
             thermalGridState = thermalState(Celsius(2), ambientTemperature),
             lastHpOperatingPoint = HpOperatingPoint(
               Kilowatts(80),
-              ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
+              ThermalGridOperatingPoint(
+                Kilowatts(80),
+                Kilowatts(80),
+                zeroKW,
+                zeroKW,
+              ),
             ),
           ),
           17.9516937,
@@ -128,7 +139,12 @@ class HpModelSpec
             thermalGridState = thermalState(Celsius(17), ambientTemperature),
             lastHpOperatingPoint = HpOperatingPoint(
               Kilowatts(80),
-              ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
+              ThermalGridOperatingPoint(
+                Kilowatts(80),
+                Kilowatts(80),
+                zeroKW,
+                zeroKW,
+              ),
             ),
           ),
           30.232655,
@@ -151,6 +167,7 @@ class HpModelSpec
               zeroKW,
               state.lastHpOperatingPoint.thermalOps.qDotHouse,
               zeroKW,
+              zeroKW,
             )
           )
           val expectedDemand = ThermalDemandWrapper(
@@ -161,6 +178,11 @@ class HpModelSpec
             ThermalEnergyDemand(
               KilowattHours(exptHeatStorageDemand._1),
               KilowattHours(exptHeatStorageDemand._2),
+            ),
+            ThermalEnergyDemand.noDemand,
+            ThermalEnergyDemand(
+              zeroKWh, //   KilowattHours(exptWaterStorageDemand._1),
+              zeroKWh, // KilowattHours(exptWatertorageDemand._2),
             ),
           )
 
@@ -174,7 +196,8 @@ class HpModelSpec
           updatedState match {
             case HpState(
                   tick,
-                  ThermalGridState(Some(thermalHouseState), _),
+                  _,
+                  ThermalGridState(Some(thermalHouseState), _, _),
                   _,
                   thermalDemands,
                 ) =>
@@ -214,6 +237,7 @@ class HpModelSpec
 
       val defaultState = HpState(
         0,
+        defaultSimulationStart,
         thermalState(Celsius(17d), ambientTemperature),
         HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
         noThermalDemand,
@@ -242,8 +266,10 @@ class HpModelSpec
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(demand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, demand, demand, noDemand),
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -265,8 +291,10 @@ class HpModelSpec
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(demand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, onlyAddDemand, demand, noDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -291,12 +319,19 @@ class HpModelSpec
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(demand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, demand, demand, noDemand),
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -318,12 +353,19 @@ class HpModelSpec
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(demand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, onlyAddDemand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -347,12 +389,19 @@ class HpModelSpec
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(onlyAddDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -374,13 +423,23 @@ class HpModelSpec
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands =
-                ThermalDemandWrapper(onlyAddDemand, onlyAddDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                onlyAddDemand,
+                demand,
+                noDemand,
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -404,8 +463,10 @@ class HpModelSpec
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(onlyAddDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -427,9 +488,14 @@ class HpModelSpec
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands =
-                ThermalDemandWrapper(onlyAddDemand, onlyAddDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                onlyAddDemand,
+                demand,
+                noDemand,
+              ),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -453,12 +519,19 @@ class HpModelSpec
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -480,12 +553,19 @@ class HpModelSpec
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, onlyAddDemand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -509,8 +589,10 @@ class HpModelSpec
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -532,8 +614,10 @@ class HpModelSpec
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, onlyAddDemand, demand, noDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -557,12 +641,19 @@ class HpModelSpec
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -584,12 +675,23 @@ class HpModelSpec
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands = ThermalDemandWrapper(
+                noDemand,
+                onlyAddDemand,
+                noDemand,
+                noDemand,
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -613,8 +715,10 @@ class HpModelSpec
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -636,8 +740,10 @@ class HpModelSpec
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, onlyAddDemand, demand, noDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -658,8 +764,14 @@ class HpModelSpec
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, noDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                noDemand,
+                noDemand,
+                noDemand,
+              ),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -680,12 +792,23 @@ class HpModelSpec
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, noDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                noDemand,
+                noDemand,
+                noDemand,
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -707,8 +830,10 @@ class HpModelSpec
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, noDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, noDemand, noDemand, noDemand),
             ),
             (0.0, 0.0, 0.0),
           ),
@@ -729,8 +854,10 @@ class HpModelSpec
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, noDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, noDemand, noDemand, noDemand),
             ),
             (0.0, 0.0, 0.0),
           ),
@@ -790,8 +917,10 @@ class HpModelSpec
         ) =>
           val state = HpState(
             tick,
+            defaultSimulationStart,
             ThermalGridState(
               Some(ThermalHouseState(tick, ambientTemperature, Celsius(19))),
+              None,
               None,
             ),
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
@@ -801,6 +930,8 @@ class HpModelSpec
                 KilowattHours(requiredDemandHouse),
               ),
               ThermalEnergyDemand(zeroKWh, zeroKWh),
+              ThermalEnergyDemand(zeroKWh, zeroKWh),
+              ThermalEnergyDemand.noDemand,
             ),
           )
 
@@ -839,8 +970,10 @@ class HpModelSpec
         ) =>
           val state = HpState(
             tick,
+            defaultSimulationStart,
             ThermalGridState(
               Some(ThermalHouseState(tick, ambientTemperature, Celsius(19))),
+              None,
               None,
             ),
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
@@ -850,6 +983,8 @@ class HpModelSpec
                 KilowattHours(requiredDemandHouse),
               ),
               ThermalEnergyDemand(zeroKWh, zeroKWh),
+              ThermalEnergyDemand(zeroKWh, zeroKWh),
+              ThermalEnergyDemand.noDemand,
             ),
           )
           val setPower = Kilowatts(setPwr)
@@ -858,7 +993,6 @@ class HpModelSpec
 
           op.activePower shouldBe Kilowatts(expectedHpQDot)
           threshold.changesAtTick shouldBe expectedTick
-
       }
     }
   }

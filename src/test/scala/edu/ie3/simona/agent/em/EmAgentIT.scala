@@ -523,7 +523,107 @@ class EmAgentIT
               -0.0018318880807426897.asMegaVar
             )
         }
+        resultListener.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(75)))
 
+        /* TICK 75
+         DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+         LOAD: 0.269 kW (unchanged)
+         PV:  -5.842 kW
+         Heat pump: running (turned on from last request), can also be turned off
+         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining -0.723 kW
+         */
+
+        emAgentActivation ! Activation(75)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 75.toDateTime
+            emResult.getP should equalWithTolerance(
+              -0.005573400270590553.asMegaWatt
+            )
+            emResult.getQ should equalWithTolerance(
+              -0.0018318880807426897.asMegaVar
+            )
+        }
+        resultListener.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
+
+        /* TICK 3600
+        DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+        LOAD: 0.269 kW (unchanged)
+        PV:  -5.842 kW FIXME
+        Heat pump: running (turned on from last request), can also be turned off
+        -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+        -> remaining -0.723 kW
+         */
+
+        emAgentActivation ! Activation(3600)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 3600.toDateTime
+            emResult.getP should equalWithTolerance(
+              -0.00072340027059.asMegaWatt
+            )
+            emResult.getQ should equalWithTolerance(
+              -0.00084705357666777.asMegaVar
+            )
+        }
+        resultListener.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(3675)))
+
+        /* TICK 3675
+        DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+        LOAD: 0.269 kW (unchanged)
+        PV:  -5.842 kW
+        Heat pump: running (turned on from last request), can also be turned off
+        -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+        -> remaining -0.723 kW
+         */
+
+        emAgentActivation ! Activation(3675)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 3675.toDateTime
+            emResult.getP should equalWithTolerance(
+              -0.00072340027059.asMegaWatt
+            )
+            emResult.getQ should equalWithTolerance(
+              -0.00084705357666777.asMegaVar
+            )
+        }
+        resultListener.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(6056)))
+
+        /* TICK 6056
+        DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+        LOAD: 0.269 kW (unchanged)
+        PV:  -5.842 kW
+        Heat pump: running (turned on from last request), can also be turned off
+        -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+        -> remaining -0.723 kW
+         */
+
+        emAgentActivation ! Activation(6056)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 6056.toDateTime
+            emResult.getP should equalWithTolerance(
+              -0.005573400270590553.asMegaWatt
+            )
+            emResult.getQ should equalWithTolerance(
+              -0.0018318880807426897.asMegaVar
+            )
+        }
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -559,6 +659,54 @@ class EmAgentIT
             )
             emResult.getQ should equalWithTolerance(
               -0.0001480925156.asMegaVar
+            )
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(7278)))
+
+        /* TICK 7278
+         DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+         LOAD: 0.269 kW (unchanged)
+         PV:  -3.791 kW
+         Heat pump: running (turned on from last request), can also be turned off
+         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining 0 MW
+         */
+
+        emAgentActivation ! Activation(7278)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 7278.toDateTime
+            emResult.getP should equalWithTolerance(
+              0.0014031432709125343.asMegaWatt
+            )
+            emResult.getQ should equalWithTolerance(-0.0001480925156.asMegaVar)
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(7981)))
+
+        /* TICK 7981
+         DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+         LOAD: 0.269 kW (unchanged)
+         PV:  -3.791 kW
+         Heat pump: running (turned on from last request), can also be turned off
+         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining 0 MW
+         */
+
+        emAgentActivation ! Activation(7981)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 7981.toDateTime
+            emResult.getP should equalWithTolerance(
+              -0.0034468567290874656.asMegaWatt
+            )
+            emResult.getQ should equalWithTolerance(
+              -0.001132927019679857.asMegaVar
             )
         }
 
@@ -599,7 +747,32 @@ class EmAgentIT
               -0.00024449051564412135.asMegaVar
             )
         }
+        resultListener.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(10879)))
 
+        /* TICK 10879
+        DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+         LOAD: 0.269 kW (unchanged)
+         PV:  -4.008 kW
+         Heat pump: running (turned on from last request), can also be turned off
+         -> set point ~3.7 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining 1.111 kW
+         */
+
+        emAgentActivation ! Activation(10879)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 10879.toDateTime
+            emResult.getP should equalWithTolerance(
+              0.0011098586291537654.asMegaWatt
+            )
+            emResult.getQ should equalWithTolerance(
+              -0.00024449051564412135.asMegaVar
+            )
+        }
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11000)))
 
         /* TICK 11000
@@ -638,7 +811,7 @@ class EmAgentIT
               0.0000691482.asMegaVar
             )
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11500)))
 
         /* TICK 11500
@@ -677,8 +850,8 @@ class EmAgentIT
               0.0000443896038.asMegaVar
             )
         }
-
-        scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
+        resultListener.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
       }
     }
 
@@ -825,7 +998,7 @@ class EmAgentIT
             )
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
 
         /* TICK 3600
@@ -857,7 +1030,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.000268603.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -890,7 +1063,7 @@ class EmAgentIT
               -0.0027686916118040607.asMegaVar
             )
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
         /* TICK 10800
@@ -909,7 +1082,7 @@ class EmAgentIT
               -0.002856977148.asMegaVar
             )
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
@@ -926,7 +1099,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, None))
 
       }

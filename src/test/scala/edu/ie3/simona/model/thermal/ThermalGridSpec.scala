@@ -173,8 +173,8 @@ class ThermalGridSpec
     "return false when storage is not empty" in {
       val initialState =
         ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
-      val gridState = initialState.copy(storageState =
-        initialState.storageState.map(storageState =>
+      val gridState = initialState.copy(heatStorageState =
+        initialState.heatStorageState.map(storageState =>
           storageState.copy(storedEnergy = KilowattHours(1))
         )
       )
