@@ -41,11 +41,14 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits.{DEGREE_GEOM, PU}
 import edu.ie3.util.quantities.QuantityUtil
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{QuantityUtil => ScalaQuantityUtil}
+import edu.ie3.util.scala.quantities.{
+  Voltamperes,
+  QuantityUtil => ScalaQuantityUtil,
+}
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Each
 import squants.electro.{Amperes, Volts}
-import squants.energy.Kilowatts
+import squants.energy.{Kilowatts, Watts}
 import squants.space.Degrees
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -444,6 +447,7 @@ class GridResultsSupportSpec
         ),
         1,
         PowerFlowCaseA,
+        Voltamperes(10),
         Each(0.1d),
         Each(0.2d),
         Each(0.3d),
