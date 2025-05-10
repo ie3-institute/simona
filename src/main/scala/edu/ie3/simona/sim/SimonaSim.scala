@@ -72,7 +72,6 @@ object SimonaSim {
   ): Behavior[Request] =
     Behaviors
       .receivePartial[Request] { case (ctx, Start(_)) =>
-        val resultEventListeners = simonaSetup.resultEventListener(ctx)
         val runtimeEventListener = simonaSetup.runtimeEventListener(ctx)
 
         val timeAdvancer =
@@ -89,6 +88,9 @@ object SimonaSim {
 
         val extSimulationData =
           simonaSetup.extSimulations(ctx, scheduler, extSimDir)
+
+        val resultEventListeners =
+          simonaSetup.resultEventListener(ctx, extSimulationData)
 
         /* start services */
         // primary service proxy
@@ -108,6 +110,7 @@ object SimonaSim {
           primaryServiceProxy,
           weatherService,
           loadProfileService,
+          extSimulationData.emDataService,
           extSimulationData.evDataService,
         )
 

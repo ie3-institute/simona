@@ -50,13 +50,12 @@ trait ExtDataSupport[T >: ServiceMessage] {
       constantData: ServiceConstantStateData,
   ): PartialFunction[(ActorContext[T], T), Behavior[T]] = {
     case (_, WrappedExternalMessage(extMsg)) =>
-      val updatedStateData = handleDataMessage(extMsg)(stateData)
+      val updatedStateData = handleDataMessage(extMsg)
 
       idle(updatedStateData, constantData)
 
     case (_, extResponseMsg: ServiceResponseMessage) =>
-      val updatedStateData =
-        handleDataResponseMessage(extResponseMsg)(stateData)
+      val updatedStateData = handleDataResponseMessage(extResponseMsg)
 
       idle(updatedStateData, constantData)
   }

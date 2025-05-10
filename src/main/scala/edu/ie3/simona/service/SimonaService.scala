@@ -16,6 +16,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   Create,
   ScheduleServiceActivation,
   ServiceRegistrationMessage,
+  ServiceResponseMessage,
   WrappedActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
@@ -142,6 +143,10 @@ abstract class SimonaService[
       buffer.stash(msg)
       Behaviors.same
 
+    case (ctx, msg: ServiceResponseMessage) =>
+      handleServiceResponse(msg)(ctx)
+      Behaviors.same
+
     // unhandled message
     case (ctx, x) =>
       ctx.log.error(s"Received unhandled message: $x")
@@ -204,10 +209,17 @@ abstract class SimonaService[
       val (updatedStateData, maybeNextTick) =
         announceInformation(tick)(stateData, ctx)
 
-      constantData.scheduler ! Completion(
-        constantData.activationAdapter,
-        maybeNextTick,
-      )
+      maybeNextTick match {
+        case Some(nextTick) if nextTick == tick =>
+          // we need to do an additional activation of this service
+          ctx.self ! WrappedActivation(Activation(tick))
+
+        case _ =>
+          constantData.scheduler ! Completion(
+            constantData.activationAdapter,
+            maybeNextTick,
+          )
+      }
 
       idle(updatedStateData, constantData)
   }
@@ -249,6 +261,12 @@ abstract class SimonaService[
   def init(
       initServiceData: InitializeServiceStateData
   ): Try[(S, Option[Long])]
+
+  protected def handleServiceResponse(
+      serviceResponse: ServiceResponseMessage
+  )(implicit
+      ctx: ActorContext[T]
+  ): Unit = {}
 
   /** Handle a request to register for information from this service
     *

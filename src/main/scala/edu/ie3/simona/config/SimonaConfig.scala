@@ -9,11 +9,13 @@ package edu.ie3.simona.config
 import com.typesafe.config.{Config, ConfigValue}
 import edu.ie3.simona.config.SimonaConfig.writer
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.util.TimeUtil
 import pureconfig._
 import pureconfig.error._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
 
+import java.time.ZonedDateTime
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.implicitConversions
 
@@ -145,6 +147,9 @@ object SimonaConfig {
         endDateTime: String = "2011-05-01T01:00:00Z",
         schedulerReadyCheckWindow: Option[Int] = None,
         startDateTime: String = "2011-05-01T00:00:00Z",
-    )
+    ) {
+      def startTime: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime(startDateTime)
+    }
   }
 }

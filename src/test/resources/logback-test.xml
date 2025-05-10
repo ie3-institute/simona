@@ -52,7 +52,7 @@
         <!--
             No direct reference to STDOUT here, since we only want logs in console on failure
         -->
-        <appender-ref ref="CapturingAppender"/>
+        <appender-ref ref="STDOUT"/>
         <appender-ref ref="RF"/>
     </root>
 

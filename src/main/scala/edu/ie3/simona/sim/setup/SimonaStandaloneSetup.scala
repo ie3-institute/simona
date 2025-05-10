@@ -162,6 +162,7 @@ class SimonaStandaloneSetup(
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
           simulationStart,
+          extSimSetupData.extPrimaryDataServices,
         ),
       ),
       "primaryServiceProxyAgent",
@@ -229,6 +230,7 @@ class SimonaStandaloneSetup(
     setupExtSim(extLinks, args)(
       context,
       scheduler,
+      simonaConfig.simona.time.startTime,
       simonaConfig.simona.powerflow.resolution,
     )
   }
@@ -281,14 +283,16 @@ class SimonaStandaloneSetup(
       )
 
   override def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[_],
+      extSimSetupData: ExtSimSetupData,
   ): Seq[ActorRef[ResultEventListener.Request]] = {
     // append ResultEventListener as well to write raw output files
     Seq(
       context
         .spawn(
           ResultEventListener(
-            resultFileHierarchy
+            resultFileHierarchy,
+            extSimSetupData.resultDataServices,
           ),
           ResultEventListener.getClass.getSimpleName,
         )
