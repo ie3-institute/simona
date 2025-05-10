@@ -64,6 +64,8 @@ object GridAgent extends DBFSAlgorithm {
         listener,
         resolution,
         simStartTime,
+        TimeUtil.withDefaults
+          .toZonedDateTime(simonaConfig.simona.time.endDateTime),
         activationAdapter,
       )
 
@@ -121,25 +123,15 @@ object GridAgent extends DBFSAlgorithm {
         simonaConfig,
       )
 
-      val gridAgentBuilder = new GridAgentBuilder(
-        ctx,
-        constantData.environmentRefs,
-        constantData.simStartTime,
-        TimeUtil.withDefaults
-          .toZonedDateTime(constantData.simonaConfig.simona.time.endDateTime),
-        constantData.simonaConfig.simona.runtime.em,
-        constantData.simonaConfig.simona.runtime.participant,
-        constantData.simonaConfig.simona.output.participant,
-        constantData.resolution,
-        constantData.listener,
-        ctx.log,
-      )
-
       /* Reassure, that there are also calculation models for the given uuids */
       val nodeToAssetAgentsMap
           : Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
-        gridAgentBuilder
-          .buildSystemParticipants(subGridContainer, thermalGridsByBusId)
+        GridAgentBuilder
+          .buildSystemParticipants(subGridContainer, thermalGridsByBusId)(
+            constantData,
+            ctx,
+            ctx.log,
+          )
           .map { case (uuid: UUID, actorSet) =>
             val nodeUuid = gridModel.gridComponents.nodes
               .find(_.uuid == uuid)
