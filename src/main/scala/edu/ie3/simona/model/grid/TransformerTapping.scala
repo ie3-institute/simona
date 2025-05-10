@@ -26,6 +26,8 @@ trait TransformerTapping {
 
   protected var tapRatio: Double = _
 
+  def getTapRation: Double = tapRatio
+
   def currentTapPos: Int = transformerTappingModel.currentTapPos
 
   /** Initialize the tapping model. Should be called after creating the

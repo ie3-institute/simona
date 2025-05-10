@@ -38,10 +38,10 @@ import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
+import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -63,9 +63,11 @@ class EmAgentIT
     with should.Matchers
     with EmInputTestData
     with MockitoSugar
-    with TestSpawnerTyped {
+    with TestSpawnerTyped
+    with QuantityMatchers {
+
   // start a bit later so the sun is up
-  protected implicit val simulationStartDate: ZonedDateTime =
+  protected given simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T10:00:00Z")
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
@@ -94,7 +96,7 @@ class EmAgentIT
     aggregateFlex = "SELF_OPT",
   )
 
-  private implicit val quantityTolerance: Double = 1e-10d
+  private given quantityTolerance: Double = 1e-10d
 
   "An em agent" when {
     "having load, pv and storage agents connected" should {

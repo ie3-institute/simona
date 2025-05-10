@@ -23,7 +23,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.quantities.Kilovars
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.Behavior

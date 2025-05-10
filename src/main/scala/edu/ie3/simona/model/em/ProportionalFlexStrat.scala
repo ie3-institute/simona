@@ -9,6 +9,7 @@ package edu.ie3.simona.model.em
 import edu.ie3.datamodel.models.input.AssetInput
 import EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions.flexSum
 import squants.Power
 
 import java.util.UUID
@@ -39,7 +40,7 @@ object ProportionalFlexStrat extends EmModelStrat {
 
     // Input models are not needed here
     val flexOptions = modelFlexOptions
-      .map { case (asset, flexOptions) =>
+      .map { case (asset: AssetInput, flexOptions) =>
         asset.getUuid -> flexOptions
       }
 

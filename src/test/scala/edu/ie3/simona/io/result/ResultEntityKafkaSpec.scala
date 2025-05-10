@@ -7,7 +7,6 @@
 package edu.ie3.simona.io.result
 
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.listener.ResultEventListener
@@ -48,8 +47,6 @@ class ResultEntityKafkaSpec
 
   private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
 
-  private implicit lazy val resultFormat: RecordFormat[PlainNodeResult] =
-    RecordFormat[PlainNodeResult]
   private val deserializer: Deserializer[PlainNodeResult] =
     ScalaReflectionSerde.reflectionDeserializer4S[PlainNodeResult]
 
@@ -146,9 +143,9 @@ class ResultEntityKafkaSpec
       testConsumer.seekToBeginning(topicPartitions.asJava)
 
       // kafka messages might take some time if machine is loaded
-      eventually(timeout(2 minutes), interval(1 second)) {
+      eventually(timeout(2.minutes), interval(1.second)) {
         val records: List[PlainNodeResult] =
-          testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+          testConsumer.poll(1.second.toJava).asScala.map(_.value()).toList
 
         records should have length 3
         records should contain(

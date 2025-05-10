@@ -32,8 +32,12 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
+import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{
+  zeroCelsius,
+  zeroKW,
+  zeroKWh,
+}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities._
 import squants._
@@ -346,7 +350,7 @@ object HpModel {
     *   The thermal power input of the
     *   [[edu.ie3.simona.model.thermal.ThermalStorage]].
     */
-  final case class ThermalGridOperatingPoint private (
+  final case class ThermalGridOperatingPoint(
       qDotHp: Power,
       qDotHouse: Power,
       qDotHeatStorage: Power,

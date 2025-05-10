@@ -24,7 +24,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyPriceToSimona,

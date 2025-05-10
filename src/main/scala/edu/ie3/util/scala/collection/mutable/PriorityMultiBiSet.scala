@@ -29,7 +29,7 @@ import scala.collection.{SortedSet, mutable}
   * @tparam V
   *   Type of the value
   */
-final case class PriorityMultiBiSet[K, V] private (
+final case class PriorityMultiBiSet[K, V](
     private val queue: mutable.SortedSet[K],
     private val table: mutable.HashMap[K, mutable.Set[V]],
     private val back: mutable.HashMap[V, K],

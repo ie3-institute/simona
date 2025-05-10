@@ -19,8 +19,9 @@ import org.scalatest.matchers.{MatchResult, Matcher}
   */
 trait QuantityMatchers {
   def equalWithTolerance[Q <: Quantity[Q]](
-      right: Quantity[Q],
-      tolerance: Double = 1e-10,
+      right: Quantity[Q]
+  )(using
+      tolerance: Double = 1e-10
   ) = new QuantityEqualityMatcher(right, tolerance)
 
   def beEquivalentTo[Q <: Quantity[Q]](

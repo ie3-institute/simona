@@ -27,7 +27,7 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroWPerSM
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   DimensionlessToSimona,

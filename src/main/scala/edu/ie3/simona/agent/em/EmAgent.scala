@@ -25,7 +25,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}

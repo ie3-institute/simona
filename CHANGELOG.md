@@ -184,6 +184,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapted to typed actor in simonaAPI [#1311](https://github.com/ie3-institute/simona/issues/1311)
 - Making primary data source optional [#134](https://github.com/ie3-institute/simona/issues/134)
 - Refactoring uuids in default runtime configs [#1336](https://github.com/ie3-institute/simona/issues/1336)
+- Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)

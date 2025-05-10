@@ -33,7 +33,7 @@ import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils.{asPu, asMegaWatt, asMegaVar}
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}

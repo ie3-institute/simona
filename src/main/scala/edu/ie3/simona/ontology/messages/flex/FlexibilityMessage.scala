@@ -82,7 +82,7 @@ object FlexibilityMessage {
     * [[edu.ie3.simona.agent.em.EmAgent]] after they have been requested via
     * [[FlexActivation]].
     */
-  final case class ProvideFlexOptions private (
+  final case class ProvideFlexOptions(
       override val modelUuid: UUID,
       flexOptions: FlexOptions,
   ) extends FlexResponse

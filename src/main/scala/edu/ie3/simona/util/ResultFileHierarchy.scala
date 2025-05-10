@@ -22,7 +22,7 @@ import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.logging.logback.LogbackConfiguration
 import edu.ie3.util.io.FileIOUtils
-import org.apache.commons.io.FilenameUtils._
+import org.apache.commons.io.FilenameUtils.*
 
 import scala.jdk.OptionConverters.RichOptional
 

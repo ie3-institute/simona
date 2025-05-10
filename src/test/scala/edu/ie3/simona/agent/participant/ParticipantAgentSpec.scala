@@ -44,7 +44,7 @@ import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit

@@ -8,6 +8,11 @@ package edu.ie3.simona.config
 
 import edu.ie3.simona.config.InputConfig.{Grid, LoadProfile, Primary, Weather}
 import edu.ie3.simona.config.ConfigParams._
+import pureconfig.generic.ProductHint
+import pureconfig.generic.semiauto.deriveConvert
+import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
+
+import scala.deriving.Mirror
 
 /** Input configuration for simona.
   * @param extSimDir
@@ -27,9 +32,15 @@ final case class InputConfig(
     loadProfile: LoadProfile = LoadProfile.empty,
     primary: Primary = Primary(),
     weather: Weather = Weather(),
-)
+) derives ConfigConvert
 
 object InputConfig {
+  implicit def productHint[T]: ProductHint[T] =
+    ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  extension (c: ConfigConvert.type)
+    private inline def derived[A](using m: Mirror.Of[A]): ConfigConvert[A] =
+      deriveConvert[A]
 
   /** Configuration for grid input.
     * @param datasource
@@ -37,7 +48,7 @@ object InputConfig {
     */
   final case class Grid(
       datasource: GridDatasource
-  )
+  ) derives ConfigConvert
 
   /** Case class with option for load profile data source.
     *
@@ -87,11 +98,11 @@ object InputConfig {
       csvParams: Option[TimeStampedCsvParams] = None,
       influxDb1xParams: Option[TimeStampedInfluxDb1xParams] = None,
       sqlParams: Option[TimeStampedSqlParams] = None,
-  )
+  ) derives ConfigConvert
 
   final case class Weather(
       datasource: WeatherDatasource = WeatherDatasource()
-  )
+  ) derives ConfigConvert
 
   /** Source containing the grid data.
     * @param csvParams
@@ -102,7 +113,7 @@ object InputConfig {
   final case class GridDatasource(
       csvParams: Option[BaseCsvParams] = None,
       id: String,
-  )
+  ) derives ConfigConvert
 
   /** Case class with parameters for a weather source.
     * @param coordinateSource
@@ -143,7 +154,7 @@ object InputConfig {
       scheme: String = "icon",
       sqlParams: Option[BaseSqlParams] = None,
       timestampPattern: Option[String] = None,
-  )
+  ) derives ConfigConvert
 
   /** Case class with options for coordinate source parameters.
     * @param csvParams
@@ -162,6 +173,6 @@ object InputConfig {
       gridModel: String = "icon",
       sampleParams: Option[SampleParams] = None,
       sqlParams: Option[BaseSqlParams] = None,
-  )
+  ) derives ConfigConvert
 
 }

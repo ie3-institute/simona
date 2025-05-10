@@ -52,8 +52,7 @@ final case class ParticipantGridAdapter(
     private val expectedRequestTick: Long,
     private val tickToPower: SortedMap[Long, ComplexPower],
     avgPowerResult: Option[AvgPowerResult],
-    private implicit val requestVoltageDeviationTolerance: Dimensionless,
-) {
+)(private implicit val requestVoltageDeviationTolerance: Dimensionless) {
 
   /** Whether a power request is expected and has not yet arrived, thus is
     * awaited, for the given tick.
@@ -206,7 +205,8 @@ object ParticipantGridAdapter {
       expectedRequestTick = expectedRequestTick,
       tickToPower = SortedMap.empty,
       avgPowerResult = None,
-      requestVoltageDeviationTolerance = requestVoltageDeviationTolerance,
+    )(
+      requestVoltageDeviationTolerance = requestVoltageDeviationTolerance
     )
 
   private def reduceTickToPowerMap(
