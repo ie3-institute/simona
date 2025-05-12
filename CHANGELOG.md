@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ADDED
+- Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
+
+
 ## [4.0.0] - 2025-05-09
 
 ### Added
@@ -76,7 +80,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added configuration for console log level [#1364](https://github.com/ie3-institute/simona/issues/1364)
 - Introduced `BmModel` to `ParticipantAgent` [#1332](https://github.com/ie3-institute/simona/issues/1332)
 - Added load profile service [#951](https://github.com/ie3-institute/simona/issues/951)
-- Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
