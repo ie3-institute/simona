@@ -43,6 +43,8 @@ final case class OutputConfig(
 object OutputConfig {
 
   /** Configuration for specific grid asset results.
+    * @param congestions
+    *   If congestion results should be written (default: false).
     * @param lines
     *   If line results should be written (default: false).
     * @param nodes
@@ -55,6 +57,7 @@ object OutputConfig {
     *   If three-winding transformer results should be written (default: false).
     */
   final case class GridOutputConfig(
+      congestions: Boolean = false,
       lines: Boolean = false,
       nodes: Boolean = false,
       switches: Boolean = false,

@@ -38,6 +38,7 @@ class NodeInputModelSpec extends UnitSpec with NodeInputTestData {
               isSlack,
               vTarget,
               voltLvl,
+              subnet,
             ) =>
           uuid shouldBe nodeInputNoSlackNs04KvA.getUuid
           id shouldBe nodeInputNoSlackNs04KvA.getId
@@ -47,6 +48,7 @@ class NodeInputModelSpec extends UnitSpec with NodeInputTestData {
             Each(nodeInputNoSlackNs04KvA.getvTarget.getValue.doubleValue())
           )
           voltLvl shouldBe nodeInputNoSlackNs04KvA.getVoltLvl
+          subnet shouldBe -1
       }
 
     }
