@@ -57,7 +57,7 @@ class ThermalGridWithHouseAndStorageSpec
   val initialGridState: ThermalGridState =
     ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
 
-  val initialHpState = HpState(
+  val initialHpState: HpState = HpState(
     0L,
     initialGridState,
     HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
@@ -465,7 +465,7 @@ class ThermalGridWithHouseAndStorageSpec
           storageState = maybeStorageState,
         )
 
-        val state = initialHpState.copy(
+        val modifiedState = initialHpState.copy(
           tick = tick,
           thermalGridState = gridState,
           // The exact amount doesn't matter
@@ -477,7 +477,7 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (thermalGridOperatingPoint, threshold) =
           thermalGrid.handleConsumption(
-            state
+            modifiedState
           )
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
@@ -493,7 +493,7 @@ class ThermalGridWithHouseAndStorageSpec
 
   "handling thermal feed in into the grid" should {
     "heat the house, if the target temperature in the house is not reached" in {
-      val initialGridState = ThermalGridState(
+      val initialState = ThermalGridState(
         Some(
           ThermalHouseState(
             -1,
@@ -505,7 +505,7 @@ class ThermalGridWithHouseAndStorageSpec
       )
 
       val state = initialHpState.copy(
-        thermalGridState = initialGridState,
+        thermalGridState = initialState,
         // The exact amount doesn't matter
         thermalDemands = ThermalDemandWrapper(
           ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),

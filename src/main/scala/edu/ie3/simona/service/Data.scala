@@ -75,7 +75,7 @@ object Data {
     ] extends PrimaryData {
       val q: ReactivePower
 
-      def withReactivePower(q: ReactivePower): T
+      def withReactivePower(reactivePower: ReactivePower): T
     }
 
     /** Adding thermal power
@@ -122,8 +122,10 @@ object Data {
     ) extends PrimaryDataWithComplexPower[ComplexPower] {
       override def toComplexPower: ComplexPower = this
 
-      override def withReactivePower(q: ReactivePower): ComplexPower =
-        copy(q = q)
+      override def withReactivePower(
+          reactivePower: ReactivePower
+      ): ComplexPower =
+        copy(q = reactivePower)
     }
 
     object ComplexPowerExtra extends PrimaryDataExtra[ComplexPower] {
@@ -185,8 +187,10 @@ object Data {
       override def toComplexPower: ComplexPower =
         ComplexPower(p, q)
 
-      override def withReactivePower(q: ReactivePower): ComplexPowerAndHeat =
-        copy(q = q)
+      override def withReactivePower(
+          reactivePower: ReactivePower
+      ): ComplexPowerAndHeat =
+        copy(q = reactivePower)
     }
 
     object ComplexPowerAndHeatExtra

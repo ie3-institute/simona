@@ -37,14 +37,12 @@ class ResultFileHierarchySpec
   "A valid OutputFileHierarchy" should {
 
     "return all expected file paths" in {
-      val fileSeparator: String = File.separator
-
-      val baseOutputDir = "output" + fileSeparator + "vn_simona"
-      val runOutputDir = "vn_simona"
+      val currentBaseOutputDir = "output" + fileSeparator + "vn_simona"
+      val currentRunOutputDir = "vn_simona"
       val validOutputFileHierarchy =
         ResultFileHierarchy(
-          baseOutputDir,
-          runOutputDir,
+          currentBaseOutputDir,
+          currentRunOutputDir,
           ResultEntityPathConfig(
             Set(classOf[PvResult]),
             ResultSinkType.Csv("csv", "pref", "suff"),

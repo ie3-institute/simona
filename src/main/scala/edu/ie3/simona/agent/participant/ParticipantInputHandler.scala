@@ -38,15 +38,15 @@ final case class ParticipantInputHandler(
 
   /** Handles a received [[ActivationRequest]] by storing the message.
     *
-    * @param activation
-    *   The activation.
+    * @param activationRequest
+    *   The activation request.
     * @return
     *   An updated input handler.
     */
   def handleActivation(
-      activation: ActivationRequest
+      activationRequest: ActivationRequest
   ): ParticipantInputHandler =
-    copy(activation = Some(activation))
+    copy(activation = Some(activationRequest))
 
   /** Completes an activation by clearing out the stored activation message.
     *

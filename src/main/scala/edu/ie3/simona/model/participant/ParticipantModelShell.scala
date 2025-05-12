@@ -268,7 +268,7 @@ final case class ParticipantModelShell[
   def updateFlexOptions(tick: Long): ParticipantModelShell[OP, S] = {
     val currentState = determineCurrentState(tick)
 
-    val flexOptions =
+    val updatedFlexOptions =
       if (operationInterval.includes(tick)) {
         model.determineFlexOptions(currentState)
       } else {
@@ -276,7 +276,7 @@ final case class ParticipantModelShell[
         MinMaxFlexOptions.noFlexOption(zeroKW)
       }
 
-    copy(state = currentState, flexOptions = Some(flexOptions))
+    copy(state = currentState, flexOptions = Some(updatedFlexOptions))
   }
 
   /** Update operating point on receiving [[IssueFlexControl]], i.e. when the

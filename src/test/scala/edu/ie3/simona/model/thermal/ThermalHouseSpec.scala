@@ -25,7 +25,7 @@ import squants.{Energy, Temperature}
 
 class ThermalHouseSpec extends UnitSpec with HpInputTestData {
 
-  implicit val tolerance: Temperature = Celsius(1e-4)
+  implicit val temperaturTolerance: Temperature = Celsius(1e-4)
   implicit val energyTolerance: Energy = KilowattHours(1e-4)
 
   "ThermalHouse" should {
@@ -269,7 +269,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
 
       val tolerance = 1d
       (finalThresholdCaseA, finalThresholdCaseB, finalThresholdCaseC) match {
-        case (Some(thresholdA), Some(thresholdB), Some(thresholdC)) => {
+        case (Some(thresholdA), Some(thresholdB), Some(thresholdC)) =>
           thresholdA.tick.doubleValue should approximate(
             thresholdB.tick.doubleValue
           )(tolerance)
@@ -277,7 +277,6 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
             thresholdC.tick.doubleValue
           )(tolerance)
           thresholdC shouldBe HouseTargetTemperatureReached(23732)
-        }
         case _ => fail("Could not match thresholds.")
       }
     }
@@ -314,12 +313,12 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
           val state =
             initialHouseState.copy(innerTemperature = Celsius(currentInnerTemp))
 
-          val threshold = house.determineNextThreshold(
+          val thresholdOption = house.determineNextThreshold(
             state,
             newOperatingPoint,
           )
 
-          threshold match {
+          thresholdOption match {
             case threshold => threshold shouldBe expectedThreshold
             case unexpected =>
               fail(
