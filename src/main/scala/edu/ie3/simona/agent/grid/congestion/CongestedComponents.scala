@@ -108,7 +108,7 @@ object CongestedComponents {
           val vMag =
             vNom * nodeRes(transformer.lvNodeUuid).getvMag.toSquants.toEach
 
-          val power = sqrt(3.0) * res.getiBMag.toSquants * vMag
+          val power = res.getiBMag.toSquants * sqrt(3.0) * vMag
           transformer -> Kilovoltamperes(power.toKilowatts)
         }
         .filter { case (transformer, result) => result > transformer.sRated }
@@ -132,7 +132,7 @@ object CongestedComponents {
 
           val vMag = vNom * nodeRes(nodeUuid).getvMag.toSquants.toEach
 
-          val power = sqrt(3.0) * res.currentMagnitude * vMag
+          val power = res.currentMagnitude * sqrt(3.0) * vMag
           transformer -> Kilovoltamperes(power.toKilowatts)
         }
         .filter { case (transformer, result) => result > transformer.sRated }
