@@ -7,14 +7,9 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
-import edu.ie3.simona.api.data.em.model.{
-  EmSetPointResult,
-  ExtendedFlexOptionsResult,
-  FlexRequestResult,
-  NoSetPointValue,
-}
-import edu.ie3.simona.api.data.em.ontology._
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.api.data.em.model.{EmSetPoint, EmSetPointResult, ExtendedFlexOptionsResult, FlexRequestResult}
+import edu.ie3.simona.api.data.em.ontology.*
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
 import edu.ie3.simona.service.em.EmCommunicationCore.DataMap
@@ -31,12 +26,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power
-import scala.jdk.CollectionConverters.{
-  IterableHasAsScala,
-  MapHasAsJava,
-  MapHasAsScala,
-  SetHasAsJava,
-}
+import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsJava, MapHasAsScala, SetHasAsJava}
 
 final case class EmCommunicationCore(
     override val lastFinishedTick: Long = PRE_INIT_TICK,
@@ -333,7 +323,7 @@ final case class EmCommunicationCore(
 
         val (time, power) = issueFlexControl match {
           case IssueNoControl(tick) =>
-            (tick.toDateTime, new NoSetPointValue(uuidToPRef(uuid)))
+            (tick.toDateTime, new PValue(uuidToPRef(uuid)))
 
           case IssuePowerControl(tick, setPower) =>
             (tick.toDateTime, new PValue(setPower.toQuantity))

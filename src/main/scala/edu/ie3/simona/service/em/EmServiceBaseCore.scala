@@ -108,7 +108,7 @@ final case class EmServiceBaseCore(
         (this, None)
       } else {
         val tick = provideEmSetPoints.tick
-        val emEntities = provideEmSetPoints.emData.keySet.asScala
+        val emEntities = provideEmSetPoints.emSetPoints.keySet.asScala
 
         emEntities.map(uuidToFlexAdapter).foreach { ref =>
           ref ! FlexActivation(tick)

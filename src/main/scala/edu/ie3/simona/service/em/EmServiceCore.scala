@@ -7,17 +7,10 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.model.NoSetPointValue
-import edu.ie3.simona.api.data.em.ontology._
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.services.EmMessage.{
-  WrappedFlexRequest,
-  WrappedFlexResponse,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  RegisterForEmDataService,
-  ServiceResponseMessage,
-}
+import edu.ie3.simona.api.data.em.ontology.*
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{RegisterForEmDataService, ServiceResponseMessage}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
@@ -29,7 +22,7 @@ import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Power => PsdmPower}
+import javax.measure.quantity.Power as PsdmPower
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.OptionConverters.RichOptional
 
@@ -77,19 +70,18 @@ trait EmServiceCore {
     log.info(s"Handling of: $provideEmSetPoints")
 
     provideEmSetPoints
-      .emData()
+      .emSetPoints
       .asScala
       .foreach { case (agent, setPoint) =>
         uuidToFlexAdapter.get(agent) match {
           case Some(receiver) =>
-            setPoint match {
-              case _: NoSetPointValue =>
-                receiver ! IssueNoControl(tick)
-              case _ =>
-                val power =
-                  setPoint.getP.toScala.map(_.toSquants).getOrElse(zeroKW)
 
-                receiver ! IssuePowerControl(tick, power)
+            (setPoint.p.toScala, setPoint.q.toScala) match {
+              case (Some(activePower), _) =>
+                receiver ! IssuePowerControl(tick, activePower.toSquants)
+
+              case (None, _) =>
+                receiver ! IssueNoControl(tick)
             }
 
           case None =>
