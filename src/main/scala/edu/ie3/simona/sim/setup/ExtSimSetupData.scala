@@ -12,14 +12,9 @@ import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
-import edu.ie3.simona.ontology.messages.services.{
-  EmMessage,
-  EvMessage,
-  ServiceMessage,
-}
-import edu.ie3.simona.sim.setup.ExtSimSetupData.Input
+import edu.ie3.simona.ontology.messages.services.{EmMessage, EvMessage, ServiceMessage}
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import org.apache.pekko.actor.ActorRef as ClassicRef
 
 /** Case class that holds information regarding the external data connections as
   * well as the actor references of the created services.
@@ -38,7 +33,7 @@ final case class ExtSimSetupData(
     extPrimaryDataServices: Seq[
       (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
     ],
-    extDataServices: Seq[Input[_ <: DataMessageFromExt]],
+    extDataServices: Seq[(ExtInputDataConnection[_], ActorRef[_ >: ServiceMessage])],
     extResultListeners: Seq[(ExtResultDataConnection, ActorRef[ServiceMessage])],
 ) {
 
@@ -104,9 +99,6 @@ final case class ExtSimSetupData(
 }
 
 object ExtSimSetupData {
-
-  type Input[T <: DataMessageFromExt] =
-    (ExtInputDataConnection[T], ActorRef[_ >: ServiceMessage])
 
   /** Returns an empty [[ExtSimSetupData]].
     */

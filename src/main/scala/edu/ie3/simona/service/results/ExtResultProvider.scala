@@ -57,8 +57,8 @@ object ExtResultProvider
       extResultSchedule: ExtResultSchedule,
       extResultsMessage: Option[ResultDataMessageFromExt] = None,
       receiveDataMap: ReceiveDataMap[UUID, ResultEntity] = ReceiveDataMap.empty,
-      resultStorage: Map[UUID, ResultEntity] = Map.empty,
-      implicit val startTime: ZonedDateTime,
+      resultStorage: Map[UUID, ResultEntity] = Map.empty, 
+      startTime: ZonedDateTime,
   ) extends ServiceBaseStateData
 
   final case class InitExtResultData(

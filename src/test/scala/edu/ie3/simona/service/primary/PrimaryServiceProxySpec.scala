@@ -285,7 +285,6 @@ class PrimaryServiceProxySpec
                 _,
                 _,
                 _,
-                _,
                 extSubscribersToService,
               )
             ) =>

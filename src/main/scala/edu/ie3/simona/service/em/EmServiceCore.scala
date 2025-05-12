@@ -19,7 +19,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ServiceResponseMessage,
 }
 import edu.ie3.simona.util.ReceiveDataMap
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import org.apache.pekko.actor.typed.ActorRef

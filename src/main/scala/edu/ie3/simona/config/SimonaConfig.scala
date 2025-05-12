@@ -9,10 +9,11 @@ package edu.ie3.simona.config
 import com.typesafe.config.{Config, ConfigValue}
 import edu.ie3.simona.config.SimonaConfig.writer
 import edu.ie3.simona.exceptions.CriticalFailureException
-import pureconfig.error._
-import pureconfig.generic._
+import edu.ie3.util.TimeUtil
+import pureconfig.*
+import pureconfig.error.*
+import pureconfig.generic.*
 import pureconfig.generic.semiauto.deriveConvert
-import pureconfig._
 
 import java.time.ZonedDateTime
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
