@@ -90,7 +90,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:powerflow:0.2') {
+  implementation('com.github.ie3-institute:powerflow:0.3.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -164,8 +164,7 @@ dependencies {
   implementation 'tech.units:indriya:2.2.3' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
   implementation 'org.apache.commons:commons-csv:1.14.0'
-  implementation "org.scalanlp:breeze_2.13:2.1.0"
-  //implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
+  implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
   implementation 'org.jgrapht:jgrapht-core:1.5.2'
 
   // needed, because scala won't compile otherwise
