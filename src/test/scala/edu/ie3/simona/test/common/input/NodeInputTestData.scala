@@ -82,6 +82,18 @@ trait NodeInputTestData extends DefaultTestData {
       1,
     )
 
+  protected val nodeInputNoSlackMs30Kv = new NodeInput(
+    UUID.fromString("89dcdc78-04e4-447b-824c-46dc454329e8"),
+    "nodeInputNoSlackMs30Kv",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    defaultOperationTime,
+    Quantities.getQuantity(1.0, PU),
+    false,
+    NodeInput.DEFAULT_GEO_POSITION,
+    GermanVoltageLevelUtils.MV_30KV,
+    30,
+  )
+
   // 110 kV node input models
   protected val nodeInputNoSlackMs110Kv =
     new NodeInput(
