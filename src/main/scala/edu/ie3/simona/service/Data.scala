@@ -70,9 +70,7 @@ object Data {
 
     /** Denoting all primary data, that carry complex power
       */
-    sealed trait PrimaryDataWithComplexPower[
-        +T <: PrimaryDataWithComplexPower[T]
-    ] extends PrimaryData {
+    sealed trait PrimaryDataWithComplexPower[T] extends PrimaryData {
       val q: ReactivePower
 
       def withReactivePower(q: ReactivePower): T

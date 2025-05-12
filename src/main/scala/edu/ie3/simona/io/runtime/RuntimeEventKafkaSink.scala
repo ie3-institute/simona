@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.io.runtime
 
-import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.simona.config.ConfigParams.RuntimeKafkaParams
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.{Done, Error}
@@ -90,9 +89,6 @@ object RuntimeEventKafkaSink {
       ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,
       true,
     ) // exactly once delivery
-
-    implicit val recordFormat: RecordFormat[SimonaEndMessage] =
-      RecordFormat[SimonaEndMessage]
 
     val keySerializer = Serdes.String().serializer()
     val valueSerializer: Serializer[SimonaEndMessage] =

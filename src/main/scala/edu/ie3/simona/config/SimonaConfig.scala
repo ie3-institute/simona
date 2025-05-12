@@ -9,19 +9,18 @@ package edu.ie3.simona.config
 import com.typesafe.config.{Config, ConfigValue}
 import edu.ie3.simona.config.SimonaConfig.writer
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.util.TimeUtil
-import pureconfig._
 import pureconfig.error._
-import pureconfig.generic.ProductHint
-import pureconfig.generic.auto._
+import pureconfig.generic._
+import pureconfig.generic.semiauto.deriveConvert
+import pureconfig._
 
 import java.time.ZonedDateTime
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.language.implicitConversions
+import scala.deriving.Mirror
 
 final case class SimonaConfig(
     simona: SimonaConfig.Simona
-) {
+) derives ConfigConvert {
 
   /** Returns the default config values.
     */
@@ -32,6 +31,10 @@ object SimonaConfig {
   // pure config start
   implicit def productHint[T]: ProductHint[T] =
     ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  extension (c: ConfigConvert.type)
+    inline def derived[A](using m: Mirror.Of[A]): ConfigConvert[A] =
+      deriveConvert[A]
 
   /** Returns a writer for [[SimonaConfig]].
     */
@@ -89,18 +92,19 @@ object SimonaConfig {
       vNom: String,
       override val voltLvls: Option[List[VoltLvlConfig]] = None,
   ) extends GridConfigParams
+      derives ConfigConvert
 
   final case class TransformerControlGroup(
       measurements: List[String] = List.empty,
       transformers: List[String] = List.empty,
       vMax: Double,
       vMin: Double,
-  )
+  ) derives ConfigConvert
 
   final case class VoltLvlConfig(
       id: String,
       vNom: String,
-  )
+  ) derives ConfigConvert
 
   final case class VoltageLimitsConfig(
       override val gridIds: Option[List[String]] = None,
@@ -108,6 +112,7 @@ object SimonaConfig {
       vMin: Double,
       override val voltLvls: Option[List[VoltLvlConfig]] = None,
   ) extends GridConfigParams
+      derives ConfigConvert
 
   final case class Simona(
       control: Option[Simona.Control] = None,
@@ -118,16 +123,16 @@ object SimonaConfig {
       runtime: RuntimeConfig = RuntimeConfig(),
       simulationName: String,
       time: Simona.Time = Simona.Time(),
-  )
+  ) derives ConfigConvert
   object Simona {
     final case class Control(
         transformer: List[TransformerControlGroup] = List.empty
-    )
+    ) derives ConfigConvert
 
     final case class GridConfig(
         refSystems: Option[List[RefSystemConfig]] = None,
         voltageLimits: Option[List[VoltageLimitsConfig]] = None,
-    )
+    ) derives ConfigConvert
 
     final case class Powerflow(
         maxSweepPowerDeviation: Double,
@@ -135,19 +140,19 @@ object SimonaConfig {
         resolution: FiniteDuration = 1.hours,
         stopOnFailure: Boolean = false,
         sweepTimeout: FiniteDuration = 30.seconds,
-    )
+    ) derives ConfigConvert
     object Powerflow {
       final case class Newtonraphson(
           epsilon: List[Double] = List.empty,
           iterations: Int,
-      )
+      ) derives ConfigConvert
     }
 
     final case class Time(
         endDateTime: String = "2011-05-01T01:00:00Z",
         schedulerReadyCheckWindow: Option[Int] = None,
         startDateTime: String = "2011-05-01T00:00:00Z",
-    ) {
+    ) derives ConfigConvert {
       def startTime: ZonedDateTime =
         TimeUtil.withDefaults.toZonedDateTime(startDateTime)
     }
