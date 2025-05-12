@@ -114,6 +114,8 @@ object SimonaConfig {
       derives ConfigConvert
 
   final case class Simona(
+      congestionManagement: Simona.CongestionManagement =
+        Simona.CongestionManagement(),
       control: Option[Simona.Control] = None,
       gridConfig: Simona.GridConfig = Simona.GridConfig(),
       input: InputConfig,
@@ -124,6 +126,11 @@ object SimonaConfig {
       time: Simona.Time = Simona.Time(),
   ) derives ConfigConvert
   object Simona {
+    final case class CongestionManagement(
+        enableDetection: Boolean = false,
+        timeout: FiniteDuration = 30.seconds,
+    )
+
     final case class Control(
         transformer: List[TransformerControlGroup] = List.empty
     ) derives ConfigConvert
