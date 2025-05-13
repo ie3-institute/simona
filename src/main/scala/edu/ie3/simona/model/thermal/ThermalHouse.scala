@@ -12,6 +12,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
 }
+import edu.ie3.util.scala.quantities.QuantityUtil.*
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand

@@ -976,7 +976,7 @@ class ThermalGridIT
                 qDot should equalWithTolerance(0.0055.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.87.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case DomesticHotWaterStorageResult(
                     time,
                     inputModel,
@@ -1031,7 +1031,7 @@ class ThermalGridIT
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.92.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case DomesticHotWaterStorageResult(
                     time,
                     inputModel,
@@ -1321,7 +1321,9 @@ class ThermalGridIT
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 36165.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(19.99.asDegreeCelsius)
+                indoorTemperature should equalWithTolerance(
+                  19.99.asDegreeCelsius
+                )
               case DomesticHotWaterStorageResult(
                     time,
                     inputModel,
@@ -2780,7 +2782,7 @@ Domestic hot water storage stops discharging.
                 qDot should equalWithTolerance(0.0055.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.19.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case DomesticHotWaterStorageResult(
                     time,
                     inputModel,
@@ -2843,7 +2845,7 @@ Domestic hot water storage stops discharging.
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.30.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -3083,7 +3085,7 @@ Heat pump: stays on
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.83.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -3145,7 +3147,7 @@ FIXME Heat pump: stays on - to serve the remaining heat demand of the storage.
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -3168,7 +3170,8 @@ FIXME Heat pump: stays on - to serve the remaining heat demand of the storage.
        */
 
       val secondActivationTicksBlock =
-        Seq(32400, 32576, 36000, 36179, 39600, 39757, 41937)// 43200, 43322,          43557)
+        Seq(32400, 32576, 36000, 36179, 39600, 39757,
+          41937) // 43200, 43322,          43557)
 
       val secondTickPairs = secondActivationTicksBlock.zipWithIndex.collect {
         case (tick, index) if index < secondActivationTicksBlock.length - 1 =>
@@ -3207,7 +3210,7 @@ FIXME Heat pump: stays on - to serve the remaining heat demand of the storage.
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
       Heat pump: stays off - demand will be served by storage.
-      */
+       */
 
       emAgentActivation ! Activation(41937)
 
@@ -3233,23 +3236,21 @@ FIXME Heat pump: stays on - to serve the remaining heat demand of the storage.
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
               case ThermalHouseResult(
-              time,
-              inputModel,
-              qDot,
-              indoorTemperature,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    indoorTemperature,
+                  ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 41937.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.asDegreeCelsius
-                )(temperatureTolerance)
+                indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
               case CylindricalThermalStorageResult(
-              time,
-              inputModel,
-              qDot,
-              energy,
-              ) =>
+                    time,
+                    inputModel,
+                    qDot,
+                    energy,
+                  ) =>
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 41937.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
@@ -3263,7 +3264,7 @@ FIXME Heat pump: stays on - to serve the remaining heat demand of the storage.
 
       /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
 The results are checked implicitly through the state of stored energy at the next result check.
-     */
+       */
 
       val thirdActivationTicksBlock =
         Seq(43200, 43322, 43812)
@@ -3347,7 +3348,7 @@ The results are checked implicitly through the state of stored energy at the nex
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.35.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -3409,7 +3410,9 @@ Domestic hot water storage stops discharging
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 45618.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(18.2.asDegreeCelsius)
+                indoorTemperature should equalWithTolerance(
+                  18.2.asDegreeCelsius
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -3470,9 +3473,7 @@ Domestic hot water storage stops discharging
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 45608.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.asDegreeCelsius
-                )(temperatureTolerance)
+                indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
             }
         }
       resultListener.expectNoMessage()
@@ -3698,7 +3699,7 @@ Domestic hot water storage stops discharging
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.49.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case DomesticHotWaterStorageResult(
                     time,
                     inputModel,

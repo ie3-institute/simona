@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   DomesticHotWaterStorageInput,
 }
+import edu.ie3.util.scala.quantities.QuantityUtil.*
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.thermal.{
