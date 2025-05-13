@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
+
+## Changed
+- Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
+
+## [4.0.0] - 2025-05-09
+
+### Added
 - Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
 - Re-implemented ResultEventListener in akka typed [#343](https://github.com/ie3-institute/simona/issues/343)
 - Add additional test cases from references for PvModelTest [#590](https://github.com/ie3-institute/simona/issues/590)
@@ -71,6 +79,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add conversion utils between `ComparableQuantity` and `Squants` [#1313](https://github.com/ie3-institute/simona/issues/1313)
 - Implementing auto-merge for dependabot PRs [#1339](https://github.com/ie3-institute/simona/issues/1339)
 - Introduce operatingPoints also to `ThermalGrid` [#1338](https://github.com/ie3-institute/simona/issues/1338)
+- Added configuration for console log level [#1364](https://github.com/ie3-institute/simona/issues/1364)
+- Introduced `BmModel` to `ParticipantAgent` [#1332](https://github.com/ie3-institute/simona/issues/1332)
+- Added load profile service [#951](https://github.com/ie3-institute/simona/issues/951)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -179,6 +190,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed determining FlexOptions of `Evcs` [#1322](https://github.com/ie3-institute/simona/issues/1322)
 - Refactor handleFeedIn and handleConsumption of `ThermalGrid` due to qDotIntoGrid [#1343](https://github.com/ie3-institute/simona/issues/1343)
 - Adapted to typed actor in simonaAPI [#1311](https://github.com/ie3-institute/simona/issues/1311)
+- Making primary data source optional [#134](https://github.com/ie3-institute/simona/issues/134)
+- Refactoring uuids in default runtime configs [#1336](https://github.com/ie3-institute/simona/issues/1336)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -245,6 +258,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleanups and log capturing in `ExtEvDataServiceSpec` [#1320](https://github.com/ie3-institute/simona/issues/1320)
 - Fix tolerance in `ThermalGridIT` [#1345](https://github.com/ie3-institute/simona/issues/1345)
 - Fix startingState of `ThermalHouse` and `ThermalStorage` [#1347](https://github.com/ie3-institute/simona/issues/1347)
+- Added auto-approval to dependabot workflow and restrictions to updates [#1353](https://github.com/ie3-institute/simona/issues/1353)
 - Fix default config values not written to output config file [#1355](https://github.com/ie3-institute/simona/issues/1355)
 - Calculate `ThermalHouse` inner temperature correct [#1349](https://github.com/ie3-institute/simona/issues/1349)
 - Fix some default config values not being used [#1362](https://github.com/ie3-institute/simona/issues/1362)
@@ -360,5 +374,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove RocketChat notification from Jenkinsfile [#234](https://github.com/ie3-institute/simona/issues/234)
 - Removed one-jar gradle plugin [#564](https://github.com/ie3-institute/simona/issues/564)
 
-[Unreleased]: https://github.com/ie3-institute/simona/compare/3.0.0...HEAD
+[Unreleased]: https://github.com/ie3-institute/simona/compare/4.0.0...HEAD
+[4.0.0]: https://github.com/ie3-institute/simona/compare/3.0.0...4.0.0
 [3.0.0]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...3.0.0

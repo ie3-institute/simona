@@ -17,6 +17,7 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   OhmToSimona,
   PowerConversionSimona,
@@ -53,6 +54,8 @@ import scala.math.BigDecimal.RoundingMode
   *   nominal current on the high voltage side of the transformer
   * @param iNomLv
   *   nominal current on the low voltage side of the transformer
+  * @param sRated
+  *   the rated power of the transformer
   * @param r
   *   resistance r, real part of the transformer impedance z (referenced to the
   *   nominal impedance of the grid) in p.u.
@@ -77,6 +80,7 @@ final case class TransformerModel(
     voltRatioNominal: BigDecimal,
     iNomHv: squants.electro.ElectricCurrent,
     iNomLv: squants.electro.ElectricCurrent,
+    sRated: ApparentPower,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
@@ -160,7 +164,7 @@ case object TransformerModel {
     // iNomHv, iNomLv
     val calcINom
         : squants.electro.ElectricPotential => squants.electro.ElectricCurrent = {
-      portVoltage: squants.electro.ElectricPotential =>
+      (portVoltage: squants.electro.ElectricPotential) =>
         trafoType.getsRated.toApparent / Math.sqrt(3) / portVoltage
     }
     val (iNomHv, iNomLv) =
@@ -202,6 +206,7 @@ case object TransformerModel {
       voltRatioNominal,
       iNomHv,
       iNomLv,
+      trafoType.getsRated.toApparent,
       r,
       x,
       g,
@@ -281,7 +286,7 @@ case object TransformerModel {
   def y0(transformerModel: TransformerModel, port: ConnectorPort): Complex = {
     val amount = transformerModel.amount
     val tapSide = transformerModel.tapSide
-    val tapRatio = transformerModel.tapRatio
+    val tapRatio = transformerModel.getTapRation
     val g0 = transformerModel.g0().value.doubleValue()
     val b0 = transformerModel.b0().value.doubleValue()
     val gij = transformerModel.gij().value.doubleValue()
@@ -330,7 +335,7 @@ case object TransformerModel {
     */
   def yij(transformerModel: TransformerModel): Complex = {
     val amount = transformerModel.amount
-    val tapRatio = transformerModel.tapRatio
+    val tapRatio = transformerModel.getTapRation
 
     new Complex(
       transformerModel.gij().value.doubleValue(),

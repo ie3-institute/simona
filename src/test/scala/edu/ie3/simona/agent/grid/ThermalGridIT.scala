@@ -19,7 +19,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
 }
 import edu.ie3.simona.config.RuntimeConfig.{HpRuntimeConfig, PvRuntimeConfig}
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent._
+import edu.ie3.simona.event.ResultEvent.*
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -40,11 +40,11 @@ import edu.ie3.simona.test.common.input.{
   ThermalGridITInputTestData,
 }
 import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
+import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -58,8 +58,12 @@ import org.scalatestplus.mockito.MockitoSugar
 import squants.Each
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
+import javax.measure.quantity.Temperature
 import scala.language.postfixOps
 
 /** Test to ensure the functions that a thermal grid and its connected assets is
@@ -70,13 +74,14 @@ class ThermalGridIT
     with ThermalHouseTestData
     with AnyWordSpecLike
     with should.Matchers
+    with QuantityMatchers
     with ThermalGridITInputTestData
     with EmInputTestData
     with MockitoSugar
     with DefaultTestData
     with TestSpawnerTyped {
-  private implicit val quantityTolerance: Double = 1e-10d
-  protected val temperatureTolerance: Double = 0.01
+  protected given temperatureTolerance: ComparableQuantity[Temperature] =
+    Quantities.getQuantity(0.01, Units.CELSIUS)
 
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
@@ -224,9 +229,7 @@ class ThermalGridIT
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  20.asDegreeCelsius
-                )(temperatureTolerance)
+                indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
 
               case CylindricalThermalStorageResult(
                     time,
@@ -333,7 +336,8 @@ class ThermalGridIT
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.68.asDegreeCelsius
-                )(temperatureTolerance)
+                )
+
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -484,7 +488,7 @@ class ThermalGridIT
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
-                )(temperatureTolerance)
+                )
             }
         }
       resultListener.expectNoMessage()
@@ -660,7 +664,8 @@ class ThermalGridIT
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.00.asDegreeCelsius
-                )(temperatureTolerance)
+                )
+
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -834,7 +839,7 @@ class ThermalGridIT
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.415.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1081,7 +1086,7 @@ class ThermalGridIT
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1220,7 +1225,7 @@ class ThermalGridIT
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.81.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1316,9 +1321,7 @@ class ThermalGridIT
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 36165.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.99.asDegreeCelsius
-                )(temperatureTolerance)
+                indoorTemperature should equalWithTolerance(19.99.asDegreeCelsius)
               case DomesticHotWaterStorageResult(
                     time,
                     inputModel,
@@ -1534,9 +1537,7 @@ class ThermalGridIT
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  20.asDegreeCelsius
-                )(temperatureTolerance)
+                indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
 
               case CylindricalThermalStorageResult(
                     time,
@@ -1841,7 +1842,7 @@ can be used by hp to serve the reqDemand of ThermalStorage
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.52.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1925,7 +1926,7 @@ can be used by hp to serve the reqDemand of ThermalStorage
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.58.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1983,7 +1984,7 @@ can be used by hp to serve the reqDemand of ThermalStorage
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -2213,7 +2214,7 @@ Heat pump: turned on
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.65.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -2377,7 +2378,7 @@ Heat pump: turned on
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
-                )(temperatureTolerance)
+                )
             }
         }
       resultListener.expectNoMessage()
@@ -2444,7 +2445,7 @@ Heat pump: turned on
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   19.96.asDegreeCelsius
-                )(temperatureTolerance)
+                )
             }
         }
       resultListener.expectNoMessage()
@@ -2494,9 +2495,7 @@ Heat pump: turned on
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 12139.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  20.asDegreeCelsius
-                )(temperatureTolerance)
+                indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
             }
         }
       resultListener.expectNoMessage()
@@ -2629,9 +2628,7 @@ Heat pump: turned on
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 24413.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.asDegreeCelsius
-                )(temperatureTolerance)
+                indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -2707,7 +2704,7 @@ Heat pump: turned on
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.18.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -2999,7 +2996,6 @@ Heat pump: stays on
                 hpResult._1 shouldBe 28954.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 28954.toDateTime
@@ -3413,9 +3409,7 @@ Domestic hot water storage stops discharging
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 45618.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.2.asDegreeCelsius
-                )(temperatureTolerance)
+                indoorTemperature should equalWithTolerance(18.2.asDegreeCelsius)
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -3539,7 +3533,7 @@ Domestic hot water storage stops discharging
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(
                   18.25.asDegreeCelsius
-                )(temperatureTolerance)
+                )
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -3656,9 +3650,7 @@ Domestic hot water storage stops discharging
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 48076.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.asDegreeCelsius
-                )(temperatureTolerance)
+                indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
             }
         }
       resultListener.expectNoMessage()
@@ -3811,9 +3803,7 @@ Domestic hot water storage stops discharging.
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 52877.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.asDegreeCelsius
-                )(temperatureTolerance)
+                indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
             }
         }
       resultListener.expectNoMessage()

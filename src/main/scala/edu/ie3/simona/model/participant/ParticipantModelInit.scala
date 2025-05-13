@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemPartic
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
+  BmRuntimeConfig,
   EvcsRuntimeConfig,
   LoadRuntimeConfig,
   StorageRuntimeConfig,
@@ -82,6 +83,8 @@ object ParticipantModelInit {
         StorageModel.Factory(input, config)
       case (input: EvcsInput, config: EvcsRuntimeConfig) =>
         EvcsModel.Factory(input, config)
+      case (input: BmInput, _) =>
+        BmModel.Factory(input)
       case (input, config) =>
         throw new CriticalFailureException(
           s"Handling the input model ${input.getClass.getSimpleName} and " +
@@ -104,7 +107,7 @@ object ParticipantModelInit {
     * @return
     *   The [[PrimaryDataParticipantModel]].
     */
-  def getPrimaryModelFactory[PD <: PrimaryData: ClassTag](
+  def getPrimaryModelFactory[PD <: PrimaryData](
       inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
       primaryDataExtra: PrimaryDataExtra[PD],

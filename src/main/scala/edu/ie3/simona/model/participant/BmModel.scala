@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
+import edu.ie3.datamodel.models.StandardUnits
+import edu.ie3.datamodel.models.input.system.BmInput
 import edu.ie3.datamodel.models.result.system.{
   BmResult,
   SystemParticipantResult,
@@ -15,16 +17,23 @@ import edu.ie3.simona.model.participant.ParticipantFlexibility.ParticipantSimple
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.simona.service.{Data, ServiceType}
+import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  EnergyPriceToSimona,
+  PowerConversionSimona,
+}
 import edu.ie3.util.scala.quantities.{ApparentPower, EnergyPrice}
 import squants.energy.Megawatts
-import squants.{Dimensionless, Money, Power, Temperature}
+import squants.thermal.Temperature
+import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -37,7 +46,7 @@ final case class BmModel(
     override val cosPhiRated: Double,
     override val qControl: QControl,
     private val isCostControlled: Boolean,
-    private val opex: Money,
+    private val opex: EnergyPrice,
     private val feedInTariff: EnergyPrice,
     private val loadGradient: Double,
 ) extends ParticipantModel[
@@ -108,10 +117,7 @@ final case class BmModel(
     val currOpex = opex / eff
     val avgOpex = (currOpex + opex) / 2
 
-    if (
-      isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
-        .doubleValue()
-    )
+    if (isCostControlled && avgOpex < feedInTariff)
       pRated * -1
     else
       pRated * usage * eff * -1
@@ -177,6 +183,39 @@ final case class BmModel(
 }
 
 object BmModel {
+
+  final case class Factory(
+      input: BmInput
+  ) extends ParticipantModelFactory[BmState] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): BmState = BmState(tick, simulationTime, zeroCelsius, Option(zeroKW))
+
+    override def create(): BmModel = {
+      val bmType = input.getType
+      val loadGradient = bmType.getActivePowerGradient
+        .to(StandardUnits.ACTIVE_POWER_GRADIENT)
+        .getValue
+        .doubleValue()
+
+      new BmModel(
+        input.getUuid,
+        input.getId,
+        bmType.getsRated.toApparent,
+        bmType.getCosPhiRated,
+        QControl(input.getqCharacteristics()),
+        input.isCostControlled,
+        bmType.getOpex.toSquants,
+        input.getFeedInTariff.toSquants,
+        loadGradient,
+      )
+    }
+  }
 
   /** Data, that is needed for model calculations with the biomass model.
     *

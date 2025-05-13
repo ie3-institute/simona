@@ -144,17 +144,17 @@ class ThermalHouseSpec
             "secondTick",
             "expectedTemperatureSecondPeriod",
           ),
-          (20d, 30d, 36000, 29.4818, 30d, 72000, 32.97),
-          (20d, 30d, 18000, 25.9020, 30d, 72000, 32.97),
-          (20d, 30d, 7200, 22.719, 30d, 72000, 32.97),
-          (20d, 0d, 5151, 18.0002, 30d, 72000, 32.3454),
-          (20d, 1d, 5549, 18.0001, 20d, 72000, 23.8948),
-          (20d, 2d, 6013, 18.0002, 10d, 72000, 15.4799),
-          (19d, 14d, 99999, 19.0, 14d, 72000, 19.00),
-          (20d, 15d, 99999, 20.0, 15d, 72000, 20.00),
-          (18d, 16d, 39550, 20.0, 10d, 72000, 17.03),
-          (18d, 20d, 12113, 20.0, 5d, 72000, 11.8947),
-          (18d, 25d, 6563, 19.9998, 0d, 72000, 7.436),
+          (20d, 30d, 36000L, 29.4818, 30d, 72000L, 32.97),
+          (20d, 30d, 18000L, 25.9020, 30d, 72000L, 32.97),
+          (20d, 30d, 7200L, 22.719, 30d, 72000L, 32.97),
+          (20d, 0d, 5151L, 18.0002, 30d, 72000L, 32.3454),
+          (20d, 1d, 5549L, 18.0001, 20d, 72000L, 23.8948),
+          (20d, 2d, 6013L, 18.0002, 10d, 72000L, 15.4799),
+          (19d, 14d, 99999L, 19.0, 14d, 72000L, 19.00),
+          (20d, 15d, 99999L, 20.0, 15d, 72000L, 20.00),
+          (18d, 16d, 39550L, 20.0, 10d, 72000L, 17.03),
+          (18d, 20d, 12113L, 20.0, 5d, 72000L, 11.8947),
+          (18d, 25d, 6563L, 19.9998, 0d, 72000L, 7.436),
         )
 
       forAll(testCases) {
@@ -282,7 +282,7 @@ class ThermalHouseSpec
 
       val tolerance = 1d
       (finalThresholdCaseA, finalThresholdCaseB, finalThresholdCaseC) match {
-        case (Some(thresholdA), Some(thresholdB), Some(thresholdC)) => {
+        case (Some(thresholdA), Some(thresholdB), Some(thresholdC)) =>
           thresholdA.tick.doubleValue should approximate(
             thresholdB.tick.doubleValue
           )(tolerance)
@@ -290,7 +290,6 @@ class ThermalHouseSpec
             thresholdC.tick.doubleValue
           )(tolerance)
           thresholdC shouldBe HouseTargetTemperatureReached(23732)
-        }
         case _ => fail("Could not match thresholds.")
       }
     }

@@ -168,7 +168,7 @@ object GridModel {
   }
 
   private val throwNodeNotFoundException: UUID => InvalidGridException = {
-    nodeString: UUID =>
+    (nodeString: UUID) =>
       throw new InvalidGridException(
         s"Node $nodeString is not in nodeUuidToIndexMap! Cannot build admittanceMatrix!"
       )
@@ -181,10 +181,10 @@ object GridModel {
 
     val _returnAdmittanceMatrixIfValid
         : DenseMatrix[Complex] => DenseMatrix[Complex] = {
-      admittanceMatrix: DenseMatrix[Complex] =>
+      (admittanceMatrix: DenseMatrix[Complex]) =>
         if (
           !breeze.linalg.all(
-            { entry: Complex =>
+            { (entry: Complex) =>
               !entry.imag.isNaN & !entry.real.isNaN & entry.imag.isFinite & entry.real.isFinite
             },
             admittanceMatrix,

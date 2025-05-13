@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
@@ -204,9 +205,27 @@ abstract class ParticipantModel[
 
 object ParticipantModel {
 
+  /** Additional data for factories. This data is optionally supplied by the
+    * secondary data service via a
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationSuccessfulMessage]].
+    */
+  trait AdditionalFactoryData
+
   /** Functionality related to creating and initializing a [[ParticipantModel]].
     */
   trait ParticipantModelFactory[S <: ModelState] {
+
+    /** Updates the factory with additional data. (default: throws a
+      * [[CriticalFailureException]]).
+      * @param data
+      *   Used to update.
+      * @return
+      *   A copy of this factory.
+      */
+    def update(data: AdditionalFactoryData): ParticipantModelFactory[S] =
+      throw new CriticalFailureException(
+        s"Received unexpected additional factory data. This is not implemented!"
+      )
 
     /** @return
       *   All secondary services required by the model.

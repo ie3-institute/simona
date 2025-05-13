@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.grid
 
 import breeze.linalg.max
-import breeze.math.Complex
+import breeze.math.*
 import breeze.numerics.pow
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.InvalidGridException
@@ -26,6 +26,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   OhmToSimona,
   PowerConversionSimona,
@@ -67,6 +68,9 @@ import scala.math.BigDecimal.RoundingMode
   *   number of parallel transformers
   * @param powerFlowCase
   *   the [[Transformer3wPowerFlowCase]]
+  * @param sRated
+  *   the rated power at the port that is defined by the
+  *   [[Transformer3wPowerFlowCase]]
   * @param r
   *   resistance r, real part of the transformer impedance z (referenced to the
   *   nominal impedance of the grid) in p.u.
@@ -92,6 +96,7 @@ final case class Transformer3wModel(
     override protected val transformerTappingModel: TransformerTappingModel,
     amount: Int,
     powerFlowCase: Transformer3wPowerFlowCase,
+    sRated: ApparentPower,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
@@ -259,6 +264,15 @@ case object Transformer3wModel extends LazyLogging {
           .setScale(5, RoundingMode.HALF_UP)
     }
 
+    val sRated = powerFlowCase match {
+      case PowerFlowCaseA =>
+        trafo3wType.getsRatedA.toApparent
+      case PowerFlowCaseB =>
+        trafo3wType.getsRatedB.toApparent
+      case PowerFlowCaseC =>
+        trafo3wType.getsRatedC.toApparent
+    }
+
     val operationInterval =
       SystemComponent.determineOperationInterval(
         startDate,
@@ -278,6 +292,7 @@ case object Transformer3wModel extends LazyLogging {
       transformerTappingModel,
       transformer3wInput.getParallelDevices,
       powerFlowCase,
+      sRated,
       r,
       x,
       g,
@@ -322,12 +337,6 @@ case object Transformer3wModel extends LazyLogging {
       squants.Dimensionless,
       squants.Dimensionless,
   ) = {
-    val transformerRefSystem =
-      RefSystem(
-        transformerType.getsRatedA.toSquants,
-        transformerType.getvRatedA.toSquants,
-      )
-
     /* Get the physical equivalent circuit diagram parameters from type. They come with reference to the highest
      * voltage side, therefore, in power flow case B and C, they need to be adapted. */
     val (rTrafo, xTrafo, gTrafo, bTrafo) = powerFlowCase match {
@@ -493,7 +502,7 @@ case object Transformer3wModel extends LazyLogging {
     transformerModel.powerFlowCase match {
       case Transformer3wPowerFlowCase.PowerFlowCaseA =>
         BigDecimal
-          .apply(transformerModel.tapRatio.toString)
+          .apply(transformerModel.getTapRation.toString)
           .setScale(5, RoundingMode.HALF_UP)
       case Transformer3wPowerFlowCase.PowerFlowCaseB |
           Transformer3wPowerFlowCase.PowerFlowCaseC =>
@@ -525,7 +534,7 @@ case object Transformer3wModel extends LazyLogging {
         val bij = transformer3wModel.bij().value.doubleValue()
         val gii = transformer3wModel.g0().value.doubleValue()
         val bii = transformer3wModel.b0().value.doubleValue()
-        amount * ((1 - 1 / transformer3wModel.tapRatio) * Complex(
+        amount * ((1 - 1 / transformer3wModel.getTapRation) * Complex(
           gij,
           bij,
         ) + Complex(
@@ -554,7 +563,7 @@ case object Transformer3wModel extends LazyLogging {
     val bij = transformer3wModel.bij().value.doubleValue()
     transformer3wModel.powerFlowCase match {
       case PowerFlowCaseA =>
-        amount * Complex(gij, bij) / transformer3wModel.tapRatio
+        amount * Complex(gij, bij) / transformer3wModel.getTapRation
       case _ => amount * Complex(gij, bij)
     }
   }

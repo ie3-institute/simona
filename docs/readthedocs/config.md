@@ -181,6 +181,24 @@ simona.output.thermal.individualConfigs = [
 Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
 
+## Logging level configuration
+
+To specify which log statements should be logged in the `simona.log` file and which log statements should be printed to
+the console, SIMONA offers the user two configuration options.
+
+The first options sets the default log level for the log file as well as the console.
+
+```
+simona.output.log.level = "INFO"
+```
+
+If the console should use a different log level, this level must be selected in the following example.
+
+```
+simona.output.log.consoleLevel = "DEBUG"
+```
+
+
 ## Runtime configuration 
 
 Specification of the runtime of subgrids and voltage levels:
@@ -195,7 +213,7 @@ The participant runtime can be either based on default configuration or individu
 simona.runtime.participant.load = {
   defaultConfig = {
     calculateMissingReactivePowerWithModel = false
-    uuids = ["default"]
+    uuids = []
     scaling = 1.0
     modelBehaviour = "fix"
     reference = "power"
@@ -208,9 +226,10 @@ The reactive power is determined based on the chosen Q-control of the participan
 
     calculateMissingReactivePowerWithModel = true
 
-Using the default configuration the universally unique identifier can be set to "default". 
+Using the default configuration, the universally unique identifier should be empty. 
+Alternatively, the parameter can be omitted to use the default empty list.
 
-    uuids = ["default"]
+    uuids = []
 
 Choosing the scaling factor of relevant participant parameters such as rated power or annual power consumption: 
 

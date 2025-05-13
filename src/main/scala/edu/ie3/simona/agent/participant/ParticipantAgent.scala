@@ -13,6 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   ProvidedPowerResponse,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.model.participant.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
@@ -24,8 +25,6 @@ import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import squants.{Dimensionless, Each}
-
-import scala.reflect.ClassTag
 
 /** Agent that represents and acts on behalf of any system participant model,
   * which is defined as a subclass of
@@ -74,6 +73,7 @@ object ParticipantAgent {
   final case class RegistrationSuccessfulMessage(
       override val serviceRef: ActorRef[_ >: ServiceMessage],
       firstDataTick: Long,
+      additionalData: Option[AdditionalFactoryData] = None,
   ) extends RegistrationResponseMessage
 
   /** Message confirming a successful registration with the primary service.
@@ -85,9 +85,7 @@ object ParticipantAgent {
     * @tparam P
     *   The type of primary data to be received.
     */
-  final case class PrimaryRegistrationSuccessfulMessage[
-      P <: PrimaryData: ClassTag
-  ](
+  final case class PrimaryRegistrationSuccessfulMessage[P <: PrimaryData](
       override val serviceRef: ActorRef[_ >: ServiceMessage],
       firstDataTick: Long,
       primaryDataExtra: PrimaryDataExtra[P],

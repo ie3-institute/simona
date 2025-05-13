@@ -31,7 +31,12 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils.{
+  asMegaWattHour,
+  asKelvin,
+  asPu,
+  asMegaWatt,
+}
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.KilowattHours
 import squants.{Energy, Power, Seconds, Temperature}
@@ -909,7 +914,7 @@ object ThermalGrid {
     * @param domesticHotWaterStorageDemand
     *   The demand of the domestic hot water storage.
     */
-  final case class ThermalDemandWrapper private (
+  final case class ThermalDemandWrapper(
       houseDemand: ThermalEnergyDemand,
       heatStorageDemand: ThermalEnergyDemand,
       domesticWaterDemandOfHouse: ThermalEnergyDemand,
