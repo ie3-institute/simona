@@ -41,8 +41,6 @@ ext {
     "-language:existentials",
     "-Wunused:all",
     "-Xmax-inlines:128"
-    //"-explain",
-    //"-explain-types"
   ]
 }
 
