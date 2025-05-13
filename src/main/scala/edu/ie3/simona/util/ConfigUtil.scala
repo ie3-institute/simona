@@ -398,42 +398,46 @@ object ConfigUtil {
   object DatabaseConfigUtil extends LazyLogging {
 
     def checkSqlParams(
-        sql: SqlParams
+        jdbcUrl: String,
+        password: String,
+        schemaName: String,
+        tableName: String,
+        userName: String,
     ): Unit = {
-      if (!sql.jdbcUrl.trim.startsWith("jdbc:")) {
+      if (!jdbcUrl.trim.startsWith("jdbc:")) {
         throw new InvalidConfigParameterException(
-          s"The provided JDBC url '${sql.jdbcUrl}' is invalid! The url should start with 'jdbc:'"
+          s"The provided JDBC url '$jdbcUrl' is invalid! The url should start with 'jdbc:'"
         )
       }
-      if (!sql.jdbcUrl.trim.startsWith("jdbc:postgresql://")) {
+      if (!jdbcUrl.trim.startsWith("jdbc:postgresql://")) {
         logger.warn(
           "It seems like you intend to use the SqlWeatherSource with an other dialect than PostgreSQL. Please be aware that this usage has neither been tested nor been considered in development."
         )
       }
-      if (sql.userName.isEmpty)
+      if (userName.isEmpty)
         throw new InvalidConfigParameterException(
           "User name for SQL weather source cannot be empty"
         )
-      if (sql.password.isEmpty)
+      if (password.isEmpty)
         logger.info(
           "Password for SQL weather source is empty. This is allowed, but not common. Please check if this an intended setting."
         )
-      if (sql.tableName.isEmpty)
+      if (tableName.isEmpty)
         throw new InvalidConfigParameterException(
           "Weather table name for SQL weather source cannot be empty"
         )
-      if (sql.schemaName.isEmpty)
+      if (schemaName.isEmpty)
         throw new InvalidConfigParameterException(
           "Schema name for SQL weather source cannot be empty"
         )
 
       /* Try to build a connection */
       Try(
-        new SqlConnector(sql.jdbcUrl, sql.userName, sql.password).getConnection
+        new SqlConnector(jdbcUrl, userName, password).getConnection
       ) match {
         case Failure(exception) =>
           throw new IllegalArgumentException(
-            s"Unable to reach configured SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'. Exception: $exception",
+            s"Unable to reach configured SQL database with url '$jdbcUrl' and user name '$userName'. Exception: $exception",
             exception,
           )
         case Success(connection) =>
@@ -441,11 +445,11 @@ object ConfigUtil {
           connection.close()
           if (!validConnection)
             throw new IllegalArgumentException(
-              s"Unable to reach configured SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'."
+              s"Unable to reach configured SQL database with url '$jdbcUrl' and user name '$userName'."
             )
           else
             logger.debug(
-              s"Successfully pinged SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'"
+              s"Successfully pinged SQL database with url '$jdbcUrl' and user name '$userName'"
             )
       }
     }

@@ -16,7 +16,7 @@ import org.apache.pekko.actor.typed.ActorRef
   * @tparam T
   *   Type of data.
   */
-final case class AwaitingData[T] private (
+final case class AwaitingData[T](
     inferiorGridMap: Map[ActorRef[GridAgent.Request], Option[T]]
 ) {
 

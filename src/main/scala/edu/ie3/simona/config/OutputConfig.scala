@@ -6,13 +6,18 @@
 
 package edu.ie3.simona.config
 
-import edu.ie3.simona.config.OutputConfig._
+import edu.ie3.simona.config.OutputConfig.*
 import edu.ie3.simona.config.ConfigParams.{
   BaseInfluxDb1xParams,
   PsdmSinkCsvParams,
   ResultKafkaParams,
 }
 import edu.ie3.simona.config.SimonaConfig.AssetConfigs
+import pureconfig.generic.ProductHint
+import pureconfig.generic.semiauto.deriveConvert
+import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
+
+import scala.deriving.Mirror
 
 /** Output configuration for simona.
   * @param base
@@ -38,9 +43,15 @@ final case class OutputConfig(
     participant: AssetConfigs[ParticipantOutputConfig],
     sink: Sink = Sink(),
     thermal: AssetConfigs[SimpleOutputConfig],
-)
+) derives ConfigConvert
 
 object OutputConfig {
+  implicit def productHint[T]: ProductHint[T] =
+    ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  extension (c: ConfigConvert.type)
+    private inline def derived[A](using m: Mirror.Of[A]): ConfigConvert[A] =
+      deriveConvert[A]
 
   /** Configuration for specific grid asset results.
     * @param congestions
@@ -63,7 +74,7 @@ object OutputConfig {
       switches: Boolean = false,
       transformers2w: Boolean = false,
       transformers3w: Boolean = false,
-  )
+  ) derives ConfigConvert
 
   /** Basic trait for all sub-output configurations.
     */
@@ -88,6 +99,7 @@ object OutputConfig {
       flexResult: Boolean = false,
       powerRequestReply: Boolean = false,
   ) extends BaseOutputConfig
+      derives ConfigConvert
 
   /** Simple output configuration (e.g. used for thermal outputs).
     * @param notifier
@@ -99,6 +111,7 @@ object OutputConfig {
       override val notifier: String,
       override val simulationResult: Boolean,
   ) extends BaseOutputConfig
+      derives ConfigConvert
 
   /** Base output configuration
     * @param addTimestampToOutputDir
@@ -110,7 +123,7 @@ object OutputConfig {
   final case class Base(
       addTimestampToOutputDir: Boolean = true,
       dir: String,
-  )
+  ) derives ConfigConvert
 
   /** The configuration for the logger.
     * @param level
@@ -122,7 +135,7 @@ object OutputConfig {
   final case class Log(
       level: String = "INFO",
       consoleLevel: Option[String] = None,
-  )
+  ) derives ConfigConvert
 
   /** Configuration for output sink.
     * @param csv
@@ -137,5 +150,5 @@ object OutputConfig {
       csv: Option[PsdmSinkCsvParams] = None,
       influxDb1x: Option[BaseInfluxDb1xParams] = None,
       kafka: Option[ResultKafkaParams] = None,
-  )
+  ) derives ConfigConvert
 }

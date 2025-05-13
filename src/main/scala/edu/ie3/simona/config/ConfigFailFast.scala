@@ -625,8 +625,10 @@ object ConfigFailFast extends LazyLogging {
         checkCouchbaseParams(params)
       case Some(BaseInfluxDb1xParams(database, _, url)) =>
         checkInfluxDb1xParams("WeatherSource", url, database)
-      case Some(params: SqlParams) =>
-        checkSqlParams(params)
+      case Some(
+            BaseSqlParams(jdbcUrl, password, schemaName, tableName, userName)
+          ) =>
+        checkSqlParams(jdbcUrl, password, schemaName, tableName, userName)
       case Some(_: SampleParams) =>
         // sample weather, no check required
         // coordinate source must be sample coordinate source
@@ -685,8 +687,16 @@ object ConfigFailFast extends LazyLogging {
         }
 
         "csv"
-      case Some(sqlParams: SqlParams) =>
-        checkSqlParams(sqlParams)
+      case Some(
+            BaseSqlParams(
+              jdbcUrl,
+              password,
+              schemaName,
+              tableName,
+              userName,
+            )
+          ) =>
+        checkSqlParams(jdbcUrl, password, schemaName, tableName, userName)
         "sql"
       case Some(_: SampleParams) =>
         "sample"
