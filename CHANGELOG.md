@@ -9,9 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
 
-## Updated
+## Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
-- 
 
 ## [4.0.0] - 2025-05-09
 
