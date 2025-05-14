@@ -30,8 +30,12 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
   */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ClassicRef],
-    extPrimaryDataServices: Seq[Input],
-    extDataServices: Seq[Input],
+    extPrimaryDataServices: Seq[
+      (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
+    ],
+    extDataServices: Seq[
+      (_ <: ExtInputDataConnection, ActorRef[_ >: ServiceMessage])
+    ],
     extResultListeners: Seq[(ExtResultDataConnection, ActorRef[_])],
 ) {
 

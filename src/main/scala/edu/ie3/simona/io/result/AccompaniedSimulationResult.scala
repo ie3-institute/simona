@@ -18,6 +18,6 @@ import edu.ie3.simona.service.Data.PrimaryData.PrimaryDataWithComplexPower
   * @tparam PD
   *   Type of primary data, that is carried
   */
-final case class AccompaniedSimulationResult[PD <: PrimaryDataWithComplexPower[
-  PD
-]](primaryData: PD, accompanyingResults: Seq[ResultEntity] = Seq.empty)
+final case class AccompaniedSimulationResult[
+    PD <: PrimaryDataWithComplexPower[PD]
+](primaryData: PD, accompanyingResults: Seq[ResultEntity] = Seq.empty)

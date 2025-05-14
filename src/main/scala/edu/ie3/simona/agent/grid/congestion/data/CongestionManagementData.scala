@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.agent.grid.congestion.{CongestedComponents, Congestions}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils.asPercent
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.time.ZonedDateTime
@@ -35,7 +35,7 @@ import scala.concurrent.duration.FiniteDuration
   * @param congestions
   *   The found congestions.
   */
-final case class CongestionManagementData private (
+final case class CongestionManagementData(
     gridAgentBaseData: GridAgentBaseData,
     currentTick: Long,
     subgridNo: Int,

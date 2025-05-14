@@ -10,9 +10,10 @@ import edu.ie3.simona.config.ConfigParams.RuntimeKafkaParams
 import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.config.SimonaConfig.{AssetConfigs, VoltLvlConfig}
 import pureconfig.generic.ProductHint
-import pureconfig.{CamelCase, ConfigFieldMapping}
+import pureconfig.generic.semiauto.deriveConvert
+import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
 
-import scala.language.implicitConversions
+import scala.deriving.Mirror
 
 /** Runtime configurations for simona.
   * @param em
@@ -32,13 +33,17 @@ final case class RuntimeConfig(
     participant: Participant = Participant(),
     selectedSubgrids: Option[List[Int]] = None,
     selectedVoltLvls: Option[List[VoltLvlConfig]] = None,
-)
+) derives ConfigConvert
 
 object RuntimeConfig {
   implicit def productHint[T]: ProductHint[T] =
     ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
-  /** Wraps an [[BaseRuntimeConfig]] with a [[AssetConfigs]].
+  extension (c: ConfigConvert.type)
+    private inline def derived[A](using m: Mirror.Of[A]): ConfigConvert[A] =
+      deriveConvert[A]
+
+  /** Wraps an [[BaseRuntimeConfig]] with a [[ParticipantRuntimeConfigs]].
     *
     * @param config
     *   To wrap.
@@ -53,7 +58,7 @@ object RuntimeConfig {
   final case class Listener(
       eventsToProcess: Option[List[String]] = None,
       kafka: Option[RuntimeKafkaParams] = None,
-  )
+  ) derives ConfigConvert
 
   /** Runtime configurations for participants.
     * @param bm
@@ -86,7 +91,7 @@ object RuntimeConfig {
       requestVoltageDeviationThreshold: Double = 1e-14,
       storage: AssetConfigs[StorageRuntimeConfig] = StorageRuntimeConfig(),
       wec: AssetConfigs[WecRuntimeConfig] = WecRuntimeConfig(),
-  )
+  ) derives ConfigConvert
 
   /** Basic trait for all runtime configs.
     */
@@ -117,6 +122,7 @@ object RuntimeConfig {
       chargingStrategy: String = "maxPower",
       lowestEvSoc: Double = 0.2,
   ) extends BaseRuntimeConfig
+      derives ConfigConvert
 
   /** Runtime configuration for energy management systems.
     * @param calculateMissingReactivePowerWithModel
@@ -139,6 +145,7 @@ object RuntimeConfig {
       aggregateFlex: String = "SELF_OPT_EXCL_REG",
       curtailRegenerative: Boolean = false,
   ) extends BaseRuntimeConfig
+      derives ConfigConvert
 
   /** Runtime configuration for fixed feed ins.
     * @param calculateMissingReactivePowerWithModel
@@ -155,6 +162,7 @@ object RuntimeConfig {
       override val scaling: Double = 1.0,
       override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
+      derives ConfigConvert
 
   /** Runtime configuration for heat pumps.
     * @param calculateMissingReactivePowerWithModel
@@ -171,6 +179,7 @@ object RuntimeConfig {
       override val scaling: Double = 1.0,
       override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
+      derives ConfigConvert
 
   /** Runtime configuration for loads.
     * @param calculateMissingReactivePowerWithModel
@@ -194,6 +203,7 @@ object RuntimeConfig {
       modelBehaviour: String = "fix",
       reference: String = "power",
   ) extends BaseRuntimeConfig
+      derives ConfigConvert
 
   /** Runtime configuration for photovoltaic plants.
     * @param calculateMissingReactivePowerWithModel
@@ -210,6 +220,7 @@ object RuntimeConfig {
       override val scaling: Double = 1.0,
       override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
+      derives ConfigConvert
 
   /** Runtime configuration for electrical storages.
     * @param calculateMissingReactivePowerWithModel
@@ -232,6 +243,7 @@ object RuntimeConfig {
       initialSoc: Double = 0d,
       targetSoc: Option[Double] = None,
   ) extends BaseRuntimeConfig
+      derives ConfigConvert
 
   /** Runtime configuration for wind energy converters.
     * @param calculateMissingReactivePowerWithModel
@@ -248,6 +260,7 @@ object RuntimeConfig {
       override val scaling: Double = 1.0,
       override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
+      derives ConfigConvert
 
   /** Runtime configuration for biomass plants.
     * @param calculateMissingReactivePowerWithModel
@@ -264,4 +277,5 @@ object RuntimeConfig {
       override val scaling: Double = 1.0,
       override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
+      derives ConfigConvert
 }
