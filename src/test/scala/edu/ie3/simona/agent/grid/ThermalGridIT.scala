@@ -1464,10 +1464,10 @@ class ThermalGridIT
       /* TICK 0
         Start of Simulation, No sun at the moment.
         PV: 0.0 kW
-        House demand heating : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
-        House demand water   : tba
-        ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-        DomesticWaterStorage : tba
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand 0.0 kWh
+        House demand water   : requiredDemand = . kWh, possibleDemand . kWh
+        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        DomesticWaterStorage : requiredDemand = 0.0kWh, possibleDemand 0.0 kWh
         Heat pump: stays out - since requiredDemand of ThermalStorage not necessarily demand hp operation.
        */
 
@@ -1499,7 +1499,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 0.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 0.toDateTime
@@ -1518,7 +1517,6 @@ class ThermalGridIT
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1529,7 +1527,6 @@ class ThermalGridIT
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
-
               case DomesticHotWaterStorageResult(
                     time,
                     inputModel,
@@ -1550,10 +1547,10 @@ class ThermalGridIT
       /* TICK 165
       Domestic hot water storage stops discharging.
   PV: 0.0 kW
-  House demand heating : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
-  House demand water   : tba
-  ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-  DomesticWaterStorage : tba
+  House demand heating : requiredDemand = 0.0 kWh, possibleDemand 0.0 kWh
+  House demand water   : requiredDemand = . kWh, possibleDemand . kWh
+  ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+  DomesticWaterStorage : requiredDemand = . kWh, possibleDemand . kWh
   Heat pump: stays out - since requiredDemand of ThermalStorage not necessarily demand hp operation.
        */
       emAgentActivation ! Activation(165)
@@ -1570,7 +1567,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 165.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 165.toDateTime
@@ -1599,10 +1595,10 @@ class ThermalGridIT
       /* TICK 1800
         New Weather: The sun comes out, PV will produce.
         PV: -6.3 kW
-        House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 1.25 kWh
-        House demand water   : tba
-        ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-        DomesticWaterStorage : tba
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.25 kWh
+        House demand water   : requiredDemand = 0.0 kWh, possibleDemand 0.0 kWh
+        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand 0.0 kWh
         Heat pump: turns on - since now we have flexibility potential available which can be
         used by hp to serve the reqDemand of ThermalStorage
        */
@@ -1663,14 +1659,13 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
 
       /* TICK 3600
-      New Weather: The sun comes out, PV will produce.
       PV: -6.3 kW
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 1.25 kWh
-      House demand water   : tba
-      ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-      DomesticWaterStorage : tba
-      Heat pump: turns on - since now we have flexibility potential available which can
-      be used by hp to serve the reqDemand of ThermalStorage
+      DomesticHotWaterStorage will serve the water demand of the house
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.25 kWh
+      House demand water   : requiredDemand = . kWh, possibleDemand . kWh
+      ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand 0.0 kWh
+      Heat pump: stays on
        */
       emAgentActivation ! Activation(3600)
 
@@ -1717,14 +1712,14 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(3765)))
 
       /* TICK 3765
-New Weather: The sun comes out, PV will produce.
-PV: -6.3 kW
-House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 1.25 kWh
-House demand water   : tba
-ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-DomesticWaterStorage : tba
-Heat pump: turns on - since now we have flexibility potential available which
-can be used by hp to serve the reqDemand of ThermalStorage
+      DomesticHotWaterStorage stops discharging.
+      PV: -6.3 kW
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.25 kWh
+      House demand water   : requiredDemand = 0.0 kWh, possibleDemand 0.0 kWh
+      ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand 0.0 kWh
+      Heat pump: stays on - since now we have flexibility potential available which
+      can be used by hp to serve the reqDemand of ThermalStorage
        */
       emAgentActivation ! Activation(3765)
 
@@ -1773,11 +1768,11 @@ can be used by hp to serve the reqDemand of ThermalStorage
       /* TICK 5216
       Storage is fully heated up, meanwhile house cooled a bit.
       PV: -6.3 kW
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 3.59 kWh
-      House demand water   : tba
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : tba
-      Heat pump: stays on since it was on and the house has additional demand
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 3.59 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      Heat pump: stays on since it was on and the house has possible demand
        */
       emAgentActivation ! Activation(5216)
 
@@ -1849,7 +1844,9 @@ can be used by hp to serve the reqDemand of ThermalStorage
       PV: 0.0 kW
       New weather data, sun is gone again, thus we should now heat the house by storage.
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 3.15 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
       Heat pump: turns off
        */
       emAgentActivation ! Activation(5400)
@@ -1920,7 +1917,9 @@ can be used by hp to serve the reqDemand of ThermalStorage
      The house reaches target temperature
      PV: 0.0 kW
      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+     House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+     DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
      Heat pump: stays off
        */
       emAgentActivation ! Activation(6824)
@@ -1976,7 +1975,9 @@ can be used by hp to serve the reqDemand of ThermalStorage
       /* TICK 7200
      PV: -5.2 kW
      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
+     House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+     DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
      Heat pump: turned on
        */
       emAgentActivation ! Activation(7200)
@@ -2024,10 +2025,12 @@ can be used by hp to serve the reqDemand of ThermalStorage
       scheduler.expectMessage(Completion(emAgentActivation, Some(7370)))
 
       /* TICK 7370
-PV: -5.2 kW
-House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
-ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
-Heat pump: turned on
+      PV: -5.2 kW
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      Heat pump: turned on
        */
       emAgentActivation ! Activation(7370)
 
@@ -2074,11 +2077,13 @@ Heat pump: turned on
       scheduler.expectMessage(Completion(emAgentActivation, Some(9200)))
 
       /* TICK 9200
-The sun is back again, storage first.
-PV: -5.2 kW
-House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
-ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
-Heat pump: turned on
+      The sun is back again, storage first.
+      PV: -5.2 kW
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      Heat pump: turned on
        */
       emAgentActivation ! Activation(9200)
 
@@ -2142,7 +2147,9 @@ Heat pump: turned on
       Storage is full, now heating the house till target temperature.
       PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.57 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
       Heat pump: stays on
        */
       emAgentActivation ! Activation(10551)
@@ -2200,10 +2207,13 @@ Heat pump: turned on
       scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
       /* TICK 10800
-PV: -5.2 kW
-House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
-ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
-Heat pump: turned on
+      House has water demand
+      PV: -5.2 kW
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      Heat pump: stays on
        */
       emAgentActivation ! Activation(10800)
 
@@ -2250,10 +2260,12 @@ Heat pump: turned on
       scheduler.expectMessage(Completion(emAgentActivation, Some(10973)))
 
       /* TICK 10973
-PV: -5.2 kW
-House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
-ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
-Heat pump: turned on
+      PV: -5.2 kW
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      Heat pump: stays on
        */
       emAgentActivation ! Activation(10973)
 
@@ -2551,11 +2563,13 @@ Heat pump: turned on
       }
 
       /* TICK 24413
-      Domestic hot water storage is now fully charged.
-      PV: 0.0 kW
-      House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat pump: turned off, since we setPower is below 50 % of sRated and we can continue heating the house from storage. FIXME: Check if the demand of the domestic storage really comes the tick before and not way earlier...
+        House reaches lower boundary, since we don't have surplus energy from pv, we would use the energy from storage to heat the house.
+        PV: 0.0 kW
+        House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
+        House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+        ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+        Heat pump: stays off
        */
       emAgentActivation ! Activation(24413)
 
@@ -2609,7 +2623,9 @@ Heat pump: turned on
         The sun comes out and it's getting warmer.
         PV: -4.4 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.66 kWh
+        House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+        DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         Heat pump: will be turned on and will continue heating the house
        */
       emAgentActivation ! Activation(25200)
@@ -2695,11 +2711,13 @@ Heat pump: turned on
       scheduler.expectMessage(Completion(emAgentActivation, Some(25235)))
 
       /* TICK 25235
-Domestic hot water storage stops discharging.
-  PV: -4.4 kW
-  House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.21 kWh
-  ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 3.04 kWh
-  Heat pump: will be turned on and will continue heating the house
+      Domestic hot water storage stops discharging.
+      PV: -4.4 kW
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.21 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 3.04 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
+      Heat pump: will be turned on and will continue heating the house
        */
       emAgentActivation ! Activation(25235)
 
@@ -2761,7 +2779,9 @@ Domestic hot water storage stops discharging.
       Additional trigger caused by (unchanged) weather data should not change this.
       PV: -3.9 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.14 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
       Heat pump: stays on
        */
       emAgentActivation ! Activation(26215)
@@ -2836,7 +2856,9 @@ Domestic hot water storage stops discharging.
         Additional trigger caused by (unchanged) weather data should not change this.
         PV: -3.9 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.14 kWh
+        House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+        DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         Heat pump: stays on
        */
       emAgentActivation ! Activation(27500)
@@ -2887,7 +2909,9 @@ Domestic hot water storage stops discharging.
     Additional trigger caused by (unchanged) weather data should not change this.
     PV: -3.9 kW
     House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.14 kWh
+    House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
     ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+    DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
     Heat pump: stays on
        */
       emAgentActivation ! Activation(28800)
@@ -2938,7 +2962,9 @@ Domestic hot water storage stops discharging.
 Additional trigger caused by (unchanged) weather data should not change this.
 PV: -3.9 kW
 House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.14 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
 ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
 Heat pump: stays on
        */
       emAgentActivation ! Activation(28954)
@@ -2990,7 +3016,9 @@ Heat pump: stays on
         The sun is gone again, it's getting colder as well.
         PV: 0.0 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+              House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         FIXME Heat pump: stays on - to serve the remaining heat demand of the storage.
        */
       emAgentActivation ! Activation(31000)
@@ -3063,7 +3091,9 @@ PV: -3.9 kW
 The sun is gone again, it's getting colder as well.
 PV: 0.0 kW
 House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
 ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
 FIXME Heat pump: stays on - to serve the remaining heat demand of the storage.
        */
       emAgentActivation ! Activation(31937)
@@ -3161,7 +3191,9 @@ FIXME Heat pump: stays on - to serve the remaining heat demand of the storage.
       The sun is gone again, it's getting colder as well.
       PV: 0.0 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
       Heat pump: stays off - demand will be served by storage.
        */
       emAgentActivation ! Activation(41937)
@@ -3257,7 +3289,9 @@ The results are checked implicitly through the state of stored energy at the nex
         (lower Temp < innerTemp < targetTemp && storage must not directly recharged).
         PV: 0.0 kW
         House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.89 kWh
+        House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         Heat pump: stays off
        */
       emAgentActivation ! Activation(43322)
@@ -3303,7 +3337,9 @@ The results are checked implicitly through the state of stored energy at the nex
 Domestic hot water storage stops discharging
   PV: 0.0 kW
   House demand heating : requiredDemand = 15.00 kWh, possibleDemand = 15.00 kWh
+    House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
   ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 2.15 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
   Heat pump: stays off - demand will be covered by storage.
        */
       emAgentActivation ! Activation(43812)
@@ -3363,7 +3399,9 @@ Domestic hot water storage stops discharging
         (lower Temp < innerTemp < targetTemp && storage must not directly recharged).
         PV: 0.0 kW
         House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.89 kWh
+              House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         Heat pump: stays off
        */
       emAgentActivation ! Activation(45618)
@@ -3407,7 +3445,9 @@ Domestic hot water storage stops discharging
         Domestic hot storage is now fully charged.
         PV: 0.0 kW
         House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.92 kWh
+        House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
         Heat pump: stays off
        */
       emAgentActivation ! Activation(46800)
@@ -3489,7 +3529,9 @@ Domestic hot water storage stops discharging
        Domestic hot storage is now fully charged.
        PV: 0.0 kW
        House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.92 kWh
+       House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
        ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+       DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
        Heat pump: stays off
        */
       emAgentActivation ! Activation(46887)
@@ -3535,7 +3577,9 @@ Domestic hot water storage stops discharging
   Domestic hot water storage stops discharging.
   PV: 0.0 kW
   House demand heating : requiredDemand = 15.00 kWh, possibleDemand = 15.00 kWh
+        House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
   ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
   Heat pump: turned on to heat the house
        */
       emAgentActivation ! Activation(48066)
@@ -3640,7 +3684,9 @@ Domestic hot water storage stops discharging
   House will reach target temperature
   PV: 0.0 kW
   House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+        House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
   ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
   Heat pump: turned off - no surplus energy to recharge the storage now
        */
       emAgentActivation ! Activation(50449)
@@ -3687,7 +3733,9 @@ Domestic hot water storage stops discharging
 Domestic hot water storage stops discharging.
   PV: 0.0 kW
   House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+        House demand water   : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
   ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand 0.0 kWh
   Heat pump: turned off - no surplus energy to recharge the storage now
        */
       emAgentActivation ! Activation(52887)
