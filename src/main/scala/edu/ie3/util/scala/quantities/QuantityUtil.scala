@@ -18,6 +18,19 @@ import scala.util.{Failure, Try}
 
 object QuantityUtil {
 
+  extension (d: Double) {
+
+    /** Method to enable multiplying a [[Double]] with a [[Quantity]].
+      * @param quantity
+      *   The second factor.
+      * @tparam Q
+      *   Type of the quantity.
+      * @return
+      *   The resulting [[Quantity]].
+      */
+    def *[Q <: Quantity[Q]](quantity: Quantity[Q]): Q = quantity * d
+  }
+
   /** The [[tech.units.indriya.function.DefaultNumberSystem]] is only covering
     * java [[Number]] children. As [[BigDecimal]] is not related to
     * [[java.math.BigDecimal]], this causes issues, why the

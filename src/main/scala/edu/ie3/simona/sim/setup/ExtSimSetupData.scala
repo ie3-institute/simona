@@ -13,7 +13,6 @@ import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
-import edu.ie3.simona.sim.setup.ExtSimSetupData.Input
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Case class that holds information regarding the external data connections as
@@ -30,8 +29,12 @@ import org.apache.pekko.actor.typed.ActorRef
   */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
-    extPrimaryDataServices: Seq[Input],
-    extDataServices: Seq[Input],
+    extPrimaryDataServices: Seq[
+      (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
+    ],
+    extDataServices: Seq[
+      (_ <: ExtInputDataConnection, ActorRef[_ >: ServiceMessage])
+    ],
     extResultListeners: Seq[(ExtResultDataConnection, ActorRef[_])],
 ) {
 
@@ -96,9 +99,6 @@ final case class ExtSimSetupData(
 }
 
 object ExtSimSetupData {
-
-  type Input =
-    (ExtInputDataConnection, ActorRef[_ >: ServiceMessage])
 
   /** Returns an empty [[ExtSimSetupData]].
     */
