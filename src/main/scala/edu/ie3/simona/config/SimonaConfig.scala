@@ -126,8 +126,10 @@ object SimonaConfig {
       time: Simona.Time = Simona.Time(),
   ) derives ConfigConvert
   object Simona {
+
     final case class CongestionManagement(
         enableDetection: Boolean = false,
+        enableTransformerTapChange: Boolean = false,
         timeout: FiniteDuration = 30.seconds,
     )
 

@@ -7,12 +7,14 @@
 package edu.ie3.simona.agent.grid.congestion.data
 
 import edu.ie3.datamodel.models.result.CongestionResult
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.datamodel.models.result.CongestionResult.InputModelType
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentDataInternal,
 }
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationProgress
 import edu.ie3.simona.agent.grid.congestion.{CongestedComponents, Congestions}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.util.quantities.QuantityUtils.asPercent
@@ -34,6 +36,10 @@ import scala.concurrent.duration.FiniteDuration
   *   Result of the previous power flow calculation.
   * @param congestions
   *   The found congestions.
+  * @param congestedComponents
+  *   The components that have congestion.
+  * @param mitigationProgress
+  *   The progress of the congestion mitigation.
   */
 final case class CongestionManagementData(
     gridAgentBaseData: GridAgentBaseData,
@@ -42,6 +48,7 @@ final case class CongestionManagementData(
     powerFlowResults: PowerFlowResultEvent,
     congestions: Congestions,
     congestedComponents: CongestedComponents,
+    mitigationProgress: MitigationProgress,
 ) extends GridAgentDataInternal {
 
   /** Builds a [[CongestionResult]] from the power flow results.
@@ -123,6 +130,9 @@ final case class CongestionManagementData(
   def superiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] =
     gridAgentBaseData.superiorGridRefs
 
+  def congestionManagementParams: CongestionManagementParams =
+    gridAgentBaseData.congestionManagementParams
+
   def timeout: FiniteDuration =
     gridAgentBaseData.congestionManagementParams.timeout
 }
@@ -150,6 +160,7 @@ object CongestionManagementData {
       powerFlowResults,
       Congestions(congestedComponents),
       congestedComponents,
+      MitigationProgress(),
     )
   }
 

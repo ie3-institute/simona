@@ -34,12 +34,6 @@ trait CongestedComponentsTestData
     with NodeInputTestData
     with DbfsTestGrid {
 
-  val startTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime(
-    simonaConfig.simona.time.startDateTime
-  )
-
-  val endTime: ZonedDateTime = startTime.plusHours(2)
-
   protected val voltageLimits: VoltageLimits = VoltageLimits(0.9, 1.1)
 
   val trafoType3W = new Transformer3WTypeInput(
@@ -186,6 +180,15 @@ trait CongestedComponentsTestData
     848d.asAmpere,
     0d.asDegreeGeom,
     849d.asAmpere,
+    0d.asDegreeGeom,
+  )
+
+  val lineResult34 = new LineResult(
+    startTime,
+    line3To4.getUuid,
+    630d.asAmpere,
+    0d.asDegreeGeom,
+    630d.asAmpere,
     0d.asDegreeGeom,
   )
 

@@ -54,10 +54,10 @@ final case class AwaitingData[T](
     * @param receivedData
     *   Data that was received.
     * @return
-    *   A updated copy of this data.
+    *   An updated copy of this data.
     */
   def handleReceivingData(
-      receivedData: Vector[(ActorRef[GridAgent.Request], T)]
+      receivedData: Seq[(ActorRef[GridAgent.Request], T)]
   ): AwaitingData[T] = {
     val mappedData = receivedData.map { case (ref, value) =>
       ref -> Some(value)

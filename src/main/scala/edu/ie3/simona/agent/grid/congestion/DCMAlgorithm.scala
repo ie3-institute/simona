@@ -18,6 +18,7 @@ import edu.ie3.simona.agent.grid.congestion.data.{
   CongestionManagementData,
 }
 import edu.ie3.simona.agent.grid.congestion.detection.CongestionDetection
+import edu.ie3.simona.agent.grid.congestion.mitigations.TransformerTapChange
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}
@@ -26,7 +27,7 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}
   * congestion management (DCM) algorithm execution. It is considered to be the
   * standard behaviour of a [[GridAgent]].
   */
-trait DCMAlgorithm extends CongestionDetection {
+trait DCMAlgorithm extends CongestionDetection with TransformerTapChange {
 
   /** Method for starting the congestion management.
     * @param gridAgentBaseData
@@ -49,7 +50,7 @@ trait DCMAlgorithm extends CongestionDetection {
       currentTick: Long,
       results: Option[PowerFlowResultEvent],
       ctx: ActorContext[Request],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Request],
   ): Behavior[Request] = {
@@ -68,6 +69,35 @@ trait DCMAlgorithm extends CongestionDetection {
     )
   }
 
+  private[grid] def doCongestionMitigation(
+      stateData: CongestionManagementData,
+      ctx: ActorContext[Request],
+  )(using
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[Request],
+  ): Behavior[Request] = {
+    // first we find an option for the next mitigation step
+    val (stepOption, updatedProgress) =
+      stateData.mitigationProgress.getNextStepsAndUpdate
+
+    // we update the state data with the updated progress
+    val updatedStateData = stateData.copy(mitigationProgress = updatedProgress)
+
+    stepOption match {
+      case Some(transformerTapChange: TransformerTapChange) =>
+        GridAgent.updateTransformerTapping(
+          stateData,
+          AwaitingData(stateData.inferiorGridRefs.keySet),
+        )
+
+      case _ =>
+        // we have no more mitigation steps
+        // we finish the mitigation
+        finishCongestionManagement(stateData, ctx)
+    }
+
+  }
+
   /** Method for finishing the congestion management. This method will return to
     * the [[GridAgent.idle()]] state afterward.
     * @param stateData
@@ -84,10 +114,16 @@ trait DCMAlgorithm extends CongestionDetection {
   private[grid] def finishCongestionManagement(
       stateData: CongestionManagementData,
       ctx: ActorContext[Request],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Request],
   ): Behavior[Request] = {
+    val timestamp = constantData.simStartTime.plusSeconds(stateData.currentTick)
+
+    ctx.log.info(
+      s"There were some congestions that could not be resolved for timestamp: $timestamp."
+    )
+
     // clean up agent and go back to idle
     val powerFlowResults = stateData.getAllResults(constantData.simStartTime)
 

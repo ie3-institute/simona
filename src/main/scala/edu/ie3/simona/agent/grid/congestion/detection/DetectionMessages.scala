@@ -41,6 +41,6 @@ object DetectionMessages {
     *   vector of congestion in inferior grids
     */
   final case class ReceivedCongestions(
-      values: Vector[(ActorRef[GridAgent.Request], Congestions)]
+      values: Seq[(ActorRef[GridAgent.Request], Congestions)]
   ) extends InternalReply
 }

@@ -7,14 +7,17 @@
 package edu.ie3.simona.agent.grid.congestion
 
 import com.typesafe.config.ConfigFactory
+import edu.ie3.util.quantities.QuantityUtils.asPu
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
 }
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.services.{
   LoadProfileMessage,
   ServiceMessage,
@@ -31,6 +34,8 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.mockito.Mockito.when
+import squants.electro.Kilovolts
+import squants.energy.Megawatts
 
 import java.time.ZonedDateTime
 import scala.concurrent.duration.DurationInt
@@ -50,9 +55,8 @@ trait CongestionTestBaseData
       .resolve()
   )
 
-  val startTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime(
-    config.simona.time.startDateTime
-  )
+  protected val refSystem: RefSystem =
+    RefSystem(Megawatts(600), Kilovolts(110d))
 
   protected val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   protected val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
@@ -81,7 +85,7 @@ trait CongestionTestBaseData
     "resultListener"
   )
 
-  protected implicit val constantData: GridAgentConstantData =
+  protected given constantData: GridAgentConstantData =
     GridAgentConstantData(
       environmentRefs,
       simonaConfig,
@@ -91,31 +95,34 @@ trait CongestionTestBaseData
       mock[ActorRef[Activation]],
     )
 
-  def spawnWithBuffer(
-      factory: StashBuffer[GridAgent.Request] => Behavior[GridAgent.Request],
-      capacity: Int = 10,
-  ): ActorRef[GridAgent.Request] =
-    testKit.spawn(
-      Behaviors.withStash(capacity) { buffer =>
-        factory(buffer)
-      }
-    )
-
   def gridAgentBaseData(
       inferiorRefs: Set[ActorRef[GridAgent.Request]] = Set.empty,
       isSuperior: Boolean = false,
+      gridModel: Option[GridModel] = None,
   ): GridAgentBaseData = {
     val data = mock[GridAgentBaseData]
     val map = inferiorRefs.map(ref => ref -> Seq.empty).toMap
 
     val cmParams = CongestionManagementParams(
       detectionEnabled = true,
+      enableTransformerTapChange = false,
       30.seconds,
     )
 
     when(data.isSuperior).thenReturn(isSuperior)
     when(data.congestionManagementParams).thenReturn(cmParams)
     when(data.inferiorGridRefs).thenReturn(map)
+
+    if (gridModel.nonEmpty) {
+      val gridEnv = mock[GridEnvironment]
+      when(gridEnv.gridModel).thenReturn(
+        gridModel.getOrElse(
+          throw new CriticalFailureException("No grid model found!")
+        )
+      )
+
+      when(data.gridEnv).thenReturn(gridEnv)
+    }
 
     data
   }
