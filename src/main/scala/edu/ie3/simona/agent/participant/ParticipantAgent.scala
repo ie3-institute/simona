@@ -16,7 +16,7 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.model.participant.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data
@@ -65,13 +65,13 @@ object ParticipantAgent {
   /** Messages that are sent by services as responses to registration requests.
     */
   sealed trait RegistrationResponseMessage extends Request {
-    val serviceRef: ActorRef[_ >: ServiceMessage]
+    val serviceRef: ActorRef[? >: ServiceMessage]
   }
 
   /** Message confirming a successful registration with a secondary service.
     */
   final case class RegistrationSuccessfulMessage(
-      override val serviceRef: ActorRef[_ >: ServiceMessage],
+      override val serviceRef: ActorRef[? >: ServiceMessage],
       firstDataTick: Long,
       additionalData: Option[AdditionalFactoryData] = None,
   ) extends RegistrationResponseMessage
@@ -86,7 +86,7 @@ object ParticipantAgent {
     *   The type of primary data to be received.
     */
   final case class PrimaryRegistrationSuccessfulMessage[P <: PrimaryData](
-      override val serviceRef: ActorRef[_ >: ServiceMessage],
+      override val serviceRef: ActorRef[? >: ServiceMessage],
       firstDataTick: Long,
       primaryDataExtra: PrimaryDataExtra[P],
   ) extends RegistrationResponseMessage
@@ -94,7 +94,7 @@ object ParticipantAgent {
   /** Message announcing a failed registration.
     */
   final case class RegistrationFailedMessage(
-      override val serviceRef: ActorRef[_ >: ServiceMessage]
+      override val serviceRef: ActorRef[? >: ServiceMessage]
   ) extends RegistrationResponseMessage
 
   /** Data provision messages sent by data services.
@@ -107,7 +107,7 @@ object ParticipantAgent {
 
     /** The sending service actor ref.
       */
-    val serviceRef: ActorRef[_ >: ServiceMessage]
+    val serviceRef: ActorRef[? >: ServiceMessage]
 
     /** Next tick at which data could arrive. If None, no data is expected for
       * the rest of the simulation.
@@ -124,7 +124,7 @@ object ParticipantAgent {
     */
   final case class DataProvision[D <: Data](
       override val tick: Long,
-      override val serviceRef: ActorRef[_ >: ServiceMessage],
+      override val serviceRef: ActorRef[? >: ServiceMessage],
       data: D,
       override val nextDataTick: Option[Long],
   ) extends DataInputMessage
@@ -136,7 +136,7 @@ object ParticipantAgent {
     */
   final case class NoDataProvision(
       override val tick: Long,
-      override val serviceRef: ActorRef[_ >: ServiceMessage],
+      override val serviceRef: ActorRef[? >: ServiceMessage],
       override val nextDataTick: Option[Long],
   ) extends DataInputMessage
 
@@ -217,7 +217,7 @@ object ParticipantAgent {
   }
 
   def apply(
-      modelShell: ParticipantModelShell[_, _],
+      modelShell: ParticipantModelShell[?, ?],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       resultHandler: ParticipantResultHandler,
@@ -307,7 +307,7 @@ object ParticipantAgent {
           )
         )
         replyTo !
-          (if (result.newResult) {
+          (if result.newResult then {
              AssetPowerChangedMessage(
                result.avgPower.p,
                result.avgPower.q,
@@ -371,17 +371,17 @@ object ParticipantAgent {
     *   [[ParticipantGridAdapter]].
     */
   private def maybeCalculate(
-      modelShell: ParticipantModelShell[_, _],
+      modelShell: ParticipantModelShell[?, ?],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       resultHandler: ParticipantResultHandler,
       parentData: Either[SchedulerData, FlexControlledData],
   ): (
-      ParticipantModelShell[_, _],
+      ParticipantModelShell[?, ?],
       ParticipantInputHandler,
       ParticipantGridAdapter,
   ) = {
-    if (expectedMessagesReceived(inputHandler, gridAdapter)) {
+    if expectedMessagesReceived(inputHandler, gridAdapter) then {
 
       val activation = inputHandler.activation.getOrElse(
         throw new CriticalFailureException(
@@ -401,7 +401,7 @@ object ParticipantAgent {
           activation match {
             case ParticipantActivation(tick) =>
               val (shellWithOP, gridAdapterWithResult) =
-                if (isCalculationRequired(shell, inputHandler)) {
+                if isCalculationRequired(shell, inputHandler) then {
                   val newShell = shell.updateOperatingPoint(tick)
 
                   val results =
@@ -413,8 +413,7 @@ object ParticipantAgent {
                     gridAdapter.storePowerValue(results.totalPower, tick)
 
                   (newShell, newGridAdapter)
-                } else
-                  (shell, gridAdapter)
+                } else (shell, gridAdapter)
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 tick,
@@ -436,14 +435,13 @@ object ParticipantAgent {
 
             case Flex(FlexActivation(tick)) =>
               val shellWithFlex =
-                if (isCalculationRequired(shell, inputHandler)) {
+                if isCalculationRequired(shell, inputHandler) then {
                   val newShell = shell.updateFlexOptions(tick)
                   resultHandler.maybeSend(
                     newShell.determineFlexOptionsResult(tick)
                   )
                   newShell
-                } else
-                  shell
+                } else shell
 
               parentData.fold(
                 _ =>
@@ -504,8 +502,7 @@ object ParticipantAgent {
         .get
 
       (updatedShell, inputHandler.completeActivation(), updatedGridAdapter)
-    } else
-      (modelShell, inputHandler, gridAdapter)
+    } else (modelShell, inputHandler, gridAdapter)
   }
 
   /** Checks if all required messages needed for calculation have been received.
@@ -546,7 +543,7 @@ object ParticipantAgent {
     * @return
     */
   private def isCalculationRequired(
-      modelShell: ParticipantModelShell[_, _],
+      modelShell: ParticipantModelShell[?, ?],
       inputHandler: ParticipantInputHandler,
   ): Boolean =
     inputHandler.hasNewData ||

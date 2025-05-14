@@ -14,7 +14,7 @@ import squants.energy.{KilowattHours, MegawattHours, WattHours, Watts}
 import squants.thermal.Celsius
 import squants.{Energy, Power, Temperature}
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class ThermalGridSpec
     extends UnitSpec

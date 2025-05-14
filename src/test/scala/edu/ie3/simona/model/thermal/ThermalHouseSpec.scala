@@ -18,9 +18,9 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.WattsPerKelvin
 import org.scalatest.prop.{TableFor2, TableFor3, TableFor7}
-import squants.energy._
-import squants.thermal._
-import squants.time._
+import squants.energy.*
+import squants.thermal.*
+import squants.time.*
 import squants.{Energy, Temperature}
 
 class ThermalHouseSpec extends UnitSpec with HpInputTestData {

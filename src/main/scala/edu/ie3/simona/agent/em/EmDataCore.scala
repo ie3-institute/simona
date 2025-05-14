@@ -10,7 +10,7 @@ import edu.ie3.simona.agent.em.EmAgent.Actor
 import edu.ie3.simona.agent.em.FlexCorrespondenceStore.WithTime
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexOptions
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
@@ -91,7 +91,7 @@ object EmDataCore {
       */
     def activate(newTick: Long): AwaitingFlexOptions = {
       activationQueue.headKeyOption.foreach { nextScheduledTick =>
-        if (newTick > nextScheduledTick)
+        if newTick > nextScheduledTick then
           throw new CriticalFailureException(
             s"Cannot activate with new tick $newTick because the next scheduled tick $nextScheduledTick needs to be activated first."
           )
@@ -222,7 +222,7 @@ object EmDataCore {
           )
       }
 
-      val newCore = if (activeTick == INIT_SIM_TICK) {
+      val newCore = if activeTick == INIT_SIM_TICK then {
         Right(
           AwaitingCompletions(
             modelToActor,
@@ -449,7 +449,7 @@ object EmDataCore {
     def handleCompletion(
         completion: FlexCompletion
     ): AwaitingCompletions = {
-      if (!awaitedCompletions.contains(completion.modelUuid))
+      if !awaitedCompletions.contains(completion.modelUuid) then
         throw new CriticalFailureException(
           s"Participant ${completion.modelUuid} is not part of the expected completing participants"
         )
@@ -459,7 +459,7 @@ object EmDataCore {
         .foreach { activationQueue.set(_, completion.modelUuid) }
 
       val updatedFlexWithNext =
-        if (completion.requestAtNextActivation)
+        if completion.requestAtNextActivation then
           flexWithNext.incl(completion.modelUuid)
         else flexWithNext
 

@@ -7,10 +7,10 @@
 package edu.ie3.simona.main
 
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
-import edu.ie3.simona.main.RunSimona._
+import edu.ie3.simona.main.RunSimona.*
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
-import org.apache.pekko.actor.typed.scaladsl.AskPattern._
+import org.apache.pekko.actor.typed.scaladsl.AskPattern.*
 import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.Timeout
 

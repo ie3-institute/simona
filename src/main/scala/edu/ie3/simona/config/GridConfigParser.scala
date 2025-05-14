@@ -201,14 +201,14 @@ object GridConfigParser {
           )
         }
 
-      if (CollectionUtils.listHasDuplicates(parsedIdList)) {
+      if CollectionUtils.listHasDuplicates(parsedIdList) then {
         throw new InvalidConfigParameterException(
           s"The provided gridIds in simona.gridConfig.$gridConfigType contain duplicates. " +
             "Please check if there are either duplicate entries or overlapping ranges!"
         )
       }
 
-      if (CollectionUtils.listHasDuplicates(parsedVoltLvlList))
+      if CollectionUtils.listHasDuplicates(parsedVoltLvlList) then
         throw new InvalidConfigParameterException(
           s"The provided voltLvls in simona.gridConfig.$gridConfigType contain duplicates. " +
             "Please check your configuration for duplicates in voltLvl entries!"

@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangePower
-import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
@@ -120,7 +120,7 @@ class DBFSAlgorithmSupGridSpec
     s"start the simulation, do 2 sweeps and should end afterwards when no deviation on nodal " +
       s"power is recognized in the superior when an activation is sent is send" in {
 
-        for (sweepNo <- 0 to 1) {
+        for sweepNo <- 0 to 1 do {
 
           val requestedConnectionNodeUuids =
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
@@ -237,7 +237,7 @@ class DBFSAlgorithmSupGridSpec
         scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
 
         // go on with testing the sweep behaviour
-        for (sweepNo <- 0 to maxNumberOfTestSweeps) {
+        for sweepNo <- 0 to maxNumberOfTestSweeps do {
 
           val requestedConnectionNodeUuids =
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))

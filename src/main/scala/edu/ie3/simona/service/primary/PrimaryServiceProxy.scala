@@ -30,7 +30,7 @@ import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.config.ConfigParams.{SqlParams, TimeStampedCsvParams}
-import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
+import edu.ie3.simona.config.InputConfig.{Primary as PrimaryConfig}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -68,7 +68,7 @@ import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.Option.when
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
@@ -206,7 +206,7 @@ object PrimaryServiceProxy {
       primaryConfig.couchbaseParams,
     ).filter(_.isDefined).flatten.headOption
 
-    if (sourceOption.isEmpty) {
+    if sourceOption.isEmpty then {
       log.warn("No primary data source configured!")
 
       Success(
@@ -431,7 +431,7 @@ object PrimaryServiceProxy {
       primaryConfig: PrimaryConfig,
   )(implicit
       constantData: ServiceConstantStateData,
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
   ): Try[ActorRef[ServiceMessage]] = {
     val valueClass = metaInformation.getColumnScheme.getValueClass
 
@@ -471,7 +471,7 @@ object PrimaryServiceProxy {
       timeSeriesUuid: String
   )(implicit
       constantData: ServiceConstantStateData,
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
   ): ActorRef[ServiceMessage] =
     ctx.spawn(
       PrimaryServiceWorker(constantData.scheduler),

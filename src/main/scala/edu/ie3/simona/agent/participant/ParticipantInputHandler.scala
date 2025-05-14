@@ -31,8 +31,8 @@ import org.apache.pekko.actor.typed.ActorRef
   *   applicable. This is emptied after each tick is completed.
   */
 final case class ParticipantInputHandler(
-    expectedData: Map[ActorRef[_ >: ServiceMessage], Long],
-    receivedData: Map[ActorRef[_ >: ServiceMessage], ReceivedData],
+    expectedData: Map[ActorRef[? >: ServiceMessage], Long],
+    receivedData: Map[ActorRef[? >: ServiceMessage], ReceivedData],
     activation: Option[ActivationRequest],
 ) {
 
@@ -161,7 +161,7 @@ object ParticipantInputHandler {
     *   A new [[ParticipantInputHandler]].
     */
   def apply(
-      expectedData: Map[ActorRef[_ >: ServiceMessage], Long]
+      expectedData: Map[ActorRef[? >: ServiceMessage], Long]
   ): ParticipantInputHandler =
     new ParticipantInputHandler(
       expectedData = expectedData,

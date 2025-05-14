@@ -60,7 +60,7 @@ abstract class LoadModel[S <: ModelState]
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new LoadResult(
@@ -122,7 +122,7 @@ object LoadModel {
   def getFactory(
       input: LoadInput,
       config: LoadRuntimeConfig,
-  ): ParticipantModelFactory[_ <: ModelState] =
+  ): ParticipantModelFactory[? <: ModelState] =
     LoadModelBehaviour(config.modelBehaviour) match {
       case LoadModelBehaviour.FIX =>
         FixedLoadModel.Factory(input, config)

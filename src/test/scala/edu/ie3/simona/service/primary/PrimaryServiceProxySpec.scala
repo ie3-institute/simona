@@ -19,7 +19,7 @@ import edu.ie3.simona.config.ConfigParams.{
   TimeStampedCsvParams,
   TimeStampedInfluxDb1xParams,
 }
-import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
+import edu.ie3.simona.config.InputConfig.{Primary as PrimaryConfig}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -355,7 +355,7 @@ class PrimaryServiceProxySpec
         Paths.get("its_pq_" + uuidPq),
       )
 
-      val context: ActorContext[_] = {
+      val context: ActorContext[?] = {
         val m = mock[ActorContext[_]]
         when(m.log).thenReturn(log)
 

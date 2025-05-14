@@ -18,7 +18,7 @@ import edu.ie3.simona.event.RuntimeEvent.{
   Simulating,
 }
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKit,

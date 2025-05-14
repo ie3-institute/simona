@@ -24,9 +24,9 @@ import org.scalatest.GivenWhenThen
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 import java.util.UUID
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
-import scala.jdk.DurationConverters._
+import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
+import scala.jdk.DurationConverters.*
 import scala.language.postfixOps
 
 class RuntimeEventListenerKafkaSpec

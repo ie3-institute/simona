@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemParticipantInputCopyBuilder
-import edu.ie3.datamodel.models.input.system._
+import edu.ie3.datamodel.models.input.system.*
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   BmRuntimeConfig,
@@ -46,15 +46,15 @@ object ParticipantModelInit {
     *   The [[ParticipantModel]].
     */
   def getPhysicalModelFactory(
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
+      inputContainer: InputModelContainer[? <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
-  ): ParticipantModelFactory[_ <: ModelState] = {
+  ): ParticipantModelFactory[? <: ModelState] = {
     val scaledParticipantInput = {
       (inputContainer.electricalInputModel
         .copy()
         .scale(modelConfig.scaling) match {
         // matching needed because Scala has trouble recognizing the Java type parameter
-        case copyBuilder: SystemParticipantInputCopyBuilder[_] => copyBuilder
+        case copyBuilder: SystemParticipantInputCopyBuilder[?] => copyBuilder
       }).build()
     }
 
@@ -65,7 +65,7 @@ object ParticipantModelInit {
         LoadModel.getFactory(input, config)
       case (input: HpInput, _) =>
         val thermalGrid = inputContainer match {
-          case heatInputContainer: WithHeatInputContainer[_] =>
+          case heatInputContainer: WithHeatInputContainer[?] =>
             heatInputContainer.thermalGrid
 
           case other =>
@@ -108,10 +108,10 @@ object ParticipantModelInit {
     *   The [[PrimaryDataParticipantModel]].
     */
   def getPrimaryModelFactory[PD <: PrimaryData](
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
+      inputContainer: InputModelContainer[? <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
       primaryDataExtra: PrimaryDataExtra[PD],
-  ): ParticipantModelFactory[_ <: ModelState] = {
+  ): ParticipantModelFactory[? <: ModelState] = {
     // Create a fitting physical model to extract parameters from
     val modelFactory = getPhysicalModelFactory(
       inputContainer,

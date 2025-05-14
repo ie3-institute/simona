@@ -31,7 +31,7 @@ import edu.ie3.simona.test.common.model.grid.{
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -105,12 +105,10 @@ class PowerFlowSupportSpec
   private def normalizeAngle(
       angle: ComparableQuantity[Angle]
   ): ComparableQuantity[Angle] = {
-    if (angle.isLessThan(0d.asDegreeGeom))
-      angle.add(180.asDegreeGeom)
-    else if (angle.isGreaterThan(180d.asDegreeGeom))
+    if angle.isLessThan(0d.asDegreeGeom) then angle.add(180.asDegreeGeom)
+    else if angle.isGreaterThan(180d.asDegreeGeom) then
       angle.subtract(180.asDegreeGeom)
-    else
-      angle
+    else angle
   }
 
   "PowerFlowSupport" when {

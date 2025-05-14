@@ -25,7 +25,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseB,
   PowerFlowCaseC,
 }
-import edu.ie3.simona.model.grid._
+import edu.ie3.simona.model.grid.*
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.slf4j.Logger
@@ -36,7 +36,7 @@ import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.math._
+import scala.math.*
 
 /** Trait that holds methods to convert the results of a power flow calculation
   * to their corresponding [[edu.ie3.datamodel.models.result.ResultEntity]]
@@ -320,7 +320,7 @@ private[grid] trait GridResultsSupport {
       timestamp: ZonedDateTime,
   ): LineResult = {
 
-    if (line.isInOperation) {
+    if line.isInOperation then {
       val yij = new Complex(
         line.gij().value.doubleValue,
         line.bij().value.doubleValue,
@@ -381,7 +381,7 @@ private[grid] trait GridResultsSupport {
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime,
   ): Transformer2WResult = {
-    if (trafo2w.isInOperation) {
+    if trafo2w.isInOperation then {
       val (yab, yaa, ybb) = (
         TransformerModel.yij(trafo2w),
         TransformerModel.y0(trafo2w, ConnectorPort.A),
@@ -560,10 +560,8 @@ private[grid] trait GridResultsSupport {
       angle: Angle,
       dir: Double,
   ): Angle =
-    if (dir < 0)
-      angle + Degrees(180d)
-    else
-      angle
+    if dir < 0 then angle + Degrees(180d)
+    else angle
 
   /** Calculates the electric current of a two-port element @ port i (=A) and j
     * (=B) based on the provided voltages @ each port and the corresponding

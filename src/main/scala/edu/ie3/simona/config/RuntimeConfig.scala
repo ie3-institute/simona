@@ -7,7 +7,7 @@
 package edu.ie3.simona.config
 
 import edu.ie3.simona.config.ConfigParams.RuntimeKafkaParams
-import edu.ie3.simona.config.RuntimeConfig._
+import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.config.SimonaConfig.{AssetConfigs, VoltLvlConfig}
 import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto.deriveConvert

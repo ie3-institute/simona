@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOA
 import edu.ie3.datamodel.models.profile.{BdewStandardLoadProfile, LoadProfile}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
-import squants.energy._
+import squants.energy.*
 
 class LoadProfileStoreSpec extends UnitSpec {
 

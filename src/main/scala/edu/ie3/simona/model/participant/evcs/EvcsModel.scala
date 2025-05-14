@@ -29,12 +29,12 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
 }
 import edu.ie3.simona.model.participant.{ChargingHelper, ParticipantModel}
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
-import edu.ie3.simona.ontology.messages.services.EvMessage._
+import edu.ie3.simona.ontology.messages.services.EvMessage.*
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asPu, asMegaWatt, asMegaVar}
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -154,13 +154,10 @@ class EvcsModel private (
 
       val resultPower =
         // only take results that are different from last time
-        if (!lastOp.contains(currentPower))
-          Some(currentPower)
+        if !lastOp.contains(currentPower) then Some(currentPower)
         // create 0 kW results for EVs that are not charging anymore
-        else if (lastOp.isDefined && currentOp.isEmpty)
-          Some(zeroKW)
-        else
-          None
+        else if lastOp.isDefined && currentOp.isEmpty then Some(zeroKW)
+        else None
 
       resultPower.map { activePower =>
         // EVs are assumed to have no reactive power
@@ -184,7 +181,7 @@ class EvcsModel private (
     )
 
     val evcsResult =
-      if (powerDifferent)
+      if powerDifferent then
         Iterable(
           new EvcsResult(
             dateTime,
@@ -193,14 +190,13 @@ class EvcsModel private (
             complexPower.q.toMegavars.asMegaVar,
           )
         )
-      else
-        Iterable.empty
+      else Iterable.empty
 
     evResults ++ evcsResult
   }
 
   override def createPrimaryDataResult(
-      data: PrimaryData.PrimaryDataWithComplexPower[_],
+      data: PrimaryData.PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new EvcsResult(
@@ -234,22 +230,17 @@ class EvcsModel private (
           val preferredPower = preferredPowers.get(ev.uuid)
 
           val maxCharging =
-            if (!isFull(ev))
-              maxPower
-            else
-              zeroKW
+            if !isFull(ev) then maxPower
+            else zeroKW
 
           val forced =
-            if (isEmpty(ev) && !isInLowerMargin(ev))
+            if isEmpty(ev) && !isInLowerMargin(ev) then
               preferredPower.getOrElse(maxPower)
-            else
-              zeroKW
+            else zeroKW
 
           val maxDischarging =
-            if (!isEmpty(ev) && vehicle2grid)
-              maxPower * -1
-            else
-              zeroKW
+            if !isEmpty(ev) && vehicle2grid then maxPower * -1
+            else zeroKW
 
           (
             chargingSum + maxCharging,
@@ -261,10 +252,9 @@ class EvcsModel private (
 
     // if we need to charge at least one EV, we cannot discharge any other
     val (adaptedPreferred, adaptedMinCharging) =
-      if (forcedCharging > zeroKW)
+      if forcedCharging > zeroKW then
         (preferredPower.max(forcedCharging), forcedCharging)
-      else
-        (preferredPower, minCharging)
+      else (preferredPower, minCharging)
 
     MinMaxFlexOptions(
       adaptedPreferred,
@@ -277,7 +267,7 @@ class EvcsModel private (
       state: EvcsState,
       setPower: Power,
   ): (EvcsOperatingPoint, OperationChangeIndicator) = {
-    if (setPower == zeroKW) {
+    if setPower == zeroKW then {
       val chargingPowers = state.evs.map { ev =>
         ev.uuid -> zeroKW
       }.toMap
@@ -290,20 +280,17 @@ class EvcsModel private (
 
     // applicable evs can be charged/discharged, other evs cannot
     val applicableEvs = state.evs.filter { ev =>
-      if (setPower > zeroKW)
-        !isFull(ev)
-      else
-        !isEmpty(ev)
+      if setPower > zeroKW then !isFull(ev)
+      else !isEmpty(ev)
     }
 
     val (forcedChargingEvs, regularChargingEvs) =
-      if (setPower > zeroKW)
+      if setPower > zeroKW then
         // lower margin is excluded since charging is not required here anymore
         applicableEvs.partition { ev =>
           isEmpty(ev) && !isInLowerMargin(ev)
         }
-      else
-        (Seq.empty, applicableEvs)
+      else (Seq.empty, applicableEvs)
 
     val (forcedSchedules, remainingPower) =
       distributeChargingPower(state.tick, forcedChargingEvs, setPower)
@@ -363,9 +350,9 @@ class EvcsModel private (
       setPower: Power,
   ): (Seq[(EvModelWrapper, Power)], Power) = {
 
-    if (evs.isEmpty) return (Seq.empty, setPower)
+    if evs.isEmpty then return (Seq.empty, setPower)
 
-    if (setPower.~=(zeroKW)(Kilowatts(1e-6))) {
+    if setPower.~=(zeroKW)(Kilowatts(1e-6)) then {
       // No power left. Rest is not charging
       return (Seq.empty, zeroKW)
     }
@@ -373,13 +360,11 @@ class EvcsModel private (
     val proposedPower = setPower.divide(evs.size)
 
     val (exceedingPowerEvs, fittingPowerEvs) = evs.partition { ev =>
-      if (setPower > zeroKW)
-        proposedPower > getMaxAvailableChargingPower(ev)
-      else
-        proposedPower < (getMaxAvailableChargingPower(ev) * -1)
+      if setPower > zeroKW then proposedPower > getMaxAvailableChargingPower(ev)
+      else proposedPower < (getMaxAvailableChargingPower(ev) * -1)
     }
 
-    if (exceedingPowerEvs.isEmpty) {
+    if exceedingPowerEvs.isEmpty then {
       // end of recursion, rest of charging power fits to all
 
       val results = fittingPowerEvs.map { ev =>
@@ -394,10 +379,8 @@ class EvcsModel private (
       val maxChargedResults = exceedingPowerEvs.map { ev =>
         val maxPower = getMaxAvailableChargingPower(ev)
         val power =
-          if (setPower > zeroKW)
-            maxPower
-          else
-            maxPower * -1
+          if setPower > zeroKW then maxPower
+          else maxPower * -1
 
         (ev, power)
       }
@@ -445,10 +428,8 @@ class EvcsModel private (
     implicit val tolerance: Power = Watts(1e-3)
 
     val chargingEnergyTarget = () =>
-      if (isEmpty(ev) && !isInLowerMargin(ev))
-        ev.eStorage * lowestEvSoc
-      else
-        ev.eStorage
+      if isEmpty(ev) && !isInLowerMargin(ev) then ev.eStorage * lowestEvSoc
+      else ev.eStorage
 
     val dischargingEnergyTarget = () => ev.eStorage * lowestEvSoc
 
@@ -486,9 +467,9 @@ class EvcsModel private (
         requestedEvs.contains(ev.uuid)
       }
 
-      if (departingEvs.size != requestedEvs.size) {
+      if departingEvs.size != requestedEvs.size then {
         requestedEvs.foreach { requestedUuid =>
-          if (!departingEvs.exists(_.uuid == requestedUuid))
+          if !departingEvs.exists(_.uuid == requestedUuid) then
             ctx.log.warn(
               s"EV $requestedUuid should depart from this station (according to external simulation), but has not been parked here."
             )

@@ -21,7 +21,7 @@ import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   ProcessResultEventException,
 }
-import edu.ie3.simona.io.result._
+import edu.ie3.simona.io.result.*
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.slf4j.Logger
 
@@ -126,7 +126,7 @@ object ResultEventListener extends Transformer3wResultSupport {
             schemaRegistryUrl,
             linger,
           ) =>
-        val classes: Iterable[Class[_ <: ResultEntity]] = Set(
+        val classes: Iterable[Class[? <: ResultEntity]] = Set(
           classOf[NodeResult] // currently, only NodeResults are sent out
         )
         classes.map(clz =>
@@ -189,7 +189,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       )
     // add partial result
     val updatedResults = partialResult.add(result).map { updatedResult =>
-      if (updatedResult.ready) {
+      if updatedResult.ready then {
         // if result is complete, we can write it out
         updatedResult.consolidate.foreach {
           handOverToSink(_, baseData.classToSink, log)

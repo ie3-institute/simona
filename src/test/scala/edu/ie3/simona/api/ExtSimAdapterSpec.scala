@@ -14,7 +14,7 @@ import edu.ie3.simona.api.simulation.ontology.{
   ActivationMessage,
   TerminationCompleted,
   TerminationMessage,
-  CompletionMessage => ExtCompletionMessage,
+  CompletionMessage as ExtCompletionMessage,
 }
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{

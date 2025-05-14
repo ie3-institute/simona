@@ -23,7 +23,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   temperatureTolerance,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
@@ -101,13 +101,12 @@ final case class ThermalHouse(
     val currentInnerTemp = thermalHouseState.innerTemperature
 
     val requiredEnergy =
-      if (isInnerTemperatureTooLow(currentInnerTemp)) {
+      if isInnerTemperatureTooLow(currentInnerTemp) then {
         energy(targetTemperature, currentInnerTemp)
-      } else
-        zeroKWh
+      } else zeroKWh
 
     val possibleEnergy =
-      if (!isInnerTemperatureTooHigh(currentInnerTemp)) {
+      if !isInnerTemperatureTooHigh(currentInnerTemp) then {
         energy(targetTemperature, currentInnerTemp)
       } else zeroKWh
 
@@ -250,20 +249,19 @@ final case class ThermalHouse(
       qDot.toWatts / ethLosses.toWattsPerKelvin
     ) + Kelvin(thermalHouseState.ambientTemperature.toKelvinScale)
 
-    if (isInnerTemperatureTooLow(limitTemperature + temperatureTolerance))
-      /* Losses and gain of house are not in balance, thus temperature will reach some limit sooner or later */
-      /* House has more losses than gain */
-      {
-        nextActivation(
-          thermalHouseState.tick,
-          lowerBoundaryTemperature,
-          thermalHouseState.innerTemperature,
-          thermalHouseState.ambientTemperature,
-          qDot,
-        ).map(HouseTemperatureLowerBoundaryReached)
-      } else if (
-      isInnerTemperatureTooHigh(limitTemperature - temperatureTolerance)
-    ) { /* House has more gain than losses */
+    if isInnerTemperatureTooLow(limitTemperature + temperatureTolerance) then
+    /* Losses and gain of house are not in balance, thus temperature will reach some limit sooner or later */
+    /* House has more losses than gain */
+    {
+      nextActivation(
+        thermalHouseState.tick,
+        lowerBoundaryTemperature,
+        thermalHouseState.innerTemperature,
+        thermalHouseState.ambientTemperature,
+        qDot,
+      ).map(HouseTemperatureLowerBoundaryReached)
+    } else if isInnerTemperatureTooHigh(limitTemperature - temperatureTolerance)
+    then { /* House has more gain than losses */
       nextActivation(
         thermalHouseState.tick,
         targetTemperature,

@@ -18,7 +18,7 @@ import edu.ie3.datamodel.models.input.system.{
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import squants.Power
 
 import java.util.UUID
@@ -35,7 +35,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
   /** Only heat pumps, battery storages, charging stations and PVs/WECs (if
     * enabled) are controlled by this strategy
     */
-  private val controllableAssets: Seq[Class[_ <: AssetInput]] =
+  private val controllableAssets: Seq[Class[? <: AssetInput]] =
     Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput]) ++ Option
       .when(curtailRegenerative)(Seq(classOf[PvInput], classOf[WecInput]))
       .getOrElse(Seq.empty)
@@ -96,9 +96,9 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       }
       .filter(_ => curtailRegenerative) // only if enabled
 
-    if (zeroKW.~=(targetDelta)(tolerance)) {
+    if zeroKW.~=(targetDelta)(tolerance) then {
       Seq.empty
-    } else if (targetDelta < zeroKW) {
+    } else if targetDelta < zeroKW then {
       // suggested power too low, try to store difference/increase load
 
       val orderedParticipants =
@@ -118,13 +118,13 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
           val flexPotential =
             flexOption.ref - flexOption.max
 
-          if (zeroKW.~=(remainingExcessPower)(tolerance)) {
+          if zeroKW.~=(remainingExcessPower)(tolerance) then {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if (zeroKW.~=(flexPotential)(tolerance)) {
+          } else if zeroKW.~=(flexPotential)(tolerance) then {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
-          } else if (remainingExcessPower < flexPotential) {
+          } else if remainingExcessPower < flexPotential then {
             // we cannot cover the excess feed-in with just this flexibility,
             // thus use all the available flexibility and continue
             (
@@ -170,13 +170,13 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
           val flexPotential =
             flexOption.ref - flexOption.min
 
-          if (zeroKW.~=(remainingExcessPower)(tolerance)) {
+          if zeroKW.~=(remainingExcessPower)(tolerance) then {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if (zeroKW.~=(flexPotential)(tolerance)) {
+          } else if zeroKW.~=(flexPotential)(tolerance) then {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
-          } else if (remainingExcessPower > flexPotential) {
+          } else if remainingExcessPower > flexPotential then {
             // we cannot cover the excess load with just this flexibility,
             // thus use all the available flexibility and continue
             (
@@ -210,8 +210,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       assetInput: AssetInput,
       flexOptions: MinMaxFlexOptions,
   ): MinMaxFlexOptions = {
-    if (controllableAssets.contains(assetInput.getClass))
-      flexOptions
+    if controllableAssets.contains(assetInput.getClass) then flexOptions
     else {
       // device is not controllable by this EmAgent
       flexOptions.copy(

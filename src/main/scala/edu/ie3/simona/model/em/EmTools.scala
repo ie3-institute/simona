@@ -65,11 +65,11 @@ object EmTools {
       flexOptions: MinMaxFlexOptions,
       setPower: Power,
   ): Unit = {
-    if (setPower < flexOptions.min)
+    if setPower < flexOptions.min then
       throw new FlexException(
         s"The set power $setPower must not be lower than the minimum power ${flexOptions.min}!"
       )
-    else if (setPower > flexOptions.max)
+    else if setPower > flexOptions.max then
       throw new FlexException(
         s"The set power $setPower must not be greater than the maximum power ${flexOptions.max}!"
       )

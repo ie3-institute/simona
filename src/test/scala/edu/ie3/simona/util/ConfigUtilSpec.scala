@@ -21,14 +21,14 @@ import edu.ie3.datamodel.models.result.{
 }
 import edu.ie3.simona.config.ConfigParams.ResultKafkaParams
 import edu.ie3.simona.config.OutputConfig.GridOutputConfig
-import edu.ie3.simona.config.RuntimeConfig._
-import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
+import edu.ie3.simona.config.RuntimeConfig.*
+import edu.ie3.simona.config.SimonaConfig.{apply as _, *}
 import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
-import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
-import edu.ie3.simona.util.ConfigUtil._
+import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier.*
+import edu.ie3.simona.util.ConfigUtil.*
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
 import java.util.UUID
@@ -637,14 +637,14 @@ class ConfigUtilSpec
 
   "The grid output config util" should {
     "return the correct result entity classes to consider" in {
-      val ddt: TableFor2[GridOutputConfig, Set[Class[_ <: ResultEntity]]] =
+      val ddt: TableFor2[GridOutputConfig, Set[Class[? <: ResultEntity]]] =
         Table(
           ("config", "expected"),
           (
             new GridOutputConfig(
               false, false, false, false, false, false,
             ),
-            Set.empty[Class[_ <: ResultEntity]],
+            Set.empty[Class[? <: ResultEntity]],
           ),
           (
             new GridOutputConfig(
@@ -696,7 +696,7 @@ class ConfigUtilSpec
         )
 
       forAll(ddt) {
-        (config: GridOutputConfig, expected: Set[Class[_ <: ResultEntity]]) =>
+        (config: GridOutputConfig, expected: Set[Class[? <: ResultEntity]]) =>
           val actual =
             GridOutputConfigUtil(config).simulationResultEntitiesToConsider
           actual shouldBe expected
@@ -832,7 +832,7 @@ class ConfigUtilSpec
         ),
       )
       val configUtil = OutputConfigUtil.participants(inputConfig)
-      val expectedResult = Set[Class[_ <: ResultEntity]](classOf[LoadResult])
+      val expectedResult = Set[Class[? <: ResultEntity]](classOf[LoadResult])
 
       configUtil.simulationResultEntitiesToConsider(
         false

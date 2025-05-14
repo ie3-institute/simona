@@ -17,7 +17,7 @@ import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage._
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.*
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,

@@ -15,10 +15,10 @@ import edu.ie3.simona.exceptions.{
   InvalidActionRequestException,
   InvalidParameterException,
 }
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.scala.OperationInterval
 
-import scala.jdk.OptionConverters._
+import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success, Try}
 
 /** Interface that is implemented by all grid elements (e.g. lines,
@@ -41,7 +41,7 @@ abstract class SystemComponent(
   private val elementType: String = this.getClass.getSimpleName
 
   // check if a uuid is provided
-  if (Option.apply(uuid).isEmpty)
+  if Option.apply(uuid).isEmpty then
     throw new InvalidParameterException(
       s"Uuid of $elementType $id cannot be null!"
     )
@@ -51,7 +51,7 @@ abstract class SystemComponent(
   /** Enable the corresponding element.
     */
   def enable(): Try[String] = {
-    if (_inOperation) {
+    if _inOperation then {
       Failure(
         new InvalidActionRequestException(
           s"$elementType $id is already in operation!"
@@ -66,7 +66,7 @@ abstract class SystemComponent(
   /** Disable the corresponding element.
     */
   def disable(): Try[String] = {
-    if (_inOperation) {
+    if _inOperation then {
       _inOperation = false
       Success(s"$elementType $id disabled!")
     } else {

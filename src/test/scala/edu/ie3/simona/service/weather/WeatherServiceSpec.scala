@@ -24,7 +24,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   Create,
   WrappedActivation,
 }
-import edu.ie3.simona.ontology.messages.services.WeatherMessage._
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData

@@ -14,7 +14,7 @@ import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
 import edu.ie3.simona.sim.setup.ExtSimSetupData.Input
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import org.apache.pekko.actor.{ActorRef as ClassicRef}
 
 /** Case class that holds information regarding the external data connections as
   * well as the actor references of the created services.
@@ -34,14 +34,14 @@ final case class ExtSimSetupData(
       (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
     ],
     extDataServices: Seq[
-      (_ <: ExtInputDataConnection, ActorRef[_ >: ServiceMessage])
+      (_ <: ExtInputDataConnection, ActorRef[? >: ServiceMessage])
     ],
     extResultListeners: Seq[(ExtResultDataConnection, ActorRef[_])],
 ) {
 
   private[setup] def update(
       connection: ExtPrimaryDataConnection,
-      ref: ActorRef[_ >: ServiceMessage],
+      ref: ActorRef[? >: ServiceMessage],
   ): ExtSimSetupData =
     copy(extPrimaryDataServices =
       extPrimaryDataServices ++ Seq((connection, ref))
@@ -49,7 +49,7 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtInputDataConnection,
-      ref: ActorRef[_ >: ServiceMessage],
+      ref: ActorRef[? >: ServiceMessage],
   ): ExtSimSetupData = connection match {
     case primaryConnection: ExtPrimaryDataConnection =>
       update(primaryConnection, ref)
@@ -59,7 +59,7 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtResultDataConnection,
-      ref: ActorRef[_],
+      ref: ActorRef[?],
   ): ExtSimSetupData =
     copy(extResultListeners = extResultListeners ++ Seq((connection, ref)))
 
@@ -100,7 +100,7 @@ final case class ExtSimSetupData(
 object ExtSimSetupData {
 
   type Input =
-    (ExtInputDataConnection, ActorRef[_ >: ServiceMessage])
+    (ExtInputDataConnection, ActorRef[? >: ServiceMessage])
 
   /** Returns an empty [[ExtSimSetupData]].
     */

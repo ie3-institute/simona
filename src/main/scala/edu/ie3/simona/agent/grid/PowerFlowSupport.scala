@@ -20,8 +20,8 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   ReceivedSlackVoltageValues,
 }
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
-import edu.ie3.simona.model.grid._
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.simona.model.grid.*
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import org.slf4j.Logger
 import squants.electro.ElectricPotential
 
@@ -76,7 +76,7 @@ trait PowerFlowSupport {
     val (operatingPoints, stateData) = nodes.map { nodeModel =>
       // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
       // when slack emulators or pv-node assets are added this needs to be considered here
-      val nodeType = if (nodeModel.isSlack) NodeType.SL else NodeType.PQ
+      val nodeType = if nodeModel.isSlack then NodeType.SL else NodeType.PQ
 
       /* Determine the operating point for this given node */
       val nodeIdx = nodeUuidToIndexMap.getOrElse(
@@ -124,7 +124,7 @@ trait PowerFlowSupport {
         }
 
       val targetVoltage =
-        if (targetVoltageFromReceivedData && nodeModel.isSlack) {
+        if targetVoltageFromReceivedData && nodeModel.isSlack then {
           /* If the preset voltage is meant to be determined by means of received data and the node is a slack node
            * (only then there is received data), look it up and transform it */
           val receivedSlackVoltage =
@@ -147,8 +147,7 @@ trait PowerFlowSupport {
         } else {
           // Either the received data shall not be considered or the node is not a slack node
           Complex.one *
-            (if (!ignoreTargetVoltage)
-               nodeModel.vTarget.toEach
+            (if !ignoreTargetVoltage then nodeModel.vTarget.toEach
              else 1.0)
         }
 
@@ -184,13 +183,12 @@ trait PowerFlowSupport {
     /*  In case a model has more than one, set all others to PQ nodes.
     ATTENTION: This does not cover the power flow situation correctly! */
     val adaptedOperatingPoint = operatingPoints.map { nodePreset =>
-      if (nodePreset.nodeType == NodeType.SL) {
+      if nodePreset.nodeType == NodeType.SL then {
         // If this is the slack node we picked, leave it as a slack node.
-        if (nodePreset.index == slackNodeData.index) nodePreset
+        if nodePreset.index == slackNodeData.index then nodePreset
         // If it is not the one, make it a PQ node.
         else nodePreset.copy(nodeType = NodeType.PQ)
-      } else
-        nodePreset
+      } else nodePreset
     }
 
     (
@@ -230,7 +228,7 @@ trait PowerFlowSupport {
   ): (Array[PresetData], WithForcedStartVoltages) =
     sweepDataValues.map { sweepValueStoreData =>
       val nodeStateData = sweepValueStoreData.stateData
-      val targetVoltage = if (nodeStateData.nodeType == NodeType.SL) {
+      val targetVoltage = if nodeStateData.nodeType == NodeType.SL then {
         val receivedSlackVoltage = receivedSlackValues.values
           .map { case (_, slackVoltageMsg) => slackVoltageMsg }
           .flatMap(_.nodalSlackVoltages)
@@ -249,8 +247,7 @@ trait PowerFlowSupport {
           transformers3w,
           gridMainRefSystem,
         )
-      } else
-        Complex.one
+      } else Complex.one
 
       // note: target voltage will be ignored for slack node if provided
       (

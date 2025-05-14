@@ -13,7 +13,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   WeightedCoordinates,
 }
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.scalatest.prop.TableDrivenPropertyChecks

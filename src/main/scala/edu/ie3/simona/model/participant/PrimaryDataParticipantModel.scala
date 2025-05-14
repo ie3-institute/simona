@@ -14,7 +14,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   OperationChangeIndicator,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.PrimaryDataParticipantModel._
+import edu.ie3.simona.model.participant.PrimaryDataParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.Data.PrimaryData.{
@@ -92,9 +92,9 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData](
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] = {
     val primaryDataWithApparentPower = currentOperatingPoint.data match {
-      case primaryDataWithApparentPower: PrimaryDataWithComplexPower[_] =>
+      case primaryDataWithApparentPower: PrimaryDataWithComplexPower[?] =>
         primaryDataWithApparentPower
-      case enrichableData: EnrichableData[_] =>
+      case enrichableData: EnrichableData[?] =>
         enrichableData.add(complexPower.q)
     }
     Iterable(
@@ -103,7 +103,7 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData](
   }
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult = throw new CriticalFailureException(
     "Method not implemented by this model."
@@ -142,7 +142,7 @@ object PrimaryDataParticipantModel {
     *   Extra functionality specific to the primary data class.
     */
   final case class Factory[PD <: PrimaryData](
-      physicalModel: ParticipantModel[_, _],
+      physicalModel: ParticipantModel[?, ?],
       primaryDataExtra: PrimaryDataExtra[PD],
   ) extends ParticipantModelFactory[PrimaryDataState[PD]] {
 
@@ -161,7 +161,7 @@ object PrimaryDataParticipantModel {
     override def create(): PrimaryDataParticipantModel[PD] = {
       val primaryResultFunc = new PrimaryResultFunc {
         override def createResult(
-            data: PrimaryData.PrimaryDataWithComplexPower[_],
+            data: PrimaryData.PrimaryDataWithComplexPower[?],
             dateTime: ZonedDateTime,
         ): SystemParticipantResult =
           physicalModel.createPrimaryDataResult(data, dateTime)
@@ -187,7 +187,7 @@ object PrimaryDataParticipantModel {
     */
   private[participant] trait PrimaryResultFunc {
     def createResult(
-        data: PrimaryDataWithComplexPower[_],
+        data: PrimaryDataWithComplexPower[?],
         dateTime: ZonedDateTime,
     ): SystemParticipantResult
   }
@@ -208,9 +208,9 @@ object PrimaryDataParticipantModel {
         data: PD
     ): PrimaryOperatingPoint[PD] =
       data match {
-        case apparentPowerData: PD with PrimaryDataWithComplexPower[_] =>
+        case apparentPowerData: PD with PrimaryDataWithComplexPower[?] =>
           PrimaryApparentPowerOperatingPoint(apparentPowerData)
-        case other: PD with EnrichableData[_] =>
+        case other: PD with EnrichableData[?] =>
           PrimaryActivePowerOperatingPoint(other)
       }
   }
@@ -223,7 +223,7 @@ object PrimaryDataParticipantModel {
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
-      PE <: PrimaryData with EnrichableData[_ <: PrimaryData]
+      PE <: PrimaryData with EnrichableData[? <: PrimaryData]
   ](
       override val data: PE
   ) extends PrimaryOperatingPoint[PE] {

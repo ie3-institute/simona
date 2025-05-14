@@ -165,7 +165,7 @@ object LoadProfileSources {
       profiles: Set[LoadProfile],
       expectedProfiles: Set[String],
   ): Unit = {
-    if (profiles.size != expectedProfiles.size) {
+    if profiles.size != expectedProfiles.size then {
       expectedProfiles
         .diff(profiles.map(_.getKey))
         .foreach { profile =>

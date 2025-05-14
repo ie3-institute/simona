@@ -49,9 +49,9 @@ object ProportionalFlexStrat extends EmModelStrat {
       flexOptions
     }.flexSum
 
-    if (target.~=(totalOptions.ref)(tolerance)) {
+    if target.~=(totalOptions.ref)(tolerance) then {
       Seq.empty
-    } else if (target < totalOptions.ref) {
+    } else if target < totalOptions.ref then {
       val reducedOptions = flexOptions.map {
         case (uuid, MinMaxFlexOptions(refPower, minPower, _)) =>
           (uuid, refPower, minPower)
@@ -103,10 +103,9 @@ object ProportionalFlexStrat extends EmModelStrat {
       refPower.~=(limitPower)(tolerance)
     }
 
-    if (
-      (target < totalRef && target <= totalLimit) ||
+    if (target < totalRef && target <= totalLimit) ||
       (target > totalRef && target >= totalLimit)
-    ) {
+    then {
       // target is beyond limit, thus use limit powers for all applicable devices
       filteredOptions.map { case (uuid, _, limitPower) =>
         uuid -> limitPower

@@ -21,12 +21,12 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.QuantityUtils._
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.quantities.QuantityUtils.*
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
@@ -228,14 +228,14 @@ object EmAgent {
         provideFlex.flexOptions,
       )
 
-      if (updatedCore.isComplete) {
+      if updatedCore.isComplete then {
 
         val allFlexOptions = updatedCore.getFlexOptions
 
         val emFlexOptions =
           modelShell.aggregateFlexOptions(allFlexOptions)
 
-        if (emData.outputConfig.flexResult) {
+        if emData.outputConfig.flexResult then {
           val flexResult = new FlexOptionsResult(
             flexOptionsCore.activeTick.toDateTime(
               emData.simulationStartDate

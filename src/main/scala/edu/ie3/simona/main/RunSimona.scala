@@ -45,7 +45,7 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
     // prevents cutting of the log when having a fast simulation
     Thread.sleep(1000)
 
-    System.exit(if (successful) 0 else 1)
+    System.exit(if successful then 0 else 1)
   }
 
   // a fancy opener
@@ -74,7 +74,7 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
     logger.info(myWords(randIdx))
     logger.info("Goodbye!")
 
-    if (!successful) {
+    if !successful then {
       // to ensure that the link to the log is printed last
       Thread.sleep(1000)
 

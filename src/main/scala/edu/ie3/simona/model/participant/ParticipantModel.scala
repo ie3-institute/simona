@@ -177,7 +177,7 @@ abstract class ParticipantModel[
   ): Iterable[ResultEntity]
 
   def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult
 
@@ -241,7 +241,7 @@ object ParticipantModel {
       * @return
       *   The specific [[ParticipantModel]].
       */
-    def create(): ParticipantModel[_ <: OperatingPoint, S]
+    def create(): ParticipantModel[? <: OperatingPoint, S]
   }
 
   trait OperatingPoint {

@@ -74,11 +74,11 @@ object QuantityUtil {
       windowStart: Long,
       windowEnd: Long,
   ): Try[Q] = {
-    if (windowStart == windowEnd)
+    if windowStart == windowEnd then
       Failure(
         new IllegalArgumentException("Cannot average over trivial time window.")
       )
-    else if (windowStart > windowEnd)
+    else if windowStart > windowEnd then
       Failure(
         new IllegalArgumentException("Window end is before window start.")
       )

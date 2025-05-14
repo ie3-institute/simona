@@ -9,7 +9,7 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.connector._
+import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
@@ -29,7 +29,7 @@ import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Representation of one physical electrical grid. It holds the references to
   * nodes, lines, switches and transformers and fundamental properties (like
@@ -152,7 +152,7 @@ object GridModel {
     val nodeInternal: Option[NodeModel] =
       nodes.find(_.uuid.equals(transformerInput.getNodeInternal.getUuid))
 
-    if (nodeInternal.isEmpty)
+    if nodeInternal.isEmpty then
       throw new InvalidGridException(
         s"Internal node ${transformerInput.getNodeInternal.getId} of transformer3w ${transformerInput.getUuid} cannot be found in provided set of nodes!"
       )
@@ -182,17 +182,14 @@ object GridModel {
     val _returnAdmittanceMatrixIfValid
         : DenseMatrix[Complex] => DenseMatrix[Complex] = {
       (admittanceMatrix: DenseMatrix[Complex]) =>
-        if (
-          !breeze.linalg.all(
+        if !breeze.linalg.all(
             { (entry: Complex) =>
               !entry.imag.isNaN & !entry.real.isNaN & entry.imag.isFinite & entry.real.isFinite
             },
             admittanceMatrix,
           )
-        )
-          throw new RuntimeException(s"Admittance matrix is illegal.")
-        else
-          admittanceMatrix
+        then throw new RuntimeException(s"Admittance matrix is illegal.")
+        else admittanceMatrix
     }
 
     /*
@@ -384,7 +381,7 @@ object GridModel {
     val inspector: ConnectivityInspector[UUID, DefaultEdge] =
       new ConnectivityInspector(graph)
 
-    if (!inspector.isConnected) {
+    if !inspector.isConnected then {
       throw new GridInconsistencyException(
         s"The grid with subnetNo ${gridModel.subnetNo} is not connected! Please ensure that all elements are connected correctly and inOperation is set to true!"
       )
@@ -394,10 +391,8 @@ object GridModel {
 
   private def validateConsistency(gridModel: GridModel): Unit = {
     // null or empty elements in grid elements?
-    if (
-      gridModel.gridComponents.nodes == null || gridModel.gridComponents.nodes.isEmpty
-    )
-      throw new InvalidGridException("The grid contains no nodes.")
+    if gridModel.gridComponents.nodes == null || gridModel.gridComponents.nodes.isEmpty
+    then throw new InvalidGridException("The grid contains no nodes.")
     val noLines =
       gridModel.gridComponents.lines == null || gridModel.gridComponents.lines.isEmpty
     val noTransformers2w =
@@ -406,31 +401,30 @@ object GridModel {
       gridModel.gridComponents.transformers3w == null || gridModel.gridComponents.transformers3w.isEmpty
     val noOfNodes = gridModel.gridComponents.nodes.size
     val noOfSlackNodes = gridModel.slackNodesIndices.size
-    if (
-      noLines && noTransformers2w && noTransformers3w && (noOfNodes > noOfSlackNodes)
-    )
+    if noLines && noTransformers2w && noTransformers3w && (noOfNodes > noOfSlackNodes)
+    then
       throw new InvalidGridException(
         f"The grid with subnet number ${gridModel.subnetNo} contains additional nodes beside the slack nodes and no basic branch elements (lines or transformers). This is invalid."
       )
 
     // slack
-    if (gridModel.slackNodesIndices.isEmpty)
+    if gridModel.slackNodesIndices.isEmpty then
       new InvalidGridException(
         s"The grid model for subnet ${gridModel.subnetNo} has no slack node!"
       )
 
     // electrical struct data
-    if (gridModel.mainRefSystem.nominalPower.value.doubleValue < 0.0)
+    if gridModel.mainRefSystem.nominalPower.value.doubleValue < 0.0 then
       throw new InvalidGridException(
         s"Nominal Power of a grid cannot be < 0. Please correct the value of the reference system for grid no ${gridModel.subnetNo}"
       )
-    if (gridModel.mainRefSystem.nominalVoltage.value.doubleValue < 0.0)
+    if gridModel.mainRefSystem.nominalVoltage.value.doubleValue < 0.0 then
       throw new InvalidGridException(
         s"Nominal Voltage of a grid cannot be < 0. Please correct the value of the reference system for grid no ${gridModel.subnetNo}"
       )
 
     // subnet no
-    if (gridModel.subnetNo < 0)
+    if gridModel.subnetNo < 0 then
       throw new InvalidGridException(
         s"The grid model for subnet ${gridModel.subnetNo} has a subnet number less then zero."
       )
@@ -438,7 +432,7 @@ object GridModel {
     // duplicate names for nodes
     val nodeUuids: List[UUID] =
       gridModel.gridComponents.nodes.toList.iterator.map(_.uuid).toList
-    if (CollectionUtils.listHasDuplicates(nodeUuids))
+    if CollectionUtils.listHasDuplicates(nodeUuids) then
       throw new InvalidGridException(
         s"The grid model for subnet ${gridModel.subnetNo} has multiple nodes with the same name!"
       )
@@ -478,7 +472,7 @@ object GridModel {
           val transformerUnit2W = transformerUnits2W.get(transformer)
           val transformerUnit3W = transformerUnits3W.get(transformer)
 
-          if (transformerUnit2W.isDefined || transformerUnit3W.isDefined) {
+          if transformerUnit2W.isDefined || transformerUnit3W.isDefined then {
             controlGroup.measurements
               .map(UUID.fromString)
               .foreach { measurement =>
@@ -488,7 +482,7 @@ object GridModel {
                     s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement unit whose UUID does not exist in this subnet."
                   ),
                 )
-                if (!measurementUnit.getVMag)
+                if !measurementUnit.getVMag then
                   throw new GridAgentInitializationException(
                     s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement unit which does not measure voltage magnitude."
                   )
@@ -530,7 +524,7 @@ object GridModel {
       subGridContainer.getRawGrid.getTransformer2Ws.asScala.map {
         transformer2wInput =>
           val (nodeA, _) = getConnectedNodes(transformer2wInput, nodes)
-          if (nodeA.isSlack) {
+          if nodeA.isSlack then {
             TransformerModel(
               transformer2wInput,
               refSystem,
@@ -692,17 +686,15 @@ object GridModel {
       nodeConnections
         .getOrElse(node, Set.empty)
         .foldLeft(visited + node) { case (accVisited, neighbor) =>
-          if (accVisited.contains(neighbor))
-            accVisited
-          else
-            dfs(neighbor, accVisited)
+          if accVisited.contains(neighbor) then accVisited
+          else dfs(neighbor, accVisited)
         }
     }
 
     val (_, components) =
       nodeConnections.keys.foldLeft((Set.empty[UUID], Seq.empty[Seq[UUID]])) {
         case ((visited, components), node) =>
-          if (visited.contains(node)) {
+          if visited.contains(node) then {
             (visited, components)
           } else {
             val component = dfs(node)

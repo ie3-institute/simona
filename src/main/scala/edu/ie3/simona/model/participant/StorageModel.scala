@@ -156,7 +156,7 @@ class StorageModel private (
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new StorageResult(
@@ -177,8 +177,8 @@ class StorageModel private (
 
     val refPower = refTargetSoc
       .map { targetParams =>
-        if (state.storedEnergy <= targetParams.targetWithPosMargin) {
-          if (state.storedEnergy >= targetParams.targetWithNegMargin) {
+        if state.storedEnergy <= targetParams.targetWithPosMargin then {
+          if state.storedEnergy >= targetParams.targetWithNegMargin then {
             // is within target +/- margin, no charging needed
             zeroKW
           } else {
@@ -197,8 +197,8 @@ class StorageModel private (
 
     MinMaxFlexOptions(
       refPower,
-      if (dischargingPossible) pMax * -1 else zeroKW,
-      if (chargingPossible) pMax else zeroKW,
+      if dischargingPossible then pMax * -1 else zeroKW,
+      if chargingPossible then pMax else zeroKW,
     )
   }
 
@@ -207,17 +207,15 @@ class StorageModel private (
       setPower: Power,
   ): (ActivePowerOperatingPoint, ParticipantModel.OperationChangeIndicator) = {
     val adaptedSetPower =
-      if (
+      if
         // if power is close to zero, set it to zero
         (setPower ~= zeroKW)
         // do not keep charging if we're already full (including safety margin)
         || (setPower > zeroKW && isFull(state.storedEnergy))
         // do not keep discharging if we're already empty (including safety margin)
         || (setPower < zeroKW && isEmpty(state.storedEnergy))
-      )
-        zeroKW
-      else
-        setPower
+      then zeroKW
+      else setPower
 
     // if the storage is at minimum or maximum charged energy AND we are charging
     // or discharging, flex options will be different at the next activation

@@ -7,11 +7,11 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.ConfigParams._
+import edu.ie3.simona.config.ConfigParams.*
 import edu.ie3.simona.config.InputConfig.{
   CoordinateSource,
   WeatherDatasource,
-  Primary => PrimaryConfig,
+  Primary as PrimaryConfig,
 }
 import edu.ie3.simona.config.OutputConfig.Sink
 import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig

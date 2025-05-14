@@ -65,7 +65,7 @@ class ResultFileHierarchySpec
 
     "write directories automatically on instantiation when requested so" in {
       // delete file if they exist
-      if (Files.exists(parentOutputFilePath))
+      if Files.exists(parentOutputFilePath) then
         FileIOUtils.deleteRecursively(parentOutputFilePath)
 
       // init output file hierarchy with writing
