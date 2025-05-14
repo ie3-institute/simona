@@ -66,11 +66,11 @@ object ExtSimAdapter {
   def apply(
       scheduler: ActorRef[SchedulerMessage]
   ): Behavior[Request] = Behaviors.setup { ctx =>
-    val activationAdapter = ctx.messageAdapter(WrappedActivation)
-    initialize(scheduler, activationAdapter)
+    val activationAdapter = ctx.messageAdapter(WrappedActivation.apply)
+    initialize(using scheduler, activationAdapter)
   }
 
-  private def initialize(implicit
+  private def initialize(using
       scheduler: ActorRef[SchedulerMessage],
       activationAdapter: ActorRef[Activation],
   ): Behavior[Request] = Behaviors.receiveMessagePartial {
@@ -85,7 +85,7 @@ object ExtSimAdapter {
       receiveIdle(ExtSimAdapterStateData(extSimData))
   }
 
-  private[api] def receiveIdle(stateData: ExtSimAdapterStateData)(implicit
+  private[api] def receiveIdle(stateData: ExtSimAdapterStateData)(using
       scheduler: ActorRef[SchedulerMessage],
       activationAdapter: ActorRef[Activation],
   ): Behavior[Request] = Behaviors.receivePartial {

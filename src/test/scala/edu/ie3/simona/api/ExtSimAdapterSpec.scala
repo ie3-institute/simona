@@ -158,9 +158,9 @@ class ExtSimAdapterSpec
 
     "terminate the external simulation and itself when told to" in {
       forAll(Table("simSuccessful", true, false)) { (simSuccessful: Boolean) =>
-        val activationAdapter = TestProbe[Activation]
+        val activationAdapter = TestProbe[Activation]("activationAdapter")
 
-        val probe = TestProbe[ControlResponseMessageFromExt]
+        val probe = TestProbe[ControlResponseMessageFromExt]("probe")
         val extData = new ExtSimAdapterData(probe.ref, mainArgs)
 
         val extSimAdapter = BehaviorTestKit(
@@ -169,7 +169,7 @@ class ExtSimAdapterSpec
               extData,
               None,
             )
-          )(scheduler.ref, activationAdapter.ref)
+          )(using scheduler.ref, activationAdapter.ref)
         )
 
         extSimAdapter.isAlive shouldBe true
