@@ -334,7 +334,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.68.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -659,7 +658,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.00.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -745,7 +743,6 @@ class ThermalGridIT
                 energy should equalWithTolerance(
                   0.00025596591780821927.asMegaWattHour
                 )
-
             }
         }
       resultListener.expectNoMessage()
@@ -869,7 +866,6 @@ class ThermalGridIT
           Some(151200),
         )
       }
-
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
@@ -881,7 +877,6 @@ class ThermalGridIT
       // Since this activation is caused by new weather data, we don't expect any
       // message for house or storage since there is no change of their operating
       // point nor one of it reached any boundary.
-
       resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(28800)))
 
@@ -973,9 +968,7 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 28858.toDateTime
                 qDot should equalWithTolerance(0.0055.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -1027,9 +1020,7 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 29199.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.000522.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.000522.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -1081,9 +1072,7 @@ class ThermalGridIT
                 inputModel shouldBe typicalThermalStorage.getUuid
                 time shouldBe 32239.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -1163,9 +1152,7 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 32554.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0003084233424657534.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.0003084233424.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -1312,7 +1299,7 @@ class ThermalGridIT
                 time shouldBe 36165.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.00007985884931506848.asMegaWattHour
+                  0.0000798588493150.asMegaWattHour
                 )
             }
         }
@@ -1470,7 +1457,6 @@ class ThermalGridIT
         DomesticWaterStorage : requiredDemand = 0.0kWh, possibleDemand 0.0 kWh
         Heat pump: stays out - since requiredDemand of ThermalStorage not necessarily demand hp operation.
        */
-
       emAgentActivation ! Activation(0)
 
       weatherDependentAgents.foreach {
@@ -1567,6 +1553,7 @@ class ThermalGridIT
                 hpResult._1 shouldBe 165.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
+
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 165.toDateTime
@@ -1877,7 +1864,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 5400.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 5400.toDateTime
@@ -1936,7 +1922,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 6824.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 6824.toDateTime
@@ -1994,7 +1979,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 7200.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 7200.toDateTime
@@ -2046,7 +2030,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 7370.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 7370.toDateTime
@@ -2113,7 +2096,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 9200.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 9200.toDateTime
@@ -2166,7 +2148,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 10551.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 10551.toDateTime
@@ -2229,7 +2210,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 10800.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 10800.toDateTime
@@ -2281,7 +2261,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 10973.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 10973.toDateTime
@@ -2332,7 +2311,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 11638.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 11638.toDateTime
@@ -2398,7 +2376,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 12000.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 12000.toDateTime
@@ -2449,7 +2426,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 12139.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 12139.toDateTime
@@ -2512,7 +2488,6 @@ class ThermalGridIT
               hpResult._1 shouldBe 12500.toDateTime
               hpResult._3 should equalWithTolerance(0.asMegaWatt)
               hpResult._4 should equalWithTolerance(0.asMegaVar)
-
             case EmResult(emResult) =>
               emResult._2 shouldBe emInput.getUuid
               emResult._1 shouldBe 12500.toDateTime
@@ -2585,7 +2560,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 24413.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 24413.toDateTime
@@ -2656,7 +2630,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 25200.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 25200.toDateTime
@@ -2733,7 +2706,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 25235.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 25235.toDateTime
@@ -2798,7 +2770,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 26215.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 26215.toDateTime
@@ -2888,7 +2859,6 @@ class ThermalGridIT
               hpResult._1 shouldBe 27500.toDateTime
               hpResult._3 should equalWithTolerance(pRunningHp)
               hpResult._4 should equalWithTolerance(qRunningHp)
-
             case EmResult(emResult) =>
               emResult._2 shouldBe emInput.getUuid
               emResult._1 shouldBe 27500.toDateTime
@@ -2928,7 +2898,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 28800.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 28800.toDateTime
@@ -3049,7 +3018,6 @@ Heat pump: stays on
                 hpResult._1 shouldBe 31000.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 31000.toDateTime
@@ -3210,7 +3178,6 @@ FIXME Heat pump: stays on - to serve the remaining heat demand of the storage.
                 hpResult._1 shouldBe 41937.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 41937.toDateTime
