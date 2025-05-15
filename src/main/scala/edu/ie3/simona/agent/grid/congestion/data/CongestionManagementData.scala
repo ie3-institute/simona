@@ -35,7 +35,7 @@ import scala.concurrent.duration.FiniteDuration
   * @param congestions
   *   The found congestions.
   */
-final case class CongestionManagementData private (
+final case class CongestionManagementData(
     gridAgentBaseData: GridAgentBaseData,
     currentTick: Long,
     subgridNo: Int,

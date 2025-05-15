@@ -41,8 +41,6 @@ ext {
     "-language:existentials",
     "-Wunused:all",
     "-Xmax-inlines:128"
-    //"-explain",
-    //"-explain-types"
   ]
 }
 
@@ -168,7 +166,7 @@ dependencies {
   implementation 'org.jgrapht:jgrapht-core:1.5.2'
 
   // needed, because scala won't compile otherwise
-  implementation 'org.influxdb:influxdb-java:2.24'
+  implementation 'org.influxdb:influxdb-java:2.25'
 }
 
 tasks.withType(JavaCompile).configureEach {

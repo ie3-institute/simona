@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.datamodel.models.result.NodeResult
-import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult.{
   PortA,
   PortB,
@@ -25,8 +24,9 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   CurrentToSimona,
   DimensionlessToSimona,
 }
+import edu.ie3.util.scala.quantities.QuantityUtil.*
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
-import squants.electro.{ElectricPotential, Kilovolts}
+import squants.electro.ElectricPotential
 import squants.{Amperes, ElectricCurrent}
 import tech.units.indriya.unit.Units
 

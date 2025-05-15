@@ -41,7 +41,7 @@ import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -55,8 +55,12 @@ import org.scalatestplus.mockito.MockitoSugar
 import squants.Each
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
+import javax.measure.quantity.Temperature
 import scala.language.postfixOps
 
 /** Test to ensure the functions that a thermal grid and its connected assets is
@@ -72,7 +76,8 @@ class ThermalGridIT
     with MockitoSugar
     with DefaultTestData
     with TestSpawnerTyped {
-  protected given temperatureTolerance: Double = 0.01
+  protected given temperatureTolerance: ComparableQuantity[Temperature] =
+    Quantities.getQuantity(0.01, Units.CELSIUS)
 
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
