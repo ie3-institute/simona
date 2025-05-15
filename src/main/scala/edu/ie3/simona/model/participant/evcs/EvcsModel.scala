@@ -352,7 +352,7 @@ class EvcsModel private (
 
     if evs.isEmpty then return (Seq.empty, setPower)
 
-    if setPower.~=(zeroKW)(Kilowatts(1e-6)) then {
+    if setPower.~=(zeroKW)(using Kilowatts(1e-6)) then {
       // No power left. Rest is not charging
       return (Seq.empty, zeroKW)
     }

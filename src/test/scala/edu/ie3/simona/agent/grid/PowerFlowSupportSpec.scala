@@ -147,7 +147,7 @@ class PowerFlowSupportSpec
         )
 
         val pfResult =
-          createResultModels(gridModel, sweepValueStore)(
+          createResultModels(gridModel, sweepValueStore)(using
             ZonedDateTime.now(),
             log,
           )
@@ -235,7 +235,7 @@ class PowerFlowSupportSpec
             gridModel.gridComponents.nodes,
             gridModel.nodeUuidToIndexMap,
           ),
-        )(ZonedDateTime.now(), log)
+        )(using ZonedDateTime.now(), log)
 
         // left/top side segments (lines that are adjacent to the open switch) should have no load
         val loadLinesLeft =
@@ -306,7 +306,7 @@ class PowerFlowSupportSpec
             gridModel.gridComponents.nodes,
             gridModel.nodeUuidToIndexMap,
           ),
-        )(ZonedDateTime.now(), log)
+        )(using ZonedDateTime.now(), log)
 
         // left/top side segments (lines that are adjacent to the open switch) should have load
         val expectedLoadLines =
@@ -406,7 +406,9 @@ class PowerFlowSupportSpec
       }
 
       onlyHvPowerFlowResults.foreach { case (uuid, result) =>
-        withEhvPowerFlowResults(uuid) should approximate(result)(tolerance)
+        withEhvPowerFlowResults(uuid) should approximate(result)(using
+          tolerance
+        )
       }
     }
   }

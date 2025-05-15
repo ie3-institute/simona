@@ -32,7 +32,7 @@ final case class EmAggregatePowerOpt(
 
   override def aggregateFlexOptions(
       flexOptions: Iterable[
-        (_ <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, MinMaxFlexOptions)
       ]
   ): MinMaxFlexOptions = {
     val (minSum, refSum, maxSum) =

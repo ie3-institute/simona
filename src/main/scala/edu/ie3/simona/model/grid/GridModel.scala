@@ -44,7 +44,8 @@ final case class GridModel(
 ) {
 
   // init nodeUuidToIndexMap
-  private var _nodeUuidToIndexMap: Map[UUID, Int] = _
+  private var _nodeUuidToIndexMap: Map[UUID, Int] =
+    scala.compiletime.uninitialized
   GridModel.updateUuidToIndexMap(this)
 
   val slackNodesIndices: Vector[Int] = gridComponents.nodes
@@ -259,7 +260,7 @@ object GridModel {
             line.nodeBUuid,
             throwNodeNotFoundException(line.nodeBUuid),
           ),
-      )
+      ): @unchecked
 
     // yaa == ybb => we use yaa only
     val (yab, yaa) = (LineModel.yij(line), LineModel.y0(line))
@@ -282,7 +283,7 @@ object GridModel {
           trafo.lvNodeUuid,
           throwNodeNotFoundException(trafo.lvNodeUuid),
         ),
-      )
+      ): @unchecked
 
     val (yab, yaa, ybb) = (
       TransformerModel.yij(trafo),
@@ -322,7 +323,7 @@ object GridModel {
           .getOrElse(nodeAUuid, throwNodeNotFoundException(nodeAUuid)),
         nodeUuidToIndexMap
           .getOrElse(nodeBUuid, throwNodeNotFoundException(nodeBUuid)),
-      )
+      ): @unchecked
 
     // these parameters are the same for all cases
     val yab: Complex = Transformer3wModel.yij(trafo3w)

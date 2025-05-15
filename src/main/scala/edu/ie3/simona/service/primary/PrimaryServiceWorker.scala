@@ -338,10 +338,11 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
       Option[Long],
   ) = {
     /* Get the information to distribute */
-    val simulationTime = tick.toDateTime(serviceBaseStateData.startDateTime)
+    val simulationTime =
+      tick.toDateTime(using serviceBaseStateData.startDateTime)
     serviceBaseStateData.source.getValue(simulationTime).toScala match {
       case Some(value) =>
-        processDataAndAnnounce(tick, value, serviceBaseStateData)(
+        processDataAndAnnounce(tick, value, serviceBaseStateData)(using
           ctx.self,
           ctx.log,
         )

@@ -205,7 +205,7 @@ object ParticipantGridAdapter {
       expectedRequestTick = expectedRequestTick,
       tickToPower = SortedMap.empty,
       avgPowerResult = None,
-    )(
+    )(using
       requestVoltageDeviationTolerance = requestVoltageDeviationTolerance
     )
 

@@ -221,7 +221,7 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
     val updatedStateData: LoadProfileInitializedStateData =
       serviceStateData.copy(nextActivationTick = nextTick)
 
-    val time = tick.toDateTime(serviceStateData.simulationStartTime)
+    val time = tick.toDateTime(using serviceStateData.simulationStartTime)
     val loadProfileStore = serviceStateData.loadProfileStore
 
     serviceStateData.profileToRefs.foreach { case (loadProfile, actorRefs) =>

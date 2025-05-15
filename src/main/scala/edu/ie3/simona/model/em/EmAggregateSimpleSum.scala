@@ -16,7 +16,7 @@ object EmAggregateSimpleSum extends EmAggregateFlex {
 
   override def aggregateFlexOptions(
       flexOptions: Iterable[
-        (_ <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, MinMaxFlexOptions)
       ]
   ): MinMaxFlexOptions =
     flexOptions.map { case (_, flex: MinMaxFlexOptions) =>

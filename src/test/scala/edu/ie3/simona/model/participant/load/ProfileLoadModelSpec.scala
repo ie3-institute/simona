@@ -20,11 +20,7 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyToSimona,
   PowerConversionSimona,
 }
-import edu.ie3.util.scala.quantities.{
-  ApparentPower,
-  Kilovoltamperes,
-  Voltamperes,
-}
+import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
 import squants.Percent
 import squants.energy.{KilowattHours, Power, Watts}
 import tech.units.indriya.quantity.Quantities

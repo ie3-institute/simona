@@ -33,7 +33,7 @@ object ProportionalFlexStrat extends EmModelStrat {
     */
   override def determineFlexControl(
       modelFlexOptions: Iterable[
-        (_ <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, MinMaxFlexOptions)
       ],
       target: Power,
   ): Iterable[(UUID, Power)] = {
@@ -49,7 +49,7 @@ object ProportionalFlexStrat extends EmModelStrat {
       flexOptions
     }.flexSum
 
-    if target.~=(totalOptions.ref)(tolerance) then {
+    if target.~=(totalOptions.ref)(using tolerance) then {
       Seq.empty
     } else if target < totalOptions.ref then {
       val reducedOptions = flexOptions.map {
@@ -100,7 +100,7 @@ object ProportionalFlexStrat extends EmModelStrat {
   ): Iterable[(UUID, Power)] = {
     // filter out options with ref == limit because they're useless here
     val filteredOptions = options.filterNot { case (_, refPower, limitPower) =>
-      refPower.~=(limitPower)(tolerance)
+      refPower.~=(limitPower)(using tolerance)
     }
 
     if (target < totalRef && target <= totalLimit) ||

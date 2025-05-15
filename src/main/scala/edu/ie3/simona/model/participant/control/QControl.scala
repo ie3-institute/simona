@@ -15,7 +15,6 @@ import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.{ApparentPower, Megavars, ReactivePower}
 import squants.{Dimensionless, Each, Power}
-import tech.units.indriya.AbstractUnit
 
 import scala.collection.SortedSet
 import scala.collection.immutable.TreeSet

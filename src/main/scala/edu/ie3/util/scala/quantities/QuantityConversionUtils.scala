@@ -8,7 +8,6 @@ package edu.ie3.util.scala.quantities
 
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.{
-  Currency,
   EnergyPrice,
   SpecificConductance,
   SpecificResistance,
@@ -16,7 +15,6 @@ import edu.ie3.util.quantities.interfaces.{
 import edu.ie3.util.scala.quantities
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.market.{EUR, Money}
 import squants.space.SquareMeters
 import squants.{Amperes, Each, Radians}
 import tech.units.indriya.ComparableQuantity

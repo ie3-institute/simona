@@ -272,10 +272,10 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         case (Some(thresholdA), Some(thresholdB), Some(thresholdC)) =>
           thresholdA.tick.doubleValue should approximate(
             thresholdB.tick.doubleValue
-          )(tolerance)
+          )(using tolerance)
           thresholdB.tick.doubleValue should approximate(
             thresholdC.tick.doubleValue
-          )(tolerance)
+          )(using tolerance)
           thresholdC shouldBe HouseTargetTemperatureReached(23732)
         case _ => fail("Could not match thresholds.")
       }

@@ -54,7 +54,7 @@ trait CongestionDetection {
         CongestionCheckRequest,
         ReceivedCongestions,
         ctx,
-      )(stateData.timeout)
+      )(using stateData.timeout)
 
       Behaviors.same
 

@@ -266,7 +266,7 @@ class PrimaryServiceProxySpec
   "Spinning off a worker" should {
     "successfully instantiate an actor within the actor system" in {
       val testKit = BehaviorTestKit(Behaviors.setup[AnyRef] { ctx =>
-        PrimaryServiceProxy.classToWorkerRef(workerId)(constantData, ctx)
+        PrimaryServiceProxy.classToWorkerRef(workerId)(using constantData, ctx)
         Behaviors.stopped
       })
 
@@ -356,7 +356,7 @@ class PrimaryServiceProxySpec
       )
 
       val context: ActorContext[?] = {
-        val m = mock[ActorContext[_]]
+        val m = mock[ActorContext[?]]
         when(m.log).thenReturn(log)
 
         when(m.spawn(any[Behavior[ServiceMessage]], any[String], any()))
@@ -373,7 +373,7 @@ class PrimaryServiceProxySpec
         metaInformation,
         simulationStart,
         initStateData.primaryConfig,
-      )(constantData, context)
+      )(using constantData, context)
 
       inside(worker.expectMessageType[Create]) {
         case Create(

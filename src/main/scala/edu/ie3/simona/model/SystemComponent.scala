@@ -123,13 +123,13 @@ case object SystemComponent {
 
     val startTick = operationStartOpt match {
       case Some(operationStart) =>
-        operationStart.toTick(startDate)
+        operationStart.toTick(using startDate)
       case None => 0
     }
 
     val endTick = operationEndOpt match {
-      case Some(operationEnd) => operationEnd.toTick(startDate)
-      case None               => endDate.toTick(startDate)
+      case Some(operationEnd) => operationEnd.toTick(using startDate)
+      case None               => endDate.toTick(using startDate)
     }
 
     OperationInterval(startTick, endTick)

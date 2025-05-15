@@ -45,7 +45,8 @@ class ResultEntityKafkaSpec
     with GivenWhenThen
     with Eventually {
 
-  private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
+  private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] =
+    scala.compiletime.uninitialized
 
   private val deserializer: Deserializer[PlainNodeResult] =
     ScalaReflectionSerde.reflectionDeserializer4S[PlainNodeResult]

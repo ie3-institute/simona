@@ -24,7 +24,7 @@ trait TransformerTapping {
 
   protected val transformerTappingModel: TransformerTappingModel
 
-  protected var tapRatio: Double = _
+  protected var tapRatio: Double = scala.compiletime.uninitialized
 
   def getTapRation: Double = tapRatio
 

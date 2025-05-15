@@ -40,7 +40,7 @@ class DeploySpec extends UnitSpec {
       val versionProps = Using(
         Source.fromFile(
           System.getProperty("user.dir") + File.separator + "version.properties"
-        )(Codec.UTF8)
+        )(using Codec.UTF8)
       )(_.getLines().mkString) match {
         case Failure(exception)   => fail(exception)
         case Success(buildGradle) => buildGradle

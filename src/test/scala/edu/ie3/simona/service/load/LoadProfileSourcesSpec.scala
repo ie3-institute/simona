@@ -7,7 +7,7 @@
 package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
-import edu.ie3.simona.config.ConfigParams.{BaseCsvParams, BaseSqlParams}
+import edu.ie3.simona.config.ConfigParams.BaseCsvParams
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.test.common.UnitSpec
 

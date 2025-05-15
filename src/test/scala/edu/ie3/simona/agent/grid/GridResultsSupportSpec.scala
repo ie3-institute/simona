@@ -48,7 +48,7 @@ import edu.ie3.util.scala.quantities.{
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Each
 import squants.electro.{Amperes, Volts}
-import squants.energy.{Kilowatts, Watts}
+import squants.energy.Kilowatts
 import squants.space.Degrees
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units

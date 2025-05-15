@@ -10,7 +10,6 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemPartic
 import edu.ie3.datamodel.models.input.system.*
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
-  BmRuntimeConfig,
   EvcsRuntimeConfig,
   LoadRuntimeConfig,
   StorageRuntimeConfig,
@@ -25,8 +24,6 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.load.LoadModel
 import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
-
-import scala.reflect.ClassTag
 
 /** Helper object for constructing all types of [[ParticipantModel]]s, including
   * [[PrimaryDataParticipantModel]].

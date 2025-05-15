@@ -226,7 +226,7 @@ class SimonaStandaloneSetup(
     val jars = ExtSimLoader.scanInputFolder(extSimPath)
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
 
-    setupExtSim(extLinks, args)(
+    setupExtSim(extLinks, args)(using
       context,
       scheduler,
       simonaConfig.simona.powerflow.resolution,
@@ -250,7 +250,7 @@ class SimonaStandaloneSetup(
         simulation,
         Some(runtimeEventListener),
         simonaConfig.simona.time.schedulerReadyCheckWindow,
-        endDateTime.toTick(startDateTime),
+        endDateTime.toTick(using startDateTime),
       ),
       TimeAdvancer.getClass.getSimpleName,
     )
@@ -332,7 +332,7 @@ class SimonaStandaloneSetup(
       thermalGridByBus: Map[ThermalBusInput, ThermalGrid],
   ): Seq[ThermalGrid] = {
     grid.getSystemParticipants.getHeatPumps.asScala
-      .flatten(hpInput => thermalGridByBus.get(hpInput.getThermalBus))
+      .flatten(using hpInput => thermalGridByBus.get(hpInput.getThermalBus))
       .toSeq
   }
 }

@@ -29,7 +29,6 @@ import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.reflect.ClassTag
 
 /** A [[ParticipantModel]] that does not do any physical calculations, but just
   * "replays" the primary data that it received via model input. It is used in
@@ -208,22 +207,22 @@ object PrimaryDataParticipantModel {
         data: PD
     ): PrimaryOperatingPoint[PD] =
       data match {
-        case apparentPowerData: PD with PrimaryDataWithComplexPower[?] =>
+        case apparentPowerData: (PD & PrimaryDataWithComplexPower[?]) =>
           PrimaryApparentPowerOperatingPoint(apparentPowerData)
-        case other: PD with EnrichableData[?] =>
+        case other: (PD & EnrichableData[?]) =>
           PrimaryActivePowerOperatingPoint(other)
       }
   }
 
   private final case class PrimaryApparentPowerOperatingPoint[
-      PD <: PrimaryDataWithComplexPower[_]
+      PD <: PrimaryDataWithComplexPower[?]
   ](override val data: PD)
       extends PrimaryOperatingPoint[PD] {
     override val reactivePower: Option[ReactivePower] = Some(data.q)
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
-      PE <: PrimaryData with EnrichableData[? <: PrimaryData]
+      PE <: PrimaryData & EnrichableData[? <: PrimaryData]
   ](
       override val data: PE
   ) extends PrimaryOperatingPoint[PE] {

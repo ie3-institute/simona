@@ -136,7 +136,7 @@ object EmAgent {
     inactive(
       constantData,
       modelShell,
-      EmDataCore.create(simulationStartDate),
+      EmDataCore.create(using simulationStartDate),
     )
   }
 
@@ -237,7 +237,7 @@ object EmAgent {
 
         if emData.outputConfig.flexResult then {
           val flexResult = new FlexOptionsResult(
-            flexOptionsCore.activeTick.toDateTime(
+            flexOptionsCore.activeTick.toDateTime(using
               emData.simulationStartDate
             ),
             modelShell.uuid,
@@ -421,7 +421,7 @@ object EmAgent {
         _ ! ParticipantResultEvent(
           new EmResult(
             lastActiveTick
-              .toDateTime(emData.simulationStartDate),
+              .toDateTime(using emData.simulationStartDate),
             modelShell.uuid,
             result.p.toMegawatts.asMegaWatt,
             result.q.toMegavars.asMegaVar,

@@ -73,7 +73,7 @@ final case class RuntimeEventLogSink(
 
   private def calcTime(currentTick: Long): String = {
     TimeUtil.withDefaults.toString(
-      currentTick.toDateTime(
+      currentTick.toDateTime(using
         simulationStartDate
       )
     )

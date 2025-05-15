@@ -116,7 +116,7 @@ object GridConfigParser {
       refSystem => RefSystem(refSystem.sNom, refSystem.vNom),
       (gridIds, voltLvls) => ConfigRefSystems(gridIds, voltLvls),
       defaultRefSystems,
-    )("refSystems")
+    )(using "refSystems")
   }
 
   /** Parses the configuration based [[VoltageLimits]] information based on a
@@ -153,10 +153,10 @@ object GridConfigParser {
       voltageLimit => VoltageLimits(voltageLimit.vMin, voltageLimit.vMax),
       (gridIds, voltLvls) => ConfigVoltageLimits(gridIds, voltLvls),
       defaultVoltageLimits,
-    )("voltageLimits")
+    )(using "voltageLimits")
   }
 
-  def parseWithDefaults[C, E, T <: ParsedGridConfig[_]](
+  def parseWithDefaults[C, E, T <: ParsedGridConfig[?]](
       configs: Option[List[C]],
       gridIds: C => Option[List[String]],
       voltLvls: C => Option[List[VoltLvlConfig]],

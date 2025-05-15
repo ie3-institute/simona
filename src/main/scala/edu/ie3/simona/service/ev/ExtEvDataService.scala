@@ -186,7 +186,7 @@ object ExtEvDataService
             tick,
             asScala(arrivingEvsProvision.arrivals),
             arrivingEvsProvision.maybeNextTick.toScala.map(Long2long),
-          )(
+          )(using
             serviceStateData,
             ctx,
           )

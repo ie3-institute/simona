@@ -12,7 +12,6 @@ import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
-import edu.ie3.simona.sim.setup.ExtSimSetupData.Input
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef as ClassicRef}
 
@@ -34,9 +33,9 @@ final case class ExtSimSetupData(
       (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
     ],
     extDataServices: Seq[
-      (_ <: ExtInputDataConnection, ActorRef[? >: ServiceMessage])
+      (? <: ExtInputDataConnection, ActorRef[? >: ServiceMessage])
     ],
-    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[_])],
+    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[?])],
 ) {
 
   private[setup] def update(

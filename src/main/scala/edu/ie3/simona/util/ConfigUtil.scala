@@ -27,7 +27,6 @@ import edu.ie3.simona.config.ConfigParams.{
   BaseCsvParams,
   CouchbaseParams,
   KafkaParams,
-  SqlParams,
 }
 import edu.ie3.simona.config.OutputConfig.{
   GridOutputConfig,
@@ -37,7 +36,7 @@ import edu.ie3.simona.config.OutputConfig.{
 import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, EmRuntimeConfig}
 import edu.ie3.simona.config.SimonaConfig.AssetConfigs
-import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.common.KafkaException
@@ -88,7 +87,7 @@ object ConfigUtil {
 
   final case class ParticipantConfigUtil private (
       private val configs: Map[UUID, BaseRuntimeConfig],
-      private val defaultConfigs: Map[Class[_], BaseRuntimeConfig],
+      private val defaultConfigs: Map[Class[?], BaseRuntimeConfig],
   ) {
 
     /** Queries for a [[BaseRuntimeConfig]] of type [[T]], that applies for the

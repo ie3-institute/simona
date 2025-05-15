@@ -91,7 +91,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         activationAdapter,
       )
 
-      uninitialized(agentValues, buffer, simonaConfig)
+      uninitialized(using agentValues, buffer, simonaConfig)
     }
   }
 
@@ -272,7 +272,10 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           createResultModels(
             gridAgentBaseData.gridEnv.gridModel,
             valueStore,
-          )(currentTick.toDateTime(constantData.simStartTime), ctx.log)
+          )(using
+            currentTick.toDateTime(using constantData.simStartTime),
+            ctx.log,
+          )
       }
 
     // check if congestion management is enabled

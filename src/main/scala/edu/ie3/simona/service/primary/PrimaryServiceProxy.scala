@@ -145,7 +145,7 @@ object PrimaryServiceProxy {
         INIT_SIM_TICK,
       )
 
-      uninitialized(initStateData)(constantData, buffer)
+      uninitialized(initStateData)(using constantData, buffer)
     }
   }
 
@@ -166,7 +166,7 @@ object PrimaryServiceProxy {
       prepareStateData(
         initStateData.primaryConfig,
         initStateData.simulationStart,
-      )(ctx.log) match {
+      )(using ctx.log) match {
         case Success(stateData) =>
           constantData.scheduler ! Completion(constantData.activationAdapter)
           buffer.unstashAll(onMessage(stateData))
@@ -333,7 +333,7 @@ object PrimaryServiceProxy {
             timeSeriesUuid,
             stateData,
             requestingActor,
-          )(constantData, ctx)
+          )(using constantData, ctx)
 
           onMessage(updatedStateData)
 

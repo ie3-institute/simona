@@ -58,7 +58,7 @@ class RuntimeEventListenerLoggingSpec
 
       def calcTime(curTick: Long): String = {
         TimeUtil.withDefaults.toString(
-          curTick.toDateTime(
+          curTick.toDateTime(using
             TimeUtil.withDefaults.toZonedDateTime(startDateTimeString)
           )
         )

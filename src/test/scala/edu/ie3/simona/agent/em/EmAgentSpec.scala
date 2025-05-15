@@ -181,7 +181,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 0.toDateTime(using simulationStartDate)
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
@@ -235,7 +235,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 300.toDateTime(using simulationStartDate)
           flexResult.getpRef() should equalWithTolerance(-.005.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(-.005.asMegaWatt)
@@ -244,7 +244,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 300.toDateTime(using simulationStartDate)
           emResult.getP should equalWithTolerance(-.005.asMegaWatt)
           emResult.getQ should equalWithTolerance(-.0005.asMegaVar)
       }
@@ -350,7 +350,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 0.toDateTime(using simulationStartDate)
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
@@ -420,7 +420,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 300.toDateTime(using simulationStartDate)
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.014.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.008.asMegaWatt)
@@ -429,7 +429,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 300.toDateTime(using simulationStartDate)
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(0.asMegaVar)
       }
@@ -537,7 +537,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 0.toDateTime(using simulationStartDate)
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
@@ -546,7 +546,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 0.toDateTime(using simulationStartDate)
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(-.0004.asMegaVar)
       }
@@ -616,7 +616,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 300.toDateTime(using simulationStartDate)
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.014.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.008.asMegaWatt)
@@ -625,7 +625,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 300.toDateTime(using simulationStartDate)
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(0.asMegaVar)
       }
@@ -737,7 +737,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 0.toDateTime(using simulationStartDate)
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
@@ -794,7 +794,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 0.toDateTime(using simulationStartDate)
           emResult.getP should equalWithTolerance(.006.asMegaWatt)
           emResult.getQ should equalWithTolerance(.0006.asMegaVar)
       }
@@ -844,7 +844,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 150.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 150.toDateTime(using simulationStartDate)
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(0.asMegaVar)
       }

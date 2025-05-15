@@ -8,7 +8,7 @@ package edu.ie3.simona.scheduler
 
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorContextOps
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,

@@ -55,7 +55,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
     */
   override def determineFlexControl(
       flexOptions: Iterable[
-        (_ <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, MinMaxFlexOptions)
       ],
       target: Power,
   ): Seq[(UUID, Power)] = {
@@ -96,7 +96,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       }
       .filter(_ => curtailRegenerative) // only if enabled
 
-    if zeroKW.~=(targetDelta)(tolerance) then {
+    if zeroKW.~=(targetDelta)(using tolerance) then {
       Seq.empty
     } else if targetDelta < zeroKW then {
       // suggested power too low, try to store difference/increase load
@@ -118,10 +118,10 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
           val flexPotential =
             flexOption.ref - flexOption.max
 
-          if zeroKW.~=(remainingExcessPower)(tolerance) then {
+          if zeroKW.~=(remainingExcessPower)(using tolerance) then {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if zeroKW.~=(flexPotential)(tolerance) then {
+          } else if zeroKW.~=(flexPotential)(using tolerance) then {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if remainingExcessPower < flexPotential then {
@@ -170,10 +170,10 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
           val flexPotential =
             flexOption.ref - flexOption.min
 
-          if zeroKW.~=(remainingExcessPower)(tolerance) then {
+          if zeroKW.~=(remainingExcessPower)(using tolerance) then {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if zeroKW.~=(flexPotential)(tolerance) then {
+          } else if zeroKW.~=(flexPotential)(using tolerance) then {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if remainingExcessPower > flexPotential then {
