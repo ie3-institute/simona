@@ -18,12 +18,15 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
-  WrappedActivation,
+  ServiceMessages,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.helper.TestContainerHelper
@@ -48,9 +51,6 @@ class PrimaryServiceProxySqlIT
     with BeforeAndAfterAll
     with TestContainerHelper
     with TestSpawnerTyped {
-
-  implicit def wrap(msg: Activation): ServiceMessage =
-    WrappedActivation(msg)
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(
     DockerImageName.parse("postgres:14.2")
@@ -92,7 +92,7 @@ class PrimaryServiceProxySqlIT
     timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
   )
 
-  private def createProxy(): ActorRef[ServiceMessage] = {
+  private def createProxy(): ActorRef[ServiceMessages] = {
     val initData = InitPrimaryServiceProxyStateData(
       Primary(
         None,

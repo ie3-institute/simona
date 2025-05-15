@@ -6,8 +6,7 @@
 
 package edu.ie3.simona.service
 
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import org.apache.pekko.actor.typed.ActorRef
 
 trait ServiceStateData
@@ -21,8 +20,7 @@ object ServiceStateData {
   trait ServiceBaseStateData extends ServiceStateData
 
   final case class ServiceConstantStateData(
-      scheduler: ActorRef[SchedulerMessage],
-      activationAdapter: ActorRef[Activation],
+      scheduler: ActorRef[SchedulerMessage]
   ) extends ServiceStateData
 
 }

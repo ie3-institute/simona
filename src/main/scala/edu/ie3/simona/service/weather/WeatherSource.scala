@@ -25,7 +25,7 @@ import edu.ie3.simona.config.ConfigParams.{
   SampleParams,
 }
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates,

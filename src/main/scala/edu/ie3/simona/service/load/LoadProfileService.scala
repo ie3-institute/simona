@@ -16,15 +16,10 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.{
-  LoadData,
-  LoadDataFunction,
-  RegisterForLoadProfileService,
-}
-import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.RegisterForService
+import edu.ie3.simona.service.Data.SecondaryData.{LoadData, LoadDataFunction}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
@@ -43,7 +38,7 @@ import scala.util.{Failure, Success, Try}
   * load profile information and provide load profile time series information
   * when requested
   */
-object LoadProfileService extends SimonaService[LoadProfileMessage] {
+object LoadProfileService extends SimonaService {
 
   override type S = LoadProfileInitializedStateData
 
@@ -121,11 +116,11 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
 
   override protected def handleRegistrationRequest(
       registrationMessage: ServiceMessage.ServiceRegistrationMessage
-  )(implicit
+  )(using
       serviceStateData: LoadProfileInitializedStateData,
-      ctx: ActorContext[LoadProfileMessage],
+      ctx: ActorContext[ServiceMessages],
   ): Try[LoadProfileInitializedStateData] = registrationMessage match {
-    case RegisterForLoadProfileService(requestingActor, loadProfile) =>
+    case RegisterForService[LoadProfile](requestingActor, loadProfile) =>
       Success(handleRegistrationRequest(requestingActor, loadProfile))
     case invalidMessage =>
       Failure(
@@ -152,9 +147,9 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ParticipantAgent.Request],
       loadProfile: LoadProfile,
-  )(implicit
+  )(using
       serviceStateData: LoadProfileInitializedStateData,
-      ctx: ActorContext[LoadProfileMessage],
+      ctx: ActorContext[ServiceMessages],
   ): LoadProfileInitializedStateData = {
 
     serviceStateData.profileToRefs.get(loadProfile) match {
@@ -211,9 +206,9 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
     }
   }
 
-  override protected def announceInformation(tick: Long)(implicit
+  override protected def announceInformation(tick: Long)(using
       serviceStateData: LoadProfileInitializedStateData,
-      ctx: ActorContext[LoadProfileMessage],
+      ctx: ActorContext[ServiceMessages],
   ): (LoadProfileInitializedStateData, Option[Long]) = {
 
     /* Pop the next activation tick and update the state data */
@@ -221,7 +216,7 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
     val updatedStateData: LoadProfileInitializedStateData =
       serviceStateData.copy(nextActivationTick = nextTick)
 
-    val time = tick.toDateTime(serviceStateData.simulationStartTime)
+    val time = tick.toDateTime(using serviceStateData.simulationStartTime)
     val loadProfileStore = serviceStateData.loadProfileStore
 
     serviceStateData.profileToRefs.foreach { case (loadProfile, actorRefs) =>

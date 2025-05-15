@@ -19,14 +19,18 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
-  WrappedActivation,
+  RegisterForService,
 }
-import edu.ie3.simona.ontology.messages.services.WeatherMessage._
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.Data.InitialisationData.Coordinate
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.service.weather.WeatherSource.AgentCoordinates
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
@@ -51,8 +55,6 @@ class WeatherServiceSpec
     with LazyLogging
     with ConfigTestData
     with TestSpawnerTyped {
-
-  implicit def wrap(msg: Activation): ServiceMessage = WrappedActivation(msg)
 
   // setup config for scheduler
   private val config = ConfigFactory
@@ -120,10 +122,9 @@ class WeatherServiceSpec
     }
 
     "announce failed weather registration on invalid coordinate" in {
-      weatherService ! RegisterForWeatherMessage(
+      weatherService ! RegisterForService(
         agent.ref,
-        invalidCoordinate.latitude,
-        invalidCoordinate.longitude,
+        Coordinate(invalidCoordinate.latitude, invalidCoordinate.longitude),
       )
 
       agent.expectMessage(RegistrationFailedMessage(weatherService))
@@ -131,10 +132,9 @@ class WeatherServiceSpec
 
     "announce, that a valid coordinate is registered" in {
       /* The successful registration stems from the test above */
-      weatherService ! RegisterForWeatherMessage(
+      weatherService ! RegisterForService(
         agent.ref,
-        validCoordinate.latitude,
-        validCoordinate.longitude,
+        Coordinate(validCoordinate.latitude, validCoordinate.longitude),
       )
 
       agent.expectMessage(
@@ -144,10 +144,9 @@ class WeatherServiceSpec
 
     "recognize, that a valid coordinate yet is registered" in {
       /* The successful registration stems from the test above */
-      weatherService ! RegisterForWeatherMessage(
+      weatherService ! RegisterForService(
         agent.ref,
-        validCoordinate.latitude,
-        validCoordinate.longitude,
+        Coordinate(validCoordinate.latitude, validCoordinate.longitude),
       )
 
       agent.expectNoMessage()

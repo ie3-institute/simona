@@ -15,8 +15,12 @@ import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceRef
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.ev.ExtEvDataService
@@ -60,8 +64,8 @@ object ExtSimSetup {
   def setupExtSim(
       extLinks: List[ExtLinkInterface],
       args: Array[String],
-  )(implicit
-      context: ActorContext[_],
+  )(using
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       resolution: FiniteDuration,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
@@ -73,7 +77,7 @@ object ExtSimSetup {
       )
 
       // creating the adapter data
-      implicit val extSimAdapterData: ExtSimAdapterData =
+      given extSimAdapterData: ExtSimAdapterData =
         new ExtSimAdapterData(extSimAdapter.toTyped, args)
 
       Try {
@@ -127,13 +131,13 @@ object ExtSimSetup {
   private[setup] def connect(
       extSimulation: ExtSimulation,
       extSimSetupData: ExtSimSetupData,
-  )(implicit
-      context: ActorContext[_],
+  )(using
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
       resolution: FiniteDuration,
   ): ExtSimSetupData = {
-    implicit val extSimAdapter: ActorRef[ControlResponseMessageFromExt] =
+    given extSimAdapter: ActorRef[ControlResponseMessageFromExt] =
       extSimAdapterData.getAdapter
 
     // the data connections this external simulation provides
@@ -153,11 +157,14 @@ object ExtSimSetup {
               )
             }
 
-            val serviceRef = setupInputService(
-              extEvDataConnection,
-              ExtEvDataService.apply(scheduler),
-              ExtEvDataService.adapter,
+            val serviceRef = context.spawn(
+              ExtEvDataService(scheduler),
               "ExtEvDataService",
+            )
+
+            setupService(
+              extEvDataConnection,
+              serviceRef,
               InitExtEvData,
             )
 
@@ -177,14 +184,12 @@ object ExtSimSetup {
     updatedSetupData
   }
 
-  /** Method for setting up an external service, that provides input data.
+  /** Method for setting up an external service.
     *
     * @param extInputDataConnection
     *   the data connection.
-    * @param behavior
-    *   The initial behavior of the service.
-    * @param name
-    *   Of the actor.
+    * @param serviceRef
+    *   The reference of the service.
     * @param initData
     *   Data to initialize the service.
     * @param context
@@ -193,31 +198,24 @@ object ExtSimSetup {
     *   The scheduler of simona.
     * @param extSimAdapter
     *   The adapter for the external simulation.
-    * @tparam T
+    * @tparam C
     *   Type of [[ExtInputDataConnection]].
     * @return
     *   The reference to the service.
     */
-  private[setup] def setupInputService[
-      T <: ExtInputDataConnection,
-      M >: ServiceMessage,
+  private[setup] def setupService[
+      C <: ExtInputDataConnection,
+      M,
   ](
-      extInputDataConnection: T,
-      behavior: Behavior[M],
-      adapterToExt: ActorRef[M] => Behavior[DataMessageFromExt],
-      name: String,
-      initData: T => InitializeServiceStateData,
-  )(implicit
-      context: ActorContext[_],
+      extInputDataConnection: C,
+      serviceRef: ActorRef[ServiceMessage | DataMessageFromExt],
+      initData: C => InitializeServiceStateData,
+  )(using
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapter: ActorRef[ControlResponseMessageFromExt],
-  ): ActorRef[M] = {
-    val extDataService = context.spawn(
-      behavior,
-      name,
-    )
-
-    extDataService ! ServiceMessage.Create(
+  ): Unit = {
+    serviceRef ! ServiceMessage.Create(
       initData(extInputDataConnection),
       ScheduleLock.singleKey(
         context,
@@ -226,17 +224,10 @@ object ExtSimSetup {
       ),
     )
 
-    val adapter = context.spawn(
-      adapterToExt(extDataService),
-      s"$name-adapter-to-external",
-    )
-
     extInputDataConnection.setActorRefs(
-      adapter,
+      serviceRef,
       extSimAdapter,
     )
-
-    extDataService
   }
 
   /** Method for validating the external primary data connections.

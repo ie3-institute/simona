@@ -15,13 +15,17 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
 import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage._
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  RegisterForService,
+  ServiceRegistrationMessage,
+}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
+import edu.ie3.simona.service.Data.InitialisationData.Coordinate
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
@@ -42,7 +46,7 @@ import scala.util.{Failure, Success, Try}
   * @version 0.1
   * @since 2019-07-28
   */
-object WeatherService extends SimonaService[WeatherMessage] {
+object WeatherService extends SimonaService {
 
   override type S = WeatherInitializedStateData
 
@@ -105,7 +109,7 @@ object WeatherService extends SimonaService[WeatherMessage] {
             startDateTime,
             simulationEnd,
           ) =>
-        implicit val simulationStart: ZonedDateTime = startDateTime
+        given simulationStart: ZonedDateTime = startDateTime
 
         val weatherSource = WeatherSource(sourceDefinition)
 
@@ -150,18 +154,18 @@ object WeatherService extends SimonaService[WeatherMessage] {
     */
   override def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
-  )(implicit
+  )(using
       serviceStateData: WeatherInitializedStateData,
-      ctx: ActorContext[WeatherMessage],
+      ctx: ActorContext[ServiceMessages],
   ): Try[WeatherInitializedStateData] =
     registrationMessage match {
-      case RegisterForWeatherMessage(
-            agentToBeRegistered,
-            latitude,
-            longitude,
-          ) =>
+      case RegisterForService[Coordinate](agentToBeRegistered, coordiante) =>
         Success(
-          handleRegistrationRequest(agentToBeRegistered, latitude, longitude)
+          handleRegistrationRequest(
+            agentToBeRegistered,
+            coordiante.latitude,
+            coordiante.longitude,
+          )
         )
       case invalidMessage =>
         Failure(
@@ -191,9 +195,9 @@ object WeatherService extends SimonaService[WeatherMessage] {
       agentToBeRegistered: ActorRef[ParticipantAgent.Request],
       latitude: Double,
       longitude: Double,
-  )(implicit
+  )(using
       serviceStateData: WeatherInitializedStateData,
-      ctx: ActorContext[WeatherMessage],
+      ctx: ActorContext[ServiceMessages],
   ): WeatherInitializedStateData = {
     ctx.log.debug(
       "Received weather registration from {} for [Lat:{}, Long:{}]",
@@ -277,9 +281,9 @@ object WeatherService extends SimonaService[WeatherMessage] {
     *   with updated values) together with the completion message that is sent
     *   in response to the trigger that was sent to start this announcement
     */
-  override protected def announceInformation(tick: Long)(implicit
+  override protected def announceInformation(tick: Long)(using
       serviceStateData: WeatherInitializedStateData,
-      ctx: ActorContext[WeatherMessage],
+      ctx: ActorContext[ServiceMessages],
   ): (WeatherInitializedStateData, Option[Long]) = {
 
     /* Pop the next activation tick and update the state data */

@@ -21,11 +21,9 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
-  ServiceMessage,
-  WeatherMessage,
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  ServiceMessages,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -53,11 +51,10 @@ class DBFSAlgorithmParticipantSpec
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   private val runtimeEvents: TestProbe[RuntimeEvent] =
     TestProbe("runtimeEvents")
-  private val primaryService: TestProbe[ServiceMessage] =
-    TestProbe("primaryService")
-  private val weatherService = TestProbe[WeatherMessage]("weatherService")
+  private val primaryService = TestProbe[ServiceMessages]("primaryService")
+  private val weatherService = TestProbe[ServiceMessages]("weatherService")
   private val loadProfileService =
-    TestProbe[LoadProfileMessage]("loadProfileService")
+    TestProbe[ServiceMessages]("loadProfileService")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,

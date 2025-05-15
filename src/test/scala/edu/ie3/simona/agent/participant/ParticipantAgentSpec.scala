@@ -38,7 +38,7 @@ import edu.ie3.simona.model.participant.{
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceMessages
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
 import edu.ie3.simona.test.common.UnitSpec
@@ -401,7 +401,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
-        val service = createTestProbe[ServiceMessage]()
+        val service = createTestProbe[ServiceMessages]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
@@ -668,7 +668,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val scheduler = createTestProbe[SchedulerMessage]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
-        val service = createTestProbe[ServiceMessage]()
+        val service = createTestProbe[ServiceMessages]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
@@ -1308,7 +1308,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
-        val service = createTestProbe[ServiceMessage]()
+        val service = createTestProbe[ServiceMessages]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
@@ -1712,7 +1712,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val em = createTestProbe[FlexResponse]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
-        val service = createTestProbe[ServiceMessage]()
+        val service = createTestProbe[ServiceMessages]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()

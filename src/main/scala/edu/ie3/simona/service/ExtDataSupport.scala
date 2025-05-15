@@ -7,58 +7,39 @@
 package edu.ie3.simona.service
 
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   ScheduleServiceActivation,
   ServiceResponseMessage,
-  WrappedExternalMessage,
 }
 import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 /** Trait that enables handling of external data.
-  *
-  * @tparam T
-  *   the type of messages this service accepts.
   */
-trait ExtDataSupport[T >: ServiceMessage] {
-  this: SimonaService[T] =>
+trait ExtDataSupport {
+  this: SimonaService =>
 
-  /** Creates an adapter, that enables a service with [[ExtDataSupport]] to
-    * receive a [[DataMessageFromExt]] by wrapping it in an
-    * [[WrappedExternalMessage]].
-    * @param service
-    *   For which an adapter should be created
-    * @return
-    *   The behavior of the adapter.
-    */
-  def adapter(service: ActorRef[T]): Behavior[DataMessageFromExt] =
-    Behaviors.receiveMessagePartial[DataMessageFromExt] {
-      case scheduleServiceActivation: ScheduleServiceActivation =>
-        // TODO: Refactor this with scala3
-        service ! scheduleServiceActivation
-        Behaviors.same
+  override protected type ServiceMessages = ServiceMessage | Activation |
+    DataMessageFromExt
 
-      case extMsg =>
-        service ! WrappedExternalMessage(extMsg)
-        Behaviors.same
-    }
-
-  override protected def idleExternal(implicit
+  override protected def idleExternal(using
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = {
-    case (_, WrappedExternalMessage(extMsg)) =>
-      val updatedStateData = handleDataMessage(extMsg)(stateData)
+  ): PartialFunction[(ActorContext[ServiceMessages], ServiceMessages), Behavior[
+    ServiceMessages
+  ]] = {
+    case (_, extMsg: DataMessageFromExt) =>
+      val updatedStateData = handleDataMessage(extMsg)
 
-      idle(updatedStateData, constantData)
+      idle(using updatedStateData, constantData)
 
     case (_, extResponseMsg: ServiceResponseMessage) =>
-      val updatedStateData =
-        handleDataResponseMessage(extResponseMsg)(stateData)
+      val updatedStateData = handleDataResponseMessage(extResponseMsg)
 
-      idle(updatedStateData, constantData)
+      idle(using updatedStateData, constantData)
   }
 
   /** Handle a message from outside the simulation
@@ -72,7 +53,7 @@ trait ExtDataSupport[T >: ServiceMessage] {
     */
   protected def handleDataMessage(
       extMsg: DataMessageFromExt
-  )(implicit serviceStateData: S): S
+  )(using serviceStateData: S): S
 
   /** Handle a message from inside SIMONA sent to external
     *
@@ -85,5 +66,5 @@ trait ExtDataSupport[T >: ServiceMessage] {
     */
   protected def handleDataResponseMessage(
       extResponseMsg: ServiceResponseMessage
-  )(implicit serviceStateData: S): S
+  )(using serviceStateData: S): S
 }

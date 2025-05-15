@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.{LoadInput, SystemParticipantInput}
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent._
+import edu.ie3.simona.agent.participant.ParticipantAgent.*
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -27,16 +27,16 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.RegisterForLoadProfileService
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
-  RegisterForEvDataMessage,
+  RegisterForService,
+  ServiceRef,
 }
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.simona.service.Data.InitialisationData.Coordinate
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
@@ -66,8 +66,8 @@ object ParticipantAgentInit {
     */
   final case class ParticipantRefs(
       gridAgent: ActorRef[GridAgent.Request],
-      primaryServiceProxy: ActorRef[ServiceMessage],
-      services: Map[ServiceType, ActorRef[_ >: ServiceMessage]],
+      primaryServiceProxy: ServiceRef,
+      services: Map[ServiceType, ServiceRef],
       resultListener: Iterable[ActorRef[ResultEvent]],
   )
 
@@ -214,7 +214,7 @@ object ParticipantAgentInit {
           ),
         ) =>
       // we're supposed to replay primary data, initialize accordingly
-      val expectedFirstData: Map[ActorRef[_ >: ServiceMessage], Long] =
+      val expectedFirstData: Map[ServiceRef, Long] =
         Map(serviceRef -> firstDataTick)
 
       completeInitialization(
@@ -289,7 +289,7 @@ object ParticipantAgentInit {
       participantInput: SystemParticipantInput,
       participantRef: ActorRef[Request],
       serviceType: ServiceType,
-      serviceRef: ActorRef[_ >: ServiceMessage],
+      serviceRef: ServiceRef,
   ): Unit =
     serviceType match {
       case ServiceType.WeatherService =>
@@ -297,7 +297,10 @@ object ParticipantAgentInit {
 
         Option(geoPosition.getY).zip(Option(geoPosition.getX)) match {
           case Some((lat, lon)) =>
-            serviceRef ! RegisterForWeatherMessage(participantRef, lat, lon)
+            serviceRef ! RegisterForService(
+              participantRef,
+              Coordinate(lat, lon),
+            )
           case _ =>
             throw new CriticalFailureException(
               s"${participantInput.identifier} cannot register for weather information at " +
@@ -313,7 +316,7 @@ object ParticipantAgentInit {
         )
 
       case ServiceType.EvMovementService =>
-        serviceRef ! RegisterForEvDataMessage(
+        serviceRef ! RegisterForService(
           participantRef,
           participantInput.getUuid,
         )
@@ -321,7 +324,7 @@ object ParticipantAgentInit {
       case ServiceType.LoadProfileService =>
         participantInput match {
           case load: LoadInput =>
-            serviceRef ! RegisterForLoadProfileService(
+            serviceRef ! RegisterForService(
               participantRef,
               load.getLoadProfile,
             )
@@ -342,8 +345,8 @@ object ParticipantAgentInit {
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
-      expectedRegistrations: Set[ActorRef[_ >: ServiceMessage]],
-      expectedFirstData: Map[ActorRef[_ >: ServiceMessage], Long] = Map.empty,
+      expectedRegistrations: Set[ServiceRef],
+      expectedFirstData: Map[ServiceRef, Long] = Map.empty,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] =
     Behaviors.receivePartial {
@@ -402,7 +405,7 @@ object ParticipantAgentInit {
       modelFactory: ParticipantModelFactory[_ <: ModelState],
       participantInput: SystemParticipantInput,
       notifierConfig: NotifierConfig,
-      expectedData: Map[ActorRef[_ >: ServiceMessage], Long],
+      expectedData: Map[ServiceRef, Long],
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],

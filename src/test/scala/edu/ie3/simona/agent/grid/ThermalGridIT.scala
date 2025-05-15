@@ -26,14 +26,19 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  RegisterForWeatherMessage,
-  WeatherData,
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  RegisterForService,
+  ServiceMessages,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.Data.InitialisationData.Coordinate
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
@@ -110,9 +115,8 @@ class ThermalGridIT
       val resultListener = TestProbe[ResultEvent]("ResultListener")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =
-        TestProbe[ServiceMessage]("PrimaryServiceProxy")
-
-      val weatherService = TestProbe[ServiceMessage]("WeatherService")
+        TestProbe[ServiceMessages]("PrimaryServiceProxy")
+      val weatherService = TestProbe[ServiceMessages]("WeatherService")
 
       val participantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
@@ -160,10 +164,12 @@ class ThermalGridIT
       hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
       weatherService.expectMessage(
-        RegisterForWeatherMessage(
+        RegisterForService(
           hpAgent,
-          typicalHpInputModel.getNode.getGeoPosition.getY,
-          typicalHpInputModel.getNode.getGeoPosition.getX,
+          Coordinate(
+            typicalHpInputModel.getNode.getGeoPosition.getY,
+            typicalHpInputModel.getNode.getGeoPosition.getX,
+          ),
         )
       )
 
@@ -761,9 +767,8 @@ class ThermalGridIT
       val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =
-        TestProbe[ServiceMessage]("PrimaryServiceProxy")
-
-      val weatherService = TestProbe[ServiceMessage]("WeatherService")
+        TestProbe[ServiceMessages]("PrimaryServiceProxy")
+      val weatherService = TestProbe[ServiceMessages]("WeatherService")
 
       val participantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
@@ -850,10 +855,12 @@ class ThermalGridIT
 
       // deal with weather service registration
       weatherService.expectMessage(
-        RegisterForWeatherMessage(
+        RegisterForService(
           pvAgent,
-          pvInput.getNode.getGeoPosition.getY,
-          pvInput.getNode.getGeoPosition.getX,
+          Coordinate(
+            pvInput.getNode.getGeoPosition.getY,
+            pvInput.getNode.getGeoPosition.getX,
+          ),
         )
       )
 
@@ -867,10 +874,12 @@ class ThermalGridIT
 
       // deal with weather service registration
       weatherService.expectMessage(
-        RegisterForWeatherMessage(
+        RegisterForService(
           hpAgent,
-          typicalHpInputModel.getNode.getGeoPosition.getY,
-          typicalHpInputModel.getNode.getGeoPosition.getX,
+          Coordinate(
+            typicalHpInputModel.getNode.getGeoPosition.getY,
+            typicalHpInputModel.getNode.getGeoPosition.getX,
+          ),
         )
       )
 

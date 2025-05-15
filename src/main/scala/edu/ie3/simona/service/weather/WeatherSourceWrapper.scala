@@ -33,8 +33,7 @@ import edu.ie3.simona.config.ConfigParams.{
   SqlParams,
 }
 import edu.ie3.simona.exceptions.InitializationException
-import edu.ie3.simona.ontology.messages.services.WeatherMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   EMPTY_WEATHER_DATA,
   WeatherScheme,
@@ -96,7 +95,7 @@ private[weather] final case class WeatherSourceWrapper private (
   override def getWeather(
       tick: Long,
       weightedCoordinates: WeatherSource.WeightedCoordinates,
-  ): WeatherMessage.WeatherData = {
+  ): WeatherData = {
     val dateTime = tick.toDateTime
     val interval = new ClosedInterval(dateTime, dateTime)
     val coordinates = weightedCoordinates.weighting.keys.toList.asJavaCollection
