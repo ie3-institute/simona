@@ -20,10 +20,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.LoadModelState
-import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.{
-  LoadData,
-  LoadDataFunction,
-}
+import edu.ie3.simona.service.Data.SecondaryData.{LoadData, LoadDataFunction}
 import edu.ie3.simona.service.ServiceType.LoadProfileService
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.ApparentPower

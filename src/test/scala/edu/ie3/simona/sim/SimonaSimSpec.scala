@@ -18,11 +18,7 @@ import edu.ie3.simona.event.listener.{
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
-  ServiceMessage,
-  WeatherMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceRef
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
@@ -136,7 +132,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   context: ActorContext[_],
                   scheduler: ActorRef[SchedulerMessage],
                   extSimSetupData: ExtSimSetupData,
-              ): ActorRef[ServiceMessage] = {
+              ): ServiceRef = {
                 val throwingActor = context
                   .spawn[Any](
                     throwOnMessage,
@@ -202,7 +198,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   context: ActorContext[_],
                   scheduler: ActorRef[SchedulerMessage],
                   extSimSetupData: ExtSimSetupData,
-              ): ActorRef[ServiceMessage] = {
+              ): ServiceRef = {
                 val stoppingActor =
                   context.spawn[Any](
                     stopOnMessage,
@@ -433,19 +429,19 @@ object SimonaSimSpec {
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
         extSimSetupData: ExtSimSetupData,
-    ): ActorRef[ServiceMessage] =
+    ): ServiceRef =
       context.spawn(empty, uniqueName("primaryService"))
 
     override def weatherService(
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
-    ): ActorRef[WeatherMessage] =
+    ): ServiceRef =
       context.spawn(empty, uniqueName("weatherService"))
 
     override def loadProfileService(
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
-    ): ActorRef[LoadProfileMessage] =
+    ): ServiceRef =
       context.spawn(empty, uniqueName("loadProfileService"))
 
     override def timeAdvancer(

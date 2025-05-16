@@ -15,6 +15,7 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
+import edu.ie3.simona.agent.participant.ParticipantAgentRequest.*
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
@@ -29,12 +30,13 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
 }
 import edu.ie3.simona.model.participant.{ChargingHelper, ParticipantModel}
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
-import edu.ie3.simona.ontology.messages.services.EvMessage._
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.Data.SecondaryData.*
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.QuantityUtils.{asPu, asMegaWatt, asMegaVar}
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt, asPu}
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.ActorContext

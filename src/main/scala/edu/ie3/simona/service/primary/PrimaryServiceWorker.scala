@@ -26,11 +26,6 @@ import edu.ie3.simona.exceptions.{
   CriticalFailureException,
   InitializationException,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ServiceRegistrationMessage,
-  WorkerRegistrationMessage,
-}
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.RichValue
 import edu.ie3.simona.service.ServiceStateData.{
@@ -38,6 +33,11 @@ import edu.ie3.simona.service.ServiceStateData.{
   ServiceBaseStateData,
 }
 import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  ServiceRef,
+  ServiceRegistrationMessage,
+  WorkerRegistrationMessage,
+}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
@@ -52,9 +52,7 @@ import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
-object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
-
-  override type S = PrimaryServiceInitializedStateData[Value]
+object PrimaryServiceWorker extends SimonaService {
 
   /** List of supported column schemes aka. column schemes, that belong to
     * primary data
@@ -155,6 +153,8 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
       subscribers: Vector[ActorRef[ParticipantAgent.Request]] = Vector.empty,
   ) extends ServiceBaseStateData
 
+  override type S = PrimaryServiceInitializedStateData[Value]
+
   /** Initialize the actor with the given information. Try to figure out the
     * initialized state data and the next activation ticks, that will then be
     * sent to the scheduler
@@ -242,7 +242,7 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
             simulationStart,
             valueClass: Class[Value],
           ) =>
-        implicit val startDateTime: ZonedDateTime = simulationStart
+        given startDateTime: ZonedDateTime = simulationStart
 
         // Note: because we want data for the start tick as well, we need to use any tick before the start tick
         val intervalStart = simulationStart.minusSeconds(1)
@@ -291,9 +291,9 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
 
   override protected def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
-  )(implicit
+  )(using
       serviceStateData: PrimaryServiceInitializedStateData[Value],
-      ctx: ActorContext[ServiceMessage],
+      ctx: ActorContext[M],
   ): Try[PrimaryServiceInitializedStateData[Value]] =
     registrationMessage match {
       case WorkerRegistrationMessage(agentToBeRegistered) =>
@@ -330,18 +330,19 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
     */
   override protected def announceInformation(
       tick: Long
-  )(implicit
+  )(using
       serviceBaseStateData: PrimaryServiceInitializedStateData[Value],
-      ctx: ActorContext[ServiceMessage],
+      ctx: ActorContext[M],
   ): (
       PrimaryServiceInitializedStateData[Value],
       Option[Long],
   ) = {
     /* Get the information to distribute */
-    val simulationTime = tick.toDateTime(serviceBaseStateData.startDateTime)
+    val simulationTime =
+      tick.toDateTime(using serviceBaseStateData.startDateTime)
     serviceBaseStateData.source.getValue(simulationTime).toScala match {
       case Some(value) =>
-        processDataAndAnnounce(tick, value, serviceBaseStateData)(
+        processDataAndAnnounce(tick, value, serviceBaseStateData)(using
           ctx.self,
           ctx.log,
         )
@@ -398,8 +399,8 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
       tick: Long,
       value: Value,
       serviceBaseStateData: PrimaryServiceInitializedStateData[V],
-  )(implicit
-      self: ActorRef[ServiceMessage],
+  )(using
+      self: ServiceRef,
       log: Logger,
   ): (
       PrimaryServiceInitializedStateData[V],
@@ -433,7 +434,7 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
       tick: Long,
       primaryData: PrimaryData,
       serviceBaseStateData: PrimaryServiceInitializedStateData[V],
-  )(implicit self: ActorRef[ServiceMessage]): (
+  )(using self: ServiceRef): (
       PrimaryServiceInitializedStateData[V],
       Option[Long],
   ) = {

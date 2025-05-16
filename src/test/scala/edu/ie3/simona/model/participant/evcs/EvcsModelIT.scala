@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
 }
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology._
+import edu.ie3.simona.api.data.ev.ontology.*
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
@@ -26,12 +26,16 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   PrimaryServiceRegistrationMessage,
+  ServiceMessages,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.ev.ExtEvDataService
@@ -40,19 +44,19 @@ import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.util.quantities.QuantityUtils.*
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter.*
 import squants.Each
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 
 /** Tests the combined functionality of
   * [[edu.ie3.simona.agent.participant.ParticipantAgent]] with an [[EvcsModel]]
@@ -91,7 +95,7 @@ class EvcsModelIT
       val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
       val resultListener = TestProbe[ResultEvent]("ResultListener")
       val primaryServiceProxy =
-        TestProbe[ServiceMessage]("PrimaryServiceProxy")
+        TestProbe[ServiceMessages]("PrimaryServiceProxy")
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
       val extSimAdapter = TestProbe[Any]("ExtSimAdapter")
 
@@ -101,15 +105,11 @@ class EvcsModelIT
         "ExtEvDataService",
       )
 
-      val adapterToExt = spawn(
-        ExtEvDataService.adapter(evService),
-        "ExtEvDataService-external-adapter",
-      )
-
       val extEvData = new ExtEvDataConnection()
+
       extEvData.setActorRefs(
-        adapterToExt.toClassic,
-        extSimAdapter.ref.toClassic,
+        evService,
+        extSimAdapter.ref,
       )
       val serviceKey =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -121,10 +121,9 @@ class EvcsModelIT
         serviceKey,
       )
 
-      val scheduleServiceMsg = scheduler.expectMessageType[ScheduleActivation]
-      scheduleServiceMsg.tick shouldBe INIT_SIM_TICK
-      scheduleServiceMsg.unlockKey shouldBe Some(serviceKey)
-      val serviceActivation = scheduleServiceMsg.actor
+      scheduler.expectMessage(
+        ScheduleActivation(evService, INIT_SIM_TICK, Some(serviceKey))
+      )
 
       /* Create ParticipantAgent with EvcsModel */
       val participantRefs = ParticipantRefs(
@@ -158,8 +157,8 @@ class EvcsModelIT
 
       /* INIT */
 
-      serviceActivation ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(serviceActivation))
+      evService ! Activation(INIT_SIM_TICK)
+      scheduler.expectMessage(Completion(evService))
 
       evcsActivation ! Activation(INIT_SIM_TICK)
 
@@ -176,50 +175,44 @@ class EvcsModelIT
         Map.empty[UUID, java.util.List[EvModel]].asJava,
         Some(long2Long(0L)).toJava,
       )
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
       // waiting for ExtEvDataService
       scheduler.expectNoMessage()
 
-      serviceActivation ! Activation(INIT_SIM_TICK)
+      evService ! Activation(INIT_SIM_TICK)
 
       scheduler.receiveMessages(2) should contain allOf (
         Completion(evcsActivation, Some(0)),
-        Completion(serviceActivation, None)
+        Completion(evService, None)
       )
 
       /* TICK 0 */
 
       // Request prices (dummy implementation)
       extEvData.sendExtMsg(new RequestCurrentPrices())
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
-      serviceActivation ! Activation(0)
+      evService ! Activation(0)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideCurrentPrices(
         Map(evcsInputModel.getUuid -> double2Double(0.0)).asJava
       )
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
-      serviceActivation ! Activation(0)
+      evService ! Activation(0)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
         // No EV connected
         Map(evcsInputModel.getUuid -> int2Integer(2)).asJava
       )
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       resultListener.expectNoMessage()
 
@@ -230,16 +223,14 @@ class EvcsModelIT
         ).asJava,
         Some(long2Long(9000)).toJava,
       )
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
       // waiting for ExtEvDataService
       scheduler.expectNoMessage()
 
-      serviceActivation ! Activation(0)
+      evService ! Activation(0)
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       evcsActivation ! Activation(0)
 
@@ -275,11 +266,9 @@ class EvcsModelIT
 
       // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
-      serviceActivation ! Activation(1800)
+      evService ! Activation(1800)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
         // evA and evB connected
@@ -287,7 +276,7 @@ class EvcsModelIT
         Map.empty[UUID, java.lang.Integer].asJava
       )
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       resultListener.expectNoMessage()
 
@@ -348,11 +337,9 @@ class EvcsModelIT
 
       // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
-      serviceActivation ! Activation(9000)
+      evService ! Activation(9000)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
         // evB connected
@@ -360,7 +347,7 @@ class EvcsModelIT
         Map(evcsInputModel.getUuid -> int2Integer(1)).asJava
       )
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       // Request departing EVs
       extEvData.sendExtMsg(
@@ -368,33 +355,29 @@ class EvcsModelIT
           Map(evcsInputModel.getUuid -> List(evA.getUuid).asJava).asJava
         )
       )
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
-      serviceActivation ! Activation(9000)
+      evService ! Activation(9000)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideDepartingEvs(
         List[EvModel](evA.copyWith(10.0.asKiloWattHour)).asJava
       )
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       // Send (empty) arrivals in order to update next tick
       extEvData.provideArrivingEvs(
         Map.empty[UUID, java.util.List[EvModel]].asJava,
         Some(long2Long(10800)).toJava,
       )
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
       // waiting for ExtEvDataService
       scheduler.expectNoMessage()
 
-      serviceActivation ! Activation(9000)
+      evService ! Activation(9000)
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       evcsActivation ! Activation(9000)
 
@@ -407,18 +390,16 @@ class EvcsModelIT
 
       // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
-      serviceActivation ! Activation(10800)
+      evService ! Activation(10800)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
         // evB connected
         Map(evcsInputModel.getUuid -> int2Integer(1)).asJava
       )
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       resultListener.expectNoMessage()
 
@@ -429,16 +410,14 @@ class EvcsModelIT
         ).asJava,
         Some(long2Long(14400)).toJava,
       )
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
       // waiting for ExtEvDataService
       scheduler.expectNoMessage()
 
-      serviceActivation ! Activation(10800)
+      evService ! Activation(10800)
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       evcsActivation ! Activation(10800)
 
@@ -469,11 +448,9 @@ class EvcsModelIT
 
       // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
-      serviceActivation ! Activation(12600)
+      evService ! Activation(12600)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
         // evB and evC connected
@@ -481,7 +458,7 @@ class EvcsModelIT
         Map.empty[UUID, java.lang.Integer].asJava
       )
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       // EVCS activation
       evcsActivation ! Activation(12600)
@@ -513,11 +490,9 @@ class EvcsModelIT
 
       // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
-      serviceActivation ! Activation(14400)
+      evService ! Activation(14400)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
         // evB connected
@@ -525,7 +500,7 @@ class EvcsModelIT
         Map(evcsInputModel.getUuid -> int2Integer(1)).asJava
       )
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       // Request departing EVs
       extEvData.sendExtMsg(
@@ -533,33 +508,29 @@ class EvcsModelIT
           Map(evcsInputModel.getUuid -> List(evC.getUuid).asJava).asJava
         )
       )
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
-      serviceActivation ! Activation(14400)
+      evService ! Activation(14400)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideDepartingEvs(
         List[EvModel](evC.copyWith(20.0.asKiloWattHour)).asJava
       )
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       // Send (empty) arrivals in order to update next tick
       extEvData.provideArrivingEvs(
         Map.empty[UUID, java.util.List[EvModel]].asJava,
         Some(long2Long(18000)).toJava,
       )
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
       // waiting for ExtEvDataService
       scheduler.expectNoMessage()
 
-      serviceActivation ! Activation(14400)
+      evService ! Activation(14400)
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       evcsActivation ! Activation(14400)
 
@@ -572,11 +543,9 @@ class EvcsModelIT
 
       // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
-      serviceActivation ! Activation(18000)
+      evService ! Activation(18000)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
         // No EVs connected
@@ -584,7 +553,7 @@ class EvcsModelIT
         Map(evcsInputModel.getUuid -> int2Integer(2)).asJava
       )
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       // Request departing EVs
       extEvData.sendExtMsg(
@@ -592,33 +561,29 @@ class EvcsModelIT
           Map(evcsInputModel.getUuid -> List(evB.getUuid).asJava).asJava
         )
       )
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
-      serviceActivation ! Activation(18000)
+      evService ! Activation(18000)
 
       extEvData.receiveTriggerQueue.take() shouldBe new ProvideDepartingEvs(
         List[EvModel](evB.copyWith(10.0.asKiloWattHour)).asJava
       )
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       // Send (empty) arrivals in order to update next tick
       extEvData.provideArrivingEvs(
         Map.empty[UUID, java.util.List[EvModel]].asJava,
         None.toJava,
       )
-      extSimAdapter.expectMessage(
-        new ScheduleDataServiceMessage(adapterToExt.toClassic)
-      )
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
       // waiting for ExtEvDataService
       scheduler.expectNoMessage()
 
-      serviceActivation ! Activation(18000)
+      evService ! Activation(18000)
 
-      scheduler.expectMessage(Completion(serviceActivation, None))
+      scheduler.expectMessage(Completion(evService, None))
 
       evcsActivation ! Activation(18000)
 
