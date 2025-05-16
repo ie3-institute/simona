@@ -17,6 +17,12 @@ import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.api.data.ontology.{
+  DataMessageFromExt,
+  ScheduleDataServiceMessage,
+}
+import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -722,7 +728,8 @@ class ExtEvDataServiceSpec
 
       // ev service should receive movements msg at this moment
       // scheduler should receive schedule msg
-      extSimAdapter.expectMessageType[ScheduleDataServiceMessage]
+      extSimAdapter
+        .expectMessageType[ScheduleDataServiceMessage]
 
       // we trigger ev service
       evService ! Activation(0L)

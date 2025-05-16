@@ -11,6 +11,8 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
+import edu.ie3.datamodel.models.value.{PValue, SValue, Value}
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.datamodel.models.value.SValue
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
@@ -69,6 +71,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.nio.file.{Path, Paths}
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.jdk.CollectionConverters._
 import scala.language.implicitConversions
 import scala.util.{Failure, Success}
 
@@ -148,11 +151,26 @@ class PrimaryServiceProxySpec
     when(m.self).thenReturn(service.ref)
     m
   }
+  private val validExtPrimaryDataService = spawn(
+    ExtPrimaryDataService(scheduler.ref)
+  )
+
+  private val extEntityId =
+    UUID.fromString("07bbe1aa-1f39-4dfb-b41b-339dec816ec4")
+
+  private val valueMap: Map[UUID, Class[_ <: Value]] = Map(
+    extEntityId -> classOf[PValue]
+  )
+
+  private val extPrimaryDataConnection = new ExtPrimaryDataConnection(
+    valueMap.asJava
+  )
 
   val initStateData: InitPrimaryServiceProxyStateData =
     InitPrimaryServiceProxyStateData(
       validPrimaryConfig,
       simulationStart,
+      Seq.empty,
     )
   val proxy: ActorRef[ServiceMessage] = testKit.spawn(
     PrimaryServiceProxy(scheduler.ref, initStateData)
@@ -170,6 +188,7 @@ class PrimaryServiceProxySpec
       PrimaryServiceProxy.prepareStateData(
         maliciousConfig,
         simulationStart,
+        Seq.empty,
       ) match {
         case Success(emptyStateData) =>
           emptyStateData.modelToTimeSeries shouldBe Map.empty
@@ -193,6 +212,7 @@ class PrimaryServiceProxySpec
       PrimaryServiceProxy.prepareStateData(
         maliciousConfig,
         simulationStart,
+        Seq.empty,
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -206,6 +226,7 @@ class PrimaryServiceProxySpec
       PrimaryServiceProxy.prepareStateData(
         validPrimaryConfig,
         simulationStart,
+        Seq.empty,
       ) match {
         case Success(
               PrimaryServiceStateData(
@@ -213,6 +234,7 @@ class PrimaryServiceProxySpec
                 timeSeriesToSourceRef,
                 simulationStart,
                 primaryConfig,
+                _,
               )
             ) =>
           modelToTimeSeries shouldBe Map(
@@ -250,6 +272,28 @@ class PrimaryServiceProxySpec
           )
       }
     }
+
+    "build proxy correctly when there is an external simulation" in {
+      PrimaryServiceProxy.prepareStateData(
+        validPrimaryConfig,
+        simulationStart,
+        Seq((extPrimaryDataConnection, validExtPrimaryDataService)),
+      ) match {
+        case Success(
+              PrimaryServiceStateData(
+                _,
+                _,
+                _,
+                _,
+                extSubscribersToService,
+              )
+            ) =>
+          extSubscribersToService shouldBe Map(
+            extEntityId -> validExtPrimaryDataService
+          )
+      }
+    }
+
   }
 
   "Sending initialization information to an uninitialized actor" should {
@@ -438,6 +482,7 @@ class PrimaryServiceProxySpec
               timeSeriesToSourceRef,
               simulationStart,
               primaryConfig,
+              _,
             ) =>
           modelToTimeSeries shouldBe proxyStateData.modelToTimeSeries
           timeSeriesToSourceRef shouldBe Map(

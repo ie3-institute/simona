@@ -8,19 +8,28 @@ package edu.ie3.simona.sim.setup
 
 import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.api.data.ExtInputDataConnection
+import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
+import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.Create
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
+import edu.ie3.simona.service.em.ExtEmDataService
+import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
+import edu.ie3.simona.service.primary.ExtPrimaryDataService
+import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
+import edu.ie3.simona.service.results.ExtResultProvider
+import edu.ie3.simona.service.results.ExtResultProvider.InitExtResultData
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
@@ -31,6 +40,7 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.{
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
@@ -63,6 +73,7 @@ object ExtSimSetup {
   )(implicit
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      startTime: ZonedDateTime,
       resolution: FiniteDuration,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
@@ -95,7 +106,7 @@ object ExtSimSetup {
           .start()
 
         // updating the data with newly connected external simulation
-        updatedSetupData.update(extSimAdapter)
+        updatedSetupData.updateAdapter(extSimAdapter)
       } match {
         case Failure(exception) =>
           log.warn(
@@ -131,6 +142,7 @@ object ExtSimSetup {
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
+      startTime: ZonedDateTime,
       resolution: FiniteDuration,
   ): ExtSimSetupData = {
     implicit val extSimAdapter: ActorRef[ControlResponseMessageFromExt] =
@@ -146,6 +158,41 @@ object ExtSimSetup {
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
       case (setupData, connection) =>
         connection match {
+          case extPrimaryDataConnection: ExtPrimaryDataConnection =>
+            val serviceRef = setupInputService(
+              extPrimaryDataConnection,
+              ExtPrimaryDataService.apply(scheduler),
+              ExtPrimaryDataService.adapter,
+              "ExtPrimaryDataService",
+              InitExtPrimaryData(extPrimaryDataConnection),
+            )
+
+            extSimSetupData.update(extPrimaryDataConnection, serviceRef)
+
+          case extEmDataConnection: ExtEmDataConnection =>
+            if (setupData.emDataConnection.nonEmpty) {
+              throw ServiceException(
+                s"Trying to connect another EmDataConnection. Currently only one is allowed."
+              )
+            }
+
+            if (extEmDataConnection.getControlledEms.isEmpty) {
+              log.warn(
+                s"External em connection $extEmDataConnection is not used, because there are no controlled ems present!"
+              )
+              setupData
+            } else {
+              val serviceRef = setupInputService(
+                extEmDataConnection,
+                ExtEmDataService.apply(scheduler),
+                ExtEmDataService.adapter,
+                "ExtEmDataService",
+                InitExtEmData(extEmDataConnection, startTime),
+              )
+
+              extSimSetupData.update(extEmDataConnection, serviceRef)
+            }
+
           case extEvDataConnection: ExtEvDataConnection =>
             if (setupData.evDataConnection.nonEmpty) {
               throw ServiceException(
@@ -158,10 +205,13 @@ object ExtSimSetup {
               ExtEvDataService.apply(scheduler),
               ExtEvDataService.adapter,
               "ExtEvDataService",
-              InitExtEvData,
+              InitExtEvData(extEvDataConnection),
             )
 
             extSimSetupData.update(extEvDataConnection, serviceRef)
+
+          case extResultDataConnection: ExtResultDataConnection =>
+            extResultDataSetup(setupData, extResultDataConnection)
 
           case otherConnection =>
             log.warn(
@@ -199,14 +249,14 @@ object ExtSimSetup {
     *   The reference to the service.
     */
   private[setup] def setupInputService[
-      T <: ExtInputDataConnection,
+      T <: ExtInputDataConnection[_],
       M >: ServiceMessage,
   ](
       extInputDataConnection: T,
       behavior: Behavior[M],
       adapterToExt: ActorRef[M] => Behavior[DataMessageFromExt],
       name: String,
-      initData: T => InitializeServiceStateData,
+      initData: InitializeServiceStateData,
   )(implicit
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
@@ -218,7 +268,7 @@ object ExtSimSetup {
     )
 
     extDataService ! ServiceMessage.Create(
-      initData(extInputDataConnection),
+      initData,
       ScheduleLock.singleKey(
         context,
         scheduler,
@@ -237,6 +287,68 @@ object ExtSimSetup {
     )
 
     extDataService
+  }
+
+  /** Method to set up an external result data service.
+    *
+    * @param extSimSetupData
+    *   that contains information about all external simulations
+    * @param extResultDataConnection
+    *   the data connection
+    * @param context
+    *   the actor context of this actor system
+    * @param scheduler
+    *   the scheduler of simona
+    * @param extSimAdapter
+    *   the adapter for the external simulation
+    * @param startTime
+    *   Of the simulation.
+    * @param resolution
+    *   Of the power flow.
+    * @return
+    *   an updated [[ExtSimSetupData]]
+    */
+  private[setup] def extResultDataSetup(
+      extSimSetupData: ExtSimSetupData,
+      extResultDataConnection: ExtResultDataConnection,
+  )(implicit
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimAdapter: ActorRef[ControlResponseMessageFromExt],
+      startTime: ZonedDateTime,
+      resolution: FiniteDuration,
+  ): ExtSimSetupData = {
+    val extResultProvider = context.spawn(
+      ExtResultProvider(scheduler),
+      s"ExtResultDataProvider",
+    )
+
+    val adapter = context.spawn(
+      ExtResultProvider.adapter(extResultProvider),
+      s"ExtResultDataProvider-adapter-to-external",
+    )
+
+    extResultDataConnection.setActorRefs(
+      adapter,
+      extSimAdapter,
+    )
+
+    val powerFlowResolution = resolution.toSeconds
+
+    extResultProvider ! Create(
+      InitExtResultData(
+        extResultDataConnection,
+        powerFlowResolution,
+        startTime,
+      ),
+      ScheduleLock.singleKey(
+        context,
+        scheduler,
+        PRE_INIT_TICK,
+      ),
+    )
+
+    extSimSetupData.update(extResultDataConnection, extResultProvider)
   }
 
   /** Method for validating the external primary data connections.

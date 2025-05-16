@@ -22,8 +22,11 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.services.EmMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -31,6 +34,7 @@ import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.time.ZonedDateTime
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Try}
 
 /** Energy management agent that receives flex options from and issues control
@@ -90,6 +94,8 @@ object EmAgent {
     *   that is activating this agent
     * @param listener
     *   A collection of result event listeners
+    * @param emDataService
+    *   An energy management service.
     */
   def apply(
       inputModel: EmInput,
@@ -99,30 +105,68 @@ object EmAgent {
       simulationStartDate: ZonedDateTime,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
       listener: Iterable[ActorRef[ResultEvent]],
+      emDataService: Option[ActorRef[EmMessage]],
   ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
+    val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
+
+    val parentData = emDataService match {
+      case Some(service) =>
+        // since we have a service, it will replace the default agent communication
+
+        val parentOption = parent.toOption
+
+        service ! RegisterForEmDataService(
+          inputModel.getUuid,
+          ctx.self,
+          flexAdapter,
+          parentOption,
+          inputModel.getControllingEm.toScala.map(_.getUuid),
+        )
+
+        val serviceRequestAdapter: ActorRef[FlexRequest] =
+          ExtEmDataService.emServiceRequestAdapter(
+            service,
+            flexAdapter,
+          )(ctx)
+
+        parentOption.foreach(
+          _ ! RegisterControlledAsset(serviceRequestAdapter, inputModel)
+        )
+
+        val serviceResponseAdapter: ActorRef[FlexResponse] =
+          ExtEmDataService.emServiceResponseAdapter(
+            service,
+            parentOption,
+            inputModel.getUuid,
+          )(ctx)
+
+        Right(FlexControlledData(serviceResponseAdapter, flexAdapter))
+
+      case None =>
+        parent
+          .map { parentEm =>
+            parentEm ! RegisterControlledAsset(
+              flexAdapter,
+              inputModel,
+            )
+
+            FlexControlledData(parentEm, flexAdapter)
+          }
+          .left
+          .map { scheduler =>
+            {
+              val activationAdapter = ctx.messageAdapter[Activation] { msg =>
+                EmActivation(msg.tick)
+              }
+              SchedulerData(scheduler, activationAdapter)
+            }
+          }
+    }
+
     val constantData = EmData(
       outputConfig,
       simulationStartDate,
-      parent
-        .map { parentEm =>
-          val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
-
-          parentEm ! RegisterControlledAsset(
-            flexAdapter,
-            inputModel,
-          )
-
-          FlexControlledData(parentEm, flexAdapter)
-        }
-        .left
-        .map { scheduler =>
-          {
-            val activationAdapter = ctx.messageAdapter[Activation] { msg =>
-              EmActivation(msg.tick)
-            }
-            SchedulerData(scheduler, activationAdapter)
-          }
-        },
+      parentData,
       listener,
     )
 
@@ -191,6 +235,7 @@ object EmAgent {
       msg match {
         case Flex(_: FlexActivation) | EmActivation(_) =>
           val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
+
           toActivate.foreach {
             _ ! FlexActivation(msg.tick)
           }
@@ -221,8 +266,8 @@ object EmAgent {
       emData: EmData,
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
-  ): Behavior[Request] = Behaviors.receiveMessagePartial {
-    case provideFlex: ProvideFlexOptions =>
+  ): Behavior[Request] = Behaviors.receivePartial {
+    case (_, provideFlex: ProvideFlexOptions) =>
       val updatedCore = flexOptionsCore.handleFlexOptions(
         provideFlex.modelUuid,
         provideFlex.flexOptions,
