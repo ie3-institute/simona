@@ -248,12 +248,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0L.toDateTime
-            emResult.getP should equalWithTolerance(
-              -0.00057340027059.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              -0.0018318880807426897.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(-0.00057340027.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.0018318880807.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
@@ -284,12 +280,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
-            emResult.getP should equalWithTolerance(
-              0.0.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              -0.001132927019679857.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(0.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.00113292701968.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(13246)))
@@ -308,9 +300,7 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 13246.toDateTime
-            emResult.getP should equalWithTolerance(
-              -0.0034468567291.asMegaWatt
-            )
+            emResult.getP should equalWithTolerance(-0.00344685673.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.001132927.asMegaVar)
         }
 
@@ -543,12 +533,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 75.toDateTime
-            emResult.getP should equalWithTolerance(
-              -0.005573400270590553.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              -0.0018318880807426897.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(-0.0055734002706.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.00183188808074.asMegaVar)
         }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
@@ -568,12 +554,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 3600.toDateTime
-            emResult.getP should equalWithTolerance(
-              -0.00072340027059.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              -0.00084705357666777.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(-0.00072340027.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.00084705357667.asMegaVar)
         }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(3675)))
@@ -618,12 +600,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 6056.toDateTime
-            emResult.getP should equalWithTolerance(
-              -0.005573400270590553.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              -0.0018318880807426897.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(-0.00557340027.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.00183188808074.asMegaVar)
         }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
@@ -656,12 +634,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
-            emResult.getP should equalWithTolerance(
-              0.0014031432709.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              -0.0001480925156.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(0.0014031432709.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.0001480925156.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(7278)))
@@ -681,9 +655,7 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7278.toDateTime
-            emResult.getP should equalWithTolerance(
-              0.0014031432709125343.asMegaWatt
-            )
+            emResult.getP should equalWithTolerance(0.00140314327091.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0001480925156.asMegaVar)
         }
 
@@ -704,12 +676,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7981.toDateTime
-            emResult.getP should equalWithTolerance(
-              -0.0034468567290874656.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              -0.001132927019679857.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(-0.003446856729.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.00113292702.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
@@ -742,12 +710,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 10800.toDateTime
-            emResult.getP should equalWithTolerance(
-              0.0011098586291537654.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              -0.00024449051564412135.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(0.0011098586291.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.000244490516.asMegaVar)
         }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10879)))
@@ -767,12 +731,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 10879.toDateTime
-            emResult.getP should equalWithTolerance(
-              0.0011098586291537654.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              -0.00024449051564412135.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(0.0011098586291.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.000244490516.asMegaVar)
         }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11000)))
@@ -1061,9 +1021,7 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
             emResult.getP should equalWithTolerance(-0.008423564.asMegaWatt)
-            emResult.getQ should equalWithTolerance(
-              -0.0027686916118040607.asMegaVar
-            )
+            emResult.getQ should equalWithTolerance(-0.0027686916118.asMegaVar)
         }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
@@ -1080,9 +1038,7 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 10800.toDateTime
             emResult.getP should equalWithTolerance(-0.008692167.asMegaWatt)
-            emResult.getQ should equalWithTolerance(
-              -0.002856977148.asMegaVar
-            )
+            emResult.getQ should equalWithTolerance(-0.00285697715.asMegaVar)
         }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
