@@ -311,13 +311,12 @@ class HpModel private (
         (demandHouse.hasPossibleDemand && wasRunningLastPeriod ||
           demandThermalStorage.hasRequiredDemand ||
           (demandThermalStorage.hasPossibleDemand && wasRunningLastPeriod)) ||
-        demandDomesticHotWaterStorage.hasRequiredDemand // ||
-    // (demandDomesticHotWaterStorage.hasPossibleDemand && wasRunningLastPeriod) FIXME
+        demandDomesticHotWaterStorage.hasRequiredDemand
 
     val canOperate =
       demandHouse.hasRequiredDemand || demandHouse.hasPossibleDemand ||
         demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasPossibleDemand ||
-        demandDomesticHotWaterStorage.hasRequiredDemand // || demandDomesticHotWaterStorage.hasPossibleDemand FIXME
+        demandDomesticHotWaterStorage.hasRequiredDemand
     val canBeOutOfOperation =
       !(demandHouse.hasRequiredDemand && noThermalStorageOrEmpty) && !demandDomesticHotWaterStorage.hasRequiredDemand
 

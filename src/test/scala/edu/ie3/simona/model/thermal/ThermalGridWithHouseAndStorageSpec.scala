@@ -490,9 +490,8 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
         val maybeStorageState = None
-
-        // FIXME
-        val maybeWaterStorageState = None
+        val maybeWaterStorageState =
+          Some(ThermalStorageState(0L, KilowattHours(2d)))
 
         val maybeThermalGridState =
           ThermalGridState(

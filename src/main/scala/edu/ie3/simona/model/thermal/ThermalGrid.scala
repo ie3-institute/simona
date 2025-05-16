@@ -309,9 +309,6 @@ final case class ThermalGrid(
       state.thermalDemands.heatStorageDemand.hasRequiredDemand || state.thermalDemands.heatStorageDemand.hasPossibleDemand
     )
       handleCase(state, zeroKW, qDot, zeroKW)
-    //  Fixme: Optionally
-    // else if (state.thermalDemands.domesticHotWaterStorageDemand.hasPossibleDemand)
-    //  handleCase(state, zeroKW, zeroKW, qDot)
     else if (state.thermalDemands.houseDemand.hasPossibleDemand)
       handleCase(state, qDot, zeroKW, zeroKW)
     else
@@ -428,7 +425,6 @@ final case class ThermalGrid(
     * @return
     *   Updated thermal storage state and the ThermalThreshold.
     */
-  // FIXME wird das so noch gebraucht? sonst vereinfachen...
   private def handleFeedInStorage(
       state: HpState,
       qDotStorage: Power,
@@ -650,14 +646,11 @@ final case class ThermalGrid(
         storageState,
         thermalStorage.getpThermalMax * -1,
       )
-      // FIXME?
-      val revisedWaterStorageThreshold = None
 
       val nextThreshold = determineMostRecentThreshold(
         Seq(
           revisedHouseThreshold,
           revisedStorageThreshold,
-          revisedWaterStorageThreshold,
         )
       )
       (
