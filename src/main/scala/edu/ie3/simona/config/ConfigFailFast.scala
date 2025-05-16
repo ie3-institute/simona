@@ -8,13 +8,13 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.config.ConfigParams._
+import edu.ie3.simona.config.ConfigParams.*
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   LoadRuntimeConfig,
   StorageRuntimeConfig,
 }
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.SimonaConfig.*
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{
@@ -182,12 +182,11 @@ object ConfigFailFast extends LazyLogging {
   private def checkDataSink(sink: OutputConfig.Sink): Unit = {
     // ensures failure if new output sinks are added to enforce adaptions of the check sink method as well
     val supportedSinks = Set("influxdb1x", "csv", "kafka")
-    if (
-      !sink.productElementNames
+    if !sink.productElementNames
         .map(_.trim.toLowerCase)
         .toSet
         .equals(supportedSinks)
-    )
+    then
       throw new InvalidConfigParameterException(
         s"Newly added sink(s) " +
           s"'${sink.productElementNames.map(_.toLowerCase).toSet.removedAll(supportedSinks)}' detected! " +
@@ -196,20 +195,20 @@ object ConfigFailFast extends LazyLogging {
 
     // failure if all sinks are not-configured
     val sinkConfigs = sink.productIterator.toSeq.map {
-      case o: Option[_] => o
+      case o: Option[?] => o
       case _ =>
         throw new InvalidConfigParameterException(
           "All sinks in configuration must be optional!"
         )
     }
 
-    if (sinkConfigs.forall(_.isEmpty))
+    if sinkConfigs.forall(_.isEmpty) then
       throw new InvalidConfigParameterException(
         "No sink configuration found! Please ensure that at least one sink is " +
           s"configured! You can choose from: ${supportedSinks.mkString(", ")}."
       )
 
-    if (sinkConfigs.count(_.isDefined) > 1)
+    if sinkConfigs.count(_.isDefined) > 1 then
       throw new InvalidConfigParameterException(
         "Multiple sink configurations are not supported! Please ensure that only " +
           "one sink is configured!"
@@ -241,12 +240,12 @@ object ConfigFailFast extends LazyLogging {
     val startDate = createDateTime(timeConfig.startDateTime)
     val endDate = createDateTime(timeConfig.endDateTime)
 
-    if (startDate.isAfter(endDate))
+    if startDate.isAfter(endDate) then
       throw new InvalidConfigParameterException(
         s"Invalid time configuration." +
           s"Please ensure that the start time of the simulation is before the end time."
       )
-    if (startDate.isEqual(endDate))
+    if startDate.isEqual(endDate) then
       throw new InvalidConfigParameterException(
         s"Invalid time configuration." +
           s"Please ensure that the start time of the simulation is not equal to the end time."
@@ -282,7 +281,7 @@ object ConfigFailFast extends LazyLogging {
   private def checkParticipantRuntimeConfiguration(
       subConfig: RuntimeConfig.Participant
   ): Unit = {
-    if (subConfig.requestVoltageDeviationThreshold < 0)
+    if subConfig.requestVoltageDeviationThreshold < 0 then
       throw new InvalidConfigParameterException(
         "The participant power request voltage deviation threshold must be positive!"
       )
@@ -340,14 +339,14 @@ object ConfigFailFast extends LazyLogging {
   ): Unit = {
     // special default config check
     val defaultUuids = defaultConfig.uuids
-    if (defaultUuids.nonEmpty)
+    if defaultUuids.nonEmpty then
       logger.warn(
         s"You provided '${defaultUuids.mkString(",")}' as uuid reference for the default model config. Those references will not be considered!"
       )
 
     // special individual configs check
     /* Check, if there are ambiguous configs and then check all configs */
-    if (!CollectionUtils.isUniqueList(individualConfigs.flatMap(_.uuids)))
+    if !CollectionUtils.isUniqueList(individualConfigs.flatMap(_.uuids)) then
       throw new InvalidConfigParameterException(
         "The basic model configurations contain ambiguous definitions."
       )
@@ -358,9 +357,9 @@ object ConfigFailFast extends LazyLogging {
 
     allConfigs.foreach { case (config, default) =>
       // we only check the uuids for individual configs
-      if (!default) {
+      if !default then {
         /* Checking the uuids */
-        if (config.uuids.isEmpty)
+        if config.uuids.isEmpty then
           throw new InvalidConfigParameterException(
             "There has to be at least one identifier for each participant."
           )
@@ -380,7 +379,7 @@ object ConfigFailFast extends LazyLogging {
       }
 
       // check for scaling
-      if (config.scaling < 0)
+      if config.scaling < 0 then
         throw new InvalidConfigParameterException(
           s"The scaling factor for system participants with UUID '${config.uuids.mkString(",")}' may not be negative."
         )
@@ -393,17 +392,16 @@ object ConfigFailFast extends LazyLogging {
   private def checkSpecificLoadModelConfig(
       loadModelConfig: LoadRuntimeConfig
   ): Unit = {
-    if (!LoadModelBehaviour.isEligibleInput(loadModelConfig.modelBehaviour))
+    if !LoadModelBehaviour.isEligibleInput(loadModelConfig.modelBehaviour) then
       throw new InvalidConfigParameterException(
         s"The load model behaviour '${loadModelConfig.modelBehaviour}' for the loads with UUIDs '${loadModelConfig.uuids
             .mkString(",")}' is invalid."
       )
 
-    if (
-      !LoadReferenceType.isEligibleInput(
+    if !LoadReferenceType.isEligibleInput(
         loadModelConfig.reference
       )
-    )
+    then
       throw new InvalidConfigParameterException(
         s"The standard load profile reference '${loadModelConfig.reference}' for the loads with UUIDs '${loadModelConfig.uuids
             .mkString(",")}' is invalid."
@@ -450,7 +448,7 @@ object ConfigFailFast extends LazyLogging {
     voltageLimits.foreach { limit =>
       checkGridConfig(limit, "voltage limit")
 
-      if (limit.vMin >= limit.vMax) {
+      if limit.vMin >= limit.vMax then {
         throw new InvalidConfigParameterException(
           s"Invalid value for vMin and vMax from provided voltage limit $limit. Is vMin smaller than vMax?"
         )
@@ -472,7 +470,7 @@ object ConfigFailFast extends LazyLogging {
     val voltLvls = gridConfig.voltLvls.getOrElse(List.empty)
     val gridIds = gridConfig.gridIds.getOrElse(List.empty)
 
-    if (voltLvls.isEmpty && gridIds.isEmpty)
+    if voltLvls.isEmpty && gridIds.isEmpty then
       throw new InvalidConfigParameterException(
         "The provided values for voltLvls and gridIds are empty! " +
           s"At least one of these optional parameters has to be provided for a valid $configType! " +
@@ -482,7 +480,7 @@ object ConfigFailFast extends LazyLogging {
     voltLvls.foreach { voltLvl =>
       Try(Quantities.getQuantity(voltLvl.vNom)) match {
         case Success(quantity) =>
-          if (!quantity.getUnit.isCompatible(Units.VOLT))
+          if !quantity.getUnit.isCompatible(Units.VOLT) then
             throw new InvalidConfigParameterException(
               s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
             )
@@ -507,7 +505,7 @@ object ConfigFailFast extends LazyLogging {
     }
 
     def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit = {
-      if (from >= to)
+      if from >= to then
         throw new InvalidConfigParameterException(
           s"Invalid gridId Range $gridIdRange. Start $from cannot be equals or bigger than end $to."
         )
@@ -519,7 +517,7 @@ object ConfigFailFast extends LazyLogging {
   ): Unit = {
 
     // grid source information provided?
-    if (gridDataSource.id.isEmpty) {
+    if gridDataSource.id.isEmpty then {
       throw new InvalidConfigParameterException(
         "No grid data source information provided! Cannot proceed!"
       )
@@ -558,12 +556,12 @@ object ConfigFailFast extends LazyLogging {
       primaryConfig.sqlParams,
     ).filter(_.isDefined).flatten
 
-    if (sourceConfigs.size > 1)
+    if sourceConfigs.size > 1 then
       throw new InvalidConfigParameterException(
         s"${sourceConfigs.size} time series source types defined. " +
           s"Please define only one type!\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"
       )
-    else if (sourceConfigs.isEmpty) {
+    else if sourceConfigs.isEmpty then {
       logger.warn("No primary data source configured.")
     } else {
       sourceConfigs.headOption match {
@@ -594,7 +592,7 @@ object ConfigFailFast extends LazyLogging {
     )
 
     /* Check, if the column scheme is supported */
-    if (!WeatherScheme.isEligibleInput(weatherDataSourceCfg.scheme))
+    if !WeatherScheme.isEligibleInput(weatherDataSourceCfg.scheme) then
       throw new InvalidConfigParameterException(
         s"The weather data scheme '${weatherDataSourceCfg.scheme}' is not supported. Supported schemes:\n\t${WeatherScheme.values
             .mkString("\n\t")}"
@@ -612,7 +610,7 @@ object ConfigFailFast extends LazyLogging {
     ).filter(_.isDefined)
 
     // check that only one source is defined
-    if (definedWeatherSources.size > 1)
+    if definedWeatherSources.size > 1 then
       throw new InvalidConfigParameterException(
         s"Multiple weather sources defined: '${definedWeatherSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
           s"Please define only one source!\nAvailable sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
@@ -632,7 +630,7 @@ object ConfigFailFast extends LazyLogging {
       case Some(_: SampleParams) =>
         // sample weather, no check required
         // coordinate source must be sample coordinate source
-        if (weatherDataSourceCfg.coordinateSource.sampleParams.isEmpty) {
+        if weatherDataSourceCfg.coordinateSource.sampleParams.isEmpty then {
           // cannot use sample weather source with other combination of weather source than sample weather source
           throw new InvalidConfigParameterException(
             s"Invalid coordinate source " +
@@ -668,7 +666,7 @@ object ConfigFailFast extends LazyLogging {
     ).filter(_.isDefined)
 
     // check that only one source is defined
-    if (definedCoordSources.size > 1)
+    if definedCoordSources.size > 1 then
       throw new InvalidConfigParameterException(
         s"Multiple coordinate sources defined: '${definedCoordSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
           s"Please define only one source!\nAvailable sources:\n\t${supportedCoordinateSources.mkString("\n\t")}"
@@ -680,7 +678,7 @@ object ConfigFailFast extends LazyLogging {
 
         // check the grid model configuration
         val gridModel = coordinateSourceConfig.gridModel.toLowerCase
-        if (gridModel != "icon" && gridModel != "cosmo") {
+        if gridModel != "icon" && gridModel != "cosmo" then {
           throw new InvalidConfigParameterException(
             s"Grid model '$gridModel' is not supported!"
           )
@@ -719,7 +717,7 @@ object ConfigFailFast extends LazyLogging {
   ): Unit = {
 
     (subConfig.defaultConfig :: subConfig.individualConfigs).foreach(c =>
-      if (c.powerRequestReply)
+      if c.powerRequestReply then
         throw new NotImplementedError(
           "PowerRequestReply output handling is not supported yet!"
         )
@@ -753,13 +751,13 @@ object ConfigFailFast extends LazyLogging {
       subConfig: OutputConfig.Log
   ): Unit = {
     val validLogLevels = Seq("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
-    if (!validLogLevels.contains(subConfig.level))
+    if !validLogLevels.contains(subConfig.level) then
       throw new InvalidConfigParameterException(
         s"Invalid log level \"${subConfig.level}\". Valid log levels: ${validLogLevels.mkString(", ")}"
       )
 
     subConfig.consoleLevel.foreach { level =>
-      if (!validLogLevels.contains(level))
+      if !validLogLevels.contains(level) then
         throw new InvalidConfigParameterException(
           s"Invalid console log level \"$level\". Valid log levels: ${validLogLevels.mkString(", ")}"
         )
@@ -780,7 +778,7 @@ object ConfigFailFast extends LazyLogging {
     val hasMicros = (powerFlow.resolution.toMicros / 1e6) % 1 != 0
     val hasMillis = (powerFlow.resolution.toMillis / 1e3) % 1 != 0
 
-    if (hasNanos || hasMicros || hasMillis) {
+    if hasNanos || hasMicros || hasMillis then {
       throw new InvalidConfigParameterException(
         s"Invalid time resolution. Please ensure, that " +
           s"the time resolution for power flow calculation is at least rounded to a full second!"
@@ -813,28 +811,28 @@ object ConfigFailFast extends LazyLogging {
     val upperBoundary = 1.2
     transformerControlGroup match {
       case TransformerControlGroup(measurements, transformers, vMax, vMin) =>
-        if (measurements.isEmpty)
+        if measurements.isEmpty then
           throw new InvalidConfigParameterException(
             s"A transformer control group (${transformerControlGroup.toString}) cannot have no measurements assigned."
           )
-        if (transformers.isEmpty)
+        if transformers.isEmpty then
           throw new InvalidConfigParameterException(
             s"A transformer control group (${transformerControlGroup.toString}) cannot have no transformers assigned."
           )
-        if (vMin < 0)
+        if vMin < 0 then
           throw new InvalidConfigParameterException(
             "The minimum permissible voltage magnitude of a transformer control group has to be positive."
           )
-        if (vMax < vMin)
+        if vMax < vMin then
           throw new InvalidConfigParameterException(
             s"The minimum permissible voltage magnitude of a transformer control group (${transformerControlGroup.toString}) must be smaller than the maximum permissible voltage magnitude."
           )
-        if (vMin < lowerBoundary)
+        if vMin < lowerBoundary then
           throw new InvalidConfigParameterException(
             s"A control group (${transformerControlGroup.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
               s"by invalid parametrization of one control groups where vMin is lower than the lower boundary (0.8 of nominal Voltage)!"
           )
-        if (vMax > upperBoundary)
+        if vMax > upperBoundary then
           throw new InvalidConfigParameterException(
             s"A control group (${transformerControlGroup.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
               s"by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
@@ -850,29 +848,28 @@ object ConfigFailFast extends LazyLogging {
   private def checkStoragesConfig(
       storageRuntimeConfig: AssetConfigs[StorageRuntimeConfig]
   ): Unit = {
-    if (
-      storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
-    )
+    if storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
+    then
       throw new RuntimeException(
         s"StorageRuntimeConfig: Default initial SOC needs to be between 0.0 and 1.0."
       )
 
-    if (
-      storageRuntimeConfig.defaultConfig.targetSoc.exists(
+    if storageRuntimeConfig.defaultConfig.targetSoc.exists(
         _ < 0.0
       ) || storageRuntimeConfig.defaultConfig.targetSoc.exists(_ > 1.0)
-    )
+    then
       throw new RuntimeException(
         s"StorageRuntimeConfig: Default target SOC needs to be between 0.0 and 1.0."
       )
 
     storageRuntimeConfig.individualConfigs.foreach { config =>
-      if (config.initialSoc < 0.0 || config.initialSoc > 1.0)
+      if config.initialSoc < 0.0 || config.initialSoc > 1.0 then
         throw new RuntimeException(
           s"StorageRuntimeConfig: ${config.uuids} initial SOC needs to be between 0.0 and 1.0."
         )
 
-      if (config.targetSoc.exists(_ < 0.0) || config.targetSoc.exists(_ > 1.0))
+      if config.targetSoc.exists(_ < 0.0) || config.targetSoc.exists(_ > 1.0)
+      then
         throw new RuntimeException(
           s"StorageRuntimeConfig: ${config.uuids} target SOC needs to be between 0.0 and 1.0."
         )
@@ -890,11 +887,10 @@ object ConfigFailFast extends LazyLogging {
       config: OutputConfig.BaseOutputConfig,
       defaultString: String = "default",
   )(implicit elementType: String): Unit = {
-    if (
-      StringUtils
+    if StringUtils
         .cleanString(config.notifier)
         .toLowerCase != StringUtils.cleanString(defaultString).toLowerCase
-    )
+    then
       logger.warn(
         s"You provided '${config.notifier}' as model type for the default $elementType output config. This will not be considered!"
       )
@@ -916,7 +912,7 @@ object ConfigFailFast extends LazyLogging {
       }
       .keys
 
-    if (duplicateKeys.nonEmpty)
+    if duplicateKeys.nonEmpty then
       throw new InvalidConfigParameterException(
         s"There are multiple output configurations for $elementType types '${duplicateKeys.mkString(",")}'."
       )
@@ -963,7 +959,7 @@ object ConfigFailFast extends LazyLogging {
     try {
       val notifier = NotifierIdentifier(id)
 
-      if (!exceptedNotifiers.contains(notifier)) {
+      if !exceptedNotifiers.contains(notifier) then {
         throw new InvalidConfigParameterException(
           s"The identifier '$id' you provided is not valid. Valid input: ${exceptedNotifiers.map(_.toString).mkString(",")}"
         )

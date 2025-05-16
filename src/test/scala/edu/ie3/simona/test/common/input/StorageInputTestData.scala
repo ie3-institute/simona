@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.input.system.`type`.StorageTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID

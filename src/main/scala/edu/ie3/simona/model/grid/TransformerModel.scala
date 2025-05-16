@@ -15,7 +15,7 @@ import edu.ie3.datamodel.models.input.connector.{
 }
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
@@ -175,7 +175,8 @@ case object TransformerModel {
 
     // get the element port, where the transformer tap is located
     // if trafoType.isTapSide == true, tapper is on the low voltage side (== ConnectorPort.B)
-    val tapSide = if (trafoType.isTapSide) ConnectorPort.B else ConnectorPort.A
+    val tapSide =
+      if trafoType.isTapSide then ConnectorPort.B else ConnectorPort.A
 
     // / transformer tapping
     val transformerTappingModel = TransformerTappingModel(
@@ -214,7 +215,7 @@ case object TransformerModel {
     )
 
     // if the transformer input model is in operation, enable the model
-    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
+    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
       transformerModel.enable()
 
     // initialize tapping
@@ -244,14 +245,13 @@ case object TransformerModel {
 
     // check if transformer params are given for the low voltage side
     val vRef = refSystem.nominalVoltage.toKilovolts
-    if (
-      Math.abs(
+    if Math.abs(
         vRef - trafoType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
       )
         < Math.abs(
           vRef - trafoType.getvRatedB.to(KILOVOLT).getValue.doubleValue()
         )
-    )
+    then
       throw new InvalidGridException(
         s"The rated voltage of the high voltage side (${transformerInput.getType.getvRatedA()}) of transformer " +
           s"${transformerInput.getUuid} is closer to the reference voltage ($vRef), as the rated voltage of the " +
@@ -262,12 +262,11 @@ case object TransformerModel {
     // valid r,x,g,b values?
     val (r, x, g, b) =
       (trafoType.getrSc, trafoType.getxSc, trafoType.getgM, trafoType.getbM)
-    if (
-      r.getValue.doubleValue.isNaN ||
+    if r.getValue.doubleValue.isNaN ||
       x.getValue.doubleValue.isNaN ||
       g.getValue.doubleValue.isNaN ||
       b.getValue.doubleValue.isNaN
-    )
+    then
       throw new InvalidGridException(
         s"Attempted to create a transformer with invalid values.\ntrafo: ${transformerInput.getUuid}, type: ${trafoType.getUuid}, r: $r, x: $x, g: $g, b: $b"
       )

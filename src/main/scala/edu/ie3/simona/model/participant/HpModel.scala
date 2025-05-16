@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.input.container.{ThermalGrid => PsdmThermalGrid}
+import edu.ie3.datamodel.models.input.container.{ThermalGrid as PsdmThermalGrid}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
@@ -23,7 +23,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid
-import edu.ie3.simona.model.thermal.ThermalGrid._
+import edu.ie3.simona.model.thermal.ThermalGrid.*
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.Data.PrimaryData.{
@@ -33,14 +33,10 @@ import edu.ie3.simona.service.Data.PrimaryData.{
 }
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
-import edu.ie3.util.scala.quantities.DefaultQuantities.{
-  zeroCelsius,
-  zeroKW,
-  zeroKWh,
-}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
-import edu.ie3.util.scala.quantities._
-import squants._
+import edu.ie3.util.scala.quantities.*
+import squants.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -117,9 +113,9 @@ class HpModel private (
       )
 
     MinMaxFlexOptions(
-      if (turnOn) sRated.toActivePower(cosPhiRated) else zeroKW,
-      if (canBeOutOfOperation) zeroKW else sRated.toActivePower(cosPhiRated),
-      if (canOperate) sRated.toActivePower(cosPhiRated) else zeroKW,
+      if turnOn then sRated.toActivePower(cosPhiRated) else zeroKW,
+      if canBeOutOfOperation then zeroKW else sRated.toActivePower(cosPhiRated),
+      if canOperate then sRated.toActivePower(cosPhiRated) else zeroKW,
     )
   }
 
@@ -183,13 +179,12 @@ class HpModel private (
 
     /* Determine how qDot is used in thermalGrid and get threshold */
     val (thermalGridOperatingPoint, maybeThreshold) =
-      if (qDotIntoGrid > zeroKW) {
+      if qDotIntoGrid > zeroKW then {
         thermalGrid.handleFeedIn(
           state,
           qDotIntoGrid,
         )
-      } else
-        thermalGrid.handleConsumption(state)
+      } else thermalGrid.handleConsumption(state)
 
     val operatingPoint =
       HpOperatingPoint(
@@ -233,7 +228,7 @@ class HpModel private (
         )._1
     }
 
-    if (turnOn) (pRated, pThermal)
+    if turnOn then (pRated, pThermal)
     else (zeroKW, zeroKW)
   }
 
@@ -306,7 +301,7 @@ class HpModel private (
   }
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult = {
     data match {

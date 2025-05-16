@@ -17,13 +17,13 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EvMessage
-import edu.ie3.simona.ontology.messages.services.EvMessage._
+import edu.ie3.simona.ontology.messages.services.EvMessage.*
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.Kilovars
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.Behavior
@@ -287,7 +287,7 @@ class EvcsModelSpec
           )
 
           val expectedResults = Iterable(ev1Res, ev2Res, evcsRes).map {
-            if (_) 1 else 0
+            if _ then 1 else 0
           }.sum
 
           results should have size expectedResults

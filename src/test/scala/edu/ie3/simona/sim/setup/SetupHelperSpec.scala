@@ -26,7 +26,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class SetupHelperSpec
     extends ScalaTestWithActorTestKit

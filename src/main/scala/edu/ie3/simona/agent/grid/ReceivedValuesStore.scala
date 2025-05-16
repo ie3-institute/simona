@@ -48,7 +48,7 @@ final case class ReceivedValuesStore(
 object ReceivedValuesStore {
 
   type NodeToReceivedPower =
-    Map[UUID, Map[ActorRef[_], Option[PowerResponse]]]
+    Map[UUID, Map[ActorRef[?], Option[PowerResponse]]]
   type NodeToReceivedSlackVoltage =
     Map[UUID, Option[ExchangeVoltage]]
 
@@ -125,7 +125,7 @@ object ReceivedValuesStore {
           val actorRefToMessage = subordinateToReceivedPower
             .getOrElse(
               couplingNodeUuid,
-              Map.empty[ActorRef[_], Option[GridPowerResponse]],
+              Map.empty[ActorRef[?], Option[GridPowerResponse]],
             ) + (inferiorSubGridRef -> None)
 
           /* Update the existing map */

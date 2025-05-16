@@ -7,7 +7,7 @@
 package edu.ie3.simona.scheduler
 
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent._
+import edu.ie3.simona.event.RuntimeEvent.*
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,

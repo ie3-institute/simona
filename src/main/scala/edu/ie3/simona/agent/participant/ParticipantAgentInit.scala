@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.{LoadInput, SystemParticipantInput}
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent._
+import edu.ie3.simona.agent.participant.ParticipantAgent.*
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -27,7 +27,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.RegisterForLoadProfileService
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -67,7 +67,7 @@ object ParticipantAgentInit {
   final case class ParticipantRefs(
       gridAgent: ActorRef[GridAgent.Request],
       primaryServiceProxy: ActorRef[ServiceMessage],
-      services: Map[ServiceType, ActorRef[_ >: ServiceMessage]],
+      services: Map[ServiceType, ActorRef[? >: ServiceMessage]],
       resultListener: Iterable[ActorRef[ResultEvent]],
   )
 
@@ -111,7 +111,7 @@ object ParticipantAgentInit {
     *   [[edu.ie3.simona.agent.em.EmAgent]].
     */
   def apply(
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
+      inputContainer: InputModelContainer[? <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
@@ -166,7 +166,7 @@ object ParticipantAgentInit {
   /** Waiting for an [[Activation]] message to start the initialization.
     */
   private def uninitialized(
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
+      inputContainer: InputModelContainer[? <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
@@ -197,7 +197,7 @@ object ParticipantAgentInit {
     * participant uses model calculations or just replays primary data.
     */
   private def waitingForPrimaryProxy(
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
+      inputContainer: InputModelContainer[? <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
@@ -214,7 +214,7 @@ object ParticipantAgentInit {
           ),
         ) =>
       // we're supposed to replay primary data, initialize accordingly
-      val expectedFirstData: Map[ActorRef[_ >: ServiceMessage], Long] =
+      val expectedFirstData: Map[ActorRef[? >: ServiceMessage], Long] =
         Map(serviceRef -> firstDataTick)
 
       completeInitialization(
@@ -239,7 +239,7 @@ object ParticipantAgentInit {
       )
       val requiredServiceTypes = modelFactory.getRequiredSecondaryServices
 
-      if (requiredServiceTypes.isEmpty) {
+      if requiredServiceTypes.isEmpty then {
         // not requiring any secondary services, thus we're ready to go
         completeInitialization(
           modelFactory,
@@ -289,7 +289,7 @@ object ParticipantAgentInit {
       participantInput: SystemParticipantInput,
       participantRef: ActorRef[Request],
       serviceType: ServiceType,
-      serviceRef: ActorRef[_ >: ServiceMessage],
+      serviceRef: ActorRef[? >: ServiceMessage],
   ): Unit =
     serviceType match {
       case ServiceType.WeatherService =>
@@ -337,13 +337,13 @@ object ParticipantAgentInit {
     * received, we complete the initialization.
     */
   private def waitingForServices(
-      modelFactory: ParticipantModelFactory[_ <: ModelState],
+      modelFactory: ParticipantModelFactory[? <: ModelState],
       participantInput: SystemParticipantInput,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
-      expectedRegistrations: Set[ActorRef[_ >: ServiceMessage]],
-      expectedFirstData: Map[ActorRef[_ >: ServiceMessage], Long] = Map.empty,
+      expectedRegistrations: Set[ActorRef[? >: ServiceMessage]],
+      expectedFirstData: Map[ActorRef[? >: ServiceMessage], Long] = Map.empty,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] =
     Behaviors.receivePartial {
@@ -356,7 +356,7 @@ object ParticipantAgentInit {
             ),
           ) =>
         // received registration success message from secondary service
-        if (!expectedRegistrations.contains(serviceRef))
+        if !expectedRegistrations.contains(serviceRef) then
           throw new CriticalFailureException(
             s"${participantInput.identifier}: Registration response from $serviceRef was not expected!"
           )
@@ -370,7 +370,7 @@ object ParticipantAgentInit {
           case None                              => modelFactory
         }
 
-        if (newExpectedRegistrations.isEmpty)
+        if newExpectedRegistrations.isEmpty then
           // all secondary services set up, ready to go
           completeInitialization(
             updatedFactory,
@@ -399,10 +399,10 @@ object ParticipantAgentInit {
     * [[ParticipantAgent]]
     */
   private def completeInitialization(
-      modelFactory: ParticipantModelFactory[_ <: ModelState],
+      modelFactory: ParticipantModelFactory[? <: ModelState],
       participantInput: SystemParticipantInput,
       notifierConfig: NotifierConfig,
-      expectedData: Map[ActorRef[_ >: ServiceMessage], Long],
+      expectedData: Map[ActorRef[? >: ServiceMessage], Long],
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],
@@ -421,7 +421,7 @@ object ParticipantAgentInit {
     val dataCompletedTick = inputHandler.getDataCompletedTick
 
     dataCompletedTick.foreach { dataCompleted =>
-      if (dataCompleted > firstTick)
+      if dataCompleted > firstTick then
         throw new CriticalFailureException(
           s"${modelShell.identifier}: Input data will only be fully received at tick $dataCompleted. " +
             s"It needs to be available with operation start $firstTick though."

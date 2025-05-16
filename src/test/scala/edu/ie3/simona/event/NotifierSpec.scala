@@ -17,15 +17,15 @@ import org.apache.pekko.actor.{
 import org.apache.pekko.testkit.ImplicitSender
 import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.result.system._
+import edu.ie3.datamodel.models.result.system.*
 import edu.ie3.simona.event.NotifierSpec.{TestEvent, TestEventEnvelope}
 import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.test.common.TestKitWithShutdown
-import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
+import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier.*
 import edu.ie3.simona.util.EntityMapperUtil
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.language.postfixOps
 
 class NotifierSpec

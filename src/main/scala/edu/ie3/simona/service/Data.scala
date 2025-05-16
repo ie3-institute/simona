@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.service
 
-import edu.ie3.datamodel.models.value._
+import edu.ie3.datamodel.models.value.*
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.EnergyPrice
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
@@ -204,8 +204,8 @@ object Data {
     }
 
     def getPrimaryDataExtra(
-        value: Class[_ <: Value]
-    ): PrimaryDataExtra[_ <: PrimaryData] = {
+        value: Class[? <: Value]
+    ): PrimaryDataExtra[? <: PrimaryData] = {
       val heatAndS = classOf[HeatAndSValue]
       val s = classOf[SValue]
       val heatAndP = classOf[HeatAndPValue]

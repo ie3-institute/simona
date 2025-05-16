@@ -10,7 +10,7 @@ import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.util.TickUtil
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.geo.CoordinateDistance
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
@@ -26,7 +26,7 @@ import java.time.temporal.ChronoField.{HOUR_OF_DAY, MONTH_OF_YEAR, YEAR}
 import java.util
 import java.util.{Collections, Optional}
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 final class SampleWeatherSource(
     private implicit val simulationStart: ZonedDateTime
@@ -69,10 +69,9 @@ final class SampleWeatherSource(
     val month = simulationTime.get(MONTH_OF_YEAR) - 1
     val hour = simulationTime.get(HOUR_OF_DAY)
     val year =
-      if (
-        simulationTime.get(YEAR) != 2011 && !(simulationTime
+      if simulationTime.get(YEAR) != 2011 && !(simulationTime
           .get(YEAR) == 2012 && month == 0)
-      ) 2011
+      then 2011
       else simulationTime.get(YEAR)
     val index = (((year - 2011) * 288) + (month * 24) + hour) + 1
     WeatherData(
@@ -143,30 +142,28 @@ object SampleWeatherSource {
         n: Int,
         distance: ComparableQuantity[Length],
     ): util.List[CoordinateDistance] = {
-      if (coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180)
+      if coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180 then
         Vector(
           new CoordinateDistance(
             coordinate,
             coordinate,
           )
         ).asJava
-      else
-        Vector.empty[CoordinateDistance].asJava
+      else Vector.empty[CoordinateDistance].asJava
     }
 
     override def getNearestCoordinates(
         coordinate: Point,
         i: Int,
     ): util.List[CoordinateDistance] = {
-      if (coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180)
+      if coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180 then
         Vector(
           new CoordinateDistance(
             coordinate,
             coordinate,
           )
         ).asJava
-      else
-        Vector.empty[CoordinateDistance].asJava
+      else Vector.empty[CoordinateDistance].asJava
     }
 
     override def findCornerPoints(

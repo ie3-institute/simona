@@ -8,7 +8,7 @@ package edu.ie3.simona.scheduler
 
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorContextOps
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -62,8 +62,7 @@ object ScheduleLock {
       expectedTick: Long,
   ): Behavior[Activation] =
     Behaviors.receive { case (ctx, Activation(tick)) =>
-      if (tick == expectedTick)
-        lock ! LockActivation
+      if tick == expectedTick then lock ! LockActivation
       else
         ctx.log.error(
           s"Received lock activation for tick $tick, but expected $expectedTick"
@@ -89,7 +88,7 @@ object ScheduleLock {
     def spawn[T](behavior: Behavior[T]): ActorRef[T]
   }
 
-  private final case class TypedSpawner(ctx: ActorContext[_]) extends Spawner {
+  private final case class TypedSpawner(ctx: ActorContext[?]) extends Spawner {
     override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
       ctx.spawnAnonymous(behavior)
   }
@@ -114,7 +113,7 @@ object ScheduleLock {
     *   A single key that unlocks the lock
     */
   def singleKey(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
   ): ScheduleKey =
@@ -175,7 +174,7 @@ object ScheduleLock {
     *   A collection of keys that are needed to unlock the lock
     */
   def multiKey(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
       count: Int,
@@ -286,8 +285,7 @@ object ScheduleLock {
   ): Behavior[LockMsg] = Behaviors.receiveMessage { case Unlock(key) =>
     val updatedKeys = awaitedKeys - key
 
-    if (updatedKeys.nonEmpty)
-      active(scheduler, updatedKeys, adapter)
+    if updatedKeys.nonEmpty then active(scheduler, updatedKeys, adapter)
     else {
       scheduler ! Completion(adapter)
       Behaviors.stopped

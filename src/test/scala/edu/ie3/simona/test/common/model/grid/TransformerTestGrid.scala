@@ -28,16 +28,16 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.{RefSystem, TransformerModel}
 import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
 import squants.electro.Kilovolts
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Represents a simple test grid, consisting of one transformer connecting two
   * nodes. It is a representation of a real SGB Smit DTTH 630 kVA transformer

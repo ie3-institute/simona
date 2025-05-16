@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
 }
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology._
+import edu.ie3.simona.api.data.ev.ontology.*
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
@@ -21,7 +21,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.EvMessage._
+import edu.ie3.simona.ontology.messages.services.EvMessage.*
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   Create,
   RegisterForEvDataMessage,
@@ -43,8 +43,8 @@ import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 import scala.language.implicitConversions
 
 class ExtEvDataServiceSpec

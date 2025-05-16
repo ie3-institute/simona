@@ -36,9 +36,9 @@ final class ScalaNumberSystem extends DefaultNumberSystem {
 
     val sign = signX * signY
     // handle corner cases when x or y are zero
-    if (sign == 0) {
-      if (signY == 0) throw new ArithmeticException("division by zero")
-      if (signX == 0) Array[Number](0, 0)
+    if sign == 0 then {
+      if signY == 0 then throw new ArithmeticException("division by zero")
+      if signX == 0 then Array[Number](0, 0)
     }
 
     val div = x.doubleValue / y.intValue()

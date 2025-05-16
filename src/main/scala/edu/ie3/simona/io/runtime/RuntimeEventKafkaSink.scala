@@ -22,7 +22,7 @@ import org.apache.kafka.common.serialization.{Serdes, Serializer}
 import org.slf4j.Logger
 
 import java.util.{Properties, UUID}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Runtime event sink that sends events related to the simulation ending to a
   * kafka topic.

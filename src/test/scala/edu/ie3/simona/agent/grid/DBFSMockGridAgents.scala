@@ -10,7 +10,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe

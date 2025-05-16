@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.service
 
-import edu.ie3.simona.service.Data.PrimaryData._
+import edu.ie3.simona.service.Data.PrimaryData.*
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.Kilovars
 import squants.energy.Kilowatts
 

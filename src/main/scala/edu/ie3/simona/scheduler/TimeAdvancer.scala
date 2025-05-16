@@ -114,13 +114,12 @@ object TimeAdvancer {
                 val notifierCompleted =
                   notifier.completing(newTick - 1)
 
-                if (activeTick == INIT_SIM_TICK)
+                if activeTick == INIT_SIM_TICK then
                   notifierCompleted.starting(
                     newTick,
                     data.endTick,
                   )
-                else
-                  notifierCompleted
+                else notifierCompleted
               }
 
               // activate next

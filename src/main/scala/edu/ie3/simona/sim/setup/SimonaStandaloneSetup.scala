@@ -46,7 +46,7 @@ import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Sample implementation to run a standalone simulation of simona configured
   * with the provided [[SimonaConfig]] and [[ResultFileHierarchy]]
@@ -65,7 +65,7 @@ class SimonaStandaloneSetup(
   override def logOutputDir: Path = resultFileHierarchy.logOutputDir
 
   override def gridAgents(
-      context: ActorContext[_],
+      context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
   ): Iterable[ActorRef[GridAgent.Request]] = {
@@ -149,7 +149,7 @@ class SimonaStandaloneSetup(
   }
 
   override def primaryServiceProxy(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
   ): ActorRef[ServiceMessage] = {
@@ -171,7 +171,7 @@ class SimonaStandaloneSetup(
   }
 
   override def weatherService(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[WeatherMessage] = {
     val weatherService = context.spawn(
@@ -193,7 +193,7 @@ class SimonaStandaloneSetup(
   }
 
   override def loadProfileService(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[LoadProfileMessage] = {
     val loadProfileService = context.spawn(
@@ -219,14 +219,14 @@ class SimonaStandaloneSetup(
   }
 
   override def extSimulations(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimPath: Option[Path],
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder(extSimPath)
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
 
-    setupExtSim(extLinks, args)(
+    setupExtSim(extLinks, args)(using
       context,
       scheduler,
       simonaConfig.simona.powerflow.resolution,
@@ -234,7 +234,7 @@ class SimonaStandaloneSetup(
   }
 
   override def timeAdvancer(
-      context: ActorContext[_],
+      context: ActorContext[?],
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Request] = {
@@ -250,14 +250,14 @@ class SimonaStandaloneSetup(
         simulation,
         Some(runtimeEventListener),
         simonaConfig.simona.time.schedulerReadyCheckWindow,
-        endDateTime.toTick(startDateTime),
+        endDateTime.toTick(using startDateTime),
       ),
       TimeAdvancer.getClass.getSimpleName,
     )
   }
 
   override def scheduler(
-      context: ActorContext[_],
+      context: ActorContext[?],
       parent: ActorRef[SchedulerMessage],
       coreFactory: CoreFactory = RegularSchedulerCore,
   ): ActorRef[SchedulerMessage] =
@@ -268,7 +268,7 @@ class SimonaStandaloneSetup(
       )
 
   override def runtimeEventListener(
-      context: ActorContext[_]
+      context: ActorContext[?]
   ): ActorRef[RuntimeEventListener.Request] =
     context
       .spawn(
@@ -281,7 +281,7 @@ class SimonaStandaloneSetup(
       )
 
   override def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[?]
   ): Seq[ActorRef[ResultEventListener.Request]] = {
     // append ResultEventListener as well to write raw output files
     Seq(
@@ -297,7 +297,7 @@ class SimonaStandaloneSetup(
 
   def buildSubGridToActorRefMap(
       subGridTopologyGraph: SubGridTopologyGraph,
-      context: ActorContext[_],
+      context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
   ): Map[Int, ActorRef[GridAgent.Request]] = {
@@ -332,7 +332,7 @@ class SimonaStandaloneSetup(
       thermalGridByBus: Map[ThermalBusInput, ThermalGrid],
   ): Seq[ThermalGrid] = {
     grid.getSystemParticipants.getHeatPumps.asScala
-      .flatten(hpInput => thermalGridByBus.get(hpInput.getThermalBus))
+      .flatten(using hpInput => thermalGridByBus.get(hpInput.getThermalBus))
       .toSeq
   }
 }

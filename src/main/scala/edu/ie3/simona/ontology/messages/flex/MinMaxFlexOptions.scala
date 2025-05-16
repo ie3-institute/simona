@@ -7,7 +7,7 @@
 package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import squants.Power
 
 /** A [[FlexOptions]] type that provides interval-based flexibility in form of
@@ -72,12 +72,12 @@ object MinMaxFlexOptions {
       min: Power,
       max: Power,
   ): MinMaxFlexOptions = {
-    if (min > ref)
+    if min > ref then
       throw new CriticalFailureException(
         s"Minimum power $min is greater than reference power $ref"
       )
 
-    if (ref > max)
+    if ref > max then
       throw new CriticalFailureException(
         s"Reference power $ref is greater than maximum power $max"
       )

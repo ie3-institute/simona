@@ -24,9 +24,9 @@ import edu.ie3.datamodel.models.input.graphics.{
   LineGraphicInput,
   NodeGraphicInput,
 }
-import edu.ie3.datamodel.models.input.system._
+import edu.ie3.datamodel.models.input.system.*
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 object TestGridFactory {
 

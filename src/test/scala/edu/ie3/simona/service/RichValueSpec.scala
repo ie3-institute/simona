@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service
 
-import edu.ie3.datamodel.models.value._
+import edu.ie3.datamodel.models.value.*
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.{
   ActivePower,

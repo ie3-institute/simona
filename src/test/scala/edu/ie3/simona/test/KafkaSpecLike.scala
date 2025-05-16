@@ -13,7 +13,7 @@ import org.scalatest.{BeforeAndAfterAll, TestSuite}
 import org.testcontainers.utility.DockerImageName
 
 import java.util.concurrent.TimeUnit
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Adapted from
   * https://kafka-tutorials.confluent.io/produce-consume-lang/scala.html

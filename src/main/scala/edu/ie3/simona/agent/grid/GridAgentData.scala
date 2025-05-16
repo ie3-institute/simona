@@ -12,7 +12,7 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.buildSuperiorGridRefs
-import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.participant.ParticipantAgent
@@ -411,7 +411,7 @@ object GridAgentData {
     private def updateNodalReceivedPower(
         powerResponse: PowerResponse,
         nodeToReceived: NodeToReceivedPower,
-        senderRef: ActorRef[_],
+        senderRef: ActorRef[?],
         replace: Boolean,
     ): NodeToReceivedPower = {
       // extract the nodeUuid that corresponds to the sender's actorRef and check if we expect a message from the sender
@@ -469,17 +469,15 @@ object GridAgentData {
       */
     private def getNodeUuidForSender(
         nodeToReceivedPower: NodeToReceivedPower,
-        senderRef: ActorRef[_],
+        senderRef: ActorRef[?],
         replace: Boolean,
     ): Option[UUID] =
       nodeToReceivedPower
         .find { case (_, receivedPowerMessages) =>
           receivedPowerMessages.exists { case (ref, maybePowerResponse) =>
             ref == senderRef &&
-            (if (!replace)
-               maybePowerResponse.isEmpty
-             else
-               maybePowerResponse.isDefined)
+            (if !replace then maybePowerResponse.isEmpty
+             else maybePowerResponse.isDefined)
           }
         }
         .map { case (uuid, _) => uuid }

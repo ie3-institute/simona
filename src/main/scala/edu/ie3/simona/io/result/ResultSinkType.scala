@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.io.result
 
-import edu.ie3.simona.config.ConfigParams._
+import edu.ie3.simona.config.ConfigParams.*
 import edu.ie3.simona.config.OutputConfig
 
 import java.util.UUID
@@ -43,7 +43,7 @@ object ResultSinkType {
     val sink: Seq[Any] =
       Seq(sinkConfig.csv, sinkConfig.influxDb1x, sinkConfig.kafka).flatten
 
-    if (sink.size > 1)
+    if sink.size > 1 then
       throw new IllegalArgumentException(
         s"Multiple sinks are not supported! Provided sinks: '$sinkConfig'"
       )
@@ -80,7 +80,7 @@ object ResultSinkType {
   def buildInfluxDb1xUrl(
       sinkConfig: InfluxDb1xParams
   ): String = {
-    if (sinkConfig.url.endsWith("/")) sinkConfig.url.replaceAll("/", "")
+    if sinkConfig.url.endsWith("/") then sinkConfig.url.replaceAll("/", "")
     else sinkConfig.url
   }.trim.concat(s":${sinkConfig.port}")
 

@@ -29,7 +29,7 @@ object ParticipantAgentMockFactory {
     * are handed over to [[ParticipantAgent]].
     */
   def create(
-      modelShell: ParticipantModelShell[_, _],
+      modelShell: ParticipantModelShell[?, ?],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       resultHandler: ParticipantResultHandler,

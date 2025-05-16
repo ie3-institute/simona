@@ -83,10 +83,10 @@ object ChargingHelper {
     val netPower = calcNetPower(power, eta)
 
     val maybeTimeSpan =
-      if (netPower ~= zeroKW) {
+      if netPower ~= zeroKW then {
         // we're at 0 kW, do nothing
         None
-      } else if (netPower > zeroKW) {
+      } else if netPower > zeroKW then {
         val energyToFull = chargingEnergyTarget() - storedEnergy
         Some(energyToFull / netPower)
       } else {
@@ -111,7 +111,7 @@ object ChargingHelper {
     *   The net power.
     */
   def calcNetPower(setPower: Power, eta: Dimensionless): Power =
-    if (setPower > zeroKW) {
+    if setPower > zeroKW then {
       // multiply eta if we're charging
       setPower * eta.toEach
     } else {

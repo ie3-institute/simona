@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.config.RuntimeConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.model.participant.ParticipantModel.FixedState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.UnitSpec

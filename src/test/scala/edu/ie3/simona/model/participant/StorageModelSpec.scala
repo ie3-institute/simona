@@ -18,7 +18,7 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{KilowattHours, Kilowatts}

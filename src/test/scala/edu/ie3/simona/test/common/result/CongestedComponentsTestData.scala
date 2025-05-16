@@ -16,7 +16,7 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
 }
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.model.grid._
+import edu.ie3.simona.model.grid.*
 import edu.ie3.simona.test.common.ConfigTestData
 import edu.ie3.simona.test.common.input.NodeInputTestData
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid

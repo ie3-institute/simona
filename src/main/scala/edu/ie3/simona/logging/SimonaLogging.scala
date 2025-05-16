@@ -77,12 +77,12 @@ object SimonaLogging {
   final case class SimonaBusLogging(
       bus: LoggingBus,
       logSource: String,
-      logClass: Class[_],
+      logClass: Class[?],
       loggingFilter: LoggingFilter,
       prefix: () => String,
   ) extends LoggingAdapter {
 
-    import org.apache.pekko.event.Logging._
+    import org.apache.pekko.event.Logging.*
 
     def isErrorEnabled: Boolean =
       loggingFilter.isErrorEnabled(logClass, logSource)

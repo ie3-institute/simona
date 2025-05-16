@@ -30,12 +30,12 @@ import scala.jdk.OptionConverters.RichOptional
   */
 final case class ResultFileHierarchy private (
     runOutputDir: Path,
-    rawOutputDataFilePaths: Map[Class[_ <: ResultEntity], Path],
+    rawOutputDataFilePaths: Map[Class[? <: ResultEntity], Path],
     configOutputDir: Path,
     logOutputDir: Path,
     tmpDir: Path,
     resultSinkType: ResultSinkType,
-    resultEntitiesToConsider: Set[Class[_ <: ResultEntity]],
+    resultEntitiesToConsider: Set[Class[? <: ResultEntity]],
 )
 
 object ResultFileHierarchy extends LazyLogging {
@@ -70,7 +70,7 @@ object ResultFileHierarchy extends LazyLogging {
 
     val resultSinkType: ResultSinkType = resultEntityPathConfig.resultSinkType
 
-    val rawOutputDataFilePaths: Map[Class[_ <: ResultEntity], Path] = {
+    val rawOutputDataFilePaths: Map[Class[? <: ResultEntity], Path] = {
       resultSinkType match {
         case csv: Csv =>
           resultEntityPathConfig.resultEntitiesToConsider
@@ -157,7 +157,7 @@ object ResultFileHierarchy extends LazyLogging {
     *   the type of the sink where result entities should be persisted
     */
   final case class ResultEntityPathConfig(
-      resultEntitiesToConsider: Set[Class[_ <: ResultEntity]],
+      resultEntitiesToConsider: Set[Class[? <: ResultEntity]],
       resultSinkType: ResultSinkType,
   )
 
@@ -172,13 +172,12 @@ object ResultFileHierarchy extends LazyLogging {
     *   name + extension
     */
   private def buildRawOutputFilePath(
-      modelClass: Class[_ <: ResultEntity],
+      modelClass: Class[? <: ResultEntity],
       csvSink: Csv,
       rawOutputDataDir: Path,
   ): Path = {
     val fileEnding =
-      if (csvSink.fileFormat.startsWith("."))
-        csvSink.fileFormat
+      if csvSink.fileFormat.startsWith(".") then csvSink.fileFormat
       else ".".concat(csvSink.fileFormat)
     val namingStrategy = new FileNamingStrategy(
       new EntityPersistenceNamingStrategy(
@@ -218,7 +217,7 @@ object ResultFileHierarchy extends LazyLogging {
       maybeConfig: Option[(Config, SimonaConfig)],
   ): Unit = {
     // create output directories if they are not present yet
-    if (!runOutputDirExists(resultFileHierarchy))
+    if !runOutputDirExists(resultFileHierarchy) then
       createOutputDirectories(
         baseOutputDir,
         dirsToBeCreated,
@@ -276,7 +275,7 @@ object ResultFileHierarchy extends LazyLogging {
   ): Unit = {
     // try to create base output dir
     // / check for existence of the provided baseOutputDir, if not create it
-    if (Files.exists(baseOutputDir) && baseOutputDir.toFile.isFile) {
+    if Files.exists(baseOutputDir) && baseOutputDir.toFile.isFile then {
       throw new FileHierarchyException(
         s"Provided base output path $baseOutputDir is a file and cannot be replaced with a directory!"
       )
@@ -284,7 +283,7 @@ object ResultFileHierarchy extends LazyLogging {
 
     // check if there is data inside the runOutputDir taking into account the provided FileHandling
     val runOutputDir = outputFileHierarchy.runOutputDir.toFile
-    if (runOutputDir.exists() && runOutputDir.listFiles().length > 0) {
+    if runOutputDir.exists() && runOutputDir.listFiles().length > 0 then {
       // files inside the runOutputDir -> fail
       throw new FileHierarchyException(
         s"The runOutputDir ${outputFileHierarchy.runOutputDir.toString} already exists and is NOT empty! " +
@@ -304,7 +303,7 @@ object ResultFileHierarchy extends LazyLogging {
     */
   private def createDir(dir: Path): Unit = {
     val dirFile = dir.toFile
-    if (!dirFile.mkdirs() && !dirFile.exists())
+    if !dirFile.mkdirs() && !dirFile.exists() then
       throw new FileHierarchyException(
         "The output directory path " + dir
           + " could not be created. Check pathname and permissions! Full path: " + dirFile.getAbsolutePath

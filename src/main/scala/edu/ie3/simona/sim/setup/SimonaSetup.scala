@@ -59,7 +59,7 @@ trait SimonaSetup {
     *   An actor reference to the runtime event listener
     */
   def runtimeEventListener(
-      context: ActorContext[_]
+      context: ActorContext[?]
   ): ActorRef[RuntimeEventListener.Request]
 
   /** Creates a sequence of result event listeners
@@ -70,7 +70,7 @@ trait SimonaSetup {
     *   A sequence of actor references to result event listeners
     */
   def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[?]
   ): Seq[ActorRef[ResultEventListener.Request]]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
@@ -88,7 +88,7 @@ trait SimonaSetup {
     *   An actor reference to the service
     */
   def primaryServiceProxy(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
   ): ActorRef[ServiceMessage]
@@ -104,7 +104,7 @@ trait SimonaSetup {
     *   the service
     */
   def weatherService(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[WeatherMessage]
 
@@ -119,7 +119,7 @@ trait SimonaSetup {
     *   the service
     */
   def loadProfileService(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[LoadProfileMessage]
 
@@ -135,7 +135,7 @@ trait SimonaSetup {
     *   External simulations and their init data
     */
   def extSimulations(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimPath: Option[Path],
   ): ExtSimSetupData
@@ -152,7 +152,7 @@ trait SimonaSetup {
     *   An actor reference to the time advancer
     */
   def timeAdvancer(
-      context: ActorContext[_],
+      context: ActorContext[?],
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Request]
@@ -170,7 +170,7 @@ trait SimonaSetup {
     *   An actor reference to the scheduler
     */
   def scheduler(
-      context: ActorContext[_],
+      context: ActorContext[?],
       parent: ActorRef[SchedulerMessage],
       coreFactory: CoreFactory = RegularSchedulerCore,
   ): ActorRef[SchedulerMessage]
@@ -188,7 +188,7 @@ trait SimonaSetup {
     *   be used when setting up the agents
     */
   def gridAgents(
-      context: ActorContext[_],
+      context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
   ): Iterable[ActorRef[GridAgent.Request]]

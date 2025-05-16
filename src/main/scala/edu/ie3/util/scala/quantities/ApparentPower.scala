@@ -6,9 +6,9 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants._
+import squants.*
 import squants.electro.{Amperes, ElectricPotential}
-import squants.energy._
+import squants.energy.*
 import squants.time.Time
 
 import scala.math.{acos, sin}

@@ -64,7 +64,7 @@ abstract class SimonaService[
           activationAdapter,
         )
 
-      uninitialized(constantData, buffer)
+      uninitialized(using constantData, buffer)
     }
   }
 
@@ -115,7 +115,7 @@ abstract class SimonaService[
             constantData.activationAdapter,
             maybeNewTick,
           )
-          buffer.unstashAll(idle(serviceStateData, constantData))
+          buffer.unstashAll(idle(using serviceStateData, constantData))
         case Failure(exception) =>
           // initialize service trigger with invalid data
           ctx.log.error(
@@ -172,8 +172,8 @@ abstract class SimonaService[
     // agent registration process
     case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
-      handleRegistrationRequest(registrationMsg)(stateData, ctx) match {
-        case Success(stateData) => idle(stateData, constantData)
+      handleRegistrationRequest(registrationMsg)(using stateData, ctx) match {
+        case Success(stateData) => idle(using stateData, constantData)
         case Failure(exception) =>
           ctx.log.error(
             "Error during registration." +
@@ -202,14 +202,14 @@ abstract class SimonaService[
     case (ctx, WrappedActivation(Activation(tick))) =>
       /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
       val (updatedStateData, maybeNextTick) =
-        announceInformation(tick)(stateData, ctx)
+        announceInformation(tick)(using stateData, ctx)
 
       constantData.scheduler ! Completion(
         constantData.activationAdapter,
         maybeNextTick,
       )
 
-      idle(updatedStateData, constantData)
+      idle(using updatedStateData, constantData)
   }
 
   private def unhandled: (ActorContext[T], T) => Behavior[T] = {

@@ -30,7 +30,7 @@ final case class ReceiveDataMap[K, V](
       value: V,
   ): ReceiveDataMap[K, V] = {
 
-    if (!expectedKeys.contains(key))
+    if !expectedKeys.contains(key) then
       throw new RuntimeException(
         s"Received value $value for key $key, but no data has been expected for this key."
       )

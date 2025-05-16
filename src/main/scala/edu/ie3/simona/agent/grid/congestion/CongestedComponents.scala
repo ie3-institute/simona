@@ -88,7 +88,7 @@ object CongestedComponents {
 
         // Units: A -> (A, A)
 
-        val current = if (iA > iB) {
+        val current = if iA > iB then {
           iA
         } else iB
 

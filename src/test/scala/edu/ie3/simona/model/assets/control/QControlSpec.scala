@@ -9,8 +9,8 @@ package edu.ie3.simona.model.assets.control
 import edu.ie3.datamodel.models.input.system.characteristic
 import edu.ie3.datamodel.models.input.system.characteristic.{
   CharacteristicPoint,
-  CosPhiP => CosPhiPInput,
-  QV => QVInput,
+  CosPhiP as CosPhiPInput,
+  QV as QVInput,
 }
 import edu.ie3.simona.exceptions.QControlException
 import edu.ie3.simona.model.participant.control.QControl.{
@@ -21,11 +21,11 @@ import edu.ie3.simona.model.participant.control.QControl.{
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 import squants.Each
-import tech.units.indriya.quantity.Quantities._
+import tech.units.indriya.quantity.Quantities.*
 
 import java.util
 import javax.measure.quantity.Dimensionless

@@ -6,13 +6,13 @@
 
 package edu.ie3.simona.config
 
-import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
+import com.typesafe.config.{ConfigFactory, Config as TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
-import scopt.{OptionParser => scoptOptionParser}
+import scopt.{OptionParser as scoptOptionParser}
 
 import java.io.File
 import java.nio.file.Paths
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 object ArgsParser extends LazyLogging {
 
@@ -34,7 +34,7 @@ object ArgsParser extends LazyLogging {
           )
         })
         .validate(value =>
-          if (value.trim.isEmpty) failure("config location cannot be empty")
+          if value.trim.isEmpty then failure("config location cannot be empty")
           else success
         )
         .text("Location of the simona config file")
@@ -52,7 +52,7 @@ object ArgsParser extends LazyLogging {
 
   private def parseTypesafeConfig(fileName: String): TypesafeConfig = {
     val file = Paths.get(fileName).toFile
-    if (!file.exists())
+    if !file.exists() then
       throw new Exception(s"Missing config file on path $fileName")
     parseTypesafeConfig(file)
   }

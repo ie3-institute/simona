@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants._
+import squants.*
 import squants.energy.WattHours
 import squants.space.SquareMeters
 

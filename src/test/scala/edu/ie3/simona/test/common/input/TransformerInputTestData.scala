@@ -26,12 +26,12 @@ import edu.ie3.datamodel.models.input.{
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.TestGridFactory
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{OHM, PERCENT}
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Test data for a [[Transformer2WInput]].
   *

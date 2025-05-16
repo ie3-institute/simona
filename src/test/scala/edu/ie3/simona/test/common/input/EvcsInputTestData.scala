@@ -15,7 +15,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.test.common.model.MockEvModel
-import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.util.quantities.QuantityUtils.*
 
 import java.util.UUID
 

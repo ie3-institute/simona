@@ -91,7 +91,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         activationAdapter,
       )
 
-      uninitialized(agentValues, buffer, simonaConfig)
+      uninitialized(using agentValues, buffer, simonaConfig)
     }
   }
 
@@ -272,11 +272,14 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           createResultModels(
             gridAgentBaseData.gridEnv.gridModel,
             valueStore,
-          )(currentTick.toDateTime(constantData.simStartTime), ctx.log)
+          )(using
+            currentTick.toDateTime(using constantData.simStartTime),
+            ctx.log,
+          )
       }
 
     // check if congestion management is enabled
-    if (gridAgentBaseData.congestionManagementParams.detectionEnabled) {
+    if gridAgentBaseData.congestionManagementParams.detectionEnabled then {
       startCongestionManagement(gridAgentBaseData, currentTick, results, ctx)
     } else {
       // clean up agent and go back to idle
@@ -354,7 +357,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       resMsgBuilder: Vector[(ActorRef[GridAgent.Request], T)] => InternalReply,
       ctx: ActorContext[GridAgent.Request],
   )(implicit timeout: FiniteDuration): Unit = {
-    if (inferiorGridRefs.nonEmpty) {
+    if inferiorGridRefs.nonEmpty then {
       // creating implicit vals
       implicit val ec: ExecutionContext = ctx.executionContext
       implicit val scheduler: Scheduler = ctx.system.scheduler
@@ -400,9 +403,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       actorName: String,
       onlyOneSubGrid: Boolean,
   ): Unit = {
-    if (
-      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty && !onlyOneSubGrid
-    )
+    if gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty && !onlyOneSubGrid
+    then
       throw new GridAgentInitializationException(
         s"$actorName has neither superior nor inferior grids! This can either " +
           s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"

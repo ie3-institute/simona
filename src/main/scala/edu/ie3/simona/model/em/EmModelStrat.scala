@@ -32,7 +32,7 @@ trait EmModelStrat {
     */
   def determineFlexControl(
       flexOptions: Iterable[
-        (_ <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, MinMaxFlexOptions)
       ],
       target: Power,
   ): Iterable[(UUID, Power)]

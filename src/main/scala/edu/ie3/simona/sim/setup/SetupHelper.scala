@@ -117,14 +117,14 @@ trait SetupHelper extends LazyLogging {
       .map(gate => {
         val superiorSubGrid = gate.getSuperiorSubGrid
         val inferiorSubGrid = gate.getInferiorSubGrid
-        if (inferiorSubGrid == currentSubGrid) {
+        if inferiorSubGrid == currentSubGrid then {
           /* This is a gate to a superior sub grid */
           gate -> getActorRef(
             subGridToActorRefMap,
             currentSubGrid,
             superiorSubGrid,
           )
-        } else if (superiorSubGrid == currentSubGrid) {
+        } else if superiorSubGrid == currentSubGrid then {
           /* This is a gate to an inferior sub grid */
           gate -> getActorRef(
             subGridToActorRefMap,
@@ -198,7 +198,7 @@ trait SetupHelper extends LazyLogging {
         .doubleValue
     )
 
-    if (refSystem.nominalVoltage != containerPotential)
+    if refSystem.nominalVoltage != containerPotential then
       logger.warn(
         s"The configured RefSystem for subGrid ${subGridContainer.getSubnet} differs in its nominal voltage (${refSystem.nominalVoltage}) from the grids" +
           s"predominant voltage level nominal voltage ($containerPotential). If this is by intention and still valid, this warning can be just ignored!"
@@ -275,7 +275,7 @@ object SetupHelper {
     */
   private def allResultEntitiesToWrite(
       outputConfig: OutputConfig
-  ): Set[Class[_ <: ResultEntity]] =
+  ): Set[Class[? <: ResultEntity]] =
     GridOutputConfigUtil(
       outputConfig.grid
     ).simulationResultEntitiesToConsider ++
@@ -291,5 +291,5 @@ object SetupHelper {
         )
         .simulationResultIdentifiersToConsider(thermal = true))
         .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
-      (if (outputConfig.flex) Seq(classOf[FlexOptionsResult]) else Seq.empty)
+      (if outputConfig.flex then Seq(classOf[FlexOptionsResult]) else Seq.empty)
 }

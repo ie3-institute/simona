@@ -19,7 +19,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.PvModel.PvState
-import edu.ie3.simona.model.participant.SolarIrradiationCalculation._
+import edu.ie3.simona.model.participant.SolarIrradiationCalculation.*
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.Data.PrimaryData.{
@@ -34,8 +34,8 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   PowerConversionSimona,
   RadiansConversionSimona,
 }
-import edu.ie3.util.scala.quantities._
-import squants._
+import edu.ie3.util.scala.quantities.*
+import squants.*
 import squants.space.{Degrees, SquareMeters}
 
 import java.time.ZonedDateTime
@@ -192,7 +192,7 @@ class PvModel private (
       sRated.toActivePower(cosPhiRated) * -1 * (actYield / irradianceSTC)
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
-    if (proposal < pMax)
+    if proposal < pMax then
       logger.warn(
         "The fed in active power is higher than the estimated maximum active power of this plant ({} < {}). " +
           "Did you provide wrong weather input data?",
@@ -201,8 +201,7 @@ class PvModel private (
       )
 
     /* If the output is marginally small, suppress the output, as we are likely to be in night and then only produce incorrect output */
-    if (proposal.compareTo(activationThreshold) > 0)
-      DefaultQuantities.zeroMW
+    if proposal.compareTo(activationThreshold) > 0 then DefaultQuantities.zeroMW
     else proposal
   }
 
@@ -223,7 +222,7 @@ class PvModel private (
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new PvResult(

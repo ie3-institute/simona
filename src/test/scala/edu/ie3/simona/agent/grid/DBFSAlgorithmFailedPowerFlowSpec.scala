@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{

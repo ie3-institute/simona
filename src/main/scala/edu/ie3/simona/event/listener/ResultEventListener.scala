@@ -21,7 +21,7 @@ import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   ProcessResultEventException,
 }
-import edu.ie3.simona.io.result._
+import edu.ie3.simona.io.result.*
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.slf4j.Logger
 
@@ -35,7 +35,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   trait Request
 
   private final case class SinkResponse(
-      response: Map[Class[_], ResultEntitySink]
+      response: Map[Class[?], ResultEntitySink]
   ) extends Request
 
   private final case class InitFailed(ex: Exception) extends Request
@@ -48,7 +48,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     *   listener
     */
   private final case class BaseData(
-      classToSink: Map[Class[_], ResultEntitySink],
+      classToSink: Map[Class[?], ResultEntitySink],
       threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult,
@@ -66,7 +66,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def initializeSinks(
       resultFileHierarchy: ResultFileHierarchy
-  ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
+  ): Iterable[Future[(Class[?], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
       case csv: ResultSinkType.Csv =>
         val enableCompression = csv.compressOutputs
@@ -126,7 +126,7 @@ object ResultEventListener extends Transformer3wResultSupport {
             schemaRegistryUrl,
             linger,
           ) =>
-        val classes: Iterable[Class[_ <: ResultEntity]] = Set(
+        val classes: Iterable[Class[? <: ResultEntity]] = Set(
           classOf[NodeResult] // currently, only NodeResults are sent out
         )
         classes.map(clz =>
@@ -189,7 +189,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       )
     // add partial result
     val updatedResults = partialResult.add(result).map { updatedResult =>
-      if (updatedResult.ready) {
+      if updatedResult.ready then {
         // if result is complete, we can write it out
         updatedResult.consolidate.foreach {
           handOverToSink(_, baseData.classToSink, log)
@@ -224,7 +224,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def handOverToSink(
       resultEntity: ResultEntity,
-      classToSink: Map[Class[_], ResultEntitySink],
+      classToSink: Map[Class[?], ResultEntitySink],
       log: Logger,
   ): Unit =
     Try {

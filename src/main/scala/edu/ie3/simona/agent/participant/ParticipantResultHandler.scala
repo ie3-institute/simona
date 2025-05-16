@@ -41,7 +41,7 @@ final case class ParticipantResultHandler(
     *   The [[SystemParticipantResult]].
     */
   def maybeSend(result: ResultEntity): Unit =
-    if (config.simulationResultInfo) {
+    if config.simulationResultInfo then {
       listener.foreach(actor =>
         result match {
           case thermalResult: ThermalUnitResult =>
@@ -62,7 +62,7 @@ final case class ParticipantResultHandler(
     *   The [[FlexOptionsResult]].
     */
   def maybeSend(result: FlexOptionsResult): Unit =
-    if (config.flexResult) {
+    if config.flexResult then {
       listener.foreach(
         _ ! FlexOptionsResultEvent(result)
       )

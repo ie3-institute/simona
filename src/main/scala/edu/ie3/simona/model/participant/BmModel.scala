@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.result.system.{
   BmResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.model.participant.BmModel._
+import edu.ie3.simona.model.participant.BmModel.*
 import edu.ie3.simona.model.participant.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
@@ -37,7 +37,7 @@ import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.math._
+import scala.math.*
 
 final case class BmModel(
     override val uuid: UUID,
@@ -117,10 +117,8 @@ final case class BmModel(
     val currOpex = opex / eff
     val avgOpex = (currOpex + opex) / 2
 
-    if (isCostControlled && avgOpex < feedInTariff)
-      pRated * -1
-    else
-      pRated * usage * eff * -1
+    if isCostControlled && avgOpex < feedInTariff then pRated * -1
+    else pRated * usage * eff * -1
   }
 
   /** Applies the load gradient to the electrical output.
@@ -170,7 +168,7 @@ final case class BmModel(
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryData.PrimaryDataWithComplexPower[_],
+      data: PrimaryData.PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new BmResult(
@@ -308,7 +306,7 @@ object BmModel {
     val maxHeat = Megawatts(43.14)
     val usageUnchecked = pTh / maxHeat
 
-    if (usageUnchecked < 1) usageUnchecked else 1
+    if usageUnchecked < 1 then usageUnchecked else 1
   }
 
   /** Calculates efficiency from usage. Efficiency is based on a regression

@@ -152,7 +152,7 @@ class PrimaryServiceProxySqlIT
 
       val msg =
         systemParticipantProbe
-          .expectMessageType[PrimaryRegistrationSuccessfulMessage[_]]
+          .expectMessageType[PrimaryRegistrationSuccessfulMessage[?]]
       msg.firstDataTick shouldBe 0L
     }
 

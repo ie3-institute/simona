@@ -32,7 +32,7 @@ import edu.ie3.simona.model.InputModelContainer.{
   WithHeatInputContainer,
 }
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID

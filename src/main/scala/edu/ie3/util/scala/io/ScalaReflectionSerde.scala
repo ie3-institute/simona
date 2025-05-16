@@ -33,7 +33,7 @@ object ScalaReflectionSerde {
       val toRecord: ToRecord[T] = ToRecord.apply[T](schema)
 
       override def configure(
-          configs: java.util.Map[String, _],
+          configs: java.util.Map[String, ?],
           isKey: Boolean,
       ): Unit = inner.configure(configs, isKey)
 
@@ -52,7 +52,7 @@ object ScalaReflectionSerde {
       val fromRecord: FromRecord[T] = FromRecord.apply[T](schema)
 
       override def configure(
-          configs: java.util.Map[String, _],
+          configs: java.util.Map[String, ?],
           isKey: Boolean,
       ): Unit = inner.configure(configs, isKey)
 
