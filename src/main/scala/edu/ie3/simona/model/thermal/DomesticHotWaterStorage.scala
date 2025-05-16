@@ -1,5 +1,5 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2024. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -9,7 +9,7 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
-  CylindricalStorageInput,
+  DomesticHotWaterStorageInput,
   ThermalBusInput,
 }
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
@@ -19,7 +19,10 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
+import edu.ie3.util.scala.quantities.{
+  DefaultQuantities,
+  KilowattHoursPerKelvinCubicMeters,
+}
 import squants.energy.Kilowatts
 import squants.space.CubicMeters
 import squants.thermal.Celsius
@@ -29,7 +32,7 @@ import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
-/** A cylindrical thermal storage used for implementations, which require a
+/** A domestic hot water storage used for implementations, which require a
   * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a
   * variable.
   *
@@ -50,7 +53,7 @@ import java.util.UUID
   * @param storedEnergy
   *   Energy stored in the thermal storage
   */
-final case class CylindricalThermalStorage(
+final case class DomesticHotWaterStorage(
     uuid: UUID,
     id: String,
     operatorInput: OperatorInput,
@@ -76,7 +79,7 @@ final case class CylindricalThermalStorage(
     *
     * @param tick
     *   Tick, where this change happens.
-    * @param lastThermalStorageState
+    * @param thermalStorageState
     *   Last state of the heat storage.
     * @param qDotHeatStorage
     *   Influx of the heat storage.
@@ -85,15 +88,15 @@ final case class CylindricalThermalStorage(
     */
   override def determineState(
       tick: Long,
-      lastThermalStorageState: ThermalStorageState,
-      qDotHeatStorage: Power,
+      thermalStorageState: ThermalStorageState,
+      qDotWaterStorage: Power,
   ): ThermalStorageState = {
     /* Determine new state based on time difference and given state */
     val energyBalance =
-      qDotHeatStorage * Seconds(
-        tick - lastThermalStorageState.tick
+      qDotWaterStorage * Seconds(
+        tick - thermalStorageState.tick
       )
-    val newEnergy = lastThermalStorageState.storedEnergy + energyBalance
+    val newEnergy = thermalStorageState.storedEnergy + energyBalance
     val updatedEnergy =
       if (isFull(newEnergy))
         maxEnergyThreshold
@@ -107,74 +110,76 @@ final case class CylindricalThermalStorage(
 
   /** Calculates the tick, when the next threshold of the instance is reached.
     *
-    * @param thermalStorageState
+    * @param domesticWaterStorageState
     *   State of the heat storage.
-    * @param qDotHeatStorage
-    *   Operating point of the heat storage.
+    * @param qDotWaterStorage
+    *   Operating point of the domestic hot water storage.
     * @return
     *   The next threshold if there is one.
     */
+
   override def determineNextThreshold(
-      thermalStorageState: ThermalStorageState,
-      qDotHeatStorage: Power,
+      domesticWaterStorageState: ThermalStorageState,
+      qDotWaterStorage: Power,
   ): Option[ThermalThreshold] = {
-    if (qDotHeatStorage > zeroKW) {
+    if (qDotWaterStorage > zeroKW) {
       val duration =
-        (maxEnergyThreshold - thermalStorageState.storedEnergy) / qDotHeatStorage
+        (maxEnergyThreshold - domesticWaterStorageState.storedEnergy) / qDotWaterStorage
       val durationInTicks = Math.floor(duration.toSeconds).toLong
       if (durationInTicks <= 0L)
         None
       else
-        Some(StorageFull(thermalStorageState.tick + durationInTicks))
-    } else if (qDotHeatStorage < zeroKW) {
+        Some(StorageFull(domesticWaterStorageState.tick + durationInTicks))
+    } else if (qDotWaterStorage < zeroKW) {
       val duration =
-        thermalStorageState.storedEnergy / qDotHeatStorage * -1
+        domesticWaterStorageState.storedEnergy / qDotWaterStorage * -1
       val durationInTicks = Math.floor(duration.toSeconds).toLong
       if (durationInTicks <= 0L)
         None
       else
-        Some(StorageEmpty(thermalStorageState.tick + durationInTicks))
+        Some(StorageEmpty(domesticWaterStorageState.tick + durationInTicks))
     } else
       None
   }
 
   override def startingState: ThermalStorageState = ThermalStorageState(
     0L,
-    zeroKWh,
+    maxEnergyThreshold,
   )
 }
 
-object CylindricalThermalStorage extends ThermalStorageCalculations {
+object DomesticHotWaterStorage extends ThermalStorageCalculations {
 
-  /** Function to construct a new [[CylindricalThermalStorage]] based on a
-    * provided [[CylindricalStorageInput]]
+  /** Function to construct a new [[DomesticHotWaterStorage]] based on a
+    * provided [[DomesticHotWaterStorageInput]]
     *
     * @param input
-    *   instance of [[CylindricalStorageInput]] this storage should be built
-    *   from
+    *   instance of [[DomesticHotWaterStorageInput]] this storage should be
+    *   built from
     * @param initialStoredEnergy
     *   initial stored energy
     * @return
-    *   a ready-to-use [[CylindricalThermalStorage]] with referenced electric
-    *   parameters
+    *   a ready-to-use [[DomesticHotWaterStorageStorage]] with referenced
+    *   electric parameters
     */
   def apply(
-      input: CylindricalStorageInput,
+      input: DomesticHotWaterStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
-  ): CylindricalThermalStorage = {
-    val maxEnergyThreshold = volumeToEnergy(
-      CubicMeters(
-        input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
-      ),
-      KilowattHoursPerKelvinCubicMeters(
-        input.getC
-          .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
-          .getValue
-          .doubleValue
-      ),
-      Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue),
-      Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue),
-    )
+  ): DomesticHotWaterStorage = {
+    val maxEnergyThreshold =
+      volumeToEnergy(
+        CubicMeters(
+          input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
+        ),
+        KilowattHoursPerKelvinCubicMeters(
+          input.getC
+            .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
+            .getValue
+            .doubleValue
+        ),
+        Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
+        Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
+      )
 
     val pThermalMax = Kilowatts(
       input
@@ -184,7 +189,7 @@ object CylindricalThermalStorage extends ThermalStorageCalculations {
         .doubleValue()
     )
 
-    new CylindricalThermalStorage(
+    new DomesticHotWaterStorage(
       input.getUuid,
       input.getId,
       input.getOperator,

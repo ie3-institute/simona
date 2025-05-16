@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
+  DomesticHotWaterStorageInput,
   ThermalHouseInput,
   ThermalStorageInput,
 }
@@ -19,6 +20,7 @@ import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.model.InputModelContainer.WithHeatInputContainer
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal._
 import edu.ie3.util.quantities.PowerSystemUnits
 import squants.Temperature
@@ -68,11 +70,27 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
 
   protected val defaultThermalHouse = ThermalHouse(defaultThermalHouseInput)
 
+  protected val defaultDomesticHotWaterStorageInput =
+    new DomesticHotWaterStorageInput(
+      UUID.fromString("5a3935c0-14ff-4d7b-9e69-a101f41a3b73"),
+      "default domestic hot water storage",
+      OperatorInput.NO_OPERATOR_ASSIGNED,
+      OperationTime.notLimited(),
+      thermalBusInput,
+      Quantities.getQuantity(300.0, Units.LITRE),
+      Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
+      Quantities.getQuantity(10.0, StandardUnits.TEMPERATURE),
+      Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      Quantities.getQuantity(11.0, PowerSystemUnits.KILOWATT),
+    )
+
   protected val hpModelSpecThermalGrid = new container.ThermalGrid(
     thermalBusInput,
     Seq(thermalHouseInput(18, 22)).asJava,
     Seq.empty[ThermalStorageInput].asJava,
-    Seq.empty[ThermalStorageInput].asJava,
+    Seq(
+      defaultDomesticHotWaterStorageInput.asInstanceOf[ThermalStorageInput]
+    ).asJava,
   )
 
   protected val typicalThermalHouse = new ThermalHouseInput(
@@ -104,7 +122,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     thermalBusInput,
     Seq(typicalThermalHouse).asJava,
     Set[ThermalStorageInput](typicalThermalStorage).asJava,
-    Set.empty[ThermalStorageInput].asJava,
+    Seq[ThermalStorageInput](defaultDomesticHotWaterStorageInput).asJava,
   )
 
   protected val typicalHpTypeInput = new HpTypeInput(
@@ -129,16 +147,15 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     typicalHpTypeInput,
   )
 
-  protected val typicalHpInputContainer =
-    WithHeatInputContainer(typicalHpInputModel, typicalThermalGrid)
-
   protected def thermalGrid(
       thermalHouse: ThermalHouse,
       thermalStorage: Option[ThermalStorage] = None,
+      domesticWaterStorage: Option[ThermalStorage] = None,
   ): ThermalGrid =
     ThermalGrid(
       Some(thermalHouse),
       thermalStorage,
+      domesticWaterStorage,
     )
 
   protected def thermalHouse(
@@ -179,6 +196,18 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     KilowattHours(0d),
   )
 
+  protected def domesticHotWaterStorage: ThermalStorage =
+    DomesticHotWaterStorage(
+      UUID.fromString("8cb8a2ca-493d-4be8-b318-0a249de63ff4"),
+      "domestic hot water storage",
+      OperatorInput.NO_OPERATOR_ASSIGNED,
+      OperationTime.notLimited(),
+      thermalBusInput,
+      KilowattHours(250d),
+      Kilowatts(1e-3),
+      KilowattHours(250d),
+    )
+
   protected def thermalState(
       innerHouseTemperature: Temperature,
       ambientTemperature: Temperature,
@@ -190,6 +219,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
         innerHouseTemperature,
       )
     ),
+    None,
     None,
   )
 }
