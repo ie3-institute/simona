@@ -6,12 +6,7 @@
 
 package edu.ie3.simona.api
 
-import edu.ie3.simona.api.ExtSimAdapter.{
-  ExtSimAdapterStateData,
-  Stop,
-  WrappedActivation,
-  WrappedControlMessage,
-}
+import edu.ie3.simona.api.ExtSimAdapter.{ExtSimAdapterStateData, Stop}
 import edu.ie3.simona.api.data.ontology.{
   DataMessageFromExt,
   ScheduleDataServiceMessage,
@@ -56,24 +51,19 @@ class ExtSimAdapterSpec
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
   private val mainArgs = Array.empty[String]
 
-  implicit def wrap(activation: Activation): WrappedActivation =
-    WrappedActivation(activation)
-
   "An uninitialized ExtSimScheduler" must {
     "send correct completion message after initialisation" in {
       val lock = TestProbe[LockMsg]("lock")
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
-      val controlMsgAdapter =
-        testKit.spawn(ExtSimAdapter.controlMessageAdapter(extSimAdapter))
-      val extData = new ExtSimAdapterData(controlMsgAdapter, mainArgs)
+      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
 
-      val activationMessage = scheduler.expectMessageType[ScheduleActivation]
-      activationMessage.tick shouldBe INIT_SIM_TICK
-      activationMessage.unlockKey shouldBe Some(key1)
+      scheduler.expectMessage(
+        ScheduleActivation(extSimAdapter, INIT_SIM_TICK, Some(key1))
+      )
     }
   }
 
@@ -83,16 +73,13 @@ class ExtSimAdapterSpec
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
-      val controlMsgAdapter =
-        testKit.spawn(ExtSimAdapter.controlMessageAdapter(extSimAdapter))
-      val extData = new ExtSimAdapterData(controlMsgAdapter, mainArgs)
+      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
 
-      val activationMessage = scheduler.expectMessageType[ScheduleActivation]
-      activationMessage.tick shouldBe INIT_SIM_TICK
-      activationMessage.unlockKey shouldBe Some(key1)
-      val activationAdapter = activationMessage.actor
+      scheduler.expectMessage(
+        ScheduleActivation(extSimAdapter, INIT_SIM_TICK, Some(key1))
+      )
 
       extSimAdapter ! Activation(INIT_SIM_TICK)
 
@@ -114,7 +101,7 @@ class ExtSimAdapterSpec
         )
       )
 
-      scheduler.expectMessage(Completion(activationAdapter, Some(nextTick)))
+      scheduler.expectMessage(Completion(extSimAdapter, Some(nextTick)))
     }
 
     "schedule the data service when it is told to" in {
@@ -122,17 +109,14 @@ class ExtSimAdapterSpec
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
-
-      val controlMsgAdapter =
-        testKit.spawn(ExtSimAdapter.controlMessageAdapter(extSimAdapter))
-      val extData = new ExtSimAdapterData(controlMsgAdapter, mainArgs)
+      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
       val dataService = TestProbe[DataMessageFromExt]("dataService")
 
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
 
-      val activationMessage = scheduler.expectMessageType[ScheduleActivation]
-      activationMessage.tick shouldBe INIT_SIM_TICK
-      activationMessage.unlockKey shouldBe Some(key1)
+      scheduler.expectMessage(
+        ScheduleActivation(extSimAdapter, INIT_SIM_TICK, Some(key1))
+      )
 
       extSimAdapter ! Activation(INIT_SIM_TICK)
 
@@ -143,9 +127,7 @@ class ExtSimAdapterSpec
       extData.receiveMessageQueue.size() shouldBe 1
       extData.receiveMessageQueue.take()
 
-      extSimAdapter ! WrappedControlMessage(
-        new ScheduleDataServiceMessage(dataService.ref)
-      )
+      extSimAdapter ! new ScheduleDataServiceMessage(dataService.ref)
 
       scheduler
         .expectMessageType[ScheduleActivation] // lock activation scheduled
@@ -169,7 +151,7 @@ class ExtSimAdapterSpec
               extData,
               None,
             )
-          )(using scheduler.ref, activationAdapter.ref)
+          )(using scheduler.ref)
         )
 
         extSimAdapter.isAlive shouldBe true
@@ -186,7 +168,7 @@ class ExtSimAdapterSpec
         )
 
         // up until now, extSimAdapter should still be running
-        extSimAdapter.run(WrappedControlMessage(new TerminationCompleted()))
+        extSimAdapter.run(new TerminationCompleted())
 
         // extSimAdapter should have terminated now
         extSimAdapter.isAlive shouldBe false

@@ -66,14 +66,9 @@ object ExtSimSetup {
         s"ExtSimAdapter-$index",
       )
 
-      val controlMessageAdapter = context.spawn(
-        ExtSimAdapter.controlMessageAdapter(extSimAdapter),
-        s"ExtSimAdapter-$index-external",
-      )
-
       // creating the adapter data
       implicit val extSimAdapterData: ExtSimAdapterData =
-        new ExtSimAdapterData(controlMessageAdapter, args)
+        new ExtSimAdapterData(extSimAdapter, args)
 
       Try {
         // sets up the external simulation

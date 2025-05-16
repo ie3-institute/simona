@@ -31,7 +31,7 @@ import scala.jdk.OptionConverters._
 
 object ExtSimAdapter {
 
-  sealed trait Request
+  type Request = Create | Stop | Activation | ControlResponseMessageFromExt
 
   /** The [[ExtSimAdapterData]] can only be constructed once the ExtSimAdapter
     * actor is created. Thus, we need an extra initialization message.
@@ -40,107 +40,88 @@ object ExtSimAdapter {
     *   The [[ExtSimAdapterData]] of the corresponding external simulation
     */
   final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
-      extends Request
 
-  final case class Stop(simulationSuccessful: Boolean) extends Request
+  final case class Stop(simulationSuccessful: Boolean)
 
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
       currentTick: Option[Long] = None,
   )
 
-  final case class WrappedActivation(activation: Activation) extends Request
-
-  final case class WrappedControlMessage(
-      controlMessage: ControlResponseMessageFromExt
-  ) extends Request
-
-  def controlMessageAdapter(
-      extSimAdapter: ActorRef[Request]
-  ): Behavior[ControlResponseMessageFromExt] =
-    Behaviors.receiveMessage[ControlResponseMessageFromExt] { msg =>
-      extSimAdapter ! WrappedControlMessage(msg)
-      Behaviors.same
-    }
-
   def apply(
       scheduler: ActorRef[SchedulerMessage]
-  ): Behavior[Request] = Behaviors.setup { ctx =>
-    val activationAdapter = ctx.messageAdapter(WrappedActivation.apply)
-    initialize(using scheduler, activationAdapter)
-  }
+  ): Behavior[Request] = initialize(using scheduler)
 
   private def initialize(using
-      scheduler: ActorRef[SchedulerMessage],
-      activationAdapter: ActorRef[Activation],
-  ): Behavior[Request] = Behaviors.receiveMessagePartial {
-    case Create(extSimData, unlockKey) =>
+      scheduler: ActorRef[SchedulerMessage]
+  ): Behavior[Request] =
+    Behaviors.receivePartial { case (ctx, Create(extSimData, unlockKey)) =>
       // triggering first time at init tick
       scheduler ! ScheduleActivation(
-        activationAdapter,
+        ctx.self,
         INIT_SIM_TICK,
         Some(unlockKey),
       )
 
       receiveIdle(ExtSimAdapterStateData(extSimData))
-  }
+    }
 
   private[api] def receiveIdle(stateData: ExtSimAdapterStateData)(using
-      scheduler: ActorRef[SchedulerMessage],
-      activationAdapter: ActorRef[Activation],
-  ): Behavior[Request] = Behaviors.receivePartial {
-    case (ctx, WrappedActivation(Activation(tick))) =>
-      stateData.extSimData.queueExtMsg(
-        new ActivationMessage(tick)
-      )
-      ctx.log.debug(
-        "Tick {} has been activated in external simulation",
-        tick,
-      )
+      scheduler: ActorRef[SchedulerMessage]
+  ): Behavior[Request] =
+    Behaviors.receivePartial {
+      case (ctx, Activation(tick)) =>
+        stateData.extSimData.queueExtMsg(
+          new ActivationMessage(tick)
+        )
+        ctx.log.debug(
+          "Tick {} has been activated in external simulation",
+          tick,
+        )
 
-      receiveIdle(stateData.copy(currentTick = Some(tick)))
+        receiveIdle(stateData.copy(currentTick = Some(tick)))
 
-    case (ctx, WrappedControlMessage(extCompl: ExtCompletionMessage)) =>
-      // when multiple triggers have been sent, a completion message
-      // always refers to the oldest tick
+      case (ctx, extCompl: ExtCompletionMessage) =>
+        // when multiple triggers have been sent, a completion message
+        // always refers to the oldest tick
 
-      val newTick = extCompl.nextActivation().toScala.map(Long2long)
+        val newTick = extCompl.nextActivation().toScala.map(Long2long)
 
-      scheduler ! Completion(activationAdapter, newTick)
-      ctx.log.debug(
-        "Tick {} has been completed in external simulation",
-        stateData.currentTick,
-      )
+        scheduler ! Completion(ctx.self, newTick)
+        ctx.log.debug(
+          "Tick {} has been completed in external simulation",
+          stateData.currentTick,
+        )
 
-      receiveIdle(stateData.copy(currentTick = None))
+        receiveIdle(stateData.copy(currentTick = None))
 
-    case (
-          ctx,
-          WrappedControlMessage(scheduleDataService: ScheduleDataServiceMessage),
-        ) =>
-      val tick = stateData.currentTick.getOrElse(
-        throw new RuntimeException("No tick has been triggered")
-      )
-      val key = ScheduleLock.singleKey(ctx, scheduler, tick)
+      case (
+            ctx,
+            scheduleDataService: ScheduleDataServiceMessage,
+          ) =>
+        val tick = stateData.currentTick.getOrElse(
+          throw new RuntimeException("No tick has been triggered")
+        )
+        val key = ScheduleLock.singleKey(ctx, scheduler, tick)
 
-      scheduleDataService.dataService ! ScheduleServiceActivation(
-        tick,
-        key,
-      )
+        scheduleDataService.dataService ! ScheduleServiceActivation(
+          tick,
+          key,
+        )
 
-      Behaviors.same
+        Behaviors.same
 
-    case (_, Stop(simulationSuccessful)) =>
-      // let external sim know that we have terminated
-      stateData.extSimData.queueExtMsg(
-        new TerminationMessage(simulationSuccessful)
-      )
+      case (_, Stop(simulationSuccessful)) =>
+        // let external sim know that we have terminated
+        stateData.extSimData.queueExtMsg(
+          new TerminationMessage(simulationSuccessful)
+        )
 
-      Behaviors.same
+        Behaviors.same
 
-    case (_, WrappedControlMessage(_: TerminationCompleted)) =>
-      // external simulation has terminated as well, we can exit
-      Behaviors.stopped
-  }
+      case (_, _: TerminationCompleted) =>
+        // external simulation has terminated as well, we can exit
+        Behaviors.stopped
+    }
 
 }
