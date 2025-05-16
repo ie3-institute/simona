@@ -20,6 +20,7 @@ import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.{
   CongestionResponse,
   ReceivedCongestions,
 }
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationProgress
 import edu.ie3.simona.agent.grid.congestion.{
   CongestedComponents,
   CongestionTestBaseData,
@@ -31,7 +32,8 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import scala.concurrent.duration.DurationInt
 import scala.language.implicitConversions
@@ -41,10 +43,26 @@ class CongestionDetectionSpec
     with UnitSpec
     with CongestionTestBaseData {
 
-  val superiorAgent: TestProbe[GridAgent.Request] = TestProbe("superiorAgent")
-  val inferiorAgent: TestProbe[GridAgent.Request] = TestProbe("inferiorAgent")
+  protected val superiorAgent: TestProbe[GridAgent.Request] = TestProbe(
+    "superiorAgent"
+  )
+  protected val inferiorAgent: TestProbe[GridAgent.Request] = TestProbe(
+    "inferiorAgent"
+  )
 
   "The congestion detection" should {
+    def spawnBehavior(
+        stateData: CongestionManagementData,
+        awaitingData: AwaitingData[Congestions],
+        capacity: Int = 10,
+    ): ActorRef[GridAgent.Request] = testKit.spawn(
+      Behaviors.withStash[GridAgent.Request](capacity) { buffer =>
+        GridAgent.checkForCongestion(
+          stateData,
+          awaitingData,
+        )(using constantData, buffer)
+      }
+    )
 
     "answer a request for congestions correctly" in {
       val stateData = CongestionManagementData(
@@ -64,6 +82,7 @@ class CongestionDetectionSpec
           transformerCongestions = false,
         ),
         CongestedComponents.empty,
+        MitigationProgress(),
       )
 
       val cases = Table(
@@ -113,12 +132,7 @@ class CongestionDetectionSpec
       forAll(cases) { (inferiorData, expectedCongestions) =>
         val awaitingData = AwaitingData(inferiorData)
 
-        val behavior = spawnWithBuffer(
-          GridAgent.checkForCongestion(
-            stateData,
-            awaitingData,
-          )(constantData, _)
-        )
+        val behavior = spawnBehavior(stateData, awaitingData)
 
         behavior ! CongestionCheckRequest(superiorAgent.ref)
 
@@ -128,7 +142,7 @@ class CongestionDetectionSpec
       }
     }
 
-    "wait to answer a request for congestions if inferior data is still missing" in {
+    "wait to answer a request for congestions, if inferior data is still missing" in {
       val stateData = CongestionManagementData(
         gridAgentBaseData(),
         3600,
@@ -146,17 +160,13 @@ class CongestionDetectionSpec
           transformerCongestions = false,
         ),
         CongestedComponents.empty,
+        MitigationProgress(),
       )
 
       val awaitingData: AwaitingData[Congestions] =
         AwaitingData(Set(inferiorAgent.ref))
 
-      val behavior = spawnWithBuffer(
-        GridAgent.checkForCongestion(
-          stateData,
-          awaitingData,
-        )(constantData, _)
-      )
+      val behavior = spawnBehavior(stateData, awaitingData)
 
       behavior ! CongestionCheckRequest(superiorAgent.ref)
 
@@ -201,18 +211,14 @@ class CongestionDetectionSpec
           transformerCongestions = false,
         ),
         CongestedComponents.empty,
+        MitigationProgress(),
       )
 
       val awaitingData: AwaitingData[Congestions] =
         AwaitingData(Set(inferiorAgent.ref))
 
       // init behavior
-      val centerGridAgent = spawnWithBuffer(
-        GridAgent.checkForCongestion(
-          stateData,
-          awaitingData,
-        )(constantData, _)
-      )
+      val centerGridAgent = spawnBehavior(stateData, awaitingData)
 
       // we will send the center grid agent a StartStep message to start the detection
       centerGridAgent ! StartStep
@@ -269,18 +275,14 @@ class CongestionDetectionSpec
           transformerCongestions = false,
         ),
         CongestedComponents.empty,
+        MitigationProgress(),
       )
 
       val awaitingData: AwaitingData[Congestions] =
         AwaitingData(Set.empty[ActorRef[GridAgent.Request]])
 
       // init behavior
-      val superiorGridAgent = spawnWithBuffer(
-        GridAgent.checkForCongestion(
-          stateData,
-          awaitingData,
-        )(constantData, _)
-      )
+      val superiorGridAgent = spawnBehavior(stateData, awaitingData)
 
       // we will send the center grid agent a StartStep message to start the detection
       superiorGridAgent ! StartStep

@@ -195,6 +195,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         ),
         CongestionManagementParams(
           cfg.congestionManagement.enableDetection,
+          cfg.congestionManagement.enableTransformerTapChange,
           cfg.congestionManagement.timeout,
         ),
         SimonaActorNaming.actorName(ctx.self),
@@ -353,7 +354,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       askMsgBuilder: ActorRef[GridAgent.Request] => Request,
       resMsgBuilder: Vector[(ActorRef[GridAgent.Request], T)] => InternalReply,
       ctx: ActorContext[GridAgent.Request],
-  )(implicit timeout: FiniteDuration): Unit = {
+  )(using timeout: FiniteDuration): Unit = {
     if (inferiorGridRefs.nonEmpty) {
       // creating implicit vals
       implicit val ec: ExecutionContext = ctx.executionContext

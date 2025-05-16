@@ -43,7 +43,7 @@ trait CongestionDetection {
   private[grid] def checkForCongestion(
       stateData: CongestionManagementData,
       awaitingData: AwaitingData[Congestions],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
@@ -51,10 +51,10 @@ trait CongestionDetection {
       // request congestion check if we have inferior grids
       askInferior(
         stateData.inferiorGridRefs,
-        CongestionCheckRequest,
-        ReceivedCongestions,
+        CongestionCheckRequest.apply,
+        ReceivedCongestions.apply,
         ctx,
-      )(stateData.timeout)
+      )(using stateData.timeout)
 
       Behaviors.same
 
@@ -93,7 +93,7 @@ trait CongestionDetection {
       awaitingData: AwaitingData[Congestions],
       congestionRequest: CongestionCheckRequest,
       ctx: ActorContext[GridAgent.Request],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = {
@@ -128,9 +128,9 @@ trait CongestionDetection {
   private def processReceivedData(
       stateData: CongestionManagementData,
       awaitingData: AwaitingData[Congestions],
-      congestions: Vector[(ActorRef[GridAgent.Request], Congestions)],
+      congestions: Seq[(ActorRef[GridAgent.Request], Congestions)],
       ctx: ActorContext[GridAgent.Request],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = {
@@ -140,10 +140,11 @@ trait CongestionDetection {
     if (stateData.gridAgentBaseData.isSuperior) {
       // if we are the superior grid, we find the next behavior
 
-      val congestions = stateData.congestions.combine(updatedData.values)
+      val combinedCongestions =
+        stateData.congestions.combine(updatedData.values)
 
       // checking for any congestion in the complete grid
-      if (!congestions.hasCongestion) {
+      if (!combinedCongestions.hasCongestion) {
         ctx.log.info(
           s"No congestions found. Finishing the congestion management."
         )
@@ -152,18 +153,22 @@ trait CongestionDetection {
         checkForCongestion(stateData, updatedData)
       } else {
         ctx.log.debug(
-          s"Congestion overall: $congestions"
+          s"Congestion overall: $combinedCongestions"
         )
 
-        val timestamp =
-          constantData.simStartTime.plusSeconds(stateData.currentTick)
+        val updatedStateData = stateData.copy(congestions = combinedCongestions)
 
-        ctx.log.info(
-          s"There were some congestions that could not be resolved for timestamp: $timestamp."
-        )
+        if (stateData.congestionManagementParams.anyMitigationEnabled) {
+          // the mitigation is enabled
+          // goto mitigation behavior
+          GridAgent.doCongestionMitigation(updatedStateData, ctx)
 
-        ctx.self ! FinishStep
-        checkForCongestion(stateData, updatedData)
+        } else {
+          // no mitigation enabled
+          // just finish the step
+          ctx.self ! FinishStep
+          checkForCongestion(updatedStateData, updatedData)
+        }
       }
 
     } else {
