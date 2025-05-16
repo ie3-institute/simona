@@ -112,9 +112,9 @@ final case class ThermalGrid(
         .zip(lastState.domesticHotWaterStorageState)
         .map {
           case (
-            storage: DomesticHotWaterStorage,
-            waterStorageState: ThermalStorageState,
-            ) =>
+                storage: DomesticHotWaterStorage,
+                waterStorageState: ThermalStorageState,
+              ) =>
             storage.determineState(
               tick,
               waterStorageState,
@@ -209,25 +209,6 @@ final case class ThermalGrid(
           )
         case None => ThermalEnergyDemand.noDemand
       }
-
-    /* val domesticHotWaterStorageDemand =
-      domesticHotWaterStorage.zip(
-        thermalGridState.domesticHotWaterStorageState      ) match {
-        case Some((storage, storageState)) =>
-          val storedEnergyWaterStorage = storageState.storedEnergy
-          val storageDemand =
-            if (
-              houseDemandWater.required > storedEnergyWaterStorage ||
-              storedEnergyWaterStorage - houseDemandWater.required <
-                0.2 * storage.getMaxEnergyThreshold
-            )
-              (houseDemandWater.required - storedEnergyWaterStorage) + storage.getMaxEnergyThreshold
-            else zeroKWh
-          ThermalEnergyDemand(storageDemand, storageDemand)
-        case None => ThermalEnergyDemand.noDemand
-      }
-
-     */
 
     ThermalDemandWrapper(
       ThermalEnergyDemand(

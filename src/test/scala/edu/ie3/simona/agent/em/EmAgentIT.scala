@@ -726,9 +726,10 @@ class EmAgentIT
         /* TICK 11000
          LOAD: 0.269 kW (unchanged)
          PV:  -0.06 kW
-         Heat pump: Is still running, can still be turned off
-         -> flex signal is 0 MW: Heat pump is turned off
-         -> remaining ~0.21 kW
+         Heat pump: Is still running, can't be turned off
+         (was running in last state, house has some demand, no storage available -> we would like to force running Hp,
+         even in theory it could be turned off for flex purposes)
+         -> flex signal is 4.85 kW: Heat pump stays on
          */
         emAgentActivation ! Activation(11000)
 
@@ -751,12 +752,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 11000.toDateTime
-            emResult.getP should equalWithTolerance(
-              0.00021037894.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              0.0000691482.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(0.0050603789402.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.0010539827178.asMegaVar)
         }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11500)))
@@ -764,9 +761,10 @@ class EmAgentIT
         /* TICK 11500
          LOAD: 0.269 kW (unchanged)
          PV:  -0.133 kW
-         Heat pump: Is not running, can run or stay off
-         -> flex signal is 0 MW: Heat pump stays off
-         -> remaining 0.135 kW
+         Heat pump: Is still running, can't be turned off
+         (was running in last state, house has some demand, no storage available -> we would like to force running Hp,
+         even in theory it could be turned off for flex purposes)
+         -> flex signal is 4.85 kW: Heat pump stays on
          */
         emAgentActivation ! Activation(11500)
 
@@ -789,15 +787,11 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 11500.toDateTime
-            emResult.getP should equalWithTolerance(
-              0.000135052481.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              0.0000443896038.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(0.0049850525.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.0010292241.asMegaVar)
         }
         resultListener.expectNoMessage()
-        scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(12725)))
       }
     }
 
@@ -996,7 +990,7 @@ class EmAgentIT
         }
 
         emAgentActivation ! Activation(7200)
-        
+
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid

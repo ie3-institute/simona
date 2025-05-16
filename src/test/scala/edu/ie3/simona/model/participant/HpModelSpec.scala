@@ -180,10 +180,7 @@ class HpModelSpec
               KilowattHours(exptHeatStorageDemand._2),
             ),
             ThermalEnergyDemand.noDemand,
-            ThermalEnergyDemand(
-              zeroKWh, //   KilowattHours(exptWaterStorageDemand._1),
-              zeroKWh, // KilowattHours(exptWatertorageDemand._2),
-            ),
+            ThermalEnergyDemand(zeroKWh, zeroKWh),
           )
 
           val updatedState = hpModel.determineState(
@@ -372,7 +369,7 @@ class HpModelSpec
           // 5. Hp actually running
           // House is between target temperature and lower temperature boundary
           // Heat storage is empty
-          // Hp runs but can be turned off
+          // Hp should run, since it was running in the last state
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
@@ -403,9 +400,38 @@ class HpModelSpec
               thermalDemands =
                 ThermalDemandWrapper(onlyAddDemand, demand, demand, noDemand),
             ),
+            (95.0, 95.0, 95.0),
+          ),
+          // 6. Same as before but the last operating point is now zero
+          // Hp runs but can be turned off
+          (
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    Celsius(19),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    zeroKWh,
+                  )
+                ),
+                None,
+              ),
+              lastHpOperatingPoint = HpOperatingPoint(
+                zeroKW,
+                ThermalGridOperatingPoint(zeroKW, zeroKW, zeroKW, zeroKW),
+              ),
+              thermalDemands =
+                ThermalDemandWrapper(onlyAddDemand, demand, demand, noDemand),
+            ),
             (95.0, 0.0, 95.0),
           ),
-          // 6. Same as before but heat storage is NOT empty
+          // 7. Same as before but heat storage is NOT empty
           // should be possible to keep hp off
           (
             defaultState.copy(
@@ -443,7 +469,7 @@ class HpModelSpec
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 7. Hp actually NOT running
+          // 8. Hp actually NOT running
           // House is between target temperature and lower temperature boundary
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
@@ -470,7 +496,7 @@ class HpModelSpec
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 8. Same as before but heat storage is NOT empty
+          // 9. Same as before but heat storage is NOT empty
           // Hp should be off but able to turn on
           (
             defaultState.copy(
@@ -499,7 +525,7 @@ class HpModelSpec
             ),
             (0.0, 0.0, 95.0),
           ),
-          // 9. Hp actually running
+          // 10. Hp actually running
           // House is at target temperature boundary
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
@@ -535,7 +561,7 @@ class HpModelSpec
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 10. Same as before but storage is NOT empty
+          // 11. Same as before but storage is NOT empty
           // Hp should run but can be turned off
           (
             defaultState.copy(
@@ -569,7 +595,7 @@ class HpModelSpec
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 11. Hp actually not running
+          // 12. Hp actually not running
           // House is at target temperature boundary
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
@@ -596,7 +622,7 @@ class HpModelSpec
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 12. Same as before but storage is NOT empty
+          // 13. Same as before but storage is NOT empty
           // Hp should not run but can be turned on for storage
           (
             defaultState.copy(
@@ -621,7 +647,7 @@ class HpModelSpec
             ),
             (0.0, 0.0, 95.0),
           ),
-          // 13. Hp actually running
+          // 14. Hp actually running
           // House is above target temperature
           // Heat storage is empty
           // Hp will run because of storage but can be turned off
@@ -657,7 +683,7 @@ class HpModelSpec
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 14. Same as before but storage is NOT empty
+          // 15. Same as before but storage is NOT empty
           // Hp should run but can be turned off
           (
             defaultState.copy(
@@ -695,7 +721,7 @@ class HpModelSpec
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 15. Hp actually not running
+          // 16. Hp actually not running
           // House is above target temperature
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
@@ -722,7 +748,7 @@ class HpModelSpec
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 16. Same as before but storage is NOT empty
+          // 17. Same as before but storage is NOT empty
           // Hp should not run but can be turned on for storage
           (
             defaultState.copy(
@@ -747,7 +773,7 @@ class HpModelSpec
             ),
             (0.0, 0.0, 95.0),
           ),
-          // Storage is full, House has capacity till upper boundary, Hp not running
+          // 18. Storage is full, House has capacity till upper boundary, Hp not running
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
@@ -775,7 +801,7 @@ class HpModelSpec
             ),
             (0.0, 0.0, 95.0),
           ),
-          // Storage is full, House has capacity till upper boundary, Hp is running
+          // 19. Storage is full, House has capacity till upper boundary, Hp is running
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
@@ -812,7 +838,7 @@ class HpModelSpec
             ),
             (95.0, 0.0, 95.0),
           ),
-          // No capacity for flexibility at all because house is
+          // 20. No capacity for flexibility at all because house is
           // at target temperature and storage is at max capacity
           (
             defaultState.copy(
@@ -837,7 +863,7 @@ class HpModelSpec
             ),
             (0.0, 0.0, 0.0),
           ),
-          // No capacity for flexibility at all when storage is full and house has been (externally) heated up above target temperature
+          // 21. No capacity for flexibility at all when storage is full and house has been (externally) heated up above target temperature
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
