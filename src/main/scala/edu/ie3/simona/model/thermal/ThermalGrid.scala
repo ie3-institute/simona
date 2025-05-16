@@ -111,7 +111,10 @@ final case class ThermalGrid(
       domesticHotWaterStorage
         .zip(lastState.domesticHotWaterStorageState)
         .map {
-          case (storage, waterStorageState) =>
+          case (
+            storage: DomesticHotWaterStorage,
+            waterStorageState: ThermalStorageState,
+            ) =>
             storage.determineState(
               tick,
               waterStorageState,
