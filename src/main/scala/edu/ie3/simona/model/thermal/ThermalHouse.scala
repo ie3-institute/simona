@@ -121,7 +121,7 @@ final case class ThermalHouse(
     * the temperature difference can be negative. For these cases we set the
     * temperature difference to zero, resulting in an energy demand of 0 kWh.
     *
-    * @param targetTemperature
+    * @param target
     *   The target temperature to reach.
     * @param startTemperature
     *   The starting temperature.
@@ -129,11 +129,11 @@ final case class ThermalHouse(
     *   The needed energy to change.
     */
   private def energy(
-      targetTemperature: Temperature,
+      target: Temperature,
       startTemperature: Temperature,
   ): Energy = {
     val temperatureDiff =
-      Kelvin(targetTemperature.toKelvinScale - startTemperature.toKelvinScale)
+      Kelvin(target.toKelvinScale - startTemperature.toKelvinScale)
         .max(Kelvin(0))
 
     ethCapa * temperatureDiff

@@ -41,25 +41,31 @@ class CylindricalThermalStorageSpec
   )
 
   def buildThermalStorage(
-      storageInput: CylindricalStorageInput,
+      cylindricalStorageInput: CylindricalStorageInput,
       volume: Volume,
   ): CylindricalThermalStorage = {
     val storedEnergy = CylindricalThermalStorage.volumeToEnergy(
       volume,
       KilowattHoursPerKelvinCubicMeters(
-        storageInput.getC
+        cylindricalStorageInput.getC
           .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
           .getValue
           .doubleValue
       ),
       Celsius(
-        storageInput.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()
+        cylindricalStorageInput.getInletTemp
+          .to(Units.CELSIUS)
+          .getValue
+          .doubleValue()
       ),
       Celsius(
-        storageInput.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()
+        cylindricalStorageInput.getReturnTemp
+          .to(Units.CELSIUS)
+          .getValue
+          .doubleValue()
       ),
     )
-    CylindricalThermalStorage(storageInput, storedEnergy)
+    CylindricalThermalStorage(cylindricalStorageInput, storedEnergy)
   }
 
   def vol2Energy(volume: Volume): Energy = {

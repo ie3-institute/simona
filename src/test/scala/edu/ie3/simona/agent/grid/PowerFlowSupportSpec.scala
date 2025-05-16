@@ -416,8 +416,8 @@ class PowerFlowSupportSpec
   object TestData extends DbfsTestGrid with ConfigTestData {
     val time: Simona.Time = simonaConfig.simona.time
 
-    implicit def toZoneDateTime(time: String): ZonedDateTime =
-      TimeUtil.withDefaults.toZonedDateTime(time)
+    implicit def toZoneDateTime(timeString: String): ZonedDateTime =
+      TimeUtil.withDefaults.toZonedDateTime(timeString)
 
     implicit def toGridModel(
         subGridContainer: SubGridContainer

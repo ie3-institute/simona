@@ -34,7 +34,8 @@ class ReceivedValuesStoreSpec
 
   // test data used by almost all tests
   // / node to asset agents mapping
-  val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
+  val defaultNodeToAssetAgentsMap
+      : Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
     Map(
       UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546") -> Set(
         participant1.ref
@@ -45,7 +46,7 @@ class ReceivedValuesStoreSpec
     )
 
   // / subnet gate mapping for inferior grids
-  val inferiorSubGridGateToActorRefMap
+  val defaultInferiorSubGridGateToActorRefMap
       : Map[SubGridGate, ActorRef[GridAgent.Request]] = Map(
     build2wSubGridGate(
       UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8"),
@@ -56,7 +57,7 @@ class ReceivedValuesStoreSpec
   )
 
   // / superior grid nodeUuid vector
-  val superiorGridNodeUuids: Vector[UUID] = Vector(
+  val defaultSuperiorGridNodeUuids: Vector[UUID] = Vector(
     UUID.fromString("baded8c4-b703-4316-b62f-75ffe09c9843")
   )
 
@@ -64,17 +65,17 @@ class ReceivedValuesStoreSpec
 
     "initialize an empty store correctly when everything is empty" in {
 
-      val nodeToAssetAgentsMap =
+      val emptyNodeToAssetAgentsMap =
         Map.empty[UUID, Set[ActorRef[ParticipantAgent.Request]]]
-      val inferiorSubGridGateToActorRefMap =
+      val emptyInferiorSubGridGateToActorRefMap =
         Map.empty[SubGridGate, ActorRef[GridAgent.Request]]
-      val superiorGridNodeUuids = Vector.empty[UUID]
+      val emptySuperiorGridNodeUuids = Vector.empty[UUID]
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(
-          nodeToAssetAgentsMap,
-          inferiorSubGridGateToActorRefMap,
-          superiorGridNodeUuids,
+          emptyNodeToAssetAgentsMap,
+          emptyInferiorSubGridGateToActorRefMap,
+          emptySuperiorGridNodeUuids,
         )
 
       receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 0
@@ -86,9 +87,9 @@ class ReceivedValuesStoreSpec
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(
-          nodeToAssetAgentsMap,
-          inferiorSubGridGateToActorRefMap,
-          superiorGridNodeUuids,
+          defaultNodeToAssetAgentsMap,
+          defaultInferiorSubGridGateToActorRefMap,
+          defaultSuperiorGridNodeUuids,
         )
 
       receivedValuesStore.nodeToReceivedPower.size shouldBe 3
@@ -154,8 +155,8 @@ class ReceivedValuesStoreSpec
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(
-          nodeToAssetAgentsMap,
-          inferiorSubGridGateToActorRefMap,
+          defaultNodeToAssetAgentsMap,
+          defaultInferiorSubGridGateToActorRefMap,
           superiorGridNodeUuids,
         )
 
@@ -213,7 +214,7 @@ class ReceivedValuesStoreSpec
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(
-          nodeToAssetAgentsMap,
+          defaultNodeToAssetAgentsMap,
           inferiorSubGridGateToActorRefMap,
           superiorGridNodeUuids,
         )

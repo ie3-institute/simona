@@ -51,13 +51,13 @@ import scala.jdk.OptionConverters.RichOptional
   *
   * @param gridAgentContext
   *   ActorContext of the grid agent
-  * @param environmentRefs
+  * @param _environmentRefs
   *   The environment refs
   * @param simulationStartDate
   *   Simulation start date
   * @param simulationEndDate
   *   Simulation end date
-  * @param participantsConfig
+  * @param _participantsConfig
   *   Configuration information for participant models
   * @param outputConfig
   *   Configuration information for output behaviour
@@ -71,11 +71,11 @@ import scala.jdk.OptionConverters.RichOptional
   */
 class GridAgentBuilder(
     gridAgentContext: ActorContext[GridAgent.Request],
-    environmentRefs: EnvironmentRefs,
+    _environmentRefs: EnvironmentRefs,
     simulationStartDate: ZonedDateTime,
     simulationEndDate: ZonedDateTime,
     emConfigs: AssetConfigs[EmRuntimeConfig],
-    participantsConfig: Participant,
+    _participantsConfig: Participant,
     outputConfig: AssetConfigs[ParticipantOutputConfig],
     resolution: Long,
     listener: Iterable[ActorRef[ResultEvent]],
@@ -87,7 +87,7 @@ class GridAgentBuilder(
   ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = {
 
     val systemParticipants =
-      filterSysParts(subGridContainer, environmentRefs)
+      filterSysParts(subGridContainer, _environmentRefs)
 
     val outputConfigUtil =
       ConfigUtil.OutputConfigUtil.participants(outputConfig)
@@ -105,12 +105,12 @@ class GridAgentBuilder(
 
     /* Browse through all system participants, build actors and map their node's UUID to the actor references */
     buildParticipantToActorRef(
-      participantsConfig,
+      _participantsConfig,
       allEms,
       outputConfigUtil,
       systemParticipants,
       thermalIslandGridsByBusId,
-      environmentRefs,
+      _environmentRefs,
     )
   }
 
@@ -523,7 +523,7 @@ class GridAgentBuilder(
         emInput.getControlStrategy,
         simulationStartDate,
         maybeControllingEm.toRight(
-          environmentRefs.scheduler
+          _environmentRefs.scheduler
         ),
         listener,
       ),
