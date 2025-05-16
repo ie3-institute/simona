@@ -97,7 +97,7 @@ class ExtEvDataServiceSpec
       /* INIT */
 
       // this one should be stashed
-      evService ! RegisterForService(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
 
       evcs1.expectNoMessage()
       scheduler.expectNoMessage()
@@ -143,14 +143,14 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(evService))
 
-      evService ! RegisterForService(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
 
-      evService ! RegisterForService(evcs2.ref, evcs2UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs2.ref, evcs2UUID)
       evcs2.expectNoMessage()
 
       // register first one again
-      evService ! RegisterForService(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -229,10 +229,10 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(evService))
 
-      evService ! RegisterForService(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
 
-      evService ! RegisterForService(evcs2.ref, evcs2UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs2.ref, evcs2UUID)
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -320,10 +320,10 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(evService))
 
-      evService ! RegisterForService(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
 
-      evService ! RegisterForService(evcs2.ref, evcs2UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs2.ref, evcs2UUID)
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -445,10 +445,10 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(evService))
 
-      evService ! RegisterForService(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
 
-      evService ! RegisterForService(evcs2.ref, evcs2UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs2.ref, evcs2UUID)
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -602,10 +602,10 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessageType[Completion]
 
-      evService ! RegisterForService(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
 
-      evService ! RegisterForService(evcs2.ref, evcs2UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs2.ref, evcs2UUID)
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -684,7 +684,7 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessageType[Completion]
 
-      evService ! RegisterForService(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
       evcs1.expectNoMessage()
 
       extEvData.sendExtMsg(

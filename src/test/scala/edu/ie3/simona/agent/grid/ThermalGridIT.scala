@@ -28,7 +28,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
-  RegisterForService,
+  SecondaryServiceRegistrationMessage,
   ServiceMessages,
 }
 import edu.ie3.simona.ontology.messages.{
@@ -37,9 +37,9 @@ import edu.ie3.simona.ontology.messages.{
   ServiceMessage,
 }
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.Data.InitialisationData.Coordinate
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
 import edu.ie3.simona.test.matchers.QuantityMatchers
@@ -164,7 +164,7 @@ class ThermalGridIT
       hpAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
       weatherService.expectMessage(
-        RegisterForService(
+        SecondaryServiceRegistrationMessage(
           hpAgent,
           Coordinate(
             typicalHpInputModel.getNode.getGeoPosition.getY,
@@ -855,7 +855,7 @@ class ThermalGridIT
 
       // deal with weather service registration
       weatherService.expectMessage(
-        RegisterForService(
+        SecondaryServiceRegistrationMessage(
           pvAgent,
           Coordinate(
             pvInput.getNode.getGeoPosition.getY,
@@ -874,7 +874,7 @@ class ThermalGridIT
 
       // deal with weather service registration
       weatherService.expectMessage(
-        RegisterForService(
+        SecondaryServiceRegistrationMessage(
           hpAgent,
           Coordinate(
             typicalHpInputModel.getNode.getGeoPosition.getY,

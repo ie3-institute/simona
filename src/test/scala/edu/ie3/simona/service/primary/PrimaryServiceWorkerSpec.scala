@@ -27,7 +27,6 @@ import edu.ie3.simona.ontology.messages.{
   ServiceMessage,
 }
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.Data.InitialisationData.Coordinate
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
@@ -36,6 +35,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   PrimaryServiceInitializedStateData,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.matchers.SquantsMatchers
@@ -222,7 +222,7 @@ class PrimaryServiceWorkerSpec
 
       service ! Activation(INIT_SIM_TICK)
 
-      service ! RegisterForService(
+      service ! SecondaryServiceRegistrationMessage(
         systemParticipant.ref,
         Coordinate(51.4843281, 7.4116482),
       )

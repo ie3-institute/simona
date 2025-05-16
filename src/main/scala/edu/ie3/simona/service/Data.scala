@@ -29,16 +29,6 @@ sealed trait Data
 
 object Data {
 
-  sealed trait InitialisationData
-
-  object InitialisationData {
-
-    final case class Coordinate(
-        latitude: Double,
-        longitude: Double,
-    ) extends InitialisationData
-  }
-
   /** Primary data are those, that are result of a model simulation. Mandatory
     * for grid interaction are at lease active and reactive power. Those data
     * structures here, also describe derivatives of this tuple, as those might

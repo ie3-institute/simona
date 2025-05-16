@@ -31,13 +31,13 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
-  RegisterForService,
+  SecondaryServiceRegistrationMessage,
   ServiceRef,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import edu.ie3.simona.service.Data.InitialisationData.Coordinate
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -297,7 +297,7 @@ object ParticipantAgentInit {
 
         Option(geoPosition.getY).zip(Option(geoPosition.getX)) match {
           case Some((lat, lon)) =>
-            serviceRef ! RegisterForService(
+            serviceRef ! SecondaryServiceRegistrationMessage(
               participantRef,
               Coordinate(lat, lon),
             )
@@ -316,7 +316,7 @@ object ParticipantAgentInit {
         )
 
       case ServiceType.EvMovementService =>
-        serviceRef ! RegisterForService(
+        serviceRef ! SecondaryServiceRegistrationMessage(
           participantRef,
           participantInput.getUuid,
         )
@@ -324,7 +324,7 @@ object ParticipantAgentInit {
       case ServiceType.LoadProfileService =>
         participantInput match {
           case load: LoadInput =>
-            serviceRef ! RegisterForService(
+            serviceRef ! SecondaryServiceRegistrationMessage(
               participantRef,
               load.getLoadProfile,
             )

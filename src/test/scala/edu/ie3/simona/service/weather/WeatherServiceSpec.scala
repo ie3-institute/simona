@@ -21,7 +21,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
-  RegisterForService,
+  SecondaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{
   Activation,
@@ -29,9 +29,11 @@ import edu.ie3.simona.ontology.messages.{
   ServiceMessage,
 }
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.Data.InitialisationData.Coordinate
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
+import edu.ie3.simona.service.weather.WeatherService.{
+  Coordinate,
+  InitWeatherServiceStateData,
+}
 import edu.ie3.simona.service.weather.WeatherSource.AgentCoordinates
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -122,7 +124,7 @@ class WeatherServiceSpec
     }
 
     "announce failed weather registration on invalid coordinate" in {
-      weatherService ! RegisterForService(
+      weatherService ! SecondaryServiceRegistrationMessage(
         agent.ref,
         Coordinate(invalidCoordinate.latitude, invalidCoordinate.longitude),
       )
@@ -132,7 +134,7 @@ class WeatherServiceSpec
 
     "announce, that a valid coordinate is registered" in {
       /* The successful registration stems from the test above */
-      weatherService ! RegisterForService(
+      weatherService ! SecondaryServiceRegistrationMessage(
         agent.ref,
         Coordinate(validCoordinate.latitude, validCoordinate.longitude),
       )
@@ -144,7 +146,7 @@ class WeatherServiceSpec
 
     "recognize, that a valid coordinate yet is registered" in {
       /* The successful registration stems from the test above */
-      weatherService ! RegisterForService(
+      weatherService ! SecondaryServiceRegistrationMessage(
         agent.ref,
         Coordinate(validCoordinate.latitude, validCoordinate.longitude),
       )

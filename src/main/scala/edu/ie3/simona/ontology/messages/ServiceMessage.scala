@@ -23,9 +23,13 @@ sealed trait ServiceMessage
 
 object ServiceMessage {
 
+  /** Describes all message, that can be received by every
+    * [[edu.ie3.simona.service.SimonaService]].
+    */
   type ServiceMessages = ServiceMessage | Activation
 
-  // actor ref
+  /** Actor reference for a [[edu.ie3.simona.service.SimonaService]].
+    */
   type ServiceRef = ActorRef[ServiceMessage]
 
   /** Service initialization data can sometimes only be constructed once the
@@ -38,27 +42,7 @@ object ServiceMessage {
       unlockKey: ScheduleKey,
   ) extends ServiceMessage
 
-  final case class ScheduleServiceActivation(
-      tick: Long,
-      unlockKey: ScheduleKey,
-  ) extends ServiceMessage
-      with DataMessageFromExt // TODO: Check if this can be removed
-
-  /** Message used in response to a service request.
-    */
-  trait ServiceResponseMessage extends ServiceMessage
-
-  final case class FreeLotsResponse(
-      evcs: UUID,
-      freeLots: Int,
-  ) extends ServiceResponseMessage
-
-  final case class DepartingEvsResponse(
-      evcs: UUID,
-      evModels: Seq[EvModelWrapper],
-  ) extends ServiceResponseMessage
-
-  /** Message used to register for a service
+  /** Message used to register for a service.
     */
   trait ServiceRegistrationMessage extends ServiceMessage
 
@@ -70,7 +54,7 @@ object ServiceMessage {
     * @param data
     *   The data, that is used during the registration.
     */
-  final case class RegisterForService[D](
+  final case class SecondaryServiceRegistrationMessage[D](
       requestingActor: ActorRef[ParticipantAgent.Request],
       data: D,
   ) extends ServiceRegistrationMessage
@@ -82,7 +66,6 @@ object ServiceMessage {
     * @param inputModelUuid
     *   Identifier of the input model
     */
-  // TODO: Use RegisterForService instead?
   final case class PrimaryServiceRegistrationMessage(
       requestingActor: ActorRef[ParticipantAgent.Request],
       inputModelUuid: UUID,
@@ -98,5 +81,32 @@ object ServiceMessage {
   final case class WorkerRegistrationMessage(
       requestingActor: ActorRef[ParticipantAgent.Request]
   ) extends ServiceRegistrationMessage
+
+  /** Message that is sent by an [[edu.ie3.simona.api.ExtSimAdapter]] to
+    * schedule a service.
+    * @param tick
+    *   For which the service should be scheduled.
+    * @param unlockKey
+    *   For unlocking.
+    */
+  final case class ScheduleServiceActivation(
+      tick: Long,
+      unlockKey: ScheduleKey,
+  ) extends DataMessageFromExt
+
+  /** Message used in response to a service request. To receive these message,
+    * the service needs to extend [[edu.ie3.simona.service.ExtDataSupport]].
+    */
+  sealed trait ServiceResponseMessage
+
+  final case class FreeLotsResponse(
+      evcs: UUID,
+      freeLots: Int,
+  ) extends ServiceResponseMessage
+
+  final case class DepartingEvsResponse(
+      evcs: UUID,
+      evModels: Seq[EvModelWrapper],
+  ) extends ServiceResponseMessage
 
 }

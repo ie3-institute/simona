@@ -26,8 +26,6 @@ import edu.ie3.simona.exceptions.{
   ServiceException,
 }
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.SecondaryData.ArrivingEvs
 import edu.ie3.simona.service.ServiceStateData.{
@@ -94,10 +92,10 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       registrationMessage: ServiceRegistrationMessage
   )(using
       serviceStateData: S,
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): Try[S] =
     registrationMessage match {
-      case RegisterForService(requestingActor, evcs: UUID) =>
+      case SecondaryServiceRegistrationMessage(requestingActor, evcs: UUID) =>
         Success(handleRegistrationRequest(requestingActor, evcs))
       case invalidMessage =>
         Failure(
@@ -126,7 +124,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       evcs: UUID,
   )(using
       serviceStateData: ExtEvStateData,
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): ExtEvStateData = {
     ctx.log.debug(
       "Received ev movement service registration from {} for [Evcs:{}]",
@@ -157,7 +155,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       tick: Long
   )(using
       serviceStateData: S,
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): (
       S,
       Option[Long],
@@ -166,7 +164,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
         : java.util.Map[UUID, java.util.List[E]] => Map[UUID, Seq[E]] = map =>
       map.asScala.view.mapValues(_.asScala.toSeq).toMap
 
-    given context: ActorContext[ServiceMessages] = ctx
+    given context: ActorContext[M] = ctx
     given log: Logger = ctx.log
 
     serviceStateData.extEvMessage
@@ -214,8 +212,8 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
     )
   }
 
-  private def requestFreeLots(tick: Long, ctx: ActorContext[ServiceMessages])(
-      using serviceStateData: ExtEvStateData
+  private def requestFreeLots(tick: Long, ctx: ActorContext[M])(using
+      serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
     serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
       evcsActor ! EvFreeLotsRequest(tick, ctx.self)
@@ -244,7 +242,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       requestedDepartingEvs: Map[UUID, Seq[UUID]],
   )(using
       serviceStateData: ExtEvStateData,
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): (ExtEvStateData, Option[Long]) = {
 
     val departingEvResponses =
@@ -285,7 +283,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       maybeNextTick: Option[Long],
   )(using
       serviceStateData: ExtEvStateData,
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): (ExtEvStateData, Option[Long]) = {
 
     if (tick == INIT_SIM_TICK) {

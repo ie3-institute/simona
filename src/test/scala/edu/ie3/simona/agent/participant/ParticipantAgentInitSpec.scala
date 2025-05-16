@@ -27,15 +27,15 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
-  RegisterForService,
+  SecondaryServiceRegistrationMessage,
   ServiceMessages,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.Data.InitialisationData.Coordinate
 import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -397,7 +397,7 @@ class ParticipantAgentInitSpec
         participantAgent ! RegistrationFailedMessage(primaryService.ref)
 
         service.expectMessage(
-          RegisterForService(
+          SecondaryServiceRegistrationMessage(
             participantAgent,
             Coordinate(
               mockInput.electricalInputModel.getNode.getGeoPosition.getY,
@@ -537,7 +537,7 @@ class ParticipantAgentInitSpec
         participantAgent ! RegistrationFailedMessage(primaryService.ref)
 
         service.expectMessage(
-          RegisterForService(
+          SecondaryServiceRegistrationMessage(
             participantAgent,
             Coordinate(
               mockInput.electricalInputModel.getNode.getGeoPosition.getY,

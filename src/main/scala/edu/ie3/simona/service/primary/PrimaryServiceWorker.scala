@@ -26,12 +26,6 @@ import edu.ie3.simona.exceptions.{
   CriticalFailureException,
   InitializationException,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  ServiceRef,
-  ServiceRegistrationMessage,
-  WorkerRegistrationMessage,
-}
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.RichValue
 import edu.ie3.simona.service.ServiceStateData.{
@@ -39,6 +33,11 @@ import edu.ie3.simona.service.ServiceStateData.{
   ServiceBaseStateData,
 }
 import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  ServiceRef,
+  ServiceRegistrationMessage,
+  WorkerRegistrationMessage,
+}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
@@ -294,7 +293,7 @@ object PrimaryServiceWorker extends SimonaService {
       registrationMessage: ServiceRegistrationMessage
   )(using
       serviceStateData: PrimaryServiceInitializedStateData[Value],
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): Try[PrimaryServiceInitializedStateData[Value]] =
     registrationMessage match {
       case WorkerRegistrationMessage(agentToBeRegistered) =>
@@ -333,7 +332,7 @@ object PrimaryServiceWorker extends SimonaService {
       tick: Long
   )(using
       serviceBaseStateData: PrimaryServiceInitializedStateData[Value],
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): (
       PrimaryServiceInitializedStateData[Value],
       Option[Long],

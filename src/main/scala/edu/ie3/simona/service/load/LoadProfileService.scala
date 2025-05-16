@@ -16,9 +16,10 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.ServiceMessage
-import edu.ie3.simona.ontology.messages.ServiceMessage.RegisterForService
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  SecondaryServiceRegistrationMessage,
+  ServiceRegistrationMessage,
+}
 import edu.ie3.simona.service.Data.SecondaryData.{LoadData, LoadDataFunction}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -115,12 +116,15 @@ object LoadProfileService extends SimonaService {
     }
 
   override protected def handleRegistrationRequest(
-      registrationMessage: ServiceMessage.ServiceRegistrationMessage
+      registrationMessage: ServiceRegistrationMessage
   )(using
       serviceStateData: LoadProfileInitializedStateData,
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): Try[LoadProfileInitializedStateData] = registrationMessage match {
-    case RegisterForService[LoadProfile](requestingActor, loadProfile) =>
+    case SecondaryServiceRegistrationMessage(
+          requestingActor,
+          loadProfile: LoadProfile,
+        ) =>
       Success(handleRegistrationRequest(requestingActor, loadProfile))
     case invalidMessage =>
       Failure(
@@ -149,7 +153,7 @@ object LoadProfileService extends SimonaService {
       loadProfile: LoadProfile,
   )(using
       serviceStateData: LoadProfileInitializedStateData,
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): LoadProfileInitializedStateData = {
 
     serviceStateData.profileToRefs.get(loadProfile) match {
@@ -208,7 +212,7 @@ object LoadProfileService extends SimonaService {
 
   override protected def announceInformation(tick: Long)(using
       serviceStateData: LoadProfileInitializedStateData,
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): (LoadProfileInitializedStateData, Option[Long]) = {
 
     /* Pop the next activation tick and update the state data */

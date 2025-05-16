@@ -7,30 +7,37 @@
 package edu.ie3.simona.service
 
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   ScheduleServiceActivation,
   ServiceResponseMessage,
 }
+import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
 import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.Behavior
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 /** Trait that enables handling of external data.
   */
 trait ExtDataSupport {
   this: SimonaService =>
 
-  override protected type ServiceMessages = ServiceMessage | Activation |
-    DataMessageFromExt
+  override protected type M = ServiceMessage | Activation |
+    ServiceResponseMessage | DataMessageFromExt
 
   override protected def idleExternal(using
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): PartialFunction[(ActorContext[ServiceMessages], ServiceMessages), Behavior[
-    ServiceMessages
-  ]] = {
+  ): PartialFunction[(ActorContext[M], M), Behavior[M]] = {
+    case (ctx, ScheduleServiceActivation(tick, unlockKey)) =>
+      constantData.scheduler ! ScheduleActivation(
+        ctx.self,
+        tick,
+        Some(unlockKey),
+      )
+
+      idle
+
     case (_, extMsg: DataMessageFromExt) =>
       val updatedStateData = handleDataMessage(extMsg)
 

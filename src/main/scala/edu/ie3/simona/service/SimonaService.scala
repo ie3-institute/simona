@@ -11,13 +11,15 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
-  ScheduleServiceActivation,
   ServiceRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -39,7 +41,9 @@ import scala.util.{Failure, Success, Try}
   */
 abstract class SimonaService {
 
-  protected type ServiceMessages >: ServiceMessage | Activation
+  /** Describes all messages this service can receive.
+    */
+  protected type M >: ServiceMessage | Activation
 
   /** The service specific type of the [[ServiceStateData]]
     */
@@ -48,14 +52,12 @@ abstract class SimonaService {
   def apply(
       scheduler: ActorRef[SchedulerMessage],
       bufferSize: Int = 10000,
-  ): Behavior[ServiceMessages] =
-    Behaviors.withStash[ServiceMessages](bufferSize) { buffer =>
-      Behaviors.setup { ctx =>
-        val constantData: ServiceConstantStateData =
-          ServiceConstantStateData(scheduler)
+  ): Behavior[M] =
+    Behaviors.withStash[M](bufferSize) { buffer =>
+      val constantData: ServiceConstantStateData =
+        ServiceConstantStateData(scheduler)
 
-        uninitialized(using constantData, buffer)
-      }
+      uninitialized(using constantData, buffer)
     }
 
   /** Receive method that is used before the service is initialized. Represents
@@ -66,8 +68,8 @@ abstract class SimonaService {
     */
   def uninitialized(using
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[ServiceMessages],
-  ): Behavior[ServiceMessages] = Behaviors.receive {
+      buffer: StashBuffer[M],
+  ): Behavior[M] = Behaviors.receive {
     case (
           ctx,
           Create(
@@ -87,15 +89,14 @@ abstract class SimonaService {
     case (_, msg: ServiceRegistrationMessage) =>
       buffer.stash(msg)
       Behaviors.same
-
   }
 
   private def initializing(
       initializeStateData: InitializeServiceStateData
   )(using
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[ServiceMessages],
-  ): Behavior[ServiceMessages] = Behaviors.receive {
+      buffer: StashBuffer[M],
+  ): Behavior[M] = Behaviors.receive {
     case (ctx, Activation(INIT_SIM_TICK)) =>
       // init might take some time and could go wrong if invalid initialize service data is received
       // execute complete and unstash only if init is carried out successfully
@@ -149,19 +150,16 @@ abstract class SimonaService {
   final protected def idle(using
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): Behavior[ServiceMessages] = Behaviors.receive[ServiceMessages] {
-    case (ctx, msg) =>
-      idleInternal
-        .orElse(idleExternal)
-        .applyOrElse((ctx, msg), unhandled.tupled)
+  ): Behavior[M] = Behaviors.receive[M] { case (ctx, msg) =>
+    idleInternal
+      .orElse(idleExternal)
+      .applyOrElse((ctx, msg), unhandled.tupled)
   }
 
   private def idleInternal(using
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): PartialFunction[(ActorContext[ServiceMessages], ServiceMessages), Behavior[
-    ServiceMessages
-  ]] = {
+  ): PartialFunction[(ActorContext[M], M), Behavior[M]] = {
     // agent registration process
     case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
@@ -182,15 +180,6 @@ abstract class SimonaService {
           )
       }
 
-    case (ctx, ScheduleServiceActivation(tick, unlockKey)) =>
-      constantData.scheduler ! ScheduleActivation(
-        ctx.self,
-        tick,
-        Some(unlockKey),
-      )
-
-      idle
-
     // activity start trigger for this service
     case (ctx, Activation(tick)) =>
       /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
@@ -205,12 +194,10 @@ abstract class SimonaService {
       idle(using updatedStateData, constantData)
   }
 
-  private def unhandled
-      : (ActorContext[ServiceMessages], ServiceMessages) => Behavior[
-        ServiceMessages
-      ] = { case (ctx, msg) =>
-    ctx.log.error("Unhandled message received:{}", msg)
-    Behaviors.unhandled
+  private def unhandled: (ActorContext[M], M) => Behavior[M] = {
+    case (ctx, msg) =>
+      ctx.log.error("Unhandled message received:{}", msg)
+      Behaviors.unhandled
   }
 
   /** Internal api method that allows handling incoming messages from external
@@ -225,8 +212,8 @@ abstract class SimonaService {
   protected def idleExternal(using
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): PartialFunction[(ActorContext[ServiceMessages], ServiceMessages), Behavior[
-    ServiceMessages
+  ): PartialFunction[(ActorContext[M], M), Behavior[
+    M
   ]] = PartialFunction.empty
 
   /** Initialize the concrete service implementation using the provided
@@ -261,7 +248,7 @@ abstract class SimonaService {
       registrationMessage: ServiceRegistrationMessage
   )(using
       serviceStateData: S,
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): Try[S]
 
   /** Send out the information to all registered recipients
@@ -277,7 +264,7 @@ abstract class SimonaService {
     */
   protected def announceInformation(tick: Long)(using
       serviceStateData: S,
-      ctx: ActorContext[ServiceMessages],
+      ctx: ActorContext[M],
   ): (S, Option[Long])
 
 }

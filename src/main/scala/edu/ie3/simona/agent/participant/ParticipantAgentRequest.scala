@@ -7,7 +7,10 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceRef
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  DepartingEvsResponse,
+  FreeLotsResponse,
+}
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -23,7 +26,7 @@ object ParticipantAgentRequest {
     */
   final case class EvFreeLotsRequest(
       override val tick: Long,
-      replyTo: ServiceRef,
+      replyTo: ActorRef[FreeLotsResponse],
   ) extends ParticipantRequest
 
   /** Requests EV models of departing EVs with given UUIDs
@@ -38,7 +41,7 @@ object ParticipantAgentRequest {
   final case class DepartingEvsRequest(
       override val tick: Long,
       departingEvs: Seq[UUID],
-      replyTo: ServiceRef,
+      replyTo: ActorRef[DepartingEvsResponse],
   ) extends ParticipantRequest
 
 }

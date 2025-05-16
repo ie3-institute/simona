@@ -22,7 +22,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
-  RegisterForService,
+  SecondaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{
   Activation,
@@ -96,7 +96,7 @@ class LoadProfileServiceSpec
     }
 
     "announce failed load profile registration on invalid load profile" in {
-      loadProfileService ! RegisterForService(
+      loadProfileService ! SecondaryServiceRegistrationMessage(
         agent.ref,
         invalidLoadProfile,
       )
@@ -106,7 +106,7 @@ class LoadProfileServiceSpec
 
     "announce, that a load profile is registered" in {
       /* The successful registration stems from the test above */
-      loadProfileService ! RegisterForService(
+      loadProfileService ! SecondaryServiceRegistrationMessage(
         agent.ref,
         BdewStandardLoadProfile.G0,
       )
@@ -127,7 +127,7 @@ class LoadProfileServiceSpec
 
     "recognize, that a valid coordinate yet is registered" in {
       /* The successful registration stems from the test above */
-      loadProfileService ! RegisterForService(
+      loadProfileService ! SecondaryServiceRegistrationMessage(
         agent.ref,
         BdewStandardLoadProfile.G0,
       )
