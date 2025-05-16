@@ -128,7 +128,7 @@ class HpModel private (
       state.thermalDemands,
       wasRunningLastOp,
     )
-    
+
     val (refPower, minPower) = (turnOn, canBeOutOfOperation) match {
       case (true, true) =>
         if (
@@ -138,7 +138,7 @@ class HpModel private (
             .map(_.storedEnergy)
             .getOrElse(zeroKWh) == zeroKWh
         )
-          // if Hp was running last state AND there is demand from the house AND the storage is empty, 
+          // if Hp was running last state AND there is demand from the house AND the storage is empty,
           // we would like to keep that behaviour even in strict interpretation of flexibility we could
           // be out of operation for flex reasons. Thus, we force Hp to run.
           (sRated.toActivePower(cosPhiRated), sRated.toActivePower(cosPhiRated))
