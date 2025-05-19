@@ -433,9 +433,7 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 3627.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0004170851506849316.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.000417085151.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -449,7 +447,6 @@ class ThermalGridIT
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned off
        */
-
       heatPumpAgent ! Activation(4412)
 
       Range(0, 2)
@@ -487,7 +484,6 @@ class ThermalGridIT
       /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
       The results are checked implicitly through the state of stored energy at the next result check.
        */
-
       val activationTicksBlock =
         Seq(7200, 7217, 10800, 10809, 14400, 14411, 18000, 18017, 21600)
 
@@ -528,7 +524,6 @@ class ThermalGridIT
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays off
        */
-
       heatPumpAgent ! Activation(21600)
 
       weatherDependentAgents.foreach {
@@ -565,13 +560,8 @@ class ThermalGridIT
                   ) =>
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 21600.toDateTime
-                qDot should equalWithTolerance(
-                  -0.004980573066385669.asMegaWatt
-                )
-                energy should equalWithTolerance(
-                  // FIXME Check this result
-                  0.00034589293150684945.asMegaWattHour
-                )
+                qDot should equalWithTolerance(-0.004980573066.asMegaWatt)
+                energy should equalWithTolerance(0.00034589293.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -585,7 +575,6 @@ class ThermalGridIT
      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
      Heat pump: stays off
        */
-
       heatPumpAgent ! Activation(21665)
 
       Range(0, 2)
@@ -736,9 +725,7 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(-0.004992011390357028.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.00025596591780821927.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.000255965918.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -778,9 +765,7 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 25327.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.00007985884931506857.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.000079858849.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -910,9 +895,7 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 28800.toDateTime
                 qDot should equalWithTolerance(-0.004956756164383566.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.00007985884931506857.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.000079858849.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -1240,9 +1223,7 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 36000.toDateTime
                 qDot should equalWithTolerance(-0.004986861668742217.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0003084233424657534.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.000308423342.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -1294,9 +1275,7 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 36165.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0000798588493150.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.000079858849.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
