@@ -269,15 +269,15 @@ final case class ThermalGrid(
 
   /** Handles the last cases of [[ThermalGrid.handleFeedIn]], where the thermal
     * feed in should be determined.
-    * | No | Conditions                                     | Result                          |
-    * |:---|:-----------------------------------------------|:--------------------------------|
-    * | 1  | if house.reqD AND waterStorage.reqD            | split to house and waterStorage |
-    * | 2  | else if house.reqD                             | house                           |
-    * | 3  | else if waterStorage.reqD                      | waterStorage                    |
-    * | 4  | else if heatStorage.reqD OR heatStorage.posD   | heatStorage                     |
-    * | 5  | else if waterStorage.posD                      | waterStorage                    | FIXME
-    * | 6  | else if house.posD                             | house                           |
-    * | 7  | else                                           | no output                       |
+    * | No | Conditions                                   | Result                          |
+    * |:---|:---------------------------------------------|:--------------------------------|
+    * | 1  | if house.reqD AND waterStorage.reqD          | split to house and waterStorage |
+    * | 2  | else if house.reqD                           | house                           |
+    * | 3  | else if waterStorage.reqD                    | waterStorage                    |
+    * | 4  | else if heatStorage.reqD OR heatStorage.posD | heatStorage                     |
+    * | 5  | else if waterStorage.posD                    | waterStorage                    |
+    * | 6  | else if house.posD                           | house                           |
+    * | 7  | else                                         | no output                       |
     *
     * @param state
     *   State of the heat pump.
@@ -296,10 +296,10 @@ final case class ThermalGrid(
     if (
       state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand && (state.thermalDemands.houseDemand.hasRequiredDemand ||
         (state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW && state.lastHpOperatingPoint.thermalOps.qDotHp > zeroKW))
-    ) {
+    )
       // if the DomesticHotWaterStorage has reqDemand AND house has reqDemand or was heated in lastState by Hp, we would like to split the qDot between house and waterStorage
       handleCase(state, qDot / 2, zeroKW, qDot / 2)
-    } else if (state.thermalDemands.houseDemand.hasRequiredDemand)
+    else if (state.thermalDemands.houseDemand.hasRequiredDemand)
       handleCase(state, qDot, zeroKW, zeroKW)
     else if (
       state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand
@@ -325,7 +325,7 @@ final case class ThermalGrid(
     *   Feed in to the heat storage (positive: Storage is charging, negative:
     *   Storage is discharging).
     * @param qDotDomesticHotWaterStorage
-    *   Infeed to the domestic hot water storage.
+    *   In-feed to the domestic hot water storage.
     * @return
     *   The operating point of the thermal grid and the next threshold if there
     *   is one.
@@ -430,7 +430,7 @@ final case class ThermalGrid(
       qDotStorage: Power,
       storage: Option[ThermalStorage],
   ): Option[ThermalThreshold] = {
-    // FIXME: We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
+    // TODO: We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
     val selectedState = storage match {
       case Some(_: CylindricalThermalStorage) =>
         state.thermalGridState.heatStorageState
@@ -610,10 +610,8 @@ final case class ThermalGrid(
     *
     * @param state
     *   State of the heat pump.
-    * @param maybeHouseState
-    *   Optional thermal house state.
-    * @param maybeStorageState
-    *   Optional thermal storage state.
+    * @param maybeHouseThreshold
+    *   Optional thermal house threshold.
     * @return
     *   Operating point of the thermal grid and the next thermal threshold, if
     *   there is one.
