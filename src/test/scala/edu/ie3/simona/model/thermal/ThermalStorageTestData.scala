@@ -12,6 +12,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   DomesticHotWaterStorageInput,
   ThermalBusInput,
 }
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units
@@ -37,8 +38,8 @@ trait ThermalStorageTestData extends ThermalGridTestData {
   protected val thermalStorage: CylindricalThermalStorage =
     CylindricalThermalStorage(thermalStorageInput)
 
-  protected val expectedCylindricalStorageStartingState
-      : ThermalStorage.ThermalStorageState = thermalStorage.startingState
+  protected val expectedCylindricalStorageStartingState: ThermalStorageState =
+    thermalStorage.startingState
 
   protected val domesticHotWaterStorageInput: DomesticHotWaterStorageInput =
     new DomesticHotWaterStorageInput(
@@ -59,6 +60,5 @@ trait ThermalStorageTestData extends ThermalGridTestData {
     DomesticHotWaterStorage(domesticHotWaterStorageInput)
 
   protected val expectedDomesticHotWaterStorageStartingState
-      : ThermalStorage.ThermalStorageState =
-    domesticHotWaterStorage.startingState
+      : ThermalStorageState = domesticHotWaterStorage.startingState
 }
