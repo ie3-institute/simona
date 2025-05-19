@@ -1,0 +1,5 @@
+# Reviewers for Dependabot PRs
+build.gradle  @sebastian-peter  @danielfeismann  @t-ober  @jo-bao  @staudtMarius
+
+# Reviewers for CI/CD related PRs
+.github/workflows/  @sebastian-peter  @PhilippSchmelter
