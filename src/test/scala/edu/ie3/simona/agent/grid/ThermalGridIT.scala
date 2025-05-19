@@ -248,9 +248,6 @@ class ThermalGridIT
                 inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(-0.004955161979312273.asMegaWatt)
-                // FIXME We do make a significant error here since discharging little time frames with high power at a resolution of one second makes error. Maybe one can create this two staged.
-                //  First calculate the duration at full power, take the next second and lower the power to the value matching the demand.
-                // Done: But maybe additionally some separate test just for this, thus we test this before the integration test....
                 energy should equalWithTolerance(0.000522.asMegaWattHour)
             }
         }
