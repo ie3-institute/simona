@@ -319,15 +319,14 @@ final case class ThermalGrid(
   }
 
   /** Handles the case, when the storage has heat demand and will be filled up
-    * here (positive qDot). It will return the next thermal threshold of the
-    * storage.
+    * here (positive qDot).
     * @param state
     *   State of the heat pump.
     * @param qDotStorage
     *   Feed in to the storage (positive: Storage is charging, negative: Storage
     *   is discharging).
     * @return
-    *   Updated thermal storage state and the ThermalThreshold.
+    *   The ThermalThreshold if there is one.
     */
   private def handleFeedInStorage(
       state: HpState,
