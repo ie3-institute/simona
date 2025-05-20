@@ -10,8 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
 - Added `CODEOWNERS` file [#1387](https://github.com/ie3-institute/simona/issues/1387)
 
-## Changed
+### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
+
+### Fixed
+- Fixed bug in returned next tick after congestion management [#1393](https://github.com/ie3-institute/simona/issues/1393)
 
 ## [4.0.0] - 2025-05-09
 
