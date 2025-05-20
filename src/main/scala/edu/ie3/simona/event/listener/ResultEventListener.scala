@@ -107,7 +107,7 @@ object ResultEventListener extends Transformer3wResultSupport {
               resultClass,
               ResultEntityCsvSink(
                 finalFileName,
-                new ResultEntityProcessor(resultClass),
+                new FixedResultEntityProcessor(resultClass),
                 enableCompression,
               ),
             )

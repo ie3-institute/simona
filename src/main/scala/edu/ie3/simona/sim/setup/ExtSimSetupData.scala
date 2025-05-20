@@ -12,7 +12,11 @@ import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
-import edu.ie3.simona.ontology.messages.services.{EmMessage, EvMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.services.{
+  EmMessage,
+  EvMessage,
+  ServiceMessage,
+}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.ActorRef as ClassicRef
 
@@ -33,7 +37,9 @@ final case class ExtSimSetupData(
     extPrimaryDataServices: Seq[
       (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
     ],
-    extDataServices: Seq[(ExtInputDataConnection[_], ActorRef[_ >: ServiceMessage])],
+    extDataServices: Seq[
+      (ExtInputDataConnection[_], ActorRef[_ >: ServiceMessage])
+    ],
     extResultListeners: Seq[(ExtResultDataConnection, ActorRef[ServiceMessage])],
 ) {
 

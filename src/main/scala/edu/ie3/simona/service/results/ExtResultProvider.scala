@@ -57,7 +57,7 @@ object ExtResultProvider
       extResultSchedule: ExtResultSchedule,
       extResultsMessage: Option[ResultDataMessageFromExt] = None,
       receiveDataMap: ReceiveDataMap[UUID, ResultEntity] = ReceiveDataMap.empty,
-      resultStorage: Map[UUID, ResultEntity] = Map.empty, 
+      resultStorage: Map[UUID, ResultEntity] = Map.empty,
       startTime: ZonedDateTime,
   ) extends ServiceBaseStateData
 
