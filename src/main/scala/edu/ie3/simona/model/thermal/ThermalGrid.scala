@@ -498,7 +498,6 @@ final case class ThermalGrid(
   def handleConsumption(
       state: HpState
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
-
     // handle hot water demand
     val (qDotHotWaterStorage, thresholdWaterStorage) =
       handleHotWaterConsumption(state)
@@ -525,7 +524,6 @@ final case class ThermalGrid(
   private def handleHotWaterConsumption(
       state: HpState
   ): (Power, Option[ThermalThreshold]) = {
-
     val domesticHotWaterDemand =
       state.thermalDemands.domesticWaterDemandOfHouse
 
@@ -551,7 +549,6 @@ final case class ThermalGrid(
         }
       case _ => (zeroKW, None)
     }
-
     (qDot, threshold)
   }
 
@@ -836,7 +833,6 @@ object ThermalGrid {
   }
 
   /** Current state of a grid.
-    *
     * @param houseState
     *   State of the thermal house.
     * @param heatStorageState

@@ -454,7 +454,6 @@ final case class ThermalHouse(
   }
 
   /** Determine the next threshold, that will be reached.
-    *
     * @param thermalHouseState
     *   The applicable state of thermalHouse until this tick.
     * @param qDot
