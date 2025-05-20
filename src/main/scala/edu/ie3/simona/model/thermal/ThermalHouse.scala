@@ -404,7 +404,7 @@ final case class ThermalHouse(
     * @return
     *   new inner temperature
     */
-  def newInnerTemperatureRecursive(
+  def newInnerTemperature(
       thermalPower: Power,
       duration: Time,
       currentInnerTemperature: Temperature,
@@ -440,7 +440,7 @@ final case class ThermalHouse(
       qDot: Power,
   ): ThermalHouseState = {
     val duration = Seconds(tick - lastThermalHouseState.tick)
-    val updatedInnerTemperature = newInnerTemperatureRecursive(
+    val updatedInnerTemperature = newInnerTemperature(
       qDot,
       duration,
       lastThermalHouseState.innerTemperature,
