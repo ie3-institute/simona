@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
+- Adapt ThermalHouse and HP flexibility behaviour [#1391](https://github.com/ie3-institute/simona/issues/1391)
 
 ## [4.0.0] - 2025-05-09
 
