@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed bug in returned next tick after congestion management [#1393](https://github.com/ie3-institute/simona/issues/1393)
+- Fixed bug in `CongestionResult` values [#1395](https://github.com/ie3-institute/simona/issues/1395)
 
 ## [4.0.0] - 2025-05-09
 
