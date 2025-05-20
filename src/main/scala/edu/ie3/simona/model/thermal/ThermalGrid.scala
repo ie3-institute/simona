@@ -71,21 +71,20 @@ final case class ThermalGrid(
     val houseQDot = operatingPoint.thermalOps.qDotHouse
     val heatStorageQDot = operatingPoint.thermalOps.qDotHeatStorage
 
-    val updatedHouseState: Option[ThermalHouseState] =
-      house.zip(lastState.houseState) match {
-        case Some((thermalHouse, houseState)) =>
-          Some(
-            thermalHouse
-              .determineState(
-                tick,
-                houseState,
-                houseQDot,
-              )
-          )
-        case _ => None
-      }
+    val updatedHouseState = house.zip(lastState.houseState) match {
+      case Some((thermalHouse, houseState)) =>
+        Some(
+          thermalHouse
+            .determineState(
+              tick,
+              houseState,
+              houseQDot,
+            )
+        )
+      case _ => None
+    }
 
-    val updatedStorageState: Option[ThermalStorageState] = {
+    val updatedStorageState =
       heatStorage.zip(lastState.storageState) match {
         case Some((storage, heatStorageState)) =>
           Some(
@@ -97,7 +96,6 @@ final case class ThermalGrid(
           )
         case _ => None
       }
-    }
 
     ThermalGridState(updatedHouseState, updatedStorageState)
   }
@@ -321,8 +319,8 @@ final case class ThermalGrid(
   }
 
   /** Handles the case, when the storage has heat demand and will be filled up
-    * here (positive qDot) or will return its stored energy into the thermal
-    * grid (negative qDot).
+    * here (positive qDot). It will return the next thermal threshold of the
+    * storage.
     * @param state
     *   State of the heat pump.
     * @param qDotStorage
@@ -398,10 +396,8 @@ final case class ThermalGrid(
     *
     * @param state
     *   State of the heat pump.
-    * @param maybeHouseState
-    *   Optional thermal house state.
-    * @param maybeStorageState
-    *   Optional thermal storage state.
+    * @param maybeHouseThreshold
+    *   Optional thermal house threshold.
     * @return
     *   Operating point of the thermal grid and the next thermal threshold, if
     *   there is one.

@@ -24,7 +24,7 @@ As the storage is initialised as empty, the heat source will start charging the 
 
 When {ref}`em` is applied to the heat source of this building, the thermal behaviour should be basically the same as without EM control, so internal temperature of the house should remain between the target temperature and the lower temperature limit. 
 
-However, for flexibility usage, the energy management system can turn on the heat source whenever the thermal house has additional demand. Same for the thermal storage. When the heat source is EM controlled, the thermal storage will only be recharged when the flexibility strategy allows. E.g. when there is surplus energy from PV plant.
+However, for flexibility usage, the energy management system can turn on the heat source whenever the thermal house has additional demand. Same for the thermal storage. When the heat source is EM controlled, the thermal storage will only be recharged when the flexibility strategy allows. E.g. when there is surplus energy from PV plant. In case the power target of the EM changes (e.g. caused by weather change), the heat source can be turned off when charging the thermal storage but not if it was heating the house and this heating can't replace e.g. by the thermal storage.
 
 
 ## Physical Model
