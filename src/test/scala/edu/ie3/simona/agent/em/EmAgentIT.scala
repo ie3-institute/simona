@@ -182,7 +182,6 @@ class EmAgentIT
         scheduler.expectMessage(Completion(lockActivation))
 
         /* INIT */
-
         emAgentActivation ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.receiveMessages(3) should contain allOf (
@@ -229,7 +228,6 @@ class EmAgentIT
          -> charge with 5 kW
          -> remaining -0.573 kW
          */
-
         emAgentActivation ! Activation(0)
 
         pvAgent ! DataProvision(
@@ -300,7 +298,6 @@ class EmAgentIT
          -> charge with 0 kW
          -> remaining -3.447 kW
          */
-
         emAgentActivation ! Activation(13246)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -496,7 +493,6 @@ class EmAgentIT
          -> set point = 0 kW: stays off
          -> remaining -5.573 kW
          */
-
         emAgentActivation ! Activation(0)
 
         weatherDependentAgents.foreach {
@@ -534,7 +530,6 @@ class EmAgentIT
          -> set point ~3.5 kW (bigger than 50 % rated apparent power): turned on
          -> remaining 1.403 kW
          */
-
         emAgentActivation ! Activation(7200)
 
         weatherDependentAgents.foreach {
@@ -610,7 +605,6 @@ class EmAgentIT
          -> flex signal is 0 MW: Heat pump is turned off
          -> remaining ~0.21 kW
          */
-
         emAgentActivation ! Activation(11000)
 
         // it got cloudy now...
@@ -649,7 +643,6 @@ class EmAgentIT
          -> flex signal is 0 MW: Heat pump stays off
          -> remaining 0.135 kW
          */
-
         emAgentActivation ! Activation(11500)
 
         weatherDependentAgents.foreach {
@@ -754,7 +747,6 @@ class EmAgentIT
         scheduler.expectMessage(Completion(lockActivation))
 
         /* INIT */
-
         emAgentActivation ! Activation(INIT_SIM_TICK)
 
         // load
@@ -800,7 +792,6 @@ class EmAgentIT
          PV:  0 kW (not yet in operation)
          -> expect load p and q values as em p and q values
          */
-
         emAgentActivation ! Activation(0)
 
         weatherDependentAgents.foreach {
@@ -834,7 +825,6 @@ class EmAgentIT
          PV:  P: 0 W  Q: 0 Var (in operation, but no sun)
          -> expect load p and q values as em p and q values
          */
-
         emAgentActivation ! Activation(3600)
 
         weatherDependentAgents.foreach {
@@ -866,7 +856,6 @@ class EmAgentIT
          PV:  P: -8692.167 W  Q: -2856.98 var
          -> expect P:-8423.564 Q: -2768.69 var
          */
-
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             7200,
@@ -899,7 +888,6 @@ class EmAgentIT
         PV:  P: -8692.167 W  Q: -2856.98 var
         -> expect P and Q values of PV
          */
-
         emAgentActivation ! Activation(10800)
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -918,7 +906,6 @@ class EmAgentIT
         PV: P: 0 W, Q: 0 var (limited OperationTime)
         -> expect P: 0 W Q: 0 var
          */
-
         emAgentActivation ! Activation(14400)
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -929,7 +916,6 @@ class EmAgentIT
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, None))
-
       }
     }
   }

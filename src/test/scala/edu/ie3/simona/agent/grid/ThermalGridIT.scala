@@ -1531,7 +1531,6 @@ class ThermalGridIT
                 time shouldBe 24413.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1606,7 +1605,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.18.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1658,7 +1656,6 @@ class ThermalGridIT
               hpResult._1 shouldBe 27500.toDateTime
               hpResult._3 should equalWithTolerance(pRunningHp)
               hpResult._4 should equalWithTolerance(qRunningHp)
-
             case EmResult(emResult) =>
               emResult._2 shouldBe emInput.getUuid
               emResult._1 shouldBe 27500.toDateTime
@@ -1694,7 +1691,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 30923.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 30923.toDateTime
@@ -1770,7 +1766,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 31000.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 31000.toDateTime
@@ -1821,7 +1816,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 40964.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 40964.toDateTime
@@ -1844,7 +1838,6 @@ class ThermalGridIT
                 time shouldBe 40964.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1912,7 +1905,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.548.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1997,7 +1989,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 56278.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 56278.toDateTime
