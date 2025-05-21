@@ -165,20 +165,19 @@ object CylindricalThermalStorage {
       input: CylindricalStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
   ): CylindricalThermalStorage = {
-    val maxEnergyThreshold =
-      CylindricalThermalStorage.volumeToEnergy(
-        CubicMeters(
-          input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
-        ),
-        KilowattHoursPerKelvinCubicMeters(
-          input.getC
-            .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
-            .getValue
-            .doubleValue
-        ),
-        Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
-        Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
-      )
+    val maxEnergyThreshold = volumeToEnergy(
+      CubicMeters(
+        input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
+      ),
+      KilowattHoursPerKelvinCubicMeters(
+        input.getC
+          .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
+          .getValue
+          .doubleValue
+      ),
+      Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue),
+      Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue),
+    )
 
     val pThermalMax = Kilowatts(
       input

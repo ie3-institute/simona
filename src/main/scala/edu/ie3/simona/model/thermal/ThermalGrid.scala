@@ -84,17 +84,17 @@ final case class ThermalGrid(
       case _ => None
     }
 
-    val updatedStorageState =      heatStorage.zip(lastState.storageState) match {
-        case Some((storage, heatStorageState)) =>
-          Some(
-            storage.determineState(
-              tick,
-              heatStorageState,
-              heatStorageQDot,
-            )
+    val updatedStorageState = heatStorage.zip(lastState.storageState) match {
+      case Some((storage, heatStorageState)) =>
+        Some(
+          storage.determineState(
+            tick,
+            heatStorageState,
+            heatStorageQDot,
           )
-        case _ => None
-      }
+        )
+      case _ => None
+    }
 
     ThermalGridState(updatedHouseState, updatedStorageState)
   }
