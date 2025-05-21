@@ -249,7 +249,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(-0.00057340027.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0018318880807.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -280,7 +280,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00113292701968.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(13246)))
 
         /* TICK 13246
@@ -299,7 +299,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(-0.00344685673.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.001132927.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
@@ -333,9 +333,8 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.000065375.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
-
       }
     }
 
@@ -504,7 +503,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(-0.0055734002706.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0018318880807.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -537,7 +536,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.001403143271.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00014809252.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
         /* TICK 10800
@@ -571,7 +570,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.0011098586291.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.000244490516.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11000)))
 
         /* TICK 11000
@@ -605,7 +604,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.00021037894.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0000691482.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11500)))
 
         /* TICK 11500
@@ -639,7 +638,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.00013505248.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.000044389603878.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
       }
     }
@@ -783,7 +782,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.000268603.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
 
         /* TICK 3600
@@ -814,7 +813,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.000268603.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -845,7 +844,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(-0.008423564.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0027686916118.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
         /* TICK 10800
@@ -861,7 +860,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(-0.008692167.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00285697715.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
@@ -877,7 +876,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, None))
       }
     }
