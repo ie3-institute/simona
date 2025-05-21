@@ -9,45 +9,21 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
+import edu.ie3.simona.agent.participant.ParticipantAgent.{DataProvision, RegistrationFailedMessage, RegistrationSuccessfulMessage}
 import edu.ie3.simona.agent.participant.ParticipantAgentInit
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.ParticipantRefs
-import edu.ie3.simona.api.data.em.model.NoSetPointValue
-import edu.ie3.simona.api.data.em.ontology.{
-  EmCompletion,
-  FlexOptionsResponse,
-  RequestEmFlexResults,
-}
+import edu.ie3.simona.api.data.em.model.EmSetPoint
+import edu.ie3.simona.api.data.em.ontology.{EmCompletion, FlexOptionsResponse, RequestEmFlexResults}
 import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
-import edu.ie3.simona.api.data.ontology.{
-  DataMessageFromExt,
-  ScheduleDataServiceMessage,
-}
+import edu.ie3.simona.api.data.ontology.{DataMessageFromExt, ScheduleDataServiceMessage}
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
-import edu.ie3.simona.config.RuntimeConfig.{
-  LoadRuntimeConfig,
-  PvRuntimeConfig,
-  StorageRuntimeConfig,
-}
+import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, PvRuntimeConfig, StorageRuntimeConfig}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  Create,
-  PrimaryServiceRegistrationMessage,
-}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  RegisterForWeatherMessage,
-  WeatherData,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{Create, PrimaryServiceRegistrationMessage}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{RegisterForWeatherMessage, WeatherData}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
@@ -56,12 +32,9 @@ import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmCommunicationTestData
 import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
-import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
 import org.apache.pekko.actor.typed.ActorRef
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.slf4j.{Logger, LoggerFactory}
@@ -70,11 +43,7 @@ import squants.thermal.Celsius
 
 import java.util.{Optional, UUID}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.jdk.CollectionConverters.{
-  MapHasAsJava,
-  MapHasAsScala,
-  SeqHasAsJava,
-}
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 
 class ExtEmBaseIT
     extends ScalaTestWithActorTestKit
@@ -341,8 +310,7 @@ class ExtEmBaseIT
       )
 
       // we return a new set point
-      val setPoints0: Map[UUID, PValue] =
-        Map(emSupUuid -> new NoSetPointValue(0.002200000413468004.asMegaWatt))
+      val setPoints0 = Map(emSupUuid -> new EmSetPoint(emSupUuid))
 
       connection.sendSetPoints(0L, setPoints0.asJava, Optional.of(900L), log)
 
@@ -396,8 +364,7 @@ class ExtEmBaseIT
       )
 
       // we return a new set point
-      val setPoints900: Map[UUID, PValue] =
-        Map(emSupUuid -> new PValue(0.006200000413468004.asMegaWatt))
+      val setPoints900 = Map(emSupUuid -> new EmSetPoint(emSupUuid, 0.006200000413468004.asMegaWatt))
 
       connection.sendSetPoints(
         900L,
@@ -483,8 +450,7 @@ class ExtEmBaseIT
       )
 
       // we return a new set point
-      val setPoints1800: Map[UUID, PValue] =
-        Map(emSupUuid -> new NoSetPointValue(0.002200000413468004.asMegaWatt))
+      val setPoints1800 = Map(emSupUuid -> new EmSetPoint(emSupUuid))
 
       connection.sendSetPoints(
         1800L,
@@ -568,8 +534,7 @@ class ExtEmBaseIT
       )
 
       // we return a new set point
-      val setPoints2700: Map[UUID, PValue] =
-        Map(emSupUuid -> new PValue(0.006200000413468004.asMegaWatt))
+      val setPoints2700 = Map(emSupUuid -> new EmSetPoint(emSupUuid, 0.006200000413468004.asMegaWatt))
 
       connection.sendSetPoints(
         2700L,
@@ -603,8 +568,7 @@ class ExtEmBaseIT
       pvAgentNode4 ! weatherData3600
 
       // we send a new set point
-      val setPoints3600: Map[UUID, PValue] =
-        Map(emSupUuid -> new NoSetPointValue(0.002200000413468004.asMegaWatt))
+      val setPoints3600 = Map(emSupUuid -> new EmSetPoint(emSupUuid, 0.002200000413468004.asMegaWatt))
 
       connection.sendSetPoints(
         3600L,
@@ -636,8 +600,7 @@ class ExtEmBaseIT
       pvAgentNode4 ! weatherData4500
 
       // we send a new set point
-      val setPoints4500: Map[UUID, PValue] =
-        Map(emSupUuid -> new PValue(0.006200000413468004.asMegaWatt))
+      val setPoints4500 = Map(emSupUuid -> new EmSetPoint(emSupUuid, 0.006200000413468004.asMegaWatt))
 
       connection.sendSetPoints(
         4500L,

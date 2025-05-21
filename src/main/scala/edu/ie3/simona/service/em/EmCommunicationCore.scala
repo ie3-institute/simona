@@ -7,7 +7,7 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
-import edu.ie3.simona.api.data.em.model.{EmSetPoint, EmSetPointResult, ExtendedFlexOptionsResult, FlexRequestResult}
+import edu.ie3.simona.api.data.em.model.{EmSetPointResult, ExtendedFlexOptionsResult, FlexRequestResult}
 import edu.ie3.simona.api.data.em.ontology.*
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
@@ -56,6 +56,8 @@ final case class EmCommunicationCore(
 
     val updatedRefs = refs.add(uuid, ref, parentEm, parentUuid)
 
+    println(s"$uuid")
+
     copy(
       refs = updatedRefs,
       uuidToFlexAdapter = uuidToFlexAdapter + (uuid -> flexAdapter),
@@ -99,9 +101,9 @@ final case class EmCommunicationCore(
         .map { case (agent, _) => agent }
         .toSet
 
-      val refs = emEntities.map(uuidToFlexAdapter)
+      val agents = emEntities.map(uuidToFlexAdapter)
 
-      refs.foreach(_ ! FlexActivation(tick))
+      agents.foreach(_ ! FlexActivation(tick))
 
       (
         copy(

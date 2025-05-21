@@ -292,6 +292,8 @@ class GridAgentBuilder(
       // might need to be built at the next recursion level.
       val controllingEms = controlledEmInputs.toMap.flatMap {
         case (_, emInput) =>
+          log.warn(s"Controlling em: ${emInput.getControllingEm}")
+
           emInput.getControllingEm.toScala.map(em => em.getUuid -> em)
       }
 

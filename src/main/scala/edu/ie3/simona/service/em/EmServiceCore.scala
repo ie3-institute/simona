@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.em
 
+import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.em.ontology.*
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
@@ -13,7 +14,6 @@ import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, 
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{RegisterForEmDataService, ServiceResponseMessage}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
@@ -76,7 +76,16 @@ trait EmServiceCore {
         uuidToFlexAdapter.get(agent) match {
           case Some(receiver) =>
 
-            (setPoint.p.toScala, setPoint.q.toScala) match {
+            val (pOption, qOption) = setPoint.power.toScala match {
+              case Some(sValue: SValue) =>
+                (sValue.getP.toScala, sValue.getQ.toScala)
+              case Some(pValue: PValue) =>
+                (pValue.getP.toScala, None)
+              case None =>
+                (None, None)
+            }
+
+            (pOption, qOption) match {
               case (Some(activePower), _) =>
                 receiver ! IssuePowerControl(tick, activePower.toSquants)
 

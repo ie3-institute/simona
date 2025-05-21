@@ -19,7 +19,7 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.geo.GeoUtils
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils.*
 import squants.Each
 
 import java.time.ZonedDateTime
