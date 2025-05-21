@@ -8,12 +8,9 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.simona.exceptions.FlexException
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  IssueFlexControl,
-  IssueNoControl,
-  IssuePowerControl,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{IssueFlexControl, IssueNoControl, IssuePowerControl}
 import squants.Power
+import squants.energy.Watts
 
 /** Tools used by agents that engage with energy management and flexibility
   */
@@ -37,10 +34,22 @@ object EmTools {
       case minMaxFlexOptions: MinMaxFlexOptions =>
         flexCtrl match {
           case IssuePowerControl(_, setPower) =>
-            // sanity check: setPower is in range of latest flex options
-            checkSetPower(minMaxFlexOptions, setPower)
+            // fixed rounding issues
+            given powerTolerance: Power = Watts(1)
 
-            setPower
+            val min = minMaxFlexOptions.min
+            val max = minMaxFlexOptions.max
+
+            if (setPower < min && (setPower ~= min)) {
+              min
+            } else if (setPower > max && (setPower ~= max)) {
+              max
+            } else {
+              // sanity check: setPower is in range of latest flex options
+              checkSetPower(minMaxFlexOptions, setPower)
+
+              setPower
+            }
 
           case IssueNoControl(_) =>
             // no override, take reference power

@@ -8,21 +8,51 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{DataProvision, RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.ParticipantRefs
 import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
-import edu.ie3.simona.api.data.em.model.{EmSetPoint, FlexOptionRequest, FlexOptions, FlexRequestResult}
-import edu.ie3.simona.api.data.em.ontology.{EmCompletion, EmSetPointDataResponse, FlexOptionsResponse, FlexRequestResponse}
+import edu.ie3.simona.api.data.em.model.{
+  EmSetPoint,
+  FlexOptionRequest,
+  FlexOptions,
+  FlexRequestResult,
+}
+import edu.ie3.simona.api.data.em.ontology.{
+  EmCompletion,
+  EmSetPointDataResponse,
+  FlexOptionsResponse,
+  FlexRequestResponse,
+}
 import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
-import edu.ie3.simona.api.data.ontology.{DataMessageFromExt, ScheduleDataServiceMessage}
+import edu.ie3.simona.api.data.ontology.{
+  DataMessageFromExt,
+  ScheduleDataServiceMessage,
+}
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
-import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, PvRuntimeConfig, StorageRuntimeConfig}
+import edu.ie3.simona.config.RuntimeConfig.{
+  LoadRuntimeConfig,
+  PvRuntimeConfig,
+  StorageRuntimeConfig,
+}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{Create, PrimaryServiceRegistrationMessage}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{RegisterForWeatherMessage, WeatherData}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  Create,
+  PrimaryServiceRegistrationMessage,
+}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
+  RegisterForWeatherMessage,
+  WeatherData,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
@@ -33,7 +63,10 @@ import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
-import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.apache.pekko.actor.typed.ActorRef
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -45,7 +78,11 @@ import tech.units.indriya.ComparableQuantity
 import java.util.{Optional, UUID}
 import javax.measure.quantity.Power
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.{
+  MapHasAsJava,
+  MapHasAsScala,
+  SeqHasAsJava,
+}
 import scala.jdk.OptionConverters.RichOptional
 
 class ExtEmCommunicationIT
@@ -90,7 +127,8 @@ class ExtEmCommunicationIT
   "An ExtEmDataService in communication mode" should {
     val service = spawn(ExtEmDataService(scheduler.ref))
     val serviceRef = service.ref
-    given adapter: ActorRef[DataMessageFromExt] = spawn(ExtEmDataService.adapter(service))
+    given adapter: ActorRef[DataMessageFromExt] =
+      spawn(ExtEmDataService.adapter(service))
     connection.setActorRefs(adapter, extSimAdapter.ref)
 
     "with participant agents work correctly" in {
@@ -388,7 +426,11 @@ class ExtEmCommunicationIT
       connection.sendFlexRequests(
         tick,
         Map(
-          emSupUuid -> new FlexOptionRequest(emSupUuid, Optional.empty, Optional.empty)
+          emSupUuid -> new FlexOptionRequest(
+            emSupUuid,
+            Optional.empty,
+            Optional.empty,
+          )
         ).asJava,
         Optional.of(nextTick),
         log,
@@ -499,7 +541,9 @@ class ExtEmCommunicationIT
       // after we received all options we will send a message, to keep the current set point
       connection.sendSetPoints(
         tick,
-        Map(emSupUuid -> new EmSetPoint(emSupUuid, setPoints(emSupUuid))).asJava,
+        Map(
+          emSupUuid -> new EmSetPoint(emSupUuid, setPoints(emSupUuid))
+        ).asJava,
         Optional.of(nextTick),
         log,
       )

@@ -8,16 +8,35 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.model.{EmSetPoint, EmSetPointResult, ExtendedFlexOptionsResult, FlexOptions}
+import edu.ie3.simona.api.data.em.model.{
+  EmSetPoint,
+  EmSetPointResult,
+  ExtendedFlexOptionsResult,
+  FlexOptions,
+}
 import edu.ie3.simona.api.data.em.ontology.*
 import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexActivation, FlexRequest, IssuePowerControl, ProvideFlexOptions}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexActivation,
+  FlexRequest,
+  IssuePowerControl,
+  ProvideFlexOptions,
+}
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.EmMessage.{WrappedFlexRequest, WrappedFlexResponse}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{Create, RegisterForEmDataService}
+import edu.ie3.simona.ontology.messages.services.EmMessage.{
+  WrappedFlexRequest,
+  WrappedFlexResponse,
+}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  Create,
+  RegisterForEmDataService,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
@@ -26,7 +45,10 @@ import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.testkit.TestKit.awaitCond
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -560,7 +582,9 @@ class ExtEmDataServiceSpec
       extEmDataConnection.sendExtMsg(
         new ProvideEmSetPointData(
           0,
-          Map(emAgent2UUID -> new EmSetPoint(emAgent2UUID, 0.asKiloWatt)).asJava,
+          Map(
+            emAgent2UUID -> new EmSetPoint(emAgent2UUID, 0.asKiloWatt)
+          ).asJava,
           None.toJava,
         )
       )
