@@ -240,7 +240,7 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(3416)))
 
       /* TICK 3416
-      Storage is fully heated up
+      ThermalStorage is fully heated up
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.36 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on since it was on and the house has possible demand
@@ -505,7 +505,7 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(26887)))
 
       /* TICK 26887
-        Storage will be empty
+        Heat storage is empty
         House demand heating : requiredDemand = 0.0kWh, possibleDemand = 11.88 kWh
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
