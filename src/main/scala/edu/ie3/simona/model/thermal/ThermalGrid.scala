@@ -549,7 +549,7 @@ object ThermalGrid {
       input: edu.ie3.datamodel.models.input.container.ThermalGrid
   ): ThermalGrid = {
     val houses = input.houses().asScala.map(ThermalHouse(_)).toSet
-    val storages: Set[ThermalStorage] = input
+    val storages = input
       .heatStorages()
       .asScala
       .flatMap {
