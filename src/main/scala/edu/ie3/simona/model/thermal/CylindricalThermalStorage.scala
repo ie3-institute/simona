@@ -165,8 +165,7 @@ object CylindricalThermalStorage {
       input: CylindricalStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
   ): CylindricalThermalStorage = {
-
-    val maxEnergyThreshold: Energy =
+    val maxEnergyThreshold =
       CylindricalThermalStorage.volumeToEnergy(
         CubicMeters(
           input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue

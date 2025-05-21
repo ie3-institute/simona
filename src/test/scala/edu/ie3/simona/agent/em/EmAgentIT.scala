@@ -265,7 +265,6 @@ class EmAgentIT
          -> charge with 3.522 kW
          -> remaining 0 kW
          */
-
         emAgentActivation ! Activation(7200)
 
         pvAgent ! DataProvision(

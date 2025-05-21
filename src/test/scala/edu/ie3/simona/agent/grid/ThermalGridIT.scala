@@ -182,7 +182,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
       Heat pump: turned on - to serve the storage demand
        */
-
       heatPumpAgent ! Activation(0)
 
       weatherDependentAgents.foreach {
@@ -224,7 +223,6 @@ class ThermalGridIT
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -246,7 +244,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on since it was on and the house has possible demand
        */
-
       heatPumpAgent ! Activation(3416)
 
       Range(0, 3)
@@ -276,7 +273,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.68.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -287,7 +283,6 @@ class ThermalGridIT
                 time shouldBe 3416.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
-
             }
         }
       resultListener.expectNoMessage()
@@ -299,7 +294,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on, we got triggered by incoming weather data. So we continue with same behaviour as before
        */
-
       heatPumpAgent ! Activation(3600)
 
       weatherDependentAgents.foreach {
@@ -330,7 +324,6 @@ class ThermalGridIT
       // message for house or storage since there is no change of their operating
       // point nor one of it reached any boundary.
       resultListener.expectNoMessage()
-
       scheduler.expectMessage(Completion(heatPumpAgent, Some(4412)))
 
       /* TICK 4412
@@ -339,7 +332,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned off
        */
-
       heatPumpAgent ! Activation(4412)
 
       Range(0, 2)
@@ -369,7 +361,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
                 )
-
             }
         }
       resultListener.expectNoMessage()
@@ -382,7 +373,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays off
        */
-
       heatPumpAgent ! Activation(21600)
 
       weatherDependentAgents.foreach {
@@ -411,7 +401,6 @@ class ThermalGridIT
       // message for house or storage since there is no change of their operating
       // point nor one of it reached any boundary.
       resultListener.expectNoMessage()
-
       scheduler.expectMessage(Completion(heatPumpAgent, Some(23288)))
 
       /* TICK 23288
@@ -420,7 +409,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays off, demand should be covered by storage
        */
-
       heatPumpAgent ! Activation(23288)
 
       Range(0, 3)
@@ -450,7 +438,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.00.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -473,7 +460,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand =4.96 kWh
         Heat pump: stays off
        */
-
       heatPumpAgent ! Activation(25000)
 
       weatherDependentAgents.foreach {
@@ -502,7 +488,6 @@ class ThermalGridIT
       // message for house or storage since there is no change of their operating
       // point nor one of it reached any boundary.
       resultListener.expectNoMessage()
-
       scheduler.expectMessage(Completion(heatPumpAgent, Some(26887)))
 
       /* TICK 26887
@@ -511,7 +496,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
        */
-
       heatPumpAgent ! Activation(26887)
 
       Range(0, 3)
@@ -541,7 +525,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.415.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -563,7 +546,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays on
        */
-
       heatPumpAgent ! Activation(28000)
 
       weatherDependentAgents.foreach {
@@ -579,7 +561,6 @@ class ThermalGridIT
           Some(151200),
         )
       }
-
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
@@ -600,7 +581,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays on to recharge the storage now
        */
-
       heatPumpAgent ! Activation(32043)
 
       Range(0, 3)
@@ -630,7 +610,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -652,7 +631,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
         Heat pump: stays on
        */
-
       heatPumpAgent ! Activation(35459)
 
       Range(0, 3)
@@ -682,7 +660,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.81.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -704,7 +681,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
       Heat pump: turned off
        */
-
       heatPumpAgent ! Activation(35995)
 
       Range(0, 2)
@@ -886,7 +862,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays out - since requiredDemand of ThermalStorage not necessarily demand hp operation.
        */
-
       emAgentActivation ! Activation(0)
 
       weatherDependentAgents.foreach {
@@ -915,7 +890,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 0.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 0.toDateTime
@@ -934,7 +908,6 @@ class ThermalGridIT
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -957,7 +930,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: turns on - since now we have flexibility potential available which can be used by hp to serve the reqDemand of ThermalStorage
        */
-
       emAgentActivation ! Activation(1800)
 
       weatherDependentAgents.foreach {
@@ -1021,7 +993,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on since it was on and the house has possible demand
        */
-
       emAgentActivation ! Activation(5216)
 
       Range(0, 4)
@@ -1057,7 +1028,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.52.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1080,7 +1050,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turns off
        */
-
       emAgentActivation ! Activation(5400)
 
       weatherDependentAgents.foreach {
@@ -1109,7 +1078,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 5400.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 5400.toDateTime
@@ -1130,7 +1098,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.58.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1153,7 +1120,6 @@ class ThermalGridIT
      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
      Heat pump: stays off
        */
-
       emAgentActivation ! Activation(6824)
 
       Range(0, 4)
@@ -1168,7 +1134,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 6824.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 6824.toDateTime
@@ -1292,7 +1257,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 10551.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 10551.toDateTime
@@ -1313,7 +1277,6 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.65.asDegreeCelsius
                 )
-
               case CylindricalThermalStorageResult(
                     time,
                     inputModel,
@@ -1336,7 +1299,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned off
        */
-
       emAgentActivation ! Activation(11638)
 
       Range(0, 3)
@@ -1351,7 +1313,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 11638.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 11638.toDateTime
@@ -1385,7 +1346,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned on, since there is possibleDemand and setPower is 3800 W which is > 0.5 sRated of Hp
        */
-
       emAgentActivation ! Activation(12000)
 
       weatherDependentAgents.foreach {
@@ -1414,7 +1374,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 12000.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 12000.toDateTime
@@ -1447,7 +1406,6 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned off
        */
-
       emAgentActivation ! Activation(12139)
 
       Range(0, 3)
@@ -1462,7 +1420,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 12139.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 12139.toDateTime
@@ -1494,7 +1451,6 @@ class ThermalGridIT
        ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
        Heat pump: stays off
        */
-
       emAgentActivation ! Activation(12500)
 
       weatherDependentAgents.foreach {
@@ -1522,7 +1478,6 @@ class ThermalGridIT
               hpResult._1 shouldBe 12500.toDateTime
               hpResult._3 should equalWithTolerance(0.asMegaWatt)
               hpResult._4 should equalWithTolerance(0.asMegaVar)
-
             case EmResult(emResult) =>
               emResult._2 shouldBe emInput.getUuid
               emResult._1 shouldBe 12500.toDateTime
@@ -1544,7 +1499,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         Heat pump: stays off
        */
-
       emAgentActivation ! Activation(24413)
 
       Range(0, 4)
@@ -1559,7 +1513,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 24413.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 24413.toDateTime
@@ -1601,7 +1554,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
         Heat pump: will be turned on and will continue heating the house
        */
-
       emAgentActivation ! Activation(25200)
 
       weatherDependentAgents.foreach {
@@ -1630,7 +1582,6 @@ class ThermalGridIT
                 hpResult._1 shouldBe 25200.toDateTime
                 hpResult._3 should equalWithTolerance(pRunningHp)
                 hpResult._4 should equalWithTolerance(qRunningHp)
-
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 25200.toDateTime
@@ -1729,7 +1680,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
         Heat pump: stays on - to serve the remaining heat demand of the storage.
        */
-
       emAgentActivation ! Activation(30923)
 
       Range(0, 4)
@@ -1857,7 +1807,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 2.05 kWh
         Heat pump: stays off - demand will be covered by storage.
        */
-
       emAgentActivation ! Activation(40964)
 
       Range(0, 4)
@@ -1924,7 +1873,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays off
        */
-
       emAgentActivation ! Activation(43858)
 
       Range(0, 4)
@@ -1987,7 +1935,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: turned on to heat the house
        */
-
       emAgentActivation ! Activation(46635)
 
       Range(0, 3)
@@ -2036,7 +1983,6 @@ class ThermalGridIT
         ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: turned off - no surplus energy to recharge the storage now
        */
-
       emAgentActivation ! Activation(56278)
 
       Range(0, 3)
