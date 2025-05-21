@@ -147,7 +147,7 @@ class ThermalGridWithHouseAndStorageSpec
     }
 
     "determining the energy demand" should {
-      "deliver the house demand (no demand) with added flexibility by storage" in {
+      "deliver the heat demand of the house (no demand) with added flexibility by storage" in {
         val tick = 10800L // after three hours
 
         val updatedThermalGridState =
