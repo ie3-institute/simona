@@ -174,6 +174,7 @@ class ThermalGridIT
       val weatherDependentAgents = Seq(hpAgent)
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(0)))
+      resultListener.expectNoMessage()
 
       /* TICK 0
       Start of Simulation
@@ -234,7 +235,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(3416)))
 
       /* TICK 3416
@@ -284,7 +285,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(3600)))
 
       /* TICK 3600
@@ -362,7 +363,7 @@ class ThermalGridIT
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(21600)))
 
       /* TICK 21600
@@ -449,7 +450,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(25000)))
 
       /* TICK 25000
@@ -536,7 +537,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(28000)))
 
       /* TICK 28000
@@ -572,7 +573,6 @@ class ThermalGridIT
       // message for house or storage since there is no change of their operating
       // point nor one of it reached any boundary.
       resultListener.expectNoMessage()
-
       scheduler.expectMessage(Completion(heatPumpAgent, Some(32043)))
 
       /* TICK 32043
@@ -624,7 +624,7 @@ class ThermalGridIT
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(35459)))
 
       /* TICK 35459
@@ -676,7 +676,7 @@ class ThermalGridIT
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(35995)))
 
       /* TICK 35995
@@ -714,7 +714,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(74629)))
     }
   }
@@ -854,7 +854,7 @@ class ThermalGridIT
         weatherService.ref,
         0L,
       )
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
       val weatherDependentAgents = Seq(hpAgent.toClassic, pvAgent.toClassic)
@@ -924,7 +924,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(1800)))
 
       /* TICK 1800
@@ -987,7 +987,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(5216)))
 
       /* TICK 5216
@@ -1048,7 +1048,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(5400)))
 
       /* TICK 5400
@@ -1118,7 +1118,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(6824)))
 
       /* TICK 6824
@@ -1174,7 +1174,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.0063104.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(9200)))
 
       /* TICK 9200
@@ -1240,7 +1240,7 @@ class ThermalGridIT
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(10551)))
 
       /* TICK 10551
@@ -1301,7 +1301,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(11638)))
 
       /* TICK 11638
@@ -1351,7 +1351,7 @@ class ThermalGridIT
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(12000)))
 
       /* TICK 12000
@@ -1416,7 +1416,7 @@ class ThermalGridIT
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(12139)))
 
       /* TICK 12139
@@ -1464,7 +1464,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(12500)))
 
       /* TICK 12500
@@ -1513,7 +1513,7 @@ class ThermalGridIT
               )
           }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(24413)))
 
       /* TICK 24413
@@ -1572,7 +1572,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(25200)))
 
       /* TICK 25200
@@ -1649,7 +1649,7 @@ class ThermalGridIT
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(27500)))
 
       /* TICK 27500
@@ -1698,7 +1698,7 @@ class ThermalGridIT
               )
           }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(30923)))
 
       /* TICK 30923
@@ -1760,7 +1760,7 @@ class ThermalGridIT
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(31000)))
 
       /* TICK 31000
@@ -1825,7 +1825,7 @@ class ThermalGridIT
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(40964)))
 
       /* TICK 40964
@@ -1887,7 +1887,7 @@ class ThermalGridIT
                 )
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(43858)))
 
       /* TICK 43858
@@ -1953,7 +1953,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.0.asMegaWattHour)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(46635)))
 
       /* TICK 46635
@@ -2001,7 +2001,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(56278)))
 
       /* TICK 56278
@@ -2050,7 +2050,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
             }
         }
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(66279)))
     }
   }
