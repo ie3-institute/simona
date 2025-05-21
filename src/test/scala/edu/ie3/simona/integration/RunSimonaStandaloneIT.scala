@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.simona.config.{ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent._
+import edu.ie3.simona.event.RuntimeEvent.*
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.main.RunSimonaStandalone
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
@@ -23,7 +23,7 @@ import edu.ie3.util.io.FileIOUtils
 import org.scalatest.BeforeAndAfterAll
 
 import scala.io.{BufferedSource, Source}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class RunSimonaStandaloneIT
     extends IntegrationSpecCommon
@@ -125,7 +125,7 @@ class RunSimonaStandaloneIT
 
   private def getFileSource(
       resultFileHierarchy: ResultFileHierarchy,
-      entityClass: Class[_ <: ResultEntity],
+      entityClass: Class[? <: ResultEntity],
   ): BufferedSource = {
     Source.fromFile(
       resultFileHierarchy.rawOutputDataFilePaths

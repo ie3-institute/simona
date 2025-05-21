@@ -161,7 +161,7 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
       case None =>
         /* The load profile itself is not known yet. Try to figure out, which load profile is relevant */
 
-        if (serviceStateData.loadProfileStore.contains(loadProfile)) {
+        if serviceStateData.loadProfileStore.contains(loadProfile) then {
           // we can provide data for the agent
           agentToBeRegistered ! RegistrationSuccessfulMessage(
             ctx.self,
@@ -221,7 +221,7 @@ object LoadProfileService extends SimonaService[LoadProfileMessage] {
     val updatedStateData: LoadProfileInitializedStateData =
       serviceStateData.copy(nextActivationTick = nextTick)
 
-    val time = tick.toDateTime(serviceStateData.simulationStartTime)
+    val time = tick.toDateTime(using serviceStateData.simulationStartTime)
     val loadProfileStore = serviceStateData.loadProfileStore
 
     serviceStateData.profileToRefs.foreach { case (loadProfile, actorRefs) =>

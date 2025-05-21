@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
 }
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology._
+import edu.ie3.simona.api.data.ev.ontology.*
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{
@@ -23,7 +23,7 @@ import edu.ie3.simona.exceptions.{
 }
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.EvMessage
-import edu.ie3.simona.ontology.messages.services.EvMessage._
+import edu.ie3.simona.ontology.messages.services.EvMessage.*
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   RegisterForEvDataMessage,
   ServiceRegistrationMessage,
@@ -41,8 +41,8 @@ import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success, Try}
 
 object ExtEvDataService
@@ -186,7 +186,7 @@ object ExtEvDataService
             tick,
             asScala(arrivingEvsProvision.arrivals),
             arrivingEvsProvision.maybeNextTick.toScala.map(Long2long),
-          )(
+          )(using
             serviceStateData,
             ctx,
           )
@@ -231,7 +231,7 @@ object ExtEvDataService
       }.toSet
 
     // if there are no evcs, we're sending response right away
-    if (freeLots.isEmpty)
+    if freeLots.isEmpty then
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideEvcsFreeLots())
 
     (
@@ -272,7 +272,7 @@ object ExtEvDataService
 
     // if there are no departing evs during this tick,
     // we're sending response right away
-    if (departingEvResponses.isEmpty)
+    if departingEvResponses.isEmpty then
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideDepartingEvs())
 
     (
@@ -293,7 +293,7 @@ object ExtEvDataService
       ctx: ActorContext[EvMessage],
   ): (ExtEvStateData, Option[Long]) = {
 
-    if (tick == INIT_SIM_TICK) {
+    if tick == INIT_SIM_TICK then {
       // During initialization, an empty ProvideArrivingEvs message
       // is sent, which includes the first relevant tick
 
@@ -351,7 +351,7 @@ object ExtEvDataService
         val updatedResponses =
           serviceStateData.departingEvResponses.addData(evcs, evModels)
 
-        if (updatedResponses.nonComplete) {
+        if updatedResponses.nonComplete then {
           // responses are still incomplete
           serviceStateData.copy(
             departingEvResponses = updatedResponses
@@ -372,7 +372,7 @@ object ExtEvDataService
       case FreeLotsResponse(evcs, freeLots) =>
         val updatedFreeLots = serviceStateData.freeLots.addData(evcs, freeLots)
 
-        if (updatedFreeLots.nonComplete) {
+        if updatedFreeLots.nonComplete then {
           // responses are still incomplete
           serviceStateData.copy(
             freeLots = updatedFreeLots

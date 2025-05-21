@@ -8,7 +8,7 @@ package edu.ie3.simona.actor
 
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import org.apache.pekko.actor.{ActorRefFactory, Props, ActorRef => ClassicRef}
+import org.apache.pekko.actor.{ActorRefFactory, Props, ActorRef as ClassicRef}
 
 import scala.util.Random
 
@@ -50,7 +50,7 @@ object SimonaActorNaming {
     * @return
     *   the actor name based on simona conventions as string
     */
-  def actorName(clz: Class[_], actorId: String): String =
+  def actorName(clz: Class[?], actorId: String): String =
     actorName(typeName(clz), actorId)
 
   /** Constructs an actor name based on the simona convention for actor names.
@@ -84,7 +84,7 @@ object SimonaActorNaming {
     * @return
     *   the actor name extract from the ActorRef
     */
-  def actorName(actorRef: ActorRef[_]): String = actorName(actorRef.toClassic)
+  def actorName(actorRef: ActorRef[?]): String = actorName(actorRef.toClassic)
 
   /** Constructs the type name from given props.
     *
@@ -94,7 +94,7 @@ object SimonaActorNaming {
   def typeName(props: Props): String = {
     props.args.headOption
       .flatMap {
-        case clz: Class[_] => Some(clz)
+        case clz: Class[?] => Some(clz)
         case _             => None
       }
       .map(clz => typeName(clz))
@@ -110,7 +110,7 @@ object SimonaActorNaming {
     * @return
     *   the type name
     */
-  def typeName(clz: Class[_]): String =
+  def typeName(clz: Class[?]): String =
     clz.getSimpleName.replace("$", "")
 
   /** Pekko prevents the usage of specific special characters as names. This

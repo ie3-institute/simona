@@ -42,7 +42,7 @@ class RuntimeEventListenerSpec
         Error(errMsg),
       )
 
-      for (event <- eventsToQueue) {
+      for event <- eventsToQueue do {
         listenerRef ! event
         val actualEvent = eventQueue.poll(10, TimeUnit.SECONDS)
         actualEvent match {

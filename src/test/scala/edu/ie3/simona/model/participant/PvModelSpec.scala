@@ -12,12 +12,12 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
 import tech.units.indriya.quantity.Quantities.getQuantity
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.util.UUID
 

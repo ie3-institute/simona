@@ -33,7 +33,7 @@ object ProportionalFlexStrat extends EmModelStrat {
     */
   override def determineFlexControl(
       modelFlexOptions: Iterable[
-        (_ <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, MinMaxFlexOptions)
       ],
       target: Power,
   ): Iterable[(UUID, Power)] = {
@@ -49,9 +49,9 @@ object ProportionalFlexStrat extends EmModelStrat {
       flexOptions
     }.flexSum
 
-    if (target.~=(totalOptions.ref)(tolerance)) {
+    if target.~=(totalOptions.ref)(using tolerance) then {
       Seq.empty
-    } else if (target < totalOptions.ref) {
+    } else if target < totalOptions.ref then {
       val reducedOptions = flexOptions.map {
         case (uuid, MinMaxFlexOptions(refPower, minPower, _)) =>
           (uuid, refPower, minPower)
@@ -100,13 +100,12 @@ object ProportionalFlexStrat extends EmModelStrat {
   ): Iterable[(UUID, Power)] = {
     // filter out options with ref == limit because they're useless here
     val filteredOptions = options.filterNot { case (_, refPower, limitPower) =>
-      refPower.~=(limitPower)(tolerance)
+      refPower.~=(limitPower)(using tolerance)
     }
 
-    if (
-      (target < totalRef && target <= totalLimit) ||
+    if (target < totalRef && target <= totalLimit) ||
       (target > totalRef && target >= totalLimit)
-    ) {
+    then {
       // target is beyond limit, thus use limit powers for all applicable devices
       filteredOptions.map { case (uuid, _, limitPower) =>
         uuid -> limitPower

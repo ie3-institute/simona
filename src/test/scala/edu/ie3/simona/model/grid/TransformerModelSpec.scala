@@ -24,7 +24,7 @@ import edu.ie3.simona.test.common.model.grid.{
   TransformerTestGrid,
 }
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
   Kilovoltamperes,
@@ -73,10 +73,8 @@ class TransformerModelSpec
           inputModel.getType.getTapMin,
           inputModel.getType.getTapNeutr,
           inputModel.isAutoTap, {
-            if (inputModel.getType.isTapSide)
-              ConnectorPort.B
-            else
-              ConnectorPort.A
+            if inputModel.getType.isTapSide then ConnectorPort.B
+            else ConnectorPort.A
           },
         )
 
@@ -368,7 +366,7 @@ class TransformerModelSpec
         ) =>
           {
             logger.debug(
-              if (tapSide == ConnectorPort.A)
+              if tapSide == ConnectorPort.A then
                 s"Test grid with transformer tap changer hat HV side at tapPos $tapPos and active power of $p p.u."
               else
                 s"Test grid with transformer tap changer hat LV side at tapPos $tapPos and active power of $p p.u."
@@ -423,7 +421,7 @@ class TransformerModelSpec
                 abs(v.imag - f) < testingTolerancePf shouldBe true
               case _: PowerFlowResult.FailedPowerFlowResult =>
                 fail(
-                  if (tapSide == ConnectorPort.A)
+                  if tapSide == ConnectorPort.A then
                     s"Unable to calculate the power flow on transformer tap position $tapPos (tap changer on HV side) and active power of $p p.u."
                   else
                     s"Unable to calculate the power flow on transformer tap position $tapPos (tap changer on LV side) and active power of $p p.u."

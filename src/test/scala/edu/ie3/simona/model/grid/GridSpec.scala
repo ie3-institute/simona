@@ -37,17 +37,16 @@ class GridSpec
   private val _printAdmittanceMatrixOnMismatch
       : (DenseMatrix[Complex], DenseMatrix[Complex]) => Unit = {
     (actualMatrix, expectedMatrix) =>
-      if (!actualMatrix.equals(expectedMatrix)) {
-        for (
+      if !actualMatrix.equals(expectedMatrix) then {
+        for
           rowIdx <- 0 until expectedMatrix.rows;
           colIdx <- 0 until expectedMatrix.rows
-        ) {
-          if (
-            abs(
+        do {
+          if abs(
               actualMatrix.valueAt(rowIdx, colIdx) - expectedMatrix
                 .valueAt(rowIdx, colIdx)
             ) > 1e-12
-          )
+          then
             logger.debug(
               s"Mismatch in ($rowIdx, $colIdx): Actual = ${actualMatrix
                   .valueAt(rowIdx, colIdx)}, expected = ${expectedMatrix.valueAt(rowIdx, colIdx)}"

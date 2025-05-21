@@ -8,14 +8,14 @@ package edu.ie3.simona.test.common.model.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.input.connector._
+import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer2WTypeInput
 import edu.ie3.datamodel.models.input.container.{
   RawGridElements,
   SystemParticipants,
 }
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.system._
+import edu.ie3.datamodel.models.input.system.*
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
@@ -24,15 +24,15 @@ import edu.ie3.datamodel.models.input.{
 import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.util.TestGridFactory
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.util.UUID
 import javax.measure.quantity.{Energy, Power}
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Provides the high voltage level of SIMONA's test grid. Only consists of
   * lines, nodes and transformers.

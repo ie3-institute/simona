@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant.load
 
-import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.*
 import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
@@ -20,11 +20,7 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyToSimona,
   PowerConversionSimona,
 }
-import edu.ie3.util.scala.quantities.{
-  ApparentPower,
-  Kilovoltamperes,
-  Voltamperes,
-}
+import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
 import squants.Percent
 import squants.energy.{KilowattHours, Power, Watts}
 import tech.units.indriya.quantity.Quantities

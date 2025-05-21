@@ -12,12 +12,12 @@ import edu.ie3.simona.model.grid.{
   TransformerTappingModel,
 }
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.{ApparentPower, Megavoltamperes}
 import squants.{Amperes, Each}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.util.UUID
 import javax.measure.quantity.ElectricPotential

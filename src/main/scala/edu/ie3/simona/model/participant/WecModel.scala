@@ -42,12 +42,12 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   AreaToSimona,
   PowerConversionSimona,
 }
-import squants._
+import squants.*
 import squants.energy.Watts
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
 import squants.thermal.{Celsius, JoulesPerKelvin}
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -117,7 +117,7 @@ class WecModel private (
         cubedVelocity * 0.5 * betzCoefficient.toEach * airDensity * rotorArea.toSquareMeters
       )
     ).map { power =>
-      if (power > pRated) {
+      if power > pRated then {
         logger.warn(
           "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
             "Did you provide wrong weather input data?",
@@ -125,8 +125,7 @@ class WecModel private (
           pRated,
         )
         pRated
-      } else
-        power
+      } else power
     }.map(_ * -1)
       .get
 
@@ -197,7 +196,7 @@ class WecModel private (
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new WecResult(
@@ -246,7 +245,7 @@ object WecModel {
 
   object WecCharacteristic {
 
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
 
     /** Transform the inputs points from [[java.util.SortedSet]] to
       * [[scala.collection.SortedSet]], which is fed into [[WecCharacteristic]].

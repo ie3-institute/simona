@@ -61,7 +61,7 @@ object ExtSimSetup {
       extLinks: List[ExtLinkInterface],
       args: Array[String],
   )(implicit
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       resolution: FiniteDuration,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
@@ -128,7 +128,7 @@ object ExtSimSetup {
       extSimulation: ExtSimulation,
       extSimSetupData: ExtSimSetupData,
   )(implicit
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
       resolution: FiniteDuration,
@@ -147,7 +147,7 @@ object ExtSimSetup {
       case (setupData, connection) =>
         connection match {
           case extEvDataConnection: ExtEvDataConnection =>
-            if (setupData.evDataConnection.nonEmpty) {
+            if setupData.evDataConnection.nonEmpty then {
               throw ServiceException(
                 s"Trying to connect another EvDataConnection. Currently only one is allowed."
               )
@@ -208,7 +208,7 @@ object ExtSimSetup {
       name: String,
       initData: T => InitializeServiceStateData,
   )(implicit
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapter: ActorRef[ControlResponseMessageFromExt],
   ): ActorRef[M] = {
@@ -253,7 +253,7 @@ object ExtSimSetup {
         .groupBy(identity)
         .collect { case (uuid, values) if values.size > 1 => uuid }
 
-    if (duplicateAssets.nonEmpty) {
+    if duplicateAssets.nonEmpty then {
       throw ServiceException(
         s"Multiple data connections provide primary data for assets: ${duplicateAssets.mkString(",")}"
       )

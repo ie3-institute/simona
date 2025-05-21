@@ -6,9 +6,8 @@
 
 package edu.ie3.util.scala.quantities
 
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.{
-  Currency,
   EnergyPrice,
   SpecificConductance,
   SpecificResistance,
@@ -16,13 +15,12 @@ import edu.ie3.util.quantities.interfaces.{
 import edu.ie3.util.scala.quantities
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.market.{EUR, Money}
 import squants.space.SquareMeters
 import squants.{Amperes, Each, Radians}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
-import javax.measure.quantity._
+import javax.measure.quantity.*
 
 /** Some utilities to improve the conversion between [[ComparableQuantity]] and
   * [[squants]].

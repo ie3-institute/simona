@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.ParticipantGridAdapter._
+import edu.ie3.simona.agent.participant.ParticipantGridAdapter.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroMVAr, zeroMW}
@@ -107,7 +107,7 @@ final case class ParticipantGridAdapter(
       ],
       log: Logger,
   ): ParticipantGridAdapter = {
-    if (currentTick != expectedRequestTick)
+    if currentTick != expectedRequestTick then
       throw new CriticalFailureException(
         s"Power request expected for $expectedRequestTick, but not for current tick $currentTick"
       )
@@ -116,7 +116,7 @@ final case class ParticipantGridAdapter(
       case Some(cache @ AvgPowerResult(windowStart, windowEnd, voltage, _, _))
           if windowEnd == currentTick =>
         // Results have been calculated for the same tick...
-        if (voltage =~ newVoltage) {
+        if voltage =~ newVoltage then {
           // ... and same voltage, return cached result
           Left(cache)
         } else {
@@ -205,7 +205,7 @@ object ParticipantGridAdapter {
       expectedRequestTick = expectedRequestTick,
       tickToPower = SortedMap.empty,
       avgPowerResult = None,
-    )(
+    )(using
       requestVoltageDeviationTolerance = requestVoltageDeviationTolerance
     )
 

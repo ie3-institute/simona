@@ -13,7 +13,7 @@ import edu.ie3.simona.api.simulation.ontology.{
   ActivationMessage,
   TerminationCompleted,
   TerminationMessage,
-  CompletionMessage => ExtCompletionMessage,
+  CompletionMessage as ExtCompletionMessage,
 }
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
@@ -28,7 +28,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 
-import scala.jdk.OptionConverters._
+import scala.jdk.OptionConverters.*
 
 object ExtSimAdapter {
 
@@ -63,7 +63,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       INIT_SIM_TICK,
       Some(unlockKey),
     )
-    context become receiveIdle(
+    context become receiveIdle(using
       ExtSimAdapterStateData(extSimAdapterData)
     )
   }
@@ -80,7 +80,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
         tick,
       )
 
-      context become receiveIdle(
+      context become receiveIdle(using
         stateData.copy(currentTick = Some(tick))
       )
 
@@ -96,7 +96,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
         stateData.currentTick,
       )
 
-      context become receiveIdle(stateData.copy(currentTick = None))
+      context become receiveIdle(using stateData.copy(currentTick = None))
 
     case scheduleDataService: ScheduleDataServiceMessage =>
       val tick = stateData.currentTick.getOrElse(

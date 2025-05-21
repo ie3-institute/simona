@@ -47,7 +47,7 @@ final case class SwitchModel(
   /** closes the switch or throws an exception if the switch is already closed
     */
   def close(): Try[String] = {
-    if (_isClosed) {
+    if _isClosed then {
       Failure(
         new InvalidActionRequestException(s"Switch $id is already closed!")
       )
@@ -60,7 +60,7 @@ final case class SwitchModel(
   /** opens the switch or throws an exception if the switch is already opened
     */
   def open(): Try[String] = {
-    if (_isClosed) {
+    if _isClosed then {
       _isClosed = false
       Success(s"Switch $id opened!")
     } else {
@@ -106,11 +106,10 @@ case object SwitchModel {
       switchInput.getNodeA.getUuid,
       switchInput.getNodeB.getUuid,
     )
-    if (!switchInput.isClosed)
-      switchModel.open()
+    if !switchInput.isClosed then switchModel.open()
 
     // if the switch input model is in operation, enable the model
-    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
+    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
       switchModel.enable()
 
     switchModel
@@ -128,16 +127,15 @@ case object SwitchModel {
   def validateInputModel(switchInput: SwitchInput): Unit = {
 
     // nodeA == nodeB ?
-    if (switchInput.getNodeA.getUuid == switchInput.getNodeB.getUuid)
+    if switchInput.getNodeA.getUuid == switchInput.getNodeB.getUuid then
       throw new InvalidGridException(
         s"Switch ${switchInput.getUuid} has the same nodes on port A and B! " +
           s"NodeA: ${switchInput.getNodeA.getUuid}, NodeB: ${switchInput.getNodeB.getUuid}"
       )
 
     // nodeA.vRated != nodeB.vRated ?
-    if (
-      switchInput.getNodeA.getVoltLvl.getNominalVoltage != switchInput.getNodeB.getVoltLvl.getNominalVoltage
-    )
+    if switchInput.getNodeA.getVoltLvl.getNominalVoltage != switchInput.getNodeB.getVoltLvl.getNominalVoltage
+    then
       throw new InvalidGridException(
         s"Nodes of switch ${switchInput.getUuid} have different volt levels! " +
           s"vNom: (nodeA: ${switchInput.getNodeA.getVoltLvl.getNominalVoltage}, NodeB: ${switchInput.getNodeB.getVoltLvl.getNominalVoltage})"

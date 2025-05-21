@@ -8,10 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.system.{
-  FlexOptionsResult,
-  SystemParticipantResult,
-}
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -32,7 +29,7 @@ import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
@@ -79,8 +76,7 @@ final case class ParticipantModelShell[
     OP <: OperatingPoint,
     S <: ModelState,
 ](
-    private val model: ParticipantModel[OP, S]
-      with ParticipantFlexibility[OP, S],
+    private val model: ParticipantModel[OP, S] & ParticipantFlexibility[OP, S],
     private val operationInterval: OperationInterval,
     private val simulationStart: ZonedDateTime,
     private val state: S,
@@ -178,7 +174,7 @@ final case class ParticipantModelShell[
       val (modelOp, modelNextTick) =
         model.determineOperatingPoint(currentState)
       // Sanity check
-      if (modelNextTick.exists(_ <= tick))
+      if modelNextTick.exists(_ <= tick) then
         throw new CriticalFailureException(
           s"Next tick ($modelNextTick) is same as or earlier than the current tick ($tick)."
         )
@@ -216,7 +212,7 @@ final case class ParticipantModelShell[
       }
 
     new FlexOptionsResult(
-      tick.toDateTime(simulationStart),
+      tick.toDateTime(using simulationStart),
       uuid,
       minMaxFlexOptions.ref.toMegawatts.asMegaWatt,
       minMaxFlexOptions.min.toMegawatts.asMegaWatt,
@@ -249,7 +245,7 @@ final case class ParticipantModelShell[
       lastOperatingPoint,
       operatingPoint,
       complexPower,
-      tick.toDateTime(simulationStart),
+      tick.toDateTime(using simulationStart),
     )
 
     ResultsContainer(
@@ -269,7 +265,7 @@ final case class ParticipantModelShell[
     val currentState = determineCurrentState(tick)
 
     val flexOptions =
-      if (operationInterval.includes(tick)) {
+      if operationInterval.includes(tick) then {
         model.determineFlexOptions(currentState)
       } else {
         // Out of operation, there's no way to operate besides 0 kW
@@ -321,7 +317,7 @@ final case class ParticipantModelShell[
       determineOperatingPoint(modelOperatingPoint, currentTick)
 
     // Sanity check
-    if (newChangeIndicator.changesAtTick.exists(_ <= currentTick))
+    if newChangeIndicator.changesAtTick.exists(_ <= currentTick) then
       throw new CriticalFailureException(
         s"Next tick (${newChangeIndicator.changesAtTick}) is same as or earlier than the current tick ($currentTick)."
       )
@@ -349,7 +345,7 @@ final case class ParticipantModelShell[
       modelOperatingPoint: () => (OP, OperationChangeIndicator),
       currentTick: Long,
   ): (OP, OperationChangeIndicator) = {
-    if (operationInterval.includes(currentTick)) {
+    if operationInterval.includes(currentTick) then {
       modelOperatingPoint()
     } else {
       // Current tick is outside of operation interval.
@@ -372,7 +368,7 @@ final case class ParticipantModelShell[
       currentTick: Long,
       nextDataTick: Option[Long],
   ): OperationChangeIndicator = {
-    if (operationInterval.includes(currentTick)) {
+    if operationInterval.includes(currentTick) then {
       // The next activation tick should be the earliest of
       // the next tick request by the model, the next data tick and
       // the end of the operation interval
@@ -427,21 +423,21 @@ final case class ParticipantModelShell[
   private def determineCurrentState(tick: Long): S = {
     // new state is only calculated if there's an old state and an operating point
     val newState =
-      if (state.tick < tick) {
+      if state.tick < tick then {
         // If the state is old, an operating point needs
         // to be present to determine the curren state
         model.determineState(
           state,
           operatingPoint,
           tick,
-          tick.toDateTime(simulationStart),
+          tick.toDateTime(using simulationStart),
         )
       } else {
         // The state is up-to-date, no need to update
         state
       }
 
-    if (newState.tick != tick)
+    if newState.tick != tick then
       throw new CriticalFailureException(
         s"The current state $newState is not set to current tick $tick"
       )
@@ -484,7 +480,7 @@ object ParticipantModelShell {
       operationTime: OperationTime,
       simulationStart: ZonedDateTime,
       simulationEnd: ZonedDateTime,
-  ): ParticipantModelShell[_ <: OperatingPoint, S] = {
+  ): ParticipantModelShell[? <: OperatingPoint, S] = {
 
     val model = modelFactory.create()
 
