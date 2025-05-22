@@ -25,13 +25,17 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  SecondaryServiceRegistrationMessage,
+  ServiceMessages,
+}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -84,7 +88,7 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
 
         val gridAgent = createTestProbe[GridAgent.Request]()
-        val primaryService = createTestProbe[Any]()
+        val primaryService = createTestProbe[ServiceMessages]()
         val resultListener = createTestProbe[ResultEvent]()
 
         val refs = ParticipantRefs(
@@ -393,10 +397,12 @@ class ParticipantAgentInitSpec
         participantAgent ! RegistrationFailedMessage(primaryService.ref)
 
         service.expectMessage(
-          RegisterForWeatherMessage(
+          SecondaryServiceRegistrationMessage(
             participantAgent,
-            mockInput.electricalInputModel.getNode.getGeoPosition.getY,
-            mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+            Coordinate(
+              mockInput.electricalInputModel.getNode.getGeoPosition.getY,
+              mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+            ),
           )
         )
 
@@ -531,10 +537,12 @@ class ParticipantAgentInitSpec
         participantAgent ! RegistrationFailedMessage(primaryService.ref)
 
         service.expectMessage(
-          RegisterForWeatherMessage(
+          SecondaryServiceRegistrationMessage(
             participantAgent,
-            mockInput.electricalInputModel.getNode.getGeoPosition.getY,
-            mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+            Coordinate(
+              mockInput.electricalInputModel.getNode.getGeoPosition.getY,
+              mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+            ),
           )
         )
 

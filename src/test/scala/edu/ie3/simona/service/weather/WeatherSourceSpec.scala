@@ -8,7 +8,7 @@ package edu.ie3.simona.service.weather
 
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.services.WeatherMessage
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates,
@@ -311,7 +311,7 @@ case object WeatherSourceSpec {
     override def getWeather(
         tick: Long,
         weightedCoordinates: WeightedCoordinates,
-    ): WeatherMessage.WeatherData =
+    ): WeatherData =
       throw new UnsupportedOperationException(
         "This is not supported by the dummy source."
       )

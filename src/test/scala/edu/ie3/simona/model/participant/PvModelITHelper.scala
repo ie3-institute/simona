@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.config.RuntimeConfig.PvRuntimeConfig
-import edu.ie3.simona.ontology.messages.services.WeatherMessage
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
@@ -47,18 +47,17 @@ trait PvModelITHelper extends PvInputTestData {
     }.toMap
   }
 
-  def getWeatherData
-      : Map[ZonedDateTime, Map[String, WeatherMessage.WeatherData]] = {
+  def getWeatherData: Map[ZonedDateTime, Map[String, WeatherData]] = {
     val fileName = "_pv/it/weather.tar.gz"
     val csvRecords: Iterable[CSVRecord] = getCsvRecords(fileName)
 
     csvRecords.foldLeft(
-      Map.empty[ZonedDateTime, Map[String, WeatherMessage.WeatherData]]
+      Map.empty[ZonedDateTime, Map[String, WeatherData]]
     ) { (weatherDataMap, row) =>
       val time = TimeUtil.withDefaults.toZonedDateTime(row.get(0))
       val modelId = row.get(1)
 
-      val weather = WeatherMessage.WeatherData(
+      val weather = WeatherData(
         WattsPerSquareMeter(row.get(22).replace("Wh/m²", "").toDouble),
         WattsPerSquareMeter(row.get(21).replace("Wh/m²", "").toDouble),
         Kelvin(0.0),
@@ -67,7 +66,7 @@ trait PvModelITHelper extends PvInputTestData {
 
       val modelToWeatherMap = weatherDataMap.getOrElse(
         time,
-        Map.empty[String, WeatherMessage.WeatherData],
+        Map.empty[String, WeatherData],
       )
       weatherDataMap.updated(time, modelToWeatherMap.updated(modelId, weather))
     }

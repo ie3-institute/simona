@@ -13,20 +13,17 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
-  ServiceMessage,
-  WeatherMessage,
-}
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceMessages
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
@@ -57,12 +54,13 @@ class DBFSAlgorithmCenGridSpec
     with TestSpawnerTyped {
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
-  private val runtimeEvents: TestProbe[RuntimeEvent] =
-    TestProbe("runtimeEvents")
-  private val primaryService = TestProbe[ServiceMessage]("primaryService")
-  private val weatherService = TestProbe[WeatherMessage]("weatherService")
+  private val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
+    "runtimeEvents"
+  )
+  private val primaryService = TestProbe[ServiceMessages]("primaryService")
+  private val weatherService = TestProbe[ServiceMessages]("weatherService")
   private val loadProfileService =
-    TestProbe[LoadProfileMessage]("loadProfileService")
+    TestProbe[ServiceMessages]("loadProfileService")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),

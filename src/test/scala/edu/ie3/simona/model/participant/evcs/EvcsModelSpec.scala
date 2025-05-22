@@ -9,21 +9,29 @@ package edu.ie3.simona.model.participant.evcs
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
+import edu.ie3.simona.agent.participant.ParticipantAgentRequest.{
+  DepartingEvsRequest,
+  EvFreeLotsRequest,
+}
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.ParticipantModel.OperationChangeIndicator
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsOperatingPoint,
   EvcsState,
 }
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  DepartingEvsResponse,
+  FreeLotsResponse,
+  ServiceResponseMessage,
+}
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.EvMessage
-import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.Data.SecondaryData.ArrivingEvs
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.Kilovars
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.Behavior
@@ -728,7 +736,7 @@ class EvcsModelSpec
       }
 
       "no EVs are parked" in {
-        val service = createTestProbe[EvMessage]()
+        val service = createTestProbe[ServiceResponseMessage]()
         val currentTick = 0L
 
         val startingState = EvcsState(Seq.empty, currentTick)
@@ -739,7 +747,7 @@ class EvcsModelSpec
       }
 
       "one EV is parked, departing later" in {
-        val service = createTestProbe[EvMessage]()
+        val service = createTestProbe[ServiceResponseMessage]()
         val currentTick = 0L
 
         val startingState = EvcsState(Seq(evModel), currentTick)
@@ -764,7 +772,7 @@ class EvcsModelSpec
       }
 
       "one EV is parked, departing now" in {
-        val service = createTestProbe[EvMessage]()
+        val service = createTestProbe[ServiceResponseMessage]()
         // ev is supposed to be departing at this tick
         val currentTick = 10800L
 

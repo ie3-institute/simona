@@ -20,14 +20,12 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  Create,
-  WorkerRegistrationMessage,
-  WrappedActivation,
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
 }
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
@@ -37,6 +35,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   PrimaryServiceInitializedStateData,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.matchers.SquantsMatchers
@@ -71,9 +70,6 @@ class PrimaryServiceWorkerSpec
     with TimeSeriesTestData
     with TestSpawnerTyped {
 
-  implicit def wrap(msg: Activation): ServiceMessage =
-    WrappedActivation(msg)
-
   // this works both on Windows and Unix systems
   val baseDirectoryPath: Path = Paths
     .get(
@@ -97,15 +93,15 @@ class PrimaryServiceWorkerSpec
       timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
     )
 
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private given powerTolerance: squants.Power = Watts(0.1)
 
   "A primary service actor" should {
     val scheduler = TestProbe[SchedulerMessage]("scheduler")
     val systemParticipant = TestProbe[Any]("dummySystemParticipant")
 
-    implicit val serviceRef: ActorRef[ServiceMessage] =
+    given serviceRef: ActorRef[ServiceMessages] =
       spawn(PrimaryServiceWorker(scheduler.ref))
-    implicit val log: Logger =
+    given log: Logger =
       LoggerFactory.getLogger(classOf[PrimaryServiceWorkerSpec])
 
     "refuse instantiation on wrong init data" in {
@@ -226,10 +222,9 @@ class PrimaryServiceWorkerSpec
 
       service ! Activation(INIT_SIM_TICK)
 
-      service ! RegisterForWeatherMessage(
+      service ! SecondaryServiceRegistrationMessage(
         systemParticipant.ref,
-        51.4843281,
-        7.4116482,
+        Coordinate(51.4843281, 7.4116482),
       )
 
       val deathWatch = createTestProbe("deathWatch")

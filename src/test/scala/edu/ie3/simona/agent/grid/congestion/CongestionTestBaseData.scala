@@ -15,11 +15,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
-  ServiceMessage,
-  WeatherMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceMessages
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
@@ -58,13 +54,13 @@ trait CongestionTestBaseData
   protected val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
     "runtimeEvents"
   )
-  protected val primaryService: TestProbe[ServiceMessage] = TestProbe(
+  protected val primaryService: TestProbe[ServiceMessages] = TestProbe(
     "primaryService"
   )
-  protected val weatherService: TestProbe[WeatherMessage] = TestProbe(
+  protected val weatherService: TestProbe[ServiceMessages] = TestProbe(
     "weatherService"
   )
-  protected val loadProfileService: TestProbe[LoadProfileMessage] = TestProbe(
+  protected val loadProfileService: TestProbe[ServiceMessages] = TestProbe(
     "loadProfileService"
   )
 
