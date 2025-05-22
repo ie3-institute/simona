@@ -18,7 +18,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
   implicit val temperatureTolerance: Temperature = Celsius(1e-10)
 
   "QuantityConversionUtils" should {
-    "properly convert from ComparableQuantity[Celsius] to squants temperatures and its double values" in {
+    "properly convert from ComparableQuantity[Temperature] to squants temperatures and its double values" in {
       val temperatureQuantityCelsius = Quantities.getQuantity(10, CELSIUS)
 
       temperatureQuantityCelsius.toSquants shouldBe Celsius(10)
