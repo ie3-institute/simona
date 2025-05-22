@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.input.container.{ThermalGrid => PsdmThermalGrid}
+import edu.ie3.datamodel.models.input.container.ThermalGrid as PsdmThermalGrid
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
@@ -23,7 +23,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid
-import edu.ie3.simona.model.thermal.ThermalGrid._
+import edu.ie3.simona.model.thermal.ThermalGrid.*
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.Data.PrimaryData.{
@@ -32,15 +32,15 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{
   zeroCelsius,
   zeroKW,
   zeroKWh,
 }
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
-import edu.ie3.util.scala.quantities._
-import squants._
+import edu.ie3.util.scala.quantities.*
+import squants.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -107,14 +107,12 @@ class HpModel private (
       state: HpState
   ): FlexOptions = {
     val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
-
     // Determining the operation point and limitations at this tick
-    val (turnOn, canOperate, canBeOutOfOperation) =
-      determineHpOperatingOptions(
-        state.thermalGridState,
-        state.thermalDemands,
-        wasRunningLastOp,
-      )
+    val (turnOn, canOperate, canBeOutOfOperation) = determineHpOperatingOptions(
+      state.thermalGridState,
+      state.thermalDemands,
+      wasRunningLastOp,
+    )
 
     MinMaxFlexOptions(
       if (turnOn) sRated.toActivePower(cosPhiRated) else zeroKW,
