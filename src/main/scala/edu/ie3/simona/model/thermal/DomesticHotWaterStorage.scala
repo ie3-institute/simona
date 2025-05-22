@@ -18,17 +18,15 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{
-  DefaultQuantities,
-  KilowattHoursPerKelvinCubicMeters,
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  SpecificHeatCapacityConversionSimona,
+  TemperatureConversionSimona,
+  VolumeConversionSimona,
 }
 import squants.energy.Kilowatts
-import squants.space.CubicMeters
-import squants.thermal.Celsius
 import squants.time.Seconds
 import squants.{Energy, Power}
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
@@ -166,20 +164,12 @@ object DomesticHotWaterStorage extends ThermalStorageCalculations {
       input: DomesticHotWaterStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
   ): DomesticHotWaterStorage = {
-    val maxEnergyThreshold =
-      volumeToEnergy(
-        CubicMeters(
-          input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
-        ),
-        KilowattHoursPerKelvinCubicMeters(
-          input.getC
-            .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
-            .getValue
-            .doubleValue
-        ),
-        Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
-        Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
-      )
+    val maxEnergyThreshold = volumeToEnergy(
+      input.getStorageVolumeLvl.toSquants,
+      input.getC.toSquants,
+      input.getInletTemp.toSquants,
+      input.getReturnTemp.toSquants,
+    )
 
     val pThermalMax = Kilowatts(
       input
