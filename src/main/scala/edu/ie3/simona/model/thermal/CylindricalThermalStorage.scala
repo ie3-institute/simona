@@ -19,7 +19,11 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.TemperatureConversionSimona
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  TemperatureConversionSimona,
+  VolumeConversionSimona,
+  PowerConversionSimona,
+}
 import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
 import edu.ie3.util.scala.quantities.{
   KilowattHoursPerKelvinCubicMeters,
@@ -166,9 +170,7 @@ object CylindricalThermalStorage {
       initialStoredEnergy: Energy = zeroKWh,
   ): CylindricalThermalStorage = {
     val maxEnergyThreshold = volumeToEnergy(
-      CubicMeters(
-        input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
-      ),
+      input.getStorageVolumeLvl.toSquants,
       KilowattHoursPerKelvinCubicMeters(
         input.getC
           .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
@@ -179,13 +181,7 @@ object CylindricalThermalStorage {
       input.getReturnTemp.toSquants,
     )
 
-    val pThermalMax = Kilowatts(
-      input
-        .getpThermalMax()
-        .to(PowerSystemUnits.KILOWATT)
-        .getValue
-        .doubleValue()
-    )
+    val pThermalMax = input.getpThermalMax().toSquants
 
     new CylindricalThermalStorage(
       input.getUuid,

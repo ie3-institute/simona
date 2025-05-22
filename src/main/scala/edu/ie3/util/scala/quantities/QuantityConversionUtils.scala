@@ -15,7 +15,7 @@ import edu.ie3.util.quantities.interfaces.{
 import edu.ie3.util.scala.quantities
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.space.SquareMeters
+import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.{Amperes, Each, Kelvin, Radians}
 import tech.units.indriya.ComparableQuantity
@@ -257,6 +257,24 @@ object QuantityConversionUtils {
       */
     def toSquants: squants.Temperature = Celsius(
       quantity.to(CELSIUS).getValue.doubleValue
+    )
+  }
+
+  /** Implicit class that contains a method to convert a given
+    * [[ComparableQuantity]] with unit [[CUBIC_METRE]] into
+    * [[squants.space.CubicMeters]].
+    *
+    * @param quantity
+    *   To convert.
+    */
+  implicit class VolumeConversionSimona(
+      quantity: ComparableQuantity[Volume]
+  ) {
+
+    /** Returns a quantity with unit [[CubicMeters]].
+      */
+    def toSquants: squants.space.Volume = CubicMeters(
+      quantity.to(CUBIC_METRE).getValue.doubleValue
     )
   }
 }
