@@ -45,7 +45,7 @@ class ThermalGridWithStorageOnlySpec
         )
 
       ThermalGrid(thermalGridInput) match {
-        case ThermalGrid(None, Some(thermalStorageGenerated)) =>
+        case ThermalGrid(None, Some(thermalStorageGenerated), None) =>
           thermalStorageGenerated shouldBe thermalStorage
         case _ =>
           fail("Generation of thermal grid from thermal input grid failed.")
@@ -66,6 +66,7 @@ class ThermalGridWithStorageOnlySpec
       ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
     val initialHpState = HpState(
       0L,
+      defaultSimulationStart,
       initialGridState,
       HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
       onlyThermalDemandOfHeatStorage,
@@ -82,10 +83,11 @@ class ThermalGridWithStorageOnlySpec
                     storedEnergy,
                   )
                 ),
+                None,
               ) =>
-            tick shouldBe expectedStorageStartingState.tick
+            tick shouldBe expectedCylindricalStorageStartingState.tick
             storedEnergy should approximate(
-              expectedStorageStartingState.storedEnergy
+              expectedCylindricalStorageStartingState.storedEnergy
             )
 
           case _ => fail("Determination of starting state failed")
@@ -97,14 +99,18 @@ class ThermalGridWithStorageOnlySpec
       "deliver the capabilities of the storage" in {
         val tick = 10800L // after three hours
 
-        val updatedThermalGridState = thermalGrid.determineState(
-          tick,
-          initialHpState.thermalGridState,
-          HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
-        )
+        val updatedThermalGridState =
+          thermalGrid.determineState(
+            tick,
+            initialGridState,
+            HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
+          )
 
         val thermalDemands =
-          thermalGrid.determineEnergyDemand(updatedThermalGridState)
+          thermalGrid.determineEnergyDemand(
+            updatedThermalGridState,
+            None,
+          )
 
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
@@ -114,7 +120,7 @@ class ThermalGridWithStorageOnlySpec
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
         updatedThermalGridState.houseState shouldBe None
-        updatedThermalGridState.storageState shouldBe Some(
+        updatedThermalGridState.heatStorageState shouldBe Some(
           ThermalStorageState(
             10800,
             zeroKWh,
@@ -123,14 +129,27 @@ class ThermalGridWithStorageOnlySpec
       }
 
       "deliver the capabilities of a half full storage" in {
+        val tick = 0
         val initialLoading = KilowattHours(575d)
-        val gridState = initialGridState.copy(storageState =
-          initialGridState.storageState.map(storageState =>
-            storageState.copy(tick = 10800, storedEnergy = initialLoading)
+        val gridState = initialGridState.copy(heatStorageState =
+          initialGridState.heatStorageState.map(storageState =>
+            storageState.copy(storedEnergy = initialLoading)
           )
         )
 
-        val thermalDemands = thermalGrid.determineEnergyDemand(gridState)
+        val updatedThermalGridState =
+          thermalGrid.determineState(
+            tick,
+            gridState,
+            HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
+          )
+
+        val thermalDemands =
+          thermalGrid.determineEnergyDemand(
+            updatedThermalGridState,
+            None,
+          )
+
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
@@ -138,6 +157,10 @@ class ThermalGridWithStorageOnlySpec
         houseDemand.possible should approximate(zeroKWh)
         storageDemand.required should approximate(zeroKWh)
         storageDemand.possible should approximate(KilowattHours(575d))
+        updatedThermalGridState.houseState shouldBe None
+        updatedThermalGridState.heatStorageState shouldBe Some(
+          ThermalStorageState(0, KilowattHours(575d))
+        )
       }
     }
 
@@ -154,6 +177,7 @@ class ThermalGridWithStorageOnlySpec
           testGridQDotInfeed,
           zeroKW,
           testGridQDotInfeed,
+          zeroKW,
         )
       }
     }
@@ -170,14 +194,15 @@ class ThermalGridWithStorageOnlySpec
           testGridQDotInfeed,
           zeroKW,
           testGridQDotInfeed,
+          zeroKW,
         )
         nextThreshold shouldBe Some(StorageFull(276000))
       }
 
       "do not consume energy from storage if there is no heat sink for this consumption" in {
         val initialLoading = KilowattHours(200d)
-        val gridState = initialGridState.copy(storageState =
-          initialGridState.storageState.map(storageState =>
+        val gridState = initialGridState.copy(heatStorageState =
+          initialGridState.heatStorageState.map(storageState =>
             storageState.copy(storedEnergy = initialLoading, tick = 0)
           )
         )
