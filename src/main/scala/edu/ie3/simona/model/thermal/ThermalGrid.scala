@@ -84,18 +84,17 @@ final case class ThermalGrid(
       case _ => None
     }
 
-    val updatedStorageState =
-      heatStorage.zip(lastState.storageState) match {
-        case Some((storage, heatStorageState)) =>
-          Some(
-            storage.determineState(
-              tick,
-              heatStorageState,
-              heatStorageQDot,
-            )
+    val updatedStorageState = heatStorage.zip(lastState.storageState) match {
+      case Some((storage, heatStorageState)) =>
+        Some(
+          storage.determineState(
+            tick,
+            heatStorageState,
+            heatStorageQDot,
           )
-        case _ => None
-      }
+        )
+      case _ => None
+    }
 
     ThermalGridState(updatedHouseState, updatedStorageState)
   }
@@ -508,33 +507,29 @@ final case class ThermalGrid(
         )
     }
 
+    // We always want the results if there are changes or it's the first tick
     val maybeHouseResult = {
       (
         house,
-        lastOpThermals.forall(_.qDotHouse != currentOpThermals.qDotHouse),
-        state.tick == 0,
+        lastOpThermals.forall(
+          _.qDotHouse != currentOpThermals.qDotHouse
+        ) || state.tick == 0,
       ) match {
-        case (Some(house: ThermalHouse), true, _) =>
-          createThermalHouseResult(house)
-        // We always want the results of the first tick
-        case (Some(house: ThermalHouse), _, true) =>
+        case (Some(house: ThermalHouse), true) =>
           createThermalHouseResult(house)
         case _ => None
       }
     }
 
+    // We always want the results if there are changes or it's the first tick
     val maybeStorageResult = {
       (
         heatStorage,
         lastOpThermals.forall(
           _.qDotHeatStorage != currentOpThermals.qDotHeatStorage
-        ),
-        state.tick == 0,
+        ) || state.tick == 0,
       ) match {
-        case (Some(storage: CylindricalThermalStorage), true, _) =>
-          createCylindricalStorageResult(storage)
-        // We always want the results of the first tick
-        case (Some(storage: CylindricalThermalStorage), _, true) =>
+        case (Some(storage: CylindricalThermalStorage), true) =>
           createCylindricalStorageResult(storage)
         case _ => None
       }
