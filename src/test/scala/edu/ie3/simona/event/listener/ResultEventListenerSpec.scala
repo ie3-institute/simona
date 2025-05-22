@@ -22,7 +22,7 @@ import edu.ie3.simona.event.ResultEvent.{
 }
 import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
-import edu.ie3.simona.logging.logback.LogbackConfiguration
+import edu.ie3.simona.logging.LogbackConfiguration
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy

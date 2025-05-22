@@ -10,7 +10,7 @@ import java.io.File
 import java.nio.file.{Files, Path}
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.simona.io.result.ResultSinkType
-import edu.ie3.simona.logging.logback.LogbackConfiguration
+import edu.ie3.simona.logging.LogbackConfiguration
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
