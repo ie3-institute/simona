@@ -18,7 +18,8 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.TemperatureConversionSimona
 import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
 import edu.ie3.util.scala.quantities.{
   KilowattHoursPerKelvinCubicMeters,
@@ -175,8 +176,8 @@ object CylindricalThermalStorage {
           .getValue
           .doubleValue
       ),
-      Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue),
-      Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue),
+      input.getInletTemp.toSquantsCelsius,
+      input.getReturnTemp.toSquantsCelsius,
     )
 
     val pThermalMax = Kilowatts(
