@@ -94,35 +94,36 @@ final case class ThermalGrid(
       case _ => None
     }
 
-    val updatedStorageState = heatStorage.zip(lastState.storageState) match {
-      case Some((storage, heatStorageState)) =>
-        Some(
+    val updatedHeatStorageState =
+      heatStorage.zip(lastState.heatStorageState) match {
+        case Some((storage, heatStorageState)) =>
+          Some(
+            storage.determineState(
+              tick,
+              heatStorageState,
+              heatStorageQDot,
+            )
+          )
+        case _ => None
+      }
+
+    val updatedDomesticHotWaterStorageState = domesticHotWaterStorage
+      .zip(lastState.domesticHotWaterStorageState)
+      .map {
+        case (
+              storage: DomesticHotWaterStorage,
+              waterStorageState: ThermalStorageState,
+            ) =>
           storage.determineState(
             tick,
-            heatStorageState,
-            heatStorageQDot,
+            waterStorageState,
+            waterStorageQDot,
           )
-        )
-      case _ => None
-
-        val updatedDomesticHotWaterStorageState =
-          domesticHotWaterStorage
-            .zip(lastState.domesticHotWaterStorageState)
-            .map {
-              case (
-                storage: DomesticHotWaterStorage,
-                waterStorageState: ThermalStorageState,
-                ) =>
-                storage.determineState(
-                  tick,
-                  waterStorageState,
-                  waterStorageQDot,
-                )
-              case _ =>
-                throw new IllegalStateException(
-                  "Could not find state of domestic hot water storage."
-                )
-    }
+        case _ =>
+          throw new IllegalStateException(
+            "Could not find state of domestic hot water storage."
+          )
+      }
 
     ThermalGridState(
       updatedHouseState,
@@ -768,18 +769,15 @@ final case class ThermalGrid(
       }
     }
 
+    // We always want the results if there are changes or it's the first tick
     val maybeDomesticHotStorageResult = {
       (
         domesticHotWaterStorage,
         lastOpThermals.forall(
           _.qDotDomesticHotWaterStorage != currentOpThermals.qDotDomesticHotWaterStorage
-        ),
-        state.tick == 0,
+        ) || state.tick == 0,
       ) match {
-        case (Some(storage: DomesticHotWaterStorage), true, _) =>
-          createDomesticHotWaterStorageResult(storage)
-        // We always want the results of the first tick
-        case (Some(storage: DomesticHotWaterStorage), _, true) =>
+        case (Some(storage: DomesticHotWaterStorage), true) =>
           createDomesticHotWaterStorageResult(storage)
         case _ => None
       }
@@ -809,7 +807,7 @@ object ThermalGrid {
         case _ => None
       }
       .toSet
-    val domesticHotWaterStorage: Set[DomesticHotWaterStorage] = input
+    val domesticHotWaterStorage = input
       .domesticHotWaterStorages()
       .asScala
       .flatMap {
