@@ -243,8 +243,8 @@ object QuantityConversionUtils {
   }
 
   /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[CELSIUS]] or [[KELVIN]] into
-    * [[squants.thermal.Celsius]] or [[squants.Kelvin]].
+    * [[ComparableQuantity]] with unit [[CELSIUS]] into
+    * [[squants.thermal.Celsius]].
     *
     * @param quantity
     *   To convert.
@@ -255,14 +255,8 @@ object QuantityConversionUtils {
 
     /** Returns a quantity with unit [[Celsius]].
       */
-    def toSquantsCelsius: squants.Temperature = Celsius(
+    def toSquants: squants.Temperature = Celsius(
       quantity.to(CELSIUS).getValue.doubleValue
-    )
-
-    /** Returns a quantity with unit [[Kelvin]].
-      */
-    def toSquantsKelvin: squants.Temperature = Kelvin(
-      quantity.to(KELVIN).getValue.doubleValue
     )
   }
 }

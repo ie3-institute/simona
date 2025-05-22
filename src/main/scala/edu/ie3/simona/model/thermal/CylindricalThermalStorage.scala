@@ -175,8 +175,8 @@ object CylindricalThermalStorage {
           .getValue
           .doubleValue
       ),
-      input.getInletTemp.toSquantsCelsius,
-      input.getReturnTemp.toSquantsCelsius,
+      input.getInletTemp.toSquants,
+      input.getReturnTemp.toSquants,
     )
 
     val pThermalMax = Kilowatts(
