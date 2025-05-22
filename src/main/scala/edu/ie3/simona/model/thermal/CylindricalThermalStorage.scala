@@ -27,7 +27,6 @@ import edu.ie3.util.scala.quantities.{
 }
 import squants.energy.Kilowatts
 import squants.space.{CubicMeters, Volume}
-import squants.thermal.Celsius
 import squants.time.Seconds
 import squants.{Energy, Power, Temperature}
 import tech.units.indriya.unit.Units

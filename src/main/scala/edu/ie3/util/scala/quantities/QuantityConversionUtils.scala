@@ -8,7 +8,6 @@ package edu.ie3.util.scala.quantities
 
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.{
-  Currency,
   EnergyPrice,
   SpecificConductance,
   SpecificResistance,
