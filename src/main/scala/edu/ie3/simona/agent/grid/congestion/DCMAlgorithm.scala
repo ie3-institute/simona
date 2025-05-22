@@ -49,7 +49,7 @@ trait DCMAlgorithm extends CongestionDetection {
       currentTick: Long,
       results: Option[PowerFlowResultEvent],
       ctx: ActorContext[Request],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Request],
   ): Behavior[Request] = {
@@ -84,7 +84,7 @@ trait DCMAlgorithm extends CongestionDetection {
   private[grid] def finishCongestionManagement(
       stateData: CongestionManagementData,
       ctx: ActorContext[Request],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Request],
   ): Behavior[Request] = {

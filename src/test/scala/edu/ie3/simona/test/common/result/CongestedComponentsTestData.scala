@@ -202,7 +202,7 @@ trait CongestedComponentsTestData
 
   val transformerResult2 = new Transformer2WResult(
     startTime,
-    transformer1.getUuid,
+    transformer2.getUuid,
     321.asAmpere,
     0.asDegreeGeom,
     898.asAmpere,

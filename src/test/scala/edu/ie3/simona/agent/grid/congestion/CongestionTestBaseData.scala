@@ -8,13 +8,14 @@ package edu.ie3.simona.agent.grid.congestion
 
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
 }
+import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.model.grid.{GridModel, VoltageLimits}
 import edu.ie3.simona.ontology.messages.services.{
   LoadProfileMessage,
   ServiceMessage,
@@ -28,7 +29,11 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKitBase,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
+import org.apache.pekko.actor.typed.scaladsl.{
+  ActorContext,
+  Behaviors,
+  StashBuffer,
+}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.mockito.Mockito.when
 
@@ -81,6 +86,12 @@ trait CongestionTestBaseData
     "resultListener"
   )
 
+  protected val gridAgentActivation: TestProbe[Activation] = TestProbe(
+    "gridAgentActivation"
+  )
+
+  protected val voltageLimits: VoltageLimits = VoltageLimits(0.9, 1.1)
+
   protected implicit val constantData: GridAgentConstantData =
     GridAgentConstantData(
       environmentRefs,
@@ -88,8 +99,21 @@ trait CongestionTestBaseData
       Iterable(resultListener.ref),
       3600,
       startTime,
-      mock[ActorRef[Activation]],
+      gridAgentActivation.ref,
     )
+
+  def behaviorWithContextAndBuffer(
+      factory: (
+          ctx: ActorContext[GridAgent.Request],
+          buffer: StashBuffer[GridAgent.Request],
+      ) => Behavior[GridAgent.Request]
+  )(using
+      capacity: Int = 10
+  ): Behavior[GridAgent.Request] = Behaviors.withStash(capacity) { buffer =>
+    Behaviors.setup { ctx =>
+      factory(ctx, buffer)
+    }
+  }
 
   def spawnWithBuffer(
       factory: StashBuffer[GridAgent.Request] => Behavior[GridAgent.Request],
@@ -116,6 +140,17 @@ trait CongestionTestBaseData
     when(data.isSuperior).thenReturn(isSuperior)
     when(data.congestionManagementParams).thenReturn(cmParams)
     when(data.inferiorGridRefs).thenReturn(map)
+    when(data.superiorGridNodeUuids).thenReturn(Vector.empty)
+
+    val gridEnv = mock[GridEnvironment]
+    when(data.gridEnv).thenReturn(gridEnv)
+
+    val gridModel = mock[GridModel]
+    when(gridEnv.gridModel).thenReturn(gridModel)
+    when(gridEnv.subgridGateToActorRef).thenReturn(Map.empty)
+    when(gridEnv.nodeToAssetAgents).thenReturn(Map.empty)
+
+    when(gridModel.voltageLimits).thenReturn(voltageLimits)
 
     data
   }
