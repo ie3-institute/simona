@@ -8,7 +8,11 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.simona.exceptions.FlexException
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{IssueFlexControl, IssueNoControl, IssuePowerControl}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  IssueFlexControl,
+  IssueNoControl,
+  IssuePowerControl,
+}
 import squants.Power
 import squants.energy.Watts
 
