@@ -27,11 +27,17 @@ import edu.ie3.datamodel.io.source.{
   TimeSeriesMetaInformationSource,
 }
 import edu.ie3.datamodel.models.value.Value
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.config.ConfigParams.{SqlParams, TimeStampedCsvParams}
 import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
 import edu.ie3.simona.exceptions.InitializationException
+import edu.ie3.simona.exceptions.{
+  InitializationException,
+  InvalidConfigParameterException,
+}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -43,7 +49,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   WorkerRegistrationMessage,
   WrappedActivation,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.{
@@ -92,6 +97,9 @@ object PrimaryServiceProxy {
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
+      extSimulationData: Seq[
+        (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
+      ],
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.
@@ -110,6 +118,7 @@ object PrimaryServiceProxy {
       timeSeriesToSourceRef: Map[UUID, SourceRef],
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
+      extSubscribersToService: Map[UUID, ActorRef[ServiceMessage]] = Map.empty,
   ) extends ServiceStateData
 
   /** Giving reference to the target time series and source worker.
@@ -166,6 +175,7 @@ object PrimaryServiceProxy {
       prepareStateData(
         initStateData.primaryConfig,
         initStateData.simulationStart,
+        initStateData.extSimulationData,
       )(ctx.log) match {
         case Success(stateData) =>
           constantData.scheduler ! Completion(constantData.activationAdapter)
@@ -198,6 +208,9 @@ object PrimaryServiceProxy {
   private[service] def prepareStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
+      extSimulationData: Seq[
+        (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
+      ],
   )(implicit log: Logger): Try[PrimaryServiceStateData] = {
     val sourceOption = Seq(
       primaryConfig.sqlParams,
@@ -245,12 +258,28 @@ object PrimaryServiceProxy {
               }
             }
             .toMap
-          PrimaryServiceStateData(
-            modelToTimeSeries,
-            timeSeriesToSourceRef,
-            simulationStart,
-            primaryConfig,
-          )
+          if (extSimulationData.nonEmpty) {
+            val extSubscribersToService = extSimulationData.flatMap {
+              case (connection, ref) =>
+                connection.getPrimaryDataAssets.asScala.map(id => id -> ref)
+            }
+
+            // Ask ExtPrimaryDataService which UUIDs should be substituted
+            PrimaryServiceStateData(
+              modelToTimeSeries,
+              timeSeriesToSourceRef,
+              simulationStart,
+              primaryConfig,
+              extSubscribersToService.toMap,
+            )
+          } else {
+            PrimaryServiceStateData(
+              modelToTimeSeries,
+              timeSeriesToSourceRef,
+              simulationStart,
+              primaryConfig,
+            )
+          }
       }
     }
 
@@ -325,26 +354,39 @@ object PrimaryServiceProxy {
           PrimaryServiceRegistrationMessage(requestingActor, modelUuid),
         ) =>
       /* Try to register for this model */
-      stateData.modelToTimeSeries.get(modelUuid) match {
-        case Some(timeSeriesUuid) =>
-          /* There is a time series apparent for this model, try to get a worker for it */
-          val updatedStateData = handleCoveredModel(
-            modelUuid,
-            timeSeriesUuid,
-            stateData,
-            requestingActor,
-          )(constantData, ctx)
+      stateData.extSubscribersToService.get(modelUuid) match {
+        case Some(_) =>
+          /* There is external data apparent for this model */
+          handleExternalModel(modelUuid, stateData, requestingActor)
 
-          onMessage(updatedStateData)
+          Behaviors.same
 
         case None =>
           ctx.log.debug(
-            s"There is no time series apparent for the model with uuid '{}'.",
+            s"There is no external data apparent for the model with uuid '{}'.",
             modelUuid,
           )
-          requestingActor ! RegistrationFailedMessage(ctx.self)
 
-          Behaviors.same
+          stateData.modelToTimeSeries.get(modelUuid) match {
+            case Some(timeSeriesUuid) =>
+              val updatedStateData = handleCoveredModel(
+                modelUuid,
+                timeSeriesUuid,
+                stateData,
+                requestingActor,
+              )(constantData, ctx)
+
+              onMessage(updatedStateData)
+
+            case None =>
+              ctx.log.debug(
+                s"There is no time series apparent for the model with uuid '{}'.",
+                modelUuid,
+              )
+              requestingActor ! RegistrationFailedMessage(ctx.self)
+
+              Behaviors.same
+          }
       }
     case (ctx, unknown) =>
       ctx.log.error(
@@ -410,6 +452,19 @@ object PrimaryServiceProxy {
         )
         requestingActor ! RegistrationFailedMessage(ctx.self)
         stateData
+    }
+  }
+
+  protected def handleExternalModel(
+      modelUuid: UUID,
+      stateData: PrimaryServiceStateData,
+      requestingActor: ActorRef[ParticipantAgent.Request],
+  ): Unit = {
+    stateData.extSubscribersToService.foreach { case (_, ref) =>
+      ref ! PrimaryServiceRegistrationMessage(
+        requestingActor,
+        modelUuid,
+      )
     }
   }
 

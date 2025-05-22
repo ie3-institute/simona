@@ -41,6 +41,8 @@ import scala.reflect.ClassTag
   *   physical [[ParticipantModel]].
   * @param primaryDataExtra
   *   Extra functionality specific to the primary data class.
+  * @param scalingFactor
+  *   The scaling factor from the runtime config.
   * @tparam PD
   *   The type of primary data.
   */
@@ -52,6 +54,7 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData](
     override val qControl: QControl,
     private val primaryDataResultFunc: PrimaryResultFunc,
     private val primaryDataExtra: PrimaryDataExtra[PD],
+    private val scalingFactor: Double,
 ) extends ParticipantModel[
       PrimaryOperatingPoint[PD],
       PrimaryDataState[PD],
@@ -78,8 +81,10 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData](
 
   override def determineOperatingPoint(
       state: PrimaryDataState[PD]
-  ): (PrimaryOperatingPoint[PD], Option[Long]) =
-    (PrimaryOperatingPoint(state.data), None)
+  ): (PrimaryOperatingPoint[PD], Option[Long]) = {
+    val scaledData = primaryDataExtra.scale(state.data, scalingFactor)
+    (PrimaryOperatingPoint(scaledData), None)
+  }
 
   override def zeroPowerOperatingPoint: PrimaryOperatingPoint[PD] =
     PrimaryOperatingPoint(primaryDataExtra.zero)
@@ -140,10 +145,13 @@ object PrimaryDataParticipantModel {
     *   The physical participant model.
     * @param primaryDataExtra
     *   Extra functionality specific to the primary data class.
+    * @param scalingFactor
+    *   The scaling factor from the runtime config.
     */
   final case class Factory[PD <: PrimaryData](
       physicalModel: ParticipantModel[_, _],
       primaryDataExtra: PrimaryDataExtra[PD],
+      scalingFactor: Double,
   ) extends ParticipantModelFactory[PrimaryDataState[PD]] {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
@@ -175,6 +183,7 @@ object PrimaryDataParticipantModel {
         physicalModel.qControl,
         primaryResultFunc,
         primaryDataExtra,
+        scalingFactor,
       )
     }
   }

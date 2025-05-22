@@ -6,9 +6,15 @@
 
 package edu.ie3.simona.ontology.messages.services
 
+import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexRequest,
+  FlexResponse,
+}
+import edu.ie3.simona.ontology.messages.services.EmMessage.EmInternal
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvInternal
 import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.LoadProfileMessageInternal
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherInternal
@@ -22,7 +28,8 @@ import java.util.UUID
   * services
   */
 sealed trait ServiceMessage
-    extends EvInternal
+    extends EmInternal
+    with EvInternal
     with LoadProfileMessageInternal
     with WeatherInternal
 
@@ -95,4 +102,11 @@ object ServiceMessage {
       evcs: UUID,
   ) extends ServiceRegistrationMessage
 
+  final case class RegisterForEmDataService(
+      modelUuid: UUID,
+      requestingActor: ActorRef[EmAgent.Request],
+      flexAdapter: ActorRef[FlexRequest],
+      parentEm: Option[ActorRef[FlexResponse]],
+      parentUuid: Option[UUID] = None,
+  ) extends ServiceRegistrationMessage
 }

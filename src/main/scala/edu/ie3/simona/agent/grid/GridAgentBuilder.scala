@@ -8,8 +8,8 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
-import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.actor.SimonaActorNaming._
+import edu.ie3.datamodel.models.input.system.*
+import edu.ie3.simona.actor.SimonaActorNaming.*
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
 }
 import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
 import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
-import edu.ie3.simona.config.RuntimeConfig._
+import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.config.SimonaConfig.AssetConfigs
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -31,11 +31,11 @@ import edu.ie3.simona.model.InputModelContainer.{
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.{EmMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.simona.util.ConfigUtil._
+import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -44,7 +44,7 @@ import squants.Each
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 
 /** Holds all methods that should be available to a [[GridAgent]]
@@ -101,6 +101,7 @@ class GridAgentBuilder(
       EmConfigUtil(emConfigs),
       outputConfigUtil,
       firstLevelEms,
+      emDataService = environmentRefs.emDataService,
     )
 
     /* Browse through all system participants, build actors and map their node's UUID to the actor references */
@@ -249,6 +250,8 @@ class GridAgentBuilder(
     *   higher levels
     * @param previousLevelEms
     *   EMs that have been built by the previous recursion level
+    * @param emDataService
+    *   An energy management service.
     * @return
     *   Map from model UUID to EmAgent ActorRef
     */
@@ -257,6 +260,7 @@ class GridAgentBuilder(
       outputConfigUtil: OutputConfigUtil,
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
+      emDataService: Option[ActorRef[EmMessage]],
   ): Map[UUID, ActorRef[FlexResponse]] = {
     // For the current level, split controlled and uncontrolled EMs.
     // Uncontrolled EMs can be built right away.
@@ -270,6 +274,7 @@ class GridAgentBuilder(
             emConfigUtil.getOrDefault(uuid),
             outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
             maybeControllingEm = None,
+            emDataService,
           )
           Right(uuid -> actor)
         }
@@ -292,6 +297,7 @@ class GridAgentBuilder(
         outputConfigUtil,
         controllingEms,
         previousLevelAndUncontrolledEms,
+        emDataService,
       )
 
       val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
@@ -311,6 +317,7 @@ class GridAgentBuilder(
           emConfigUtil.getOrDefault(uuid),
           outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
           maybeControllingEm = controllingEm,
+          emDataService,
         )
       }.toMap
 
@@ -506,6 +513,8 @@ class GridAgentBuilder(
     *   Configuration for output notification
     * @param maybeControllingEm
     *   The parent EmAgent, if applicable
+    * @param emDataService
+    *   An energy management service.
     * @return
     *   The [[EmAgent]] 's [[ActorRef]]
     */
@@ -514,6 +523,7 @@ class GridAgentBuilder(
       modelConfiguration: EmRuntimeConfig,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
+      emDataService: Option[ActorRef[EmMessage]],
   ): ActorRef[FlexResponse] =
     gridAgentContext.spawn(
       EmAgent(
@@ -526,6 +536,7 @@ class GridAgentBuilder(
           environmentRefs.scheduler
         ),
         listener,
+        emDataService,
       ),
       actorName(classOf[EmAgent.type], emInput.getId),
     )

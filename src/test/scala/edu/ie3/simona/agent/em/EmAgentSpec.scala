@@ -76,6 +76,7 @@ class EmAgentSpec
           simulationStartDate,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
+          None,
         )
       )
 
@@ -267,6 +268,7 @@ class EmAgentSpec
           simulationStartDate,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
+          None,
         )
       )
 
@@ -453,6 +455,7 @@ class EmAgentSpec
           simulationStartDate,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
+          None,
         )
       )
 
@@ -651,6 +654,7 @@ class EmAgentSpec
           simulationStartDate,
           parent = Right(parentEmAgent.ref),
           listener = Iterable(resultListener.ref),
+          None,
         )
       )
 
