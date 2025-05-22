@@ -1,0 +1,15 @@
+uuid,cos_phi_rated,dsm,e_cons_annual,id,load_profile,node,operates_from,operates_until,operator,q_characteristics,s_rated
+b6956744-b84a-46c1-a036-afb787402dc1,0.93,false,0.0,LV1.101 Load 2,h0,ae28a289-0bfd-4d5f-93b3-8fdd228de2cd,,,,"cosPhiFixed:{(0.0,0.93)}",3.2
+bdc8cd5e-7319-4680-802b-ea84195c9ac0,0.93,false,0.0,LV1.101 Load 8,h0,97ec3c60-0934-472b-8ba1-68e7ecdb51dc,,,,"cosPhiFixed:{(0.0,0.93)}",14.9
+717e80d3-9fa4-4563-88ff-5c6b5c60505c,0.93,false,0.0,LV1.101 Load 4,h0,5f5115e6-4b12-4fb4-ad05-1de237b58e7e,,,,"cosPhiFixed:{(0.0,0.93)}",2.2
+f65119f4-07e4-4c08-b84f-e8dbb5b5554e,0.93,false,0.0,LV1.101 Load 1,h0,e30ed9ed-f016-40f6-94fd-c4ad4a0b9713,,,,"cosPhiFixed:{(0.0,0.93)}",6.5
+04a448ea-74f6-49c0-bdbc-08352fa96244,0.93,false,0.0,LV1.101 Load 13,h0,927da381-2441-4931-89f0-67fc2062230f,,,,"cosPhiFixed:{(0.0,0.93)}",14.9
+349ede99-df2f-4baa-9cc7-3f4d57825f6b,0.93,false,0.0,LV1.101 Load 11,h0,d9acbdee-b64b-41da-bde4-6161a7420958,,,,"cosPhiFixed:{(0.0,0.93)}",2.2
+9ec942ab-3c60-4ea2-a8b1-3c3ef92fb786,0.93,false,0.0,LV1.101 Load 6,h0,ea0847bf-bea2-473e-a717-9cb9524efe4e,,,,"cosPhiFixed:{(0.0,0.93)}",3.2
+ad495ff2-0305-4c4c-94f5-d52910b06a32,0.93,false,0.0,LV1.101 Load 14,h0,ae28a289-0bfd-4d5f-93b3-8fdd228de2cd,,,,"cosPhiFixed:{(0.0,0.93)}",2.2
+7910ccb5-3e64-48dd-8a73-1eb3d0ec4008,0.93,false,0.0,LV1.101 Load 7,h0,76410fde-3a71-47ef-9830-86bc2ca39864,,,,"cosPhiFixed:{(0.0,0.93)}",8.6
+8317bbce-dc45-49b1-a507-a7a54855126c,0.93,false,0.0,LV1.101 Load 3,h0,d6c092a3-f403-4579-8748-1c3300c90347,,,,"cosPhiFixed:{(0.0,0.93)}",5.4
+345097f0-8426-4272-bf49-fbd288a1a630,0.93,false,0.0,LV1.101 Load 9,h0,cdae595f-99b6-46e1-8164-bc0a8f3ce03d,,,,"cosPhiFixed:{(0.0,0.93)}",3.2
+cb12685d-2479-4087-b8cb-2cbaecb3ad29,0.93,false,0.0,LV1.101 Load 5,h0,0837da71-6144-45f3-af99-ffa813069500,,,,"cosPhiFixed:{(0.0,0.93)}",4.3
+86b47847-e2ad-4248-9480-5f5df18e67da,0.93,false,0.0,LV1.101 Load 10,h0,25014f41-7e8d-4eca-9c47-ca0bd19965ed,,,,"cosPhiFixed:{(0.0,0.93)}",12.9
+e5726a01-27b3-4520-a01d-e3e81fb19d25,0.93,false,0.0,LV1.101 Load 12,h0,3137f920-6da9-45d6-89f3-fa1cab80ea7c,,,,"cosPhiFixed:{(0.0,0.93)}",4.3

@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config possibility for transformer control groups [#90](https://github.com/ie3-institute/simona/issues/90)
 - Implemented scaling of all relevant input parameters [#764](https://github.com/ie3-institute/simona/issues/764)
 - Consider scaling factor with flex options [#734](https://github.com/ie3-institute/simona/issues/734)
+- New Test Grid for Simona [#753](https://github.com/ie3-institute/simona/issues/753)
 - Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
 - Providing documentation for EmAgent protocols and algorithms [#774](https://github.com/ie3-institute/simona/issues/774)
 - Option to flush out `CylindricalStorageResults` [#826](https://github.com/ie3-institute/simona/issues/826)
