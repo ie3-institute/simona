@@ -680,7 +680,7 @@ class ThermalGridWithHouseAndStorageSpec
             Celsius(17),
           )
         ),
-        Some(expectedCylindricalStorageStartingState),
+        storageState = Some(expectedCylindricalStorageStartingState),
         Some(expectedDomesticHotWaterStorageStartingState),
       )
 

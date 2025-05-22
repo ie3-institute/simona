@@ -94,37 +94,35 @@ final case class ThermalGrid(
       case _ => None
     }
 
-    val updatedHeatStorageState =
-      heatStorage.zip(lastState.heatStorageState) match {
-        case Some((storage, heatStorageState)) =>
-          Some(
-            storage.determineState(
-              tick,
-              heatStorageState,
-              heatStorageQDot,
-            )
+    val updatedStorageState = heatStorage.zip(lastState.storageState) match {
+      case Some((storage, heatStorageState)) =>
+        Some(
+          storage.determineState(
+            tick,
+            heatStorageState,
+            heatStorageQDot,
           )
-        case _ => None
-      }
+        )
+      case _ => None
 
-    val updatedDomesticHotWaterStorageState =
-      domesticHotWaterStorage
-        .zip(lastState.domesticHotWaterStorageState)
-        .map {
-          case (
+        val updatedDomesticHotWaterStorageState =
+          domesticHotWaterStorage
+            .zip(lastState.domesticHotWaterStorageState)
+            .map {
+              case (
                 storage: DomesticHotWaterStorage,
                 waterStorageState: ThermalStorageState,
-              ) =>
-            storage.determineState(
-              tick,
-              waterStorageState,
-              waterStorageQDot,
-            )
-          case _ =>
-            throw new IllegalStateException(
-              "Could not find state of domestic hot water storage."
-            )
-        }
+                ) =>
+                storage.determineState(
+                  tick,
+                  waterStorageState,
+                  waterStorageQDot,
+                )
+              case _ =>
+                throw new IllegalStateException(
+                  "Could not find state of domestic hot water storage."
+                )
+    }
 
     ThermalGridState(
       updatedHouseState,
@@ -415,15 +413,14 @@ final case class ThermalGrid(
   }
 
   /** Handles the case, when the storage has heat demand and will be filled up
-    * here (positive qDot). It will return the next thermal threshold of the
-    * storage.
+    * here (positive qDot).
     * @param state
     *   State of the heat pump.
     * @param qDotStorage
     *   Feed in to the storage (positive: Storage is charging, negative: Storage
     *   is discharging).
     * @return
-    *   Updated thermal storage state and the ThermalThreshold.
+    *   The ThermalThreshold if there is one.
     */
   private def handleFeedInStorage(
       state: HpState,
@@ -743,33 +740,29 @@ final case class ThermalGrid(
         )
     }
 
+    // We always want the results if there are changes or it's the first tick
     val maybeHouseResult = {
       (
         house,
-        lastOpThermals.forall(_.qDotHouse != currentOpThermals.qDotHouse),
-        state.tick == 0,
+        lastOpThermals.forall(
+          _.qDotHouse != currentOpThermals.qDotHouse
+        ) || state.tick == 0,
       ) match {
-        case (Some(house: ThermalHouse), true, _) =>
-          createThermalHouseResult(house)
-        // We always want the results of the first tick
-        case (Some(house: ThermalHouse), _, true) =>
+        case (Some(house: ThermalHouse), true) =>
           createThermalHouseResult(house)
         case _ => None
       }
     }
 
+    // We always want the results if there are changes or it's the first tick
     val maybeHeatStorageResult = {
       (
         heatStorage,
         lastOpThermals.forall(
           _.qDotHeatStorage != currentOpThermals.qDotHeatStorage
-        ),
-        state.tick == 0,
+        ) || state.tick == 0,
       ) match {
-        case (Some(storage: CylindricalThermalStorage), true, _) =>
-          createCylindricalStorageResult(storage)
-        // We always want the results of the first tick
-        case (Some(storage: CylindricalThermalStorage), _, true) =>
+        case (Some(storage: CylindricalThermalStorage), true) =>
           createCylindricalStorageResult(storage)
         case _ => None
       }
@@ -805,7 +798,7 @@ object ThermalGrid {
       input: edu.ie3.datamodel.models.input.container.ThermalGrid
   ): ThermalGrid = {
     val houses = input.houses().asScala.map(ThermalHouse(_)).toSet
-    val heatStorages: Set[CylindricalThermalStorage] = input
+    val heatStorages = input
       .heatStorages()
       .asScala
       .flatMap {

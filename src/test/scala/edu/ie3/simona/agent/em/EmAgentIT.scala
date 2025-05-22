@@ -249,7 +249,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(-0.00057340027.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0018318880807.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -280,7 +280,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00113292701968.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(13246)))
 
         /* TICK 13246
@@ -299,7 +299,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(-0.00344685673.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.001132927.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
@@ -330,14 +330,11 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 14400.toDateTime
-            emResult.getP should equalWithTolerance(
-              0.0.asMegaWatt
-            )
+            emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.000065375.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
-
       }
     }
 
@@ -503,12 +500,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0.toDateTime
-            emResult.getP should equalWithTolerance(
-              -0.0055734002705905523.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              -0.0018318880807426897.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(-0.0055734002706.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.0018318880807.asMegaVar)
         }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(75)))
@@ -624,7 +617,7 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
-            emResult.getP should equalWithTolerance(0.0014031432709.asMegaWatt)
+            emResult.getP should equalWithTolerance(0.001403143271.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0001480925156.asMegaVar)
         }
 
@@ -645,7 +638,7 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7278.toDateTime
             emResult.getP should equalWithTolerance(0.00140314327091.asMegaWatt)
-            emResult.getQ should equalWithTolerance(-0.0001480925156.asMegaVar)
+            emResult.getQ should equalWithTolerance(-0.00014809252.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(7981)))
@@ -667,7 +660,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(-0.003446856729.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00113292702.asMegaVar)
         }
-
+        resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
         /* TICK 10800
@@ -931,9 +924,7 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0.toDateTime
-            emResult.getP should equalWithTolerance(
-              0.000268603.asMegaWatt
-            )
+            emResult.getP should equalWithTolerance(0.000268603.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
         resultListener.expectNoMessage()

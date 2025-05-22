@@ -184,7 +184,7 @@ class ThermalGridIT
       Start of Simulation
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand ~ 0.0674 kWh, possibleDemand ~ 0.067 kWh
-      ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned on - to serve the heat storage demand
        */
@@ -258,7 +258,7 @@ class ThermalGridIT
       Domestic hot water storage stops discharging
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 10.29 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 10.29 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.067 kWh
       Heat pump: stays on to serve the heat storage demand
        */
@@ -294,10 +294,10 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(3416)))
 
       /* TICK 3416
-      ThermalStorage is fully heated up
+      Heat storage is fully heated up
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.36 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.067 kWh
       Heat pump: stays on since it was on and the house has possible demand
        */
@@ -349,7 +349,7 @@ class ThermalGridIT
       New weather data (unchanged) incoming + Domestic hot water storage will cover hot water demand
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.92 kWh
       House demand water   : requiredDemand = 0.037 kWh, possibleDemand = 0.037 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.067 kWh
       Heat pump: stays on, we got triggered by incoming weather data. So we continue with same behaviour as before
        */
@@ -443,7 +443,7 @@ class ThermalGridIT
       House reaches target temperature boundary
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.1 kWh
       Heat pump: turned off
        */
@@ -520,7 +520,7 @@ class ThermalGridIT
       But now it's getting colder which should decrease inner temp of house faster.
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 11.56 kWh
       House demand water   : requiredDemand = 0.09 kWh, possibleDemand = 0.09 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.18 kWh
       Heat pump: stays off
        */
@@ -610,7 +610,7 @@ class ThermalGridIT
       House reach lowerTemperatureBoundary
       House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.00 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.27 kWh
       Heat pump: stays off, demand should be covered by storage
        */
@@ -1417,7 +1417,7 @@ class ThermalGridIT
         weatherService.ref,
         0L,
       )
-
+      resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
       val weatherDependentAgents = Seq(hpAgent.toClassic, pvAgent.toClassic)
