@@ -680,8 +680,9 @@ class ThermalGridWithHouseAndStorageSpec
             Celsius(17),
           )
         ),
-        storageState = Some(expectedCylindricalStorageStartingState),
-        Some(expectedDomesticHotWaterStorageStartingState),
+        heatStorageState = Some(expectedCylindricalStorageStartingState),
+        domesticHotWaterStorageState =
+          Some(expectedDomesticHotWaterStorageStartingState),
       )
 
       val state = initialHpState.copy(
