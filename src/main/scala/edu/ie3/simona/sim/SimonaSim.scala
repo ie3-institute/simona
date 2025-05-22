@@ -15,10 +15,8 @@ import edu.ie3.simona.scheduler.{ScheduleLock, TimeAdvancer}
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import edu.ie3.util.scala.Scope
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop, Terminated}
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.nio.file.Path
 
@@ -133,9 +131,7 @@ object SimonaSim {
         extSimulationData.extResultListeners.foreach { case (_, ref) =>
           ctx.watch(ref)
         }
-        extSimulationData.extSimAdapters.foreach(extSimAdapter =>
-          ctx.watch(extSimAdapter.toTyped)
-        )
+        extSimulationData.extSimAdapters.foreach(ctx.watch)
         otherActors.foreach(ctx.watch)
 
         // End pre-initialization phase
@@ -219,7 +215,7 @@ object SimonaSim {
     }
 
     actorData.extSimAdapters.foreach { extSimAdapter =>
-      ctx.unwatch(extSimAdapter.toTyped)
+      ctx.unwatch(extSimAdapter)
       extSimAdapter ! ExtSimAdapter.Stop(simulationSuccessful)
     }
 
@@ -293,7 +289,7 @@ object SimonaSim {
     */
   private final case class ActorData(
       starter: ActorRef[SimonaEnded],
-      extSimAdapters: Iterable[ClassicRef],
+      extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
       runtimeEventListener: ActorRef[RuntimeEventListener.Request],
       delayedStoppingActors: Seq[ActorRef[DelayedStopHelper.StoppingMsg]],
       otherActors: Iterable[ActorRef[_]],
