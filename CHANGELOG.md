@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converted `ExtSimAdapter` to typed [#1094](https://github.com/ie3-institute/simona/issues/1094)
 
 
+### Fixed
+- Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
+
 ## [4.0.0] - 2025-05-09
 
 ### Added

@@ -183,7 +183,7 @@ class ThermalGridWithStorageOnlySpec
         )
         val state = initialHpState.copy(
           thermalGridState = gridState,
-          thermalDemands = onlyAdditionalDemandOfHeatStorage,
+          thermalDemands = onlyPossibleDemandOfHeatStorage,
         )
 
         val (thermalGridOperatingPoint, threshold) =
