@@ -16,14 +16,14 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
 }
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.model.grid._
+import edu.ie3.simona.model.grid.*
 import edu.ie3.simona.test.common.ConfigTestData
 import edu.ie3.simona.test.common.input.NodeInputTestData
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
 import squants.electro.Kilovolts
-import squants.energy.Kilowatts
+import squants.energy.Megawatts
 import squants.{Amperes, Radians}
 
 import java.time.ZonedDateTime
@@ -39,8 +39,6 @@ trait CongestedComponentsTestData
   )
 
   val endTime: ZonedDateTime = startTime.plusHours(2)
-
-  protected val voltageLimits: VoltageLimits = VoltageLimits(0.9, 1.1)
 
   val trafoType3W = new Transformer3WTypeInput(
     UUID.randomUUID(),
@@ -81,12 +79,12 @@ trait CongestedComponentsTestData
   )
 
   protected val gridModel: GridModel = {
-    val refSystem = RefSystem(Kilowatts(60), Kilovolts(110))
+    val refSystem = RefSystem(Megawatts(600), Kilovolts(110))
 
     val model = GridModel(
       hvGridContainer,
       refSystem,
-      voltageLimits,
+      defaultVoltageLimits,
       startTime,
       endTime,
       simonaConfig,
@@ -202,7 +200,7 @@ trait CongestedComponentsTestData
 
   val transformerResult2 = new Transformer2WResult(
     startTime,
-    transformer1.getUuid,
+    transformer2.getUuid,
     321.asAmpere,
     0.asDegreeGeom,
     898.asAmpere,

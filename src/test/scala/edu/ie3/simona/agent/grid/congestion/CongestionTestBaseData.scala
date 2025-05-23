@@ -8,36 +8,41 @@ package edu.ie3.simona.agent.grid.congestion
 
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
 }
+import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.services.{
   LoadProfileMessage,
   ServiceMessage,
   WeatherMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
+import edu.ie3.simona.test.common.result.CongestedComponentsTestData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
-import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKitBase,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
+import org.apache.pekko.actor.typed.scaladsl.{
+  ActorContext,
+  Behaviors,
+  StashBuffer,
+}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.mockito.Mockito.when
+import squants.electro.Kilovolts
+import squants.energy.Megawatts
 
-import java.time.ZonedDateTime
 import scala.concurrent.duration.DurationInt
 
 trait CongestionTestBaseData
     extends ConfigTestData
-    with DbfsTestGrid
+    with CongestedComponentsTestData
     with TestSpawnerTyped {
   this: ActorTestKitBase =>
 
@@ -50,8 +55,9 @@ trait CongestionTestBaseData
       .resolve()
   )
 
-  val startTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime(
-    config.simona.time.startDateTime
+  protected val refSystem: RefSystem = RefSystem(
+    Megawatts(600d),
+    Kilovolts(110d),
   )
 
   protected val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
@@ -81,6 +87,10 @@ trait CongestionTestBaseData
     "resultListener"
   )
 
+  protected val gridAgentActivation: TestProbe[Activation] = TestProbe(
+    "gridAgentActivation"
+  )
+
   protected implicit val constantData: GridAgentConstantData =
     GridAgentConstantData(
       environmentRefs,
@@ -88,8 +98,21 @@ trait CongestionTestBaseData
       Iterable(resultListener.ref),
       3600,
       startTime,
-      mock[ActorRef[Activation]],
+      gridAgentActivation.ref,
     )
+
+  def behaviorWithContextAndBuffer(
+      factory: (
+          ctx: ActorContext[GridAgent.Request],
+          buffer: StashBuffer[GridAgent.Request],
+      ) => Behavior[GridAgent.Request]
+  )(using
+      capacity: Int = 10
+  ): Behavior[GridAgent.Request] = Behaviors.withStash(capacity) { buffer =>
+    Behaviors.setup { ctx =>
+      factory(ctx, buffer)
+    }
+  }
 
   def spawnWithBuffer(
       factory: StashBuffer[GridAgent.Request] => Behavior[GridAgent.Request],
@@ -116,6 +139,14 @@ trait CongestionTestBaseData
     when(data.isSuperior).thenReturn(isSuperior)
     when(data.congestionManagementParams).thenReturn(cmParams)
     when(data.inferiorGridRefs).thenReturn(map)
+    when(data.superiorGridNodeUuids).thenReturn(Vector.empty)
+
+    val gridEnv = mock[GridEnvironment]
+    when(data.gridEnv).thenReturn(gridEnv)
+
+    when(gridEnv.gridModel).thenReturn(gridModel)
+    when(gridEnv.subgridGateToActorRef).thenReturn(Map.empty)
+    when(gridEnv.nodeToAssetAgents).thenReturn(Map.empty)
 
     data
   }
