@@ -10,7 +10,10 @@ import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  SpecificHeatCapacityConversionSimona,
+  TemperatureConversionSimona,
+}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import squants.Energy
@@ -41,42 +44,24 @@ class CylindricalThermalStorageSpec
   )
 
   def buildThermalStorage(
-      storageInput: CylindricalStorageInput,
+      cylindricalStorageInput: CylindricalStorageInput,
       volume: Volume,
   ): CylindricalThermalStorage = {
     val storedEnergy = CylindricalThermalStorage.volumeToEnergy(
       volume,
-      KilowattHoursPerKelvinCubicMeters(
-        storageInput.getC
-          .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
-          .getValue
-          .doubleValue
-      ),
-      Celsius(
-        storageInput.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()
-      ),
-      Celsius(
-        storageInput.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()
-      ),
+      cylindricalStorageInput.getC.toSquants,
+      cylindricalStorageInput.getInletTemp.toSquants,
+      cylindricalStorageInput.getReturnTemp.toSquants,
     )
-    CylindricalThermalStorage(storageInput, storedEnergy)
+    CylindricalThermalStorage(cylindricalStorageInput, storedEnergy)
   }
 
   def vol2Energy(volume: Volume): Energy = {
     CylindricalThermalStorage.volumeToEnergy(
       volume,
-      KilowattHoursPerKelvinCubicMeters(
-        storageInput.getC
-          .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
-          .getValue
-          .doubleValue
-      ),
-      Celsius(
-        storageInput.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()
-      ),
-      Celsius(
-        storageInput.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()
-      ),
+      storageInput.getC.toSquants,
+      storageInput.getInletTemp.toSquants,
+      storageInput.getReturnTemp.toSquants,
     )
   }
 

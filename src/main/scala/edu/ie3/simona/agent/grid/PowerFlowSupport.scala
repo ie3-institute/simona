@@ -335,14 +335,14 @@ trait PowerFlowSupport {
     val targetVoltage = a.targetVoltage
 
     def combineOptionals(
-        a: Option[Double],
-        b: Option[Double],
+        pA: Option[Double],
+        pB: Option[Double],
         f: (Double, Double) => Double,
-    ): Option[Double] = (a, b) match {
-      case (Some(a), Some(b)) => Some(f(a, b))
-      case (Some(a), None)    => Some(a)
-      case (None, Some(b))    => Some(b)
-      case (None, None)       => None
+    ): Option[Double] = (pA, pB) match {
+      case (Some(vA), Some(vB)) => Some(f(vA, vB))
+      case (Some(vA), None)     => Some(vA)
+      case (None, Some(vB))     => Some(vB)
+      case (None, None)         => None
     }
 
     val activePowerMin =

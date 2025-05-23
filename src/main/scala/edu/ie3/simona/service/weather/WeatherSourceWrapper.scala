@@ -213,7 +213,6 @@ private[weather] final case class WeatherSourceWrapper private (
 }
 
 private[weather] object WeatherSourceWrapper extends LazyLogging {
-  private val DEFAULT_RESOLUTION = 3600L
 
   def apply(
       source: PsdmWeatherSource
@@ -305,9 +304,9 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         None
     }
 
-    source.foreach { source =>
+    source.foreach { src =>
       logger.info(
-        s"Successfully initialized ${source.getClass.getSimpleName} as source for WeatherSourceWrapper."
+        s"Successfully initialized ${src.getClass.getSimpleName} as source for WeatherSourceWrapper."
       )
     }
 
@@ -364,16 +363,16 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       windVel: Double,
   ) {
     def add(
-        diffIrr: Double,
-        dirIrr: Double,
-        temp: Double,
-        windVel: Double,
+        addedDiffIrr: Double,
+        addedDirIrr: Double,
+        addedTemp: Double,
+        addedWindVel: Double,
     ): WeightSum =
       WeightSum(
-        this.diffIrr + diffIrr,
-        this.dirIrr + dirIrr,
-        this.temp + temp,
-        this.windVel + windVel,
+        this.diffIrr + addedDiffIrr,
+        this.dirIrr + addedDirIrr,
+        this.temp + addedTemp,
+        this.windVel + addedWindVel,
       )
 
     /** Scale the given [[WeatherData]] by dividing by the sum of weights per

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
+- Fixed variable shadowing [#1371](https://github.com/ie3-institute/simona/issues/1371)
 
 ## [4.0.0] - 2025-05-09
 
