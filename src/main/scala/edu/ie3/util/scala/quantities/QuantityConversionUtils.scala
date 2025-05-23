@@ -10,6 +10,7 @@ import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.{
   EnergyPrice,
   SpecificConductance,
+  SpecificHeatCapacity,
   SpecificResistance,
 }
 import edu.ie3.util.scala.quantities
@@ -17,7 +18,7 @@ import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
-import squants.{Amperes, Each, Kelvin, Radians}
+import squants.{Amperes, Each, Radians}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.unit.Units.*
 
@@ -276,5 +277,28 @@ object QuantityConversionUtils {
     def toSquants: squants.space.Volume = CubicMeters(
       quantity.to(CUBIC_METRE).getValue.doubleValue
     )
+  }
+
+  /** Implicit class that contains a method to convert a given
+    * [[ComparableQuantity]] with unit
+    * [[KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE]] into
+    * [[edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters]].
+    *
+    * @param quantity
+    *   To convert.
+    */
+  implicit class SpecificHeatCapacityConversionSimona(
+      quantity: ComparableQuantity[SpecificHeatCapacity]
+  ) {
+
+    /** Returns a quantity with unit [[KilowattHoursPerKelvinCubicMeters]].
+      */
+    def toSquants: edu.ie3.util.scala.quantities.SpecificHeatCapacity =
+      KilowattHoursPerKelvinCubicMeters(
+        quantity
+          .to(KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
+          .getValue
+          .doubleValue
+      )
   }
 }
