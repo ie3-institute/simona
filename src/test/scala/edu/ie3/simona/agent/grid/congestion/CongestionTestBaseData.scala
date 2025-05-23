@@ -15,16 +15,15 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.{GridModel, VoltageLimits}
+import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.services.{
   LoadProfileMessage,
   ServiceMessage,
   WeatherMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
+import edu.ie3.simona.test.common.result.CongestedComponentsTestData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
-import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKitBase,
   TestProbe,
@@ -36,13 +35,14 @@ import org.apache.pekko.actor.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.mockito.Mockito.when
+import squants.electro.Kilovolts
+import squants.energy.Megawatts
 
-import java.time.ZonedDateTime
 import scala.concurrent.duration.DurationInt
 
 trait CongestionTestBaseData
     extends ConfigTestData
-    with DbfsTestGrid
+    with CongestedComponentsTestData
     with TestSpawnerTyped {
   this: ActorTestKitBase =>
 
@@ -55,8 +55,9 @@ trait CongestionTestBaseData
       .resolve()
   )
 
-  val startTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime(
-    config.simona.time.startDateTime
+  protected val refSystem: RefSystem = RefSystem(
+    Megawatts(600d),
+    Kilovolts(110d),
   )
 
   protected val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
@@ -89,8 +90,6 @@ trait CongestionTestBaseData
   protected val gridAgentActivation: TestProbe[Activation] = TestProbe(
     "gridAgentActivation"
   )
-
-  protected val voltageLimits: VoltageLimits = VoltageLimits(0.9, 1.1)
 
   protected implicit val constantData: GridAgentConstantData =
     GridAgentConstantData(
@@ -145,12 +144,9 @@ trait CongestionTestBaseData
     val gridEnv = mock[GridEnvironment]
     when(data.gridEnv).thenReturn(gridEnv)
 
-    val gridModel = mock[GridModel]
     when(gridEnv.gridModel).thenReturn(gridModel)
     when(gridEnv.subgridGateToActorRef).thenReturn(Map.empty)
     when(gridEnv.nodeToAssetAgents).thenReturn(Map.empty)
-
-    when(gridModel.voltageLimits).thenReturn(voltageLimits)
 
     data
   }
