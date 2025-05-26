@@ -6,9 +6,8 @@
 
 package edu.ie3.util.scala.quantities
 
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.{
-  Currency,
   EnergyPrice,
   SpecificConductance,
   SpecificResistance,
@@ -16,13 +15,13 @@ import edu.ie3.util.quantities.interfaces.{
 import edu.ie3.util.scala.quantities
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.market.{EUR, Money}
-import squants.space.SquareMeters
-import squants.{Amperes, Each, Radians}
+import squants.space.{CubicMeters, SquareMeters}
+import squants.thermal.Celsius
+import squants.{Amperes, Each, Kelvin, Radians}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
-import javax.measure.quantity._
+import javax.measure.quantity.*
 
 /** Some utilities to improve the conversion between [[ComparableQuantity]] and
   * [[squants]].
@@ -243,4 +242,39 @@ object QuantityConversionUtils {
     )
   }
 
+  /** Implicit class that contains a method to convert a given
+    * [[ComparableQuantity]] with unit [[CELSIUS]] into
+    * [[squants.thermal.Celsius]].
+    *
+    * @param quantity
+    *   To convert.
+    */
+  implicit class TemperatureConversionSimona(
+      quantity: ComparableQuantity[Temperature]
+  ) {
+
+    /** Returns a quantity with unit [[Celsius]].
+      */
+    def toSquants: squants.Temperature = Celsius(
+      quantity.to(CELSIUS).getValue.doubleValue
+    )
+  }
+
+  /** Implicit class that contains a method to convert a given
+    * [[ComparableQuantity]] with unit [[CUBIC_METRE]] into
+    * [[squants.space.CubicMeters]].
+    *
+    * @param quantity
+    *   To convert.
+    */
+  implicit class VolumeConversionSimona(
+      quantity: ComparableQuantity[Volume]
+  ) {
+
+    /** Returns a quantity with unit [[CubicMeters]].
+      */
+    def toSquants: squants.space.Volume = CubicMeters(
+      quantity.to(CUBIC_METRE).getValue.doubleValue
+    )
+  }
 }

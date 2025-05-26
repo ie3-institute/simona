@@ -12,7 +12,7 @@ plugins {
   id 'com.gradleup.shadow' version '8.3.6' // fat jar
   id "org.sonarqube" version "6.2.0.5505" // sonarqube
   id "org.scoverage" version "8.1" // scala code coverage scoverage
-  id 'org.hidetake.ssh' version '2.11.2'
+  id 'org.hidetake.ssh' version '2.12.0'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
   id "application"
 }
@@ -114,7 +114,7 @@ dependencies {
   testRuntimeOnly "org.scalatestplus:junit-5-11_${scalaVersion}:3.2.19.0"
 
   // mocking framework
-  testImplementation 'org.mockito:mockito-core:5.17.0'
+  testImplementation 'org.mockito:mockito-core:5.18.0'
   testImplementation "org.scalatestplus:mockito-3-4_${scalaVersion}:3.2.10.0"
 
   // pekko
