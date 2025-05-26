@@ -338,7 +338,7 @@ final case class ThermalGrid(
     val (_, thresholdThermalHouse) =
       handleFeedInHouse(state, qDotHouse)
 
-    val thresholdThermalStorage =
+    val thresholdHeatStorage =
       handleFeedInStorage(state, qDotHeatStorage, heatStorage)
 
     // Handle domestic hot water demand
@@ -358,7 +358,7 @@ final case class ThermalGrid(
     val nextThreshold = determineMostRecentThreshold(
       Seq(
         thresholdThermalHouse,
-        thresholdThermalStorage,
+        thresholdHeatStorage,
         thresholdHotWaterStorage,
       )
     )
@@ -837,14 +837,13 @@ object ThermalGrid {
       domesticHotWaterStorageState: Option[ThermalStorageState],
   ) {
 
-    /** This method will return booleans whether there is a heat demand of house
-      * or thermal storage as well as a boolean indicating if there is no
-      * thermal storage, or it is empty.
+    /** This method will return boolean indicating if there is no heat storage,
+      * or it is empty.
       *
       * @return
-      *   boolean which is true, if there is no thermalStorage, or it's empty.
+      *   boolean which is true, if there is no heat Storage, or it's empty.
       */
-    def isThermalStorageEmpty: Boolean = {
+    def isHeatStorageEmpty: Boolean = {
       implicit val tolerance: Energy = KilowattHours(1e-3)
       heatStorageState.isEmpty || heatStorageState
         .exists(

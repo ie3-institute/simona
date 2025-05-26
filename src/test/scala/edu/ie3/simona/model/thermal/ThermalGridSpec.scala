@@ -150,7 +150,7 @@ class ThermalGridSpec
         thermalGridOnlyHouse,
         testGridAmbientTemperature,
       )
-      val result = initialState.isThermalStorageEmpty
+      val result = initialState.isHeatStorageEmpty
       result shouldBe true
     }
 
@@ -158,7 +158,7 @@ class ThermalGridSpec
       new edu.ie3.datamodel.models.input.container.ThermalGrid(
         thermalBusInput,
         Set(thermalHouseInput).asJava,
-        Set[ThermalStorageInput](thermalStorageInput).asJava,
+        Set[ThermalStorageInput](heatStorageInput).asJava,
         Set.empty[ThermalStorageInput].asJava,
       )
     )
@@ -166,7 +166,7 @@ class ThermalGridSpec
     "return true when all stored energy is effectively zero" in {
       val initialState =
         ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
-      val result = initialState.isThermalStorageEmpty
+      val result = initialState.isHeatStorageEmpty
       result shouldBe true
     }
 
@@ -178,7 +178,7 @@ class ThermalGridSpec
           storageState.copy(storedEnergy = KilowattHours(1))
         )
       )
-      val result = gridState.isThermalStorageEmpty
+      val result = gridState.isHeatStorageEmpty
       result shouldBe false
     }
   }

@@ -20,7 +20,7 @@ import tech.units.indriya.unit.Units
 import java.util.UUID
 
 trait ThermalStorageTestData extends ThermalGridTestData {
-  protected val thermalStorageInput: CylindricalStorageInput =
+  protected val heatStorageInput: CylindricalStorageInput =
     new CylindricalStorageInput(
       UUID.randomUUID(),
       "ThermalStorage",
@@ -35,11 +35,11 @@ trait ThermalStorageTestData extends ThermalGridTestData {
       getQuantity(20.0, PowerSystemUnits.KILOWATT),
     )
 
-  protected val thermalStorage: CylindricalThermalStorage =
-    CylindricalThermalStorage(thermalStorageInput)
+  protected val heatStorage: CylindricalThermalStorage =
+    CylindricalThermalStorage(heatStorageInput)
 
-  protected val expectedCylindricalStorageStartingState: ThermalStorageState =
-    thermalStorage.startingState
+  protected val expectedHeatStorageStartingState: ThermalStorageState =
+    heatStorage.startingState
 
   protected val domesticHotWaterStorageInput: DomesticHotWaterStorageInput =
     new DomesticHotWaterStorageInput(

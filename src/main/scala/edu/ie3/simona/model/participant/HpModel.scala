@@ -287,7 +287,7 @@ class HpModel private (
     * @param thermalGridState
     *   State of the thermalGrid.
     * @param thermalDemands
-    *   ThermalEnergyDemand of the house and the thermal storage.
+    *   ThermalEnergyDemand of the house and the thermal storages.
     * @param wasRunningLastPeriod
     *   Indicates if the Hp was running till this tick.
     * @return
@@ -301,24 +301,24 @@ class HpModel private (
   ): (Boolean, Boolean, Boolean) = {
 
     val demandHouse = thermalDemands.houseDemand
-    val demandThermalStorage = thermalDemands.heatStorageDemand
+    val demandHeatStorage = thermalDemands.heatStorageDemand
     val demandDomesticHotWaterStorage =
       thermalDemands.domesticHotWaterStorageDemand
-    val noThermalStorageOrEmpty = thermalGridState.isThermalStorageEmpty
+    val noHeatStorageOrEmpty = thermalGridState.isHeatStorageEmpty
 
     val turnHpOn =
-      (demandHouse.hasRequiredDemand && noThermalStorageOrEmpty) ||
+      (demandHouse.hasRequiredDemand && noHeatStorageOrEmpty) ||
         (demandHouse.hasPossibleDemand && wasRunningLastPeriod ||
-          demandThermalStorage.hasRequiredDemand ||
-          (demandThermalStorage.hasPossibleDemand && wasRunningLastPeriod)) ||
+          demandHeatStorage.hasRequiredDemand ||
+          (demandHeatStorage.hasPossibleDemand && wasRunningLastPeriod)) ||
         demandDomesticHotWaterStorage.hasRequiredDemand
 
     val canOperate =
       demandHouse.hasRequiredDemand || demandHouse.hasPossibleDemand ||
-        demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasPossibleDemand ||
+        demandHeatStorage.hasRequiredDemand || demandHeatStorage.hasPossibleDemand ||
         demandDomesticHotWaterStorage.hasRequiredDemand
     val canBeOutOfOperation =
-      !(demandHouse.hasRequiredDemand && noThermalStorageOrEmpty) && !demandDomesticHotWaterStorage.hasRequiredDemand
+      !(demandHouse.hasRequiredDemand && noHeatStorageOrEmpty) && !demandDomesticHotWaterStorage.hasRequiredDemand
 
     (
       turnHpOn,

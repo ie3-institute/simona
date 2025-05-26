@@ -50,7 +50,7 @@ class ThermalGridWithHouseAndStorageSpec
     new edu.ie3.datamodel.models.input.container.ThermalGrid(
       thermalBusInput,
       Set(thermalHouseInput).asJava,
-      Set[ThermalStorageInput](thermalStorageInput).asJava,
+      Set[ThermalStorageInput](heatStorageInput).asJava,
       Set[ThermalStorageInput](domesticHotWaterStorageInput).asJava,
     )
   )
@@ -72,7 +72,7 @@ class ThermalGridWithHouseAndStorageSpec
         new edu.ie3.datamodel.models.input.container.ThermalGrid(
           thermalBusInput,
           Set(thermalHouseInput).asJava,
-          Set[ThermalStorageInput](thermalStorageInput).asJava,
+          Set[ThermalStorageInput](heatStorageInput).asJava,
           Set[ThermalStorageInput](domesticHotWaterStorageInput).asJava,
         )
 
@@ -83,7 +83,7 @@ class ThermalGridWithHouseAndStorageSpec
               Some(domesticHotWaterStorageGenerated),
             ) =>
           thermalHouseGenerated shouldBe thermalHouse
-          thermalHeatStorageGenerated shouldBe thermalStorage
+          thermalHeatStorageGenerated shouldBe heatStorage
           domesticHotWaterStorageGenerated shouldBe domesticHotWaterStorage
         case _ =>
           fail("Generation of thermal grid from thermal input grid failed.")
@@ -118,14 +118,14 @@ class ThermalGridWithHouseAndStorageSpec
                 ),
               ) =>
             houseTick shouldBe expectedHouseStartingState.tick
-            tickHeatStorage shouldBe expectedCylindricalStorageStartingState.tick
+            tickHeatStorage shouldBe expectedHeatStorageStartingState.tick
             tickWaterStorage shouldBe expectedDomesticHotWaterStorageStartingState.tick
 
             innerTemperature should approximate(
               expectedHouseStartingState.innerTemperature
             )
             storedEnergyHeatStorage should approximate(
-              expectedCylindricalStorageStartingState.storedEnergy
+              expectedHeatStorageStartingState.storedEnergy
             )
 
             storedEnergyWaterStorage should approximate(
@@ -421,8 +421,8 @@ class ThermalGridWithHouseAndStorageSpec
         reachedThreshold shouldBe Some(StorageEmpty(1800))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           zeroKW,
-          thermalStorage.pThermalMax,
-          thermalStorage.pThermalMax * -1,
+          heatStorage.pThermalMax,
+          heatStorage.pThermalMax * -1,
           zeroKW,
         )
       }
@@ -462,8 +462,8 @@ class ThermalGridWithHouseAndStorageSpec
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           zeroKW,
-          thermalStorage.pThermalMax,
-          thermalStorage.pThermalMax * -1,
+          heatStorage.pThermalMax,
+          heatStorage.pThermalMax * -1,
           zeroKW,
         )
 
@@ -607,8 +607,8 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
               zeroKW,
-              thermalStorage.pThermalMax,
-              thermalStorage.getpThermalMax * -1,
+              heatStorage.pThermalMax,
+              heatStorage.getpThermalMax * -1,
               zeroKW,
             )
             nextThreshold shouldBe Some(StorageEmpty(5400))
@@ -661,8 +661,8 @@ class ThermalGridWithHouseAndStorageSpec
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           zeroKW,
-          thermalStorage.pThermalMax,
-          thermalStorage.pThermalMax * -1,
+          heatStorage.pThermalMax,
+          heatStorage.pThermalMax * -1,
           zeroKW,
         )
         threshold shouldBe Some(HouseTargetTemperatureReached(6344L))
@@ -680,7 +680,7 @@ class ThermalGridWithHouseAndStorageSpec
             Celsius(17),
           )
         ),
-        heatStorageState = Some(expectedCylindricalStorageStartingState),
+        heatStorageState = Some(expectedHeatStorageStartingState),
         domesticHotWaterStorageState =
           Some(expectedDomesticHotWaterStorageStartingState),
       )
