@@ -48,7 +48,7 @@ import java.nio.file.Path
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -236,50 +236,56 @@ object PrimaryServiceWorker extends SimonaService[ServiceMessage] {
             s"Provided init data '${unsupported.getClass.getSimpleName}' for primary service are invalid!"
           )
         )
-    }).flatMap { case (source, simulationStart, valueClass) =>
-      implicit val startDateTime: ZonedDateTime = simulationStart
+    }).flatMap {
+      case (
+            source: TimeSeriesSource[Value],
+            simulationStart,
+            valueClass: Class[Value],
+          ) =>
+        implicit val startDateTime: ZonedDateTime = simulationStart
 
-      // Note: because we want data for the start tick as well, we need to use any tick before the start tick
-      val intervalStart = simulationStart.minusSeconds(1)
+        // Note: because we want data for the start tick as well, we need to use any tick before the start tick
+        val intervalStart = simulationStart.minusSeconds(1)
 
-      val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
-        source
-          .getTimeKeysAfter(intervalStart)
-          .asScala
-          .toSeq
-          .map(_.toTick)
-      ).pop
+        val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
+          source
+            .getTimeKeysAfter(intervalStart)
+            .asScala
+            .toSeq
+            .map(_.toTick)
+        ).pop
 
-      (maybeNextTick, furtherActivationTicks) match {
-        case (Some(tick), furtherActivationTicks) if tick == 0L =>
-          /* Set up the state data and determine the next activation tick. */
-          val initializedStateData: PrimaryServiceInitializedStateData[Value] =
-            PrimaryServiceInitializedStateData(
-              maybeNextTick,
-              furtherActivationTicks,
-              simulationStart,
-              valueClass,
-              source,
+        (maybeNextTick, furtherActivationTicks) match {
+          case (Some(tick), furtherActivationTicks) if tick == 0L =>
+            /* Set up the state data and determine the next activation tick. */
+            val initializedStateData
+                : PrimaryServiceInitializedStateData[Value] =
+              PrimaryServiceInitializedStateData(
+                maybeNextTick,
+                furtherActivationTicks,
+                simulationStart,
+                valueClass,
+                source,
+              )
+
+            Success(initializedStateData, maybeNextTick)
+
+          case (Some(tick), _) if tick > 0L =>
+            /* The start of the data needs to be at the first tick of the simulation. */
+            Failure(
+              new ServiceRegistrationException(
+                s"The data for the timeseries '${source.getTimeSeries.getUuid}' starts after the start of this simulation (tick: $tick)! This is not allowed!"
+              )
             )
 
-          Success(initializedStateData, maybeNextTick)
-
-        case (Some(tick), _) if tick > 0L =>
-          /* The start of the data needs to be at the first tick of the simulation. */
-          Failure(
-            new ServiceRegistrationException(
-              s"The data for the timeseries '${source.getTimeSeries.getUuid}' starts after the start of this simulation (tick: $tick)! This is not allowed!"
+          case _ =>
+            /* No data for the simulation. */
+            Failure(
+              new ServiceRegistrationException(
+                s"No appropriate data found within simulation time range in timeseries '${source.getTimeSeries.getUuid}'!"
+              )
             )
-          )
-
-        case _ =>
-          /* No data for the simulation. */
-          Failure(
-            new ServiceRegistrationException(
-              s"No appropriate data found within simulation time range in timeseries '${source.getTimeSeries.getUuid}'!"
-            )
-          )
-      }
+        }
     }
   }
 

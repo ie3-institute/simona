@@ -43,9 +43,7 @@ final case class MinMaxFlexOptions(
 
 object MinMaxFlexOptions {
 
-  implicit class RichIterable(
-      private val flexOptions: Iterable[MinMaxFlexOptions]
-  ) extends AnyVal {
+  extension (flexOptions: Iterable[MinMaxFlexOptions]) {
     def flexSum: MinMaxFlexOptions =
       flexOptions.foldLeft(MinMaxFlexOptions(zeroKW, zeroKW, zeroKW)) {
         case (sumOptions, addOptions) =>

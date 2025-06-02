@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.io.result
 
-import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.simona.io.result.plain.PlainWriter.NodeResultWriter
@@ -69,20 +68,19 @@ object ResultEntityKafkaSink {
 
     tag.runtimeClass match {
       case NodeResClass =>
-        implicit val recordFormat: RecordFormat[PlainNodeResult] =
-          RecordFormat[PlainNodeResult]
+        implicit val valueSerializer: Serializer[PlainNodeResult] =
+          reflectionSerializer4S[PlainNodeResult]
         createSink(schemaRegistryUrl, props, topic, NodeResultWriter(simRunId))
     }
   }
 
-  private def createSink[F <: ResultEntity, P <: PlainResult: RecordFormat](
+  private def createSink[F <: ResultEntity, P <: PlainResult](
       schemaRegistryUrl: String,
       props: Properties,
       topic: String,
       writer: PlainWriter[F, P],
-  ): ResultEntityKafkaSink[F, P] = {
+  )(implicit valueSerializer: Serializer[P]): ResultEntityKafkaSink[F, P] = {
     val keySerializer = Serdes.String().serializer()
-    val valueSerializer: Serializer[P] = reflectionSerializer4S[P]
 
     valueSerializer.configure(
       Map(SCHEMA_REGISTRY_URL_CONFIG -> schemaRegistryUrl).asJava,

@@ -8,14 +8,13 @@ package edu.ie3.simona.agent.grid
 
 import breeze.linalg.DenseVector
 import breeze.math.Complex
-import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.powerflow.model.FailureCause.CalculationFailed
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.GridAgent.idle
+import edu.ie3.simona.agent.grid.GridAgent.{afterPowerFlow, pipeToSelf}
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
@@ -33,7 +32,6 @@ import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
@@ -44,14 +42,11 @@ import org.apache.pekko.actor.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior, Scheduler}
 import org.apache.pekko.util.Timeout
-import org.slf4j.Logger
 import squants.Each
 
-import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
   * forward backward sweep (DBFS) algorithm execution. It is considered to be
@@ -102,16 +97,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           // 2. inferior grids p/q values
           askInferiorGridsForPowers(
             gridAgentBaseData.currentSweepNo,
-            gridAgentBaseData.gridEnv.subgridGateToActorRef,
-            gridAgentBaseData.inferiorGridGates,
+            gridAgentBaseData.inferiorGridRefs,
             gridAgentBaseData.powerFlowParams.sweepTimeout,
           )(ctx)
 
           // 3. superior grids slack voltage
           askSuperiorGridsForSlackVoltages(
             gridAgentBaseData.currentSweepNo,
-            gridAgentBaseData.gridEnv.subgridGateToActorRef,
-            gridAgentBaseData.superiorGridGates,
+            gridAgentBaseData.superiorGridRefs,
             gridAgentBaseData.powerFlowParams.sweepTimeout,
           )(ctx)
 
@@ -237,7 +230,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               /* Determine the slack node voltage under consideration of the target voltage set point */
               val vTarget =
                 gridAgentBaseData.gridEnv.gridModel.gridComponents.nodes
-                  .find { case NodeModel(uuid, _, _, isSlack, _, _) =>
+                  .find { case NodeModel(uuid, _, _, isSlack, _, _, _) =>
                     uuid == nodeUuid && isSlack
                   }
                   .map(_.vTarget)
@@ -428,8 +421,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           // request the updated slack voltages from the superior grid
           askSuperiorGridsForSlackVoltages(
             gridAgentBaseData.currentSweepNo,
-            gridAgentBaseData.gridEnv.subgridGateToActorRef,
-            gridAgentBaseData.superiorGridGates,
+            gridAgentBaseData.superiorGridRefs,
             gridAgentBaseData.powerFlowParams.sweepTimeout,
           )(ctx)
 
@@ -463,33 +455,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               }
           }
 
-          // notify listener about the results
-          ctx.log.debug(
-            "Calculate results and sending the results to the listener ..."
-          )
-          createAndSendPowerFlowResults(
-            gridAgentBaseData,
-            currentTick.toDateTime(constantData.simStartTime),
-          )(ctx.log, constantData)
-
-          // do my cleanup stuff
-          ctx.log.debug("Doing my cleanup stuff")
-
-          // / clean copy of the gridAgentBaseData
-          val cleanedGridAgentBaseData = GridAgentBaseData.clean(
-            gridAgentBaseData,
-            gridAgentBaseData.superiorGridNodeUuids,
-            gridAgentBaseData.inferiorGridGates,
-          )
-
-          // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
-          constantData.environmentRefs.scheduler ! Completion(
-            constantData.activationAdapter,
-            Some(nextTick),
-          )
-
-          // return to Idle
-          idle(cleanedGridAgentBaseData)
+          afterPowerFlow(gridAgentBaseData, currentTick, nextTick, ctx)
 
         // handles power request that arrive to early
         case (requestGridPower: RequestGridPower, _) =>
@@ -733,8 +699,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               val askForInferiorGridPowersOpt =
                 askInferiorGridsForPowers(
                   gridAgentBaseData.currentSweepNo,
-                  gridAgentBaseData.gridEnv.subgridGateToActorRef,
-                  gridAgentBaseData.inferiorGridGates,
+                  gridAgentBaseData.inferiorGridRefs,
                   gridAgentBaseData.powerFlowParams.sweepTimeout,
                 )(ctx)
 
@@ -1195,9 +1160,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     *
     * @param currentSweepNo
     *   the current sweep number the DBFS is in
-    * @param subGridGateToActorRef
-    *   a map containing a mapping from [[SubGridGate]] s to corresponding
-    *   [[ActorRef]] s of [[GridAgent]] s @ these nodes
+    * @param inferiorGridRefs
+    *   a map containing a mapping from [[ActorRef]]s to corresponding [[UUID]]s
+    *   of inferior nodes
     * @param askTimeout
     *   a timeout for the request
     * @return
@@ -1206,8 +1171,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     */
   private def askInferiorGridsForPowers(
       currentSweepNo: Int,
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
-      inferiorGridGates: Seq[SubGridGate],
+      inferiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]],
       askTimeout: FiniteDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
@@ -1217,27 +1181,15 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     implicit val scheduler: Scheduler = ctx.system.scheduler
 
     ctx.log.debug(
-      s"asking inferior grids for power values: {}",
-      inferiorGridGates,
+      s"Asking inferior grids for power values: {}",
+      inferiorGridRefs,
     )
 
-    if (inferiorGridGates.nonEmpty) {
+    if (inferiorGridRefs.nonEmpty) {
       val future = Future
         .sequence(
-          inferiorGridGates
-            .map { inferiorGridGate =>
-              subGridGateToActorRef(
-                inferiorGridGate
-              ) -> inferiorGridGate.superiorNode.getUuid
-            }
-            .groupMap {
-              // Group the gates by target actor, so that only one request is sent per grid agent
-              case (inferiorGridAgentRef, _) =>
-                inferiorGridAgentRef
-            } { case (_, inferiorGridGates) =>
-              inferiorGridGates
-            }
-            .map { case (inferiorGridAgentRef, inferiorGridGateNodes) =>
+          inferiorGridRefs.map {
+            case (inferiorGridAgentRef, inferiorGridGateNodes) =>
               inferiorGridAgentRef
                 .ask[GridAgent.Request](ref =>
                   RequestGridPower(
@@ -1252,8 +1204,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   case FailedPowerFlow =>
                     (inferiorGridAgentRef, FailedPowerFlow)
                 }
-            }
-            .toVector
+          }.toVector
         )
         .map(res => ReceivedGridPowerValues(res))
       pipeToSelf(future, ctx)
@@ -1266,9 +1217,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     *
     * @param currentSweepNo
     *   the current sweep number the DBFS is in
-    * @param subGridGateToActorRef
-    *   a map containing a mapping from [[SubGridGate]] s to corresponding
-    *   [[ActorRef]] s of [[GridAgent]] s @ these nodes
+    * @param superiorGridRefs
+    *   a map containing a mapping from [[ActorRef]]s to corresponding [[UUID]]s
+    *   superior nodes
     * @param askTimeout
     *   a timeout for the request
     * @return
@@ -1277,8 +1228,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     */
   private def askSuperiorGridsForSlackVoltages(
       currentSweepNo: Int,
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
-      superiorGridGates: Vector[SubGridGate],
+      superiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]],
       askTimeout: FiniteDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
@@ -1288,85 +1238,30 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     implicit val scheduler: Scheduler = ctx.system.scheduler
 
     ctx.log.debug(
-      s"asking superior grids for slack voltage values: {}",
-      superiorGridGates,
+      s"Asking superior grids for slack voltage values: {}",
+      superiorGridRefs,
     )
 
-    if (superiorGridGates.nonEmpty) {
+    if (superiorGridRefs.nonEmpty) {
       val future = Future
         .sequence(
-          superiorGridGates
-            .groupBy(subGridGateToActorRef(_))
-            .map { case (superiorGridAgent, gridGates) =>
-              superiorGridAgent
-                .ask[GridAgent.Request](ref =>
-                  SlackVoltageRequest(
-                    currentSweepNo,
-                    gridGates.map(_.superiorNode.getUuid),
-                    ref,
-                  )
+          superiorGridRefs.map { case (superiorGridAgent, superiorNodes) =>
+            superiorGridAgent
+              .ask[GridAgent.Request](ref =>
+                SlackVoltageRequest(
+                  currentSweepNo,
+                  superiorNodes,
+                  ref,
                 )
-                .map { case providedSlackValues: SlackVoltageResponse =>
-                  (superiorGridAgent, providedSlackValues)
-                }
-            }
-            .toVector
+              )
+              .map { case providedSlackValues: SlackVoltageResponse =>
+                (superiorGridAgent, providedSlackValues)
+              }
+          }.toVector
         )
         .map(res => ReceivedSlackVoltageValues(res))
       pipeToSelf(future, ctx)
       true
     } else false
-  }
-
-  /** Create an instance of
-    * [[edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent]] and send it to
-    * all listener Note: in the future this one could become a bottleneck for
-    * power flow calculation timesteps. For performance improvements one might
-    * consider putting this into a future with pipeTo. One has to consider how
-    * to deal with unfinished futures in shutdown phase then
-    *
-    * @param gridAgentBaseData
-    *   the grid agent base data
-    * @param currentTimestamp
-    *   the current time stamp
-    */
-  private def createAndSendPowerFlowResults(
-      gridAgentBaseData: GridAgentBaseData,
-      currentTimestamp: ZonedDateTime,
-  )(implicit
-      log: Logger,
-      constantData: GridAgentConstantData,
-  ): Unit = {
-    gridAgentBaseData.sweepValueStores.lastOption.foreach {
-      case (_, valueStore) =>
-        constantData.notifyListeners(
-          this.createResultModels(
-            gridAgentBaseData.gridEnv.gridModel,
-            valueStore,
-          )(
-            currentTimestamp,
-            log,
-          )
-        )
-    }
-  }
-
-  /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
-    * itself. If the future is a [[Success]] the message is sent, else a
-    * [[WrappedFailure]] with the thrown error is sent.
-    *
-    * @param future
-    *   future message that should be sent to the agent after it was processed
-    * @param ctx
-    *   [[ActorContext]] of the receiving actor
-    */
-  private def pipeToSelf(
-      future: Future[GridAgent.Request],
-      ctx: ActorContext[GridAgent.Request],
-  ): Unit = {
-    ctx.pipeToSelf[GridAgent.Request](future) {
-      case Success(value)     => value
-      case Failure(exception) => WrappedFailure(exception)
-    }
   }
 }

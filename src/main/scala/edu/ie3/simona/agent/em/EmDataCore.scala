@@ -55,7 +55,7 @@ object EmDataCore {
     * @param lastActiveTick
     *   The last active tick, if applicable
     */
-  final case class Inactive private (
+  final case class Inactive(
       private val modelToActor: Map[UUID, Actor],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val flexWithNext: Set[UUID],

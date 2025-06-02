@@ -6,9 +6,21 @@
 
 package edu.ie3.simona.config
 
+import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
+import pureconfig.generic.ProductHint
+import pureconfig.generic.semiauto.deriveConvert
+
+import scala.deriving.Mirror
+
 /** Configuration parameters used by the [[SimonaConfig]].
   */
 object ConfigParams {
+  implicit def productHint[T]: ProductHint[T] =
+    ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  extension (c: ConfigConvert.type)
+    private inline def derived[A](using m: Mirror.Of[A]): ConfigConvert[A] =
+      deriveConvert[A]
 
   /** Default time pattern: `yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X`
     */
@@ -20,7 +32,7 @@ object ConfigParams {
     */
   final case class SampleParams(
       use: Boolean = true
-  )
+  ) derives ConfigConvert
 
   /** Basic trait for all csv parameters.
     */
@@ -43,6 +55,7 @@ object ConfigParams {
       override val directoryPath: String,
       override val isHierarchic: Boolean,
   ) extends CsvParams
+      derives ConfigConvert
 
   /** Time stamped csv parameters.
     * @param csvSep
@@ -60,6 +73,7 @@ object ConfigParams {
       override val isHierarchic: Boolean,
       timePattern: String = defaultTimePattern,
   ) extends CsvParams
+      derives ConfigConvert
 
   /** Csv parameters used by the [[edu.ie3.datamodel.io.sink.CsvFileSink]].
     * @param compressOutputs
@@ -79,7 +93,7 @@ object ConfigParams {
       filePrefix: String = "",
       fileSuffix: String = "",
       isHierarchic: Boolean = false,
-  )
+  ) derives ConfigConvert
 
   /** Basic trait for all influxDb1x parameters.
     */
@@ -102,6 +116,7 @@ object ConfigParams {
       override val port: Int,
       override val url: String,
   ) extends InfluxDb1xParams
+      derives ConfigConvert
 
   /** Time stamped influxDb1x parameters.
     * @param database
@@ -119,6 +134,7 @@ object ConfigParams {
       timePattern: String = defaultTimePattern,
       override val url: String,
   ) extends InfluxDb1xParams
+      derives ConfigConvert
 
   /** Basic trait for all sql parameters.
     */
@@ -149,6 +165,7 @@ object ConfigParams {
       override val tableName: String,
       override val userName: String,
   ) extends SqlParams
+      derives ConfigConvert
 
   /** Time stamped sql parameters. The table name is not used with this,
     * therefore, it is empty.
@@ -170,6 +187,7 @@ object ConfigParams {
       timePattern: String = defaultTimePattern,
       override val userName: String,
   ) extends SqlParams
+      derives ConfigConvert
 
   /** Time stamped couchbase parameters.
     * @param bucketName
@@ -195,7 +213,7 @@ object ConfigParams {
       timePattern: String = defaultTimePattern,
       url: String,
       userName: String,
-  )
+  ) derives ConfigConvert
 
   /** Basic trait for all kafka parameters.
     */
@@ -215,6 +233,7 @@ object ConfigParams {
       override val schemaRegistryUrl: String,
       topicNodeRes: String,
   ) extends KafkaParams
+      derives ConfigConvert
 
   /** Kafka runtime parameters.
     */
@@ -225,5 +244,6 @@ object ConfigParams {
       override val schemaRegistryUrl: String,
       topic: String,
   ) extends KafkaParams
+      derives ConfigConvert
 
 }

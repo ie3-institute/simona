@@ -70,7 +70,7 @@ class LoadProfileStoreSpec extends UnitSpec {
     }
 
     "return profile load factory data correctly" in {
-      val cases = Table(
+      val cases = Table[LoadProfile, Power, Energy](
         ("loadProfile", "expectedMaxPower", "expectedProfileScaling"),
         (BdewStandardLoadProfile.G0, Watts(240.4), KilowattHours(1000)),
         (RANDOM_LOAD_PROFILE, Watts(159), KilowattHours(716.5416966513656)),
@@ -86,8 +86,11 @@ class LoadProfileStoreSpec extends UnitSpec {
             maxPower should approximate(expectedMaxPower)
             energyScaling should approximate(expectedProfileScaling)
 
-          case None if store.contains(loadProfile) =>
-            fail("We expect factory here!")
+          case _ if store.contains(loadProfile) =>
+            fail("We expect factory data here!")
+
+          case _ =>
+            fail("This should not happen!")
         }
       }
     }

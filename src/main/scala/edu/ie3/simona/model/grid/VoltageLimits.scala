@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid
 
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils.asPu
 import tech.units.indriya.ComparableQuantity
 
 import javax.measure.quantity.Dimensionless

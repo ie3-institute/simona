@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
+- Added `CODEOWNERS` file [#1387](https://github.com/ie3-institute/simona/issues/1387)
+
+## Changed
+- Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
+
+### Fixed
+- Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
+
+## [4.0.0] - 2025-05-09
+
+### Added
 - Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
 - Re-implemented ResultEventListener in akka typed [#343](https://github.com/ie3-institute/simona/issues/343)
 - Add additional test cases from references for PvModelTest [#590](https://github.com/ie3-institute/simona/issues/590)
@@ -367,5 +379,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove RocketChat notification from Jenkinsfile [#234](https://github.com/ie3-institute/simona/issues/234)
 - Removed one-jar gradle plugin [#564](https://github.com/ie3-institute/simona/issues/564)
 
-[Unreleased]: https://github.com/ie3-institute/simona/compare/3.0.0...HEAD
+[Unreleased]: https://github.com/ie3-institute/simona/compare/4.0.0...HEAD
+[4.0.0]: https://github.com/ie3-institute/simona/compare/3.0.0...4.0.0
 [3.0.0]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...3.0.0

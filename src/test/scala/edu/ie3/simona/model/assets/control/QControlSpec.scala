@@ -175,7 +175,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
       val testingPoints: TableFor2[Double, Double] = Table(
         ("v", "scaleExpected"),
         (0.88, -1.0),
-        (0.9, -1),
+        (0.9, -1.0),
         (0.91, -0.8),
         (0.92, -0.6),
         (0.93, -0.4),

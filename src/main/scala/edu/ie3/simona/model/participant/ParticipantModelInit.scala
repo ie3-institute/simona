@@ -107,7 +107,7 @@ object ParticipantModelInit {
     * @return
     *   The [[PrimaryDataParticipantModel]].
     */
-  def getPrimaryModelFactory[PD <: PrimaryData: ClassTag](
+  def getPrimaryModelFactory[PD <: PrimaryData](
       inputContainer: InputModelContainer[_ <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
       primaryDataExtra: PrimaryDataExtra[PD],

@@ -40,7 +40,7 @@ import java.util.UUID
   *   mapping of node uuids to received slack voltages from superior
   *   [[GridAgent]] s if any
   */
-final case class ReceivedValuesStore private (
+final case class ReceivedValuesStore(
     nodeToReceivedPower: NodeToReceivedPower,
     nodeToReceivedSlackVoltage: NodeToReceivedSlackVoltage,
 )
@@ -105,7 +105,9 @@ object ReceivedValuesStore {
     /* Collect everything, that I expect from my asset agents */
     val assetsToReceivedPower: NodeToReceivedPower = nodeToAssetAgents.collect {
       case (uuid: UUID, actorRefs: Set[ActorRef[ParticipantAgent.Request]]) =>
-        (uuid, actorRefs.map(actorRef => actorRef -> None).toMap)
+        val map: Map[ActorRef[?], Option[PowerResponse]] =
+          actorRefs.map(actorRef => actorRef -> None).toMap
+        (uuid, map)
     }
 
     /* Add everything, that I expect from my subordinate grid agents. */

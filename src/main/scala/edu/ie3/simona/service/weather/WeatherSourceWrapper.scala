@@ -43,7 +43,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
-import edu.ie3.util.DoubleUtils.ImplicitDouble
+import edu.ie3.util.DoubleUtils.!~=
 import edu.ie3.util.interval.ClosedInterval
 import tech.units.indriya.ComparableQuantity
 

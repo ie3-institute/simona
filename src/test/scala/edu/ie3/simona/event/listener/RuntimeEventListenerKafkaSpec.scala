@@ -38,8 +38,6 @@ class RuntimeEventListenerKafkaSpec
     with RuntimeTestData {
   private var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] = _
 
-  private implicit lazy val resultFormat: RecordFormat[SimonaEndMessage] =
-    RecordFormat[SimonaEndMessage]
   private val deserializer: Deserializer[SimonaEndMessage] =
     ScalaReflectionSerde.reflectionDeserializer4S[SimonaEndMessage]
 
@@ -127,9 +125,9 @@ class RuntimeEventListenerKafkaSpec
         listenerRef ! event
 
         val receivedRecord =
-          eventually(timeout(20 seconds), interval(1 second)) {
+          eventually(timeout(20.seconds), interval(1.second)) {
             val records =
-              testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+              testConsumer.poll(1.second.toJava).asScala.map(_.value()).toList
 
             // run until one record is received. After each second, if no record
             // was received, the length check below fails and we retry

@@ -44,7 +44,7 @@ import scala.reflect.ClassTag
   * @tparam PD
   *   The type of primary data.
   */
-final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
+final case class PrimaryDataParticipantModel[PD <: PrimaryData](
     override val uuid: UUID,
     override val id: String,
     override val sRated: ApparentPower,
@@ -141,7 +141,7 @@ object PrimaryDataParticipantModel {
     * @param primaryDataExtra
     *   Extra functionality specific to the primary data class.
     */
-  final case class Factory[PD <: PrimaryData: ClassTag](
+  final case class Factory[PD <: PrimaryData](
       physicalModel: ParticipantModel[_, _],
       primaryDataExtra: PrimaryDataExtra[PD],
   ) extends ParticipantModelFactory[PrimaryDataState[PD]] {
@@ -204,7 +204,7 @@ object PrimaryDataParticipantModel {
   }
 
   private object PrimaryOperatingPoint {
-    def apply[PD <: PrimaryData: ClassTag](
+    def apply[PD <: PrimaryData](
         data: PD
     ): PrimaryOperatingPoint[PD] =
       data match {
@@ -223,7 +223,7 @@ object PrimaryDataParticipantModel {
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
-      PE <: PrimaryData with EnrichableData[_]: ClassTag
+      PE <: PrimaryData with EnrichableData[_ <: PrimaryData]
   ](
       override val data: PE
   ) extends PrimaryOperatingPoint[PE] {
