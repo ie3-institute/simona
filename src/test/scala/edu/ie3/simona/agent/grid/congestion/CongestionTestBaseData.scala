@@ -88,7 +88,6 @@ trait CongestionTestBaseData
       Iterable(resultListener.ref),
       3600,
       startTime,
-      mock[ActorRef[Activation]],
     )
 
   def spawnWithBuffer(

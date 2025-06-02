@@ -54,7 +54,7 @@ trait CongestionDetection {
         CongestionCheckRequest,
         ReceivedCongestions,
         ctx,
-      )(stateData.timeout)
+      )(using stateData.timeout)
 
       Behaviors.same
 
@@ -93,7 +93,7 @@ trait CongestionDetection {
       awaitingData: AwaitingData[Congestions],
       congestionRequest: CongestionCheckRequest,
       ctx: ActorContext[GridAgent.Request],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = {

@@ -111,7 +111,7 @@ class DBFSAlgorithmSupGridSpec
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
       // send init data to agent
-      superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+      superiorGridAgentFSM ! Activation(3600)
 
       // we expect a completion message
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
@@ -126,7 +126,7 @@ class DBFSAlgorithmSupGridSpec
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
-          superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+          superiorGridAgentFSM ! Activation(3600)
 
           // we expect a request for grid power values here for sweepNo $sweepNo
           val message = hvGrid.expectMessageType[RequestGridPower]
@@ -231,7 +231,7 @@ class DBFSAlgorithmSupGridSpec
           )
 
         // bring agent in simulate grid state
-        superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+        superiorGridAgentFSM ! Activation(3600)
 
         // we expect a completion message
         scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
@@ -243,7 +243,7 @@ class DBFSAlgorithmSupGridSpec
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
-          superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+          superiorGridAgentFSM ! Activation(3600)
 
           // we expect a request for grid power values here for sweepNo $sweepNo
           val message = hvGrid.expectMessageType[GridAgent.Request]

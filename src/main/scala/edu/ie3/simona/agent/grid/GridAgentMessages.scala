@@ -77,14 +77,6 @@ object GridAgentMessages {
   final case class FinishGridSimulationTrigger(tick: Long)
       extends GridAgent.InternalRequest
 
-  /** Wrapper for activation values
-    *
-    * @param activation
-    *   the tick
-    */
-  final case class WrappedActivation(activation: Activation)
-      extends GridAgent.InternalRequest
-
   /** Trait for values that can be received as a response to a
     * [[GridAgent.Request]].
     */

@@ -15,7 +15,6 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   CreateGridAgent,
-  WrappedActivation,
   WrappedFailure,
 }
 import edu.ie3.simona.agent.grid.congestion.{
@@ -54,14 +53,14 @@ import scala.util.{Failure, Success}
 
 object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
-  /** Trait for requests made to the [[GridAgent]] */
-  sealed trait Request
+  /** All messages, that can be received by a [[GridAgent]]. */
+  final type Request = InternalRequest | InternalReply | Activation
 
   /** Necessary because we want to extend messages in other classes, but we do
     * want to keep the messages only available inside this package.
     */
-  private[grid] trait InternalRequest extends Request
-  private[grid] trait InternalReply extends Request
+  private[grid] trait InternalRequest
+  private[grid] trait InternalReply
   private[grid] trait InternalReplyWithSender[T] extends InternalReply {
     def sender: ActorRef[GridAgent.Request]
     def value: T
@@ -72,30 +71,24 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       simonaConfig: SimonaConfig,
       listener: Iterable[ActorRef[ResultEvent]],
   ): Behavior[Request] = Behaviors.withStash(100) { buffer =>
-    Behaviors.setup[Request] { context =>
-      val activationAdapter: ActorRef[Activation] =
-        context.messageAdapter[Activation](msg => WrappedActivation(msg))
+    // this determines the agents regular time bin it wants to be triggered e.g. one hour
+    val resolution: Long = simonaConfig.simona.powerflow.resolution.toSeconds
 
-      // this determines the agents regular time bin it wants to be triggered e.g. one hour
-      val resolution: Long = simonaConfig.simona.powerflow.resolution.toSeconds
+    val simStartTime: ZonedDateTime = TimeUtil.withDefaults
+      .toZonedDateTime(simonaConfig.simona.time.startDateTime)
 
-      val simStartTime: ZonedDateTime = TimeUtil.withDefaults
-        .toZonedDateTime(simonaConfig.simona.time.startDateTime)
+    val agentValues = GridAgentConstantData(
+      environmentRefs,
+      simonaConfig,
+      listener,
+      resolution,
+      simStartTime,
+    )
 
-      val agentValues = GridAgentConstantData(
-        environmentRefs,
-        simonaConfig,
-        listener,
-        resolution,
-        simStartTime,
-        activationAdapter,
-      )
-
-      uninitialized(agentValues, buffer, simonaConfig)
-    }
+    uninitialized(using agentValues, buffer, simonaConfig)
   }
 
-  private def uninitialized(implicit
+  private def uninitialized(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Request],
       simonaConfig: SimonaConfig,
@@ -201,7 +194,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       )
 
       constantData.environmentRefs.scheduler ! ScheduleActivation(
-        constantData.activationAdapter,
+        ctx.self,
         constantData.resolution,
         Some(unlockKey),
       )
@@ -222,13 +215,13 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     */
   private[grid] def idle(
       gridAgentBaseData: GridAgentBaseData
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Request],
   ): Behavior[Request] = Behaviors.receivePartial {
-    case (_, WrappedActivation(activation: Activation)) =>
+    case (ctx, activation: Activation) =>
       constantData.environmentRefs.scheduler ! Completion(
-        constantData.activationAdapter,
+        ctx.self,
         Some(activation.tick),
       )
       buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
@@ -259,7 +252,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       currentTick: Long,
       nextTick: Long,
       ctx: ActorContext[Request],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Request],
   ): Behavior[Request] = {
@@ -272,7 +265,10 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           createResultModels(
             gridAgentBaseData.gridEnv.gridModel,
             valueStore,
-          )(currentTick.toDateTime(constantData.simStartTime), ctx.log)
+          )(using
+            currentTick.toDateTime(using constantData.simStartTime),
+            ctx.log,
+          )
       }
 
     // check if congestion management is enabled
@@ -306,7 +302,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       nextTick: Long,
       results: Option[PowerFlowResultEvent],
       ctx: ActorContext[Request],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[Request] = {
@@ -326,7 +322,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
     // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
     constantData.environmentRefs.scheduler ! Completion(
-      constantData.activationAdapter,
+      ctx.self,
       Some(nextTick),
     )
 
@@ -353,12 +349,12 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       askMsgBuilder: ActorRef[GridAgent.Request] => Request,
       resMsgBuilder: Vector[(ActorRef[GridAgent.Request], T)] => InternalReply,
       ctx: ActorContext[GridAgent.Request],
-  )(implicit timeout: FiniteDuration): Unit = {
+  )(using timeout: FiniteDuration): Unit = {
     if (inferiorGridRefs.nonEmpty) {
       // creating implicit vals
-      implicit val ec: ExecutionContext = ctx.executionContext
-      implicit val scheduler: Scheduler = ctx.system.scheduler
-      implicit val askTimeout: Timeout = Timeout(timeout)
+      given ec: ExecutionContext = ctx.executionContext
+      given scheduler: Scheduler = ctx.system.scheduler
+      given askTimeout: Timeout = Timeout(timeout)
 
       // asking process
       val future = Future
@@ -409,7 +405,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       )
   }
 
-  private[grid] def unsupported(msg: Request, log: Logger)(implicit
+  private[grid] def unsupported(msg: Request, log: Logger)(using
       buffer: StashBuffer[GridAgent.Request]
   ): Unit = {
     log.debug(s"Received unsupported msg: $msg. Stash away!")

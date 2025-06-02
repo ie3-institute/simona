@@ -127,7 +127,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       scheduleActivationMsg.unlockKey shouldBe Some(key)
 
       // send init data to agent
-      centerGridAgent ! WrappedActivation(Activation(3600))
+      centerGridAgent ! Activation(3600)
 
       // we expect a completion message
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
@@ -141,8 +141,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val sweepNo = 0
 
       // send the start grid simulation trigger
-      centerGridAgent ! WrappedActivation(Activation(3600))
-
+      centerGridAgent ! Activation(3600)
       // we expect a request for grid power values here for sweepNo $sweepNo
       val powerRequestSender = inferiorGridAgent.expectGridPowerRequest()
 
@@ -225,7 +224,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val sweepNo = 0
 
       // send the start grid simulation trigger
-      centerGridAgent ! WrappedActivation(Activation(3600))
+      centerGridAgent ! Activation(3600)
 
       // we expect a request for grid power values here for sweepNo 0
       val powerRequestSender = inferiorGridAgent.expectGridPowerRequest()
@@ -333,13 +332,13 @@ class DBFSAlgorithmFailedPowerFlowSpec
       scheduleActivationMsg.unlockKey shouldBe Some(key)
 
       // send init data to agent
-      slackGridAgent ! WrappedActivation(Activation(3600))
+      slackGridAgent ! Activation(3600)
 
       // we expect a completion message
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
 
       // send the start grid simulation trigger
-      slackGridAgent ! WrappedActivation(Activation(3600))
+      slackGridAgent ! Activation(3600)
 
       val powerRequestSender = hvGridAgent.expectGridPowerRequest()
 

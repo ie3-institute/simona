@@ -44,8 +44,6 @@ object GridAgentData {
     *   of the simulation
     * @param simStartTime
     *   start time of the simulation
-    * @param activationAdapter
-    *   adapter for [[Activation]]
     */
   final case class GridAgentConstantData(
       environmentRefs: EnvironmentRefs,
@@ -53,7 +51,6 @@ object GridAgentData {
       listener: Iterable[ActorRef[ResultEvent]],
       resolution: Long,
       simStartTime: ZonedDateTime,
-      activationAdapter: ActorRef[Activation],
   ) {
     def notifyListeners(event: ResultEvent): Unit = {
       listener.foreach(listener => listener ! event)

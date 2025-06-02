@@ -149,7 +149,7 @@ class DBFSAlgorithmParticipantSpec
     s"go to SimulateGrid when it receives an activity start trigger" in {
 
       // send init data to agent
-      gridAgentWithParticipants ! WrappedActivation(Activation(3600))
+      gridAgentWithParticipants ! Activation(3600)
 
       // we expect a completion message
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
@@ -161,7 +161,7 @@ class DBFSAlgorithmParticipantSpec
 
       // send the start grid simulation trigger
       // the gird agent should send a RequestAssetPowerMessage to the load agent
-      gridAgentWithParticipants ! WrappedActivation(Activation(3600))
+      gridAgentWithParticipants ! Activation(3600)
 
       // we expect a request for voltage values of our slack node
       // (voltages are requested by our agent under test from the superior grid)
