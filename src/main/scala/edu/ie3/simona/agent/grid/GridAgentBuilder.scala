@@ -63,7 +63,7 @@ object GridAgentBuilder {
   def buildSystemParticipants(
       subGridContainer: SubGridContainer,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Request],
       log: Logger,
@@ -104,7 +104,7 @@ object GridAgentBuilder {
   private def filterSysParts(
       subGridContainer: SubGridContainer,
       environmentRefs: EnvironmentRefs,
-  )(implicit log: Logger): Seq[SystemParticipantInput] = {
+  )(using log: Logger): Seq[SystemParticipantInput] = {
 
     val (notProcessedElements, availableSysParts) =
       subGridContainer.getSystemParticipants
@@ -161,7 +161,7 @@ object GridAgentBuilder {
       emAgents: Map[UUID, ActorRef[FlexResponse]],
       participants: Seq[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Request],
   ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = {
@@ -209,7 +209,7 @@ object GridAgentBuilder {
   private def buildEmsRecursively(
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Request],
   ): Map[UUID, ActorRef[FlexResponse]] = {
@@ -273,12 +273,12 @@ object GridAgentBuilder {
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       participantInputModel: SystemParticipantInput,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Request],
   ): ActorRef[ParticipantAgent.Request] = {
 
-    val serviceMap: Map[ServiceType, ActorRef[_ >: ServiceMessage]] =
+    val serviceMap: Map[ServiceType, ActorRef[? >: ServiceMessage]] =
       Seq(
         Some(
           ServiceType.WeatherService -> constantData.environmentRefs.weather
@@ -425,14 +425,14 @@ object GridAgentBuilder {
   }
 
   private def buildParticipant(
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
+      inputContainer: InputModelContainer[? <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simParams: SimulationParameters,
       scheduler: ActorRef[SchedulerMessage],
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  )(implicit
+  )(using
       gridAgentContext: ActorContext[GridAgent.Request]
   ): ActorRef[ParticipantAgent.Request] = {
 
@@ -471,7 +471,7 @@ object GridAgentBuilder {
   private def buildEm(
       emInput: EmInput,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  )(implicit
+  )(using
       constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Request],
   ): ActorRef[FlexResponse] =

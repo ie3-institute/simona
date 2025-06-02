@@ -93,7 +93,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         activationAdapter,
       )
 
-      uninitialized(agentValues, buffer, simonaConfig)
+      uninitialized(using agentValues, buffer, simonaConfig)
     }
   }
 
@@ -153,7 +153,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       val nodeToAssetAgentsMap
           : Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
         GridAgentBuilder
-          .buildSystemParticipants(subGridContainer, thermalGridsByBusId)(
+          .buildSystemParticipants(subGridContainer, thermalGridsByBusId)(using
             constantData,
             ctx,
             ctx.log,
@@ -264,7 +264,10 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           createResultModels(
             gridAgentBaseData.gridEnv.gridModel,
             valueStore,
-          )(currentTick.toDateTime(constantData.simStartTime), ctx.log)
+          )(using
+            currentTick.toDateTime(using constantData.simStartTime),
+            ctx.log,
+          )
       }
 
     // check if congestion management is enabled
