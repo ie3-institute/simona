@@ -18,10 +18,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   SimulationParameters,
 }
 import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
-import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
 import edu.ie3.simona.config.RuntimeConfig._
-import edu.ie3.simona.config.SimonaConfig.AssetConfigs
-import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -35,7 +32,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -43,7 +39,6 @@ import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
 import squants.Each
 
-import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
@@ -69,13 +64,13 @@ object GridAgentBuilder {
       subGridContainer: SubGridContainer,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
   )(implicit
-      gridConf: GridAgentConstantData,
+      constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Request],
       log: Logger,
   ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = {
 
     val systemParticipants =
-      filterSysParts(subGridContainer, gridConf.environmentRefs)
+      filterSysParts(subGridContainer, constantData.environmentRefs)
 
     // ems that control at least one participant directly
     val firstLevelEms = systemParticipants.flatMap {
@@ -167,7 +162,7 @@ object GridAgentBuilder {
       participants: Seq[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
   )(implicit
-      gridConf: GridAgentConstantData,
+      constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Request],
   ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = {
     participants
@@ -215,7 +210,7 @@ object GridAgentBuilder {
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
   )(implicit
-      gridConf: GridAgentConstantData,
+      constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Request],
   ): Map[UUID, ActorRef[FlexResponse]] = {
     // For the current level, split controlled and uncontrolled EMs.
@@ -279,109 +274,114 @@ object GridAgentBuilder {
       participantInputModel: SystemParticipantInput,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
   )(implicit
-      gridConf: GridAgentConstantData,
+      constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Request],
   ): ActorRef[ParticipantAgent.Request] = {
 
     val serviceMap: Map[ServiceType, ActorRef[_ >: ServiceMessage]] =
       Seq(
-        Some(ServiceType.WeatherService -> gridConf.environmentRefs.weather),
-        gridConf.environmentRefs.evDataService.map(ref =>
+        Some(
+          ServiceType.WeatherService -> constantData.environmentRefs.weather
+        ),
+        constantData.environmentRefs.evDataService.map(ref =>
           ServiceType.EvMovementService -> ref
         ),
       ).flatten.toMap
 
     val participantRefs = ParticipantRefs(
       gridAgentContext.self,
-      gridConf.environmentRefs.primaryServiceProxy,
+      constantData.environmentRefs.primaryServiceProxy,
       serviceMap,
-      gridConf.listener,
+      constantData.listener,
     )
 
     val simParams = SimulationParameters(
-      gridConf.resolution,
+      constantData.resolution,
       Each(
-        gridConf.simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+        constantData.simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
       ),
-      gridConf.simStartTime,
-      gridConf.simEndTime,
+      constantData.simStartTime,
+      constantData.simEndTime,
     )
 
     participantInputModel match {
       case input: FixedFeedInInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          gridConf.participantConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
-            input.getUuid
-          ),
-          gridConf.outputConfigUtil.getOrDefault(
+          constantData.participantConfigUtil
+            .getOrDefault[FixedFeedInRuntimeConfig](
+              input.getUuid
+            ),
+          constantData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.FixedFeedIn
           ),
           participantRefs,
           simParams,
-          gridConf.environmentRefs.scheduler,
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: LoadInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          gridConf.participantConfigUtil.getOrDefault[LoadRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[LoadRuntimeConfig](
             input.getUuid
           ),
-          gridConf.outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
+          constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
           participantRefs,
           simParams,
-          gridConf.environmentRefs.scheduler,
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: PvInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          gridConf.participantConfigUtil.getOrDefault[PvRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[PvRuntimeConfig](
             input.getUuid
           ),
-          gridConf.outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant),
+          constantData.outputConfigUtil.getOrDefault(
+            NotifierIdentifier.PvPlant
+          ),
           participantRefs,
           simParams,
-          gridConf.environmentRefs.scheduler,
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: BmInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          gridConf.participantConfigUtil.getOrDefault[BmRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[BmRuntimeConfig](
             input.getUuid
           ),
-          gridConf.outputConfigUtil.getOrDefault(
+          constantData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.BioMassPlant
           ),
           participantRefs,
           simParams,
-          gridConf.environmentRefs.scheduler,
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: WecInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          gridConf.participantConfigUtil.getOrDefault[WecRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[WecRuntimeConfig](
             input.getUuid
           ),
-          gridConf.outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
+          constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
           participantRefs,
           simParams,
-          gridConf.environmentRefs.scheduler,
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: EvcsInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          gridConf.participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
             input.getUuid
           ),
-          gridConf.outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
+          constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
           participantRefs,
           simParams,
-          gridConf.environmentRefs.scheduler,
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: HpInput =>
@@ -389,13 +389,13 @@ object GridAgentBuilder {
           case Some(thermalGrid) =>
             buildParticipant(
               WithHeatInputContainer(input, thermalGrid),
-              gridConf.participantConfigUtil.getOrDefault[HpRuntimeConfig](
+              constantData.participantConfigUtil.getOrDefault[HpRuntimeConfig](
                 input.getUuid
               ),
-              gridConf.outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
+              constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
               participantRefs,
               simParams,
-              gridConf.environmentRefs.scheduler,
+              constantData.environmentRefs.scheduler,
               maybeControllingEm,
             )
           case None =>
@@ -406,13 +406,15 @@ object GridAgentBuilder {
       case input: StorageInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          gridConf.participantConfigUtil.getOrDefault[StorageRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[StorageRuntimeConfig](
             input.getUuid
           ),
-          gridConf.outputConfigUtil.getOrDefault(NotifierIdentifier.Storage),
+          constantData.outputConfigUtil.getOrDefault(
+            NotifierIdentifier.Storage
+          ),
           participantRefs,
           simParams,
-          gridConf.environmentRefs.scheduler,
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: SystemParticipantInput =>
@@ -470,20 +472,20 @@ object GridAgentBuilder {
       emInput: EmInput,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
   )(implicit
-      gridConf: GridAgentConstantData,
+      constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Request],
   ): ActorRef[FlexResponse] =
     gridAgentContext.spawn(
       EmAgent(
         emInput,
-        gridConf.emConfigUtil.getOrDefault(emInput.getUuid),
-        gridConf.outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
+        constantData.emConfigUtil.getOrDefault(emInput.getUuid),
+        constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
         emInput.getControlStrategy,
-        gridConf.simStartTime,
+        constantData.simStartTime,
         maybeControllingEm.toRight(
-          gridConf.environmentRefs.scheduler
+          constantData.environmentRefs.scheduler
         ),
-        gridConf.listener,
+        constantData.listener,
       ),
       actorName(classOf[EmAgent.type], emInput.getId),
     )
