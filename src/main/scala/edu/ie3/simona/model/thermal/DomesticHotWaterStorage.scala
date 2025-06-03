@@ -20,9 +20,9 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  SpecificHeatCapacityConversionSimona,
   TemperatureConversionSimona,
   VolumeConversionSimona,
+  toSquants,
 }
 import squants.energy.Kilowatts
 import squants.time.Seconds
@@ -77,7 +77,7 @@ final case class DomesticHotWaterStorage(
     *
     * @param tick
     *   Tick, where this change happens.
-    * @param thermalStorageState
+    * @param heatStorageState
     *   Last state of the heat storage.
     * @param qDotHeatStorage
     *   Influx of the heat storage.
@@ -86,15 +86,15 @@ final case class DomesticHotWaterStorage(
     */
   override def determineState(
       tick: Long,
-      thermalStorageState: ThermalStorageState,
+      heatStorageState: ThermalStorageState,
       qDotWaterStorage: Power,
   ): ThermalStorageState = {
     /* Determine new state based on time difference and given state */
     val energyBalance =
       qDotWaterStorage * Seconds(
-        tick - thermalStorageState.tick
+        tick - heatStorageState.tick
       )
-    val newEnergy = thermalStorageState.storedEnergy + energyBalance
+    val newEnergy = heatStorageState.storedEnergy + energyBalance
     val updatedEnergy =
       if (isFull(newEnergy))
         maxEnergyThreshold

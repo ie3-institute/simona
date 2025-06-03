@@ -37,7 +37,7 @@ class ThermalHouseSpec
     with ThermalHouseTestData
     with DefaultTestData {
 
-  implicit val tolerance: Temperature = Celsius(1e-4)
+  implicit val temperaturTolerance: Temperature = Celsius(1e-4)
   implicit val energyTolerance: Energy = KilowattHours(1e-4)
   implicit val volumeTolerance: Volume = Litres(0.01)
 
@@ -326,12 +326,12 @@ class ThermalHouseSpec
           val state =
             initialHouseState.copy(innerTemperature = Celsius(currentInnerTemp))
 
-          val threshold = house.determineNextThreshold(
+          val thresholdOption = house.determineNextThreshold(
             state,
             newOperatingPoint,
           )
 
-          threshold match {
+          thresholdOption match {
             case threshold => threshold shouldBe expectedThreshold
             case unexpected =>
               fail(
