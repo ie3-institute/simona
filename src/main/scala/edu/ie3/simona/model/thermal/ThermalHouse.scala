@@ -55,11 +55,11 @@ import java.util.UUID
   * @param ethCapa
   *   heat energy storage capability of thermal house, usually in [kWh/K]
   * @param targetTemperature
-  *   Target room temperature [K]
+  *   Target room temperature [°C]
   * @param lowerBoundaryTemperature
-  *   Lower temperature boundary [K]
+  *   Lower temperature boundary [°C]
   * @param upperBoundaryTemperature
-  *   Upper boundary temperature [K]
+  *   Upper boundary temperature [°C]
   * @param housingType
   *   type of house, either `house` or `flat`
   * @param houseInhabitants
