@@ -39,7 +39,9 @@ object GridAgentData {
 
   private[grid] trait GridAgentDataInternal extends GridAgentData
 
-  /** Class holding some [[GridAgent]] values that are immutable.
+  /** Class holding some [[GridAgent]] values that can be considered constant
+    * across simulation time.
+    *
     * @param environmentRefs
     *   environment actor refs
     * @param simonaConfig
@@ -144,7 +146,7 @@ object GridAgentData {
     * be copied several times at several places for each state transition with
     * updated data. So be careful in adding more data on it!
     */
-  final case object GridAgentBaseData extends GridAgentData {
+  case object GridAgentBaseData extends GridAgentData {
 
     def apply(
         gridModel: GridModel,

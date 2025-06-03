@@ -55,6 +55,8 @@ object GridAgentBuilder {
     *   The subgrid container containing the system participants.
     * @param thermalIslandGridsByBusId
     *   Thermal islands by bus UUID.
+    * @param constantData
+    *   Constant values related to the [[GridAgent]].
     * @param gridAgentContext
     *   ActorContext of the grid agent.
     * @param log
