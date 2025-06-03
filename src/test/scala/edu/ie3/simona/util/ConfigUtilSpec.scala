@@ -778,13 +778,13 @@ class ConfigUtilSpec
           ),
         ),
       )
-      val configUtil = OutputConfigUtil.participants(inputConfig)
+      val currentConfigUtil = OutputConfigUtil.participants(inputConfig)
       val expectedResult: Set[Value] =
         NotifierIdentifier.getParticipantIdentifiers -- Vector(
           NotifierIdentifier.PvPlant
         )
 
-      configUtil.simulationResultIdentifiersToConsider(
+      currentConfigUtil.simulationResultIdentifiersToConsider(
         false
       ) shouldBe expectedResult
     }
@@ -806,10 +806,10 @@ class ConfigUtilSpec
           ),
         ),
       )
-      val configUtil = OutputConfigUtil.participants(inputConfig)
+      val currentConfigUtil = OutputConfigUtil.participants(inputConfig)
       val expectedResult: Set[Value] = Set(NotifierIdentifier.Load)
 
-      configUtil.simulationResultIdentifiersToConsider(
+      currentConfigUtil.simulationResultIdentifiersToConsider(
         false
       ) shouldBe expectedResult
     }
@@ -831,10 +831,10 @@ class ConfigUtilSpec
           ),
         ),
       )
-      val configUtil = OutputConfigUtil.participants(inputConfig)
+      val currentConfigUtil = OutputConfigUtil.participants(inputConfig)
       val expectedResult = Set[Class[_ <: ResultEntity]](classOf[LoadResult])
 
-      configUtil.simulationResultEntitiesToConsider(
+      currentConfigUtil.simulationResultEntitiesToConsider(
         false
       ) shouldBe expectedResult
     }
