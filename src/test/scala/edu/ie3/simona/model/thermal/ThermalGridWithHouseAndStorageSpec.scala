@@ -642,7 +642,7 @@ class ThermalGridWithHouseAndStorageSpec
           heatStorageState = maybeStorageState,
         )
 
-        val state = initialHpState.copy(
+        val modifiedState = initialHpState.copy(
           tick = tick,
           thermalGridState = gridState,
           // The exact amount doesn't matter
@@ -656,7 +656,7 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (thermalGridOperatingPoint, threshold) =
           thermalGrid.handleConsumption(
-            state
+            modifiedState
           )
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(

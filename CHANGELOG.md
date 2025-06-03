@@ -12,9 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
+- Refactoring `GridAgentBuilder` to an object [#1372](https://github.com/ie3-institute/simona/issues/1372)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
+- Fixed variable shadowing [#1371](https://github.com/ie3-institute/simona/issues/1371)
 
 ## [4.0.0] - 2025-05-09
 
