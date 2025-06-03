@@ -20,6 +20,12 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.simona.util.ConfigUtil.{
+  EmConfigUtil,
+  OutputConfigUtil,
+  ParticipantConfigUtil,
+}
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.time.ZonedDateTime
@@ -33,7 +39,9 @@ object GridAgentData {
 
   private[grid] trait GridAgentDataInternal extends GridAgentData
 
-  /** Class holding some [[GridAgent]] values that are immutable.
+  /** Class holding some [[GridAgent]] values that can be considered constant
+    * across simulation time.
+    *
     * @param environmentRefs
     *   environment actor refs
     * @param simonaConfig
@@ -51,10 +59,23 @@ object GridAgentData {
       listener: Iterable[ActorRef[ResultEvent]],
       resolution: Long,
       simStartTime: ZonedDateTime,
+      simEndTime: ZonedDateTime,
   ) {
     def notifyListeners(event: ResultEvent): Unit = {
       listener.foreach(listener => listener ! event)
     }
+
+    val participantConfigUtil: ParticipantConfigUtil =
+      ConfigUtil.ParticipantConfigUtil(simonaConfig.simona.runtime.participant)
+
+    val outputConfigUtil: OutputConfigUtil =
+      ConfigUtil.OutputConfigUtil.participants(
+        simonaConfig.simona.output.participant
+      )
+
+    val emConfigUtil: EmConfigUtil =
+      EmConfigUtil(simonaConfig.simona.runtime.em)
+
   }
 
   /** Data that is sent to the [[GridAgent]] directly after startup. It contains
@@ -122,7 +143,7 @@ object GridAgentData {
     * be copied several times at several places for each state transition with
     * updated data. So be careful in adding more data on it!
     */
-  final case object GridAgentBaseData extends GridAgentData {
+  case object GridAgentBaseData extends GridAgentData {
 
     def apply(
         gridModel: GridModel,
