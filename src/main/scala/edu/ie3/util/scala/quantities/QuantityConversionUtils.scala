@@ -279,17 +279,12 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit
-    * [[KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE]] into
+  /** Extension for [[ComparableQuantity]] with unit
+    * [[KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE]], that allows an easy
+    * conversion into
     * [[edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters]].
-    *
-    * @param quantity
-    *   To convert.
     */
-  implicit class SpecificHeatCapacityConversionSimona(
-      quantity: ComparableQuantity[SpecificHeatCapacity]
-  ) {
+  extension (quantity: ComparableQuantity[SpecificHeatCapacity]) {
 
     /** Returns a quantity with unit [[KilowattHoursPerKelvinCubicMeters]].
       */

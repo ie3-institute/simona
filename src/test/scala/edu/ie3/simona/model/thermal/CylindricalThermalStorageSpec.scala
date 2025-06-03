@@ -11,17 +11,15 @@ import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  SpecificHeatCapacityConversionSimona,
   TemperatureConversionSimona,
+  toSquants,
 }
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import squants.Energy
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.space.{CubicMeters, Volume}
-import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities.getQuantity
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
