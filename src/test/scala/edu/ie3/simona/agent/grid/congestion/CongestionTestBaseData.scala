@@ -98,6 +98,7 @@ trait CongestionTestBaseData
       Iterable(resultListener.ref),
       3600,
       startTime,
+      endTime,
       gridAgentActivation.ref,
     )
 
