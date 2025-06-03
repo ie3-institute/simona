@@ -62,7 +62,7 @@ object GridAgentData {
       simEndTime: ZonedDateTime,
   ) {
     def notifyListeners(event: ResultEvent): Unit = {
-      listener.foreach(listener => listener ! event)
+      listener.foreach(_ ! event)
     }
 
     val participantConfigUtil: ParticipantConfigUtil =
