@@ -333,23 +333,23 @@ final case class ThermalHouse(
     ) * noPersonsInHoushold * waterDemandVolumePerPersonYear / 365
   }
 
-  /** Calculate the needed energy to change from start temperature to target
-    * temperature.
+  /** Calculate the needed energy to change from a given current temperature to
+    * target temperature.
     *
-    * In edge cases, i.e. within the tolerance margin of target temperatures,
-    * the temperature difference can be negative. For these cases we set the
-    * temperature difference to zero, resulting in an energy demand of 0 kWh.
+    * In cases where the target temperature is lower than the current
+    * temperature we set the temperature difference to zero, resulting in an
+    * energy demand of 0 kWh.
     *
-    * @param startTemperature
-    *   The starting temperature.
+    * @param currentTemperature
+    *   The current temperature.
     * @return
     *   The needed energy to change.
     */
   private def energyToReachTargetTemperature(
-      startTemperature: Temperature
+      currentTemperature: Temperature
   ): Energy = {
     val temperatureDiff =
-      Kelvin(targetTemperature.toKelvinScale - startTemperature.toKelvinScale)
+      Kelvin(targetTemperature.toKelvinScale - currentTemperature.toKelvinScale)
         .max(Kelvin(0))
 
     ethCapa * temperatureDiff
