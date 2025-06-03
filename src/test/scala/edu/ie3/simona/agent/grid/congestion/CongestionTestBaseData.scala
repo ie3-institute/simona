@@ -53,6 +53,7 @@ trait CongestionTestBaseData
   val startTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime(
     config.simona.time.startDateTime
   )
+  val endTime: ZonedDateTime = startTime.plusWeeks(1)
 
   protected val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   protected val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
@@ -88,6 +89,7 @@ trait CongestionTestBaseData
       Iterable(resultListener.ref),
       3600,
       startTime,
+      endTime,
       mock[ActorRef[Activation]],
     )
 
