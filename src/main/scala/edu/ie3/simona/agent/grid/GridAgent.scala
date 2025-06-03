@@ -77,15 +77,15 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     val simStartTime: ZonedDateTime = TimeUtil.withDefaults
       .toZonedDateTime(simonaConfig.simona.time.startDateTime)
 
-      val agentValues = GridAgentConstantData(
-        environmentRefs,
-        simonaConfig,
-        listener,
-        resolution,
-        simStartTime,
-        TimeUtil.withDefaults
-          .toZonedDateTime(simonaConfig.simona.time.endDateTime),
-      )
+    val agentValues = GridAgentConstantData(
+      environmentRefs,
+      simonaConfig,
+      listener,
+      resolution,
+      simStartTime,
+      TimeUtil.withDefaults
+        .toZonedDateTime(simonaConfig.simona.time.endDateTime),
+    )
 
     uninitialized(using agentValues, buffer, simonaConfig)
   }
