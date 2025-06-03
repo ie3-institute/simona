@@ -65,7 +65,7 @@ object GridAgentData {
       activationAdapter: ActorRef[Activation],
   ) {
     def notifyListeners(event: ResultEvent): Unit = {
-      listener.foreach(listener => listener ! event)
+      listener.foreach(_ ! event)
     }
 
     val participantConfigUtil: ParticipantConfigUtil =
