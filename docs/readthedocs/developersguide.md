@@ -11,8 +11,8 @@ local:
 
 ## Contributing code
 
-If you intend to produce some lines of code, pick an issue and get some hands on! For any questions feel
-free to contact us (see [`README.md`](https://github.com/ie3-institute/simona/blob/dev/README.md) for contact information).
+If you intend to produce some lines of code, pick an issue and get some hands on!
+For any questions feel free to contact us (see [`README.md`](https://github.com/ie3-institute/simona/blob/dev/README.md) for contact information).
 
 ### Branching and handing in pull requests
 
@@ -28,7 +28,7 @@ We also encourage you to create pull requests early in your development cycle wh
 When you are ready for a review, invite one or more reviewers through the pull request.
 In short, mergeable PRs have to meet our standards in several areas:
 - Automated checks
-  - [Jenkins](https://simona.ie3.e-technik.tu-dortmund.de/ci/job/ie3-institute/job/simona/) run succeeds, i.e. 
+  - GitHub Actions run succeeds, i.e. 
     - The code needs to be properly formatted (`gradle spotlessApply`)
     - The code needs to compile
     - All tests need to succeed
@@ -49,12 +49,10 @@ There can be exceptions to these rules, which have to be approved by the reviewe
 
 ### Tests
 
-We have good experiences using [ScalaTest](https://www.scalatest.org/) and [Spock](http://spockframework.org/) as testing frameworks.
-Please do not only try to achieve a high _line coverage_, but also aim at covering as many [_branches_](https://en.wikipedia.org/wiki/Code_coverage) as possible.
-In order to execute _all_ available tests, execute `gradle test` or comment `!test` on your PR, which automatically queues a run in our CI.
-
-When practical, we like to use [test driven development (TDD)](https://www.guru99.com/test-driven-development.html):
-It can pay off to write a failing test first for new functionality to be implemented, then implement and alter the actual functionality until the tests pass.
+We have good experiences using [ScalaTest](https://www.scalatest.org/) ([Spock](http://spockframework.org/) in other projects) as testing frameworks.
+Please do not only try to achieve a high _line coverage_, but test where it makes sense.
+For crucial parts, aim at covering as many [_branches_](https://en.wikipedia.org/wiki/Code_coverage) as possible.
+In order to execute _all_ available tests, execute `gradle test`.
 
 ### Coding conventions
 
