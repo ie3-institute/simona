@@ -31,7 +31,9 @@ import scala.jdk.OptionConverters._
 
 object ExtSimAdapter {
 
-  type Request = Create | Stop | Activation | ControlResponseMessageFromExt
+  sealed trait ExtSimRequest
+
+  type Request = ExtSimRequest | Activation | ControlResponseMessageFromExt
 
   /** The [[ExtSimAdapterData]] can only be constructed once the ExtSimAdapter
     * actor is created. Thus, we need an extra initialization message.
@@ -40,8 +42,9 @@ object ExtSimAdapter {
     *   The [[ExtSimAdapterData]] of the corresponding external simulation
     */
   final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
+      extends ExtSimRequest
 
-  final case class Stop(simulationSuccessful: Boolean)
+  final case class Stop(simulationSuccessful: Boolean) extends ExtSimRequest
 
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,

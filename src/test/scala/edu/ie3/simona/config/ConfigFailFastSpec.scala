@@ -518,9 +518,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             loadModelConfig.withFallback(typesafeConfig).resolve()
           val simonaConfig = SimonaConfig(config)
 
-          val checkParticipantRuntimeConfiguration =
-            PrivateMethod[Unit](Symbol("checkParticipantRuntimeConfiguration"))
-
           noException shouldBe thrownBy {
             ConfigFailFast invokePrivate checkParticipantRuntimeConfiguration(
               simonaConfig.simona.runtime.participant

@@ -47,7 +47,7 @@ object ResultEvent {
   ) extends ResultEvent
 
   object HpResult {
-    def unapply(result: HpResult): Option[
+    def unapply(hpResult: HpResult): Option[
       (
           ZonedDateTime,
           UUID,
@@ -55,7 +55,7 @@ object ResultEvent {
           ComparableQuantity[Power],
       )
     ] =
-      Option(result).map { result =>
+      Option(hpResult).map { result =>
         (
           result.getTime,
           result.getInputModel,
@@ -66,7 +66,7 @@ object ResultEvent {
   }
 
   object EmResult {
-    def unapply(result: EmResult): Option[
+    def unapply(emResult: EmResult): Option[
       (
           ZonedDateTime,
           UUID,
@@ -74,7 +74,7 @@ object ResultEvent {
           ComparableQuantity[Power],
       )
     ] =
-      Option(result).map { result =>
+      Option(emResult).map { result =>
         (
           result.getTime,
           result.getInputModel,
@@ -93,7 +93,7 @@ object ResultEvent {
   ) extends ResultEvent
 
   object ThermalHouseResult {
-    def unapply(result: ThermalHouseResult): Option[
+    def unapply(thermalHouseResult: ThermalHouseResult): Option[
       (
           ZonedDateTime,
           UUID,
@@ -101,7 +101,7 @@ object ResultEvent {
           ComparableQuantity[Temperature],
       )
     ] =
-      Option(result).map { result =>
+      Option(thermalHouseResult).map { result =>
         (
           result.getTime,
           result.getInputModel,
@@ -112,7 +112,7 @@ object ResultEvent {
   }
 
   object CylindricalThermalStorageResult {
-    def unapply(result: CylindricalStorageResult): Option[
+    def unapply(cylindricalStorageResult: CylindricalStorageResult): Option[
       (
           ZonedDateTime,
           UUID,
@@ -120,7 +120,7 @@ object ResultEvent {
           ComparableQuantity[Energy],
       )
     ] = {
-      Option(result).map { result =>
+      Option(cylindricalStorageResult).map { result =>
         (
           result.getTime,
           result.getInputModel,
