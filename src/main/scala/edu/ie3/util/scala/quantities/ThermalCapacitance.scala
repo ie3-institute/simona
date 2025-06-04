@@ -47,5 +47,5 @@ object JoulesPerMeterKelvin
     with PrimaryUnit
     with SiUnit {
   val symbol: String =
-    Joules.symbol + "/(" + Meters.symbol + "*" + Kelvin.symbol +")"
+    Joules.symbol + "/(" + Meters.symbol + "*" + Kelvin.symbol + ")"
 }

@@ -19,7 +19,7 @@ final class ThermalResistivity private (
 ) extends Quantity[ThermalResistivity] {
 
   def dimension: ThermalResistivity.type = ThermalResistivity
-  
+
   def toKelvinMetersPerWatt: Double = to(KelvinMetersPerWatt)
 }
 
