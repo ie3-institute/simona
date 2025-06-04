@@ -45,31 +45,15 @@ import java.util.UUID
   * the scheduling message sent to the scheduler, the race condition is solved.
   */
 object ScheduleLock {
-  sealed trait LockMsg
 
-  private final case class Init(adapter: ActorRef[Activation]) extends LockMsg
+  type Message = Request | Activation
 
-  private case object LockActivation extends LockMsg
+  sealed trait Request
 
   /** @param key
     *   the key that unlocks (part of) the lock
     */
-  final case class Unlock(key: UUID) extends LockMsg
-
-  private def lockAdapter(
-      lock: ActorRef[LockMsg],
-      expectedTick: Long,
-  ): Behavior[Activation] =
-    Behaviors.receive { case (ctx, Activation(tick)) =>
-      if (tick == expectedTick)
-        lock ! LockActivation
-      else
-        ctx.log.error(
-          s"Received lock activation for tick $tick, but expected $expectedTick"
-        )
-      // We can stop after forwarding the activation (there will be only one)
-      Behaviors.stopped
-    }
+  final case class Unlock(key: UUID) extends Request
 
   /** Key that can unlock (a part of) a [[ScheduleLock]].
     * @param lock
@@ -77,7 +61,7 @@ object ScheduleLock {
     * @param key
     *   A key (can be one of multiple) that unlocks (part of) the lock
     */
-  final case class ScheduleKey(lock: ActorRef[LockMsg], key: UUID) {
+  final case class ScheduleKey(lock: ActorRef[Request], key: UUID) {
     def unlock(): Unit =
       lock ! Unlock(key)
   }
@@ -177,15 +161,12 @@ object ScheduleLock {
   ): Iterable[ScheduleKey] = {
     val keys = (1 to count).map(_ => UUID.randomUUID())
 
-    val lock = spawner.spawn(ScheduleLock(scheduler, keys.toSet))
-
-    val adapter = spawner.spawn(lockAdapter(lock, tick))
-    lock ! Init(adapter)
+    val lock = spawner.spawn(ScheduleLock(scheduler, keys.toSet, tick))
 
     // We have to schedule the activation right away. If there is any
     // possibility for delay via a third actor, the lock could be
     // placed too late.
-    scheduler ! ScheduleActivation(adapter, tick)
+    scheduler ! ScheduleActivation(lock, tick)
 
     keys.map(ScheduleKey(lock, _))
   }
@@ -196,34 +177,26 @@ object ScheduleLock {
     *   The scheduler to lock
     * @param awaitedKeys
     *   The keys that have to be supplied in order to unlock this lock
+    * @param expectedTick
+    *   The tick that an activation is expected for
     */
   private def apply(
       scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
-  ): Behavior[LockMsg] =
+      expectedTick: Long,
+  ): Behavior[Message] =
     Behaviors.withStash(100) { buffer =>
-      Behaviors.receiveMessage {
-        case Init(adapter) =>
-          buffer.unstashAll(uninitialized(scheduler, awaitedKeys, adapter))
+      Behaviors.receivePartial {
+        case (ctx, Activation(tick)) =>
+          if (tick == expectedTick)
+            buffer.unstashAll(active(scheduler, awaitedKeys))
+          else
+            ctx.log.error(
+              s"Received lock activation for tick $tick, but expected $expectedTick"
+            )
+            Behaviors.stopped
 
-        case msg =>
-          // stash all messages until we are initialized
-          buffer.stash(msg)
-          Behaviors.same
-      }
-    }
-
-  private def uninitialized(
-      scheduler: ActorRef[SchedulerMessage],
-      awaitedKeys: Set[UUID],
-      adapter: ActorRef[Activation],
-  ): Behavior[LockMsg] =
-    Behaviors.withStash(100) { buffer =>
-      Behaviors.receiveMessagePartial {
-        case LockActivation =>
-          buffer.unstashAll(active(scheduler, awaitedKeys, adapter))
-
-        case unlock: Unlock =>
+        case (_, unlock: Unlock) =>
           // stash unlock messages until we are initialized
           buffer.stash(unlock)
           Behaviors.same
@@ -233,15 +206,13 @@ object ScheduleLock {
   private def active(
       scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
-      adapter: ActorRef[Activation],
-  ): Behavior[LockMsg] = Behaviors.receiveMessagePartial { case Unlock(key) =>
+  ): Behavior[Message] = Behaviors.receivePartial { case (ctx, Unlock(key)) =>
     val updatedKeys = awaitedKeys - key
 
-    if (updatedKeys.nonEmpty)
-      active(scheduler, updatedKeys, adapter)
-    else {
-      scheduler ! Completion(adapter)
+    if (updatedKeys.nonEmpty) active(scheduler, updatedKeys)
+    else
+      scheduler ! Completion(ctx.self)
       Behaviors.stopped
-    }
+
   }
 }
