@@ -6,14 +6,13 @@
 
 package edu.ie3.simona.sim.setup
 
+import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtInputDataConnection
 import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
-import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceRef
-import org.apache.pekko.actor.ActorRef as ClassicRef
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Case class that holds information regarding the external data connections as
@@ -29,7 +28,7 @@ import org.apache.pekko.actor.typed.ActorRef
   *   Map: external result data connections to result data providers.
   */
 final case class ExtSimSetupData(
-    extSimAdapters: Iterable[ClassicRef],
+    extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
     extPrimaryDataServices: Seq[(ExtPrimaryDataConnection, ServiceRef)],
     extDataServices: Seq[(? <: ExtInputDataConnection, ServiceRef)],
     extResultListeners: Seq[(ExtResultDataConnection, ServiceRef)],
@@ -59,7 +58,9 @@ final case class ExtSimSetupData(
   ): ExtSimSetupData =
     copy(extResultListeners = extResultListeners ++ Seq((connection, ref)))
 
-  private[setup] def update(extSimAdapter: ClassicRef): ExtSimSetupData =
+  private[setup] def update(
+      extSimAdapter: ActorRef[ExtSimAdapter.Request]
+  ): ExtSimSetupData =
     copy(extSimAdapters = extSimAdapters ++ Set(extSimAdapter))
 
   def evDataService: Option[ServiceRef] =
