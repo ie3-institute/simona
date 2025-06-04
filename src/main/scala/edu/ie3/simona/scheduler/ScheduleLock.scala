@@ -8,7 +8,7 @@ package edu.ie3.simona.scheduler
 
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
