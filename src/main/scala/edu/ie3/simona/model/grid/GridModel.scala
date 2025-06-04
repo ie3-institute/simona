@@ -9,8 +9,9 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.connector._
+import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.container.SubGridContainer
+import play.api.libs.json.*
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -22,14 +23,17 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseB,
   PowerFlowCaseC,
 }
+import edu.ie3.simona.model.grid.ampacity.ThermalLineSegmentModel
 import edu.ie3.simona.util.CollectionUtils
+import edu.ie3.util.scala.quantities.KelvinMetersPerWatt
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
+import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Representation of one physical electrical grid. It holds the references to
   * nodes, lines, switches and transformers and fundamental properties (like
@@ -86,6 +90,7 @@ object GridModel {
   final case class GridComponents(
       nodes: Seq[NodeModel],
       lines: Set[LineModel],
+      thermalLineSegements: Set[ThermalLineSegmentModel],
       transformers: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
       switches: Set[SwitchModel],
@@ -525,6 +530,41 @@ object GridModel {
         LineModel(lineInput, refSystem, startDate, endDate)
       }.toSet
 
+    val thermalLineSegments: Set[ThermalLineSegmentModel] =
+      subGridContainer.getRawGrid.getLines.asScala
+        .flatMap { lineInput =>
+          val jsonStringLineInput = lineInputToJson(lineInput)
+          val json = Json.parse(jsonStringLineInput)
+
+          val coordinates =
+            (json \ "coordinates").as[JsArray].value.map { coord =>
+              (coord(0).as[Double], coord(1).as[Double])
+            }
+
+          if (coordinates.size >= 2) {
+            Some(
+              coordinates
+                .sliding(2)
+                .collect { case Seq(start, end) =>
+                  ThermalLineSegmentModel(
+                    UUID.randomUUID(),
+                    lineInput.getId + "_" + start.toString + "_" + end.toString,
+                    KelvinMetersPerWatt(1),
+                    KelvinMetersPerWatt(1),
+                    KelvinMetersPerWatt(1),
+                    KelvinMetersPerWatt(1),
+                    Celsius(90),
+                  )
+                }
+                .toSet
+            )
+          } else {
+            None
+          }
+        }
+        .flatten
+        .toSet
+
     // / transformers
     val transformers: Set[TransformerModel] =
       subGridContainer.getRawGrid.getTransformer2Ws.asScala.map {
@@ -585,6 +625,7 @@ object GridModel {
       GridComponents(
         relevantNodes,
         lines,
+        thermalLineSegments,
         transformers,
         transformer3ws,
         switches,
@@ -624,6 +665,18 @@ object GridModel {
 
     // return
     gridModel
+  }
+
+  def lineInputToJson(lineInput: LineInput): String = {
+    val lineString = lineInput.getGeoPosition
+
+    val coordinatesJson = lineString.getCoordinates
+      .map { coord =>
+        s"[${coord.x}, ${coord.y}]"
+      }
+      .mkString(",")
+
+    s"""{"type": "LineString", "coordinates": [$coordinatesJson]}"""
   }
 
   /** Updates the internal state of the [[GridModel.nodeUuidToIndexMap]] to

@@ -167,6 +167,9 @@ dependencies {
 
   // needed, because scala won't compile otherwise
   implementation 'org.influxdb:influxdb-java:2.25'
+
+  // Parsing line geoCoordinates
+  implementation("com.typesafe.play:play_3:2.9.3")
 }
 
 tasks.withType(JavaCompile).configureEach {
