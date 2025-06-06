@@ -51,22 +51,23 @@ object ScheduleLock {
   sealed trait Request
 
   /** @param key
-    *   the key that unlocks (part of) the lock
+    *   The key that unlocks (part of) the lock.
     */
   final case class Unlock(key: UUID) extends Request
 
   /** Key that can unlock (a part of) a [[ScheduleLock]].
+    *
     * @param lock
-    *   The corresponding lock
+    *   The corresponding lock.
     * @param key
-    *   A key (can be one of multiple) that unlocks (part of) the lock
+    *   A key (can be one of multiple) that unlocks (part of) the lock.
     */
   final case class ScheduleKey(lock: ActorRef[Request], key: UUID) {
     def unlock(): Unit =
       lock ! Unlock(key)
   }
 
-  /** Defines a method of spawning actors from behaviors
+  /** Defines a method of spawning actors from behaviors.
     */
   trait Spawner {
     def spawn[T](behavior: Behavior[T]): ActorRef[T]
@@ -80,14 +81,14 @@ object ScheduleLock {
   /** Creates a lock with a single key.
     *
     * @param ctx
-    *   The typed ActorContext that is used to spawn actors
+    *   The typed ActorContext that is used to spawn actors.
     * @param scheduler
-    *   The scheduler to lock
+    *   The scheduler to lock.
     * @param tick
     *   The tick that the scheduler will be locked at (usually the current
     *   tick).
     * @return
-    *   A single key that unlocks the lock
+    *   A single key that unlocks the lock.
     */
   def singleKey(
       ctx: ActorContext[?],
@@ -99,14 +100,14 @@ object ScheduleLock {
   /** Creates a lock with a single key.
     *
     * @param spawner
-    *   Trait that defines a way to spawn actors
+    *   Trait that defines a way to spawn actors.
     * @param scheduler
-    *   The scheduler to lock
+    *   The scheduler to lock.
     * @param tick
     *   The tick that the scheduler will be locked at (usually the current
     *   tick).
     * @return
-    *   A single key that unlocks the lock
+    *   A single key that unlocks the lock.
     */
   def singleKey(
       spawner: Spawner,
@@ -120,16 +121,16 @@ object ScheduleLock {
   /** Creates a lock with a multiple keys.
     *
     * @param ctx
-    *   The typed ActorContext that is used to spawn actors
+    *   The typed ActorContext that is used to spawn actors.
     * @param scheduler
-    *   The scheduler to lock
+    *   The scheduler to lock.
     * @param tick
     *   The tick that the scheduler will be locked at (usually the current
     *   tick).
     * @param count
-    *   The number of keys needed to unlock the lock
+    *   The number of keys needed to unlock the lock.
     * @return
-    *   A collection of keys that are needed to unlock the lock
+    *   A collection of keys that are needed to unlock the lock.
     */
   def multiKey(
       ctx: ActorContext[?],
@@ -142,16 +143,16 @@ object ScheduleLock {
   /** Creates a lock with a multiple keys.
     *
     * @param spawner
-    *   Trait that defines a way to spawn actors
+    *   Trait that defines a way to spawn actors.
     * @param scheduler
-    *   The scheduler to lock
+    *   The scheduler to lock.
     * @param tick
     *   The tick that the scheduler will be locked at (usually the current
     *   tick).
     * @param count
-    *   The number of keys needed to unlock the lock
+    *   The number of keys needed to unlock the lock.
     * @return
-    *   A collection of keys that are needed to unlock the lock
+    *   A collection of keys that are needed to unlock the lock.
     */
   def multiKey(
       spawner: Spawner,
@@ -174,11 +175,11 @@ object ScheduleLock {
   /** Default internal method to create a lock.
     *
     * @param scheduler
-    *   The scheduler to lock
+    *   The scheduler to lock.
     * @param awaitedKeys
-    *   The keys that have to be supplied in order to unlock this lock
+    *   The keys that have to be supplied in order to unlock this lock.
     * @param expectedTick
-    *   The tick that an activation is expected for
+    *   The tick that an activation is expected for.
     */
   private def apply(
       scheduler: ActorRef[SchedulerMessage],
@@ -190,11 +191,12 @@ object ScheduleLock {
         case (ctx, Activation(tick)) =>
           if (tick == expectedTick)
             buffer.unstashAll(active(scheduler, awaitedKeys))
-          else
+          else {
             ctx.log.error(
               s"Received lock activation for tick $tick, but expected $expectedTick"
             )
             Behaviors.stopped
+          }
 
         case (_, unlock: Unlock) =>
           // stash unlock messages until we are initialized
@@ -210,9 +212,10 @@ object ScheduleLock {
     val updatedKeys = awaitedKeys - key
 
     if (updatedKeys.nonEmpty) active(scheduler, updatedKeys)
-    else
+    else {
       scheduler ! Completion(ctx.self)
       Behaviors.stopped
+    }
 
   }
 }
