@@ -88,7 +88,7 @@ class DBFSAlgorithmParticipantSpec
     s"initialize itself when it receives an init activation" in {
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]] =
+      val subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]] =
         hvSubGridGates.map { gate =>
           gate -> superiorGridAgent.ref
         }.toMap

@@ -78,14 +78,14 @@ object GridAgentMessages {
       extends GridAgent.InternalRequest
 
   /** Trait for values that can be received as a response to a
-    * [[GridAgent.Request]].
+    * [[GridAgent.Message]].
     */
   sealed trait ReceivedValues extends GridAgent.InternalReply
 
   private type PowerRequestResponse[T] = (ActorRef[T], PowerResponse)
 
   private type SlackVoltageRequestResponse =
-    (ActorRef[GridAgent.Request], SlackVoltageResponse)
+    (ActorRef[GridAgent.Message], SlackVoltageResponse)
 
   sealed trait ReceivedPowerValues extends ReceivedValues {
     def values: Vector[(ActorRef[_], PowerResponse)]
@@ -106,7 +106,7 @@ object GridAgentMessages {
     *   the grid power values and their senders
     */
   final case class ReceivedGridPowerValues(
-      values: Vector[PowerRequestResponse[GridAgent.Request]]
+      values: Vector[PowerRequestResponse[GridAgent.Message]]
   ) extends ReceivedPowerValues
 
   /** Wrapper for received slack voltage values (v)
@@ -138,7 +138,7 @@ object GridAgentMessages {
   final case class RequestGridPower(
       currentSweepNo: Int,
       nodeUuids: Seq[UUID],
-      sender: ActorRef[GridAgent.Request],
+      sender: ActorRef[GridAgent.Message],
   ) extends GridAgent.InternalRequest
 
   sealed trait PowerResponse extends GridAgent.InternalReply
@@ -204,7 +204,7 @@ object GridAgentMessages {
   final case class SlackVoltageRequest(
       currentSweepNo: Int,
       nodeUuids: Seq[UUID],
-      sender: ActorRef[GridAgent.Request],
+      sender: ActorRef[GridAgent.Message],
   ) extends GridAgent.InternalRequest
 
   /** Provide complex voltage at the nodes that the sender's sub grid shares

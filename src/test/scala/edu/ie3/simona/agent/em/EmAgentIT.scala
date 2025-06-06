@@ -101,7 +101,7 @@ class EmAgentIT
   "An em agent" when {
     "having load, pv and storage agents connected" should {
       "be initialized correctly and run through some activations" in {
-        val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
+        val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
           TestProbe[ServiceMessage]("PrimaryServiceProxy")
@@ -340,7 +340,7 @@ class EmAgentIT
 
     "having load, pv and heat pump agents connected" should {
       "be initialized correctly and run through some activations" in {
-        val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
+        val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
           TestProbe[ServiceMessage]("PrimaryServiceProxy")
@@ -645,7 +645,7 @@ class EmAgentIT
 
     "having a pv and a load agent connected" should {
       "have correct values also for agents with limited operation time" in {
-        val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
+        val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
           TestProbe[ServiceMessage]("PrimaryServiceProxy")

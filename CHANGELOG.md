@@ -16,13 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converted `ExtSimAdapter` to typed [#1094](https://github.com/ie3-institute/simona/issues/1094)
 - Refactored `GridAgent` messages [#1404](https://github.com/ie3-institute/simona/issues/1404)
 
-### Removed
-- Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
-
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
 - Fixed variable shadowing [#1371](https://github.com/ie3-institute/simona/issues/1371)
 - Updated dev's guide [#1409](https://github.com/ie3-institute/simona/issues/1409)
+
+### Removed
+- Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
 
 ## [4.0.0] - 2025-05-09
 

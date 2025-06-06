@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.grid.GridAgent.Request
+import edu.ie3.simona.agent.grid.GridAgent.Message
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
@@ -29,6 +29,7 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}
 trait DCMAlgorithm extends CongestionDetection {
 
   /** Method for starting the congestion management.
+    *
     * @param gridAgentBaseData
     *   state data of the actor
     * @param currentTick
@@ -40,7 +41,7 @@ trait DCMAlgorithm extends CongestionDetection {
     * @param constantData
     *   immutable [[GridAgent]] values
     * @param buffer
-    *   for [[GridAgent.Request]]s
+    *   for [[GridAgent.Message]]s
     * @return
     *   a [[Behavior]]
     */
@@ -48,11 +49,11 @@ trait DCMAlgorithm extends CongestionDetection {
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
       results: Option[PowerFlowResultEvent],
-      ctx: ActorContext[Request],
+      ctx: ActorContext[Message],
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[Request],
-  ): Behavior[Request] = {
+      buffer: StashBuffer[Message],
+  ): Behavior[Message] = {
 
     // get result or build empty data
     val congestionManagementData = results
@@ -70,6 +71,7 @@ trait DCMAlgorithm extends CongestionDetection {
 
   /** Method for finishing the congestion management. This method will return to
     * the [[GridAgent.idle()]] state afterward.
+    *
     * @param stateData
     *   congestion management state data
     * @param ctx
@@ -77,17 +79,17 @@ trait DCMAlgorithm extends CongestionDetection {
     * @param constantData
     *   immutable [[GridAgent]] values
     * @param buffer
-    *   for [[GridAgent.Request]]s
+    *   for [[GridAgent.Message]]s
     * @return
     *   a [[Behavior]]
     */
   private[grid] def finishCongestionManagement(
       stateData: CongestionManagementData,
-      ctx: ActorContext[Request],
+      ctx: ActorContext[Message],
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[Request],
-  ): Behavior[Request] = {
+      buffer: StashBuffer[Message],
+  ): Behavior[Message] = {
     // clean up agent and go back to idle
     val powerFlowResults = stateData.getAllResults(constantData.simStartTime)
 

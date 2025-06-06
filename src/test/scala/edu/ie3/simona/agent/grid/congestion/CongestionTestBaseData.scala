@@ -93,9 +93,9 @@ trait CongestionTestBaseData
     )
 
   def spawnWithBuffer(
-      factory: StashBuffer[GridAgent.Request] => Behavior[GridAgent.Request],
+      factory: StashBuffer[GridAgent.Message] => Behavior[GridAgent.Message],
       capacity: Int = 10,
-  ): ActorRef[GridAgent.Request] =
+  ): ActorRef[GridAgent.Message] =
     testKit.spawn(
       Behaviors.withStash(capacity) { buffer =>
         factory(buffer)
@@ -103,7 +103,7 @@ trait CongestionTestBaseData
     )
 
   def gridAgentBaseData(
-      inferiorRefs: Set[ActorRef[GridAgent.Request]] = Set.empty,
+      inferiorRefs: Set[ActorRef[GridAgent.Message]] = Set.empty,
       isSuperior: Boolean = false,
   ): GridAgentBaseData = {
     val data = mock[GridAgentBaseData]

@@ -81,7 +81,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
     // since the grid agent is stopped after a failed power flow
     // we need to initialize the agent for each test
-    def initAndGoToSimulateGrid: ActorRef[GridAgent.Request] = {
+    def initAndGoToSimulateGrid: ActorRef[GridAgent.Message] = {
       val centerGridAgent =
         testKit.spawn(
           GridAgent(
@@ -297,7 +297,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val hvGridAgent =
         InferiorGA(TestProbe("HvGridAgent"), Seq(supNodeA.getUuid))
 
-      val slackGridAgent: ActorRef[GridAgent.Request] = testKit.spawn(
+      val slackGridAgent: ActorRef[GridAgent.Message] = testKit.spawn(
         GridAgent(
           environmentRefs,
           simonaConfig, // stopOnFailure is enabled
