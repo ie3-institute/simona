@@ -6,14 +6,13 @@
 
 package edu.ie3.simona.scheduler
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorContextOps
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.util.UUID
 
@@ -50,7 +49,7 @@ object ScheduleLock {
 
   private final case class Init(adapter: ActorRef[Activation]) extends LockMsg
 
-  private final case object LockActivation extends LockMsg
+  private case object LockActivation extends LockMsg
 
   /** @param key
     *   the key that unlocks (part of) the lock
@@ -89,14 +88,7 @@ object ScheduleLock {
     def spawn[T](behavior: Behavior[T]): ActorRef[T]
   }
 
-  private final case class TypedSpawner(ctx: ActorContext[_]) extends Spawner {
-    override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
-      ctx.spawnAnonymous(behavior)
-  }
-
-  private final case class ClassicSpawner(
-      ctx: org.apache.pekko.actor.ActorContext
-  ) extends Spawner {
+  private final case class TypedSpawner(ctx: ActorContext[?]) extends Spawner {
     override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
       ctx.spawnAnonymous(behavior)
   }
@@ -114,30 +106,11 @@ object ScheduleLock {
     *   A single key that unlocks the lock
     */
   def singleKey(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
   ): ScheduleKey =
     singleKey(TypedSpawner(ctx), scheduler, tick)
-
-  /** Creates a lock with a single key.
-    *
-    * @param ctx
-    *   The classic ActorContext that is used to spawn actors
-    * @param scheduler
-    *   The scheduler to lock
-    * @param tick
-    *   The tick that the scheduler will be locked at (usually the current
-    *   tick).
-    * @return
-    *   A single key that unlocks the lock
-    */
-  def singleKey(
-      ctx: org.apache.pekko.actor.ActorContext,
-      scheduler: ActorRef[SchedulerMessage],
-      tick: Long,
-  ): ScheduleKey =
-    singleKey(ClassicSpawner(ctx), scheduler, tick)
 
   /** Creates a lock with a single key.
     *
@@ -175,34 +148,12 @@ object ScheduleLock {
     *   A collection of keys that are needed to unlock the lock
     */
   def multiKey(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
       count: Int,
   ): Iterable[ScheduleKey] =
     multiKey(TypedSpawner(ctx), scheduler, tick, count)
-
-  /** Creates a lock with a multiple keys.
-    *
-    * @param ctx
-    *   The classic ActorContext that is used to spawn actors
-    * @param scheduler
-    *   The scheduler to lock
-    * @param tick
-    *   The tick that the scheduler will be locked at (usually the current
-    *   tick).
-    * @param count
-    *   The number of keys needed to unlock the lock
-    * @return
-    *   A collection of keys that are needed to unlock the lock
-    */
-  def multiKey(
-      ctx: org.apache.pekko.actor.ActorContext,
-      scheduler: ActorRef[SchedulerMessage],
-      tick: Long,
-      count: Int,
-  ): Iterable[ScheduleKey] =
-    multiKey(ClassicSpawner(ctx), scheduler, tick, count)
 
   /** Creates a lock with a multiple keys.
     *
@@ -268,7 +219,7 @@ object ScheduleLock {
       adapter: ActorRef[Activation],
   ): Behavior[LockMsg] =
     Behaviors.withStash(100) { buffer =>
-      Behaviors.receiveMessage {
+      Behaviors.receiveMessagePartial {
         case LockActivation =>
           buffer.unstashAll(active(scheduler, awaitedKeys, adapter))
 
@@ -283,7 +234,7 @@ object ScheduleLock {
       scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
       adapter: ActorRef[Activation],
-  ): Behavior[LockMsg] = Behaviors.receiveMessage { case Unlock(key) =>
+  ): Behavior[LockMsg] = Behaviors.receiveMessagePartial { case Unlock(key) =>
     val updatedKeys = awaitedKeys - key
 
     if (updatedKeys.nonEmpty)
