@@ -131,7 +131,6 @@ dependencies {
   implementation "org.scala-lang:scala3-library_3:${scalaBinaryVersion}"
 
   /* CORE Pekko */
-  implementation "org.apache.pekko:pekko-actor_3:${pekkoVersion}"
   implementation "org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}"
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
 
