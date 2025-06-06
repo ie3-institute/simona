@@ -29,7 +29,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   SecondaryServiceRegistrationMessage,
-  ServiceMessages,
 }
 import edu.ie3.simona.ontology.messages.{
   Activation,
@@ -39,7 +38,9 @@ import edu.ie3.simona.ontology.messages.{
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherService.Coordinate
+import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
 import edu.ie3.simona.test.matchers.QuantityMatchers
@@ -115,8 +116,8 @@ class ThermalGridIT
       val resultListener = TestProbe[ResultEvent]("ResultListener")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =
-        TestProbe[ServiceMessages]("PrimaryServiceProxy")
-      val weatherService = TestProbe[ServiceMessages]("WeatherService")
+        TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
+      val weatherService = TestProbe[WeatherService.Message]("WeatherService")
 
       val participantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
@@ -739,8 +740,8 @@ class ThermalGridIT
       val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =
-        TestProbe[ServiceMessages]("PrimaryServiceProxy")
-      val weatherService = TestProbe[ServiceMessages]("WeatherService")
+        TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
+      val weatherService = TestProbe[WeatherService.Message]("WeatherService")
 
       val participantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,

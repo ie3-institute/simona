@@ -28,7 +28,7 @@ trait ExtDataSupport {
   override protected def idleExternal(using
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): PartialFunction[(ActorContext[M], M), Behavior[M]] = {
+  ): PartialFunction[(ActorContext[Message], Message), Behavior[Message]] = {
     case (ctx, ScheduleServiceActivation(tick, unlockKey)) =>
       constantData.scheduler ! ScheduleActivation(
         ctx.self,

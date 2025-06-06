@@ -29,13 +29,14 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   SecondaryServiceRegistrationMessage,
-  ServiceMessages,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherService.Coordinate
+import edu.ie3.simona.service.weather.{WeatherService, WeatherServiceSpec}
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.QuantityMatchers
@@ -105,8 +106,8 @@ class EmAgentIT
         val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
-          TestProbe[ServiceMessages]("PrimaryServiceProxy")
-        val weatherService = TestProbe[ServiceMessages]("WeatherService")
+          TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
+        val weatherService = TestProbe[WeatherService.Message]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
         val participantRefs = ParticipantRefs(
@@ -346,8 +347,8 @@ class EmAgentIT
         val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
-          TestProbe[ServiceMessages]("PrimaryServiceProxy")
-        val weatherService = TestProbe[ServiceMessages]("WeatherService")
+          TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
+        val weatherService = TestProbe[WeatherService.Message]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
         val participantRefs = ParticipantRefs(
@@ -655,8 +656,8 @@ class EmAgentIT
         val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
-          TestProbe[ServiceMessages]("PrimaryServiceProxy")
-        val weatherService = TestProbe[ServiceMessages]("WeatherService")
+          TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
+        val weatherService = TestProbe[WeatherService.Message]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
         val participantRefs = ParticipantRefs(

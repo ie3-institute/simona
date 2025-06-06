@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
 }
 import edu.ie3.simona.agent.participant.ParticipantInputHandler.ReceivedData
 import edu.ie3.simona.ontology.messages.ServiceMessage
-import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceRef
+import edu.ie3.simona.service.SimonaService.ServiceRef
 import edu.ie3.simona.service.Data
 
 /** This class holds received data, knows what data is expected and can thus

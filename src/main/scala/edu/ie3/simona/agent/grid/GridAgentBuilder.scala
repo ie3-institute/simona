@@ -27,7 +27,7 @@ import edu.ie3.simona.model.InputModelContainer.{
   SimpleInputContainer,
   WithHeatInputContainer,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceRef
+import edu.ie3.simona.service.SimonaService.ServiceRef
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
 import edu.ie3.simona.ontology.messages.{
   Activation,

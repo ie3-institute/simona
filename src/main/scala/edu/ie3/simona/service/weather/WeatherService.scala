@@ -158,7 +158,7 @@ object WeatherService extends SimonaService {
       registrationMessage: ServiceRegistrationMessage
   )(using
       serviceStateData: WeatherInitializedStateData,
-      ctx: ActorContext[M],
+      ctx: ActorContext[Message],
   ): Try[WeatherInitializedStateData] =
     registrationMessage match {
       case SecondaryServiceRegistrationMessage(
@@ -202,7 +202,7 @@ object WeatherService extends SimonaService {
       longitude: Double,
   )(using
       serviceStateData: WeatherInitializedStateData,
-      ctx: ActorContext[M],
+      ctx: ActorContext[Message],
   ): WeatherInitializedStateData = {
     ctx.log.debug(
       "Received weather registration from {} for [Lat:{}, Long:{}]",
@@ -288,7 +288,7 @@ object WeatherService extends SimonaService {
     */
   override protected def announceInformation(tick: Long)(using
       serviceStateData: WeatherInitializedStateData,
-      ctx: ActorContext[M],
+      ctx: ActorContext[Message],
   ): (WeatherInitializedStateData, Option[Long]) = {
 
     /* Pop the next activation tick and update the state data */

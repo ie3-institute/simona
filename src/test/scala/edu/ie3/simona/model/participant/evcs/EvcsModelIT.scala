@@ -29,7 +29,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   PrimaryServiceRegistrationMessage,
-  ServiceMessages,
 }
 import edu.ie3.simona.ontology.messages.{
   Activation,
@@ -40,6 +39,7 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -95,7 +95,7 @@ class EvcsModelIT
       val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
       val resultListener = TestProbe[ResultEvent]("ResultListener")
       val primaryServiceProxy =
-        TestProbe[ServiceMessages]("PrimaryServiceProxy")
+        TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
       val extSimAdapter = TestProbe[Any]("ExtSimAdapter")
 
@@ -189,7 +189,7 @@ class EvcsModelIT
 
       /* TICK 0 */
 
-      // Request prices (dummy implementation)
+      // Message prices (dummy implementation)
       extEvData.sendExtMsg(new RequestCurrentPrices())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -201,7 +201,7 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      // Request free lots
+      // Message free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -264,7 +264,7 @@ class EvcsModelIT
 
       /* TICK 1800 */
 
-      // Request free lots
+      // Message free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -335,7 +335,7 @@ class EvcsModelIT
 
       /* TICK 9000 */
 
-      // Request free lots
+      // Message free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -349,7 +349,7 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      // Request departing EVs
+      // Message departing EVs
       extEvData.sendExtMsg(
         new RequestDepartingEvs(
           Map(evcsInputModel.getUuid -> List(evA.getUuid).asJava).asJava
@@ -388,7 +388,7 @@ class EvcsModelIT
 
       /* TICK 10800 */
 
-      // Request free lots
+      // Message free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -446,7 +446,7 @@ class EvcsModelIT
 
       /* TICK 12600 */
 
-      // Request free lots
+      // Message free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -488,7 +488,7 @@ class EvcsModelIT
 
       /* TICK 14400 */
 
-      // Request free lots
+      // Message free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -502,7 +502,7 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      // Request departing EVs
+      // Message departing EVs
       extEvData.sendExtMsg(
         new RequestDepartingEvs(
           Map(evcsInputModel.getUuid -> List(evC.getUuid).asJava).asJava
@@ -541,7 +541,7 @@ class EvcsModelIT
 
       /* TICK 18000 */
 
-      // Request free lots
+      // Message free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -555,7 +555,7 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      // Request departing EVs
+      // Message departing EVs
       extEvData.sendExtMsg(
         new RequestDepartingEvs(
           Map(evcsInputModel.getUuid -> List(evB.getUuid).asJava).asJava

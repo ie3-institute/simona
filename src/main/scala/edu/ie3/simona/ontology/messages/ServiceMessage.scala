@@ -23,11 +23,6 @@ sealed trait ServiceMessage
 
 object ServiceMessage {
 
-  /** Describes all message, that can be received by every
-    * [[edu.ie3.simona.service.SimonaService]].
-    */
-  type ServiceMessages = ServiceMessage | Activation
-
   /** Actor reference for a [[edu.ie3.simona.service.SimonaService]].
     */
   type ServiceRef = ActorRef[ServiceMessage]

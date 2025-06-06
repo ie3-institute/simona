@@ -36,6 +36,13 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import scala.util.{Failure, Success, Try}
 
+object SimonaService {
+
+  /** Actor reference for a [[edu.ie3.simona.service.SimonaService]].
+    */
+  type ServiceRef = ActorRef[ServiceMessage]
+}
+
 /** Abstract description of a service agent, that is able to announce new
   * information to registered participants.
   */
@@ -43,7 +50,7 @@ abstract class SimonaService {
 
   /** Describes all messages this service can receive.
     */
-  protected type M >: ServiceMessage | Activation
+  type Message >: ServiceMessage | Activation
 
   /** The service specific type of the [[ServiceStateData]]
     */
@@ -52,8 +59,8 @@ abstract class SimonaService {
   def apply(
       scheduler: ActorRef[SchedulerMessage],
       bufferSize: Int = 10000,
-  ): Behavior[M] =
-    Behaviors.withStash[M](bufferSize) { buffer =>
+  ): Behavior[Message] =
+    Behaviors.withStash[Message](bufferSize) { buffer =>
       val constantData: ServiceConstantStateData =
         ServiceConstantStateData(scheduler)
 
@@ -68,8 +75,8 @@ abstract class SimonaService {
     */
   def uninitialized(using
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[M],
-  ): Behavior[M] = Behaviors.receive {
+      buffer: StashBuffer[Message],
+  ): Behavior[Message] = Behaviors.receive {
     case (
           ctx,
           Create(
@@ -95,8 +102,8 @@ abstract class SimonaService {
       initializeStateData: InitializeServiceStateData
   )(using
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[M],
-  ): Behavior[M] = Behaviors.receive {
+      buffer: StashBuffer[Message],
+  ): Behavior[Message] = Behaviors.receive {
     case (ctx, Activation(INIT_SIM_TICK)) =>
       // init might take some time and could go wrong if invalid initialize service data is received
       // execute complete and unstash only if init is carried out successfully
@@ -150,7 +157,7 @@ abstract class SimonaService {
   final protected def idle(using
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): Behavior[M] = Behaviors.receive[M] { case (ctx, msg) =>
+  ): Behavior[Message] = Behaviors.receive[Message] { case (ctx, msg) =>
     idleInternal
       .orElse(idleExternal)
       .applyOrElse((ctx, msg), unhandled.tupled)
@@ -159,7 +166,7 @@ abstract class SimonaService {
   private def idleInternal(using
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): PartialFunction[(ActorContext[M], M), Behavior[M]] = {
+  ): PartialFunction[(ActorContext[Message], Message), Behavior[Message]] = {
     // agent registration process
     case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
@@ -194,7 +201,8 @@ abstract class SimonaService {
       idle(using updatedStateData, constantData)
   }
 
-  private def unhandled: (ActorContext[M], M) => Behavior[M] = {
+  private def unhandled
+      : (ActorContext[Message], Message) => Behavior[Message] = {
     case (ctx, msg) =>
       ctx.log.error("Unhandled message received:{}", msg)
       Behaviors.unhandled
@@ -212,8 +220,8 @@ abstract class SimonaService {
   protected def idleExternal(using
       stateData: S,
       constantData: ServiceConstantStateData,
-  ): PartialFunction[(ActorContext[M], M), Behavior[
-    M
+  ): PartialFunction[(ActorContext[Message], Message), Behavior[
+    Message
   ]] = PartialFunction.empty
 
   /** Initialize the concrete service implementation using the provided
@@ -248,7 +256,7 @@ abstract class SimonaService {
       registrationMessage: ServiceRegistrationMessage
   )(using
       serviceStateData: S,
-      ctx: ActorContext[M],
+      ctx: ActorContext[Message],
   ): Try[S]
 
   /** Send out the information to all registered recipients
@@ -264,7 +272,7 @@ abstract class SimonaService {
     */
   protected def announceInformation(tick: Long)(using
       serviceStateData: S,
-      ctx: ActorContext[M],
+      ctx: ActorContext[Message],
   ): (S, Option[Long])
 
 }

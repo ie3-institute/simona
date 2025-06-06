@@ -99,7 +99,7 @@ class PrimaryServiceWorkerSpec
     val scheduler = TestProbe[SchedulerMessage]("scheduler")
     val systemParticipant = TestProbe[Any]("dummySystemParticipant")
 
-    given serviceRef: ActorRef[ServiceMessages] =
+    given serviceRef: ActorRef[PrimaryServiceProxy.Message] =
       spawn(PrimaryServiceWorker(scheduler.ref))
     given log: Logger =
       LoggerFactory.getLogger(classOf[PrimaryServiceWorkerSpec])

@@ -135,7 +135,7 @@ object GridAgentMessages {
       exception: Throwable
   ) extends GridAgent.InternalRequest
 
-  /** Request complex power at the nodes that the inferior sub grid shares with
+  /** Message complex power at the nodes that the inferior sub grid shares with
     * the sender's sub grid
     *
     * @param currentSweepNo
@@ -201,7 +201,7 @@ object GridAgentMessages {
       override val q: ReactivePower,
   ) extends ProvidedPowerResponse
 
-  /** Request complex voltage at the nodes that the superior sub grid shares
+  /** Message complex voltage at the nodes that the superior sub grid shares
     * with the sender's sub grid
     *
     * @param currentSweepNo

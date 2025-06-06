@@ -28,13 +28,13 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   SecondaryServiceRegistrationMessage,
-  ServiceMessages,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
@@ -88,7 +88,7 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
 
         val gridAgent = createTestProbe[GridAgent.Request]()
-        val primaryService = createTestProbe[ServiceMessages]()
+        val primaryService = createTestProbe[PrimaryServiceProxy.Message]()
         val resultListener = createTestProbe[ResultEvent]()
 
         val refs = ParticipantRefs(

@@ -119,7 +119,7 @@ object LoadProfileService extends SimonaService {
       registrationMessage: ServiceRegistrationMessage
   )(using
       serviceStateData: LoadProfileInitializedStateData,
-      ctx: ActorContext[M],
+      ctx: ActorContext[Message],
   ): Try[LoadProfileInitializedStateData] = registrationMessage match {
     case SecondaryServiceRegistrationMessage(
           requestingActor,
@@ -153,7 +153,7 @@ object LoadProfileService extends SimonaService {
       loadProfile: LoadProfile,
   )(using
       serviceStateData: LoadProfileInitializedStateData,
-      ctx: ActorContext[M],
+      ctx: ActorContext[Message],
   ): LoadProfileInitializedStateData = {
 
     serviceStateData.profileToRefs.get(loadProfile) match {
@@ -212,7 +212,7 @@ object LoadProfileService extends SimonaService {
 
   override protected def announceInformation(tick: Long)(using
       serviceStateData: LoadProfileInitializedStateData,
-      ctx: ActorContext[M],
+      ctx: ActorContext[Message],
   ): (LoadProfileInitializedStateData, Option[Long]) = {
 
     /* Pop the next activation tick and update the state data */

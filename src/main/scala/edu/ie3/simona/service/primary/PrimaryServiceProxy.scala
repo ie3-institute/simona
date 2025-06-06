@@ -78,7 +78,7 @@ import scala.util.{Failure, Success, Try}
   */
 object PrimaryServiceProxy {
 
-  type Request = ServiceMessage | Activation
+  type Message = ServiceMessage | Activation
 
   /** State data with needed information to initialize this primary service
     * provider proxy
@@ -121,14 +121,14 @@ object PrimaryServiceProxy {
     */
   final case class SourceRef(
       metaInformation: IndividualTimeSeriesMetaInformation,
-      worker: Option[ActorRef[Request]],
+      worker: Option[ActorRef[Message]],
   )
 
   def apply(
       scheduler: ActorRef[SchedulerMessage],
       initStateData: InitPrimaryServiceProxyStateData,
       bufferSize: Int = 10000,
-  ): Behavior[Request] = Behaviors.withStash(bufferSize) { buffer =>
+  ): Behavior[Message] = Behaviors.withStash(bufferSize) { buffer =>
     Behaviors.setup { ctx =>
       val constantData: ServiceConstantStateData =
         ServiceConstantStateData(scheduler)
@@ -151,8 +151,8 @@ object PrimaryServiceProxy {
       initStateData: InitPrimaryServiceProxyStateData
   )(using
       constantData: ServiceConstantStateData,
-      buffer: StashBuffer[Request],
-  ): Behavior[Request] = Behaviors.receive {
+      buffer: StashBuffer[Message],
+  ): Behavior[Message] = Behaviors.receive {
     case (ctx, Activation(INIT_SIM_TICK)) =>
       /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
        * messages */
@@ -312,7 +312,7 @@ object PrimaryServiceProxy {
     */
   private[service] def onMessage(stateData: PrimaryServiceStateData)(using
       constantData: ServiceConstantStateData
-  ): Behavior[Request] = Behaviors.receive {
+  ): Behavior[Message] = Behaviors.receive {
     case (
           ctx,
           PrimaryServiceRegistrationMessage(requestingActor, modelUuid),
@@ -364,7 +364,7 @@ object PrimaryServiceProxy {
       requestingActor: ActorRef[ParticipantAgent.Request],
   )(using
       constantData: ServiceConstantStateData,
-      ctx: ActorContext[Request],
+      ctx: ActorContext[Message],
   ): PrimaryServiceStateData = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     timeSeriesToSourceRef.get(timeSeriesUuid) match {
@@ -424,8 +424,8 @@ object PrimaryServiceProxy {
       primaryConfig: PrimaryConfig,
   )(using
       constantData: ServiceConstantStateData,
-      ctx: ActorContext[Request],
-  ): Try[ActorRef[Request]] = {
+      ctx: ActorContext[Message],
+  ): Try[ActorRef[Message]] = {
     val valueClass = metaInformation.getColumnScheme.getValueClass
 
     val workerRef = classToWorkerRef(metaInformation.getUuid.toString)
@@ -464,8 +464,8 @@ object PrimaryServiceProxy {
       timeSeriesUuid: String
   )(using
       constantData: ServiceConstantStateData,
-      ctx: ActorContext[Request],
-  ): ActorRef[Request] =
+      ctx: ActorContext[Message],
+  ): ActorRef[Message] =
     ctx.spawn(
       PrimaryServiceWorker(constantData.scheduler),
       timeSeriesUuid,
@@ -555,7 +555,7 @@ object PrimaryServiceProxy {
   private def updateStateData(
       stateData: PrimaryServiceStateData,
       timeSeriesUuid: UUID,
-      workerRef: ActorRef[Request],
+      workerRef: ActorRef[Message],
   ): PrimaryServiceStateData = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     val sourceRef = timeSeriesToSourceRef.getOrElse(

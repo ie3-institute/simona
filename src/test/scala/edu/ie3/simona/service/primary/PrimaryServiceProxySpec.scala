@@ -28,7 +28,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   PrimaryServiceRegistrationMessage,
-  ServiceMessages,
   WorkerRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
@@ -135,11 +134,12 @@ class PrimaryServiceProxySpec
     m
   }
 
-  private val service = TestProbe[ServiceMessages]("primaryServiceProxy")
+  private val service =
+    TestProbe[PrimaryServiceProxy.Message]("primaryServiceProxy")
 
   given log: Logger = LoggerFactory.getLogger("PrimaryServiceProxySpec")
-  given ctx: ActorContext[ServiceMessages] = {
-    val m = mock[ActorContext[ServiceMessages]]
+  given ctx: ActorContext[PrimaryServiceProxy.Message] = {
+    val m = mock[ActorContext[PrimaryServiceProxy.Message]]
     when(m.log).thenReturn(log)
     when(m.self).thenReturn(service.ref)
     m
@@ -150,7 +150,7 @@ class PrimaryServiceProxySpec
       validPrimaryConfig,
       simulationStart,
     )
-  val proxy: ActorRef[ServiceMessages] =
+  val proxy: ActorRef[PrimaryServiceProxy.Message] =
     testKit.spawn(PrimaryServiceProxy(scheduler.ref, initStateData))
 
   "Building state data from given config" should {
@@ -261,7 +261,7 @@ class PrimaryServiceProxySpec
   "Spinning off a worker" should {
     "successfully instantiate an actor within the actor system" in {
       val testKit = BehaviorTestKit(
-        Behaviors.setup[ServiceMessages] { ctx =>
+        Behaviors.setup[PrimaryServiceProxy.Message] { ctx =>
           PrimaryServiceProxy.classToWorkerRef(workerId)(using
             constantData,
             ctx,
@@ -346,7 +346,7 @@ class PrimaryServiceProxySpec
     "succeed on fine input data" in {
       /* We "fake" the creation of the worker to infiltrate a test probe. This empowers us to check, if a matching init
        * message is sent to the worker */
-      val worker = TestProbe[ServiceMessages]("workerTestProbe")
+      val worker = TestProbe[PrimaryServiceProxy.Message]("workerTestProbe")
       val lockProbe = TestProbe[LockMsg]("lockProbe")
 
       val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
@@ -354,11 +354,17 @@ class PrimaryServiceProxySpec
         Paths.get("its_pq_" + uuidPq),
       )
 
-      val context: ActorContext[ServiceMessages] = {
-        val m = mock[ActorContext[ServiceMessages]]
+      val context: ActorContext[PrimaryServiceProxy.Message] = {
+        val m = mock[ActorContext[PrimaryServiceProxy.Message]]
         when(m.log).thenReturn(log)
 
-        when(m.spawn(any[Behavior[ServiceMessages]], any[String], any()))
+        when(
+          m.spawn(
+            any[Behavior[PrimaryServiceProxy.Message]],
+            any[String],
+            any(),
+          )
+        )
           .thenReturn(worker.ref)
         when(m.spawnAnonymous(any[Behavior[LockMsg]], any()))
           .thenReturn(lockProbe.ref)
@@ -407,7 +413,8 @@ class PrimaryServiceProxySpec
     }
   }
 
-  private val dummyWorker = TestProbe[ServiceMessages]("dummyWorker")
+  private val dummyWorker =
+    TestProbe[PrimaryServiceProxy.Message]("dummyWorker")
   private val agentToBeRegistered = TestProbe[Any]("agent")
 
   "Updating state data" should {
@@ -500,7 +507,7 @@ class PrimaryServiceProxySpec
 
     "spin off a worker, if needed and forward the registration request" in {
       /* We once again fake the class, so that we can infiltrate a probe */
-      val worker = TestProbe[ServiceMessages]("workerTestProbe")
+      val worker = TestProbe[PrimaryServiceProxy.Message]("workerTestProbe")
 
       val adaptedStateData = proxyStateData.copy(
         timeSeriesToSourceRef = Map(
@@ -602,7 +609,7 @@ class PrimaryServiceProxySpec
 
     "succeed, if model is handled" in {
       /* We once again fake the class, so that we can infiltrate a probe */
-      val worker = TestProbe[ServiceMessages]("workerTestProbe")
+      val worker = TestProbe[PrimaryServiceProxy.Message]("workerTestProbe")
 
       val adaptedStateData = proxyStateData.copy(
         modelToTimeSeries = Map(modelUuid -> uuidPq),

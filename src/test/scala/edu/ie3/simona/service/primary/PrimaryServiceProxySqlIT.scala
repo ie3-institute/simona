@@ -18,10 +18,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  ServiceMessages,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.{
   Activation,
   SchedulerMessage,
@@ -92,7 +89,7 @@ class PrimaryServiceProxySqlIT
     timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
   )
 
-  private def createProxy(): ActorRef[ServiceMessages] = {
+  private def createProxy(): ActorRef[PrimaryServiceProxy.Message] = {
     val initData = InitPrimaryServiceProxyStateData(
       Primary(
         None,
