@@ -9,10 +9,10 @@ package edu.ie3.simona.config
 import com.typesafe.config.{Config, ConfigValue}
 import edu.ie3.simona.config.SimonaConfig.writer
 import edu.ie3.simona.exceptions.CriticalFailureException
-import pureconfig.error._
-import pureconfig.generic._
+import pureconfig.*
+import pureconfig.error.*
+import pureconfig.generic.*
 import pureconfig.generic.semiauto.deriveConvert
-import pureconfig._
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.deriving.Mirror
@@ -21,9 +21,9 @@ final case class SimonaConfig(
     simona: SimonaConfig.Simona
 ) derives ConfigConvert {
 
-  /** Returns the default config values.
+  /** Returns the values of this config.
     */
-  def defaults: ConfigValue = writer.to(this)
+  def values: ConfigValue = writer.to(this)
 }
 
 object SimonaConfig {
@@ -66,19 +66,6 @@ object SimonaConfig {
     }
 
   // pure config end
-
-  /** Case class contains default and individual configs for assets.
-    * @param defaultConfig
-    *   to use
-    * @param individualConfigs
-    *   specific configs, that are used instead of the [[defaultConfig]]
-    * @tparam T
-    *   type of asset config
-    */
-  final case class AssetConfigs[T](
-      defaultConfig: T,
-      individualConfigs: List[T] = List.empty,
-  )
 
   sealed trait GridConfigParams {
     val gridIds: Option[List[String]]
@@ -123,7 +110,7 @@ object SimonaConfig {
       powerflow: Simona.Powerflow,
       runtime: RuntimeConfig = RuntimeConfig(),
       simulationName: String,
-      time: Simona.Time = Simona.Time(),
+      time: Simona.Time,
   ) derives ConfigConvert
   object Simona {
     final case class CongestionManagement(
@@ -141,7 +128,7 @@ object SimonaConfig {
     ) derives ConfigConvert
 
     final case class Powerflow(
-        maxSweepPowerDeviation: Double,
+        maxSweepPowerDeviation: Double = 1e-5,
         newtonraphson: Powerflow.Newtonraphson,
         resolution: FiniteDuration = 1.hours,
         stopOnFailure: Boolean = false,
@@ -150,14 +137,14 @@ object SimonaConfig {
     object Powerflow {
       final case class Newtonraphson(
           epsilon: List[Double] = List.empty,
-          iterations: Int,
+          iterations: Int = 50,
       ) derives ConfigConvert
     }
 
     final case class Time(
-        endDateTime: String = "2011-05-01T01:00:00Z",
+        endDateTime: String,
         schedulerReadyCheckWindow: Option[Int] = None,
-        startDateTime: String = "2011-05-01T00:00:00Z",
+        startDateTime: String,
     ) derives ConfigConvert
   }
 }

@@ -7,20 +7,20 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.ConfigParams._
+import edu.ie3.simona.config.ConfigParams.*
 import edu.ie3.simona.config.InputConfig.{
   CoordinateSource,
   WeatherDatasource,
-  Primary => PrimaryConfig,
+  Primary as PrimaryConfig,
 }
 import edu.ie3.simona.config.OutputConfig.Sink
-import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.{
+  StorageRuntimeConfig,
+  StorageRuntimeConfigs,
+}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
-import edu.ie3.simona.config.SimonaConfig.{
-  AssetConfigs,
-  TransformerControlGroup,
-}
+import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
@@ -1422,7 +1422,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             -0.5,
             Some(0.8),
           )
-        val storageConfig = AssetConfigs(defaultConfig, List.empty)
+        val storageConfig = StorageRuntimeConfigs(defaultConfig, List.empty)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1438,7 +1438,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             0.5,
             Some(-0.8),
           )
-        val storageConfig = AssetConfigs(defaultConfig, List.empty)
+        val storageConfig = StorageRuntimeConfigs(defaultConfig, List.empty)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1464,7 +1464,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(0.8),
           )
         )
-        val storageConfig = AssetConfigs(defaultConfig, individualConfig)
+        val storageConfig =
+          StorageRuntimeConfigs(defaultConfig, individualConfig)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1490,7 +1491,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(-0.8),
           )
         )
-        val storageConfig = AssetConfigs(defaultConfig, individualConfig)
+        val storageConfig =
+          StorageRuntimeConfigs(defaultConfig, individualConfig)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1515,7 +1517,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(0.8),
           )
         )
-        val storageConfig = AssetConfigs(defaultConfig, individualConfig)
+        val storageConfig =
+          StorageRuntimeConfigs(defaultConfig, individualConfig)
 
         noException should be thrownBy {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)

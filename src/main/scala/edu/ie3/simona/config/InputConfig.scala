@@ -29,7 +29,7 @@ import scala.deriving.Mirror
 final case class InputConfig(
     extSimDir: Option[String],
     grid: Grid,
-    loadProfile: LoadProfile = LoadProfile.empty,
+    loadProfile: LoadProfile = LoadProfile(),
     primary: Primary = Primary(),
     weather: Weather = Weather(),
 ) derives ConfigConvert
@@ -59,10 +59,6 @@ object InputConfig {
       datasource: LoadProfile.Datasource = LoadProfile.Datasource()
   )
   object LoadProfile {
-
-    /** Returns an empty [[LoadProfile]] with default params.
-      */
-    def empty: LoadProfile = LoadProfile()
 
     /** Case class with options for load profile data source parameters.
       *
@@ -100,6 +96,10 @@ object InputConfig {
       sqlParams: Option[TimeStampedSqlParams] = None,
   ) derives ConfigConvert
 
+  /** Case class that holds all information for weather.
+    * @param datasource
+    *   That hold the weather data (default: empty).
+    */
   final case class Weather(
       datasource: WeatherDatasource = WeatherDatasource()
   ) derives ConfigConvert
