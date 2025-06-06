@@ -32,6 +32,7 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.time.ZonedDateTime
 import scala.util.{Failure, Try}
+import edu.ie3.simona.ontology.messages.flex.FlexOptions
 
 /** Energy management agent that receives flex options from and issues control
   * messages to connected agents
@@ -40,37 +41,7 @@ import scala.util.{Failure, Try}
   */
 object EmAgent {
 
-  type Actor = ActorRef[FlexRequest]
-
-  /** Extended by all messages that an [[EmAgent]] can receive
-    */
-  trait Request
-
-  /** Extended by all requests that activate an [[EmAgent]], i.e. activations,
-    * flex requests and control messages
-    */
-  private sealed trait ActivationRequest extends Request {
-    val tick: Long
-  }
-
-  /** Wrapper for an [[Activation]] for usage by an adapter. Activations can
-    * only be received if this EM agent is not EM-controlled.
-    *
-    * @param tick
-    *   The tick to activate
-    */
-  private final case class EmActivation(override val tick: Long)
-      extends ActivationRequest
-
-  /** Wrapper for [[FlexRequest]] messages for usage by an adapter (if this
-    * [[EmAgent]] is EM-controlled itself)
-    *
-    * @param msg
-    *   The wrapped flex request
-    */
-  private final case class Flex(msg: FlexRequest) extends ActivationRequest {
-    override val tick: Long = msg.tick
-  }
+  type Message = Activation | FlexRequest | FlexResponse
 
   /** Creates the initial [[Behavior]] for an [[EmAgent]] in an inactive state
     *
@@ -99,30 +70,19 @@ object EmAgent {
       simulationStartDate: ZonedDateTime,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
       listener: Iterable[ActorRef[ResultEvent]],
-  ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
+  ): Behavior[Message] = Behaviors.setup[Message] { ctx =>
+
+    parent.map {
+      _ ! RegisterControlledAsset(
+        ctx.self,
+        inputModel,
+      )
+    }
+
     val constantData = EmData(
       outputConfig,
       simulationStartDate,
-      parent
-        .map { parentEm =>
-          val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
-
-          parentEm ! RegisterControlledAsset(
-            flexAdapter,
-            inputModel,
-          )
-
-          FlexControlledData(parentEm, flexAdapter)
-        }
-        .left
-        .map { scheduler =>
-          {
-            val activationAdapter = ctx.messageAdapter[Activation] { msg =>
-              EmActivation(msg.tick)
-            }
-            SchedulerData(scheduler, activationAdapter)
-          }
-        },
+      parent,
       listener,
     )
 
@@ -136,7 +96,7 @@ object EmAgent {
     inactive(
       constantData,
       modelShell,
-      EmDataCore.create(simulationStartDate),
+      EmDataCore.create(using simulationStartDate),
     )
   }
 
@@ -147,14 +107,14 @@ object EmAgent {
       emData: EmData,
       modelShell: EmModelShell,
       core: EmDataCore.Inactive,
-  ): Behavior[Request] = Behaviors.receivePartial {
+  ): Behavior[Message] = Behaviors.receivePartial {
 
     case (_, RegisterControlledAsset(actor, spi)) =>
       val updatedModelShell = modelShell.addParticipant(spi.getUuid, spi)
       val updatedCore = core.addParticipant(actor, spi.getUuid)
       inactive(emData, updatedModelShell, updatedCore)
 
-    case (_, ScheduleFlexActivation(participant, newTick, scheduleKey)) =>
+    case (ctx, ScheduleFlexActivation(participant, newTick, scheduleKey)) =>
       val (maybeSchedule, newCore) = core
         .handleSchedule(participant, newTick)
 
@@ -163,14 +123,13 @@ object EmAgent {
           // also potentially schedule with parent if the new earliest tick is
           // different from the old earliest tick (including if nothing had
           // been scheduled before)
-          emData.parentData.fold(
-            schedulerData =>
-              schedulerData.scheduler ! ScheduleActivation(
-                schedulerData.activationAdapter,
-                scheduleTick,
-                scheduleKey,
-              ),
-            _.emAgent ! ScheduleFlexActivation(
+          emData.parent.fold(
+            _ ! ScheduleActivation(
+              ctx.self,
+              scheduleTick,
+              scheduleKey,
+            ),
+            _ ! ScheduleFlexActivation(
               modelShell.uuid,
               scheduleTick,
               scheduleKey,
@@ -185,33 +144,44 @@ object EmAgent {
       }
       inactive(emData, modelShell, newCore)
 
-    case (ctx, msg: ActivationRequest) =>
+    case (_, msg: Activation) =>
+      activate(emData, modelShell, core, msg.tick)
+
+    case (_, msg: FlexActivation) =>
+      activate(emData, modelShell, core, msg.tick)
+
+    case (ctx, msg: IssueFlexControl) =>
       val flexOptionsCore = core.activate(msg.tick)
 
-      msg match {
-        case Flex(_: FlexActivation) | EmActivation(_) =>
-          val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
-          toActivate.foreach {
-            _ ! FlexActivation(msg.tick)
-          }
+      // We got sent a flex control message instead of a flex request,
+      // this means that flex options must have not changed since
+      // they were last calculated
 
-          newCore.fold(
-            awaitingFlexOptions(emData, modelShell, _),
-            awaitingCompletions(emData, modelShell, _),
-          )
+      // Thus, we just jump to the appropriate place and forward the
+      // control message there
+      ctx.self ! msg
 
-        case Flex(_: IssueFlexControl) =>
-          // We got sent a flex control message instead of a flex request,
-          // this means that flex options must have not changed since
-          // they were last calculated
+      awaitingFlexCtrl(emData, modelShell, flexOptionsCore)
 
-          // Thus, we just jump to the appropriate place and forward the
-          // control message there
-          ctx.self ! msg
+  }
 
-          awaitingFlexCtrl(emData, modelShell, flexOptionsCore)
-      }
+  private def activate(
+      emData: EmData,
+      modelShell: EmModelShell,
+      core: EmDataCore.Inactive,
+      tick: Long,
+  ) = {
+    val flexOptionsCore = core.activate(tick)
 
+    val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
+    toActivate.foreach {
+      _ ! FlexActivation(tick)
+    }
+
+    newCore.fold(
+      awaitingFlexOptions(emData, modelShell, _),
+      awaitingCompletions(emData, modelShell, _),
+    )
   }
 
   /** Behavior of an [[EmAgent]] waiting for flex options to be received in
@@ -221,7 +191,7 @@ object EmAgent {
       emData: EmData,
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
-  ): Behavior[Request] = Behaviors.receiveMessagePartial {
+  ): Behavior[Message] = Behaviors.receiveMessagePartial {
     case provideFlex: ProvideFlexOptions =>
       val updatedCore = flexOptionsCore.handleFlexOptions(
         provideFlex.modelUuid,
@@ -237,7 +207,7 @@ object EmAgent {
 
         if (emData.outputConfig.flexResult) {
           val flexResult = new FlexOptionsResult(
-            flexOptionsCore.activeTick.toDateTime(
+            flexOptionsCore.activeTick.toDateTime(using
               emData.simulationStartDate
             ),
             modelShell.uuid,
@@ -251,23 +221,19 @@ object EmAgent {
           }
         }
 
-        emData.parentData match {
-          case Right(flexStateData) =>
+        emData.parent match {
+          case Right(parentEm) =>
             // provide aggregate flex options to parent
-            flexStateData.emAgent ! ProvideFlexOptions(
+            parentEm ! ProvideFlexOptions(
               modelShell.uuid,
               emFlexOptions,
             )
 
-            val updatedEmData = emData.copy(
-              parentData = Right(
-                flexStateData.copy(
-                  lastFlexOptions = Some(emFlexOptions)
-                )
-              )
+            val updatedModelShell = modelShell.copy(
+              lastFlexOptions = Some(emFlexOptions)
             )
 
-            awaitingFlexCtrl(updatedEmData, modelShell, updatedCore)
+            awaitingFlexCtrl(emData, updatedModelShell, updatedCore)
 
           case Left(_) =>
             // We're not em-controlled ourselves,
@@ -312,14 +278,10 @@ object EmAgent {
       emData: EmData,
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
-  ): Behavior[Request] = Behaviors.receiveMessagePartial {
-    case Flex(flexCtrl: IssueFlexControl) =>
-      val flexData = emData.parentData.getOrElse(
-        throw new CriticalFailureException(s"EmAgent is not EM-controlled.")
-      )
-
+  ): Behavior[Message] = Behaviors.receiveMessagePartial {
+    case flexCtrl: IssueFlexControl =>
       // flex options calculated by this EmAgent
-      val ownFlexOptions = flexData.lastFlexOptions.getOrElse(
+      val ownFlexOptions = modelShell.lastFlexOptions.getOrElse(
         throw new CriticalFailureException(
           s"Flex options have not been calculated by EmAgent."
         )
@@ -365,8 +327,8 @@ object EmAgent {
       emData: EmData,
       modelShell: EmModelShell,
       core: EmDataCore.AwaitingCompletions,
-  ): Behavior[Request] = Behaviors.receiveMessagePartial {
-    case result: FlexResult =>
+  ): Behavior[Message] = Behaviors.receivePartial {
+    case (_, result: FlexResult) =>
       val updatedCore = core.handleResult(result)
 
       awaitingCompletions(
@@ -375,7 +337,7 @@ object EmAgent {
         updatedCore,
       )
 
-    case completion: FlexCompletion =>
+    case (ctx, completion: FlexCompletion) =>
       val updatedCore = core.handleCompletion(completion)
 
       updatedCore
@@ -386,7 +348,7 @@ object EmAgent {
             modelShell,
             inactiveCore,
             lastActiveTick = updatedCore.activeTick,
-          )
+          )(using ctx.self)
           inactive(emData, modelShell, inactiveCore)
         }
         .getOrElse {
@@ -408,7 +370,7 @@ object EmAgent {
       modelShell: EmModelShell,
       inactiveCore: EmDataCore.Inactive,
       lastActiveTick: Long,
-  ): Unit = {
+  )(using self: ActorRef[Message]): Unit = {
     // Sum up resulting power, if applicable.
     // After initialization, there are no results yet.
     val maybeResult = inactiveCore.getResults
@@ -421,7 +383,7 @@ object EmAgent {
         _ ! ParticipantResultEvent(
           new EmResult(
             lastActiveTick
-              .toDateTime(emData.simulationStartDate),
+              .toDateTime(using emData.simulationStartDate),
             modelShell.uuid,
             result.p.toMegawatts.asMegaWatt,
             result.q.toMegavars.asMegaVar,
@@ -429,18 +391,17 @@ object EmAgent {
         )
       }
 
-      emData.parentData.foreach {
-        _.emAgent ! FlexResult(modelShell.uuid, result)
+      emData.parent.foreach {
+        _ ! FlexResult(modelShell.uuid, result)
       }
     }
 
-    emData.parentData.fold(
-      schedulerData =>
-        schedulerData.scheduler ! Completion(
-          schedulerData.activationAdapter,
-          inactiveCore.nextActiveTick,
-        ),
-      _.emAgent ! FlexCompletion(
+    emData.parent.fold(
+      _ ! Completion(
+        self,
+        inactiveCore.nextActiveTick,
+      ),
+      _ ! FlexCompletion(
         modelShell.uuid,
         inactiveCore.hasFlexWithNext,
         inactiveCore.nextActiveTick,
@@ -454,30 +415,31 @@ object EmAgent {
     *   Config for the output behaviour of simulation results
     * @param simulationStartDate
     *   Date of the very first tick in the simulation
-    * @param parentData
-    *   Either a [[Right]] with [[FlexControlledData]] if this agent is
-    *   em-controlled, or a [[Left]] with [[SchedulerData]]
+    * @param parent
+    *   Either a [[Right]] with a reference to the parent [[EmAgent]] if this
+    *   agent is em-controlled, or a [[Left]] with a reference to the scheduler
+    *   that is activating this agent
     * @param listener
     *   A collection of result event listeners
     */
   private final case class EmData(
       outputConfig: NotifierConfig,
       simulationStartDate: ZonedDateTime,
-      parentData: Either[SchedulerData, FlexControlledData],
+      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
       listener: Iterable[ActorRef[ResultEvent]],
   )
 
-  /** The existence of this data object indicates that the corresponding agent
-    * is not EM-controlled, but activated by a
-    * [[edu.ie3.simona.scheduler.Scheduler]]
-    *
-    * @param scheduler
-    *   The scheduler that is activating this agent
-    * @param activationAdapter
-    *   The activation adapter handling [[Activation]] messages
-    */
-  final case class SchedulerData(
-      scheduler: ActorRef[SchedulerMessage],
-      activationAdapter: ActorRef[Activation],
+  /** The existence of this data object indicates that the corresponding agent is
+  * EM-controlled (by [[emAgent]]).
+  *
+  * @param emAgent
+  *   The parent EmAgent that is controlling this agent.
+  * @param lastFlexOptions
+  *   Last flex options that have been calculated for this agent.
+  */
+  final case class FlexControlledData(
+      emAgent: ActorRef[FlexResponse],
+      lastFlexOptions: Option[FlexOptions] = None,
   )
+
 }

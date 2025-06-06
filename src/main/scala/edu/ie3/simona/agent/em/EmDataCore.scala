@@ -6,14 +6,14 @@
 
 package edu.ie3.simona.agent.em
 
-import edu.ie3.simona.agent.em.EmAgent.Actor
 import edu.ie3.simona.agent.em.FlexCorrespondenceStore.WithTime
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexOptions
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
+import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 
 import java.time.ZonedDateTime
@@ -24,6 +24,8 @@ import java.util.UUID
   * and retrieved.
   */
 object EmDataCore {
+
+  type Actor = ActorRef[FlexRequest]
 
   /** Creates a new instance of an (inactive) EmAgent data core.
     * @param startDate
