@@ -429,14 +429,14 @@ object EmAgent {
       listener: Iterable[ActorRef[ResultEvent]],
   )
 
-  /** The existence of this data object indicates that the corresponding agent is
-  * EM-controlled (by [[emAgent]]).
-  *
-  * @param emAgent
-  *   The parent EmAgent that is controlling this agent.
-  * @param lastFlexOptions
-  *   Last flex options that have been calculated for this agent.
-  */
+  /** The existence of this data object indicates that the corresponding agent
+    * is EM-controlled (by [[emAgent]]).
+    *
+    * @param emAgent
+    *   The parent EmAgent that is controlling this agent.
+    * @param lastFlexOptions
+    *   Last flex options that have been calculated for this agent.
+    */
   final case class FlexControlledData(
       emAgent: ActorRef[FlexResponse],
       lastFlexOptions: Option[FlexOptions] = None,
