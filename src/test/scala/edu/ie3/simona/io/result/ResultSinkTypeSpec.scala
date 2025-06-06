@@ -28,6 +28,7 @@ class ResultSinkTypeSpec extends UnitSpec {
             fileSuffix = "",
             isHierarchic = false,
             compressOutputs = false,
+            csvSep = ",",
           )
         ),
         influxDb1x = None,
@@ -35,11 +36,12 @@ class ResultSinkTypeSpec extends UnitSpec {
       )
 
       inside(ResultSinkType(conf, "testRun")) {
-        case Csv(fileFormat, filePrefix, fileSuffix, zipFiles) =>
+        case Csv(fileFormat, filePrefix, fileSuffix, zipFiles, delimiter) =>
           fileFormat shouldBe conf.csv.value.fileFormat
           filePrefix shouldBe conf.csv.value.filePrefix
           fileSuffix shouldBe conf.csv.value.fileSuffix
           zipFiles shouldBe conf.csv.value.compressOutputs
+          delimiter shouldBe conf.csv.value.csvSep
         case _ =>
           fail("Wrong ResultSinkType got instantiated.")
       }
