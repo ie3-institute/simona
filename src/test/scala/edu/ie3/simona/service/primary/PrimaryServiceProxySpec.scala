@@ -31,7 +31,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   WorkerRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock.LockMsg
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
@@ -347,7 +347,7 @@ class PrimaryServiceProxySpec
       /* We "fake" the creation of the worker to infiltrate a test probe. This empowers us to check, if a matching init
        * message is sent to the worker */
       val worker = TestProbe[PrimaryServiceProxy.Message]("workerTestProbe")
-      val lockProbe = TestProbe[LockMsg]("lockProbe")
+      val lockProbe = TestProbe[ScheduleLock.Message]("lockProbe")
 
       val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
         metaPq,
@@ -366,7 +366,7 @@ class PrimaryServiceProxySpec
           )
         )
           .thenReturn(worker.ref)
-        when(m.spawnAnonymous(any[Behavior[LockMsg]], any()))
+        when(m.spawnAnonymous(any[Behavior[ScheduleLock.Message]], any()))
           .thenReturn(lockProbe.ref)
 
         m
@@ -571,8 +571,7 @@ class PrimaryServiceProxySpec
         actorName shouldBe timeSeriesUUID1_3.toString
       }
 
-      // some behaviors spawned by the scheduler (e.g.: schedule lock)
-      testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
+      // schedule lock spawned by the scheduler
       testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
 
       // second participant uses a different input time series
@@ -583,8 +582,7 @@ class PrimaryServiceProxySpec
         actorName shouldBe timeSeriesUUID2.toString
       }
 
-      // some behaviors spawned by the scheduler (e.g.: schedule lock)
-      testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
+      // schedule lock spawned by the scheduler
       testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
 
       // the third participant uses the same time series as the first participant

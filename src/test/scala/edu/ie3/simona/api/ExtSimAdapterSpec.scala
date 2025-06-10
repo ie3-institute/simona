@@ -17,7 +17,7 @@ import edu.ie3.simona.api.simulation.ontology.{
   ControlResponseMessageFromExt,
   TerminationCompleted,
   TerminationMessage,
-  CompletionMessage => ExtCompletionMessage,
+  CompletionMessage as ExtCompletionMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -25,7 +25,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey}
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -53,7 +54,7 @@ class ExtSimAdapterSpec
 
   "An uninitialized ExtSimScheduler" must {
     "send correct completion message after initialisation" in {
-      val lock = TestProbe[LockMsg]("lock")
+      val lock = TestProbe[ScheduleLock.Message]("lock")
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
@@ -69,7 +70,7 @@ class ExtSimAdapterSpec
 
   "An initialized ExtSimScheduler" must {
     "forward an activation trigger and a corresponding completion message properly" in {
-      val lock = TestProbe[LockMsg]("lock")
+      val lock = TestProbe[ScheduleLock.Message]("lock")
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
@@ -105,7 +106,7 @@ class ExtSimAdapterSpec
     }
 
     "schedule the data service when it is told to" in {
-      val lock = TestProbe[LockMsg]("lock")
+      val lock = TestProbe[ScheduleLock.Message]("lock")
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
@@ -140,8 +141,6 @@ class ExtSimAdapterSpec
 
     "terminate the external simulation and itself when told to" in {
       forAll(Table("simSuccessful", true, false)) { (simSuccessful: Boolean) =>
-        val activationAdapter = TestProbe[Activation]("activationAdapter")
-
         val probe = TestProbe[ControlResponseMessageFromExt]("probe")
         val extData = new ExtSimAdapterData(probe.ref, mainArgs)
 

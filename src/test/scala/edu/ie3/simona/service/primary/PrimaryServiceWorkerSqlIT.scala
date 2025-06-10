@@ -27,7 +27,8 @@ import edu.ie3.simona.ontology.messages.{
   SchedulerMessage,
   ServiceMessage,
 }
-import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey}
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.{
   ActivePower,
@@ -94,7 +95,7 @@ class PrimaryServiceWorkerSqlIT
   "A primary service actor with SQL source" should {
     "initialize and send out data when activated" in {
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
-      val lock = TestProbe[LockMsg]("lock")
+      val lock = TestProbe[ScheduleLock.Message]("lock")
 
       val cases = Table(
         (
