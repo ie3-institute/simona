@@ -87,10 +87,6 @@ trait CongestionTestBaseData
     "resultListener"
   )
 
-  protected val gridAgentActivation: TestProbe[Activation] = TestProbe(
-    "gridAgentActivation"
-  )
-
   protected implicit val constantData: GridAgentConstantData =
     GridAgentConstantData(
       environmentRefs,
@@ -103,12 +99,12 @@ trait CongestionTestBaseData
 
   def behaviorWithContextAndBuffer(
       factory: (
-          ctx: ActorContext[GridAgent.Request],
-          buffer: StashBuffer[GridAgent.Request],
-      ) => Behavior[GridAgent.Request]
+          ctx: ActorContext[GridAgent.Message],
+          buffer: StashBuffer[GridAgent.Message],
+      ) => Behavior[GridAgent.Message]
   )(using
       capacity: Int = 10
-  ): Behavior[GridAgent.Request] = Behaviors.withStash(capacity) { buffer =>
+  ): Behavior[GridAgent.Message] = Behaviors.withStash(capacity) { buffer =>
     Behaviors.setup { ctx =>
       factory(ctx, buffer)
     }
