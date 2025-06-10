@@ -19,7 +19,7 @@ import edu.ie3.simona.config.ConfigParams.{
   TimeStampedCsvParams,
   TimeStampedInfluxDb1xParams,
 }
-import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
+import edu.ie3.simona.config.InputConfig.Primary as PrimaryConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -33,7 +33,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   WrappedActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock.LockMsg
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
@@ -266,7 +266,7 @@ class PrimaryServiceProxySpec
   "Spinning off a worker" should {
     "successfully instantiate an actor within the actor system" in {
       val testKit = BehaviorTestKit(Behaviors.setup[AnyRef] { ctx =>
-        PrimaryServiceProxy.classToWorkerRef(workerId)(constantData, ctx)
+        PrimaryServiceProxy.classToWorkerRef(workerId)(using constantData, ctx)
         Behaviors.stopped
       })
 
@@ -347,7 +347,7 @@ class PrimaryServiceProxySpec
       /* We "fake" the creation of the worker to infiltrate a test probe. This empowers us to check, if a matching init
        * message is sent to the worker */
       val worker = TestProbe[ServiceMessage]("workerTestProbe")
-      val lockProbe = TestProbe[LockMsg]("lockProbe")
+      val lockProbe = TestProbe[ScheduleLock.Message]("lockProbe")
       val activationAdapter = TestProbe[Activation]("activationAdapter")
 
       val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
@@ -355,13 +355,13 @@ class PrimaryServiceProxySpec
         Paths.get("its_pq_" + uuidPq),
       )
 
-      val context: ActorContext[_] = {
-        val m = mock[ActorContext[_]]
+      val context: ActorContext[?] = {
+        val m = mock[ActorContext[?]]
         when(m.log).thenReturn(log)
 
         when(m.spawn(any[Behavior[ServiceMessage]], any[String], any()))
           .thenReturn(worker.ref)
-        when(m.spawnAnonymous(any[Behavior[LockMsg]], any()))
+        when(m.spawnAnonymous(any[Behavior[ScheduleLock.Message]], any()))
           .thenReturn(lockProbe.ref)
         when(m.spawnAnonymous(any[Behavior[Activation]], any()))
           .thenReturn(activationAdapter.ref)
@@ -373,7 +373,7 @@ class PrimaryServiceProxySpec
         metaInformation,
         simulationStart,
         initStateData.primaryConfig,
-      )(constantData, context)
+      )(using constantData, context)
 
       inside(worker.expectMessageType[Create]) {
         case Create(
@@ -567,8 +567,7 @@ class PrimaryServiceProxySpec
         actorName shouldBe timeSeriesUUID1_3.toString
       }
 
-      // some behaviors spawned by the scheduler (e.g.: schedule lock)
-      testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
+      // schedule lock spawned by the scheduler
       testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
 
       // second participant uses a different input time series
@@ -579,8 +578,7 @@ class PrimaryServiceProxySpec
         actorName shouldBe timeSeriesUUID2.toString
       }
 
-      // some behaviors spawned by the scheduler (e.g.: schedule lock)
-      testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
+      // schedule lock spawned by the scheduler
       testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
 
       // the third participant uses the same time series as the first participant
