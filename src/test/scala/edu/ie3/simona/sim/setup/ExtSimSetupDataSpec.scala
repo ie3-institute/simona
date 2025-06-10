@@ -10,8 +10,7 @@ import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
-import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
-import edu.ie3.simona.service.SimonaService.ServiceRef
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.test.common.UnitSpec
@@ -80,7 +79,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
         TestProbe[PrimaryServiceProxy.Message]("primary_service").ref
 
       val evConnection = new ExtEvDataConnection()
-      val evRef = TestProbe[ExtEvDataService.Messages]("ev_service").ref
+      val evRef = TestProbe[ExtEvDataService.Message]("ev_service").ref
 
       val emConnection = new ExtEmDataConnection(emptyMapInput)
       val emRef = TestProbe[ServiceMessage]("em_service").ref

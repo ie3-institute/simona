@@ -28,7 +28,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.load.LoadProfileService
-import edu.ie3.simona.service.primary.{PrimaryServiceProx, PrimaryServiceProxy}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}

@@ -14,6 +14,7 @@ import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.exceptions.ServiceException
+import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceResponseMessage
 import edu.ie3.simona.service.SimonaService.ServiceRef
 import edu.ie3.simona.ontology.messages.{
   Activation,
@@ -21,6 +22,7 @@ import edu.ie3.simona.ontology.messages.{
   ServiceMessage,
 }
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.ExtDataSupport
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
@@ -159,7 +161,7 @@ object ExtSimSetup {
             setupService(
               extEvDataConnection,
               serviceRef,
-              InitExtEvData,
+              InitExtEvData.apply,
             )
 
             extSimSetupData.update(extEvDataConnection, serviceRef)
