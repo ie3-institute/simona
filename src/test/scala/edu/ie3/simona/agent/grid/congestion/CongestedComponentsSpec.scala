@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid.congestion.detection
+package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.simona.agent.grid.congestion.CongestedComponents
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
@@ -40,7 +40,7 @@ class CongestedComponentsSpec
       val congested = CongestedComponents(
         results,
         gridModel.gridComponents,
-        voltageLimits,
+        defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
@@ -63,7 +63,7 @@ class CongestedComponentsSpec
       val congested = CongestedComponents(
         results,
         gridModel.gridComponents,
-        voltageLimits,
+        defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
@@ -90,7 +90,7 @@ class CongestedComponentsSpec
       val congested = CongestedComponents(
         results,
         gridModel.gridComponents,
-        voltageLimits,
+        defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
@@ -121,7 +121,7 @@ class CongestedComponentsSpec
       val congested = CongestedComponents(
         results,
         gridModel.gridComponents,
-        voltageLimits,
+        defaultVoltageLimits,
         Kilovolts(110),
         1,
       )

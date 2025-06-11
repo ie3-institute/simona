@@ -18,6 +18,7 @@ import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.util.quantities.QuantityUtils.asPercent
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Each
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -62,9 +63,9 @@ final case class CongestionManagementData(
         nodeRes.getInputModel,
         InputModelType.NODE,
         subgridNo,
-        nodeRes.getvMag().multiply(100),
-        voltageLimits.vMin.multiply(100),
-        voltageLimits.vMax.multiply(100),
+        nodeRes.getvMag().to(Units.PERCENT),
+        voltageLimits.vMin.to(Units.PERCENT),
+        voltageLimits.vMax.to(Units.PERCENT),
       )
     }
 
