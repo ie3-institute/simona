@@ -52,10 +52,10 @@ class TransformerTagChangeSpec
 
   private type AwaitedData = (VoltageRange, Set[TransformerTapping])
 
-  protected val superiorAgent: TestProbe[GridAgent.Request] = TestProbe(
+  protected val superiorAgent: TestProbe[GridAgent.Message] = TestProbe(
     "superiorAgent"
   )
-  protected val inferiorAgent: TestProbe[GridAgent.Request] = TestProbe(
+  protected val inferiorAgent: TestProbe[GridAgent.Message] = TestProbe(
     "inferiorAgent"
   )
 
@@ -69,8 +69,8 @@ class TransformerTagChangeSpec
         stateData: CongestionManagementData,
         awaitingData: AwaitingData[(VoltageRange, Set[TransformerTapping])],
         capacity: Int = 10,
-    ): ActorRef[GridAgent.Request] = testKit.spawn(
-      Behaviors.withStash[GridAgent.Request](capacity) { buffer =>
+    ): ActorRef[GridAgent.Message] = testKit.spawn(
+      Behaviors.withStash[GridAgent.Message](capacity) { buffer =>
         GridAgent.updateTransformerTapping(
           stateData,
           awaitingData,
@@ -108,7 +108,7 @@ class TransformerTagChangeSpec
 
       // the map is empty, since the inferior grid itself has no inferior grids
       val awaitingData = AwaitingData(
-        Map.empty[ActorRef[GridAgent.Request], Option[AwaitedData]]
+        Map.empty[ActorRef[GridAgent.Message], Option[AwaitedData]]
       )
 
       val centerAgent = spawnCenterAgent(stateData, awaitingData)

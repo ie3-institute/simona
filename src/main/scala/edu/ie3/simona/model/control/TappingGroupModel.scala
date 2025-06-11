@@ -31,13 +31,13 @@ import javax.measure.quantity.Dimensionless
   */
 final case class TappingGroupModel(
     tappings: Set[TransformerTapping],
-    refs: Set[ActorRef[GridAgent.Request]],
+    refs: Set[ActorRef[GridAgent.Message]],
     hasAutoTap: Boolean,
 ) {
 
   def updateTapPositions(
       delta: ComparableQuantity[Dimensionless],
-      refMap: Map[ActorRef[GridAgent.Request], VoltageRange],
+      refMap: Map[ActorRef[GridAgent.Message], VoltageRange],
       log: Logger,
   ): ComparableQuantity[Dimensionless] = if (hasAutoTap) {
     // get all possible voltage ranges of the inferior grids
@@ -218,7 +218,7 @@ object TappingGroupModel {
 
   def apply(
       tappings: Set[TransformerTapping],
-      refs: Set[ActorRef[GridAgent.Request]],
+      refs: Set[ActorRef[GridAgent.Message]],
   ): TappingGroupModel =
     TappingGroupModel(
       tappings,
@@ -254,7 +254,7 @@ object TappingGroupModel {
     *   a set of [[TappingGroupModel]]s
     */
   def buildModels(
-      receivedData: Map[ActorRef[GridAgent.Request], Set[TransformerTapping]],
+      receivedData: Map[ActorRef[GridAgent.Message], Set[TransformerTapping]],
       transformer3ws: Set[Transformer3wModel],
   ): Set[TappingGroupModel] = {
     val transformer3wMap = transformer3ws.map(t => t.uuid -> t).toMap
@@ -262,7 +262,7 @@ object TappingGroupModel {
     // builds all groups
     receivedData
       .foldLeft(
-        Map.empty[Set[TransformerTapping], Set[ActorRef[GridAgent.Request]]]
+        Map.empty[Set[TransformerTapping], Set[ActorRef[GridAgent.Message]]]
       ) { case (combined, (ref, tappings)) =>
         // get all transformer models
         val updated: Set[TransformerTapping] = tappings.map {

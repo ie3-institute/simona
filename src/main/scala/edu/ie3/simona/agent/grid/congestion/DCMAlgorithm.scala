@@ -18,7 +18,10 @@ import edu.ie3.simona.agent.grid.congestion.data.{
   CongestionManagementData,
 }
 import edu.ie3.simona.agent.grid.congestion.detection.CongestionDetection
-import edu.ie3.simona.agent.grid.congestion.mitigations.TransformerTapChange
+import edu.ie3.simona.agent.grid.congestion.mitigations.{
+  MitigationSteps,
+  TransformerTapChange,
+}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}
@@ -72,11 +75,11 @@ trait DCMAlgorithm extends CongestionDetection with TransformerTapChange {
 
   private[grid] def doCongestionMitigation(
       stateData: CongestionManagementData,
-      ctx: ActorContext[Request],
+      ctx: ActorContext[Message],
   )(using
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[Request],
-  ): Behavior[Request] = {
+      buffer: StashBuffer[Message],
+  ): Behavior[Message] = {
     // first we find an option for the next mitigation step
     val (stepOption, updatedProgress) =
       stateData.mitigationProgress.getNextStepsAndUpdate
@@ -85,16 +88,16 @@ trait DCMAlgorithm extends CongestionDetection with TransformerTapChange {
     val updatedStateData = stateData.copy(mitigationProgress = updatedProgress)
 
     stepOption match {
-      case Some(transformerTapChange: TransformerTapChange) =>
+      case Some(MitigationSteps.TransformerTapChange) =>
         GridAgent.updateTransformerTapping(
-          stateData,
+          updatedStateData,
           AwaitingData(stateData.inferiorGridRefs.keySet),
         )
 
       case _ =>
         // we have no more mitigation steps
         // we finish the mitigation
-        finishCongestionManagement(stateData, ctx)
+        finishCongestionManagement(updatedStateData, ctx)
     }
 
   }

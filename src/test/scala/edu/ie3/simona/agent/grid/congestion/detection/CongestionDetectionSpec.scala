@@ -55,8 +55,8 @@ class CongestionDetectionSpec
         stateData: CongestionManagementData,
         awaitingData: AwaitingData[Congestions],
         capacity: Int = 10,
-    ): ActorRef[GridAgent.Request] = testKit.spawn(
-      Behaviors.withStash[GridAgent.Request](capacity) { buffer =>
+    ): ActorRef[GridAgent.Message] = testKit.spawn(
+      Behaviors.withStash[GridAgent.Message](capacity) { buffer =>
         GridAgent.checkForCongestion(
           stateData,
           awaitingData,

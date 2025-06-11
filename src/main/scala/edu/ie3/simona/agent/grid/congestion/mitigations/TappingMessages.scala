@@ -28,7 +28,7 @@ object TappingMessages {
     *   Subgrid of the sender.
     */
   final case class RequestVoltageOptions(
-      sender: ActorRef[GridAgent.Request],
+      sender: ActorRef[GridAgent.Message],
       subgrid: Int,
   ) extends InternalRequest
 
@@ -40,7 +40,7 @@ object TappingMessages {
     *   superior grid.
     */
   final case class VoltageRangeResponse(
-      override val sender: ActorRef[GridAgent.Request],
+      override val sender: ActorRef[GridAgent.Message],
       override val value: (VoltageRange, Set[TransformerTapping]),
   ) extends InternalReplyWithSender[(VoltageRange, Set[TransformerTapping])]
 
@@ -51,7 +51,7 @@ object TappingMessages {
     */
   final case class ReceivedVoltageRange(
       values: Seq[
-        (ActorRef[GridAgent.Request], (VoltageRange, Set[TransformerTapping]))
+        (ActorRef[GridAgent.Message], (VoltageRange, Set[TransformerTapping]))
       ]
   ) extends InternalReply
 

@@ -56,8 +56,8 @@ trait TransformerTapChange {
       awaitingData: AwaitingData[(VoltageRange, Set[TransformerTapping])],
   )(using
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgent.Request],
-  ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
+      buffer: StashBuffer[GridAgent.Message],
+  ): Behavior[GridAgent.Message] = Behaviors.receivePartial {
     case (ctx, StartStep) =>
       val subnet = stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo
 
@@ -98,11 +98,11 @@ trait TransformerTapChange {
       stateData: CongestionManagementData,
       awaitingData: AwaitingData[(VoltageRange, Set[TransformerTapping])],
       request: RequestVoltageOptions,
-      ctx: ActorContext[GridAgent.Request],
+      ctx: ActorContext[GridAgent.Message],
   )(using
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgent.Request],
-  ): Behavior[GridAgent.Request] = {
+      buffer: StashBuffer[GridAgent.Message],
+  ): Behavior[GridAgent.Message] = {
     val sender = request.sender
     val subgrid = request.subgrid
 
@@ -164,13 +164,13 @@ trait TransformerTapChange {
       stateData: CongestionManagementData,
       awaitingData: AwaitingData[(VoltageRange, Set[TransformerTapping])],
       voltageRange: Seq[
-        (ActorRef[GridAgent.Request], (VoltageRange, Set[TransformerTapping]))
+        (ActorRef[GridAgent.Message], (VoltageRange, Set[TransformerTapping]))
       ],
-      ctx: ActorContext[GridAgent.Request],
+      ctx: ActorContext[GridAgent.Message],
   )(using
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgent.Request],
-  ): Behavior[GridAgent.Request] = {
+      buffer: StashBuffer[GridAgent.Message],
+  ): Behavior[GridAgent.Message] = {
     // updating the state data with received data from inferior grids
     val updatedData = awaitingData.handleReceivingData(voltageRange)
 
@@ -190,11 +190,11 @@ trait TransformerTapChange {
       stateData: CongestionManagementData,
       awaitingData: AwaitingData[(VoltageRange, Set[TransformerTapping])],
       delta: ComparableQuantity[Dimensionless],
-      ctx: ActorContext[GridAgent.Request],
+      ctx: ActorContext[GridAgent.Message],
   )(using
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgent.Request],
-  ): Behavior[GridAgent.Request] = {
+      buffer: StashBuffer[GridAgent.Message],
+  ): Behavior[GridAgent.Message] = {
     // if we are the superior grid to another grid, we check for transformer tapping option
     // and send the new delta to the inferior grid
     ctx.log.debug(
@@ -211,7 +211,7 @@ trait TransformerTapChange {
       }
 
       val actorRefToTappingModels
-          : Map[ActorRef[GridAgent.Request], Set[TransformerTapping]] =
+          : Map[ActorRef[GridAgent.Message], Set[TransformerTapping]] =
         receivedData.map { case (ref, (_, tappings)) => ref -> tappings }
 
       // groups all tapping models

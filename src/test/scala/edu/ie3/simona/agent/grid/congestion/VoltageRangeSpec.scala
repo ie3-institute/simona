@@ -41,10 +41,10 @@ class VoltageRangeSpec
 
   given puTolerance: ComparableQuantity[Dimensionless] = 1e-6.asPu
 
-  protected val inferior1: TestProbe[GridAgent.Request] =
-    TestProbe[GridAgent.Request]("inferior1")
-  protected val inferior2: TestProbe[GridAgent.Request] =
-    TestProbe[GridAgent.Request]("inferior2")
+  protected val inferior1: TestProbe[GridAgent.Message] =
+    TestProbe[GridAgent.Message]("inferior1")
+  protected val inferior2: TestProbe[GridAgent.Message] =
+    TestProbe[GridAgent.Message]("inferior2")
 
   "A VoltageRange" should {
 

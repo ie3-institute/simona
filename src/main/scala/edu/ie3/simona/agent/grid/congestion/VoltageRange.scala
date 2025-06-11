@@ -83,7 +83,7 @@ final case class VoltageRange(
     */
   def updateWithInferiorRanges(
       inferiorData: Map[ActorRef[
-        GridAgent.Request
+        GridAgent.Message
       ], (VoltageRange, Set[TransformerTapping])]
   ): VoltageRange = {
     inferiorData.foldLeft(this) { case (range, (_, (infRange, tappings))) =>
@@ -189,7 +189,7 @@ object VoltageRange {
       voltageLimits: VoltageLimits,
       gridComponents: GridComponents,
       inferiorData: Map[ActorRef[
-        GridAgent.Request
+        GridAgent.Message
       ], (VoltageRange, Set[TransformerTapping])],
       subnetNo: Int,
   ): VoltageRange = {

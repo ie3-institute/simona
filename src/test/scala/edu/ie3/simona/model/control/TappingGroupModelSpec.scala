@@ -25,10 +25,10 @@ class TappingGroupModelSpec
 
   val voltageTolerance = 1e-3
 
-  val inferior1: TestProbe[GridAgent.Request] =
-    TestProbe[GridAgent.Request]("inferior1")
-  val inferior2: TestProbe[GridAgent.Request] =
-    TestProbe[GridAgent.Request]("inferior2")
+  val inferior1: TestProbe[GridAgent.Message] =
+    TestProbe[GridAgent.Message]("inferior1")
+  val inferior2: TestProbe[GridAgent.Message] =
+    TestProbe[GridAgent.Message]("inferior2")
 
   "TappingGroupModel" should {
 
@@ -36,13 +36,13 @@ class TappingGroupModelSpec
       val (transformer3wA, transformer3wB, transformer3wC) =
         mockTransformer3wModel()
       val transformer1 = mockTransformerModel()
-      val ref1 = TestProbe[GridAgent.Request]("ref1").ref
-      val ref2 = TestProbe[GridAgent.Request]("ref2").ref
+      val ref1 = TestProbe[GridAgent.Message]("ref1").ref
+      val ref2 = TestProbe[GridAgent.Message]("ref2").ref
 
-      val ref3 = TestProbe[GridAgent.Request]("ref3").ref
+      val ref3 = TestProbe[GridAgent.Message]("ref3").ref
       val transformer3 = mockTransformerModel(hasAutoTap = true)
 
-      val ref4 = TestProbe[GridAgent.Request]("ref4").ref
+      val ref4 = TestProbe[GridAgent.Message]("ref4").ref
       val transformer4a = mockTransformerModel(hasAutoTap = true)
       val transformer4b = mockTransformerModel()
 
@@ -51,7 +51,7 @@ class TappingGroupModelSpec
       // grid 3 is connected via a transformer2w
       // grid 4 is connected via two transformer2ws
       val receivedData
-          : Map[ActorRef[GridAgent.Request], Set[TransformerTapping]] = Map(
+          : Map[ActorRef[GridAgent.Message], Set[TransformerTapping]] = Map(
         ref1 -> Set(
           transformer1,
           transformer3wB,
