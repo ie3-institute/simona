@@ -73,7 +73,7 @@ object GridAgentBuilder {
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
   )(using
       constantData: GridAgentConstantData,
-      gridAgentContext: ActorContext[GridAgent.Request],
+      gridAgentContext: ActorContext[GridAgent.Message],
       log: Logger,
   ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = {
 
@@ -171,7 +171,7 @@ object GridAgentBuilder {
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
   )(using
       constantData: GridAgentConstantData,
-      gridAgentContext: ActorContext[GridAgent.Request],
+      gridAgentContext: ActorContext[GridAgent.Message],
   ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = {
     participants
       .map { participant =>
@@ -222,7 +222,7 @@ object GridAgentBuilder {
       emDataService: Option[ActorRef[EmMessage]],
   )(using
       constantData: GridAgentConstantData,
-      gridAgentContext: ActorContext[GridAgent.Request],
+      gridAgentContext: ActorContext[GridAgent.Message],
   ): Map[UUID, ActorRef[FlexResponse]] = {
     // For the current level, split controlled and uncontrolled EMs.
     // Uncontrolled EMs can be built right away.
@@ -289,7 +289,7 @@ object GridAgentBuilder {
       maybeControllingEm: Option[ActorRef[FlexResponse]],
   )(using
       constantData: GridAgentConstantData,
-      gridAgentContext: ActorContext[GridAgent.Request],
+      gridAgentContext: ActorContext[GridAgent.Message],
   ): ActorRef[ParticipantAgent.Request] = {
 
     val serviceMap: Map[ServiceType, ActorRef[? >: ServiceMessage]] =
@@ -447,7 +447,7 @@ object GridAgentBuilder {
       scheduler: ActorRef[SchedulerMessage],
       maybeControllingEm: Option[ActorRef[FlexResponse]],
   )(using
-      gridAgentContext: ActorContext[GridAgent.Request]
+      gridAgentContext: ActorContext[GridAgent.Message]
   ): ActorRef[ParticipantAgent.Request] = {
 
     val key = ScheduleLock.singleKey(gridAgentContext, scheduler, PRE_INIT_TICK)
@@ -490,7 +490,7 @@ object GridAgentBuilder {
       emDataService: Option[ActorRef[EmMessage]],
   )(using
       constantData: GridAgentConstantData,
-      gridAgentContext: ActorContext[GridAgent.Request],
+      gridAgentContext: ActorContext[GridAgent.Message],
   ): ActorRef[FlexResponse] =
     gridAgentContext.spawn(
       EmAgent(

@@ -88,10 +88,6 @@ trait CongestionTestBaseData
     "resultListener"
   )
 
-  protected val gridAgentActivation: TestProbe[Activation] = TestProbe(
-    "gridAgentActivation"
-  )
-
   protected implicit val constantData: GridAgentConstantData =
     GridAgentConstantData(
       environmentRefs,
@@ -100,26 +96,25 @@ trait CongestionTestBaseData
       3600,
       startTime,
       endTime,
-      gridAgentActivation.ref,
     )
 
   def behaviorWithContextAndBuffer(
       factory: (
-          ctx: ActorContext[GridAgent.Request],
-          buffer: StashBuffer[GridAgent.Request],
-      ) => Behavior[GridAgent.Request]
+          ctx: ActorContext[GridAgent.Message],
+          buffer: StashBuffer[GridAgent.Message],
+      ) => Behavior[GridAgent.Message]
   )(using
       capacity: Int = 10
-  ): Behavior[GridAgent.Request] = Behaviors.withStash(capacity) { buffer =>
+  ): Behavior[GridAgent.Message] = Behaviors.withStash(capacity) { buffer =>
     Behaviors.setup { ctx =>
       factory(ctx, buffer)
     }
   }
 
   def spawnWithBuffer(
-      factory: StashBuffer[GridAgent.Request] => Behavior[GridAgent.Request],
+      factory: StashBuffer[GridAgent.Message] => Behavior[GridAgent.Message],
       capacity: Int = 10,
-  ): ActorRef[GridAgent.Request] =
+  ): ActorRef[GridAgent.Message] =
     testKit.spawn(
       Behaviors.withStash(capacity) { buffer =>
         factory(buffer)
@@ -127,7 +122,7 @@ trait CongestionTestBaseData
     )
 
   def gridAgentBaseData(
-      inferiorRefs: Set[ActorRef[GridAgent.Request]] = Set.empty,
+      inferiorRefs: Set[ActorRef[GridAgent.Message]] = Set.empty,
       isSuperior: Boolean = false,
   ): GridAgentBaseData = {
     val data = mock[GridAgentBaseData]

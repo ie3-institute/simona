@@ -17,7 +17,7 @@ import org.apache.pekko.actor.typed.ActorRef
   *   Type of data.
   */
 final case class AwaitingData[T](
-    inferiorGridMap: Map[ActorRef[GridAgent.Request], Option[T]]
+    inferiorGridMap: Map[ActorRef[GridAgent.Message], Option[T]]
 ) {
 
   /** Returns true if congestion data from inferior grids is expected and no
@@ -33,7 +33,7 @@ final case class AwaitingData[T](
   /** Return the mapping of all received values. This should only be called if
     * [[notDone]] == false.
     */
-  def mappedValues: Map[ActorRef[GridAgent.Request], T] =
+  def mappedValues: Map[ActorRef[GridAgent.Message], T] =
     inferiorGridMap.flatMap { case (ref, option) =>
       option.map(value => ref -> value)
     }
@@ -46,7 +46,7 @@ final case class AwaitingData[T](
     * @return
     *   An updated object.
     */
-  def update(sender: ActorRef[GridAgent.Request], data: T): AwaitingData[T] =
+  def update(sender: ActorRef[GridAgent.Message], data: T): AwaitingData[T] =
     handleReceivingData(Vector((sender, data)))
 
   /** Method for updating the data with the received data.
@@ -57,7 +57,7 @@ final case class AwaitingData[T](
     *   A updated copy of this data.
     */
   def handleReceivingData(
-      receivedData: Vector[(ActorRef[GridAgent.Request], T)]
+      receivedData: Vector[(ActorRef[GridAgent.Message], T)]
   ): AwaitingData[T] = {
     val mappedData = receivedData.map { case (ref, value) =>
       ref -> Some(value)
@@ -68,7 +68,7 @@ final case class AwaitingData[T](
 
 object AwaitingData {
   def apply[T](
-      inferiorGridRefs: Set[ActorRef[GridAgent.Request]]
+      inferiorGridRefs: Set[ActorRef[GridAgent.Message]]
   ): AwaitingData[T] = {
     AwaitingData(inferiorGridRefs.map(ref => ref -> None).toMap)
   }
