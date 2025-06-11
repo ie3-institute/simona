@@ -23,7 +23,7 @@ import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
-import edu.ie3.simona.logging.logback.LogbackConfiguration
+import edu.ie3.simona.logging.LogbackConfiguration
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
@@ -62,7 +62,7 @@ trait SetupHelper extends LazyLogging {
     */
   def buildGridAgentInitData(
       subGridContainer: SubGridContainer,
-      subGridToActorRef: Map[Int, ActorRef[GridAgent.Request]],
+      subGridToActorRef: Map[Int, ActorRef[GridAgent.Message]],
       gridGates: Set[SubGridGate],
       configRefSystems: ConfigRefSystems,
       configVoltageLimits: ConfigVoltageLimits,
@@ -107,10 +107,10 @@ trait SetupHelper extends LazyLogging {
     *   A mapping from [[SubGridGate]] to corresponding actor reference.
     */
   def buildGateToActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
+      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Message]],
       subGridGates: Set[SubGridGate],
       currentSubGrid: Int,
-  ): Map[SubGridGate, ActorRef[GridAgent.Request]] =
+  ): Map[SubGridGate, ActorRef[GridAgent.Message]] =
     subGridGates
       .groupBy(gate => (gate.superiorNode, gate.inferiorNode))
       .flatMap(_._2.headOption)
@@ -152,10 +152,10 @@ trait SetupHelper extends LazyLogging {
     *   The actor reference of the sub grid to look for.
     */
   private def getActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
+      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Message]],
       currentSubGrid: Int,
       queriedSubGrid: Int,
-  ): ActorRef[GridAgent.Request] = {
+  ): ActorRef[GridAgent.Message] = {
     subGridToActorRefMap.get(queriedSubGrid) match {
       case Some(hit) => hit
       case _ =>
