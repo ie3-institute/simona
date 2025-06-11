@@ -6,8 +6,8 @@ To configure a SIMONA simulation, several parameters must be specified. Each sim
 system for a given runtime and is based on a power flow calculation using the Newton-Raphson algorithm. Individual steps
 for configuring the simulation are performed below.
 
-An overview of all default values can be found [here](#default-configuration). These values are used when there is no 
-value set in the configuration file.
+An overview of all default values can be found below. These values are used when no other value is set in the configuration
+file.
 
 ## Configuration Parameters 
 
@@ -371,7 +371,7 @@ Maximum Voltage Limit in p.u.:
 `vMax = 1.02`
 
 
-## Default configuration
+## Default configuration values
 
 ### Time
 ```
@@ -403,15 +403,15 @@ simona.input = {
           sampleParams = None
           sqlParams = None
         }
-        couchbaseParams = None, 
-        csvParams: = None,
-        influxDb1xParams = None,
-        maxCoordinateDistance = 50000,
-        resolution = 3600,
-        sampleParams = None,
-        scheme = "icon",
-        sqlParams = None,
-        timestampPattern = None,
+        couchbaseParams = None
+        csvParams: = None
+        influxDb1xParams = None
+        maxCoordinateDistance = 50000
+        resolution = 3600
+        sampleParams = None
+        scheme = "icon"
+        sqlParams = None
+        timestampPattern = None
     }
 }
 ```
@@ -421,22 +421,22 @@ simona.input = {
 ```
 simona.output = {
     base.addTimestampToOutputDir = true
-    
-    flex = false,
+
+    flex = false
     
     grid = {
-      congestions = false,
-      lines = false,
-      nodes = false,
-      switches = false,
-      transformers2w = false,
-      transformers3w = false,
+      congestions = false
+      lines = false
+      nodes = false
+      switches = false
+      transformers2w = false
+      transformers3w = false
     }
     
     sink = {
-      csv = None,
-      influxDb1x = None,
-      kafka = None,
+      csv = None
+      influxDb1x = None
+      kafka = None
     }    
     
     log = {
@@ -446,18 +446,18 @@ simona.output = {
     
     participant = {
         defaultConfig = {
-            notifier = "default",
-            simulationResult = false,
-            flexResult = false,
-            powerRequestReply = false,
+            notifier = "default"
+            simulationResult = false
+            flexResult = false
+            powerRequestReply = false
         }
         indvidualConfigs = [] 
     }
     
     thermal = {
         defaultConfig = {
-            notifier = "default",
-            simulationResult = false,
+            notifier = "default"
+            simulationResult = false
         }
         indvidualConfigs = []
     }
@@ -468,12 +468,12 @@ simona.output = {
 
 ```
 simona.runtime = {
-    selectedSubgrids = [],
-    selectedVoltLvls = [],
+    selectedSubgrids = []
+    selectedVoltLvls = []
 
     listener = {
-      eventsToProcess = None,
-      kafka = None, 
+      eventsToProcess = None
+      kafka = None
     }
     
     em = {
@@ -482,7 +482,7 @@ simona.runtime = {
             scaling = 1.0
             uuids = []
             aggregateFlex = "SELF_OPT_EXCL_REG"
-            curtailRegenerative = false,    
+            curtailRegenerative = false
         }
         individualConfigs = []
     }
@@ -493,7 +493,7 @@ simona.runtime = {
             defaultConfig = {
                 calculateMissingReactivePowerWithModel = false
                 scaling = 1.0
-                uuids = []           
+                uuids = []
             }
             individualConfigs = []
         }
@@ -546,7 +546,7 @@ simona.runtime = {
                 calculateMissingReactivePowerWithModel = false
                 scaling = 1.0
                 uuids = []
-                initialSoc = 0.0,
+                initialSoc = 0.0
                 targetSoc = None                
             }
             individualConfigs = []
