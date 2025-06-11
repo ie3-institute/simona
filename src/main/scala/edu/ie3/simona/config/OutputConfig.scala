@@ -94,7 +94,7 @@ object OutputConfig {
     *   If the power request reply should be written (default: false).
     */
   final case class ParticipantOutputConfig(
-      override val notifier: String,
+      override val notifier: String = "default",
       override val simulationResult: Boolean = false,
       flexResult: Boolean = false,
       powerRequestReply: Boolean = false,
@@ -108,8 +108,8 @@ object OutputConfig {
     *   If simulation results should be written (default: false).
     */
   final case class SimpleOutputConfig(
-      override val notifier: String,
-      override val simulationResult: Boolean,
+      override val notifier: String = "default",
+      override val simulationResult: Boolean = false,
   ) extends BaseOutputConfig
       derives ConfigConvert
 

@@ -13,7 +13,11 @@ import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
-import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.services.{
+  EmMessage,
+  EvMessage,
+  ServiceMessage,
+}
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Case class that holds information regarding the external data connections as

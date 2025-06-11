@@ -85,7 +85,10 @@ object GridAgentBuilder {
       _.getControllingEm.toScala.map(em => em.getUuid -> em)
     }.toMap
 
-    val allEms = buildEmsRecursively(firstLevelEms, environmentRefs.emDataService)
+    val allEms = buildEmsRecursively(
+      firstLevelEms,
+      emDataService = constantData.environmentRefs.emDataService,
+    )
 
     /* Browse through all system participants, build actors and map their node's UUID to the actor references */
     buildParticipantToActorRef(
