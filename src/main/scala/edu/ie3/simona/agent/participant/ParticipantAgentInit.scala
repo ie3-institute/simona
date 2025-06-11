@@ -8,7 +8,8 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.{LoadInput, SystemParticipantInput}
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent._
+import edu.ie3.simona.agent.participant.ParticipantAgent.*
+import edu.ie3.simona.agent.participant.ParticipantInputHandler.tick
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -27,7 +28,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.RegisterForLoadProfileService
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -67,7 +68,7 @@ object ParticipantAgentInit {
   final case class ParticipantRefs(
       gridAgent: ActorRef[GridAgent.Request],
       primaryServiceProxy: ActorRef[ServiceMessage],
-      services: Map[ServiceType, ActorRef[_ >: ServiceMessage]],
+      services: Map[ServiceType, ActorRef[? >: ServiceMessage]],
       resultListener: Iterable[ActorRef[ResultEvent]],
   )
 
@@ -111,20 +112,18 @@ object ParticipantAgentInit {
     *   [[edu.ie3.simona.agent.em.EmAgent]].
     */
   def apply(
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
+      inputContainer: InputModelContainer[? <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
       scheduleKey: ScheduleKey,
-  ): Behavior[Request] = Behaviors.setup { ctx =>
-    val parentData = parent
-      .map { em =>
-        val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
-
+  ): Behavior[Message] = Behaviors.setup { ctx =>
+    parent match {
+      case Right(em) =>
         em ! RegisterControlledAsset(
-          flexAdapter,
+          ctx.self,
           inputContainer.electricalInputModel,
         )
 
@@ -133,25 +132,13 @@ object ParticipantAgentInit {
           INIT_SIM_TICK,
           Some(scheduleKey),
         )
-
-        FlexControlledData(em, flexAdapter)
-      }
-      .left
-      .map { scheduler =>
-        {
-          val activationAdapter = ctx.messageAdapter[Activation] { msg =>
-            ParticipantActivation(msg.tick)
-          }
-
-          scheduler ! ScheduleActivation(
-            activationAdapter,
-            INIT_SIM_TICK,
-            Some(scheduleKey),
-          )
-
-          SchedulerData(scheduler, activationAdapter)
-        }
-      }
+      case Left(scheduler) =>
+        scheduler ! ScheduleActivation(
+          ctx.self,
+          INIT_SIM_TICK,
+          Some(scheduleKey),
+        )
+    }
 
     uninitialized(
       inputContainer,
@@ -159,23 +146,24 @@ object ParticipantAgentInit {
       notifierConfig,
       participantRefs,
       simulationParams,
-      parentData,
+      parent,
     )
   }
+
+  private type A = Activation | FlexActivation
 
   /** Waiting for an [[Activation]] message to start the initialization.
     */
   private def uninitialized(
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
+      inputContainer: InputModelContainer[? <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
-      parentData: Either[SchedulerData, FlexControlledData],
-  ): Behavior[Request] = Behaviors.receivePartial {
+      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
+  ): Behavior[Message] = Behaviors.receivePartial {
 
-    case (ctx, activation: ActivationRequest)
-        if activation.tick == INIT_SIM_TICK =>
+    case (ctx, activation: A) if activation.tick == INIT_SIM_TICK =>
       // first, check whether we're just supposed to replay primary data time series
       participantRefs.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
         ctx.self,
@@ -188,7 +176,7 @@ object ParticipantAgentInit {
         notifierConfig,
         participantRefs,
         simulationParams,
-        parentData,
+        parent,
       )
 
   }
@@ -197,16 +185,16 @@ object ParticipantAgentInit {
     * participant uses model calculations or just replays primary data.
     */
   private def waitingForPrimaryProxy(
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
+      inputContainer: InputModelContainer[? <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
-      parentData: Either[SchedulerData, FlexControlledData],
-  ): Behavior[Request] = Behaviors.receivePartial {
+      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
+  ): Behavior[Message] = Behaviors.receivePartial {
 
     case (
-          _,
+          ctx,
           PrimaryRegistrationSuccessfulMessage(
             serviceRef,
             firstDataTick,
@@ -214,7 +202,7 @@ object ParticipantAgentInit {
           ),
         ) =>
       // we're supposed to replay primary data, initialize accordingly
-      val expectedFirstData: Map[ActorRef[_ >: ServiceMessage], Long] =
+      val expectedFirstData: Map[ActorRef[? >: ServiceMessage], Long] =
         Map(serviceRef -> firstDataTick)
 
       completeInitialization(
@@ -228,7 +216,8 @@ object ParticipantAgentInit {
         expectedFirstData,
         participantRefs,
         simulationParams,
-        parentData,
+        parent,
+        ctx.self,
       )
 
     case (ctx, RegistrationFailedMessage(_)) =>
@@ -248,7 +237,8 @@ object ParticipantAgentInit {
           Map.empty,
           participantRefs,
           simulationParams,
-          parentData,
+          parent,
+          ctx.self,
         )
       } else {
         // requiring at least one secondary service, thus send out registrations and wait for replies
@@ -280,7 +270,8 @@ object ParticipantAgentInit {
           participantRefs,
           simulationParams,
           requiredServices.values.toSet,
-          parentData = parentData,
+          parent = parent,
+          self = ctx.self,
         )
       }
   }
@@ -289,7 +280,7 @@ object ParticipantAgentInit {
       participantInput: SystemParticipantInput,
       participantRef: ActorRef[Request],
       serviceType: ServiceType,
-      serviceRef: ActorRef[_ >: ServiceMessage],
+      serviceRef: ActorRef[? >: ServiceMessage],
   ): Unit =
     serviceType match {
       case ServiceType.WeatherService =>
@@ -337,15 +328,16 @@ object ParticipantAgentInit {
     * received, we complete the initialization.
     */
   private def waitingForServices(
-      modelFactory: ParticipantModelFactory[_ <: ModelState],
+      modelFactory: ParticipantModelFactory[? <: ModelState],
       participantInput: SystemParticipantInput,
       notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
-      expectedRegistrations: Set[ActorRef[_ >: ServiceMessage]],
-      expectedFirstData: Map[ActorRef[_ >: ServiceMessage], Long] = Map.empty,
-      parentData: Either[SchedulerData, FlexControlledData],
-  ): Behavior[Request] =
+      expectedRegistrations: Set[ActorRef[? >: ServiceMessage]],
+      expectedFirstData: Map[ActorRef[? >: ServiceMessage], Long] = Map.empty,
+      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
+      self: ActorRef[Message],
+  ): Behavior[Message] =
     Behaviors.receivePartial {
       case (
             _,
@@ -379,7 +371,8 @@ object ParticipantAgentInit {
             newExpectedFirstData,
             participantRefs,
             simulationParams,
-            parentData,
+            parent,
+            self,
           )
         else
           // there's at least one more service to go, let's wait for confirmation
@@ -391,7 +384,8 @@ object ParticipantAgentInit {
             simulationParams,
             newExpectedRegistrations,
             newExpectedFirstData,
-            parentData,
+            parent,
+            self,
           )
     }
 
@@ -399,14 +393,15 @@ object ParticipantAgentInit {
     * [[ParticipantAgent]]
     */
   private def completeInitialization(
-      modelFactory: ParticipantModelFactory[_ <: ModelState],
+      modelFactory: ParticipantModelFactory[? <: ModelState],
       participantInput: SystemParticipantInput,
       notifierConfig: NotifierConfig,
-      expectedData: Map[ActorRef[_ >: ServiceMessage], Long],
+      expectedData: Map[ActorRef[? >: ServiceMessage], Long],
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
-      parentData: Either[SchedulerData, FlexControlledData],
-  ): Behavior[Request] = {
+      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
+      self: ActorRef[Message],
+  ): Behavior[Message] = {
 
     val modelShell = ParticipantModelShell.create(
       modelFactory,
@@ -428,13 +423,12 @@ object ParticipantAgentInit {
         )
     }
 
-    parentData.fold(
-      schedulerData =>
-        schedulerData.scheduler ! Completion(
-          schedulerData.activationAdapter,
-          Some(firstTick),
-        ),
-      _.emAgent ! FlexCompletion(
+    parent.fold(
+      _ ! Completion(
+        self,
+        Some(firstTick),
+      ),
+      _ ! FlexCompletion(
         modelShell.uuid,
         requestAtNextActivation = false,
         Some(firstTick),
@@ -453,7 +447,7 @@ object ParticipantAgentInit {
         participantRefs.resultListener,
         notifierConfig,
       ),
-      parentData,
+      parent,
     )
   }
 

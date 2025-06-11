@@ -79,8 +79,7 @@ final case class ParticipantModelShell[
     OP <: OperatingPoint,
     S <: ModelState,
 ](
-    private val model: ParticipantModel[OP, S]
-      with ParticipantFlexibility[OP, S],
+    private val model: ParticipantModel[OP, S] & ParticipantFlexibility[OP, S],
     private val operationInterval: OperationInterval,
     private val simulationStart: ZonedDateTime,
     private val state: S,
@@ -216,7 +215,7 @@ final case class ParticipantModelShell[
       }
 
     new FlexOptionsResult(
-      tick.toDateTime(simulationStart),
+      tick.toDateTime(using simulationStart),
       uuid,
       minMaxFlexOptions.ref.toMegawatts.asMegaWatt,
       minMaxFlexOptions.min.toMegawatts.asMegaWatt,
@@ -249,7 +248,7 @@ final case class ParticipantModelShell[
       lastOperatingPoint,
       operatingPoint,
       complexPower,
-      tick.toDateTime(simulationStart),
+      tick.toDateTime(using simulationStart),
     )
 
     ResultsContainer(
@@ -407,7 +406,7 @@ final case class ParticipantModelShell[
     *   An updated [[ParticipantModelShell]].
     */
   def handleRequest(
-      ctx: ActorContext[ParticipantAgent.Request],
+      ctx: ActorContext[ParticipantAgent.Message],
       request: ParticipantRequest,
   ): ParticipantModelShell[OP, S] = {
     val currentState = determineCurrentState(request.tick)
@@ -434,7 +433,7 @@ final case class ParticipantModelShell[
           state,
           operatingPoint,
           tick,
-          tick.toDateTime(simulationStart),
+          tick.toDateTime(using simulationStart),
         )
       } else {
         // The state is up-to-date, no need to update

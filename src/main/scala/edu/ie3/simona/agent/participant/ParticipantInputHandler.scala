@@ -7,15 +7,19 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  ActivationRequest,
   DataInputMessage,
   DataProvision,
   NoDataProvision,
 }
-import edu.ie3.simona.agent.participant.ParticipantInputHandler.ReceivedData
+import edu.ie3.simona.agent.participant.ParticipantInputHandler.{
+  ReceivedData,
+  tick,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.service.Data
 import org.apache.pekko.actor.typed.ActorRef
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexRequest
 
 /** This class holds received data, knows what data is expected and can thus
   * decide whether all input requirements have been fulfilled.
@@ -31,22 +35,22 @@ import org.apache.pekko.actor.typed.ActorRef
   *   applicable. This is emptied after each tick is completed.
   */
 final case class ParticipantInputHandler(
-    expectedData: Map[ActorRef[_ >: ServiceMessage], Long],
-    receivedData: Map[ActorRef[_ >: ServiceMessage], ReceivedData],
-    activation: Option[ActivationRequest],
+    expectedData: Map[ActorRef[? >: ServiceMessage], Long],
+    receivedData: Map[ActorRef[? >: ServiceMessage], ReceivedData],
+    activation: Option[Activation | FlexRequest],
 ) {
 
-  /** Handles a received [[ActivationRequest]] by storing the message.
+  /** Handles a received activation by storing the message.
     *
-    * @param activationRequest
-    *   The activation request.
+    * @param activation
+    *   The activation message.
     * @return
     *   An updated input handler.
     */
   def handleActivation(
-      activationRequest: ActivationRequest
+      activation: Activation | FlexRequest
   ): ParticipantInputHandler =
-    copy(activation = Some(activationRequest))
+    copy(activation = Some(activation))
 
   /** Completes an activation by clearing out the stored activation message.
     *
@@ -151,6 +155,17 @@ object ParticipantInputHandler {
     */
   final case class ReceivedData(data: Data, tick: Long)
 
+  /** Extension method for the `Activation` and `FlexRequest` types to retrieve
+    * the tick associated with the activation.
+    */
+  extension (activation: Activation | FlexRequest) {
+    def tick: Long =
+      activation match {
+        case a: Activation  => a.tick
+        case f: FlexRequest => f.tick
+      }
+  }
+
   /** Creates a new [[ParticipantInputHandler]] with the given expected data and
     * empty received data and activation fields.
     *
@@ -161,7 +176,7 @@ object ParticipantInputHandler {
     *   A new [[ParticipantInputHandler]].
     */
   def apply(
-      expectedData: Map[ActorRef[_ >: ServiceMessage], Long]
+      expectedData: Map[ActorRef[? >: ServiceMessage], Long]
   ): ParticipantInputHandler =
     new ParticipantInputHandler(
       expectedData = expectedData,
