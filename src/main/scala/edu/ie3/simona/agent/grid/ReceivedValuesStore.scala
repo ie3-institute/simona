@@ -71,7 +71,7 @@ object ReceivedValuesStore {
   def empty(
       nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
-        GridAgent.Request
+        GridAgent.Message
       ]],
       superiorGridNodeUuids: Vector[UUID],
   ): ReceivedValuesStore = {
@@ -99,7 +99,7 @@ object ReceivedValuesStore {
   private def buildEmptyNodeToReceivedPowerMap(
       nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
-        GridAgent.Request
+        GridAgent.Message
       ]],
   ): NodeToReceivedPower = {
     /* Collect everything, that I expect from my asset agents */
@@ -165,7 +165,7 @@ object ReceivedValuesStore {
   private def buildEmptyReceiveMaps(
       nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
-        GridAgent.Request
+        GridAgent.Message
       ]],
       superiorGridNodeUuids: Vector[UUID],
   ): (NodeToReceivedPower, NodeToReceivedSlackVoltage) = {

@@ -47,7 +47,7 @@ import scala.util.{Failure, Success}
   *   recalculate reactive power.
   */
 final case class ParticipantGridAdapter(
-    gridAgent: ActorRef[GridAgent.Request],
+    gridAgent: ActorRef[GridAgent.Message],
     nodalVoltage: Dimensionless,
     private val expectedRequestTick: Long,
     private val tickToPower: SortedMap[Long, ComplexPower],
@@ -195,7 +195,7 @@ object ParticipantGridAdapter {
   )
 
   def apply(
-      gridAgentRef: ActorRef[GridAgent.Request],
+      gridAgentRef: ActorRef[GridAgent.Message],
       expectedRequestTick: Long,
       requestVoltageDeviationTolerance: Dimensionless,
   ): ParticipantGridAdapter =
