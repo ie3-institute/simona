@@ -16,9 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactoring `GridAgentBuilder` to an object [#1372](https://github.com/ie3-institute/simona/issues/1372)
 - Converted `ExtSimAdapter` to typed [#1094](https://github.com/ie3-institute/simona/issues/1094)
 - Simplifying ScheduleLock in scala 3 [#1411](https://github.com/ie3-institute/simona/issues/1411)
-
-### Removed
-- Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
+- Refactored `GridAgent` messages [#1404](https://github.com/ie3-institute/simona/issues/1404)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -26,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated dev's guide [#1409](https://github.com/ie3-institute/simona/issues/1409)
 - Fixed bug in returned next tick after congestion management [#1393](https://github.com/ie3-institute/simona/issues/1393)
 - Fixed bug in `CongestionResult` values [#1395](https://github.com/ie3-institute/simona/issues/1395)
+
+### Removed
+- Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
 
 ## [4.0.0] - 2025-05-09
 

@@ -88,7 +88,7 @@ class EvcsModelIT
 
     "handle a few requests and arrivals as expected" in {
 
-      val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
+      val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
       val resultListener = TestProbe[ResultEvent]("ResultListener")
       val primaryServiceProxy =
         TestProbe[ServiceMessage]("PrimaryServiceProxy")

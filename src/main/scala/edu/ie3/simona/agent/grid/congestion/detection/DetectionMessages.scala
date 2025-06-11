@@ -22,7 +22,7 @@ object DetectionMessages {
     *   that is asking
     */
   final case class CongestionCheckRequest(
-      sender: ActorRef[GridAgent.Request]
+      sender: ActorRef[GridAgent.Message]
   ) extends InternalRequest
 
   /** Response with congestions from an inferior grid.
@@ -32,7 +32,7 @@ object DetectionMessages {
     *   congestions in the inferior grid
     */
   final case class CongestionResponse(
-      override val sender: ActorRef[GridAgent.Request],
+      override val sender: ActorRef[GridAgent.Message],
       override val value: Congestions,
   ) extends InternalReplyWithSender[Congestions]
 
@@ -41,6 +41,6 @@ object DetectionMessages {
     *   vector of congestion in inferior grids
     */
   final case class ReceivedCongestions(
-      values: Seq[(ActorRef[GridAgent.Request], Congestions)]
+      values: Seq[(ActorRef[GridAgent.Message], Congestions)]
   ) extends InternalReply
 }

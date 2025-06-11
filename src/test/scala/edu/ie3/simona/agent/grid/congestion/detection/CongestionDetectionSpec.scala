@@ -43,10 +43,10 @@ class CongestionDetectionSpec
     with UnitSpec
     with CongestionTestBaseData {
 
-  protected val superiorAgent: TestProbe[GridAgent.Request] = TestProbe(
+  protected val superiorAgent: TestProbe[GridAgent.Message] = TestProbe(
     "superiorAgent"
   )
-  protected val inferiorAgent: TestProbe[GridAgent.Request] = TestProbe(
+  protected val inferiorAgent: TestProbe[GridAgent.Message] = TestProbe(
     "inferiorAgent"
   )
 
@@ -88,7 +88,7 @@ class CongestionDetectionSpec
       val cases = Table(
         ("inferiorData", "expectedCongestions"),
         (
-          Map.empty[ActorRef[GridAgent.Request], Option[Congestions]],
+          Map.empty[ActorRef[GridAgent.Message], Option[Congestions]],
           Congestions(
             voltageCongestions = true,
             lineCongestions = false,
@@ -279,7 +279,7 @@ class CongestionDetectionSpec
       )
 
       val awaitingData: AwaitingData[Congestions] =
-        AwaitingData(Set.empty[ActorRef[GridAgent.Request]])
+        AwaitingData(Set.empty[ActorRef[GridAgent.Message]])
 
       // init behavior
       val superiorGridAgent = spawnBehavior(stateData, awaitingData)

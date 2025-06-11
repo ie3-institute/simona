@@ -109,24 +109,23 @@ trait CongestionTestBaseData
       3600,
       startTime,
       endTime,
-      gridAgentActivation.ref,
     )
 
   def behaviorWithContextAndBuffer(
       factory: (
-          ctx: ActorContext[GridAgent.Request],
-          buffer: StashBuffer[GridAgent.Request],
-      ) => Behavior[GridAgent.Request]
+          ctx: ActorContext[GridAgent.Message],
+          buffer: StashBuffer[GridAgent.Message],
+      ) => Behavior[GridAgent.Message]
   )(using
       capacity: Int = 10
-  ): Behavior[GridAgent.Request] = Behaviors.withStash(capacity) { buffer =>
+  ): Behavior[GridAgent.Message] = Behaviors.withStash(capacity) { buffer =>
     Behaviors.setup { ctx =>
       factory(ctx, buffer)
     }
   }
 
   def gridAgentBaseData(
-      inferiorRefs: Set[ActorRef[GridAgent.Request]] = Set.empty,
+      inferiorRefs: Set[ActorRef[GridAgent.Message]] = Set.empty,
       isSuperior: Boolean = false,
       gridModel: Option[GridModel] = None,
   ): GridAgentBaseData = {

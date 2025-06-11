@@ -128,10 +128,10 @@ final case class CongestionManagementData(
   def getAllResults(startTime: ZonedDateTime): PowerFlowResultEvent =
     powerFlowResults + getCongestionResults(startTime)
 
-  def inferiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] =
+  def inferiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] =
     gridAgentBaseData.inferiorGridRefs
 
-  def superiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] =
+  def superiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] =
     gridAgentBaseData.superiorGridRefs
 
   def congestionManagementParams: CongestionManagementParams =

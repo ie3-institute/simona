@@ -45,8 +45,8 @@ trait CongestionDetection {
       awaitingData: AwaitingData[Congestions],
   )(using
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgent.Request],
-  ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
+      buffer: StashBuffer[GridAgent.Message],
+  ): Behavior[GridAgent.Message] = Behaviors.receivePartial {
     case (ctx, StartStep) =>
       // request congestion check if we have inferior grids
       askInferior(
@@ -92,11 +92,11 @@ trait CongestionDetection {
       stateData: CongestionManagementData,
       awaitingData: AwaitingData[Congestions],
       congestionRequest: CongestionCheckRequest,
-      ctx: ActorContext[GridAgent.Request],
+      ctx: ActorContext[GridAgent.Message],
   )(using
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgent.Request],
-  ): Behavior[GridAgent.Request] = {
+      buffer: StashBuffer[GridAgent.Message],
+  ): Behavior[GridAgent.Message] = {
     // check if waiting for inferior data is needed
     if (awaitingData.notDone) {
       ctx.log.debug(
@@ -128,12 +128,12 @@ trait CongestionDetection {
   private def processReceivedData(
       stateData: CongestionManagementData,
       awaitingData: AwaitingData[Congestions],
-      congestions: Seq[(ActorRef[GridAgent.Request], Congestions)],
-      ctx: ActorContext[GridAgent.Request],
+      congestions: Seq[(ActorRef[GridAgent.Message], Congestions)],
+      ctx: ActorContext[GridAgent.Message],
   )(using
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgent.Request],
-  ): Behavior[GridAgent.Request] = {
+      buffer: StashBuffer[GridAgent.Message],
+  ): Behavior[GridAgent.Message] = {
     // updating the state data with received data from inferior grids
     val updatedData = awaitingData.handleReceivingData(congestions)
 
