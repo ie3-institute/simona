@@ -27,7 +27,7 @@ import scala.deriving.Mirror
   *   Source for weather data (default: empty).
   */
 final case class InputConfig(
-    extSimDir: Option[String],
+    extSimDir: Option[String] = None,
     grid: Grid,
     loadProfile: LoadProfile = LoadProfile(),
     primary: Primary = Primary(),
@@ -50,6 +50,18 @@ object InputConfig {
       datasource: GridDatasource
   ) derives ConfigConvert
 
+  /** Source containing the grid data.
+    *
+    * @param csvParams
+    *   Parameters for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]].
+    * @param id
+    *   Of the datasource.
+    */
+  final case class GridDatasource(
+      csvParams: Option[BaseCsvParams] = None,
+      id: String,
+  ) derives ConfigConvert
+
   /** Case class with option for load profile data source.
     *
     * @param datasource
@@ -58,6 +70,7 @@ object InputConfig {
   final case class LoadProfile(
       datasource: LoadProfile.Datasource = LoadProfile.Datasource()
   )
+
   object LoadProfile {
 
     /** Case class with options for load profile data source parameters.
@@ -102,17 +115,6 @@ object InputConfig {
     */
   final case class Weather(
       datasource: WeatherDatasource = WeatherDatasource()
-  ) derives ConfigConvert
-
-  /** Source containing the grid data.
-    * @param csvParams
-    *   Parameters for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]].
-    * @param id
-    *   Of the datasource.
-    */
-  final case class GridDatasource(
-      csvParams: Option[BaseCsvParams] = None,
-      id: String,
   ) derives ConfigConvert
 
   /** Case class with parameters for a weather source.
