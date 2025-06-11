@@ -59,8 +59,7 @@ class DBFSAlgorithmSupGridSpec
     TestProbe[WeatherService.Message]("weatherService")
   private val loadProfileService =
     TestProbe[LoadProfileService.Message]("loadProfileService")
-
-  private val hvGrid: TestProbe[GridAgent.Request] = TestProbe("hvGrid")
+  private val hvGrid: TestProbe[GridAgent.Message] = TestProbe("hvGrid")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
@@ -74,7 +73,7 @@ class DBFSAlgorithmSupGridSpec
   val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
 
   "A GridAgent actor in superior position with async test" should {
-    val superiorGridAgentFSM: ActorRef[GridAgent.Request] = testKit.spawn(
+    val superiorGridAgentFSM: ActorRef[GridAgent.Message] = testKit.spawn(
       GridAgent(
         environmentRefs,
         simonaConfig,
@@ -83,7 +82,7 @@ class DBFSAlgorithmSupGridSpec
     )
 
     s"initialize itself when it receives an init activation" in {
-      val subnetGatesToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]] =
+      val subnetGatesToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]] =
         ehvSubGridGates.map(gate => gate -> hvGrid.ref).toMap
 
       val gridAgentInitData =
@@ -110,7 +109,7 @@ class DBFSAlgorithmSupGridSpec
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
       // send init data to agent
-      superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+      superiorGridAgentFSM ! Activation(3600)
 
       // we expect a completion message
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
@@ -125,7 +124,7 @@ class DBFSAlgorithmSupGridSpec
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
-          superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+          superiorGridAgentFSM ! Activation(3600)
 
           // we expect a request for grid power values here for sweepNo $sweepNo
           val message = hvGrid.expectMessageType[RequestGridPower]
@@ -230,7 +229,7 @@ class DBFSAlgorithmSupGridSpec
           )
 
         // bring agent in simulate grid state
-        superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+        superiorGridAgentFSM ! Activation(3600)
 
         // we expect a completion message
         scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
@@ -242,10 +241,10 @@ class DBFSAlgorithmSupGridSpec
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
-          superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+          superiorGridAgentFSM ! Activation(3600)
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          val message = hvGrid.expectMessageType[GridAgent.Request]
+          val message = hvGrid.expectMessageType[GridAgent.Message]
 
           val lastSender = message match {
             case requestGridPowerMessage: RequestGridPower =>

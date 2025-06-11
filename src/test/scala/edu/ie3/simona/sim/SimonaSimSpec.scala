@@ -465,7 +465,7 @@ object SimonaSimSpec {
         context: ActorContext[_],
         environmentRefs: EnvironmentRefs,
         resultEventListeners: Seq[ActorRef[ResultEvent]],
-    ): Iterable[ActorRef[GridAgent.Request]] = Iterable.empty
+    ): Iterable[ActorRef[GridAgent.Message]] = Iterable.empty
 
     override def extSimulations(
         context: ActorContext[_],

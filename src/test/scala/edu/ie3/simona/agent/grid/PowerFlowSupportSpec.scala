@@ -66,8 +66,8 @@ class PowerFlowSupportSpec
     with GridResultsSupport {
 
   given log: Logger = LoggerFactory.getLogger(this.getClass)
-  val actorRef: ActorRef[GridAgent.Request] =
-    TestProbe[GridAgent.Request]("mock_grid_agent").ref
+  val actorRef: ActorRef[GridAgent.Message] =
+    TestProbe[GridAgent.Message]("mock_grid_agent").ref
 
   /** Setting voltage at slack node to 110 kV and introducing a load of 1 MW at
     * node 1

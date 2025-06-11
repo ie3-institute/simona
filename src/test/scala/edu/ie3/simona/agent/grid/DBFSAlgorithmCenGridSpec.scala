@@ -163,7 +163,7 @@ class DBFSAlgorithmCenGridSpec
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
 
-      centerGridAgent ! WrappedActivation(Activation(3600))
+      centerGridAgent ! Activation(3600)
 
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
     }
@@ -173,7 +173,7 @@ class DBFSAlgorithmCenGridSpec
       val firstSweepNo = 0
 
       // send the start grid simulation trigger
-      centerGridAgent ! WrappedActivation(Activation(3600))
+      centerGridAgent ! Activation(3600)
 
       /* We expect one grid power request message per inferior grid */
 
