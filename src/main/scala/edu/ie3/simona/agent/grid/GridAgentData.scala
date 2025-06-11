@@ -52,8 +52,6 @@ object GridAgentData {
     *   of the simulation
     * @param simStartTime
     *   start time of the simulation
-    * @param activationAdapter
-    *   adapter for [[Activation]]
     */
   final case class GridAgentConstantData(
       environmentRefs: EnvironmentRefs,
@@ -62,7 +60,6 @@ object GridAgentData {
       resolution: Long,
       simStartTime: ZonedDateTime,
       simEndTime: ZonedDateTime,
-      activationAdapter: ActorRef[Activation],
   ) {
     def notifyListeners(event: ResultEvent): Unit = {
       listener.foreach(_ ! event)
@@ -102,7 +99,7 @@ object GridAgentData {
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,
       thermalIslandGrids: Seq[ThermalGrid],
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
       refSystem: RefSystem,
       voltageLimits: VoltageLimits,
   ) extends GridAgentData
@@ -150,7 +147,7 @@ object GridAgentData {
 
     def apply(
         gridModel: GridModel,
-        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
         nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
@@ -211,8 +208,8 @@ object GridAgentData {
       */
     def buildInferiorGridRefs(
         inferiorGridGates: Vector[SubGridGate],
-        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
-    ): Map[ActorRef[GridAgent.Request], Seq[UUID]] =
+        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
+    ): Map[ActorRef[GridAgent.Message], Seq[UUID]] =
       inferiorGridGates
         .map { inferiorGridGate =>
           subgridGateToActorRef(
@@ -242,8 +239,8 @@ object GridAgentData {
       */
     def buildSuperiorGridRefs(
         superiorGridGates: Vector[SubGridGate],
-        subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
-    ): Map[ActorRef[GridAgent.Request], Seq[UUID]] =
+        subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
+    ): Map[ActorRef[GridAgent.Message], Seq[UUID]] =
       superiorGridGates
         .groupBy(subGridGateToActorRef(_))
         .map { case (superiorGridAgent, gridGates) =>
@@ -317,8 +314,8 @@ object GridAgentData {
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
       actorName: String,
-      inferiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] = Map.empty,
-      superiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] = Map.empty,
+      inferiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] = Map.empty,
+      superiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] = Map.empty,
   ) extends GridAgentData
       with GridAgentDataHelper {
 
