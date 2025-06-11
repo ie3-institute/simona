@@ -43,7 +43,7 @@ class CongestedComponentsSpec
       val congested = CongestedComponents(
         results,
         gridModel.gridComponents,
-        voltageLimits,
+        defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
@@ -66,7 +66,7 @@ class CongestedComponentsSpec
       val congested = CongestedComponents(
         results,
         gridModel.gridComponents,
-        voltageLimits,
+        defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
@@ -93,7 +93,7 @@ class CongestedComponentsSpec
       val congested = CongestedComponents(
         results,
         gridModel.gridComponents,
-        voltageLimits,
+        defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
@@ -124,7 +124,7 @@ class CongestedComponentsSpec
       val congested = CongestedComponents(
         results,
         gridModel.gridComponents,
-        voltageLimits,
+        defaultVoltageLimits,
         Kilovolts(110),
         1,
       )

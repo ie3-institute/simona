@@ -88,10 +88,12 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         listener,
         resolution,
         simStartTime,
+        TimeUtil.withDefaults
+          .toZonedDateTime(simonaConfig.simona.time.endDateTime),
         activationAdapter,
       )
 
-      uninitialized(agentValues, buffer, simonaConfig)
+      uninitialized(using agentValues, buffer, simonaConfig)
     }
   }
 
@@ -147,25 +149,15 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         simonaConfig,
       )
 
-      val gridAgentBuilder = new GridAgentBuilder(
-        ctx,
-        constantData.environmentRefs,
-        constantData.simStartTime,
-        TimeUtil.withDefaults
-          .toZonedDateTime(cfg.time.endDateTime),
-        cfg.runtime.em,
-        cfg.runtime.participant,
-        cfg.output.participant,
-        constantData.resolution,
-        constantData.listener,
-        ctx.log,
-      )
-
       /* Reassure, that there are also calculation models for the given uuids */
       val nodeToAssetAgentsMap
           : Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
-        gridAgentBuilder
-          .buildSystemParticipants(subGridContainer, thermalGridsByBusId)
+        GridAgentBuilder
+          .buildSystemParticipants(subGridContainer, thermalGridsByBusId)(using
+            constantData,
+            ctx,
+            ctx.log,
+          )
           .map { case (uuid: UUID, actorSet) =>
             val nodeUuid = gridModel.gridComponents.nodes
               .find(_.uuid == uuid)
@@ -273,7 +265,10 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           createResultModels(
             gridAgentBaseData.gridEnv.gridModel,
             valueStore,
-          )(currentTick.toDateTime(constantData.simStartTime), ctx.log)
+          )(using
+            currentTick.toDateTime(using constantData.simStartTime),
+            ctx.log,
+          )
       }
 
     // check if congestion management is enabled

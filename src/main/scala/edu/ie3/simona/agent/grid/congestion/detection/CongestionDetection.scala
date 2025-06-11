@@ -140,11 +140,10 @@ trait CongestionDetection {
     if (stateData.gridAgentBaseData.isSuperior) {
       // if we are the superior grid, we find the next behavior
 
-      val combinedCongestions =
-        stateData.congestions.combine(updatedData.values)
+      val updatedCongestions = stateData.congestions.combine(updatedData.values)
 
       // checking for any congestion in the complete grid
-      if (!combinedCongestions.hasCongestion) {
+      if (!updatedCongestions.hasCongestion) {
         ctx.log.info(
           s"No congestions found. Finishing the congestion management."
         )
@@ -153,10 +152,10 @@ trait CongestionDetection {
         checkForCongestion(stateData, updatedData)
       } else {
         ctx.log.debug(
-          s"Congestion overall: $combinedCongestions"
+          s"Congestion overall: $updatedCongestions"
         )
 
-        val updatedStateData = stateData.copy(congestions = combinedCongestions)
+        val updatedStateData = stateData.copy(congestions = updatedCongestions)
 
         if (stateData.congestionManagementParams.anyMitigationEnabled) {
           // the mitigation is enabled

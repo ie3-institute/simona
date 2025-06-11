@@ -19,6 +19,8 @@ import edu.ie3.simona.agent.grid.congestion.{CongestedComponents, Congestions}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.util.quantities.QuantityUtils.asPercent
 import org.apache.pekko.actor.typed.ActorRef
+import squants.Each
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -68,14 +70,14 @@ final case class CongestionManagementData(
         nodeRes.getInputModel,
         InputModelType.NODE,
         subgridNo,
-        nodeRes.getvMag().multiply(100),
-        voltageLimits.vMin.multiply(100),
-        voltageLimits.vMax.multiply(100),
+        nodeRes.getvMag().to(Units.PERCENT),
+        voltageLimits.vMin.to(Units.PERCENT),
+        voltageLimits.vMax.to(Units.PERCENT),
       )
     }
 
     val lines = congestedComponents.lines.map { case (lineModel, current) =>
-      val utilisation = (current / lineModel.iNom).asPercent
+      val utilisation = Each(current / lineModel.iNom).toPercent.asPercent
 
       new CongestionResult(
         startTime.plusSeconds(currentTick),
@@ -90,7 +92,8 @@ final case class CongestionManagementData(
 
     val transformer2W = congestedComponents.transformer2Ws.map {
       case (transformerModel, power) =>
-        val utilisation = (power / transformerModel.sRated).asPercent
+        val utilisation =
+          Each(power / transformerModel.sRated).toPercent.asPercent
 
         new CongestionResult(
           startTime.plusSeconds(currentTick),
@@ -105,7 +108,8 @@ final case class CongestionManagementData(
 
     val transformer3W = congestedComponents.transformer3Ws.map {
       case (transformerModel, power) =>
-        val utilisation = (power / transformerModel.sRated).asPercent
+        val utilisation =
+          Each(power / transformerModel.sRated).toPercent.asPercent
 
         new CongestionResult(
           startTime.plusSeconds(currentTick),

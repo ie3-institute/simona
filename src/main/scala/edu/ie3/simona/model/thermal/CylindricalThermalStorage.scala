@@ -17,19 +17,18 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull,
 }
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
-import edu.ie3.util.scala.quantities.{
-  KilowattHoursPerKelvinCubicMeters,
-  SpecificHeatCapacity,
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  PowerConversionSimona,
+  TemperatureConversionSimona,
+  VolumeConversionSimona,
+  toSquants,
 }
-import squants.energy.Kilowatts
-import squants.space.{CubicMeters, Volume}
-import squants.thermal.Celsius
+import edu.ie3.util.scala.quantities.SpecificHeatCapacity
+import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
+import squants.space.Volume
 import squants.time.Seconds
 import squants.{Energy, Power, Temperature}
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
@@ -165,29 +164,14 @@ object CylindricalThermalStorage {
       input: CylindricalStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
   ): CylindricalThermalStorage = {
-
-    val maxEnergyThreshold: Energy =
-      CylindricalThermalStorage.volumeToEnergy(
-        CubicMeters(
-          input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
-        ),
-        KilowattHoursPerKelvinCubicMeters(
-          input.getC
-            .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
-            .getValue
-            .doubleValue
-        ),
-        Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
-        Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
-      )
-
-    val pThermalMax = Kilowatts(
-      input
-        .getpThermalMax()
-        .to(PowerSystemUnits.KILOWATT)
-        .getValue
-        .doubleValue()
+    val maxEnergyThreshold = volumeToEnergy(
+      input.getStorageVolumeLvl.toSquants,
+      input.getC.toSquants,
+      input.getInletTemp.toSquants,
+      input.getReturnTemp.toSquants,
     )
+
+    val pThermalMax = input.getpThermalMax().toSquants
 
     new CylindricalThermalStorage(
       input.getUuid,

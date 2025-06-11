@@ -14,6 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
 }
+import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -24,25 +25,27 @@ import edu.ie3.simona.ontology.messages.services.{
   WeatherMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
+import edu.ie3.simona.test.common.result.CongestedComponentsTestData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
-import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKitBase,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
+import org.apache.pekko.actor.typed.scaladsl.{
+  ActorContext,
+  Behaviors,
+  StashBuffer,
+}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.mockito.Mockito.when
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
-import java.time.ZonedDateTime
 import scala.concurrent.duration.DurationInt
 
 trait CongestionTestBaseData
     extends ConfigTestData
-    with DbfsTestGrid
+    with CongestedComponentsTestData
     with TestSpawnerTyped {
   this: ActorTestKitBase =>
 
@@ -85,6 +88,10 @@ trait CongestionTestBaseData
     "resultListener"
   )
 
+  protected val gridAgentActivation: TestProbe[Activation] = TestProbe(
+    "gridAgentActivation"
+  )
+
   protected given constantData: GridAgentConstantData =
     GridAgentConstantData(
       environmentRefs,
@@ -92,8 +99,22 @@ trait CongestionTestBaseData
       Iterable(resultListener.ref),
       3600,
       startTime,
-      mock[ActorRef[Activation]],
+      endTime,
+      gridAgentActivation.ref,
     )
+
+  def behaviorWithContextAndBuffer(
+      factory: (
+          ctx: ActorContext[GridAgent.Request],
+          buffer: StashBuffer[GridAgent.Request],
+      ) => Behavior[GridAgent.Request]
+  )(using
+      capacity: Int = 10
+  ): Behavior[GridAgent.Request] = Behaviors.withStash(capacity) { buffer =>
+    Behaviors.setup { ctx =>
+      factory(ctx, buffer)
+    }
+  }
 
   def gridAgentBaseData(
       inferiorRefs: Set[ActorRef[GridAgent.Request]] = Set.empty,
@@ -112,6 +133,14 @@ trait CongestionTestBaseData
     when(data.isSuperior).thenReturn(isSuperior)
     when(data.congestionManagementParams).thenReturn(cmParams)
     when(data.inferiorGridRefs).thenReturn(map)
+    when(data.superiorGridNodeUuids).thenReturn(Vector.empty)
+
+    val gridEnv = mock[GridEnvironment]
+    when(data.gridEnv).thenReturn(gridEnv)
+
+    when(gridEnv.gridModel).thenReturn(gridModel)
+    when(gridEnv.subgridGateToActorRef).thenReturn(Map.empty)
+    when(gridEnv.nodeToAssetAgents).thenReturn(Map.empty)
 
     if (gridModel.nonEmpty) {
       val gridEnv = mock[GridEnvironment]

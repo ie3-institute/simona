@@ -130,7 +130,7 @@ trait DCMAlgorithm extends CongestionDetection with TransformerTapChange {
     // return to idle
     GridAgent.gotoIdle(
       stateData.gridAgentBaseData,
-      stateData.currentTick,
+      stateData.currentTick + constantData.resolution,
       Some(powerFlowResults),
       ctx,
     )
