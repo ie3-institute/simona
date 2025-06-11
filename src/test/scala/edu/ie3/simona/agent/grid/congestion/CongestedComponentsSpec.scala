@@ -10,11 +10,8 @@ import edu.ie3.simona.agent.grid.congestion.CongestedComponents
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.result.CongestedComponentsTestData
-import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.electro.{Amperes, Kilovolts}
-
-import java.time.ZonedDateTime
 
 class CongestedComponentsSpec
     extends UnitSpec
@@ -42,7 +39,7 @@ class CongestedComponentsSpec
 
       val congested = CongestedComponents(
         results,
-        gridModel.gridComponents,
+        extendedGridModel.gridComponents,
         defaultVoltageLimits,
         Kilovolts(110),
         1,
@@ -65,13 +62,14 @@ class CongestedComponentsSpec
 
       val congested = CongestedComponents(
         results,
-        gridModel.gridComponents,
+        extendedGridModel.gridComponents,
         defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
 
-      val lineMap = gridModel.gridComponents.lines.map(l => l.uuid -> l).toMap
+      val lineMap =
+        extendedGridModel.gridComponents.lines.map(l => l.uuid -> l).toMap
 
       congested.voltages shouldBe Iterable.empty
       congested.lines shouldBe Iterable(
@@ -92,14 +90,16 @@ class CongestedComponentsSpec
 
       val congested = CongestedComponents(
         results,
-        gridModel.gridComponents,
+        extendedGridModel.gridComponents,
         defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
 
       val transformerMap =
-        gridModel.gridComponents.transformers.map(t => t.uuid -> t).toMap
+        extendedGridModel.gridComponents.transformers
+          .map(t => t.uuid -> t)
+          .toMap
 
       congested.voltages shouldBe Iterable(nodeResult2)
       congested.lines shouldBe Iterable.empty
@@ -123,14 +123,16 @@ class CongestedComponentsSpec
 
       val congested = CongestedComponents(
         results,
-        gridModel.gridComponents,
+        extendedGridModel.gridComponents,
         defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
 
       val transformerMap =
-        gridModel.gridComponents.transformers3w.map(t => t.uuid -> t).toMap
+        extendedGridModel.gridComponents.transformers3w
+          .map(t => t.uuid -> t)
+          .toMap
 
       congested.voltages shouldBe Iterable(nodeResult2)
       congested.lines shouldBe Iterable.empty

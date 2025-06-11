@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.agent.grid.congestion.data
 
-import edu.ie3.datamodel.models.result.CongestionResult
 import edu.ie3.datamodel.models.result.CongestionResult.InputModelType
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData
 import edu.ie3.simona.agent.grid.GridEnvironment
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationProgress
 import edu.ie3.simona.agent.grid.congestion.{CongestedComponents, Congestions}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.test.common.UnitSpec
@@ -27,7 +27,7 @@ class CongestionManagementDataSpec
     val data = mock[GridAgentBaseData]
 
     val gridEnv = mock[GridEnvironment]
-    when(gridEnv.gridModel).thenReturn(gridModel)
+    when(gridEnv.gridModel).thenReturn(extendedGridModel)
 
     when(data.gridEnv).thenReturn(gridEnv)
 
@@ -36,9 +36,10 @@ class CongestionManagementDataSpec
 
   "The CongestionManagementData" should {
 
-    val lineMap = gridModel.gridComponents.lines.map(l => l.uuid -> l).toMap
+    val lineMap =
+      extendedGridModel.gridComponents.lines.map(l => l.uuid -> l).toMap
     val transformerMap =
-      gridModel.gridComponents.transformers.map(t => t.uuid -> t).toMap
+      extendedGridModel.gridComponents.transformers.map(t => t.uuid -> t).toMap
 
     "return the congestion result correctly" in {
       val stateData = CongestionManagementData(
@@ -63,6 +64,7 @@ class CongestionManagementDataSpec
           ),
           Iterable.empty,
         ),
+        MitigationProgress(currentIteration = 1),
       )
 
       val results = stateData

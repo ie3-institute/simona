@@ -92,6 +92,15 @@ trait CongestionTestBaseData
     "gridAgentActivation"
   )
 
+  protected val gridModel: GridModel = GridModel(
+    hvGridContainer,
+    refSystem,
+    voltageLimits,
+    startTime,
+    endTime,
+    config,
+  )
+
   protected given constantData: GridAgentConstantData =
     GridAgentConstantData(
       environmentRefs,
@@ -138,19 +147,19 @@ trait CongestionTestBaseData
     val gridEnv = mock[GridEnvironment]
     when(data.gridEnv).thenReturn(gridEnv)
 
-    when(gridEnv.gridModel).thenReturn(gridModel)
     when(gridEnv.subgridGateToActorRef).thenReturn(Map.empty)
     when(gridEnv.nodeToAssetAgents).thenReturn(Map.empty)
 
-    if (gridModel.nonEmpty) {
-      val gridEnv = mock[GridEnvironment]
-      when(gridEnv.gridModel).thenReturn(
-        gridModel.getOrElse(
-          throw new CriticalFailureException("No grid model found!")
-        )
-      )
+    gridModel match {
+      case Some(model) =>
+        when(gridEnv.gridModel).thenReturn(model)
 
-      when(data.gridEnv).thenReturn(gridEnv)
+      case None =>
+        val gridModelMock = mock[GridModel]
+        when(gridEnv.gridModel).thenReturn(gridModelMock)
+
+        when(gridModelMock.voltageLimits).thenReturn(voltageLimits)
+        when(gridModelMock.mainRefSystem).thenReturn(refSystem)
     }
 
     data

@@ -60,15 +60,6 @@ class TransformerTagChangeSpec
   )
 
   "The congestion mitigation by transformer tap change" should {
-    val gridModel = GridModel(
-      hvGridContainer,
-      refSystem,
-      voltageLimits,
-      startTime,
-      endTime,
-      config,
-    )
-
     val transformers: Set[TransformerTapping] =
       gridModel.gridComponents.transformers.map {
         (transformerTapping: TransformerTapping) => transformerTapping

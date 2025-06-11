@@ -74,7 +74,7 @@ trait CongestedComponentsTestData
     false,
   )
 
-  protected val gridModel: GridModel = {
+  protected val extendedGridModel: GridModel = {
     val refSystem = RefSystem(Megawatts(600), Kilovolts(110))
 
     val model = GridModel(
