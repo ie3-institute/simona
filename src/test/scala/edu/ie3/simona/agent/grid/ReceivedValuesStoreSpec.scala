@@ -30,7 +30,7 @@ class ReceivedValuesStoreSpec
     TestProbe[ParticipantAgent.Request]()
   val participant3: TestProbe[ParticipantAgent.Request] =
     TestProbe[ParticipantAgent.Request]()
-  val gridAgent: TestProbe[GridAgent.Request] = TestProbe[GridAgent.Request]()
+  val gridAgent: TestProbe[GridAgent.Message] = TestProbe[GridAgent.Message]()
 
   // test data used by almost all tests
   // / node to asset agents mapping
@@ -47,7 +47,7 @@ class ReceivedValuesStoreSpec
 
   // / subnet gate mapping for inferior grids
   val defaultInferiorSubGridGateToActorRefMap
-      : Map[SubGridGate, ActorRef[GridAgent.Request]] = Map(
+      : Map[SubGridGate, ActorRef[GridAgent.Message]] = Map(
     build2wSubGridGate(
       UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8"),
       1,
@@ -68,7 +68,7 @@ class ReceivedValuesStoreSpec
       val emptyNodeToAssetAgentsMap =
         Map.empty[UUID, Set[ActorRef[ParticipantAgent.Request]]]
       val emptyInferiorSubGridGateToActorRefMap =
-        Map.empty[SubGridGate, ActorRef[GridAgent.Request]]
+        Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
       val emptySuperiorGridNodeUuids = Vector.empty[UUID]
 
       val receivedValuesStore =
@@ -124,7 +124,7 @@ class ReceivedValuesStoreSpec
         )
 
       val inferiorSubGridGateToActorRefMap =
-        Map.empty[SubGridGate, ActorRef[GridAgent.Request]]
+        Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
       val superiorGridNodeUuids = Vector.empty[UUID]
 
       val receivedValuesStore =
@@ -180,7 +180,7 @@ class ReceivedValuesStoreSpec
       val nodeToAssetAgentsMap =
         Map.empty[UUID, Set[ActorRef[ParticipantAgent.Request]]]
       val inferiorSubGridGateToActorRefMap =
-        Map.empty[SubGridGate, ActorRef[GridAgent.Request]]
+        Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
 
       val superiorGridNodeUuids = Vector(
         UUID.fromString("baded8c4-b703-4316-b62f-75ffe09c9843"),
@@ -209,7 +209,7 @@ class ReceivedValuesStoreSpec
     "initialize an empty store correctly when only an invalid mapping for asset agents with duplicates is provided" in {
 
       val inferiorSubGridGateToActorRefMap =
-        Map.empty[SubGridGate, ActorRef[GridAgent.Request]]
+        Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
       val superiorGridNodeUuids = Vector.empty[UUID]
 
       val receivedValuesStore =
