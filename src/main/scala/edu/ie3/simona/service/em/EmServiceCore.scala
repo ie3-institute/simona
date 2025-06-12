@@ -119,6 +119,13 @@ trait EmServiceCore {
       startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt])
+
+  final def getMaybeNextTick: Option[java.lang.Long] = completions.receivedData
+    .flatMap { case (k, completion) =>
+      completion.requestAtTick
+    }
+    .minOption
+    .map(long2Long)
 }
 
 object EmServiceCore {

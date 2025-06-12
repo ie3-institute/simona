@@ -107,7 +107,7 @@ object EmAgent {
       listener: Iterable[ActorRef[ResultEvent]],
       emDataService: Option[ActorRef[EmMessage]],
   ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
-    val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
+    val flexAdapter = ctx.messageAdapter[FlexRequest](Flex.apply)
 
     val parentData = emDataService match {
       case Some(service) =>
@@ -127,7 +127,7 @@ object EmAgent {
           ExtEmDataService.emServiceRequestAdapter(
             service,
             flexAdapter,
-          )(ctx)
+          )(using ctx)
 
         parentOption.foreach(
           _ ! RegisterControlledAsset(serviceRequestAdapter, inputModel)
@@ -138,7 +138,7 @@ object EmAgent {
             service,
             parentOption,
             inputModel.getUuid,
-          )(ctx)
+          )(using ctx)
 
         Right(FlexControlledData(serviceResponseAdapter, flexAdapter))
 
@@ -180,7 +180,7 @@ object EmAgent {
     inactive(
       constantData,
       modelShell,
-      EmDataCore.create(simulationStartDate),
+      EmDataCore.create(using simulationStartDate),
     )
   }
 

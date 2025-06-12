@@ -18,6 +18,8 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
+import scala.jdk.OptionConverters.RichOption
+
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.{
@@ -226,7 +228,7 @@ final case class EmServiceBaseCore(
 
           val extMsgOption = if (tick != INIT_SIM_TICK) {
             // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
-            Some(new EmCompletion())
+            Some(new EmCompletion(getMaybeNextTick.toJava))
           } else None
 
           // every em agent has sent a completion message

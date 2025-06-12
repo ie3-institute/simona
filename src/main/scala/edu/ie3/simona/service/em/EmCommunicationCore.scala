@@ -27,6 +27,8 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 import tech.units.indriya.ComparableQuantity
 
+import scala.jdk.OptionConverters.RichOption
+
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power
@@ -97,7 +99,7 @@ final case class EmCommunicationCore(
           adapter ! IssueNoControl(tick)
         }
 
-        (this, Some(new EmCompletion()))
+        (this, Some(new EmCompletion(getMaybeNextTick.toJava)))
       }
 
     case provideFlexRequests: ProvideFlexRequestData =>
@@ -211,11 +213,11 @@ final case class EmCommunicationCore(
             flexOptionResponse.addData(
               modelUuid,
               new ExtendedFlexOptionsResult(
-                tick.toDateTime(startTime),
+                tick.toDateTime(using startTime),
                 modelUuid,
                 receiverUuid,
-                min.toQuantity,
                 ref.toQuantity,
+                min.toQuantity,
                 max.toQuantity,
               ),
             )
@@ -264,7 +266,7 @@ final case class EmCommunicationCore(
 
         val extMsgOption = if (tick != INIT_SIM_TICK) {
           // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
-          Some(new EmCompletion())
+          Some(new EmCompletion(getMaybeNextTick.toJava))
         } else None
 
         // every em agent has sent a completion message
