@@ -15,7 +15,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.model.participant.ParticipantModelShell
-import edu.ie3.simona.agent.participant.ParticipantInputHandler.tick
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
@@ -33,7 +32,20 @@ import squants.{Dimensionless, Each}
   */
 object ParticipantAgent {
 
-  type Message = Request | Activation | FlexRequest
+  type Message = Request | ActivationRequest
+
+  type ActivationRequest = Activation | FlexRequest
+
+  /** Extension method for the `Activation` and `FlexRequest` types to retrieve
+    * the tick associated with the activation.
+    */
+  extension (activation: ActivationRequest) {
+    def tick: Long =
+      activation match {
+        case a: Activation  => a.tick
+        case f: FlexRequest => f.tick
+      }
+  }
 
   sealed trait Request
 
@@ -165,7 +177,8 @@ object ParticipantAgent {
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       resultHandler: ParticipantResultHandler,
-      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
+  )(using
+      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]]
   ): Behavior[Message] =
     Behaviors.receivePartial {
       case (ctx, request: ParticipantRequest) =>
@@ -178,10 +191,11 @@ object ParticipantAgent {
           inputHandler,
           gridAdapter,
           resultHandler,
-          parent,
         )
 
-      case (ctx, activation: Activation) =>
+      case (ctx, activation: ActivationRequest) =>
+        given ActorRef[Message] = ctx.self
+
         val coreWithActivation = inputHandler.handleActivation(activation)
 
         val (updatedShell, updatedInputHandler, updatedGridAdapter) =
@@ -190,8 +204,6 @@ object ParticipantAgent {
             coreWithActivation,
             gridAdapter,
             resultHandler,
-            parent,
-            ctx.self,
           )
 
         ParticipantAgent(
@@ -199,10 +211,11 @@ object ParticipantAgent {
           updatedInputHandler,
           updatedGridAdapter,
           resultHandler,
-          parent,
         )
 
       case (ctx, msg: DataInputMessage) =>
+        given ActorRef[Message] = ctx.self
+
         val inputHandlerWithData = inputHandler.handleDataInputMessage(msg)
 
         val (updatedShell, updatedInputHandler, updatedGridAdapter) =
@@ -211,8 +224,6 @@ object ParticipantAgent {
             inputHandlerWithData,
             gridAdapter,
             resultHandler,
-            parent,
-            ctx.self,
           )
 
         ParticipantAgent(
@@ -220,7 +231,6 @@ object ParticipantAgent {
           updatedInputHandler,
           updatedGridAdapter,
           resultHandler,
-          parent,
         )
 
       case (
@@ -270,10 +280,11 @@ object ParticipantAgent {
           inputHandler,
           updatedGridAdapter,
           resultHandler,
-          parent,
         )
 
       case (ctx, GridSimulationFinished(_, nextRequestTick)) =>
+        given ActorRef[Message] = ctx.self
+
         val gridAdapterFinished =
           gridAdapter.updateNextRequestTick(nextRequestTick)
 
@@ -284,8 +295,6 @@ object ParticipantAgent {
             inputHandler,
             gridAdapterFinished,
             resultHandler,
-            parent,
-            ctx.self,
           )
 
         ParticipantAgent(
@@ -293,7 +302,6 @@ object ParticipantAgent {
           updatedInputHandler,
           updatedGridAdapter,
           resultHandler,
-          parent,
         )
     }
 
@@ -313,6 +321,8 @@ object ParticipantAgent {
     *   The [[ParticipantResultHandler]].
     * @param parent
     *   The parent of this [[ParticipantAgent]].
+    * @param self
+    *   An [[ActorRef]] of this agent.
     * @return
     *   An updated [[ParticipantModelShell]], [[ParticipantInputHandler]] and
     *   [[ParticipantGridAdapter]].
@@ -322,6 +332,7 @@ object ParticipantAgent {
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       resultHandler: ParticipantResultHandler,
+  )(using
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
       self: ActorRef[Message],
   ): (

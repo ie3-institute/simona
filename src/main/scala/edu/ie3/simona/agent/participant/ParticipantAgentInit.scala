@@ -9,7 +9,6 @@ package edu.ie3.simona.agent.participant
 import edu.ie3.datamodel.models.input.system.{LoadInput, SystemParticipantInput}
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.*
-import edu.ie3.simona.agent.participant.ParticipantInputHandler.tick
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -24,6 +23,7 @@ import edu.ie3.simona.model.participant.{
   ParticipantModelInit,
   ParticipantModelShell,
 }
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -36,7 +36,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   RegisterForEvDataMessage,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -97,10 +96,6 @@ object ParticipantAgentInit {
     * @param inputContainer
     *   The input container holding the system participant model input that
     *   represents the physical model at the core of the agent.
-    * @param runtimeConfig
-    *   Runtime configuration that has to match the participant type.
-    * @param notifierConfig
-    *   The result configuration.
     * @param participantRefs
     *   A collection of actor references to actors required for initialization
     *   and operation.
@@ -110,15 +105,20 @@ object ParticipantAgentInit {
     *   The parent actor scheduling or controlling this participant, i.e. either
     *   a [[edu.ie3.simona.scheduler.Scheduler]] or an
     *   [[edu.ie3.simona.agent.em.EmAgent]].
+    * @param runtimeConfig
+    *   Runtime configuration that has to match the participant type.
+    * @param notifierConfig
+    *   The result configuration.
     */
   def apply(
       inputContainer: InputModelContainer[? <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
-      participantRefs: ParticipantRefs,
-      simulationParams: SimulationParameters,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
       scheduleKey: ScheduleKey,
+  )(using
+      participantRefs: ParticipantRefs,
+      simulationParams: SimulationParameters,
   ): Behavior[Message] = Behaviors.setup { ctx =>
     parent match {
       case Right(em) =>
@@ -140,7 +140,7 @@ object ParticipantAgentInit {
         )
     }
 
-    uninitialized(
+    uninitialized(using
       inputContainer,
       runtimeConfig,
       notifierConfig,
@@ -150,11 +150,9 @@ object ParticipantAgentInit {
     )
   }
 
-  private type A = Activation | FlexActivation
-
   /** Waiting for an [[Activation]] message to start the initialization.
     */
-  private def uninitialized(
+  private def uninitialized(using
       inputContainer: InputModelContainer[? <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
@@ -163,33 +161,27 @@ object ParticipantAgentInit {
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
   ): Behavior[Message] = Behaviors.receivePartial {
 
-    case (ctx, activation: A) if activation.tick == INIT_SIM_TICK =>
+    case (ctx, activation: ActivationRequest)
+        if activation.tick == INIT_SIM_TICK =>
       // first, check whether we're just supposed to replay primary data time series
       participantRefs.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
         ctx.self,
         inputContainer.electricalInputModel.getUuid,
       )
 
-      waitingForPrimaryProxy(
-        inputContainer,
-        runtimeConfig,
-        notifierConfig,
-        participantRefs,
-        simulationParams,
-        parent,
-      )
+      waitingForPrimaryProxy
 
   }
 
   /** Waits for the primary proxy to respond, which decides whether this
     * participant uses model calculations or just replays primary data.
     */
-  private def waitingForPrimaryProxy(
+  private def waitingForPrimaryProxy(using
       inputContainer: InputModelContainer[? <: SystemParticipantInput],
-      runtimeConfig: BaseRuntimeConfig,
-      notifierConfig: NotifierConfig,
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
+      runtimeConfig: BaseRuntimeConfig,
+      notifierConfig: NotifierConfig,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
   ): Behavior[Message] = Behaviors.receivePartial {
 
@@ -212,11 +204,7 @@ object ParticipantAgentInit {
           primaryDataExtra,
         ),
         inputContainer.electricalInputModel,
-        notifierConfig,
         expectedFirstData,
-        participantRefs,
-        simulationParams,
-        parent,
         ctx.self,
       )
 
@@ -233,11 +221,7 @@ object ParticipantAgentInit {
         completeInitialization(
           modelFactory,
           inputContainer.electricalInputModel,
-          notifierConfig,
           Map.empty,
-          participantRefs,
-          simulationParams,
-          parent,
           ctx.self,
         )
       } else {
@@ -266,12 +250,7 @@ object ParticipantAgentInit {
         waitingForServices(
           modelFactory,
           inputContainer.electricalInputModel,
-          notifierConfig,
-          participantRefs,
-          simulationParams,
           requiredServices.values.toSet,
-          parent = parent,
-          self = ctx.self,
         )
       }
   }
@@ -330,17 +309,18 @@ object ParticipantAgentInit {
   private def waitingForServices(
       modelFactory: ParticipantModelFactory[? <: ModelState],
       participantInput: SystemParticipantInput,
-      notifierConfig: NotifierConfig,
-      participantRefs: ParticipantRefs,
-      simulationParams: SimulationParameters,
       expectedRegistrations: Set[ActorRef[? >: ServiceMessage]],
       expectedFirstData: Map[ActorRef[? >: ServiceMessage], Long] = Map.empty,
+  )(using
+      participantRefs: ParticipantRefs,
+      simulationParams: SimulationParameters,
+      runtimeConfig: BaseRuntimeConfig,
+      notifierConfig: NotifierConfig,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
-      self: ActorRef[Message],
   ): Behavior[Message] =
     Behaviors.receivePartial {
       case (
-            _,
+            ctx,
             RegistrationSuccessfulMessage(
               serviceRef,
               nextDataTick,
@@ -367,25 +347,16 @@ object ParticipantAgentInit {
           completeInitialization(
             updatedFactory,
             participantInput,
-            notifierConfig,
             newExpectedFirstData,
-            participantRefs,
-            simulationParams,
-            parent,
-            self,
+            ctx.self,
           )
         else
           // there's at least one more service to go, let's wait for confirmation
           waitingForServices(
             updatedFactory,
             participantInput,
-            notifierConfig,
-            participantRefs,
-            simulationParams,
             newExpectedRegistrations,
             newExpectedFirstData,
-            parent,
-            self,
           )
     }
 
@@ -395,12 +366,14 @@ object ParticipantAgentInit {
   private def completeInitialization(
       modelFactory: ParticipantModelFactory[? <: ModelState],
       participantInput: SystemParticipantInput,
-      notifierConfig: NotifierConfig,
       expectedData: Map[ActorRef[? >: ServiceMessage], Long],
+      self: ActorRef[Message],
+  )(using
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
+      runtimeConfig: BaseRuntimeConfig,
+      notifierConfig: NotifierConfig,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
-      self: ActorRef[Message],
   ): Behavior[Message] = {
 
     val modelShell = ParticipantModelShell.create(
@@ -447,7 +420,6 @@ object ParticipantAgentInit {
         participantRefs.resultListener,
         notifierConfig,
       ),
-      parent,
     )
   }
 

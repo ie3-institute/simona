@@ -290,14 +290,14 @@ object GridAgentBuilder {
         ),
       ).flatten.toMap
 
-    val participantRefs = ParticipantRefs(
+    given ParticipantRefs = ParticipantRefs(
       gridAgentContext.self,
       constantData.environmentRefs.primaryServiceProxy,
       serviceMap,
       constantData.listener,
     )
 
-    val simParams = SimulationParameters(
+    given SimulationParameters = SimulationParameters(
       constantData.resolution,
       Each(
         constantData.simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
@@ -317,8 +317,6 @@ object GridAgentBuilder {
           constantData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.FixedFeedIn
           ),
-          participantRefs,
-          simParams,
           constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
@@ -329,8 +327,6 @@ object GridAgentBuilder {
             input.getUuid
           ),
           constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
-          participantRefs,
-          simParams,
           constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
@@ -343,8 +339,6 @@ object GridAgentBuilder {
           constantData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.PvPlant
           ),
-          participantRefs,
-          simParams,
           constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
@@ -357,8 +351,6 @@ object GridAgentBuilder {
           constantData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.BioMassPlant
           ),
-          participantRefs,
-          simParams,
           constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
@@ -369,8 +361,6 @@ object GridAgentBuilder {
             input.getUuid
           ),
           constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
-          participantRefs,
-          simParams,
           constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
@@ -381,8 +371,6 @@ object GridAgentBuilder {
             input.getUuid
           ),
           constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
-          participantRefs,
-          simParams,
           constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
@@ -395,8 +383,6 @@ object GridAgentBuilder {
                 input.getUuid
               ),
               constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
-              participantRefs,
-              simParams,
               constantData.environmentRefs.scheduler,
               maybeControllingEm,
             )
@@ -414,8 +400,6 @@ object GridAgentBuilder {
           constantData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.Storage
           ),
-          participantRefs,
-          simParams,
           constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
@@ -430,12 +414,12 @@ object GridAgentBuilder {
       inputContainer: InputModelContainer[? <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
-      participantRefs: ParticipantRefs,
-      simParams: SimulationParameters,
       scheduler: ActorRef[SchedulerMessage],
       maybeControllingEm: Option[ActorRef[FlexResponse]],
   )(using
-      gridAgentContext: ActorContext[GridAgent.Request]
+      participantRefs: ParticipantRefs,
+      simParams: SimulationParameters,
+      gridAgentContext: ActorContext[GridAgent.Request],
   ): ActorRef[ParticipantAgent.Request] = {
 
     val key = ScheduleLock.singleKey(gridAgentContext, scheduler, PRE_INIT_TICK)
@@ -445,8 +429,6 @@ object GridAgentBuilder {
         inputContainer,
         runtimeConfig,
         notifierConfig,
-        participantRefs,
-        simParams,
         maybeControllingEm.toRight(scheduler),
         key,
       ),

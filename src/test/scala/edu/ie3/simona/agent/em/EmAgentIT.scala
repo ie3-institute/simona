@@ -72,7 +72,7 @@ class EmAgentIT
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
-  private val simulationParams = SimulationParameters(
+  given simulationParams: SimulationParameters = SimulationParameters(
     expectedPowerRequestTick = Long.MaxValue,
     requestVoltageDeviationTolerance = Each(1e-14d),
     simulationStart = simulationStartDate,
@@ -108,7 +108,7 @@ class EmAgentIT
         val weatherService = TestProbe[ServiceMessage]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
-        val participantRefs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -140,8 +140,6 @@ class EmAgentIT
             loadInputContainer,
             LoadRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -152,8 +150,6 @@ class EmAgentIT
             pvInputContainer,
             PvRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -164,8 +160,6 @@ class EmAgentIT
             storageInputContainer,
             StorageRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -347,7 +341,7 @@ class EmAgentIT
         val weatherService = TestProbe[ServiceMessage]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
-        val participantRefs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -379,8 +373,6 @@ class EmAgentIT
             loadInputContainer,
             LoadRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -391,8 +383,6 @@ class EmAgentIT
             pvInputContainer,
             PvRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -403,8 +393,6 @@ class EmAgentIT
             adaptedWithHeatContainer,
             HpRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -652,7 +640,7 @@ class EmAgentIT
         val weatherService = TestProbe[ServiceMessage]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
-        val participantRefs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -678,26 +666,22 @@ class EmAgentIT
           ),
           "EmAgentReactivePower",
         )
+
         val pvAgent = spawn(
           ParticipantAgentInit(
             pvInputContainerLimitedOperationTime,
             PvRuntimeConfig(calculateMissingReactivePowerWithModel = true),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
           "PvAgentReactivePower",
         )
-
         val loadAgent = spawn(
           ParticipantAgentInit(
             loadInputContainerWithLimitedOperationTime,
             LoadRuntimeConfig(calculateMissingReactivePowerWithModel = true),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),

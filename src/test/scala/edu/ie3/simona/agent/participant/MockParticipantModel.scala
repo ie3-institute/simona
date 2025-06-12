@@ -151,7 +151,7 @@ class MockParticipantModel(
 
   override def handleRequest(
       state: MockState,
-      ctx: ActorContext[ParticipantAgent.Request],
+      ctx: ActorContext[ParticipantAgent.Message],
       msg: ParticipantRequest,
   ): MockState = {
     msg match {

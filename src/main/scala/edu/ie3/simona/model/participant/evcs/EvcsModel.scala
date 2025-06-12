@@ -463,7 +463,7 @@ class EvcsModel private (
 
   override def handleRequest(
       state: EvcsState,
-      ctx: ActorContext[ParticipantAgent.Request],
+      ctx: ActorContext[ParticipantAgent.Message],
       msg: ParticipantRequest,
   ): EvcsState = msg match {
     case freeLotsRequest: EvFreeLotsRequest =>

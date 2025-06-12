@@ -67,7 +67,7 @@ class EvcsModelIT
   private implicit val simulationStartDate: ZonedDateTime =
     defaultSimulationStart
 
-  private val simulationParams = SimulationParameters(
+  given simulationParams: SimulationParameters = SimulationParameters(
     24 * 3600,
     Each(1e-14),
     defaultSimulationStart,
@@ -127,7 +127,7 @@ class EvcsModelIT
       val serviceActivation = scheduleServiceMsg.actor
 
       /* Create ParticipantAgent with EvcsModel */
-      val participantRefs = ParticipantRefs(
+      given ParticipantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
         primaryServiceProxy = primaryServiceProxy.ref,
         services = Map(ServiceType.EvMovementService -> evService),
@@ -144,8 +144,6 @@ class EvcsModelIT
           evcsInputContainer,
           EvcsRuntimeConfig(),
           notifierConfig,
-          participantRefs,
-          simulationParams,
           Left(scheduler.ref),
           evcsKey,
         )

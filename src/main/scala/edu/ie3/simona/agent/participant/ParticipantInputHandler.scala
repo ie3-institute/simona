@@ -7,19 +7,16 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
+  ActivationRequest,
   DataInputMessage,
   DataProvision,
   NoDataProvision,
-}
-import edu.ie3.simona.agent.participant.ParticipantInputHandler.{
-  ReceivedData,
   tick,
 }
+import edu.ie3.simona.agent.participant.ParticipantInputHandler.ReceivedData
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.service.Data
 import org.apache.pekko.actor.typed.ActorRef
-import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexRequest
 
 /** This class holds received data, knows what data is expected and can thus
   * decide whether all input requirements have been fulfilled.
@@ -37,7 +34,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexRequest
 final case class ParticipantInputHandler(
     expectedData: Map[ActorRef[? >: ServiceMessage], Long],
     receivedData: Map[ActorRef[? >: ServiceMessage], ReceivedData],
-    activation: Option[Activation | FlexRequest],
+    activation: Option[ActivationRequest],
 ) {
 
   /** Handles a received activation by storing the message.
@@ -48,7 +45,7 @@ final case class ParticipantInputHandler(
     *   An updated input handler.
     */
   def handleActivation(
-      activation: Activation | FlexRequest
+      activation: ActivationRequest
   ): ParticipantInputHandler =
     copy(activation = Some(activation))
 
@@ -154,17 +151,6 @@ object ParticipantInputHandler {
   /** Holds received data in combination with the tick at which it was received.
     */
   final case class ReceivedData(data: Data, tick: Long)
-
-  /** Extension method for the `Activation` and `FlexRequest` types to retrieve
-    * the tick associated with the activation.
-    */
-  extension (activation: Activation | FlexRequest) {
-    def tick: Long =
-      activation match {
-        case a: Activation  => a.tick
-        case f: FlexRequest => f.tick
-      }
-  }
 
   /** Creates a new [[ParticipantInputHandler]] with the given expected data and
     * empty received data and activation fields.
