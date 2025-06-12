@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactoring `GridAgentBuilder` to an object [#1372](https://github.com/ie3-institute/simona/issues/1372)
 - Converted `ExtSimAdapter` to typed [#1094](https://github.com/ie3-institute/simona/issues/1094)
 - Simplifying ScheduleLock in scala 3 [#1411](https://github.com/ie3-institute/simona/issues/1411)
+- Adapted `ParticipantAgent` for scala 3 [#1420](https://github.com/ie3-institute/simona/issues/1420)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
