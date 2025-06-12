@@ -106,7 +106,7 @@ class ThermalGridIT
         simulationEnd = simulationEndDate,
       )
 
-      val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
+      val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
       val resultListener = TestProbe[ResultEvent]("ResultListener")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =
@@ -727,7 +727,7 @@ class ThermalGridIT
         simulationEnd = simulationEndWithPv,
       )
 
-      val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
+      val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
       val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =

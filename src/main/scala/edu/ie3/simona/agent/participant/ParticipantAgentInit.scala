@@ -65,7 +65,7 @@ object ParticipantAgentInit {
     *   Reference to the result listeners.
     */
   final case class ParticipantRefs(
-      gridAgent: ActorRef[GridAgent.Request],
+      gridAgent: ActorRef[GridAgent.Message],
       primaryServiceProxy: ActorRef[ServiceMessage],
       services: Map[ServiceType, ActorRef[? >: ServiceMessage]],
       resultListener: Iterable[ActorRef[ResultEvent]],

@@ -88,7 +88,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
       "calculate operating point and results correctly with no additional model activations" in {
 
         val scheduler = createTestProbe[SchedulerMessage]()
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
 
@@ -238,7 +238,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
       "calculate operating point and results correctly with additional model activations" in {
 
         val scheduler = createTestProbe[SchedulerMessage]()
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
 
@@ -386,7 +386,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
       "calculate operating point and results correctly with additional model activations" in {
 
         val scheduler = createTestProbe[SchedulerMessage]()
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
         val service = createTestProbe[ServiceMessage]()
@@ -650,7 +650,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
       "calculate operating point and results correctly" in {
 
         val scheduler = createTestProbe[SchedulerMessage]()
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[ServiceMessage]()
 
@@ -868,7 +868,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
       "calculate operating point and results correctly with no additional model activations" in {
 
         val em = createTestProbe[FlexResponse]()
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
 
@@ -1044,7 +1044,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
       "calculate operating point and results correctly with additional model activations" in {
 
         val em = createTestProbe[FlexResponse]()
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
 
@@ -1279,7 +1279,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
       "calculate operating point and results correctly with additional model activations" in {
 
         val em = createTestProbe[FlexResponse]()
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val resultListener = createTestProbe[ResultEvent]()
         val responseReceiver = createTestProbe[MockResponseMessage]()
         val service = createTestProbe[ServiceMessage]()
@@ -1679,7 +1679,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
       "calculate operating point and results correctly" in {
 
         val em = createTestProbe[FlexResponse]()
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[ServiceMessage]()
 

@@ -83,7 +83,7 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
 
@@ -132,7 +132,7 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
 
@@ -190,7 +190,7 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
 
@@ -253,7 +253,7 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
 
@@ -340,7 +340,7 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
@@ -403,7 +403,7 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
@@ -466,7 +466,7 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
@@ -542,7 +542,7 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
