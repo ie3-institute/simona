@@ -68,7 +68,7 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
-  ): Iterable[ActorRef[GridAgent.Request]] = {
+  ): Iterable[ActorRef[GridAgent.Message]] = {
 
     /* get the grid */
     val subGridTopologyGraph = GridProvider
@@ -300,7 +300,7 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
-  ): Map[Int, ActorRef[GridAgent.Request]] = {
+  ): Map[Int, ActorRef[GridAgent.Message]] = {
     subGridTopologyGraph
       .vertexSet()
       .asScala

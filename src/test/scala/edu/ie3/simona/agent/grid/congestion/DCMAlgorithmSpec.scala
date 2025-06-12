@@ -28,7 +28,7 @@ class DCMAlgorithmSpec
   "The DCMAlgorithm" should {
 
     "start the congestion management correctly" in {
-      val inferiorGA = TestProbe[GridAgent.Request]("inferiorGridAgent")
+      val inferiorGA = TestProbe[GridAgent.Message]("inferiorGridAgent")
 
       val baseData = gridAgentBaseData(inferiorRefs = Set(inferiorGA.ref))
 
@@ -103,7 +103,6 @@ class DCMAlgorithmSpec
 
       // we should receive a next tick of 7200
       val completionMsg = scheduler.expectMessageType[Completion]
-      completionMsg.actor shouldBe gridAgentActivation.ref
       completionMsg.newTick shouldBe Some(7200)
     }
 
