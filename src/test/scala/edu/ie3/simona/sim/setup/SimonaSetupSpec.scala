@@ -16,8 +16,7 @@ import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.service.SimonaService.ServiceRef
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
@@ -57,21 +56,21 @@ class SimonaSetupSpec
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
-  ): ServiceRef = throw new NotImplementedException(
+  ): ActorRef[ServiceMessage] = throw new NotImplementedException(
     "This is a dummy setup"
   )
 
   override def weatherService(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ServiceRef = throw new NotImplementedException(
+  ): ActorRef[ServiceMessage] = throw new NotImplementedException(
     "This is a dummy setup"
   )
 
   override def loadProfileService(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ServiceRef = throw new NotImplementedException(
+  ): ActorRef[ServiceMessage] = throw new NotImplementedException(
     "This is a dummy setup"
   )
 

@@ -17,7 +17,7 @@ import org.apache.pekko.actor.typed.ActorRef
 
 object DetectionMessages {
 
-  /** Message for congestion the inferior grid.
+  /** Request for congestion the inferior grid.
     * @param sender
     *   that is asking
     */

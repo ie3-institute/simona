@@ -36,13 +36,6 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import scala.util.{Failure, Success, Try}
 
-object SimonaService {
-
-  /** Actor reference for a [[edu.ie3.simona.service.SimonaService]].
-    */
-  type ServiceRef = ActorRef[ServiceMessage]
-}
-
 /** Abstract description of a service agent, that is able to announce new
   * information to registered participants.
   */

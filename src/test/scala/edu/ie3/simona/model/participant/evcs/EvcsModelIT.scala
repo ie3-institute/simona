@@ -189,7 +189,7 @@ class EvcsModelIT
 
       /* TICK 0 */
 
-      // Message prices (dummy implementation)
+      // Request prices (dummy implementation)
       extEvData.sendExtMsg(new RequestCurrentPrices())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -201,7 +201,7 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      // Message free lots
+      // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -264,7 +264,7 @@ class EvcsModelIT
 
       /* TICK 1800 */
 
-      // Message free lots
+      // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -335,7 +335,7 @@ class EvcsModelIT
 
       /* TICK 9000 */
 
-      // Message free lots
+      // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -349,7 +349,7 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      // Message departing EVs
+      // Request departing EVs
       extEvData.sendExtMsg(
         new RequestDepartingEvs(
           Map(evcsInputModel.getUuid -> List(evA.getUuid).asJava).asJava
@@ -388,7 +388,7 @@ class EvcsModelIT
 
       /* TICK 10800 */
 
-      // Message free lots
+      // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -446,7 +446,7 @@ class EvcsModelIT
 
       /* TICK 12600 */
 
-      // Message free lots
+      // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -488,7 +488,7 @@ class EvcsModelIT
 
       /* TICK 14400 */
 
-      // Message free lots
+      // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -502,7 +502,7 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      // Message departing EVs
+      // Request departing EVs
       extEvData.sendExtMsg(
         new RequestDepartingEvs(
           Map(evcsInputModel.getUuid -> List(evC.getUuid).asJava).asJava
@@ -541,7 +541,7 @@ class EvcsModelIT
 
       /* TICK 18000 */
 
-      // Message free lots
+      // Request free lots
       extEvData.sendExtMsg(new RequestEvcsFreeLots())
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -555,7 +555,7 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      // Message departing EVs
+      // Request departing EVs
       extEvData.sendExtMsg(
         new RequestDepartingEvs(
           Map(evcsInputModel.getUuid -> List(evB.getUuid).asJava).asJava

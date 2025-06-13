@@ -12,7 +12,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangeVoltage,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.ActorRef
@@ -127,7 +126,7 @@ object GridAgentMessages {
       exception: Throwable
   ) extends GridAgent.InternalRequest
 
-  /** Message complex power at the nodes that the inferior sub grid shares with
+  /** Request complex power at the nodes that the inferior sub grid shares with
     * the sender's sub grid
     *
     * @param currentSweepNo
@@ -193,7 +192,7 @@ object GridAgentMessages {
       override val q: ReactivePower,
   ) extends ProvidedPowerResponse
 
-  /** Message complex voltage at the nodes that the superior sub grid shares
+  /** Request complex voltage at the nodes that the superior sub grid shares
     * with the sender's sub grid
     *
     * @param currentSweepNo

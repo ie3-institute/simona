@@ -23,10 +23,6 @@ sealed trait ServiceMessage
 
 object ServiceMessage {
 
-  /** Actor reference for a [[edu.ie3.simona.service.SimonaService]].
-    */
-  type ServiceRef = ActorRef[ServiceMessage]
-
   /** Service initialization data can sometimes only be constructed once the
     * service actor is created (e.g.
     * [[edu.ie3.simona.service.ev.ExtEvDataService]]). Thus, we need an extra

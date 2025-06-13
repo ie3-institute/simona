@@ -19,9 +19,7 @@ import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.ServiceMessage
-import edu.ie3.simona.service.SimonaService.ServiceRef
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
@@ -149,7 +147,7 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
-  ): ServiceRef = {
+  ): ActorRef[ServiceMessage] = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
@@ -170,7 +168,7 @@ class SimonaStandaloneSetup(
   override def weatherService(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ServiceRef = {
+  ): ActorRef[ServiceMessage] = {
     val weatherService = context.spawn(
       WeatherService(scheduler),
       "weatherAgent",
@@ -192,7 +190,7 @@ class SimonaStandaloneSetup(
   override def loadProfileService(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ServiceRef = {
+  ): ActorRef[ServiceMessage] = {
     val loadProfileService = context.spawn(
       LoadProfileService(scheduler),
       "loadProfileService",

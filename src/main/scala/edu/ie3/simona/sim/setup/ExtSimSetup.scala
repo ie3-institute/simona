@@ -15,7 +15,6 @@ import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceResponseMessage
-import edu.ie3.simona.service.SimonaService.ServiceRef
 import edu.ie3.simona.ontology.messages.{
   Activation,
   SchedulerMessage,

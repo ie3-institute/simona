@@ -26,6 +26,11 @@ import edu.ie3.simona.exceptions.{
   CriticalFailureException,
   InitializationException,
 }
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  ServiceRegistrationMessage,
+  WorkerRegistrationMessage,
+}
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.RichValue
 import edu.ie3.simona.service.ServiceStateData.{
@@ -33,12 +38,6 @@ import edu.ie3.simona.service.ServiceStateData.{
   ServiceBaseStateData,
 }
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  ServiceRegistrationMessage,
-  WorkerRegistrationMessage,
-}
-import edu.ie3.simona.service.SimonaService.ServiceRef
-
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
@@ -401,7 +400,7 @@ object PrimaryServiceWorker extends SimonaService {
       value: Value,
       serviceBaseStateData: PrimaryServiceInitializedStateData[V],
   )(using
-      self: ServiceRef,
+      self: ActorRef[ServiceMessage],
       log: Logger,
   ): (
       PrimaryServiceInitializedStateData[V],
@@ -435,7 +434,7 @@ object PrimaryServiceWorker extends SimonaService {
       tick: Long,
       primaryData: PrimaryData,
       serviceBaseStateData: PrimaryServiceInitializedStateData[V],
-  )(using self: ServiceRef): (
+  )(using self: ActorRef[ServiceMessage]): (
       PrimaryServiceInitializedStateData[V],
       Option[Long],
   ) = {

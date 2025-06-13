@@ -12,7 +12,7 @@ import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
-import edu.ie3.simona.service.SimonaService.ServiceRef
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Case class that holds information regarding the external data connections as
@@ -29,14 +29,18 @@ import org.apache.pekko.actor.typed.ActorRef
   */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
-    extPrimaryDataServices: Seq[(ExtPrimaryDataConnection, ServiceRef)],
-    extDataServices: Seq[(? <: ExtInputDataConnection, ServiceRef)],
-    extResultListeners: Seq[(ExtResultDataConnection, ServiceRef)],
+    extPrimaryDataServices: Seq[
+      (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
+    ],
+    extDataServices: Seq[
+      (? <: ExtInputDataConnection, ActorRef[ServiceMessage])
+    ],
+    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[ServiceMessage])],
 ) {
 
   private[setup] def update(
       connection: ExtPrimaryDataConnection,
-      ref: ServiceRef,
+      ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData =
     copy(extPrimaryDataServices =
       extPrimaryDataServices ++ Seq((connection, ref))
@@ -44,7 +48,7 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtInputDataConnection,
-      ref: ServiceRef,
+      ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData = connection match {
     case primaryConnection: ExtPrimaryDataConnection =>
       update(primaryConnection, ref)
@@ -54,7 +58,7 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtResultDataConnection,
-      ref: ServiceRef,
+      ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData =
     copy(extResultListeners = extResultListeners ++ Seq((connection, ref)))
 
@@ -63,14 +67,14 @@ final case class ExtSimSetupData(
   ): ExtSimSetupData =
     copy(extSimAdapters = extSimAdapters ++ Set(extSimAdapter))
 
-  def evDataService: Option[ServiceRef] =
+  def evDataService: Option[ActorRef[ServiceMessage]] =
     extDataServices.collectFirst {
-      case (_: ExtEvDataConnection, ref: ServiceRef) => ref
+      case (_: ExtEvDataConnection, ref: ActorRef[ServiceMessage]) => ref
     }
 
-  def emDataService: Option[ServiceRef] =
+  def emDataService: Option[ActorRef[ServiceMessage]] =
     extDataServices.collectFirst {
-      case (_: ExtEmDataConnection, ref: ServiceRef) => ref
+      case (_: ExtEmDataConnection, ref: ActorRef[ServiceMessage]) => ref
     }
 
   def evDataConnection: Option[ExtEvDataConnection] =
