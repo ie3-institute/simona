@@ -32,7 +32,6 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
   PrimaryServiceStateData,
@@ -127,12 +126,7 @@ class PrimaryServiceProxySpec
   )
 
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
-
-  implicit val constantData: ServiceConstantStateData = {
-    val m = mock[ServiceConstantStateData]
-    when(m.scheduler).thenReturn(scheduler.ref)
-    m
-  }
+  private given schedulerRef: ActorRef[SchedulerMessage] = scheduler.ref
 
   private val service =
     TestProbe[PrimaryServiceProxy.Message]("primaryServiceProxy")
@@ -263,7 +257,7 @@ class PrimaryServiceProxySpec
       val testKit = BehaviorTestKit(
         Behaviors.setup[PrimaryServiceProxy.Message] { ctx =>
           PrimaryServiceProxy.classToWorkerRef(workerId)(using
-            constantData,
+            scheduler.ref,
             ctx,
           )
           Behaviors.stopped
@@ -376,7 +370,7 @@ class PrimaryServiceProxySpec
         metaInformation,
         simulationStart,
         initStateData.primaryConfig,
-      )(using constantData, context)
+      )(using scheduler.ref, context)
 
       inside(worker.expectMessageType[Create]) {
         case Create(

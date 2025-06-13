@@ -24,7 +24,6 @@ import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
-  ServiceConstantStateData,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.{
@@ -54,10 +53,7 @@ abstract class SimonaService {
       bufferSize: Int = 10000,
   ): Behavior[Message] =
     Behaviors.withStash[Message](bufferSize) { buffer =>
-      val constantData: ServiceConstantStateData =
-        ServiceConstantStateData(scheduler)
-
-      uninitialized(using constantData, buffer)
+      uninitialized(using scheduler, buffer)
     }
 
   /** Receive method that is used before the service is initialized. Represents
@@ -67,7 +63,7 @@ abstract class SimonaService {
     *   IdleInternal methods for the uninitialized state
     */
   def uninitialized(using
-      constantData: ServiceConstantStateData,
+      scheduler: ActorRef[SchedulerMessage],
       buffer: StashBuffer[Message],
   ): Behavior[Message] = Behaviors.receive {
     case (
@@ -77,7 +73,7 @@ abstract class SimonaService {
             unlockKey: ScheduleKey,
           ),
         ) =>
-      constantData.scheduler ! ScheduleActivation(
+      scheduler ! ScheduleActivation(
         ctx.self,
         INIT_SIM_TICK,
         Some(unlockKey),
@@ -94,7 +90,7 @@ abstract class SimonaService {
   private def initializing(
       initializeStateData: InitializeServiceStateData
   )(using
-      constantData: ServiceConstantStateData,
+      scheduler: ActorRef[SchedulerMessage],
       buffer: StashBuffer[Message],
   ): Behavior[Message] = Behaviors.receive {
     case (ctx, Activation(INIT_SIM_TICK)) =>
@@ -102,11 +98,11 @@ abstract class SimonaService {
       // execute complete and unstash only if init is carried out successfully
       init(initializeStateData) match {
         case Success((serviceStateData, maybeNewTick)) =>
-          constantData.scheduler ! Completion(
+          scheduler ! Completion(
             ctx.self,
             maybeNewTick,
           )
-          buffer.unstashAll(idle(using serviceStateData, constantData))
+          buffer.unstashAll(idle(using serviceStateData, scheduler))
         case Failure(exception) =>
           // initialize service trigger with invalid data
           ctx.log.error(
@@ -149,7 +145,7 @@ abstract class SimonaService {
     */
   final protected def idle(using
       stateData: S,
-      constantData: ServiceConstantStateData,
+      scheduler: ActorRef[SchedulerMessage],
   ): Behavior[Message] = Behaviors.receive[Message] { case (ctx, msg) =>
     idleInternal
       .orElse(idleExternal)
@@ -158,13 +154,13 @@ abstract class SimonaService {
 
   private def idleInternal(using
       stateData: S,
-      constantData: ServiceConstantStateData,
+      scheduler: ActorRef[SchedulerMessage],
   ): PartialFunction[(ActorContext[Message], Message), Behavior[Message]] = {
     // agent registration process
     case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
       handleRegistrationRequest(registrationMsg)(using stateData, ctx) match {
-        case Success(stateData) => idle(using stateData, constantData)
+        case Success(stateData) => idle(using stateData, scheduler)
         case Failure(exception) =>
           ctx.log.error(
             "Error during registration." +
@@ -186,12 +182,12 @@ abstract class SimonaService {
       val (updatedStateData, maybeNextTick) =
         announceInformation(tick)(using stateData, ctx)
 
-      constantData.scheduler ! Completion(
+      scheduler ! Completion(
         ctx.self,
         maybeNextTick,
       )
 
-      idle(using updatedStateData, constantData)
+      idle(using updatedStateData, scheduler)
   }
 
   private def unhandled
@@ -212,7 +208,7 @@ abstract class SimonaService {
     */
   protected def idleExternal(using
       stateData: S,
-      constantData: ServiceConstantStateData,
+      scheduler: ActorRef[SchedulerMessage],
   ): PartialFunction[(ActorContext[Message], Message), Behavior[
     Message
   ]] = PartialFunction.empty

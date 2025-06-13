@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.service
 
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import org.apache.pekko.actor.typed.ActorRef
-
 trait ServiceStateData
 
 object ServiceStateData {
@@ -18,9 +15,4 @@ object ServiceStateData {
   trait InitializeServiceStateData extends ServiceStateData
 
   trait ServiceBaseStateData extends ServiceStateData
-
-  final case class ServiceConstantStateData(
-      scheduler: ActorRef[SchedulerMessage]
-  ) extends ServiceStateData
-
 }

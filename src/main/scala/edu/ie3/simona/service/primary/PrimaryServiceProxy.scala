@@ -44,10 +44,7 @@ import edu.ie3.simona.ontology.messages.{
 }
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceConstantStateData,
-}
+import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   InitPrimaryServiceStateData,
@@ -130,15 +127,12 @@ object PrimaryServiceProxy {
       bufferSize: Int = 10000,
   ): Behavior[Message] = Behaviors.withStash(bufferSize) { buffer =>
     Behaviors.setup { ctx =>
-      val constantData: ServiceConstantStateData =
-        ServiceConstantStateData(scheduler)
-
       scheduler ! ScheduleActivation(
         ctx.self,
         INIT_SIM_TICK,
       )
 
-      uninitialized(initStateData)(using constantData, buffer)
+      uninitialized(initStateData)(using scheduler, buffer)
     }
   }
 
@@ -150,7 +144,7 @@ object PrimaryServiceProxy {
   private def uninitialized(
       initStateData: InitPrimaryServiceProxyStateData
   )(using
-      constantData: ServiceConstantStateData,
+      scheduler: ActorRef[SchedulerMessage],
       buffer: StashBuffer[Message],
   ): Behavior[Message] = Behaviors.receive {
     case (ctx, Activation(INIT_SIM_TICK)) =>
@@ -161,7 +155,7 @@ object PrimaryServiceProxy {
         initStateData.simulationStart,
       )(using ctx.log) match {
         case Success(stateData) =>
-          constantData.scheduler ! Completion(ctx.self)
+          scheduler ! Completion(ctx.self)
           buffer.unstashAll(onMessage(stateData))
         case Failure(exception) =>
           ctx.log.error(
@@ -311,7 +305,7 @@ object PrimaryServiceProxy {
     *   Message handling routine
     */
   private[service] def onMessage(stateData: PrimaryServiceStateData)(using
-      constantData: ServiceConstantStateData
+      scheduler: ActorRef[SchedulerMessage]
   ): Behavior[Message] = Behaviors.receive {
     case (
           ctx,
@@ -326,7 +320,7 @@ object PrimaryServiceProxy {
             timeSeriesUuid,
             stateData,
             requestingActor,
-          )(using constantData, ctx)
+          )(using scheduler, ctx)
 
           onMessage(updatedStateData)
 
@@ -363,7 +357,7 @@ object PrimaryServiceProxy {
       stateData: PrimaryServiceStateData,
       requestingActor: ActorRef[ParticipantAgent.Request],
   )(using
-      constantData: ServiceConstantStateData,
+      scheduler: ActorRef[SchedulerMessage],
       ctx: ActorContext[Message],
   ): PrimaryServiceStateData = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
@@ -423,7 +417,7 @@ object PrimaryServiceProxy {
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
   )(using
-      constantData: ServiceConstantStateData,
+      scheduler: ActorRef[SchedulerMessage],
       ctx: ActorContext[Message],
   ): Try[ActorRef[Message]] = {
     val valueClass = metaInformation.getColumnScheme.getValueClass
@@ -438,7 +432,7 @@ object PrimaryServiceProxy {
       case Success(initData) =>
         workerRef ! Create(
           initData,
-          ScheduleLock.singleKey(ctx, constantData.scheduler, INIT_SIM_TICK),
+          ScheduleLock.singleKey(ctx, scheduler, INIT_SIM_TICK),
         )
         Success(workerRef)
       case Failure(cause) =>
@@ -463,11 +457,11 @@ object PrimaryServiceProxy {
   private[service] def classToWorkerRef(
       timeSeriesUuid: String
   )(using
-      constantData: ServiceConstantStateData,
+      scheduler: ActorRef[SchedulerMessage],
       ctx: ActorContext[Message],
   ): ActorRef[Message] =
     ctx.spawn(
-      PrimaryServiceWorker(constantData.scheduler),
+      PrimaryServiceWorker(scheduler),
       timeSeriesUuid,
     )
 

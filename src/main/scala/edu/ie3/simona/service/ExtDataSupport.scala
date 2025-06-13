@@ -12,10 +12,13 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   ScheduleServiceActivation,
   ServiceResponseMessage,
 }
-import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
-import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
-import org.apache.pekko.actor.typed.Behavior
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 /** Trait that enables handling of external data.
   */
@@ -27,10 +30,10 @@ trait ExtDataSupport {
 
   override protected def idleExternal(using
       stateData: S,
-      constantData: ServiceConstantStateData,
+      scheduler: ActorRef[SchedulerMessage],
   ): PartialFunction[(ActorContext[Message], Message), Behavior[Message]] = {
     case (ctx, ScheduleServiceActivation(tick, unlockKey)) =>
-      constantData.scheduler ! ScheduleActivation(
+      scheduler ! ScheduleActivation(
         ctx.self,
         tick,
         Some(unlockKey),
@@ -41,12 +44,12 @@ trait ExtDataSupport {
     case (_, extMsg: DataMessageFromExt) =>
       val updatedStateData = handleDataMessage(extMsg)
 
-      idle(using updatedStateData, constantData)
+      idle(using updatedStateData, scheduler)
 
     case (_, extResponseMsg: ServiceResponseMessage) =>
       val updatedStateData = handleDataResponseMessage(extResponseMsg)
 
-      idle(using updatedStateData, constantData)
+      idle(using updatedStateData, scheduler)
   }
 
   /** Handle a message from outside the simulation
