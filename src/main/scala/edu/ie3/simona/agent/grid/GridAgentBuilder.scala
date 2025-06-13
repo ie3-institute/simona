@@ -280,12 +280,13 @@ object GridAgentBuilder {
       gridAgentContext: ActorContext[GridAgent.Message],
   ): ActorRef[ParticipantAgent.Request] = {
 
+    val environmentRefs = constantData.environmentRefs
+
     val serviceMap: Map[ServiceType, ActorRef[? >: ServiceMessage]] =
       Seq(
-        Some(
-          ServiceType.WeatherService -> constantData.environmentRefs.weather
-        ),
-        constantData.environmentRefs.evDataService.map(ref =>
+        Some(ServiceType.WeatherService -> environmentRefs.weather),
+        Some(ServiceType.LoadProfileService -> environmentRefs.loadProfiles),
+        environmentRefs.evDataService.map(ref =>
           ServiceType.EvMovementService -> ref
         ),
       ).flatten.toMap

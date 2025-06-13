@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
 - Added `CODEOWNERS` file [#1387](https://github.com/ie3-institute/simona/issues/1387)
+- Added `LoadProfileService` to `ParticipantRefs` in `LoadProfileService` [#1418](https://github.com/ie3-institute/simona/issues/1418)
 - Adding transformer tap changing to congestion mitigation [#1378](https://github.com/ie3-institute/simona/issues/1378)
 
 ### Changed
