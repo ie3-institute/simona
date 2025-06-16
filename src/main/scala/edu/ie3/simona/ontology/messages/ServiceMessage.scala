@@ -7,6 +7,7 @@
 package edu.ie3.simona.ontology.messages
 
 import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.Activation
@@ -85,16 +86,57 @@ object ServiceMessage {
       unlockKey: ScheduleKey,
   ) extends DataMessageFromExt
 
+  /** Requests number of free lots from evcs. The evcs agent will answer with an
+    * [[FreeLotsResponse]].
+    *
+    * @param tick
+    *   The latest tick that the data is requested for.
+    * @param replyTo
+    *   The actor to receive the response.
+    */
+  final case class EvFreeLotsRequest(
+      override val tick: Long,
+      replyTo: ActorRef[FreeLotsResponse],
+  ) extends ParticipantRequest
+
+  /** Requests EV models of departing EVs with given UUIDs. The evcs agent will
+    * answer with a [[DepartingEvsResponse]].
+    *
+    * @param tick
+    *   The latest tick that the data is requested for.
+    * @param departingEvs
+    *   The UUIDs of EVs that are requested.
+    * @param replyTo
+    *   The actor to receive the response.
+    */
+  final case class DepartingEvsRequest(
+      override val tick: Long,
+      departingEvs: Seq[UUID],
+      replyTo: ActorRef[DepartingEvsResponse],
+  ) extends ParticipantRequest
+
   /** Message used in response to a service request. To receive these message,
     * the service needs to extend [[edu.ie3.simona.service.ExtDataSupport]].
     */
   sealed trait ServiceResponseMessage
 
+  /** Response of an evcs agent to an [[EvFreeLotsRequest]].
+    * @param evcs
+    *   The uuid of the agent.
+    * @param freeLots
+    *   The number of free lots.
+    */
   final case class FreeLotsResponse(
       evcs: UUID,
       freeLots: Int,
   ) extends ServiceResponseMessage
 
+  /** Response of an evcs agent to a [[DepartingEvsRequest]].
+    * @param evcs
+    *   The uuid of the agent.
+    * @param evModels
+    *   The departing evs.
+    */
   final case class DepartingEvsResponse(
       evcs: UUID,
       evModels: Seq[EvModelWrapper],

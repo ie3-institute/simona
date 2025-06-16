@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import breeze.optimize.{OptimizationOption, StochasticDiffFunction}
-import breeze.stats.regression.RegressionResult
-import breeze.util.{BloomFilter, Index, Interner}
-import edu.ie3.datamodel.io.source.WeatherSource
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
@@ -38,25 +34,10 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.dispatch.japi
-import org.scalatest.matchers.{
-  BeMatcher,
-  BePropertyMatcher,
-  HavePropertyMatcher,
-  Matcher,
-}
-import pureconfig.ConfigFieldMapping
-import spire.optional.Perm
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
-import scala.collection.SetOps
-import scala.concurrent.impl.{FutureConvertersImpl, Promise}
-import scala.jdk.FunctionWrappers
 import scala.language.postfixOps
-import scala.runtime.function.JProcedure1
-import scala.runtime.{AbstractFunction1, AbstractPartialFunction}
-import scala.xml.transform.BasicTransformer
 
 /** Test to ensure the functions that a [[GridAgent]] in center position should
   * be able to do if the DBFSAlgorithm is used. The scheduler, the weather

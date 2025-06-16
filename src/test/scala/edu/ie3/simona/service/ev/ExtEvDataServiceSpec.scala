@@ -11,10 +11,6 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   RegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgentRequest.{
-  DepartingEvsRequest,
-  EvFreeLotsRequest,
-}
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology.*

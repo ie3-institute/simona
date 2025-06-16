@@ -9,21 +9,13 @@ package edu.ie3.simona.model.participant.evcs
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.agent.participant.ParticipantAgentRequest.{
-  DepartingEvsRequest,
-  EvFreeLotsRequest,
-}
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.ParticipantModel.OperationChangeIndicator
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsOperatingPoint,
   EvcsState,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  DepartingEvsResponse,
-  FreeLotsResponse,
-  ServiceResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.Data.SecondaryData.ArrivingEvs
