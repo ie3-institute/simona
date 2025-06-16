@@ -11,6 +11,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataInputMessage,
   DataProvision,
   NoDataProvision,
+  tick,
 }
 import edu.ie3.simona.agent.participant.ParticipantInputHandler.ReceivedData
 import edu.ie3.simona.ontology.messages.ServiceMessage
@@ -36,17 +37,17 @@ final case class ParticipantInputHandler(
     activation: Option[ActivationRequest],
 ) {
 
-  /** Handles a received [[ActivationRequest]] by storing the message.
+  /** Handles a received activation by storing the message.
     *
-    * @param activationRequest
-    *   The activation request.
+    * @param activation
+    *   The activation message.
     * @return
     *   An updated input handler.
     */
   def handleActivation(
-      activationRequest: ActivationRequest
+      activation: ActivationRequest
   ): ParticipantInputHandler =
-    copy(activation = Some(activationRequest))
+    copy(activation = Some(activation))
 
   /** Completes an activation by clearing out the stored activation message.
     *
