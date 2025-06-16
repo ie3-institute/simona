@@ -315,7 +315,6 @@ object ParticipantAgentInit {
   )(using
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
-      runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
   ): Behavior[Message] =
