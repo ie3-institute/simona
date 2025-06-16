@@ -37,30 +37,30 @@ import edu.ie3.simona.ontology.messages.flex.FlexOptions
 /** Energy management agent that receives flex options from and issues control
   * messages to connected agents
   * ([[edu.ie3.simona.agent.participant.ParticipantAgent]]s and subordinate
-  * [[EmAgent]]s)
+  * [[EmAgent]]s).
   */
 object EmAgent {
 
   type Message = Activation | FlexRequest | FlexResponse
 
-  /** Creates the initial [[Behavior]] for an [[EmAgent]] in an inactive state
+  /** Creates the initial [[Behavior]] for an [[EmAgent]] in an inactive state.
     *
     * @param inputModel
-    *   Model for simulation
+    *   The model for this agent.
     * @param modelConfig
-    *   Configuration for this type of model
+    *   Configuration for this type of model.
     * @param modelStrategy
-    *   The model strategy to use
+    *   The model strategy to use.
     * @param outputConfig
-    *   Config for the output behaviour of simulation results
+    *   Config for the output behaviour of simulation results.
     * @param simulationStartDate
-    *   Date of the very first tick in the simulation
+    *   Date of the very first tick in the simulation.
     * @param parent
     *   Either a [[Right]] with a reference to the parent [[EmAgent]] if this
     *   agent is em-controlled, or a [[Left]] with a reference to the scheduler
-    *   that is activating this agent
+    *   that is activating this agent.
     * @param listener
-    *   A collection of result event listeners
+    *   A collection of result event listeners.
     */
   def apply(
       inputModel: EmInput,
@@ -363,7 +363,7 @@ object EmAgent {
   }
 
   /** Completions have all been received, possibly send results and report to
-    * parent
+    * parent.
     */
   private def sendCompletionCommunication(
       emData: EmData,
@@ -409,18 +409,18 @@ object EmAgent {
     )
   }
 
-  /** Data that is supposed to stay (mostly) constant during simulation
+  /** Data that is supposed to stay (mostly) constant during simulation.
     *
     * @param outputConfig
-    *   Config for the output behaviour of simulation results
+    *   Config for the output behaviour of simulation results.
     * @param simulationStartDate
-    *   Date of the very first tick in the simulation
+    *   Date of the very first tick in the simulation.
     * @param parent
     *   Either a [[Right]] with a reference to the parent [[EmAgent]] if this
     *   agent is em-controlled, or a [[Left]] with a reference to the scheduler
-    *   that is activating this agent
+    *   that is activating this agent.
     * @param listener
-    *   A collection of result event listeners
+    *   A collection of result event listeners.
     */
   private final case class EmData(
       outputConfig: NotifierConfig,

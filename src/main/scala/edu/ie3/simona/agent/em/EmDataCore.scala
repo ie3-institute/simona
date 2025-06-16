@@ -25,11 +25,10 @@ import java.util.UUID
   */
 object EmDataCore {
 
-  type Actor = ActorRef[FlexRequest]
-
   /** Creates a new instance of an (inactive) EmAgent data core.
+    *
     * @param startDate
-    *   The start date of the simulation
+    *   The start date of the simulation.
     */
   def create(implicit startDate: ZonedDateTime): Inactive =
     Inactive(
@@ -41,39 +40,40 @@ object EmDataCore {
     )
 
   /** Data structure holding relevant data and providing methods that handle
-    * interactions with an inactive [[EmAgent]]
+    * interactions with an inactive [[EmAgent]].
     *
     * @param modelToActor
-    *   Map of model uuid to corresponding model actor
+    *   Map of model uuid to corresponding model actor.
     * @param activationQueue
-    *   Queue of flex request activations per tick
+    *   Queue of flex request activations per tick.
     * @param flexWithNext
     *   UUIDs of agents to be activated with next activation, whatever tick that
-    *   is going to be (the next tick can be changed when agents are
+    *   is going to be (the next tick can be changed when agents are.
     *   (re-)scheduled)
     * @param correspondences
     *   The data structure storing received and sent flex messages with the
-    *   corresponding tick
+    *   corresponding tick.
     * @param lastActiveTick
-    *   The last active tick, if applicable
+    *   The last active tick, if applicable.
     */
   final case class Inactive(
-      private val modelToActor: Map[UUID, Actor],
+      private val modelToActor: Map[UUID, ActorRef[FlexRequest]],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val flexWithNext: Set[UUID],
       private val correspondences: FlexCorrespondenceStore,
       private val lastActiveTick: Option[Long],
   ) {
 
-    /** Adds a connected agent, given its model UUID and actor reference
+    /** Adds a connected agent, given its model UUID and actor reference.
+      *
       * @param actor
-      *   The agent's [[org.apache.pekko.actor.typed.ActorRef]]
+      *   The agent's [[ActorRef]].
       * @param model
-      *   The agent's model UUID
+      *   The agent's model UUID.
       * @return
-      *   The adapted [[Inactive]] core
+      *   The adapted [[Inactive]] core.
       */
-    def addParticipant(actor: Actor, model: UUID): Inactive =
+    def addParticipant(actor: ActorRef[FlexRequest], model: UUID): Inactive =
       copy(
         modelToActor = modelToActor.updated(model, actor)
       )
@@ -84,12 +84,12 @@ object EmDataCore {
       * with the active tick set to the earliest tick scheduled.
       *
       * @param newTick
-      *   The tick that the scheduler is to be activated with
+      *   The tick that the scheduler is to be activated with.
       * @return
       *   The changed [[AwaitingFlexOptions]] that should be used for the
-      *   activated EM agent
+      *   activated EM agent.
       * @throws CriticalFailureException
-      *   on critical error
+      *   Thrown on critical error.
       */
     def activate(newTick: Long): AwaitingFlexOptions = {
       activationQueue.headKeyOption.foreach { nextScheduledTick =>
@@ -124,14 +124,14 @@ object EmDataCore {
       * agent needs to be scheduled for is returned.
       *
       * @param model
-      *   The model UUID of the agent to be scheduled
+      *   The model UUID of the agent to be scheduled.
       * @param newTick
-      *   The tick that the agent is scheduled for
+      *   The tick that the agent is scheduled for.
       * @return
       *   A tuple of the optional tick that the current EM agent should be
-      *   scheduled for with its parent, and the changed [[Inactive]] core
+      *   scheduled for with its parent, and the changed [[Inactive]] core.
       * @throws CriticalFailureException
-      *   on critical error
+      *   Thrown on critical error.
       */
     def handleSchedule(
         model: UUID,
@@ -173,23 +173,23 @@ object EmDataCore {
 
   /** Data structure holding relevant data and providing methods that handle
     * interactions with an [[EmAgent]] that is waiting to receive all relevant
-    * flex options and subsequently calculate flex control
+    * flex options and subsequently calculate flex control.
     *
     * @param modelToActor
-    *   Map of model uuid to corresponding model actor
+    *   Map of model uuid to corresponding model actor.
     * @param activationQueue
-    *   Queue of flex request activations per tick
+    *   Queue of flex request activations per tick.
     * @param correspondences
     *   The data structure storing received and sent flex messages with the
-    *   corresponding tick
+    *   corresponding tick.
     * @param awaitedConnectedAgents
     *   The set of model uuids, from which flex options or completions are still
-    *   expected
+    *   expected.
     * @param activeTick
-    *   The currently active tick
+    *   The currently active tick.
     */
   final case class AwaitingFlexOptions(
-      private val modelToActor: Map[UUID, Actor],
+      private val modelToActor: Map[UUID, ActorRef[FlexRequest]],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val correspondences: FlexCorrespondenceStore,
       private val awaitedConnectedAgents: Set[UUID] = Set.empty,
@@ -205,12 +205,12 @@ object EmDataCore {
       * @return
       *   A tuple of a collection of agents scheduled for the current tick, and
       *   either an updated [[AwaitingFlexOptions]] core or an
-      *   [[AwaitingCompletions]] core if we're in initialization
+      *   [[AwaitingCompletions]] core if we're in initialization.
       * @throws CriticalFailureException
-      *   on critical error
+      *   Thrown on critical error.
       */
     def takeNewFlexRequests(): (
-        Iterable[Actor],
+        Iterable[ActorRef[FlexRequest]],
         Either[AwaitingFlexOptions, AwaitingCompletions],
     ) = {
       val toActivate = activationQueue.getAndRemoveSet(activeTick)
@@ -249,9 +249,9 @@ object EmDataCore {
       * the currently active tick.
       *
       * @param flexOptions
-      *   The received flex options
+      *   The received flex options.
       * @return
-      *   The updated [[AwaitingFlexOptions]] core
+      *   The updated [[AwaitingFlexOptions]] core.
       */
     def handleFlexOptions(
         modelUuid: UUID,
@@ -266,6 +266,7 @@ object EmDataCore {
     /** Checks whether all awaited flex options have been received, and we can
       * continue by calculating flex control. This method does not change the
       * state of the [[AwaitingFlexOptions]] data core.
+      *
       * @return
       *   true if all awaited flex options have been received
       */
@@ -273,20 +274,21 @@ object EmDataCore {
 
     /** Returns all flex options that are currently relevant, which can include
       * flex options received at an earlier tick
+      *
       * @return
-      *   all relevant flex options
+      *   All relevant flex options.
       */
     def getFlexOptions: Iterable[(UUID, FlexOptions)] =
       correspondences.store.flatMap { case (model, correspondence) =>
         correspondence.receivedFlexOptions.map(model -> _.get)
       }
 
-    /** Handles and stores the control messages created by this [[EmAgent]]
+    /** Handles and stores the control messages created by this [[EmAgent]].
       *
       * @param ctrlMsgs
-      *   The control messages created by this EM agent
+      *   The control messages created by this EM agent.
       * @return
-      *   The updated [[AwaitingFlexOptions]] core
+      *   The updated [[AwaitingFlexOptions]] core.
       */
     def handleFlexCtrl(
         ctrlMsgs: Iterable[(UUID, Power)]
@@ -303,8 +305,9 @@ object EmDataCore {
       * bulk. This method creates the missing messages, in particular for those
       * agents that have been issued a flex request for the current tick and
       * those that have received a control messages at an earlier tick.
+      *
       * @return
-      *   The updated [[AwaitingFlexOptions]] core
+      *   The updated [[AwaitingFlexOptions]] core.
       */
     def fillInMissingIssueCtrl(): AwaitingFlexOptions = {
       val updatedStore = correspondences.store
@@ -342,16 +345,18 @@ object EmDataCore {
 
     /** Completes the current state by collecting and returning the control
       * messages for the current tick if possible, and otherwise a
-      * [[CriticalFailureException]] is thrown
+      * [[CriticalFailureException]] is thrown.
       *
       * @return
       *   A collection of agent-and-message pairs and an updated
-      *   [[AwaitingCompletions]] core
+      *   [[AwaitingCompletions]] core.
       * @throws CriticalFailureException
-      *   on critical error
+      *   Thrown on critical error.
       */
-    def complete()
-        : (Iterable[(Actor, IssueFlexControl)], AwaitingCompletions) = {
+    def complete(): (
+        Iterable[(ActorRef[FlexRequest], IssueFlexControl)],
+        AwaitingCompletions,
+    ) = {
 
       val modelUuidToMsg = correspondences.store.flatMap {
         case (modelUuid, correspondence) =>
@@ -391,25 +396,26 @@ object EmDataCore {
   /** Data structure holding relevant data and providing methods that handle
     * interactions with an [[EmAgent]] that is waiting to receive flex
     * completions from all active connected agents (those that received flex
-    * control in this tick)
+    * control in this tick).
     *
     * @param modelToActor
-    *   Map of model uuid to corresponding model actor
+    *   Map of model uuid to corresponding model actor.
     * @param activationQueue
-    *   Queue of flex request activations per tick
+    *   Queue of flex request activations per tick.
     * @param flexWithNext
-    *   to be asked for flex options with the following active tick, whatever
-    *   that tick is going to be (not with the currently active tick though!)
+    *   The models to be asked for flex options with the following active tick,
+    *   whatever that tick is going to be (not with the currently active tick
+    *   though!).
     * @param correspondences
     *   The data structure storing received and sent flex messages with the
-    *   corresponding tick
+    *   corresponding tick.
     * @param awaitedCompletions
-    *   The set of model uuids, from which flex completions are still expected
+    *   The set of model uuids, from which flex completions are still expected.
     * @param activeTick
-    *   The currently active tick
+    *   The currently active tick.
     */
   final case class AwaitingCompletions(
-      private val modelToActor: Map[UUID, Actor],
+      private val modelToActor: Map[UUID, ActorRef[FlexRequest]],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val flexWithNext: Set[UUID] = Set.empty,
       private val correspondences: FlexCorrespondenceStore,
@@ -420,9 +426,9 @@ object EmDataCore {
     /** Handles a result by some connected agent for the currently active tick.
       *
       * @param flexResult
-      *   The received result
+      *   The received result.
       * @return
-      *   The updated [[AwaitingCompletions]] core
+      *   The updated [[AwaitingCompletions]] core.
       */
     def handleResult(flexResult: FlexResult): AwaitingCompletions = {
       val updatedCorrespondence =
@@ -442,11 +448,11 @@ object EmDataCore {
       * is thrown.
       *
       * @param completion
-      *   The completion message that has been received
+      *   The completion message that has been received.
       * @return
-      *   The updated [[AwaitingCompletions]] core
+      *   The updated [[AwaitingCompletions]] core.
       * @throws CriticalFailureException
-      *   on critical error
+      *   Thrown on critical error.
       */
     def handleCompletion(
         completion: FlexCompletion
