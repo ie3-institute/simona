@@ -105,7 +105,7 @@ class ThermalGridIT
       val simulationEndDate: ZonedDateTime =
         TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
-      val simulationParams = SimulationParameters(
+      given SimulationParameters = SimulationParameters(
         expectedPowerRequestTick = Long.MaxValue,
         requestVoltageDeviationTolerance = Each(1e-14d),
         simulationStart = simulationStartDate,
@@ -119,7 +119,7 @@ class ThermalGridIT
         TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
       val weatherService = TestProbe[WeatherService.Message]("WeatherService")
 
-      val participantRefs = ParticipantRefs(
+      given ParticipantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
         primaryServiceProxy = primaryServiceProxy.ref,
         services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -135,8 +135,6 @@ class ThermalGridIT
           typicalHpInputContainer,
           HpRuntimeConfig(),
           outputConfigOn,
-          participantRefs,
-          simulationParams,
           Left(scheduler.ref),
           key,
         ),
@@ -729,7 +727,7 @@ class ThermalGridIT
       val simulationEndWithPv: ZonedDateTime =
         TimeUtil.withDefaults.toZonedDateTime("2020-06-12T10:00:00Z")
 
-      val simulationParams = SimulationParameters(
+      given SimulationParameters = SimulationParameters(
         expectedPowerRequestTick = Long.MaxValue,
         requestVoltageDeviationTolerance = Each(1e-14d),
         simulationStart = simulationStartWithPv,
@@ -743,7 +741,7 @@ class ThermalGridIT
         TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
       val weatherService = TestProbe[WeatherService.Message]("WeatherService")
 
-      val participantRefs = ParticipantRefs(
+      given ParticipantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
         primaryServiceProxy = primaryServiceProxy.ref,
         services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -775,8 +773,6 @@ class ThermalGridIT
           pvInputContainer,
           PvRuntimeConfig(calculateMissingReactivePowerWithModel = true),
           outputConfigOff,
-          participantRefs,
-          simulationParams,
           Right(emAgent),
           keys.next(),
         ),
@@ -788,8 +784,6 @@ class ThermalGridIT
           typicalHpInputContainer,
           HpRuntimeConfig(),
           outputConfigOn,
-          participantRefs,
-          simulationParams,
           Right(emAgent),
           keys.next(),
         ),

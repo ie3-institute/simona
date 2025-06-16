@@ -58,7 +58,7 @@ class ParticipantAgentInitSpec
 
   private implicit val simulationStart: ZonedDateTime = defaultSimulationStart
 
-  private val simulationParams = SimulationParameters(
+  given simulationParams: SimulationParameters = SimulationParameters(
     3600,
     Each(1e-14),
     simulationStart,
@@ -91,7 +91,7 @@ class ParticipantAgentInitSpec
         val primaryService = createTestProbe[PrimaryServiceProxy.Message]()
         val resultListener = createTestProbe[ResultEvent]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map.empty,
@@ -107,8 +107,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Left(scheduler.ref),
             key,
           )
@@ -142,7 +140,7 @@ class ParticipantAgentInitSpec
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map.empty,
@@ -158,8 +156,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Left(scheduler.ref),
             key,
           )
@@ -202,7 +198,7 @@ class ParticipantAgentInitSpec
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map.empty,
@@ -218,8 +214,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Right(em.ref),
             key,
           )
@@ -267,7 +261,7 @@ class ParticipantAgentInitSpec
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map.empty,
@@ -283,8 +277,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Right(em.ref),
             key,
           )
@@ -357,7 +349,7 @@ class ParticipantAgentInitSpec
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -373,8 +365,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Left(scheduler.ref),
             key,
           )
@@ -424,7 +414,7 @@ class ParticipantAgentInitSpec
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -440,8 +430,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Left(scheduler.ref),
             key,
           )
@@ -489,7 +477,7 @@ class ParticipantAgentInitSpec
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -505,8 +493,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Right(em.ref),
             key,
           )
@@ -569,7 +555,7 @@ class ParticipantAgentInitSpec
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -585,8 +571,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Right(em.ref),
             key,
           )
