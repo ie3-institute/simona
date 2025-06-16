@@ -30,26 +30,21 @@ import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.config.ConfigParams.{SqlParams, TimeStampedCsvParams}
-import edu.ie3.simona.config.InputConfig.{Primary => PrimaryConfig}
+import edu.ie3.simona.config.InputConfig.Primary as PrimaryConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  Create,
-  PrimaryServiceRegistrationMessage,
-  WorkerRegistrationMessage,
-  WrappedActivation,
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceConstantStateData,
-}
+import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   InitPrimaryServiceStateData,
@@ -68,9 +63,8 @@ import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.Option.when
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
-import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
 /** This actor has information on which models can be replaced by precalculated
@@ -80,6 +74,8 @@ import scala.util.{Failure, Success, Try}
   * accordingly.
   */
 object PrimaryServiceProxy {
+
+  type Message = ServiceMessage | Activation
 
   /** State data with needed information to initialize this primary service
     * provider proxy
@@ -122,30 +118,21 @@ object PrimaryServiceProxy {
     */
   final case class SourceRef(
       metaInformation: IndividualTimeSeriesMetaInformation,
-      worker: Option[ActorRef[ServiceMessage]],
+      worker: Option[ActorRef[Message]],
   )
 
   def apply(
       scheduler: ActorRef[SchedulerMessage],
       initStateData: InitPrimaryServiceProxyStateData,
       bufferSize: Int = 10000,
-  ): Behavior[ServiceMessage] = Behaviors.withStash(bufferSize) { buffer =>
+  ): Behavior[Message] = Behaviors.withStash(bufferSize) { buffer =>
     Behaviors.setup { ctx =>
-      val activationAdapter: ActorRef[Activation] =
-        ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
-
-      val constantData: ServiceConstantStateData =
-        ServiceConstantStateData(
-          scheduler,
-          activationAdapter,
-        )
-
       scheduler ! ScheduleActivation(
-        activationAdapter,
+        ctx.self,
         INIT_SIM_TICK,
       )
 
-      uninitialized(initStateData)(constantData, buffer)
+      uninitialized(initStateData)(using scheduler, buffer)
     }
   }
 
@@ -156,19 +143,19 @@ object PrimaryServiceProxy {
     */
   private def uninitialized(
       initStateData: InitPrimaryServiceProxyStateData
-  )(implicit
-      constantData: ServiceConstantStateData,
-      buffer: StashBuffer[ServiceMessage],
-  ): Behavior[ServiceMessage] = Behaviors.receive {
-    case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
+  )(using
+      scheduler: ActorRef[SchedulerMessage],
+      buffer: StashBuffer[Message],
+  ): Behavior[Message] = Behaviors.receive {
+    case (ctx, Activation(INIT_SIM_TICK)) =>
       /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
        * messages */
       prepareStateData(
         initStateData.primaryConfig,
         initStateData.simulationStart,
-      )(ctx.log) match {
+      )(using ctx.log) match {
         case Success(stateData) =>
-          constantData.scheduler ! Completion(constantData.activationAdapter)
+          scheduler ! Completion(ctx.self)
           buffer.unstashAll(onMessage(stateData))
         case Failure(exception) =>
           ctx.log.error(
@@ -198,7 +185,7 @@ object PrimaryServiceProxy {
   private[service] def prepareStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
-  )(implicit log: Logger): Try[PrimaryServiceStateData] = {
+  )(using log: Logger): Try[PrimaryServiceStateData] = {
     val sourceOption = Seq(
       primaryConfig.sqlParams,
       primaryConfig.influxDb1xParams,
@@ -317,9 +304,9 @@ object PrimaryServiceProxy {
     * @return
     *   Message handling routine
     */
-  private[service] def onMessage(stateData: PrimaryServiceStateData)(implicit
-      constantData: ServiceConstantStateData
-  ): Behavior[ServiceMessage] = Behaviors.receive {
+  private[service] def onMessage(stateData: PrimaryServiceStateData)(using
+      scheduler: ActorRef[SchedulerMessage]
+  ): Behavior[Message] = Behaviors.receive {
     case (
           ctx,
           PrimaryServiceRegistrationMessage(requestingActor, modelUuid),
@@ -333,7 +320,7 @@ object PrimaryServiceProxy {
             timeSeriesUuid,
             stateData,
             requestingActor,
-          )(constantData, ctx)
+          )(using scheduler, ctx)
 
           onMessage(updatedStateData)
 
@@ -369,9 +356,9 @@ object PrimaryServiceProxy {
       timeSeriesUuid: UUID,
       stateData: PrimaryServiceStateData,
       requestingActor: ActorRef[ParticipantAgent.Request],
-  )(implicit
-      constantData: ServiceConstantStateData,
-      ctx: ActorContext[ServiceMessage],
+  )(using
+      scheduler: ActorRef[SchedulerMessage],
+      ctx: ActorContext[Message],
   ): PrimaryServiceStateData = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     timeSeriesToSourceRef.get(timeSeriesUuid) match {
@@ -429,10 +416,10 @@ object PrimaryServiceProxy {
       metaInformation: IndividualTimeSeriesMetaInformation,
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
-  )(implicit
-      constantData: ServiceConstantStateData,
-      ctx: ActorContext[_],
-  ): Try[ActorRef[ServiceMessage]] = {
+  )(using
+      scheduler: ActorRef[SchedulerMessage],
+      ctx: ActorContext[Message],
+  ): Try[ActorRef[Message]] = {
     val valueClass = metaInformation.getColumnScheme.getValueClass
 
     val workerRef = classToWorkerRef(metaInformation.getUuid.toString)
@@ -445,7 +432,7 @@ object PrimaryServiceProxy {
       case Success(initData) =>
         workerRef ! Create(
           initData,
-          ScheduleLock.singleKey(ctx, constantData.scheduler, INIT_SIM_TICK),
+          ScheduleLock.singleKey(ctx, scheduler, INIT_SIM_TICK),
         )
         Success(workerRef)
       case Failure(cause) =>
@@ -469,12 +456,12 @@ object PrimaryServiceProxy {
     */
   private[service] def classToWorkerRef(
       timeSeriesUuid: String
-  )(implicit
-      constantData: ServiceConstantStateData,
-      ctx: ActorContext[_],
-  ): ActorRef[ServiceMessage] =
+  )(using
+      scheduler: ActorRef[SchedulerMessage],
+      ctx: ActorContext[Message],
+  ): ActorRef[Message] =
     ctx.spawn(
-      PrimaryServiceWorker(constantData.scheduler),
+      PrimaryServiceWorker(scheduler),
       timeSeriesUuid,
     )
 
@@ -562,7 +549,7 @@ object PrimaryServiceProxy {
   private def updateStateData(
       stateData: PrimaryServiceStateData,
       timeSeriesUuid: UUID,
-      workerRef: ActorRef[ServiceMessage],
+      workerRef: ActorRef[Message],
   ): PrimaryServiceStateData = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     val sourceRef = timeSeriesToSourceRef.getOrElse(

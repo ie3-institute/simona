@@ -12,7 +12,7 @@ import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
-import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Case class that holds information regarding the external data connections as
@@ -33,14 +33,14 @@ final case class ExtSimSetupData(
       (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
     ],
     extDataServices: Seq[
-      (_ <: ExtInputDataConnection, ActorRef[_ >: ServiceMessage])
+      (? <: ExtInputDataConnection, ActorRef[ServiceMessage])
     ],
-    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[_])],
+    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[ServiceMessage])],
 ) {
 
   private[setup] def update(
       connection: ExtPrimaryDataConnection,
-      ref: ActorRef[_ >: ServiceMessage],
+      ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData =
     copy(extPrimaryDataServices =
       extPrimaryDataServices ++ Seq((connection, ref))
@@ -48,7 +48,7 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtInputDataConnection,
-      ref: ActorRef[_ >: ServiceMessage],
+      ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData = connection match {
     case primaryConnection: ExtPrimaryDataConnection =>
       update(primaryConnection, ref)
@@ -58,7 +58,7 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtResultDataConnection,
-      ref: ActorRef[_],
+      ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData =
     copy(extResultListeners = extResultListeners ++ Seq((connection, ref)))
 
@@ -67,9 +67,9 @@ final case class ExtSimSetupData(
   ): ExtSimSetupData =
     copy(extSimAdapters = extSimAdapters ++ Set(extSimAdapter))
 
-  def evDataService: Option[ActorRef[EvMessage]] =
+  def evDataService: Option[ActorRef[ServiceMessage]] =
     extDataServices.collectFirst {
-      case (_: ExtEvDataConnection, ref: ActorRef[EvMessage]) => ref
+      case (_: ExtEvDataConnection, ref: ActorRef[ServiceMessage]) => ref
     }
 
   def emDataService: Option[ActorRef[ServiceMessage]] =

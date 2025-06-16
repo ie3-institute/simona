@@ -8,8 +8,8 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
-import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.actor.SimonaActorNaming._
+import edu.ie3.datamodel.models.input.system.*
+import edu.ie3.simona.actor.SimonaActorNaming.*
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentConstantData
@@ -27,9 +27,12 @@ import edu.ie3.simona.model.InputModelContainer.{
   SimpleInputContainer,
   WithHeatInputContainer,
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil._
@@ -40,7 +43,7 @@ import org.slf4j.Logger
 import squants.Each
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 
 /** Provides functionality for building system participants of a [[GridAgent]].
@@ -282,7 +285,7 @@ object GridAgentBuilder {
 
     val environmentRefs = constantData.environmentRefs
 
-    val serviceMap: Map[ServiceType, ActorRef[? >: ServiceMessage]] =
+    val serviceMap: Map[ServiceType, ActorRef[ServiceMessage]] =
       Seq(
         Some(ServiceType.WeatherService -> environmentRefs.weather),
         Some(ServiceType.LoadProfileService -> environmentRefs.loadProfiles),
