@@ -23,21 +23,16 @@ import edu.ie3.simona.model.participant.{
   ParticipantModelInit,
   ParticipantModelShell,
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.RegisterForLoadProfileService
-import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   SecondaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{
-  Activation,
   SchedulerMessage,
   ServiceMessage,
 }
@@ -156,7 +151,7 @@ object ParticipantAgentInit {
     )
   }
 
-  /** Waiting for an [[Activation]] message to start the initialization.
+  /** Waiting for an [[ActivationRequest]] message to start the initialization.
     */
   private def uninitialized(using
       inputContainer: InputModelContainer[? <: SystemParticipantInput],
@@ -380,7 +375,6 @@ object ParticipantAgentInit {
   )(using
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
-      runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
   ): Behavior[Message] = {
