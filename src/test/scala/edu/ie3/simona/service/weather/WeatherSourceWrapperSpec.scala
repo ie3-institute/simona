@@ -17,7 +17,7 @@ import edu.ie3.datamodel.models.timeseries.individual.{
   TimeBasedValue,
 }
 import edu.ie3.datamodel.models.value.WeatherValue
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   EMPTY_WEATHER_DATA,
   WeightedCoordinates,

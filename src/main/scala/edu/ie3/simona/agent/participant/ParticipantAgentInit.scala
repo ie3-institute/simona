@@ -30,14 +30,20 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.RegisterForLoadProfileService
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
-  RegisterForEvDataMessage,
+  SecondaryServiceRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -67,7 +73,7 @@ object ParticipantAgentInit {
   final case class ParticipantRefs(
       gridAgent: ActorRef[GridAgent.Message],
       primaryServiceProxy: ActorRef[ServiceMessage],
-      services: Map[ServiceType, ActorRef[? >: ServiceMessage]],
+      services: Map[ServiceType, ActorRef[ServiceMessage]],
       resultListener: Iterable[ActorRef[ResultEvent]],
   )
 
@@ -194,7 +200,7 @@ object ParticipantAgentInit {
           ),
         ) =>
       // we're supposed to replay primary data, initialize accordingly
-      val expectedFirstData: Map[ActorRef[? >: ServiceMessage], Long] =
+      val expectedFirstData: Map[ActorRef[ServiceMessage], Long] =
         Map(serviceRef -> firstDataTick)
 
       completeInitialization(
@@ -259,7 +265,7 @@ object ParticipantAgentInit {
       participantInput: SystemParticipantInput,
       participantRef: ActorRef[Request],
       serviceType: ServiceType,
-      serviceRef: ActorRef[? >: ServiceMessage],
+      serviceRef: ActorRef[ServiceMessage],
   ): Unit =
     serviceType match {
       case ServiceType.WeatherService =>
@@ -267,7 +273,10 @@ object ParticipantAgentInit {
 
         Option(geoPosition.getY).zip(Option(geoPosition.getX)) match {
           case Some((lat, lon)) =>
-            serviceRef ! RegisterForWeatherMessage(participantRef, lat, lon)
+            serviceRef ! SecondaryServiceRegistrationMessage(
+              participantRef,
+              Coordinate(lat, lon),
+            )
           case _ =>
             throw new CriticalFailureException(
               s"${participantInput.identifier} cannot register for weather information at " +
@@ -283,7 +292,7 @@ object ParticipantAgentInit {
         )
 
       case ServiceType.EvMovementService =>
-        serviceRef ! RegisterForEvDataMessage(
+        serviceRef ! SecondaryServiceRegistrationMessage(
           participantRef,
           participantInput.getUuid,
         )
@@ -291,7 +300,7 @@ object ParticipantAgentInit {
       case ServiceType.LoadProfileService =>
         participantInput match {
           case load: LoadInput =>
-            serviceRef ! RegisterForLoadProfileService(
+            serviceRef ! SecondaryServiceRegistrationMessage(
               participantRef,
               load.getLoadProfile,
             )
@@ -309,8 +318,8 @@ object ParticipantAgentInit {
   private def waitingForServices(
       modelFactory: ParticipantModelFactory[? <: ModelState],
       participantInput: SystemParticipantInput,
-      expectedRegistrations: Set[ActorRef[? >: ServiceMessage]],
-      expectedFirstData: Map[ActorRef[? >: ServiceMessage], Long] = Map.empty,
+      expectedRegistrations: Set[ActorRef[ServiceMessage]],
+      expectedFirstData: Map[ActorRef[ServiceMessage], Long] = Map.empty,
   )(using
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
@@ -366,7 +375,7 @@ object ParticipantAgentInit {
   private def completeInitialization(
       modelFactory: ParticipantModelFactory[? <: ModelState],
       participantInput: SystemParticipantInput,
-      expectedData: Map[ActorRef[? >: ServiceMessage], Long],
+      expectedData: Map[ActorRef[ServiceMessage], Long],
       self: ActorRef[Message],
   )(using
       participantRefs: ParticipantRefs,

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converted `ExtSimAdapter` to typed [#1094](https://github.com/ie3-institute/simona/issues/1094)
 - Simplifying ScheduleLock in scala 3 [#1411](https://github.com/ie3-institute/simona/issues/1411)
 - Refactored `GridAgent` messages [#1404](https://github.com/ie3-institute/simona/issues/1404)
+- Refactored service messages [#1266](https://github.com/ie3-institute/simona/issues/1266)
 - Adapted `ParticipantAgent` for scala 3 [#1420](https://github.com/ie3-institute/simona/issues/1420)
 
 ### Fixed
