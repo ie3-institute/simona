@@ -8,7 +8,7 @@ package edu.ie3.simona.service.weather
 
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.models.input.NodeInput
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.geo.CoordinateDistance

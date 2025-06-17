@@ -16,8 +16,8 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.model.participant.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
@@ -32,46 +32,33 @@ import squants.{Dimensionless, Each}
   */
 object ParticipantAgent {
 
+  type Message = Request | ActivationRequest
+
+  type ActivationRequest = Activation | FlexRequest
+
+  /** Extension method for the `Activation` and `FlexRequest` types to retrieve
+    * the tick associated with the activation.
+    */
+  extension (activation: ActivationRequest) {
+    def tick: Long =
+      activation match {
+        case a: Activation  => a.tick
+        case f: FlexRequest => f.tick
+      }
+  }
+
   sealed trait Request
-
-  /** This is extended by all requests that activate an [[ParticipantAgent]],
-    * i.e. activations, flex requests and control messages.
-    */
-  private[participant] sealed trait ActivationRequest extends Request {
-    val tick: Long
-  }
-
-  /** Wrapper for an [[Activation]] to be received by an adapter. Activations
-    * can only be received if this agent is not EM-controlled.
-    *
-    * @param tick
-    *   The tick to activate.
-    */
-  private[participant] final case class ParticipantActivation(
-      override val tick: Long
-  ) extends ActivationRequest
-
-  /** Wrapper for [[FlexRequest]] messages to be received by an adapter (if this
-    * [[ParticipantAgent]] is EM-controlled).
-    *
-    * @param msg
-    *   The wrapped flex request.
-    */
-  private[participant] final case class Flex(msg: FlexRequest)
-      extends ActivationRequest {
-    override val tick: Long = msg.tick
-  }
 
   /** Messages that are sent by services as responses to registration requests.
     */
   sealed trait RegistrationResponseMessage extends Request {
-    val serviceRef: ActorRef[_ >: ServiceMessage]
+    val serviceRef: ActorRef[ServiceMessage]
   }
 
   /** Message confirming a successful registration with a secondary service.
     */
   final case class RegistrationSuccessfulMessage(
-      override val serviceRef: ActorRef[_ >: ServiceMessage],
+      override val serviceRef: ActorRef[ServiceMessage],
       firstDataTick: Long,
       additionalData: Option[AdditionalFactoryData] = None,
   ) extends RegistrationResponseMessage
@@ -86,7 +73,7 @@ object ParticipantAgent {
     *   The type of primary data to be received.
     */
   final case class PrimaryRegistrationSuccessfulMessage[P <: PrimaryData](
-      override val serviceRef: ActorRef[_ >: ServiceMessage],
+      override val serviceRef: ActorRef[ServiceMessage],
       firstDataTick: Long,
       primaryDataExtra: PrimaryDataExtra[P],
   ) extends RegistrationResponseMessage
@@ -94,7 +81,7 @@ object ParticipantAgent {
   /** Message announcing a failed registration.
     */
   final case class RegistrationFailedMessage(
-      override val serviceRef: ActorRef[_ >: ServiceMessage]
+      override val serviceRef: ActorRef[ServiceMessage]
   ) extends RegistrationResponseMessage
 
   /** Data provision messages sent by data services.
@@ -107,7 +94,7 @@ object ParticipantAgent {
 
     /** The sending service actor ref.
       */
-    val serviceRef: ActorRef[_ >: ServiceMessage]
+    val serviceRef: ActorRef[ServiceMessage]
 
     /** Next tick at which data could arrive. If None, no data is expected for
       * the rest of the simulation.
@@ -124,7 +111,7 @@ object ParticipantAgent {
     */
   final case class DataProvision[D <: Data](
       override val tick: Long,
-      override val serviceRef: ActorRef[_ >: ServiceMessage],
+      override val serviceRef: ActorRef[ServiceMessage],
       data: D,
       override val nextDataTick: Option[Long],
   ) extends DataInputMessage
@@ -136,7 +123,7 @@ object ParticipantAgent {
     */
   final case class NoDataProvision(
       override val tick: Long,
-      override val serviceRef: ActorRef[_ >: ServiceMessage],
+      override val serviceRef: ActorRef[ServiceMessage],
       override val nextDataTick: Option[Long],
   ) extends DataInputMessage
 
@@ -175,37 +162,6 @@ object ParticipantAgent {
       nextRequestTick: Long,
   ) extends Request
 
-  /** Data object that holds the actor reference to the
-    * [[edu.ie3.simona.scheduler.Scheduler]] activating this agent, indicating
-    * that this [[ParticipantAgent]] is not EM-controlled.
-    *
-    * @param scheduler
-    *   The scheduler that is activating this agent.
-    * @param activationAdapter
-    *   The activation adapter handling [[Activation]] messages.
-    */
-  final case class SchedulerData(
-      scheduler: ActorRef[SchedulerMessage],
-      activationAdapter: ActorRef[Activation],
-  )
-
-  /** Data object that holds the actor reference to the corresponding
-    * [[edu.ie3.simona.agent.em.EmAgent]], indicating that this
-    * [[ParticipantAgent]] is not EM-controlled.
-    *
-    * @param emAgent
-    *   The parent EmAgent that is controlling this agent.
-    * @param flexAdapter
-    *   The flex adapter handling [[FlexRequest]] messages.
-    * @param lastFlexOptions
-    *   Last flex options that have been calculated for this agent.
-    */
-  final case class FlexControlledData(
-      emAgent: ActorRef[FlexResponse],
-      flexAdapter: ActorRef[FlexRequest],
-      lastFlexOptions: Option[ProvideFlexOptions] = None,
-  )
-
   /** A request to the [[edu.ie3.simona.model.participant.ParticipantModel]]
     * outside of regular requests related to participant operation.
     */
@@ -217,12 +173,13 @@ object ParticipantAgent {
   }
 
   def apply(
-      modelShell: ParticipantModelShell[_, _],
+      modelShell: ParticipantModelShell[?, ?],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       resultHandler: ParticipantResultHandler,
-      parentData: Either[SchedulerData, FlexControlledData],
-  ): Behavior[Request] =
+  )(using
+      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]]
+  ): Behavior[Message] =
     Behaviors.receivePartial {
       case (ctx, request: ParticipantRequest) =>
         // ParticipantRequests are always directly answered
@@ -234,10 +191,11 @@ object ParticipantAgent {
           inputHandler,
           gridAdapter,
           resultHandler,
-          parentData,
         )
 
-      case (_, activation: ActivationRequest) =>
+      case (ctx, activation: ActivationRequest) =>
+        given ActorRef[Message] = ctx.self
+
         val coreWithActivation = inputHandler.handleActivation(activation)
 
         val (updatedShell, updatedInputHandler, updatedGridAdapter) =
@@ -246,7 +204,6 @@ object ParticipantAgent {
             coreWithActivation,
             gridAdapter,
             resultHandler,
-            parentData,
           )
 
         ParticipantAgent(
@@ -254,10 +211,11 @@ object ParticipantAgent {
           updatedInputHandler,
           updatedGridAdapter,
           resultHandler,
-          parentData,
         )
 
-      case (_, msg: DataInputMessage) =>
+      case (ctx, msg: DataInputMessage) =>
+        given ActorRef[Message] = ctx.self
+
         val inputHandlerWithData = inputHandler.handleDataInputMessage(msg)
 
         val (updatedShell, updatedInputHandler, updatedGridAdapter) =
@@ -266,7 +224,6 @@ object ParticipantAgent {
             inputHandlerWithData,
             gridAdapter,
             resultHandler,
-            parentData,
           )
 
         ParticipantAgent(
@@ -274,7 +231,6 @@ object ParticipantAgent {
           updatedInputHandler,
           updatedGridAdapter,
           resultHandler,
-          parentData,
         )
 
       case (
@@ -324,10 +280,11 @@ object ParticipantAgent {
           inputHandler,
           updatedGridAdapter,
           resultHandler,
-          parentData,
         )
 
-      case (_, GridSimulationFinished(_, nextRequestTick)) =>
+      case (ctx, GridSimulationFinished(_, nextRequestTick)) =>
+        given ActorRef[Message] = ctx.self
+
         val gridAdapterFinished =
           gridAdapter.updateNextRequestTick(nextRequestTick)
 
@@ -338,7 +295,6 @@ object ParticipantAgent {
             inputHandler,
             gridAdapterFinished,
             resultHandler,
-            parentData,
           )
 
         ParticipantAgent(
@@ -346,7 +302,6 @@ object ParticipantAgent {
           updatedInputHandler,
           updatedGridAdapter,
           resultHandler,
-          parentData,
         )
     }
 
@@ -364,20 +319,24 @@ object ParticipantAgent {
     *   The [[ParticipantGridAdapter]].
     * @param resultHandler
     *   The [[ParticipantResultHandler]].
-    * @param parentData
+    * @param parent
     *   The parent of this [[ParticipantAgent]].
+    * @param self
+    *   An [[ActorRef]] of this agent.
     * @return
     *   An updated [[ParticipantModelShell]], [[ParticipantInputHandler]] and
     *   [[ParticipantGridAdapter]].
     */
   private def maybeCalculate(
-      modelShell: ParticipantModelShell[_, _],
+      modelShell: ParticipantModelShell[?, ?],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       resultHandler: ParticipantResultHandler,
-      parentData: Either[SchedulerData, FlexControlledData],
+  )(using
+      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
+      self: ActorRef[Message],
   ): (
-      ParticipantModelShell[_, _],
+      ParticipantModelShell[?, ?],
       ParticipantInputHandler,
       ParticipantGridAdapter,
   ) = {
@@ -399,7 +358,7 @@ object ParticipantAgent {
         )
         .map { shell =>
           activation match {
-            case ParticipantActivation(tick) =>
+            case Activation(tick) =>
               val (shellWithOP, gridAdapterWithResult) =
                 if (isCalculationRequired(shell, inputHandler)) {
                   val newShell = shell.updateOperatingPoint(tick)
@@ -421,12 +380,11 @@ object ParticipantAgent {
                 inputHandler.getNextDataTick,
               )
 
-              parentData.fold(
-                schedulerData =>
-                  schedulerData.scheduler ! Completion(
-                    schedulerData.activationAdapter,
-                    changeIndicator.changesAtTick,
-                  ),
+              parent.fold(
+                _ ! Completion(
+                  self,
+                  changeIndicator.changesAtTick,
+                ),
                 _ =>
                   throw new CriticalFailureException(
                     "Received activation while controlled by EM"
@@ -434,7 +392,7 @@ object ParticipantAgent {
               )
               (shellWithOP, gridAdapterWithResult)
 
-            case Flex(FlexActivation(tick)) =>
+            case FlexActivation(tick) =>
               val shellWithFlex =
                 if (isCalculationRequired(shell, inputHandler)) {
                   val newShell = shell.updateFlexOptions(tick)
@@ -445,12 +403,12 @@ object ParticipantAgent {
                 } else
                   shell
 
-              parentData.fold(
+              parent.fold(
                 _ =>
                   throw new CriticalFailureException(
                     "Received flex activation while not controlled by EM"
                   ),
-                _.emAgent ! ProvideFlexOptions(
+                _ ! ProvideFlexOptions(
                   shellWithFlex.uuid,
                   shellWithFlex.getFlexOptions,
                 ),
@@ -458,7 +416,7 @@ object ParticipantAgent {
 
               (shellWithFlex, gridAdapter)
 
-            case Flex(flexControl: IssueFlexControl) =>
+            case flexControl: IssueFlexControl =>
               val shellWithOP = shell.updateOperatingPoint(flexControl)
 
               // todo we determine results even if no new data arrived, and EM is also activated...
@@ -480,17 +438,17 @@ object ParticipantAgent {
                 inputHandler.getNextDataTick,
               )
 
-              parentData.fold(
+              parent.fold(
                 _ =>
                   throw new CriticalFailureException(
                     "Received issue flex control while not controlled by EM"
                   ),
-                flexData => {
-                  flexData.emAgent ! FlexResult(
+                emAgent => {
+                  emAgent ! FlexResult(
                     shellWithOP.uuid,
                     results.totalPower,
                   )
-                  flexData.emAgent ! FlexCompletion(
+                  emAgent ! FlexCompletion(
                     shellWithOP.uuid,
                     changeIndicator.changesAtNextActivation,
                     changeIndicator.changesAtTick,
@@ -546,7 +504,7 @@ object ParticipantAgent {
     * @return
     */
   private def isCalculationRequired(
-      modelShell: ParticipantModelShell[_, _],
+      modelShell: ParticipantModelShell[?, ?],
       inputHandler: ParticipantInputHandler,
   ): Boolean =
     inputHandler.hasNewData ||

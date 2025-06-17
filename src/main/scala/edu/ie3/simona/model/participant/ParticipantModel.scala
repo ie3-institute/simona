@@ -196,7 +196,7 @@ abstract class ParticipantModel[
     */
   def handleRequest(
       state: S,
-      ctx: ActorContext[ParticipantAgent.Request],
+      ctx: ActorContext[ParticipantAgent.Message],
       msg: ParticipantRequest,
   ): S =
     throw new NotImplementedError(s"Method not implemented by $getClass")
