@@ -268,12 +268,12 @@ object EmDataCore {
       * state of the [[AwaitingFlexOptions]] data core.
       *
       * @return
-      *   true if all awaited flex options have been received
+      *   True if all awaited flex options have been received.
       */
     def isComplete: Boolean = awaitedConnectedAgents.isEmpty
 
     /** Returns all flex options that are currently relevant, which can include
-      * flex options received at an earlier tick
+      * flex options received at an earlier tick.
       *
       * @return
       *   All relevant flex options.
