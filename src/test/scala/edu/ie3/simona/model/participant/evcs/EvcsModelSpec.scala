@@ -716,7 +716,7 @@ class EvcsModelSpec
       def testAgent(
           model: EvcsModel,
           state: EvcsState,
-      ): Behavior[ParticipantAgent.Request] = Behaviors.receivePartial {
+      ): Behavior[ParticipantAgent.Message] = Behaviors.receivePartial {
         case (ctx, request: ParticipantRequest) =>
           val newState = model.handleRequest(
             state,
