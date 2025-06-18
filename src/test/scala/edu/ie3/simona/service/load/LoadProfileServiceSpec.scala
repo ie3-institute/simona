@@ -20,17 +20,17 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.{
-  LoadData,
-  RegisterForLoadProfileService,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
-  WrappedActivation,
+  SecondaryServiceRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.Data.SecondaryData.LoadData
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -52,9 +52,6 @@ class LoadProfileServiceSpec
     with LazyLogging
     with ConfigTestData
     with TestSpawnerTyped {
-
-  private implicit def wrap(msg: Activation): ServiceMessage =
-    WrappedActivation(msg)
 
   private val sourceDefinition: Datasource = Datasource()
 
@@ -99,7 +96,7 @@ class LoadProfileServiceSpec
     }
 
     "announce failed load profile registration on invalid load profile" in {
-      loadProfileService ! RegisterForLoadProfileService(
+      loadProfileService ! SecondaryServiceRegistrationMessage(
         agent.ref,
         invalidLoadProfile,
       )
@@ -109,7 +106,7 @@ class LoadProfileServiceSpec
 
     "announce, that a load profile is registered" in {
       /* The successful registration stems from the test above */
-      loadProfileService ! RegisterForLoadProfileService(
+      loadProfileService ! SecondaryServiceRegistrationMessage(
         agent.ref,
         BdewStandardLoadProfile.G0,
       )
@@ -130,7 +127,7 @@ class LoadProfileServiceSpec
 
     "recognize, that a valid coordinate yet is registered" in {
       /* The successful registration stems from the test above */
-      loadProfileService ! RegisterForLoadProfileService(
+      loadProfileService ! SecondaryServiceRegistrationMessage(
         agent.ref,
         BdewStandardLoadProfile.G0,
       )

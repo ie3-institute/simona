@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
 - Added `CODEOWNERS` file [#1387](https://github.com/ie3-institute/simona/issues/1387)
+- Added `LoadProfileService` to `ParticipantRefs` in `LoadProfileService` [#1418](https://github.com/ie3-institute/simona/issues/1418)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
@@ -16,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converted `ExtSimAdapter` to typed [#1094](https://github.com/ie3-institute/simona/issues/1094)
 - Simplifying ScheduleLock in scala 3 [#1411](https://github.com/ie3-institute/simona/issues/1411)
 - Refactored `GridAgent` messages [#1404](https://github.com/ie3-institute/simona/issues/1404)
+- Refactored service messages [#1266](https://github.com/ie3-institute/simona/issues/1266)
+- Adapted `ParticipantAgent` for scala 3 [#1420](https://github.com/ie3-institute/simona/issues/1420)
+- Adapted `EmAgent` for scala 3 [#1415](https://github.com/ie3-institute/simona/issues/1415)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

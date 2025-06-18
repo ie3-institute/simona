@@ -17,24 +17,19 @@ import edu.ie3.simona.event.listener.{
 }
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
-  ServiceMessage,
-  WeatherMessage,
-}
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.sim.SimonaSim.SimulationEnded
-import edu.ie3.simona.sim.SimonaSimSpec._
+import edu.ie3.simona.sim.SimonaSimSpec.*
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter.*
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
@@ -441,13 +436,13 @@ object SimonaSimSpec {
     override def weatherService(
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
-    ): ActorRef[WeatherMessage] =
+    ): ActorRef[ServiceMessage] =
       context.spawn(empty, uniqueName("weatherService"))
 
     override def loadProfileService(
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
-    ): ActorRef[LoadProfileMessage] =
+    ): ActorRef[ServiceMessage] =
       context.spawn(empty, uniqueName("loadProfileService"))
 
     override def timeAdvancer(

@@ -7,14 +7,7 @@
 package edu.ie3.simona.agent
 
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.services.{
-  EmMessage,
-  EvMessage,
-  LoadProfileMessage,
-  ServiceMessage,
-  WeatherMessage,
-}
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Container class, that gather together reference to relevant entities, that
@@ -39,8 +32,8 @@ final case class EnvironmentRefs(
     scheduler: ActorRef[SchedulerMessage],
     runtimeEventListener: ActorRef[RuntimeEvent],
     primaryServiceProxy: ActorRef[ServiceMessage],
-    weather: ActorRef[WeatherMessage],
-    loadProfiles: ActorRef[LoadProfileMessage],
-    emDataService: Option[ActorRef[EmMessage]],
-    evDataService: Option[ActorRef[EvMessage]],
+    weather: ActorRef[ServiceMessage],
+    loadProfiles: ActorRef[ServiceMessage],
+    emDataService: Option[ActorRef[ServiceMessage]],
+    evDataService: Option[ActorRef[ServiceMessage]],
 )

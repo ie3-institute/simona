@@ -16,12 +16,10 @@ import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
-  ServiceMessage,
-  WeatherMessage,
-}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.service.load.LoadProfileService
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.result.CongestedComponentsTestData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -64,15 +62,17 @@ trait CongestionTestBaseData
   protected val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
     "runtimeEvents"
   )
-  protected val primaryService: TestProbe[ServiceMessage] = TestProbe(
-    "primaryService"
-  )
-  protected val weatherService: TestProbe[WeatherMessage] = TestProbe(
+  protected val primaryService: TestProbe[PrimaryServiceProxy.Message] =
+    TestProbe(
+      "primaryService"
+    )
+  protected val weatherService: TestProbe[WeatherService.Message] = TestProbe(
     "weatherService"
   )
-  protected val loadProfileService: TestProbe[LoadProfileMessage] = TestProbe(
-    "loadProfileService"
-  )
+  protected val loadProfileService: TestProbe[LoadProfileService.Message] =
+    TestProbe(
+      "loadProfileService"
+    )
 
   protected val environmentRefs: EnvironmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
