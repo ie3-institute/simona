@@ -64,16 +64,17 @@ final case class EmCommunicationCore(
     val parentEm = emServiceRegistration.parentEm
     val parentUuid = emServiceRegistration.parentUuid
 
-    val (updatedResponseToUuid, updatedUuidToResponse) = parentEm.zip(parentUuid) match {
-      case Some((parent, uuid)) =>
-        (
-          flexResponseToUuid + (parent -> uuid),
-          uuidToFlexResponse + (uuid -> parent),
-        )
+    val (updatedResponseToUuid, updatedUuidToResponse) =
+      parentEm.zip(parentUuid) match {
+        case Some((parent, uuid)) =>
+          (
+            flexResponseToUuid + (parent -> uuid),
+            uuidToFlexResponse + (uuid -> parent),
+          )
 
-      case None =>
-        (flexResponseToUuid, uuidToFlexResponse)
-    }
+        case None =>
+          (flexResponseToUuid, uuidToFlexResponse)
+      }
 
     copy(
       uuidToAgent = uuidToAgent + (uuid -> ref),
@@ -145,7 +146,6 @@ final case class EmCommunicationCore(
         .flexOptions()
         .asScala
         .foreach { case (agent, flexOptions) =>
-
           uuidToAgent.get(agent) match {
             case Some(receiver) =>
               flexOptions.asScala.foreach { option =>

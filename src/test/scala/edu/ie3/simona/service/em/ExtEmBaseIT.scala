@@ -213,7 +213,9 @@ class ExtEmBaseIT
       key,
     )
 
-    scheduler.expectMessage(ScheduleActivation(service, INIT_SIM_TICK, Some(key)))
+    scheduler.expectMessage(
+      ScheduleActivation(service, INIT_SIM_TICK, Some(key))
+    )
 
     // we expect a completion for the participant locks
     scheduler.expectMessage(Completion(lockActivation))
