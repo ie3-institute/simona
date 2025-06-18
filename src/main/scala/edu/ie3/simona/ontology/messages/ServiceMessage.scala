@@ -158,7 +158,7 @@ object ServiceMessage {
 
   final case class EmFlexMessage(
       message: FlexRequest | FlexResponse,
-      receiver: Either[UUID, ActorRef[EmAgent.Message]],
+      receiver: UUID | ActorRef[FlexResponse] | ActorRef[EmAgent.Message],
   ) extends ServiceResponseMessage
 
   final case class ResultResponseMessage(result: ResultEntity)

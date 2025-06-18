@@ -110,13 +110,12 @@ class ExtEmBaseIT
       TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
     val service = spawn(ExtEmDataService(scheduler.ref))
-    val serviceRef = service.ref
 
     val connection = new ExtEmDataConnection(
       List(emSupUuid, emNode3Uuid, emNode4Uuid).asJava,
       EmMode.BASE,
     )
-    connection.setActorRefs(serviceRef, extSimAdapter.ref)
+    connection.setActorRefs(service, extSimAdapter.ref)
 
     val emAgentSup = spawn(
       EmAgent(
@@ -127,7 +126,7 @@ class ExtEmBaseIT
         simulationStart,
         parent = Left(scheduler.ref),
         listener = Iterable(resultListener.ref),
-        Some(serviceRef),
+        Some(service),
       )
     )
 
@@ -140,7 +139,7 @@ class ExtEmBaseIT
         simulationStart,
         parent = Right(emAgentSup),
         listener = Iterable(resultListener.ref),
-        Some(serviceRef),
+        Some(service),
       )
     )
 
@@ -153,7 +152,7 @@ class ExtEmBaseIT
         simulationStart,
         parent = Right(emAgentSup),
         listener = Iterable(resultListener.ref),
-        Some(serviceRef),
+        Some(service),
       )
     )
 
@@ -214,9 +213,7 @@ class ExtEmBaseIT
       key,
     )
 
-    scheduler.expectMessage(
-      ScheduleActivation(serviceRef, INIT_SIM_TICK, Some(key))
-    )
+    scheduler.expectMessage(ScheduleActivation(service, INIT_SIM_TICK, Some(key)))
 
     // we expect a completion for the participant locks
     scheduler.expectMessage(Completion(lockActivation))
@@ -224,8 +221,8 @@ class ExtEmBaseIT
     /* INIT */
 
     // activate the service for init tick
-    serviceRef ! Activation(INIT_SIM_TICK)
-    scheduler.expectMessage(Completion(serviceRef))
+    service ! Activation(INIT_SIM_TICK)
+    scheduler.expectMessage(Completion(service))
 
     primaryServiceProxy.receiveMessages(
       4,
@@ -302,8 +299,8 @@ class ExtEmBaseIT
         new RequestEmFlexResults(0L, List(emSupUuid).asJava, false)
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
-      serviceRef ! Activation(0L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(0L)
 
       val receivedFlexOptions0 = connection
         .receiveWithType(classOf[FlexOptionsResponse])
@@ -329,8 +326,8 @@ class ExtEmBaseIT
 
       connection.sendSetPoints(0L, setPoints0.asJava, Optional.of(900L), log)
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
-      serviceRef ! Activation(0L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(0L)
 
       connection.receiveWithType(classOf[EmCompletion])
 
@@ -356,8 +353,8 @@ class ExtEmBaseIT
         new RequestEmFlexResults(900L, List(emSupUuid).asJava, false)
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
-      serviceRef ! Activation(900L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(900L)
 
       val receivedFlexOptions900 = connection
         .receiveWithType(classOf[FlexOptionsResponse])
@@ -390,8 +387,8 @@ class ExtEmBaseIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
-      serviceRef ! Activation(900L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(900L)
 
       connection.receiveWithType(classOf[EmCompletion])
     }
@@ -419,8 +416,8 @@ class ExtEmBaseIT
         new RequestEmFlexResults(1800L, List(emSupUuid).asJava, true)
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
-      serviceRef ! Activation(1800L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(1800L)
 
       val receivedFlexOptions1800 = connection
         .receiveWithType(classOf[FlexOptionsResponse])
@@ -476,8 +473,8 @@ class ExtEmBaseIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
-      serviceRef ! Activation(1800L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(1800L)
 
       connection.receiveWithType(classOf[EmCompletion])
 
@@ -503,8 +500,8 @@ class ExtEmBaseIT
         new RequestEmFlexResults(2700L, List(emSupUuid).asJava, true)
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
-      serviceRef ! Activation(2700L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(2700L)
 
       val receivedFlexOptions2700 = connection
         .receiveWithType(classOf[FlexOptionsResponse])
@@ -562,8 +559,8 @@ class ExtEmBaseIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
-      serviceRef ! Activation(2700L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(2700L)
 
       connection.receiveWithType(classOf[EmCompletion])
     }
@@ -598,8 +595,8 @@ class ExtEmBaseIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
-      serviceRef ! Activation(3600L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(3600L)
 
       connection.receiveWithType(classOf[EmCompletion])
 
@@ -632,8 +629,8 @@ class ExtEmBaseIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
-      serviceRef ! Activation(4500L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(4500L)
 
       connection.receiveWithType(classOf[EmCompletion])
 

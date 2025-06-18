@@ -12,13 +12,10 @@ import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -37,7 +34,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
 
   def emServiceResponseAdapter(
       emService: ActorRef[ServiceResponseMessage],
-      receiver: Either[UUID, ActorRef[EmAgent.Message]],
+      receiver: UUID | ActorRef[FlexResponse],
   )(using ctx: ActorContext[EmAgent.Message]): ActorRef[FlexResponse] = {
 
     val request = Behaviors.receiveMessagePartial[FlexResponse] { msg =>
@@ -59,7 +56,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
     val response = Behaviors.receiveMessagePartial[FlexRequest] { msg =>
       emService ! EmFlexMessage(
         msg,
-        Right(receiver),
+        receiver,
       )
 
       Behaviors.same
@@ -93,13 +90,17 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       log.debug(s"Received response message: $scheduleFlexActivation")
 
       receiver match {
-        case Right(ref) =>
+        case uuid: UUID =>
+          log.debug(s"Unlocking msg: $scheduleFlexActivation")
+          scheduleFlexActivation.scheduleKey.foreach(_.unlock())
+
+        case ref: ActorRef[EmAgent.Message] =>
           log.debug(s"Forwarding the message to: $ref")
           ref ! scheduleFlexActivation
-        case Left(_) =>
-          log.debug(s"Unlocking msg: $scheduleFlexActivation")
 
-          scheduleFlexActivation.scheduleKey.foreach(_.unlock())
+        case _ =>
+          // this should not happen
+          log.warn(s"No receiver found for msg: $serviceResponse")
       }
   }
 
@@ -116,6 +117,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
 
       val emDataInitializedStateData =
         ExtEmDataStateData(extEmDataConnection, startTime, serviceCore)
+
       Success(
         emDataInitializedStateData,
         None,

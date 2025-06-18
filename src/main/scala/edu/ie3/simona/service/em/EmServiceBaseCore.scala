@@ -133,7 +133,7 @@ final case class EmServiceBaseCore(
   override def handleFlexResponse(
       tick: Long,
       flexResponse: FlexResponse,
-      receiver: Either[UUID, ActorRef[EmAgent.Message]],
+      receiver: Either[UUID, ActorRef[FlexResponse]],
   )(using
       startTime: ZonedDateTime,
       log: Logger,
@@ -251,7 +251,7 @@ final case class EmServiceBaseCore(
 
   override def handleFlexRequest(
       flexRequest: FlexRequest,
-      receiver: ActorRef[EmAgent.Message],
+      receiver: ActorRef[FlexRequest],
   )(using
       startTime: ZonedDateTime,
       log: Logger,

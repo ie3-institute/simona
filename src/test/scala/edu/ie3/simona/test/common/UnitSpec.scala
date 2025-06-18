@@ -13,7 +13,6 @@ import edu.ie3.simona.test.matchers.{
   SquantsMatchers,
 }
 import edu.ie3.util.scala.quantities.{QuantityUtil => PSQuantityUtil}
-import org.apache.pekko.actor.testkit.typed.scaladsl.LogCapturing
 import org.scalatest._
 import org.scalatest.matchers.should
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -35,7 +34,6 @@ trait UnitSpec
     with SquantsMatchers
     with DoubleMatchers
     with AnyWordSpecLike
-    with LogCapturing
     with OptionValues
     with Inside
     with Inspectors

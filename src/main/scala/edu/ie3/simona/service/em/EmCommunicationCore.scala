@@ -18,7 +18,6 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.service.em.EmCommunicationCore.DataMap
-import edu.ie3.simona.service.em.EmServiceCore.EmRefMaps
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveHierarchicalDataMap}
@@ -42,10 +41,11 @@ import scala.jdk.CollectionConverters.{
 final case class EmCommunicationCore(
     override val lastFinishedTick: Long = PRE_INIT_TICK,
     override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
-    agentToUuid: Map[ActorRef[EmAgent.Message], UUID] = Map.empty,
+    agentToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
+    uuidToFlexResponse: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
+    flexResponseToUuid: Map[ActorRef[FlexResponse], UUID] = Map.empty,
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
-    refs: EmRefMaps = EmRefMaps(),
     flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
     uuidToPRef: Map[UUID, ComparableQuantity[Power]] = Map.empty,
     toSchedule: Map[UUID, ScheduleFlexActivation] = Map.empty,
@@ -64,12 +64,22 @@ final case class EmCommunicationCore(
     val parentEm = emServiceRegistration.parentEm
     val parentUuid = emServiceRegistration.parentUuid
 
-    val updatedRefs = refs.add(uuid, ref, parentEm, parentUuid)
+    val (updatedResponseToUuid, updatedUuidToResponse) = parentEm.zip(parentUuid) match {
+      case Some((parent, uuid)) =>
+        (
+          flexResponseToUuid + (parent -> uuid),
+          uuidToFlexResponse + (uuid -> parent),
+        )
+
+      case None =>
+        (flexResponseToUuid, uuidToFlexResponse)
+    }
 
     copy(
-      refs = updatedRefs,
       uuidToAgent = uuidToAgent + (uuid -> ref),
       agentToUuid = agentToUuid + (ref -> uuid),
+      uuidToFlexResponse = updatedUuidToResponse,
+      flexResponseToUuid = updatedResponseToUuid,
       flexRequestReceived =
         flexRequestReceived.updateStructure(parentUuid, uuid),
       flexOptionResponse = flexOptionResponse.updateStructure(parentUuid, uuid),
@@ -102,6 +112,8 @@ final case class EmCommunicationCore(
       }
 
     case provideFlexRequests: ProvideFlexRequestData =>
+      log.warn(s"Received message: $provideFlexRequests")
+
       // entities for which flex options are requested
       val emEntities: Set[UUID] = provideFlexRequests
         .flexRequests()
@@ -127,11 +139,14 @@ final case class EmCommunicationCore(
       )
 
     case provideFlexOptions: ProvideEmFlexOptionData =>
+      log.warn(s"Received message: $provideFlexOptions")
+
       provideFlexOptions
         .flexOptions()
         .asScala
         .foreach { case (agent, flexOptions) =>
-          refs.getResponse(agent) match {
+
+          uuidToAgent.get(agent) match {
             case Some(receiver) =>
               flexOptions.asScala.foreach { option =>
                 receiver ! ProvideFlexOptions(
@@ -152,6 +167,8 @@ final case class EmCommunicationCore(
       (this, None)
 
     case providedSetPoints: ProvideEmSetPointData =>
+      log.warn(s"Received message: $providedSetPoints")
+
       handleSetPoint(tick, providedSetPoints, log)
 
       (this, None)
@@ -160,7 +177,7 @@ final case class EmCommunicationCore(
   override def handleFlexResponse(
       tick: Long,
       flexResponse: FlexResponse,
-      receiver: Either[UUID, ActorRef[EmAgent.Message]],
+      receiver: Either[UUID, ActorRef[FlexResponse]],
   )(using
       startTime: ZonedDateTime,
       log: Logger,
@@ -199,7 +216,7 @@ final case class EmCommunicationCore(
 
         val receiverUuid = receiver match {
           case Right(otherRef) =>
-            refs.getUuid(otherRef)
+            flexResponseToUuid(otherRef)
           case Left(self: UUID) =>
             self
         }
@@ -280,7 +297,7 @@ final case class EmCommunicationCore(
 
   override def handleFlexRequest(
       flexRequest: FlexRequest,
-      receiver: ActorRef[EmAgent.Message],
+      receiver: ActorRef[FlexRequest],
   )(using
       startTime: ZonedDateTime,
       log: Logger,

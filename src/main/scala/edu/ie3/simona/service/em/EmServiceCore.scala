@@ -60,16 +60,23 @@ trait EmServiceCore {
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = responseMsg match {
     case EmFlexMessage(flexRequest: FlexRequest, receiver) =>
       receiver match {
-        case Left(value) =>
+        case ref: ActorRef[FlexRequest] =>
+          handleFlexRequest(flexRequest, ref)
+
+        case _ =>
           // should not happen
           log.warn(s"No receiver found for msg: $flexRequest")
           (this, None)
-        case Right(emAgent) =>
-          handleFlexRequest(flexRequest, emAgent)
       }
 
     case EmFlexMessage(flexResponse: FlexResponse, receiver) =>
-      handleFlexResponse(tick, flexResponse, receiver)
+      receiver match {
+        case uuid: UUID =>
+          handleFlexResponse(tick, flexResponse, Left(uuid))
+
+        case ref: ActorRef[FlexResponse] =>
+          handleFlexResponse(tick, flexResponse, Right(ref))
+      }
   }
 
   final def handleSetPoint(
@@ -110,7 +117,7 @@ trait EmServiceCore {
   def handleFlexResponse(
       tick: Long,
       flexResponse: FlexResponse,
-      receiver: Either[UUID, ActorRef[EmAgent.Message]],
+      receiver: Either[UUID, ActorRef[FlexResponse]],
   )(using
       startTime: ZonedDateTime,
       log: Logger,
@@ -118,7 +125,7 @@ trait EmServiceCore {
 
   def handleFlexRequest(
       flexRequest: FlexRequest,
-      receiver: ActorRef[EmAgent.Message],
+      receiver: ActorRef[FlexRequest],
   )(using
       startTime: ZonedDateTime,
       log: Logger,
@@ -130,44 +137,4 @@ trait EmServiceCore {
     }
     .minOption
     .map(long2Long)
-}
-
-object EmServiceCore {
-
-  final case class EmRefMaps(
-      private val refToUuid: Map[ActorRef[EmAgent.Message], UUID] = Map.empty,
-      private val uuidToRef: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
-      private val uuidToFlexResponse: Map[UUID, ActorRef[FlexResponse]] =
-        Map.empty,
-      private val flexResponseToUuid: Map[ActorRef[FlexResponse], UUID] =
-        Map.empty,
-  ) {
-
-    def add(
-        model: UUID,
-        ref: ActorRef[EmAgent.Message],
-        parentEm: Option[ActorRef[FlexResponse]] = None,
-        parentUuid: Option[UUID] = None,
-    ): EmRefMaps = parentEm.zip(parentUuid) match {
-      case Some((parent, uuid)) =>
-        copy(
-          uuidToRef = uuidToRef + (model -> ref),
-          refToUuid = refToUuid + (ref -> model),
-          uuidToFlexResponse = uuidToFlexResponse + (uuid -> parent),
-          flexResponseToUuid = flexResponseToUuid + (parent -> uuid),
-        )
-      case None =>
-        copy(
-          uuidToRef = uuidToRef + (model -> ref),
-          refToUuid = refToUuid + (ref -> model),
-        )
-    }
-
-    def getUuid(ref: ActorRef[FlexResponse]): UUID =
-      flexResponseToUuid(ref)
-
-    def getResponse(uuid: UUID): Option[ActorRef[FlexResponse]] =
-      uuidToFlexResponse.get(uuid)
-  }
-
 }
