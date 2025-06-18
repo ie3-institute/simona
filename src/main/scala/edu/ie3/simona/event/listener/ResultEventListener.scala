@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
@@ -21,10 +19,12 @@ import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   ProcessResultEventException,
 }
-import edu.ie3.simona.io.result._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.service.results.ExtResultProvider.ResultResponseMessage
+import edu.ie3.simona.io.result.*
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.ResultResponseMessage
 import edu.ie3.simona.util.ResultFileHierarchy
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import org.slf4j.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global

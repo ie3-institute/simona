@@ -9,15 +9,12 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.em.ontology.*
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.services.EmMessage.{
-  WrappedFlexRequest,
-  WrappedFlexResponse,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  RegisterForEmDataService,
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  EmFlexMessage,
+  EmServiceRegistration,
   ServiceResponseMessage,
 }
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
@@ -35,7 +32,7 @@ import scala.jdk.OptionConverters.RichOptional
 trait EmServiceCore {
   def lastFinishedTick: Long
 
-  def uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]]
+  def uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]]
 
   def completions: ReceiveDataMap[UUID, FlexCompletion]
 
@@ -44,27 +41,34 @@ trait EmServiceCore {
   }
 
   def handleRegistration(
-      registerForEmDataService: RegisterForEmDataService
+      emServiceRegistration: EmServiceRegistration
   ): EmServiceCore
 
   def handleExtMessage(
       tick: Long,
       extMSg: EmDataMessageFromExt,
-  )(implicit
+  )(using
       log: Logger
   ): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
   final def handleDataResponseMessage(
       tick: Long,
       responseMsg: ServiceResponseMessage,
-  )(implicit
+  )(using
       startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = responseMsg match {
-    case WrappedFlexRequest(flexRequest, receiver) =>
-      handleFlexRequest(flexRequest, receiver)
+    case EmFlexMessage(flexRequest: FlexRequest, receiver) =>
+      receiver match {
+        case Left(value) =>
+          // should not happen
+          log.warn(s"No receiver found for msg: $flexRequest")
+          (this, None)
+        case Right(emAgent) =>
+          handleFlexRequest(flexRequest, emAgent)
+      }
 
-    case WrappedFlexResponse(flexResponse, receiver) =>
+    case EmFlexMessage(flexResponse: FlexResponse, receiver) =>
       handleFlexResponse(tick, flexResponse, receiver)
   }
 
@@ -77,7 +81,7 @@ trait EmServiceCore {
 
     provideEmSetPoints.emSetPoints.asScala
       .foreach { case (agent, setPoint) =>
-        uuidToFlexAdapter.get(agent) match {
+        uuidToAgent.get(agent) match {
           case Some(receiver) =>
             val (pOption, qOption) = setPoint.power.toScala match {
               case Some(sValue: SValue) =>
@@ -106,22 +110,22 @@ trait EmServiceCore {
   def handleFlexResponse(
       tick: Long,
       flexResponse: FlexResponse,
-      receiver: Either[UUID, ActorRef[FlexResponse]],
-  )(implicit
+      receiver: Either[UUID, ActorRef[EmAgent.Message]],
+  )(using
       startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
   def handleFlexRequest(
       flexRequest: FlexRequest,
-      receiver: ActorRef[FlexRequest],
-  )(implicit
+      receiver: ActorRef[EmAgent.Message],
+  )(using
       startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
   final def getMaybeNextTick: Option[java.lang.Long] = completions.receivedData
-    .flatMap { case (k, completion) =>
+    .flatMap { case (_, completion) =>
       completion.requestAtTick
     }
     .minOption
@@ -131,8 +135,8 @@ trait EmServiceCore {
 object EmServiceCore {
 
   final case class EmRefMaps(
-      private val refToUuid: Map[ActorRef[EmAgent.Request], UUID] = Map.empty,
-      private val uuidToRef: Map[UUID, ActorRef[EmAgent.Request]] = Map.empty,
+      private val refToUuid: Map[ActorRef[EmAgent.Message], UUID] = Map.empty,
+      private val uuidToRef: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
       private val uuidToFlexResponse: Map[UUID, ActorRef[FlexResponse]] =
         Map.empty,
       private val flexResponseToUuid: Map[ActorRef[FlexResponse], UUID] =
@@ -141,7 +145,7 @@ object EmServiceCore {
 
     def add(
         model: UUID,
-        ref: ActorRef[EmAgent.Request],
+        ref: ActorRef[EmAgent.Message],
         parentEm: Option[ActorRef[FlexResponse]] = None,
         parentUuid: Option[UUID] = None,
     ): EmRefMaps = parentEm.zip(parentUuid) match {

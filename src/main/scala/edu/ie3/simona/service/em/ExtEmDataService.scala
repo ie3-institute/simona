@@ -7,26 +7,14 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.ontology._
+import edu.ie3.simona.api.data.em.ontology.*
 import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.{
-  CriticalFailureException,
-  InitializationException,
-  ServiceException,
-}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.services.EmMessage
-import edu.ie3.simona.ontology.messages.services.EmMessage.{
-  WrappedFlexRequest,
-  WrappedFlexResponse,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  RegisterForEmDataService,
-  ServiceRegistrationMessage,
-  ServiceResponseMessage,
-}
+import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
@@ -41,45 +29,40 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
-object ExtEmDataService
-    extends SimonaService[EmMessage]
-    with ExtDataSupport[EmMessage] {
+object ExtEmDataService extends SimonaService with ExtDataSupport {
 
   private val log: Logger = LoggerFactory.getLogger(ExtEmDataService.getClass)
 
   override type S = ExtEmDataStateData
 
   def emServiceResponseAdapter(
-      emService: ActorRef[EmMessage],
-      receiver: Option[ActorRef[FlexResponse]],
-      self: UUID,
-  )(implicit ctx: ActorContext[EmAgent.Request]): ActorRef[FlexResponse] = {
+      emService: ActorRef[ServiceResponseMessage],
+      receiver: Either[UUID, ActorRef[EmAgent.Message]],
+  )(using ctx: ActorContext[EmAgent.Message]): ActorRef[FlexResponse] = {
 
-    val request = Behaviors.receiveMessagePartial[FlexResponse] {
-      case response: FlexResponse =>
-        emService ! WrappedFlexResponse(
-          response,
-          receiver.map(Right(_)).getOrElse(Left(self)),
-        )
+    val request = Behaviors.receiveMessagePartial[FlexResponse] { msg =>
+      emService ! EmFlexMessage(
+        msg,
+        receiver,
+      )
 
-        Behaviors.same
+      Behaviors.same
     }
 
     ctx.spawn(request, "response-adapter")
   }
 
   def emServiceRequestAdapter(
-      emService: ActorRef[EmMessage],
-      receiver: ActorRef[FlexRequest],
-  )(implicit ctx: ActorContext[EmAgent.Request]): ActorRef[FlexRequest] = {
-    val response = Behaviors.receiveMessagePartial[FlexRequest] {
-      case request: FlexRequest =>
-        emService ! WrappedFlexRequest(
-          request,
-          receiver,
-        )
+      emService: ActorRef[ServiceResponseMessage],
+      receiver: ActorRef[EmAgent.Message],
+  )(using ctx: ActorContext[EmAgent.Message]): ActorRef[FlexRequest] = {
+    val response = Behaviors.receiveMessagePartial[FlexRequest] { msg =>
+      emService ! EmFlexMessage(
+        msg,
+        Right(receiver),
+      )
 
-        Behaviors.same
+      Behaviors.same
     }
 
     ctx.spawn(response, "request-adapter")
@@ -100,10 +83,10 @@ object ExtEmDataService
 
   override protected def handleServiceResponse(
       serviceResponse: ServiceResponseMessage
-  )(implicit
-      ctx: ActorContext[EmMessage]
+  )(using
+      ctx: ActorContext[Message]
   ): Unit = serviceResponse match {
-    case WrappedFlexResponse(
+    case EmFlexMessage(
           scheduleFlexActivation: ScheduleFlexActivation,
           receiver,
         ) =>
@@ -150,15 +133,15 @@ object ExtEmDataService
       registrationMessage: ServiceRegistrationMessage
   )(implicit
       serviceStateData: ExtEmDataStateData,
-      ctx: ActorContext[EmMessage],
+      ctx: ActorContext[Message],
   ): Try[ExtEmDataStateData] =
     registrationMessage match {
-      case registrationMsg: RegisterForEmDataService =>
+      case emServiceRegistration: EmServiceRegistration =>
         val updatedCore =
-          serviceStateData.serviceCore.handleRegistration(registrationMsg)
+          serviceStateData.serviceCore.handleRegistration(emServiceRegistration)
 
-        if (registrationMsg.parentEm.isEmpty) {
-          registrationMsg.flexAdapter ! FlexActivation(INIT_SIM_TICK)
+        if (emServiceRegistration.parentEm.isEmpty) {
+          emServiceRegistration.requestingActor ! FlexActivation(INIT_SIM_TICK)
         }
 
         Success(serviceStateData.copy(serviceCore = updatedCore))
@@ -170,9 +153,9 @@ object ExtEmDataService
         )
     }
 
-  override protected def announceInformation(tick: Long)(implicit
+  override protected def announceInformation(tick: Long)(using
       serviceStateData: ExtEmDataStateData,
-      ctx: ActorContext[EmMessage],
+      ctx: ActorContext[Message],
   ): (ExtEmDataStateData, Option[Long]) = {
     val stateTick = serviceStateData.tick
 
@@ -202,7 +185,9 @@ object ExtEmDataService
       )
 
       val (updatedCore, msgToExt) =
-        serviceStateData.serviceCore.handleExtMessage(tick, extMsg)(ctx.log)
+        serviceStateData.serviceCore.handleExtMessage(tick, extMsg)(using
+          ctx.log
+        )
 
       msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
 
@@ -219,7 +204,7 @@ object ExtEmDataService
 
   override protected def handleDataMessage(
       extMsg: DataMessageFromExt
-  )(implicit
+  )(using
       serviceStateData: ExtEmDataStateData
   ): ExtEmDataStateData = {
     extMsg match {
@@ -232,7 +217,7 @@ object ExtEmDataService
 
   override protected def handleDataResponseMessage(
       extResponseMsg: ServiceResponseMessage
-  )(implicit
+  )(using
       serviceStateData: ExtEmDataStateData
   ): ExtEmDataStateData = {
 
@@ -240,7 +225,7 @@ object ExtEmDataService
       serviceStateData.serviceCore.handleDataResponseMessage(
         serviceStateData.tick,
         extResponseMsg,
-      )(serviceStateData.startTime, log)
+      )(using serviceStateData.startTime, log)
 
     extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
 

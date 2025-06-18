@@ -44,19 +44,23 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   PrimaryServiceRegistrationMessage,
+  SecondaryServiceRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  RegisterForWeatherMessage,
-  WeatherData,
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.weather.WeatherService
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmCommunicationTestData
 import edu.ie3.simona.test.matchers.QuantityMatchers
@@ -111,13 +115,14 @@ class ExtEmCommunicationIT
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
   private val extSimAdapter =
     TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
-  private val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
+  private val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
   private val resultListener = TestProbe[ResultEvent]("ResultListener")
   private val primaryServiceProxy =
-    TestProbe[ServiceMessage]("PrimaryServiceProxy")
-  private val weatherService = TestProbe[ServiceMessage]("WeatherService")
+    TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
+  private val weatherService =
+    TestProbe[WeatherService.Message]("WeatherService")
 
-  private val participantRefs = ParticipantRefs(
+  private given ParticipantRefs = ParticipantRefs(
     gridAgent = gridAgent.ref,
     primaryServiceProxy = primaryServiceProxy.ref,
     services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -125,11 +130,9 @@ class ExtEmCommunicationIT
   )
 
   "An ExtEmDataService in communication mode" should {
-    val service = spawn(ExtEmDataService(scheduler.ref))
-    val serviceRef = service.ref
-    given adapter: ActorRef[DataMessageFromExt] =
-      spawn(ExtEmDataService.adapter(service))
-    connection.setActorRefs(adapter, extSimAdapter.ref)
+    given service: ActorRef[ExtEmDataService.Message] =
+      spawn(ExtEmDataService(scheduler.ref))
+    connection.setActorRefs(service, extSimAdapter.ref)
 
     "with participant agents work correctly" in {
       val emAgentSup = spawn(
@@ -141,7 +144,7 @@ class ExtEmCommunicationIT
           simulationStart,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
-          Some(serviceRef),
+          Some(service),
         )
       )
 
@@ -154,7 +157,7 @@ class ExtEmCommunicationIT
           simulationStart,
           parent = Right(emAgentSup),
           listener = Iterable(resultListener.ref),
-          Some(serviceRef),
+          Some(service),
         )
       )
 
@@ -167,7 +170,7 @@ class ExtEmCommunicationIT
           simulationStart,
           parent = Right(emAgentSup),
           listener = Iterable(resultListener.ref),
-          Some(serviceRef),
+          Some(service),
         )
       )
 
@@ -183,8 +186,6 @@ class ExtEmCommunicationIT
           SimpleInputContainer(pvNode3),
           PvRuntimeConfig(),
           outputConfig,
-          participantRefs,
-          simulationParams,
           Right(emAgentNode3),
           keys.next(),
         ),
@@ -196,8 +197,6 @@ class ExtEmCommunicationIT
           SimpleInputContainer(storageInput),
           StorageRuntimeConfig(),
           outputConfig,
-          participantRefs,
-          simulationParams,
           Right(emAgentNode3),
           keys.next(),
         ),
@@ -209,8 +208,6 @@ class ExtEmCommunicationIT
           SimpleInputContainer(pvNode4),
           PvRuntimeConfig(),
           outputConfig,
-          participantRefs,
-          simulationParams,
           Right(emAgentNode4),
           keys.next(),
         ),
@@ -222,8 +219,6 @@ class ExtEmCommunicationIT
           SimpleInputContainer(loadInput),
           LoadRuntimeConfig(),
           outputConfig,
-          participantRefs,
-          simulationParams,
           Right(emAgentNode4),
           keys.next(),
         ),
@@ -240,10 +235,9 @@ class ExtEmCommunicationIT
         key,
       )
 
-      val activationMsg = scheduler.expectMessageType[ScheduleActivation]
-      activationMsg.tick shouldBe INIT_SIM_TICK
-      activationMsg.unlockKey shouldBe Some(key)
-      given serviceActivation: ActorRef[Activation] = activationMsg.actor
+      scheduler.expectMessage(
+        ScheduleActivation(service, INIT_SIM_TICK, Some(key))
+      )
 
       // we expect a completion for the participant locks
       scheduler.expectMessage(Completion(lockActivation))
@@ -251,8 +245,8 @@ class ExtEmCommunicationIT
       /* INIT */
 
       // activate the service for init tick
-      serviceActivation ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(serviceActivation))
+      service ! Activation(INIT_SIM_TICK)
+      scheduler.expectMessage(Completion(service))
 
       primaryServiceProxy.receiveMessages(
         4,
@@ -281,10 +275,9 @@ class ExtEmCommunicationIT
 
       // deal with weather service registration
       weatherService.expectMessage(
-        RegisterForWeatherMessage(
+        SecondaryServiceRegistrationMessage(
           pvAgentNode3,
-          pvNode3.getNode.getGeoPosition.getY,
-          pvNode3.getNode.getGeoPosition.getX,
+          Coordinate(pvNode3.getNode),
         )
       )
 
@@ -294,10 +287,9 @@ class ExtEmCommunicationIT
       pvAgentNode4 ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
       weatherService.expectMessage(
-        RegisterForWeatherMessage(
+        SecondaryServiceRegistrationMessage(
           pvAgentNode4,
-          pvNode4.getNode.getGeoPosition.getY,
-          pvNode4.getNode.getGeoPosition.getX,
+          Coordinate(pvNode4.getNode),
         )
       )
       pvAgentNode4 ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
@@ -414,8 +406,7 @@ class ExtEmCommunicationIT
         flexOptions: Map[UUID, FlexOptions],
         setPoints: Map[UUID, ComparableQuantity[Power]],
     )(using
-        serviceActivation: ActorRef[Activation],
-        adapter: ActorRef[DataMessageFromExt],
+        service: ActorRef[ExtEmDataService.Message],
         pvAgents: Seq[ActorRef[ParticipantAgent.Request]],
     ): Unit = {
 
@@ -436,8 +427,8 @@ class ExtEmCommunicationIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(tick)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(tick)
 
       // we expect to receive a request per inferior em agent
       val requestsToInferior = connection
@@ -471,8 +462,8 @@ class ExtEmCommunicationIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(tick)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(tick)
 
       val data = DataProvision(
         tick,
@@ -517,8 +508,8 @@ class ExtEmCommunicationIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(tick)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(tick)
 
       // we expect the total flex options of the grid from the superior em agent
       val totalFlexOptions = connection
@@ -548,8 +539,8 @@ class ExtEmCommunicationIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(tick)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(tick)
 
       // we expect a new set point for each inferior em agent
       val inferiorSetPoints = connection
@@ -587,8 +578,8 @@ class ExtEmCommunicationIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(tick)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(service))
+      service ! Activation(tick)
 
       // we expect a finish message
       connection.receiveWithType(classOf[EmCompletion])

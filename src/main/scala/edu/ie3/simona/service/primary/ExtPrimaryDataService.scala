@@ -19,9 +19,9 @@ import edu.ie3.simona.api.data.primarydata.ontology.{
 }
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
+  ServiceRegistrationMessage,
   ServiceResponseMessage,
 }
 import edu.ie3.simona.service.Data.PrimaryData
@@ -39,9 +39,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
-object ExtPrimaryDataService
-    extends SimonaService[ServiceMessage]
-    with ExtDataSupport[ServiceMessage] {
+object ExtPrimaryDataService extends SimonaService with ExtDataSupport {
 
   override type S = ExtPrimaryDataStateData
 
@@ -79,10 +77,10 @@ object ExtPrimaryDataService
   }
 
   override protected def handleRegistrationRequest(
-      registrationMessage: ServiceMessage.ServiceRegistrationMessage
-  )(implicit
+      registrationMessage: ServiceRegistrationMessage
+  )(using
       serviceStateData: ExtPrimaryDataStateData,
-      ctx: ActorContext[ServiceMessage],
+      ctx: ActorContext[Message],
   ): Try[ExtPrimaryDataStateData] = registrationMessage match {
     case PrimaryServiceRegistrationMessage(
           requestingActor,
@@ -100,9 +98,9 @@ object ExtPrimaryDataService
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ParticipantAgent.Request],
       agentUUID: UUID,
-  )(implicit
+  )(using
       serviceStateData: ExtPrimaryDataStateData,
-      ctx: ActorContext[ServiceMessage],
+      ctx: ActorContext[Message],
   ): ExtPrimaryDataStateData = {
     serviceStateData.uuidToActorRef.get(agentUUID) match {
       case None =>
@@ -152,9 +150,9 @@ object ExtPrimaryDataService
     */
   override protected def announceInformation(
       tick: Long
-  )(implicit
+  )(using
       serviceStateData: ExtPrimaryDataStateData,
-      ctx: ActorContext[ServiceMessage],
+      ctx: ActorContext[Message],
   ): (ExtPrimaryDataStateData, Option[Long]) = { // We got activated for this tick, so we expect incoming primary data
     serviceStateData.extPrimaryDataMessage.getOrElse(
       throw ServiceException(
@@ -162,19 +160,16 @@ object ExtPrimaryDataService
       )
     ) match {
       case providedPrimaryData: ProvidePrimaryData =>
-        processDataAndAnnounce(tick, providedPrimaryData)(
-          serviceStateData,
-          ctx,
-        )
+        processDataAndAnnounce(tick, providedPrimaryData)
     }
   }
 
   private def processDataAndAnnounce(
       tick: Long,
       primaryDataMessage: ProvidePrimaryData,
-  )(implicit
+  )(using
       serviceStateData: ExtPrimaryDataStateData,
-      ctx: ActorContext[ServiceMessage],
+      ctx: ActorContext[Message],
   ): (
       ExtPrimaryDataStateData,
       Option[Long],
@@ -228,7 +223,7 @@ object ExtPrimaryDataService
 
   override protected def handleDataMessage(
       extMsg: DataMessageFromExt
-  )(implicit
+  )(using
       serviceStateData: ExtPrimaryDataStateData
   ): ExtPrimaryDataStateData = {
     extMsg match {

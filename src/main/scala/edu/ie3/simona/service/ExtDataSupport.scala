@@ -25,8 +25,8 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 trait ExtDataSupport {
   this: SimonaService =>
 
-  override type Message = ServiceMessage | Activation | ServiceResponseMessage |
-    DataMessageFromExt
+  override type Message >: ServiceMessage | Activation |
+    ServiceResponseMessage | DataMessageFromExt
 
   override protected def idleExternal(using
       stateData: S,

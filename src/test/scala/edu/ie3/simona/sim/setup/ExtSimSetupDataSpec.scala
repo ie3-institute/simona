@@ -27,7 +27,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
   "An ExtSimSetupData" should {
 
-    val emptyMapInput = Map.empty[UUID, Class[_ <: Value]].asJava
+    val emptyMapInput = Map.empty[UUID, Class[? <: Value]].asJava
     val emptyListInput = List.empty[UUID].asJava
     val emptyResultList = List.empty[UUID].asJava
 
@@ -127,7 +127,8 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
           emptyResultList,
           emptyResultList,
         )
-              val resultRef = TestProbe[ServiceMessage]("result_service").ref
+
+      val resultRef = TestProbe[ServiceMessage]("result_service").ref
 
       val updated = extSimSetupData.update(resultConnection, resultRef)
 

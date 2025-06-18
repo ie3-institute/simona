@@ -14,22 +14,21 @@ import edu.ie3.simona.event.ResultEvent.{
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.EmMessage
-import edu.ie3.simona.ontology.messages.services.EmMessage.{
-  WrappedFlexRequest,
-  WrappedFlexResponse,
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  EmFlexMessage,
+  EmServiceRegistration,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.SquantsMatchers
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
-import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -52,7 +51,7 @@ class EmAgentWithServiceSpec
     with MockitoSugar
     with SquantsMatchers {
 
-  protected implicit val simulationStartDate: ZonedDateTime =
+  protected given simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
 
   private val outputConfig = NotifierConfig(
@@ -69,9 +68,9 @@ class EmAgentWithServiceSpec
     "be initialized correctly and run through some activations" in {
       val resultListener = TestProbe[ResultEvent]("ResultListener")
 
-      val parentEmAgent = TestProbe[FlexResponse]("ParentEmAgent")
+      val parentEmAgent = TestProbe[EmAgent.Message]("ParentEmAgent")
 
-      val service = TestProbe[EmMessage]("emService")
+      val service = TestProbe[ExtEmDataService.Message]("emService")
       val serviceRef = service.ref
 
       val emAgent = spawn(
@@ -92,20 +91,19 @@ class EmAgentWithServiceSpec
       emAgent ! ScheduleFlexActivation(pvInput.getUuid, INIT_SIM_TICK)
 
       val emAgentFlex =
-        service.expectMessageType[RegisterForEmDataService] match {
-          case RegisterForEmDataService(
-                modelUuid,
+        service.expectMessageType[EmServiceRegistration] match {
+          case EmServiceRegistration(
                 requestingActor,
-                flexAdapter,
+                inputUuid,
                 parentEm,
                 parentUuid,
               ) =>
-            modelUuid shouldBe emInput.getUuid
             requestingActor shouldBe emAgent
+            inputUuid shouldBe emInput.getUuid
             parentEm shouldBe Some(parentEmAgent.ref)
             parentUuid shouldBe None
 
-            flexAdapter
+            requestingActor
         }
 
       parentEmAgent
@@ -113,7 +111,7 @@ class EmAgentWithServiceSpec
         .inputModel shouldBe emInput
 
       service.expectMessage(
-        WrappedFlexResponse(
+        EmFlexMessage(
           ScheduleFlexActivation(emInput.getUuid, INIT_SIM_TICK),
           Right(parentEmAgent.ref),
         )
@@ -150,7 +148,7 @@ class EmAgentWithServiceSpec
       resultListener.expectNoMessage()
       // expect completion from EmAgent
       service.expectMessage(
-        WrappedFlexResponse(
+        EmFlexMessage(
           FlexCompletion(
             modelUuid = emInput.getUuid,
             requestAtTick = Some(0),
@@ -191,14 +189,14 @@ class EmAgentWithServiceSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
       }
 
-      service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(
+      service.expectMessageType[EmFlexMessage] match {
+        case EmFlexMessage(
               ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(
@@ -253,13 +251,13 @@ class EmAgentWithServiceSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 0.toDateTime
           emResult.getP should equalWithTolerance(.006.asMegaWatt)
           emResult.getQ should equalWithTolerance(.0006.asMegaVar)
       }
 
-      service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(
+      service.expectMessageType[EmFlexMessage] match {
+        case EmFlexMessage(
               FlexResult(modelUuid, result),
               Right(receiver),
             ) =>
@@ -271,7 +269,7 @@ class EmAgentWithServiceSpec
       }
 
       service.expectMessage(
-        WrappedFlexResponse(
+        EmFlexMessage(
           FlexCompletion(
             modelUuid = emInput.getUuid,
             requestAtTick = Some(300),
@@ -311,13 +309,13 @@ class EmAgentWithServiceSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 150.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 150.toDateTime
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(0.asMegaVar)
       }
 
-      service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(
+      service.expectMessageType[EmFlexMessage] match {
+        case EmFlexMessage(
               FlexResult(modelUuid, result),
               Right(receiver),
             ) =>
@@ -328,7 +326,7 @@ class EmAgentWithServiceSpec
           receiver shouldBe parentEmAgent.ref
       }
       service.expectMessage(
-        WrappedFlexResponse(
+        EmFlexMessage(
           FlexCompletion(
             modelUuid = emInput.getUuid,
             requestAtTick = Some(600),
@@ -343,7 +341,7 @@ class EmAgentWithServiceSpec
       val resultListener = TestProbe[ResultEvent]("ResultListener")
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
-      val service = TestProbe[EmMessage]("emService")
+      val service = TestProbe[ExtEmDataService.Message]("emService")
       val serviceRef = service.ref
 
       val parentEmInput = emInput
@@ -367,22 +365,18 @@ class EmAgentWithServiceSpec
         )
       )
 
-      val parentEmAgentFlex =
-        service.expectMessageType[RegisterForEmDataService] match {
-          case RegisterForEmDataService(
-                modelUuid,
-                requestingActor,
-                flexAdapter,
-                parentEm,
-                parentUuid,
-              ) =>
-            modelUuid shouldBe parentEmInput.getUuid
-            requestingActor shouldBe parentEmAgent
-            parentEm shouldBe None
-            parentUuid shouldBe None
-
-            flexAdapter
-        }
+      service.expectMessageType[EmServiceRegistration] match {
+        case EmServiceRegistration(
+              requestingActor,
+              inputUuid,
+              parentEm,
+              parentUuid,
+            ) =>
+          requestingActor shouldBe parentEmAgent
+          inputUuid shouldBe parentEmInput.getUuid
+          parentEm shouldBe None
+          parentUuid shouldBe None
+      }
 
       val emAgent = spawn(
         EmAgent(
@@ -401,25 +395,21 @@ class EmAgentWithServiceSpec
       emAgent ! RegisterControlledAsset(pvAgent.ref, pvInput)
       emAgent ! ScheduleFlexActivation(pvInput.getUuid, INIT_SIM_TICK)
 
-      val emAgentFlex =
-        service.expectMessageType[RegisterForEmDataService] match {
-          case RegisterForEmDataService(
-                modelUuid,
-                requestingActor,
-                flexAdapter,
-                parentEm,
-                parentUuid,
-              ) =>
-            modelUuid shouldBe updatedEmInput.getUuid
-            requestingActor shouldBe emAgent
-            parentEm shouldBe Some(parentEmAgent)
-            parentUuid shouldBe Some(parentEmInput.getUuid)
-
-            flexAdapter
-        }
+      service.expectMessageType[EmServiceRegistration] match {
+        case EmServiceRegistration(
+              requestingActor,
+              inputUuid,
+              parentEm,
+              parentUuid,
+            ) =>
+          requestingActor shouldBe emAgent
+          inputUuid shouldBe updatedEmInput.getUuid
+          parentEm shouldBe Some(parentEmAgent)
+          parentUuid shouldBe Some(parentEmInput.getUuid)
+      }
 
       service.expectMessage(
-        WrappedFlexResponse(
+        EmFlexMessage(
           ScheduleFlexActivation(updatedEmInput.getUuid, INIT_SIM_TICK),
           Right(parentEmAgent),
         )
@@ -431,7 +421,7 @@ class EmAgentWithServiceSpec
       )
 
       service.expectMessage(
-        WrappedFlexResponse(
+        EmFlexMessage(
           ScheduleFlexActivation(parentEmInput.getUuid, INIT_SIM_TICK),
           Left(parentEmInput.getUuid),
         )
@@ -445,16 +435,16 @@ class EmAgentWithServiceSpec
       service.expectNoMessage()
 
       /* TICK -1 */
-      parentEmAgentFlex ! FlexActivation(INIT_SIM_TICK)
+      parentEmAgent ! FlexActivation(INIT_SIM_TICK)
 
       service.expectMessage(
-        WrappedFlexRequest(
+        EmFlexMessage(
           FlexActivation(INIT_SIM_TICK),
-          emAgentFlex,
+          Right(emAgent),
         )
       )
 
-      emAgentFlex ! FlexActivation(INIT_SIM_TICK)
+      emAgent ! FlexActivation(INIT_SIM_TICK)
 
       // expect flex activations
       pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
@@ -477,7 +467,7 @@ class EmAgentWithServiceSpec
       resultListener.expectNoMessage()
       // expect completion from EmAgent
       service.expectMessage(
-        WrappedFlexResponse(
+        EmFlexMessage(
           FlexCompletion(
             modelUuid = updatedEmInput.getUuid,
             requestAtTick = Some(0),
@@ -492,7 +482,7 @@ class EmAgentWithServiceSpec
       )
 
       service.expectMessage(
-        WrappedFlexResponse(
+        EmFlexMessage(
           FlexCompletion(
             modelUuid = parentEmInput.getUuid,
             requestAtTick = Some(0),
@@ -502,16 +492,16 @@ class EmAgentWithServiceSpec
       )
 
       /* TICK 0 */
-      parentEmAgentFlex ! FlexActivation(0)
+      parentEmAgent ! FlexActivation(0)
 
       service.expectMessage(
-        WrappedFlexRequest(
+        EmFlexMessage(
           FlexActivation(0),
-          emAgentFlex,
+          Right(emAgent),
         )
       )
 
-      emAgentFlex ! FlexActivation(0)
+      emAgent ! FlexActivation(0)
 
       // expect activations and flex requests
       pvAgent.expectMessage(FlexActivation(0))
@@ -542,14 +532,14 @@ class EmAgentWithServiceSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe updatedEmInput.getUuid
-          flexResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
       }
 
-      service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(
+      service.expectMessageType[EmFlexMessage] match {
+        case EmFlexMessage(
               ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(
@@ -577,8 +567,8 @@ class EmAgentWithServiceSpec
         ),
       )
 
-      service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(
+      service.expectMessageType[EmFlexMessage] match {
+        case EmFlexMessage(
               ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(
@@ -597,18 +587,18 @@ class EmAgentWithServiceSpec
           self shouldBe parentEmInput.getUuid
       }
 
-      parentEmAgentFlex ! IssuePowerControl(0, Kilowatts(6))
+      parentEmAgent ! IssuePowerControl(0, Kilowatts(6))
 
       service.expectMessage(
-        WrappedFlexRequest(
+        EmFlexMessage(
           IssuePowerControl(0, Kilowatts(6)),
-          emAgentFlex,
+          Right(emAgent),
         )
       )
 
       // issue power control and expect EmAgent to distribute it
       // we want max power = 6 kW
-      emAgentFlex ! IssuePowerControl(0, Kilowatts(6))
+      emAgent ! IssuePowerControl(0, Kilowatts(6))
 
       // expect issue power control
       pvAgent.expectMessage(IssueNoControl(0))
@@ -649,13 +639,13 @@ class EmAgentWithServiceSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe updatedEmInput.getUuid
-          emResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 0.toDateTime
           emResult.getP should equalWithTolerance(.006.asMegaWatt)
           emResult.getQ should equalWithTolerance(.0006.asMegaVar)
       }
 
-      service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(
+      service.expectMessageType[EmFlexMessage] match {
+        case EmFlexMessage(
               FlexResult(modelUuid, result),
               Right(receiver),
             ) =>
@@ -675,7 +665,7 @@ class EmAgentWithServiceSpec
       )
 
       service.expectMessage(
-        WrappedFlexResponse(
+        EmFlexMessage(
           FlexCompletion(
             modelUuid = updatedEmInput.getUuid,
             requestAtTick = Some(300),
@@ -684,17 +674,17 @@ class EmAgentWithServiceSpec
         )
       )
 
-      parentEmAgentFlex ! IssueNoControl(150)
+      parentEmAgent ! IssueNoControl(150)
 
       // TODO: FIX
-      // service.expectMessage(WrappedFlexRequest(IssueNoControl(150), emAgentFlex))
+      // service.expectMessage(EmFlexMessage(IssueNoControl(150), emAgentFlex))
 
       /* TICK 150 */
       // The mock parent EM now acts as if the situation changed before tick 300,
       // so that the flex control changes before new flex option calculations are due
 
       // no control means reference power of the latest flex options = 0 kW
-      emAgentFlex ! IssueNoControl(150)
+      emAgent ! IssueNoControl(150)
 
       // We already sent NoControl at last tick, so we're still at -5 kW
       pvAgent.expectNoMessage()
@@ -720,13 +710,13 @@ class EmAgentWithServiceSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe updatedEmInput.getUuid
-          emResult.getTime shouldBe 150.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 150.toDateTime
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(0.asMegaVar)
       }
 
-      service.expectMessageType[WrappedFlexResponse] match {
-        case WrappedFlexResponse(
+      service.expectMessageType[EmFlexMessage] match {
+        case EmFlexMessage(
               FlexResult(modelUuid, result),
               Right(receiver),
             ) =>
@@ -743,7 +733,7 @@ class EmAgentWithServiceSpec
       )
 
       service.expectMessage(
-        WrappedFlexResponse(
+        EmFlexMessage(
           FlexCompletion(
             modelUuid = updatedEmInput.getUuid,
             requestAtTick = Some(600),

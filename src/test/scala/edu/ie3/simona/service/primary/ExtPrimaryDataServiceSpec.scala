@@ -18,16 +18,20 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  Create,
   PrimaryServiceRegistrationMessage,
-  WrappedActivation,
+  SecondaryServiceRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -41,7 +45,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class ExtPrimaryDataServiceSpec
     extends ScalaTestWithActorTestKit
@@ -56,14 +60,13 @@ class ExtPrimaryDataServiceSpec
     TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
   private val extPrimaryDataConnection = new ExtPrimaryDataConnection(
-    Map.empty[UUID, Class[_ <: Value]].asJava
+    Map.empty[UUID, Class[? <: Value]].asJava
   )
 
   "An uninitialized external primary data service" must {
 
     "send correct completion message after initialisation" in {
-      val primaryDataService = spawn(ExtPrimaryDataService.apply(scheduler.ref))
-      val adapter = spawn(ExtPrimaryDataService.adapter(primaryDataService))
+      val primaryDataService = spawn(ExtPrimaryDataService(scheduler.ref))
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -71,28 +74,26 @@ class ExtPrimaryDataServiceSpec
         .expectMessageType[ScheduleActivation] // lock activation scheduled
 
       extPrimaryDataConnection.setActorRefs(
-        adapter,
+        primaryDataService,
         extSimAdapter.ref,
       )
 
-      primaryDataService ! ServiceMessage.Create(
+      primaryDataService ! Create(
         InitExtPrimaryData(extPrimaryDataConnection),
         key,
       )
 
-      val activationMsg = scheduler.expectMessageType[ScheduleActivation]
-      activationMsg.tick shouldBe INIT_SIM_TICK
-      activationMsg.unlockKey shouldBe Some(key)
+      scheduler.expectMessage(
+        ScheduleActivation(primaryDataService, INIT_SIM_TICK, Some(key))
+      )
 
-      val serviceActivation = activationMsg.actor
-
-      serviceActivation ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(serviceActivation))
+      primaryDataService ! Activation(INIT_SIM_TICK)
+      scheduler.expectMessage(Completion(primaryDataService))
     }
   }
 
   "An external primary service actor" should {
-    val serviceRef = spawn(ExtPrimaryDataService.apply(scheduler.ref))
+    val primaryDataService = spawn(ExtPrimaryDataService(scheduler.ref))
     val systemParticipant = TestProbe[Any]("dummySystemParticipant")
 
     "refuse registration for wrong registration request" in {
@@ -104,17 +105,16 @@ class ExtPrimaryDataServiceSpec
       val key =
         ScheduleLock.singleKey(TSpawner, schedulerProbe.ref, INIT_SIM_TICK)
 
-      service ! ServiceMessage.Create(
+      primaryDataService ! Create(
         InitExtPrimaryData(extPrimaryDataConnection),
         key,
       )
 
-      service ! WrappedActivation(Activation(INIT_SIM_TICK))
+      service ! Activation(INIT_SIM_TICK)
 
-      service ! RegisterForWeatherMessage(
+      service ! SecondaryServiceRegistrationMessage(
         systemParticipant.ref,
-        51.4843281,
-        7.4116482,
+        Coordinate(51.4843281, 7.4116482),
       )
 
       val deathWatch = createTestProbe("deathWatch")
@@ -122,23 +122,23 @@ class ExtPrimaryDataServiceSpec
     }
 
     "correctly register a forwarded request" ignore {
-      serviceRef ! PrimaryServiceRegistrationMessage(
+      primaryDataService ! PrimaryServiceRegistrationMessage(
         systemParticipant.ref,
         UUID.randomUUID(),
       )
 
       /* Wait for request approval */
-      val msg =
-        systemParticipant.expectMessageType[RegistrationSuccessfulMessage](
-          10.seconds
+      systemParticipant.expectMessage(
+        RegistrationSuccessfulMessage(
+          primaryDataService,
+          0L,
         )
-      msg.serviceRef shouldBe serviceRef.ref
-      msg.firstDataTick shouldBe 0L
+      )
 
       /* We cannot directly check, if the requesting actor is among the subscribers, therefore we ask the actor to
        * provide data to all subscribed actors and check, if the subscribed probe gets one */
-      serviceRef ! WrappedActivation(Activation(0))
-      scheduler.expectMessageType[Completion]
+      primaryDataService ! Activation(0)
+      scheduler.expectMessage(Completion(primaryDataService))
 
       systemParticipant.expectMessageType[DataProvision[PrimaryData]]
     }

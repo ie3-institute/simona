@@ -6,15 +6,22 @@
 
 package edu.ie3.simona.ontology.messages
 
+import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexRequest,
+  FlexResponse,
+}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
+import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
 /** Collections of all messages, that are send to and from the different
@@ -49,6 +56,13 @@ object ServiceMessage {
   final case class SecondaryServiceRegistrationMessage[D](
       requestingActor: ActorRef[ParticipantAgent.Request],
       data: D,
+  ) extends ServiceRegistrationMessage
+
+  final case class EmServiceRegistration(
+      requestingActor: ActorRef[EmAgent.Message],
+      inputUuid: UUID,
+      parentEm: Option[ActorRef[FlexResponse]],
+      parentUuid: Option[UUID],
   ) extends ServiceRegistrationMessage
 
   /** Message to register with a primary data service.
@@ -142,4 +156,18 @@ object ServiceMessage {
       evModels: Seq[EvModelWrapper],
   ) extends ServiceResponseMessage
 
+  final case class EmFlexMessage(
+      message: FlexRequest | FlexResponse,
+      receiver: Either[UUID, ActorRef[EmAgent.Message]],
+  ) extends ServiceResponseMessage
+
+  final case class ResultResponseMessage(result: ResultEntity)
+      extends ServiceMessage
+      with ServiceResponseMessage {
+    def tick(using startTime: ZonedDateTime): Long =
+      TimeUtil.withDefaults.zonedDateTimeDifferenceInSeconds(
+        startTime,
+        result.getTime,
+      )
+  }
 }

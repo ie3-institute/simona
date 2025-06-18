@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.results
 
-import edu.ie3.simona.service.results.ExtResultProvider.ResultResponseMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.ResultResponseMessage
 
 import java.util.UUID
 

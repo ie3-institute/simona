@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.service.em
 
-import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
@@ -23,10 +22,7 @@ import edu.ie3.simona.api.data.em.ontology.{
   RequestEmFlexResults,
 }
 import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
-import edu.ie3.simona.api.data.ontology.{
-  DataMessageFromExt,
-  ScheduleDataServiceMessage,
-}
+import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.config.RuntimeConfig.{
   LoadRuntimeConfig,
@@ -39,19 +35,19 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   PrimaryServiceRegistrationMessage,
-}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  RegisterForWeatherMessage,
-  WeatherData,
+  SecondaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.weather.WeatherService
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmCommunicationTestData
 import edu.ie3.simona.test.matchers.QuantityMatchers
@@ -94,13 +90,14 @@ class ExtEmBaseIT
   private val emNode4Uuid =
     UUID.fromString("ff0b995a-86ff-4f4d-987e-e475a64f2180")
 
-  private val gridAgent = TestProbe[GridAgent.Request]("GridAgent")
+  private val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
   private val resultListener = TestProbe[ResultEvent]("ResultListener")
   private val primaryServiceProxy =
-    TestProbe[ServiceMessage]("PrimaryServiceProxy")
-  private val weatherService = TestProbe[ServiceMessage]("WeatherService")
+    TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
+  private val weatherService =
+    TestProbe[WeatherService.Message]("WeatherService")
 
-  private val participantRefs = ParticipantRefs(
+  private given ParticipantRefs = ParticipantRefs(
     gridAgent = gridAgent.ref,
     primaryServiceProxy = primaryServiceProxy.ref,
     services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -114,14 +111,12 @@ class ExtEmBaseIT
 
     val service = spawn(ExtEmDataService(scheduler.ref))
     val serviceRef = service.ref
-    implicit val adapter: ActorRef[DataMessageFromExt] =
-      spawn(ExtEmDataService.adapter(service))
 
     val connection = new ExtEmDataConnection(
       List(emSupUuid, emNode3Uuid, emNode4Uuid).asJava,
       EmMode.BASE,
     )
-    connection.setActorRefs(adapter, extSimAdapter.ref)
+    connection.setActorRefs(serviceRef, extSimAdapter.ref)
 
     val emAgentSup = spawn(
       EmAgent(
@@ -174,8 +169,6 @@ class ExtEmBaseIT
         SimpleInputContainer(pvNode3),
         PvRuntimeConfig(),
         outputConfig,
-        participantRefs,
-        simulationParams,
         Right(emAgentNode3),
         keys.next(),
       )
@@ -186,8 +179,6 @@ class ExtEmBaseIT
         SimpleInputContainer(storageInput),
         StorageRuntimeConfig(),
         outputConfig,
-        participantRefs,
-        simulationParams,
         Right(emAgentNode3),
         keys.next(),
       )
@@ -198,8 +189,6 @@ class ExtEmBaseIT
         SimpleInputContainer(pvNode4),
         PvRuntimeConfig(),
         outputConfig,
-        participantRefs,
-        simulationParams,
         Right(emAgentNode4),
         keys.next(),
       )
@@ -210,8 +199,6 @@ class ExtEmBaseIT
         SimpleInputContainer(loadInput),
         LoadRuntimeConfig(),
         outputConfig,
-        participantRefs,
-        simulationParams,
         Right(emAgentNode4),
         keys.next(),
       )
@@ -227,10 +214,9 @@ class ExtEmBaseIT
       key,
     )
 
-    val activationMsg = scheduler.expectMessageType[ScheduleActivation]
-    activationMsg.tick shouldBe INIT_SIM_TICK
-    activationMsg.unlockKey shouldBe Some(key)
-    implicit val serviceActivation: ActorRef[Activation] = activationMsg.actor
+    scheduler.expectMessage(
+      ScheduleActivation(serviceRef, INIT_SIM_TICK, Some(key))
+    )
 
     // we expect a completion for the participant locks
     scheduler.expectMessage(Completion(lockActivation))
@@ -238,8 +224,8 @@ class ExtEmBaseIT
     /* INIT */
 
     // activate the service for init tick
-    serviceActivation ! Activation(INIT_SIM_TICK)
-    scheduler.expectMessage(Completion(serviceActivation))
+    serviceRef ! Activation(INIT_SIM_TICK)
+    scheduler.expectMessage(Completion(serviceRef))
 
     primaryServiceProxy.receiveMessages(
       4,
@@ -268,10 +254,9 @@ class ExtEmBaseIT
 
     // deal with weather service registration
     weatherService.expectMessage(
-      RegisterForWeatherMessage(
+      SecondaryServiceRegistrationMessage(
         pvAgentNode3,
-        pvNode3.getNode.getGeoPosition.getY,
-        pvNode3.getNode.getGeoPosition.getX,
+        Coordinate(pvNode3.getNode),
       )
     )
 
@@ -281,10 +266,9 @@ class ExtEmBaseIT
     pvAgentNode4 ! RegistrationFailedMessage(primaryServiceProxy.ref)
 
     weatherService.expectMessage(
-      RegisterForWeatherMessage(
+      SecondaryServiceRegistrationMessage(
         pvAgentNode4,
-        pvNode4.getNode.getGeoPosition.getY,
-        pvNode4.getNode.getGeoPosition.getX,
+        Coordinate(pvNode4.getNode),
       )
     )
     pvAgentNode4 ! RegistrationSuccessfulMessage(weatherService.ref, 0L)
@@ -318,8 +302,8 @@ class ExtEmBaseIT
         new RequestEmFlexResults(0L, List(emSupUuid).asJava, false)
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(0L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
+      serviceRef ! Activation(0L)
 
       val receivedFlexOptions0 = connection
         .receiveWithType(classOf[FlexOptionsResponse])
@@ -345,8 +329,8 @@ class ExtEmBaseIT
 
       connection.sendSetPoints(0L, setPoints0.asJava, Optional.of(900L), log)
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(0L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
+      serviceRef ! Activation(0L)
 
       connection.receiveWithType(classOf[EmCompletion])
 
@@ -372,8 +356,8 @@ class ExtEmBaseIT
         new RequestEmFlexResults(900L, List(emSupUuid).asJava, false)
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(900L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
+      serviceRef ! Activation(900L)
 
       val receivedFlexOptions900 = connection
         .receiveWithType(classOf[FlexOptionsResponse])
@@ -406,8 +390,8 @@ class ExtEmBaseIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(900L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
+      serviceRef ! Activation(900L)
 
       connection.receiveWithType(classOf[EmCompletion])
     }
@@ -435,8 +419,8 @@ class ExtEmBaseIT
         new RequestEmFlexResults(1800L, List(emSupUuid).asJava, true)
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(1800L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
+      serviceRef ! Activation(1800L)
 
       val receivedFlexOptions1800 = connection
         .receiveWithType(classOf[FlexOptionsResponse])
@@ -492,8 +476,8 @@ class ExtEmBaseIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(1800L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
+      serviceRef ! Activation(1800L)
 
       connection.receiveWithType(classOf[EmCompletion])
 
@@ -519,8 +503,8 @@ class ExtEmBaseIT
         new RequestEmFlexResults(2700L, List(emSupUuid).asJava, true)
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(2700L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
+      serviceRef ! Activation(2700L)
 
       val receivedFlexOptions2700 = connection
         .receiveWithType(classOf[FlexOptionsResponse])
@@ -578,8 +562,8 @@ class ExtEmBaseIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(2700L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
+      serviceRef ! Activation(2700L)
 
       connection.receiveWithType(classOf[EmCompletion])
     }
@@ -614,8 +598,8 @@ class ExtEmBaseIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(3600L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
+      serviceRef ! Activation(3600L)
 
       connection.receiveWithType(classOf[EmCompletion])
 
@@ -648,8 +632,8 @@ class ExtEmBaseIT
         log,
       )
 
-      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(adapter))
-      serviceActivation ! Activation(4500L)
+      extSimAdapter.expectMessage(new ScheduleDataServiceMessage(serviceRef))
+      serviceRef ! Activation(4500L)
 
       connection.receiveWithType(classOf[EmCompletion])
 

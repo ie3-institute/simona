@@ -359,13 +359,13 @@ object PrimaryServiceProxy {
             case Some(timeSeriesUuid) =>
               /* There is a time series apparent for this model, try to get a worker for it */
               val updatedStateData = handleCoveredModel(
-                  modelUuid,
-                  timeSeriesUuid,
-                  stateData,
-                  requestingActor,
-                )(using constantData, ctx)
+                modelUuid,
+                timeSeriesUuid,
+                stateData,
+                requestingActor,
+              )(using scheduler, ctx)
 
-                onMessage(updatedStateData)
+              onMessage(updatedStateData)
 
             case None =>
               ctx.log.debug(

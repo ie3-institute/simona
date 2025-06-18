@@ -14,6 +14,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   ServiceRegistrationMessage,
+  ServiceResponseMessage,
 }
 import edu.ie3.simona.ontology.messages.{
   Activation,
@@ -130,7 +131,7 @@ abstract class SimonaService {
       Behaviors.same
 
     case (ctx, msg: ServiceResponseMessage) =>
-      handleServiceResponse(msg)(ctx)
+      handleServiceResponse(msg)(using ctx)
       Behaviors.same
 
     // unhandled message
@@ -189,10 +190,10 @@ abstract class SimonaService {
       maybeNextTick match {
         case Some(nextTick) if nextTick == tick =>
           // we need to do an additional activation of this service
-          ctx.self ! WrappedActivation(Activation(tick))
+          ctx.self ! Activation(tick)
 
         case _ =>
-          constantData.scheduler ! Completion(
+          scheduler ! Completion(
             ctx.self,
             maybeNextTick,
           )
@@ -244,8 +245,8 @@ abstract class SimonaService {
 
   protected def handleServiceResponse(
       serviceResponse: ServiceResponseMessage
-  )(implicit
-      ctx: ActorContext[T]
+  )(using
+      ctx: ActorContext[Message]
   ): Unit = {}
 
   /** Handle a request to register for information from this service

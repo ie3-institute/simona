@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   SimulationParameters,
 }
 import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
-import edu.ie3.simona.config.RuntimeConfig._
+import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
 import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.config.SimonaConfig.AssetConfigs
@@ -39,7 +39,8 @@ import edu.ie3.simona.ontology.messages.{
 }
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.util.ConfigUtil._
+import edu.ie3.simona.service.em.ExtEmDataService
+import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
@@ -225,7 +226,7 @@ object GridAgentBuilder {
   private def buildEmsRecursively(
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
-      emDataService: Option[ActorRef[EmMessage]],
+      emDataService: Option[ActorRef[ExtEmDataService.Message]],
   )(using
       constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Message],
@@ -476,7 +477,7 @@ object GridAgentBuilder {
   private def buildEm(
       emInput: EmInput,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-      emDataService: Option[ActorRef[EmMessage]],
+      emDataService: Option[ActorRef[ExtEmDataService.Message]],
   )(using
       constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Message],

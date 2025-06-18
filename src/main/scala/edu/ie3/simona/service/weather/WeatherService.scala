@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.weather
 
+import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
@@ -51,6 +52,17 @@ object WeatherService extends SimonaService {
       latitude: Double,
       longitude: Double,
   )
+
+  object Coordinate {
+    def apply(node: NodeInput): Coordinate = {
+      val geoPosition = node.getGeoPosition
+
+      Coordinate(
+        geoPosition.getY,
+        geoPosition.getX,
+      )
+    }
+  }
 
   /** @param weatherSource
     *   weather source to receive information from

@@ -13,9 +13,10 @@ import edu.ie3.simona.api.data.em.model.{
   FlexRequestResult,
 }
 import edu.ie3.simona.api.data.em.ontology.*
+import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
 import edu.ie3.simona.service.em.EmCommunicationCore.DataMap
 import edu.ie3.simona.service.em.EmServiceCore.EmRefMaps
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -28,7 +29,6 @@ import org.slf4j.Logger
 import tech.units.indriya.ComparableQuantity
 
 import scala.jdk.OptionConverters.RichOption
-
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power
@@ -41,8 +41,8 @@ import scala.jdk.CollectionConverters.{
 
 final case class EmCommunicationCore(
     override val lastFinishedTick: Long = PRE_INIT_TICK,
-    override val uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]] =
-      Map.empty,
+    override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
+    agentToUuid: Map[ActorRef[EmAgent.Message], UUID] = Map.empty,
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
     refs: EmRefMaps = EmRefMaps(),
@@ -57,20 +57,19 @@ final case class EmCommunicationCore(
 ) extends EmServiceCore {
 
   override def handleRegistration(
-      registrationMsg: RegisterForEmDataService
+      emServiceRegistration: EmServiceRegistration
   ): EmServiceCore = {
-    val uuid = registrationMsg.modelUuid
-    val ref = registrationMsg.requestingActor
-    val flexAdapter = registrationMsg.flexAdapter
-    val parentEm = registrationMsg.parentEm
-    val parentUuid = registrationMsg.parentUuid
+    val ref = emServiceRegistration.requestingActor
+    val uuid = emServiceRegistration.inputUuid
+    val parentEm = emServiceRegistration.parentEm
+    val parentUuid = emServiceRegistration.parentUuid
 
     val updatedRefs = refs.add(uuid, ref, parentEm, parentUuid)
 
     copy(
       refs = updatedRefs,
-      uuidToFlexAdapter = uuidToFlexAdapter + (uuid -> flexAdapter),
-      flexAdapterToUuid = flexAdapterToUuid + (flexAdapter -> uuid),
+      uuidToAgent = uuidToAgent + (uuid -> ref),
+      agentToUuid = agentToUuid + (ref -> uuid),
       flexRequestReceived =
         flexRequestReceived.updateStructure(parentUuid, uuid),
       flexOptionResponse = flexOptionResponse.updateStructure(parentUuid, uuid),
@@ -95,8 +94,8 @@ final case class EmCommunicationCore(
       } else {
         log.info(s"Receive a request for completion for tick '$tick'.")
 
-        uuidToFlexAdapter.foreach { case (_, adapter) =>
-          adapter ! IssueNoControl(tick)
+        uuidToAgent.foreach { case (_, emAgent) =>
+          emAgent ! IssueNoControl(tick)
         }
 
         (this, Some(new EmCompletion(getMaybeNextTick.toJava)))
@@ -110,7 +109,7 @@ final case class EmCommunicationCore(
         .map { case (agent, _) => agent }
         .toSet
 
-      val agents = emEntities.map(uuidToFlexAdapter)
+      val agents = emEntities.map(uuidToAgent)
 
       agents.foreach(_ ! FlexActivation(tick))
 
@@ -161,8 +160,8 @@ final case class EmCommunicationCore(
   override def handleFlexResponse(
       tick: Long,
       flexResponse: FlexResponse,
-      receiver: Either[UUID, ActorRef[FlexResponse]],
-  )(implicit
+      receiver: Either[UUID, ActorRef[EmAgent.Message]],
+  )(using
       startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = flexResponse match {
@@ -174,7 +173,7 @@ final case class EmCommunicationCore(
             ref ! scheduleFlexActivation
 
           case Left(uuid) =>
-            uuidToFlexAdapter(uuid) ! FlexActivation(INIT_SIM_TICK)
+            uuidToAgent(uuid) ! FlexActivation(INIT_SIM_TICK)
         }
       } else {
         log.warn(s"$scheduleFlexActivation not handled!")
@@ -189,7 +188,7 @@ final case class EmCommunicationCore(
             otherRef ! provideFlexOptions
 
           case Left(self: UUID) =>
-            uuidToFlexAdapter(self) ! IssuePowerControl(
+            uuidToAgent(self) ! IssuePowerControl(
               INIT_SIM_TICK,
               zeroKW,
             )
@@ -281,8 +280,8 @@ final case class EmCommunicationCore(
 
   override def handleFlexRequest(
       flexRequest: FlexRequest,
-      receiver: ActorRef[FlexRequest],
-  )(implicit
+      receiver: ActorRef[EmAgent.Message],
+  )(using
       startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = flexRequest match {
@@ -292,7 +291,7 @@ final case class EmCommunicationCore(
 
         (this, None)
       } else {
-        val uuid = flexAdapterToUuid(receiver)
+        val uuid = agentToUuid(receiver)
 
         val updated = flexRequestReceived.addData(
           uuid,
@@ -330,7 +329,7 @@ final case class EmCommunicationCore(
         (this, None)
 
       } else {
-        val uuid = flexAdapterToUuid(receiver)
+        val uuid = agentToUuid(receiver)
 
         val (time, power) = issueFlexControl match {
           case IssueNoControl(tick) =>

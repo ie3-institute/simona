@@ -22,7 +22,7 @@ import edu.ie3.simona.exceptions.{
   ServiceException,
 }
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.SecondaryData.ArrivingEvs
 import edu.ie3.simona.service.ServiceStateData.{

@@ -27,9 +27,9 @@ import java.util.UUID
 
 trait EmCommunicationTestData extends DefaultTestData {
 
-  protected implicit val simulationStart: ZonedDateTime =
+  protected given simulationStart: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
-  protected implicit val simulationEnd: ZonedDateTime =
+  protected given simulationEnd: ZonedDateTime =
     simulationStart.plusHours(2)
 
   protected val simonaConfig: SimonaConfig = createSimonaConfig()
@@ -40,7 +40,7 @@ trait EmCommunicationTestData extends DefaultTestData {
     flexResult = true, // also test FlexOptionsResult if EM-controlled
   )
 
-  protected val simulationParams: SimulationParameters = SimulationParameters(
+  protected given SimulationParameters = SimulationParameters(
     expectedPowerRequestTick = Long.MaxValue,
     requestVoltageDeviationTolerance = Each(1e-14d),
     simulationStart = simulationStart,

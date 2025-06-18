@@ -663,6 +663,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val modelFactory = PrimaryDataParticipantModel.Factory(
           physicalModel,
           ActivePowerExtra,
+          1.0,
         )
 
         val participantAgent = spawn(
@@ -1692,6 +1693,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val modelFactory = PrimaryDataParticipantModel.Factory(
           physicalModel,
           ActivePowerExtra,
+          1.0,
         )
 
         val participantAgent = spawn(

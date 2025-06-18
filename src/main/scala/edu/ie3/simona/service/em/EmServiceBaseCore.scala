@@ -6,12 +6,13 @@
 
 package edu.ie3.simona.service.em
 
+import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.em.model.ExtendedFlexOptionsResult
-import edu.ie3.simona.api.data.em.ontology._
+import edu.ie3.simona.api.data.em.ontology.*
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegisterForEmDataService
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -19,7 +20,6 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
 import scala.jdk.OptionConverters.RichOption
-
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.{
@@ -30,8 +30,7 @@ import scala.jdk.CollectionConverters.{
 
 final case class EmServiceBaseCore(
     override val lastFinishedTick: Long = PRE_INIT_TICK,
-    override val uuidToFlexAdapter: Map[UUID, ActorRef[FlexRequest]] =
-      Map.empty,
+    override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
     flexOptions: ReceiveDataMap[UUID, ExtendedFlexOptionsResult] =
       ReceiveDataMap.empty,
     additionalFlexOptions: Map[UUID, ExtendedFlexOptionsResult] = Map.empty,
@@ -45,10 +44,11 @@ final case class EmServiceBaseCore(
 ) extends EmServiceCore {
 
   override def handleRegistration(
-      registrationMsg: RegisterForEmDataService
+      emServiceRegistration: EmServiceRegistration
   ): EmServiceBaseCore = {
-    val modelUuid = registrationMsg.modelUuid
-    val parentUuid = registrationMsg.parentUuid
+    val ref = emServiceRegistration.requestingActor
+    val modelUuid = emServiceRegistration.inputUuid
+    val parentUuid = emServiceRegistration.parentUuid
 
     val updatedStructure = parentUuid match {
       case Some(parent) =>
@@ -71,15 +71,14 @@ final case class EmServiceBaseCore(
     }
 
     copy(
-      uuidToFlexAdapter =
-        uuidToFlexAdapter ++ Map(modelUuid -> registrationMsg.flexAdapter),
+      uuidToAgent = uuidToAgent + (modelUuid -> ref),
       completions = completions.addExpectedKeys(Set(modelUuid)),
       structure = updatedStructure,
     )
   }
 
-  override def handleExtMessage(tick: Long, extMSg: EmDataMessageFromExt)(
-      implicit log: Logger
+  override def handleExtMessage(tick: Long, extMSg: EmDataMessageFromExt)(using
+      log: Logger
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = extMSg match {
     case requestEmFlexResults: RequestEmFlexResults =>
       val tick = requestEmFlexResults.tick
@@ -90,7 +89,7 @@ final case class EmServiceBaseCore(
         log.warn(s"Disaggregated flex options are currently not supported!")
       }
 
-      emEntities.map(uuidToFlexAdapter).foreach { ref =>
+      emEntities.map(uuidToAgent).foreach { ref =>
         ref ! FlexActivation(tick)
       }
 
@@ -112,7 +111,7 @@ final case class EmServiceBaseCore(
         val tick = provideEmSetPoints.tick
         val emEntities = provideEmSetPoints.emSetPoints.keySet.asScala
 
-        emEntities.map(uuidToFlexAdapter).foreach { ref =>
+        emEntities.map(uuidToAgent).foreach { ref =>
           ref ! FlexActivation(tick)
         }
 
@@ -134,8 +133,8 @@ final case class EmServiceBaseCore(
   override def handleFlexResponse(
       tick: Long,
       flexResponse: FlexResponse,
-      receiver: Either[UUID, ActorRef[FlexResponse]],
-  )(implicit
+      receiver: Either[UUID, ActorRef[EmAgent.Message]],
+  )(using
       startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
@@ -149,7 +148,7 @@ final case class EmServiceBaseCore(
                 MinMaxFlexOptions(ref, min, max),
               ) =>
             val result = new ExtendedFlexOptionsResult(
-              tick.toDateTime(startTime),
+              tick.toDateTime,
               modelUuid,
               modelUuid,
               min.toQuantity,
@@ -252,8 +251,8 @@ final case class EmServiceBaseCore(
 
   override def handleFlexRequest(
       flexRequest: FlexRequest,
-      receiver: ActorRef[FlexRequest],
-  )(implicit
+      receiver: ActorRef[EmAgent.Message],
+  )(using
       startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {

@@ -14,6 +14,7 @@ import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.service.em.ExtEmDataService
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Case class that holds information regarding the external data connections as
@@ -34,7 +35,7 @@ final case class ExtSimSetupData(
       (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
     ],
     extDataServices: Seq[
-      (? <: ExtInputDataConnection, ActorRef[ServiceMessage])
+      (? <: ExtInputDataConnection[?], ActorRef[ServiceMessage])
     ],
     extResultListeners: Seq[(ExtResultDataConnection, ActorRef[ServiceMessage])],
 ) {
@@ -48,7 +49,7 @@ final case class ExtSimSetupData(
     )
 
   private[setup] def update(
-      connection: ExtInputDataConnection,
+      connection: ExtInputDataConnection[?],
       ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData = connection match {
     case primaryConnection: ExtPrimaryDataConnection =>
@@ -73,9 +74,10 @@ final case class ExtSimSetupData(
       case (_: ExtEvDataConnection, ref: ActorRef[ServiceMessage]) => ref
     }
 
-  def emDataService: Option[ActorRef[EmMessage]] =
+  def emDataService: Option[ActorRef[ExtEmDataService.Message]] =
     extDataServices.collectFirst {
-      case (_: ExtEmDataConnection, ref: ActorRef[EmMessage]) => ref
+      case (_: ExtEmDataConnection, ref: ActorRef[ExtEmDataService.Message]) =>
+        ref
     }
 
   def resultDataServices: Iterable[ActorRef[ServiceMessage]] =

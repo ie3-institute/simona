@@ -15,8 +15,8 @@ import edu.ie3.simona.api.data.results.ontology.{
   ResultDataMessageFromExt,
 }
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  ResultResponseMessage,
   ServiceRegistrationMessage,
   ServiceResponseMessage,
 }
@@ -27,7 +27,6 @@ import edu.ie3.simona.service.ServiceStateData.{
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 import java.time.ZonedDateTime
@@ -35,20 +34,9 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 import scala.util.{Failure, Success, Try}
 
-object ExtResultProvider
-    extends SimonaService[ServiceMessage]
-    with ExtDataSupport[ServiceMessage] {
+object ExtResultProvider extends SimonaService with ExtDataSupport {
 
   override type S = ExtResultStateData
-
-  final case class ResultResponseMessage(result: ResultEntity)
-      extends ServiceResponseMessage {
-    def tick(implicit startTime: ZonedDateTime): Long =
-      TimeUtil.withDefaults.zonedDateTimeDifferenceInSeconds(
-        startTime,
-        result.getTime,
-      )
-  }
 
   final case class ExtResultStateData(
       extResultDataConnection: ExtResultDataConnection,
@@ -108,9 +96,9 @@ object ExtResultProvider
 
   override protected def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
-  )(implicit
+  )(using
       serviceStateData: ExtResultStateData,
-      ctx: ActorContext[ServiceMessage],
+      ctx: ActorContext[Message],
   ): Try[ExtResultStateData] = {
     // this should not happen
     ctx.log.warn(
@@ -119,9 +107,9 @@ object ExtResultProvider
     Success(serviceStateData)
   }
 
-  override protected def announceInformation(tick: Long)(implicit
+  override protected def announceInformation(tick: Long)(using
       serviceStateData: ExtResultStateData,
-      ctx: ActorContext[ServiceMessage],
+      ctx: ActorContext[Message],
   ): (ExtResultStateData, Option[Long]) = {
 
     val extMsg = serviceStateData.extResultsMessage.getOrElse(
@@ -207,7 +195,7 @@ object ExtResultProvider
 
   override protected def handleDataMessage(
       extMsg: DataMessageFromExt
-  )(implicit serviceStateData: ExtResultStateData): ExtResultStateData =
+  )(using serviceStateData: ExtResultStateData): ExtResultStateData =
     extMsg match {
       case extMsg: ResultDataMessageFromExt =>
         serviceStateData.copy(
@@ -217,7 +205,7 @@ object ExtResultProvider
 
   override protected def handleDataResponseMessage(
       extResponseMsg: ServiceResponseMessage
-  )(implicit serviceStateData: ExtResultStateData): ExtResultStateData =
+  )(using serviceStateData: ExtResultStateData): ExtResultStateData =
     extResponseMsg match {
       case ResultResponseMessage(result) =>
         val receiveDataMap = serviceStateData.receiveDataMap
