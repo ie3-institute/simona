@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
 }
-import edu.ie3.simona.config.RuntimeConfig._
+import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -26,22 +26,24 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  RegisterForWeatherMessage,
-  WeatherData,
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  SecondaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
+import edu.ie3.simona.service.weather.{WeatherService, WeatherServiceSpec}
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
-import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.test.matchers.QuantityMatchers
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -72,7 +74,7 @@ class EmAgentIT
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
-  private val simulationParams = SimulationParameters(
+  given simulationParams: SimulationParameters = SimulationParameters(
     expectedPowerRequestTick = Long.MaxValue,
     requestVoltageDeviationTolerance = Each(1e-14d),
     simulationStart = simulationStartDate,
@@ -104,11 +106,11 @@ class EmAgentIT
         val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
-          TestProbe[ServiceMessage]("PrimaryServiceProxy")
-        val weatherService = TestProbe[ServiceMessage]("WeatherService")
+          TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
+        val weatherService = TestProbe[WeatherService.Message]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
-        val participantRefs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -140,8 +142,6 @@ class EmAgentIT
             loadInputContainer,
             LoadRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -152,8 +152,6 @@ class EmAgentIT
             pvInputContainer,
             PvRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -164,8 +162,6 @@ class EmAgentIT
             storageInputContainer,
             StorageRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -207,10 +203,12 @@ class EmAgentIT
 
         // deal with weather service registration
         weatherService.expectMessage(
-          RegisterForWeatherMessage(
+          SecondaryServiceRegistrationMessage(
             pvAgent,
-            pvInput.getNode.getGeoPosition.getY,
-            pvInput.getNode.getGeoPosition.getX,
+            Coordinate(
+              pvInput.getNode.getGeoPosition.getY,
+              pvInput.getNode.getGeoPosition.getX,
+            ),
           )
         )
 
@@ -343,11 +341,11 @@ class EmAgentIT
         val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
-          TestProbe[ServiceMessage]("PrimaryServiceProxy")
-        val weatherService = TestProbe[ServiceMessage]("WeatherService")
+          TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
+        val weatherService = TestProbe[WeatherService.Message]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
-        val participantRefs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -379,8 +377,6 @@ class EmAgentIT
             loadInputContainer,
             LoadRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -391,8 +387,6 @@ class EmAgentIT
             pvInputContainer,
             PvRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -403,8 +397,6 @@ class EmAgentIT
             adaptedWithHeatContainer,
             HpRuntimeConfig(),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -446,10 +438,12 @@ class EmAgentIT
 
         // deal with weather service registration
         weatherService.expectMessage(
-          RegisterForWeatherMessage(
+          SecondaryServiceRegistrationMessage(
             pvAgent,
-            pvInput.getNode.getGeoPosition.getY,
-            pvInput.getNode.getGeoPosition.getX,
+            Coordinate(
+              pvInput.getNode.getGeoPosition.getY,
+              pvInput.getNode.getGeoPosition.getX,
+            ),
           )
         )
 
@@ -460,10 +454,12 @@ class EmAgentIT
 
         // deal with weather service registration
         weatherService.expectMessage(
-          RegisterForWeatherMessage(
+          SecondaryServiceRegistrationMessage(
             hpAgent,
-            adaptedHpInputModel.getNode.getGeoPosition.getY,
-            adaptedHpInputModel.getNode.getGeoPosition.getX,
+            Coordinate(
+              adaptedHpInputModel.getNode.getGeoPosition.getY,
+              adaptedHpInputModel.getNode.getGeoPosition.getX,
+            ),
           )
         )
 
@@ -649,11 +645,11 @@ class EmAgentIT
         val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
-          TestProbe[ServiceMessage]("PrimaryServiceProxy")
-        val weatherService = TestProbe[ServiceMessage]("WeatherService")
+          TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
+        val weatherService = TestProbe[WeatherService.Message]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
-        val participantRefs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -679,26 +675,22 @@ class EmAgentIT
           ),
           "EmAgentReactivePower",
         )
+
         val pvAgent = spawn(
           ParticipantAgentInit(
             pvInputContainerLimitedOperationTime,
             PvRuntimeConfig(calculateMissingReactivePowerWithModel = true),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
           "PvAgentReactivePower",
         )
-
         val loadAgent = spawn(
           ParticipantAgentInit(
             loadInputContainerWithLimitedOperationTime,
             LoadRuntimeConfig(calculateMissingReactivePowerWithModel = true),
             outputConfigOff,
-            participantRefs,
-            simulationParams,
             Right(emAgent),
             keys.next(),
           ),
@@ -742,10 +734,12 @@ class EmAgentIT
 
         // deal with weather service registration
         weatherService.expectMessage(
-          RegisterForWeatherMessage(
+          SecondaryServiceRegistrationMessage(
             pvAgent,
-            pvInputLimitedOperationTime.getNode.getGeoPosition.getY,
-            pvInputLimitedOperationTime.getNode.getGeoPosition.getX,
+            Coordinate(
+              pvInputLimitedOperationTime.getNode.getGeoPosition.getY,
+              pvInputLimitedOperationTime.getNode.getGeoPosition.getX,
+            ),
           )
         )
 

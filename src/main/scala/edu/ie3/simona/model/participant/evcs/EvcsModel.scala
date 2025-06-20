@@ -28,13 +28,14 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsState,
 }
 import edu.ie3.simona.model.participant.{ChargingHelper, ParticipantModel}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
-import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.Data.SecondaryData.*
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.QuantityUtils.{asPu, asMegaWatt, asMegaVar}
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt, asPu}
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -463,7 +464,7 @@ class EvcsModel private (
 
   override def handleRequest(
       state: EvcsState,
-      ctx: ActorContext[ParticipantAgent.Request],
+      ctx: ActorContext[ParticipantAgent.Message],
       msg: ParticipantRequest,
   ): EvcsState = msg match {
     case freeLotsRequest: EvFreeLotsRequest =>
