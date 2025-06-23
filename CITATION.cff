@@ -35,6 +35,7 @@ authors:
     given-names: Julian
   - family-names: Staudt
     given-names: Marius
+    orcid: https://orcid.org/0009-0005-3309-5258
 repository-code: https://github.com/ie3-institute/simona
 url: https://simona.ie3.e-technik.tu-dortmund.de
 repository-artifact: https://central.sonatype.com/artifact/com.github.ie3-institute/simona
