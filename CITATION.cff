@@ -3,7 +3,13 @@ title: "SIMONA - A Discrete-Event Distribution Grid Simulation Environment"
 message: "If you use this software, please cite it as below."
 type: software
 authors:
-  - family-names: ie³ - Institute of Energy Systems, Energy Efficiency and Energy Economics - TU Dortmund University
+  - name: "ie³ - Institute of Energy Systems, Energy Efficiency and Energy Economics - TU Dortmund University"
+    alias: ie³
+    address: "Martin-Schmeißer-Weg 12"
+    city: Dortmund
+    country: DE
+    post-code: 44227
+    website: "https://ie3.etit.tu-dortmund.de/"
   - family-names: Hiry
     given-names: Johannes
     orcid: https://orcid.org/0000-0002-1447-0607
