@@ -7,13 +7,9 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
-import edu.ie3.simona.api.data.em.model.{
-  EmSetPointResult,
-  ExtendedFlexOptionsResult,
-  FlexRequestResult,
-}
 import edu.ie3.simona.api.data.em.ontology.*
 import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.api.data.model.em.{EmSetPointResult, ExtendedFlexOptionsResult, FlexRequestResult}
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions

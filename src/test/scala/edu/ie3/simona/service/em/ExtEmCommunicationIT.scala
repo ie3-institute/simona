@@ -17,9 +17,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.ParticipantRefs
 import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
 import edu.ie3.simona.api.data.em.model.{
   EmSetPoint,
-  FlexOptionRequest,
   FlexOptions,
-  FlexRequestResult,
 }
 import edu.ie3.simona.api.data.em.ontology.{
   EmCompletion,
@@ -28,6 +26,7 @@ import edu.ie3.simona.api.data.em.ontology.{
   FlexRequestResponse,
 }
 import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
+import edu.ie3.simona.api.data.model.em.{FlexOptionRequest, FlexRequestResult}
 import edu.ie3.simona.api.data.ontology.{
   DataMessageFromExt,
   ScheduleDataServiceMessage,

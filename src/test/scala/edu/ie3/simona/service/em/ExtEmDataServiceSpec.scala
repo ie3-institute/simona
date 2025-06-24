@@ -9,11 +9,11 @@ package edu.ie3.simona.service.em
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.em.model.{
   EmSetPoint,
-  ExtendedFlexOptionsResult,
   FlexOptions,
 }
 import edu.ie3.simona.api.data.em.ontology.*
 import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
+import edu.ie3.simona.api.data.model.em.ExtendedFlexOptionsResult
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
