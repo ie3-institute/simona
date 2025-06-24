@@ -137,11 +137,11 @@ class HpModel private (
           zeroKW,
           zeroKW,
         )
-      case (false, false) =>
-        (
-          sRated.toActivePower(cosPhiRated),
-          sRated.toActivePower(cosPhiRated),
-        ) // should not be possible to reach
+      case _ =>
+        throw IllegalStateException(
+          "An unsupported FlexOption for a heat pump has been determined."
+        )
+      // should not be possible to reach
     }
 
     val maxPower = if (canOperate) sRated.toActivePower(cosPhiRated) else zeroKW
