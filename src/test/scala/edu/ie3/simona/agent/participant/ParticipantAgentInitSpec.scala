@@ -25,13 +25,17 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  SecondaryServiceRegistrationMessage,
+}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -54,7 +58,7 @@ class ParticipantAgentInitSpec
 
   private implicit val simulationStart: ZonedDateTime = defaultSimulationStart
 
-  private val simulationParams = SimulationParameters(
+  given simulationParams: SimulationParameters = SimulationParameters(
     3600,
     Each(1e-14),
     simulationStart,
@@ -83,11 +87,11 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
-        val primaryService = createTestProbe[Any]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
+        val primaryService = createTestProbe[PrimaryServiceProxy.Message]()
         val resultListener = createTestProbe[ResultEvent]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map.empty,
@@ -103,8 +107,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Left(scheduler.ref),
             key,
           )
@@ -134,11 +136,11 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map.empty,
@@ -154,8 +156,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Left(scheduler.ref),
             key,
           )
@@ -194,11 +194,11 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map.empty,
@@ -214,8 +214,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Right(em.ref),
             key,
           )
@@ -259,11 +257,11 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map.empty,
@@ -279,8 +277,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Right(em.ref),
             key,
           )
@@ -348,12 +344,12 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -369,8 +365,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Left(scheduler.ref),
             key,
           )
@@ -393,10 +387,12 @@ class ParticipantAgentInitSpec
         participantAgent ! RegistrationFailedMessage(primaryService.ref)
 
         service.expectMessage(
-          RegisterForWeatherMessage(
+          SecondaryServiceRegistrationMessage(
             participantAgent,
-            mockInput.electricalInputModel.getNode.getGeoPosition.getY,
-            mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+            Coordinate(
+              mockInput.electricalInputModel.getNode.getGeoPosition.getY,
+              mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+            ),
           )
         )
 
@@ -413,12 +409,12 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -434,8 +430,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Left(scheduler.ref),
             key,
           )
@@ -478,12 +472,12 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -499,8 +493,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Right(em.ref),
             key,
           )
@@ -531,10 +523,12 @@ class ParticipantAgentInitSpec
         participantAgent ! RegistrationFailedMessage(primaryService.ref)
 
         service.expectMessage(
-          RegisterForWeatherMessage(
+          SecondaryServiceRegistrationMessage(
             participantAgent,
-            mockInput.electricalInputModel.getNode.getGeoPosition.getY,
-            mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+            Coordinate(
+              mockInput.electricalInputModel.getNode.getGeoPosition.getY,
+              mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+            ),
           )
         )
 
@@ -556,12 +550,12 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Request]()
+        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultListener = createTestProbe[ResultEvent]()
         val service = createTestProbe[Any]()
 
-        val refs = ParticipantRefs(
+        given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -577,8 +571,6 @@ class ParticipantAgentInitSpec
             mockInput,
             runtimeConfig,
             mock[NotifierConfig],
-            refs,
-            simulationParams,
             Right(em.ref),
             key,
           )

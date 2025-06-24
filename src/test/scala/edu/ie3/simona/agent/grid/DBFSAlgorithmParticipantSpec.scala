@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
@@ -21,14 +21,12 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
-  ServiceMessage,
-  WeatherMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.load.LoadProfileService
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -53,11 +51,12 @@ class DBFSAlgorithmParticipantSpec
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   private val runtimeEvents: TestProbe[RuntimeEvent] =
     TestProbe("runtimeEvents")
-  private val primaryService: TestProbe[ServiceMessage] =
-    TestProbe("primaryService")
-  private val weatherService = TestProbe[WeatherMessage]("weatherService")
+  private val primaryService =
+    TestProbe[PrimaryServiceProxy.Message]("primaryService")
+  private val weatherService =
+    TestProbe[WeatherService.Message]("weatherService")
   private val loadProfileService =
-    TestProbe[LoadProfileMessage]("loadProfileService")
+    TestProbe[LoadProfileService.Message]("loadProfileService")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
@@ -88,7 +87,7 @@ class DBFSAlgorithmParticipantSpec
     s"initialize itself when it receives an init activation" in {
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]] =
+      val subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]] =
         hvSubGridGates.map { gate =>
           gate -> superiorGridAgent.ref
         }.toMap
@@ -149,7 +148,7 @@ class DBFSAlgorithmParticipantSpec
     s"go to SimulateGrid when it receives an activity start trigger" in {
 
       // send init data to agent
-      gridAgentWithParticipants ! WrappedActivation(Activation(3600))
+      gridAgentWithParticipants ! Activation(3600)
 
       // we expect a completion message
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
@@ -161,7 +160,7 @@ class DBFSAlgorithmParticipantSpec
 
       // send the start grid simulation trigger
       // the gird agent should send a RequestAssetPowerMessage to the load agent
-      gridAgentWithParticipants ! WrappedActivation(Activation(3600))
+      gridAgentWithParticipants ! Activation(3600)
 
       // we expect a request for voltage values of our slack node
       // (voltages are requested by our agent under test from the superior grid)

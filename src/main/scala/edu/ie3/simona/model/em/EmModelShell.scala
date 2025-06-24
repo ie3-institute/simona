@@ -26,6 +26,7 @@ final case class EmModelShell(
     modelStrategy: EmModelStrat,
     aggregateFlex: EmAggregateFlex,
     modelToParticipantInput: Map[UUID, AssetInput] = Map.empty,
+    lastFlexOptions: Option[FlexOptions] = None,
 ) {
 
   def addParticipant(modelUuid: UUID, inputModel: AssetInput): EmModelShell =
