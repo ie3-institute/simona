@@ -15,23 +15,25 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
 }
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.ParticipantRefs
 import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
-import edu.ie3.simona.api.data.em.model.{
+import edu.ie3.simona.api.data.connection.ExtEmDataConnection
+import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
+import edu.ie3.simona.api.data.model.em.{
   EmSetPoint,
+  FlexOptionRequest,
   FlexOptions,
+  FlexRequestResult,
 }
-import edu.ie3.simona.api.data.em.ontology.{
+import edu.ie3.simona.api.ontology.{
+  DataMessageFromExt,
+  ScheduleDataServiceMessage,
+}
+import edu.ie3.simona.api.ontology.em.{
   EmCompletion,
   EmSetPointDataResponse,
   FlexOptionsResponse,
   FlexRequestResponse,
 }
-import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
-import edu.ie3.simona.api.data.model.em.{FlexOptionRequest, FlexRequestResult}
-import edu.ie3.simona.api.data.ontology.{
-  DataMessageFromExt,
-  ScheduleDataServiceMessage,
-}
-import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
+import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.config.RuntimeConfig.{
   LoadRuntimeConfig,
   PvRuntimeConfig,

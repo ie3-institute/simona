@@ -11,9 +11,9 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   PrimaryRegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
-import edu.ie3.simona.api.data.primarydata.ontology.{
+import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
+import edu.ie3.simona.api.ontology.DataMessageFromExt
+import edu.ie3.simona.api.ontology.primary.{
   PrimaryDataMessageFromExt,
   ProvidePrimaryData,
 }

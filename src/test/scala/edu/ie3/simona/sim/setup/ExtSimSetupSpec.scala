@@ -7,7 +7,7 @@
 package edu.ie3.simona.sim.setup
 
 import edu.ie3.datamodel.models.value.{PValue, Value}
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
+import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.test.common.UnitSpec
 

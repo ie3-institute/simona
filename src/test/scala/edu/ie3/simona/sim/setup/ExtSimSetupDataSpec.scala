@@ -7,10 +7,13 @@
 package edu.ie3.simona.sim.setup
 
 import edu.ie3.datamodel.models.value.Value
-import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
-import edu.ie3.simona.api.data.ev.ExtEvDataConnection
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
-import edu.ie3.simona.api.data.results.ExtResultDataConnection
+import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
+import edu.ie3.simona.api.data.connection.{
+  ExtEmDataConnection,
+  ExtEvDataConnection,
+  ExtPrimaryDataConnection,
+  ExtResultDataConnection,
+}
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy

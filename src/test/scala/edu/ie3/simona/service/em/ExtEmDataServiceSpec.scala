@@ -7,15 +7,16 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.model.{
+import edu.ie3.simona.api.data.connection.ExtEmDataConnection
+import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
+import edu.ie3.simona.api.data.model.em.{
   EmSetPoint,
+  ExtendedFlexOptionsResult,
   FlexOptions,
 }
-import edu.ie3.simona.api.data.em.ontology.*
-import edu.ie3.simona.api.data.em.{EmMode, ExtEmDataConnection}
-import edu.ie3.simona.api.data.model.em.ExtendedFlexOptionsResult
-import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
-import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
+import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
+import edu.ie3.simona.api.ontology.em.*
+import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -192,7 +193,7 @@ class ExtEmDataServiceSpec
       emAgent.expectMessage(FlexActivation(-1))
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
-        Left(emAgent1UUID),
+        emAgent1UUID,
       )
 
       scheduler.expectMessage(Completion(emService))
@@ -248,7 +249,7 @@ class ExtEmDataServiceSpec
       emAgent1.expectMessage(FlexActivation(-1))
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
-        Left(emAgent1UUID),
+        emAgent1UUID,
       )
 
       emService ! EmServiceRegistration(
@@ -260,7 +261,7 @@ class ExtEmDataServiceSpec
       emAgent2.expectMessage(FlexActivation(-1))
       emService ! EmFlexMessage(
         FlexCompletion(emAgent2UUID, requestAtTick = Some(0)),
-        Left(emAgent2UUID),
+        emAgent2UUID,
       )
 
       // scheduler.expectMessage(Completion(emService))
@@ -292,7 +293,7 @@ class ExtEmDataServiceSpec
             Kilowatts(10),
           ),
         ),
-        Left(emAgent1UUID),
+        emAgent1UUID,
       )
 
       awaitCond(
@@ -368,14 +369,14 @@ class ExtEmDataServiceSpec
       emAgentSup.expectMessage(FlexActivation(-1))
 
       // the em agent sup will send an activation message to the em agent1
-      emService ! EmFlexMessage(FlexActivation(-1), Right(emAgent1.ref))
+      emService ! EmFlexMessage(FlexActivation(-1), emAgent1.ref)
 
       emAgent1.expectMessage(FlexActivation(-1))
 
       // the em agent 1 will answer the activation with a flex completion message
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
-        Right(emAgentSup.ref),
+        emAgentSup.ref,
       )
 
       emAgentSup
@@ -384,7 +385,7 @@ class ExtEmDataServiceSpec
 
       emService ! EmFlexMessage(
         FlexCompletion(emAgentSupUUID, requestAtTick = Some(0)),
-        Left(emAgentSupUUID),
+        emAgentSupUUID,
       )
 
       extEmDataConnection.sendExtMsg(
@@ -469,7 +470,7 @@ class ExtEmDataServiceSpec
       emAgent1.expectMessage(FlexActivation(-1))
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
-        Left(emAgent1UUID),
+        emAgent1UUID,
       )
 
       emService ! EmServiceRegistration(
@@ -481,7 +482,7 @@ class ExtEmDataServiceSpec
       emAgent2.expectMessage(FlexActivation(-1))
       emService ! EmFlexMessage(
         FlexCompletion(emAgent2UUID, requestAtTick = Some(0)),
-        Left(emAgent2UUID),
+        emAgent2UUID,
       )
 
       extEmDataConnection.sendExtMsg(

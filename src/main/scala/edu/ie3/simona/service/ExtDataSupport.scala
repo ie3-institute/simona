@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service
 
-import edu.ie3.simona.api.data.ontology.DataMessageFromExt
+import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   ScheduleServiceActivation,

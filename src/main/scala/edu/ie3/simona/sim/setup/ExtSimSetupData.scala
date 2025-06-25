@@ -7,12 +7,8 @@
 package edu.ie3.simona.sim.setup
 
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ExtInputDataConnection
-import edu.ie3.simona.api.data.em.ExtEmDataConnection
-import edu.ie3.simona.api.data.ev.ExtEvDataConnection
-import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
-import edu.ie3.simona.api.data.results.ExtResultDataConnection
+import edu.ie3.simona.api.data.connection.*
+import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.em.ExtEmDataService
 import org.apache.pekko.actor.typed.ActorRef

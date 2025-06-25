@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
-import edu.ie3.simona.api.data.ontology.DataMessageFromExt
+import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,

@@ -113,7 +113,7 @@ class EmAgentWithServiceSpec
       service.expectMessage(
         EmFlexMessage(
           ScheduleFlexActivation(emInput.getUuid, INIT_SIM_TICK),
-          Right(parentEmAgent.ref),
+          parentEmAgent.ref,
         )
       )
 
@@ -153,7 +153,7 @@ class EmAgentWithServiceSpec
             modelUuid = emInput.getUuid,
             requestAtTick = Some(0),
           ),
-          Right(parentEmAgent.ref),
+          parentEmAgent.ref,
         )
       )
 
@@ -205,7 +205,7 @@ class EmAgentWithServiceSpec
                   maxPower,
                 ),
               ),
-              Right(receiver),
+              receiver,
             ) =>
           modelUuid shouldBe emInput.getUuid
           referencePower shouldBe Kilowatts(0)
@@ -259,7 +259,7 @@ class EmAgentWithServiceSpec
       service.expectMessageType[EmFlexMessage] match {
         case EmFlexMessage(
               FlexResult(modelUuid, result),
-              Right(receiver),
+              receiver,
             ) =>
           modelUuid shouldBe emInput.getUuid
           result.p should approximate(Kilowatts(6))
@@ -274,7 +274,7 @@ class EmAgentWithServiceSpec
             modelUuid = emInput.getUuid,
             requestAtTick = Some(300),
           ),
-          Right(parentEmAgent.ref),
+          parentEmAgent.ref,
         )
       )
 
@@ -317,7 +317,7 @@ class EmAgentWithServiceSpec
       service.expectMessageType[EmFlexMessage] match {
         case EmFlexMessage(
               FlexResult(modelUuid, result),
-              Right(receiver),
+              receiver,
             ) =>
           modelUuid shouldBe emInput.getUuid
           result.p should approximate(Kilowatts(0))
@@ -331,7 +331,7 @@ class EmAgentWithServiceSpec
             modelUuid = emInput.getUuid,
             requestAtTick = Some(600),
           ),
-          Right(parentEmAgent.ref),
+          parentEmAgent.ref,
         )
       )
 
@@ -411,7 +411,7 @@ class EmAgentWithServiceSpec
       service.expectMessage(
         EmFlexMessage(
           ScheduleFlexActivation(updatedEmInput.getUuid, INIT_SIM_TICK),
-          Right(parentEmAgent),
+          parentEmAgent,
         )
       )
 
@@ -423,7 +423,7 @@ class EmAgentWithServiceSpec
       service.expectMessage(
         EmFlexMessage(
           ScheduleFlexActivation(parentEmInput.getUuid, INIT_SIM_TICK),
-          Left(parentEmInput.getUuid),
+          parentEmInput.getUuid,
         )
       )
 
@@ -440,7 +440,7 @@ class EmAgentWithServiceSpec
       service.expectMessage(
         EmFlexMessage(
           FlexActivation(INIT_SIM_TICK),
-          Right(emAgent),
+          emAgent,
         )
       )
 
@@ -472,7 +472,7 @@ class EmAgentWithServiceSpec
             modelUuid = updatedEmInput.getUuid,
             requestAtTick = Some(0),
           ),
-          Right(parentEmAgent),
+          parentEmAgent,
         )
       )
 
@@ -487,7 +487,7 @@ class EmAgentWithServiceSpec
             modelUuid = parentEmInput.getUuid,
             requestAtTick = Some(0),
           ),
-          Left(parentEmInput.getUuid),
+          parentEmInput.getUuid,
         )
       )
 
@@ -497,7 +497,7 @@ class EmAgentWithServiceSpec
       service.expectMessage(
         EmFlexMessage(
           FlexActivation(0),
-          Right(emAgent),
+          emAgent,
         )
       )
 
@@ -548,7 +548,7 @@ class EmAgentWithServiceSpec
                   maxPower,
                 ),
               ),
-              Right(receiver),
+              receiver,
             ) =>
           modelUuid shouldBe updatedEmInput.getUuid
           referencePower shouldBe Kilowatts(0)
@@ -577,7 +577,7 @@ class EmAgentWithServiceSpec
                   maxPower,
                 ),
               ),
-              Left(self),
+              self: UUID,
             ) =>
           modelUuid shouldBe parentEmInput.getUuid
           referencePower shouldBe Kilowatts(0)
@@ -592,7 +592,7 @@ class EmAgentWithServiceSpec
       service.expectMessage(
         EmFlexMessage(
           IssuePowerControl(0, Kilowatts(6)),
-          Right(emAgent),
+          emAgent,
         )
       )
 
@@ -647,7 +647,7 @@ class EmAgentWithServiceSpec
       service.expectMessageType[EmFlexMessage] match {
         case EmFlexMessage(
               FlexResult(modelUuid, result),
-              Right(receiver),
+              receiver,
             ) =>
           modelUuid shouldBe updatedEmInput.getUuid
           result.p should approximate(Kilowatts(6))
@@ -670,7 +670,7 @@ class EmAgentWithServiceSpec
             modelUuid = updatedEmInput.getUuid,
             requestAtTick = Some(300),
           ),
-          Right(parentEmAgent),
+          parentEmAgent,
         )
       )
 
@@ -718,7 +718,7 @@ class EmAgentWithServiceSpec
       service.expectMessageType[EmFlexMessage] match {
         case EmFlexMessage(
               FlexResult(modelUuid, result),
-              Right(receiver),
+              receiver,
             ) =>
           modelUuid shouldBe updatedEmInput.getUuid
           result.p should approximate(Kilowatts(0))
@@ -738,7 +738,7 @@ class EmAgentWithServiceSpec
             modelUuid = updatedEmInput.getUuid,
             requestAtTick = Some(600),
           ),
-          Right(parentEmAgent),
+          parentEmAgent,
         )
       )
     }

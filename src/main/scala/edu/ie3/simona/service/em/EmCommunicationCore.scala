@@ -7,9 +7,13 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
-import edu.ie3.simona.api.data.em.ontology.*
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.model.em.{EmSetPointResult, ExtendedFlexOptionsResult, FlexRequestResult}
+import edu.ie3.simona.api.data.model.em.{
+  EmSetPointResult,
+  ExtendedFlexOptionsResult,
+  FlexRequestResult,
+}
+import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
@@ -23,7 +27,6 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 import tech.units.indriya.ComparableQuantity
 
-import scala.jdk.OptionConverters.RichOption
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power
@@ -33,6 +36,7 @@ import scala.jdk.CollectionConverters.{
   MapHasAsScala,
   SetHasAsJava,
 }
+import scala.jdk.OptionConverters.RichOption
 
 final case class EmCommunicationCore(
     override val lastFinishedTick: Long = PRE_INIT_TICK,

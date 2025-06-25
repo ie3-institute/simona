@@ -7,9 +7,9 @@
 package edu.ie3.simona.service.results
 
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.api.data.results.ExtResultDataConnection
-import edu.ie3.simona.api.data.results.ontology.{
+import edu.ie3.simona.api.data.connection.ExtResultDataConnection
+import edu.ie3.simona.api.ontology.DataMessageFromExt
+import edu.ie3.simona.api.ontology.results.{
   ProvideResultEntities,
   RequestResultEntities,
   ResultDataMessageFromExt,

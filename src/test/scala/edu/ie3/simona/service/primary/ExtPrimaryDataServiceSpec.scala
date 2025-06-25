@@ -12,8 +12,8 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   RegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
-import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
+import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
+import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,

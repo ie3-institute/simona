@@ -7,8 +7,8 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.ontology.*
 import edu.ie3.simona.api.data.model.em.ExtendedFlexOptionsResult
+import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
@@ -19,7 +19,6 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
-import scala.jdk.OptionConverters.RichOption
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.{
@@ -27,6 +26,7 @@ import scala.jdk.CollectionConverters.{
   MapHasAsJava,
   SetHasAsScala,
 }
+import scala.jdk.OptionConverters.RichOption
 
 final case class EmServiceBaseCore(
     override val lastFinishedTick: Long = PRE_INIT_TICK,

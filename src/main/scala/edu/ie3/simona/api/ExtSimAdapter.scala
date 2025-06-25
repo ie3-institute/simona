@@ -6,15 +6,15 @@
 
 package edu.ie3.simona.api
 
-import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
-import edu.ie3.simona.api.simulation.ExtSimAdapterData
-import edu.ie3.simona.api.simulation.ontology.{
+import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
+import edu.ie3.simona.api.ontology.simulation.{
   ActivationMessage,
   ControlResponseMessageFromExt,
   TerminationCompleted,
   TerminationMessage,
-  CompletionMessage => ExtCompletionMessage,
+  CompletionMessage as ExtCompletionMessage,
 }
+import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -27,7 +27,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
-import scala.jdk.OptionConverters._
+import scala.jdk.OptionConverters.*
 
 object ExtSimAdapter {
 
