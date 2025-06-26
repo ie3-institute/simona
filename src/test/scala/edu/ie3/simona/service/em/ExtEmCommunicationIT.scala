@@ -23,10 +23,7 @@ import edu.ie3.simona.api.data.model.em.{
   FlexOptionRequestResult,
   FlexOptions,
 }
-import edu.ie3.simona.api.ontology.{
-  DataMessageFromExt,
-  ScheduleDataServiceMessage,
-}
+import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.ontology.em.{
   EmCompletion,
   EmSetPointDataResponse,
@@ -50,11 +47,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   SecondaryServiceRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
