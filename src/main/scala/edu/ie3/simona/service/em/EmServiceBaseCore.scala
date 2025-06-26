@@ -189,6 +189,7 @@ final case class EmServiceBaseCore(
 
           val updatedCore = copy(
             flexOptions = ReceiveDataMap.empty,
+            additionalFlexOptions = updatedAdditional,
             canHandleSetPoints = true,
           )
 
@@ -235,6 +236,7 @@ final case class EmServiceBaseCore(
             copy(
               lastFinishedTick = tick,
               completions = ReceiveDataMap(allKeys),
+              additionalFlexOptions = Map.empty,
               disaggregatedFlex = false,
               sendOptionsToExt = false,
               canHandleSetPoints = false,

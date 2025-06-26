@@ -111,7 +111,6 @@ trait EmServiceCore {
             log.warn(s"No em agent with uuid '$agent' registered!")
         }
       }
-
   }
 
   def handleFlexResponse(

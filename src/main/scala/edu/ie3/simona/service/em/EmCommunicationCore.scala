@@ -11,7 +11,7 @@ import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.model.em.{
   EmSetPointResult,
   ExtendedFlexOptionsResult,
-  FlexRequestResult,
+  FlexOptionRequestResult,
 }
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
@@ -53,7 +53,9 @@ final case class EmCommunicationCore(
       ReceiveHierarchicalDataMap.empty,
     flexOptionResponse: DataMap[UUID, ExtendedFlexOptionsResult] =
       ReceiveHierarchicalDataMap.empty,
+    additionalFlexOptions: Map[UUID, ExtendedFlexOptionsResult] = Map.empty,
     setPointResponse: DataMap[UUID, PValue] = ReceiveHierarchicalDataMap.empty,
+    disaggregatedFlex: Boolean = false,
 ) extends EmServiceCore {
 
   override def handleRegistration(
@@ -221,25 +223,27 @@ final case class EmCommunicationCore(
             self
         }
 
-        val updated = provideFlexOptions match {
+        val (updated, updatedAdditional) = provideFlexOptions match {
           case ProvideFlexOptions(
                 modelUuid,
                 MinMaxFlexOptions(ref, min, max),
               ) =>
-            flexOptionResponse.addData(
+            val result = new ExtendedFlexOptionsResult(
+              tick.toDateTime(using startTime),
               modelUuid,
-              new ExtendedFlexOptionsResult(
-                tick.toDateTime(using startTime),
-                modelUuid,
-                receiverUuid,
-                ref.toQuantity,
-                min.toQuantity,
-                max.toQuantity,
-              ),
+              receiverUuid,
+              ref.toQuantity,
+              min.toQuantity,
+              max.toQuantity,
+            )
+
+            (
+              flexOptionResponse.addData(modelUuid, result),
+              additionalFlexOptions.updated(modelUuid, result),
             )
 
           case _ =>
-            flexOptionResponse
+            (flexOptionResponse, additionalFlexOptions)
         }
 
         if (updated.hasCompletedKeys) {
@@ -251,13 +255,25 @@ final case class EmCommunicationCore(
             uuid -> options.getpRef
           }
 
-          val msgToExt = new FlexOptionsResponse(data.map {
-            case (entity, value) => entity -> value
-          }.asJava)
+          val processedData = data.map { case (entity, value) =>
+            entity -> value
+          }
+
+          if (disaggregatedFlex) {
+            processedData.foreach { case (key, value) =>
+              updatedFlexOptionResponse.structure(key).foreach { inferior =>
+                value.addDisaggregated(inferior, updatedAdditional(inferior))
+              }
+
+            }
+          }
+
+          val msgToExt = new FlexOptionsResponse(processedData.asJava)
 
           (
             copy(
               flexOptionResponse = updatedFlexOptionResponse,
+              additionalFlexOptions = updatedAdditional,
               uuidToPRef = uuidToPRef ++ pRefs,
             ),
             Some(msgToExt),
@@ -265,7 +281,13 @@ final case class EmCommunicationCore(
 
         } else {
           // responses are still incomplete
-          (copy(flexOptionResponse = updated), None)
+          (
+            copy(
+              flexOptionResponse = updated,
+              additionalFlexOptions = updatedAdditional,
+            ),
+            None,
+          )
         }
       }
 
@@ -287,7 +309,11 @@ final case class EmCommunicationCore(
 
         // every em agent has sent a completion message
         (
-          copy(lastFinishedTick = tick, completions = ReceiveDataMap(allKeys)),
+          copy(
+            lastFinishedTick = tick,
+            additionalFlexOptions = Map.empty,
+            completions = ReceiveDataMap(allKeys),
+          ),
           extMsgOption,
         )
 
@@ -321,7 +347,7 @@ final case class EmCommunicationCore(
             updated.getFinishedDataHierarchical
 
           val map = dataMap.map { case (sender, receivers) =>
-            sender -> new FlexRequestResult(
+            sender -> new FlexOptionRequestResult(
               flexActivation.tick.toDateTime,
               sender,
               receivers.asJava,

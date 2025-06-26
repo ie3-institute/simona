@@ -20,8 +20,8 @@ import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em.{
   EmSetPoint,
   FlexOptionRequest,
+  FlexOptionRequestResult,
   FlexOptions,
-  FlexRequestResult,
 }
 import edu.ie3.simona.api.ontology.{
   DataMessageFromExt,
@@ -438,7 +438,7 @@ class ExtEmCommunicationIT
         .asScala
 
       requestsToInferior.size shouldBe 1
-      requestsToInferior(emSupUuid) shouldBe new FlexRequestResult(
+      requestsToInferior(emSupUuid) shouldBe new FlexOptionRequestResult(
         simulationStart.plusSeconds(tick),
         emSupUuid,
         List(emNode3Uuid, emNode4Uuid).asJava,
