@@ -25,7 +25,7 @@ import edu.ie3.simona.service.ServiceType.LoadProfileService
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import squants.energy.{Energy, Kilowatts}
+import squants.energy.Energy
 import squants.{Dimensionless, Power}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.EnergyToSimona
@@ -170,18 +170,8 @@ object ProfileLoadModel {
       }
 
       val referenceType = LoadReferenceType(config.reference)
-
-      val power = maxPower.getOrElse(
-        throw new SourceException(
-          s"Expected a maximal power value for this load profile: ${input.getLoadProfile}!"
-        )
-      )
-
-      val profileReferenceEnergy = energyScaling.getOrElse(
-        throw new SourceException(
-          s"Expected a profile energy scaling value for this load profile: ${input.getLoadProfile}!"
-        )
-      )
+      val power = maxPower.getOrElse(input.getsRated.toSquants)
+      val profileReferenceEnergy = energyScaling.getOrElse(input.geteConsAnnual().toSquants)
 
       val (referenceScalingFactor, scaledSRated) = LoadModel.scaleToReference(
         referenceType,
