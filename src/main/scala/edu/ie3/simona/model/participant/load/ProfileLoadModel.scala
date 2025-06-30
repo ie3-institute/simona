@@ -25,8 +25,10 @@ import edu.ie3.simona.service.ServiceType.LoadProfileService
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import squants.energy.Energy
+import squants.energy.{Energy, Kilowatts}
 import squants.{Dimensionless, Power}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.EnergyToSimona
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -133,8 +135,12 @@ object ProfileLoadModel {
     override def update(
         data: AdditionalFactoryData
     ): Factory = data match {
-      case ProfileLoadFactoryData(maxPower, energyScaling) =>
-        copy(maxPower = maxPower, energyScaling = energyScaling)
+      case ProfileLoadFactoryData(maxPowerOpt, energyScalingOpt) =>
+        copy(
+          maxPower = maxPowerOpt.orElse(Some(input.getsRated.toSquants)),
+          energyScaling =
+            energyScalingOpt.orElse(Some(input.geteConsAnnual.toSquants)),
+        )
 
       case unexpected =>
         throw new CriticalFailureException(
