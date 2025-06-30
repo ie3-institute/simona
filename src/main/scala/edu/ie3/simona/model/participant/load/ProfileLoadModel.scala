@@ -90,11 +90,7 @@ class ProfileLoadModel(
         case loadFunction: LoadDataFunction =>
           loadFunction.powerSupplier()
       }
-      .getOrElse(
-        throw new CriticalFailureException(
-          s"Expected LoadProfileData, got $receivedData"
-        )
-      )
+      .getOrElse(zeroKW)
 
     state.copy(averagePower = averagePower)
   }
