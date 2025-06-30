@@ -171,7 +171,8 @@ object ProfileLoadModel {
 
       val referenceType = LoadReferenceType(config.reference)
       val power = maxPower.getOrElse(input.getsRated.toSquants)
-      val profileReferenceEnergy = energyScaling.getOrElse(input.geteConsAnnual().toSquants)
+      val profileReferenceEnergy =
+        energyScaling.getOrElse(input.geteConsAnnual().toSquants)
 
       val (referenceScalingFactor, scaledSRated) = LoadModel.scaleToReference(
         referenceType,
