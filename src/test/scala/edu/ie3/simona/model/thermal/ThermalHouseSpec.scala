@@ -306,7 +306,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
           (5d, 18d, 20d, Some(HouseTargetTemperatureReached(12113))),
           (5d, 18d, 25d, Some(HouseTargetTemperatureReached(6563))),
           // House is heated externally (ambient temperature)
-          (30d, 18d, 25d, None),
+          (30d, 18d, 25d, Some(HouseTargetTemperatureReached(2000))),
           (30d, 21.9d, 0d, None),
         )
 
