@@ -247,32 +247,39 @@ final case class ThermalHouse(
       qDot.toWatts / ethLosses.toWattsPerKelvin
     ) + Kelvin(thermalHouseState.ambientTemperature.toKelvinScale)
 
-    if (isInnerTemperatureTooLow(limitTemperature + temperatureTolerance))
-      /* Losses and gain of house are not in balance, thus temperature will reach some limit sooner or later */
-      /* House has more losses than gain */
-      {
+    if (
+      thermalHouseState.ambientTemperature >= thermalHouseState.innerTemperature
+    ) {
+      /* House is heated external or in perfect balance */
+      None
+    } else {
+      if (isInnerTemperatureTooLow(limitTemperature + temperatureTolerance))
+        /* Losses and gain of house are not in balance, thus temperature will reach some limit sooner or later */
+        /* House has more losses than gain */
+        {
+          nextActivation(
+            thermalHouseState.tick,
+            lowerBoundaryTemperature,
+            thermalHouseState.innerTemperature,
+            thermalHouseState.ambientTemperature,
+            qDot,
+          ).map(HouseTemperatureLowerBoundaryReached)
+        } else if (
+        isInnerTemperatureTooHigh(
+          limitTemperature - temperatureTolerance
+        )
+      ) { /* House has more gain than losses */
         nextActivation(
           thermalHouseState.tick,
-          lowerBoundaryTemperature,
+          targetTemperature,
           thermalHouseState.innerTemperature,
           thermalHouseState.ambientTemperature,
           qDot,
-        ).map(HouseTemperatureLowerBoundaryReached)
-      } else if (
-      isInnerTemperatureTooHigh(
-        limitTemperature - temperatureTolerance
-      ) && qDot > zeroKW
-    ) { /* House has more gain than losses AND gain is not caused external (through ambient temperature) */
-      nextActivation(
-        thermalHouseState.tick,
-        targetTemperature,
-        thermalHouseState.innerTemperature,
-        thermalHouseState.ambientTemperature,
-        qDot,
-      ).map(HouseTargetTemperatureReached)
-    } else {
-      /* House is in perfect balance */
-      None
+        ).map(HouseTargetTemperatureReached)
+      } else {
+        /* House is in perfect balance */
+        None
+      }
     }
   }
 
