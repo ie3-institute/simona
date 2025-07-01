@@ -259,8 +259,10 @@ final case class ThermalHouse(
           qDot,
         ).map(HouseTemperatureLowerBoundaryReached)
       } else if (
-      isInnerTemperatureTooHigh(limitTemperature - temperatureTolerance)
-    ) { /* House has more gain than losses */
+      isInnerTemperatureTooHigh(
+        limitTemperature - temperatureTolerance
+      ) && qDot > zeroKW
+    ) { /* House has more gain than losses AND gain is not caused external (through ambient temperature) */
       nextActivation(
         thermalHouseState.tick,
         targetTemperature,
