@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated dev's guide [#1409](https://github.com/ie3-institute/simona/issues/1409)
 - Fixed bug in returned next tick after congestion management [#1393](https://github.com/ie3-institute/simona/issues/1393)
 - Fixed bug in `CongestionResult` values [#1395](https://github.com/ie3-institute/simona/issues/1395)
+- Fixed typo in `HpModel` for model type [#1432](https://github.com/ie3-institute/simona/issues/1432)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
