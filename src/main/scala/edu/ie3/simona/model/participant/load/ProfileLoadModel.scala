@@ -90,7 +90,7 @@ class ProfileLoadModel(
       }
       .getOrElse(
         throw new CriticalFailureException(
-          s"Expected LoadProfileData, got $receivedData"
+          s"Expected LoadProfileData, got $receivedData for tick ${state.tick} and model id $id"
         )
       )
 

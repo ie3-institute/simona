@@ -55,7 +55,14 @@ final case class ParticipantInputHandler(
     *   An updated input handler.
     */
   def completeActivation(): ParticipantInputHandler =
-    copy(activation = None, receivedData = Map.empty)
+    activation match {
+      case Some(msg) =>
+        copy(
+          activation = None,
+          receivedData = receivedData.filterNot(_._2.tick < msg.tick),
+        )
+      case None => copy(activation = None, receivedData = Map.empty)
+    }
 
   /** Handles a received [[DataInputMessage]] by storing the message and
     * updating the expected data that remains to be received.
