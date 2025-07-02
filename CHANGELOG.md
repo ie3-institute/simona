@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed bug in returned next tick after congestion management [#1393](https://github.com/ie3-institute/simona/issues/1393)
 - Fixed bug in `CongestionResult` values [#1395](https://github.com/ie3-institute/simona/issues/1395)
 - Fixed typo in `HpModel` for model type [#1432](https://github.com/ie3-institute/simona/issues/1432)
+- Ambient temperature can cause the next threshold of the `ThermalHouse` to be the same as the current tick [#1438](https://github.com/ie3-institute/simona/issues/1438)
 - Fixed crash when using load model with `profile` behaviour and primary data [#1436](https://github.com/ie3-institute/simona/issues/1436)
 
 ### Removed
