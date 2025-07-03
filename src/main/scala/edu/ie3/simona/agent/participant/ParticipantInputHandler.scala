@@ -75,7 +75,6 @@ final case class ParticipantInputHandler(
   def handleDataInputMessage(
       msg: DataInputMessage
   ): ParticipantInputHandler = {
-
     val updatedReceivedData =
       msg match {
         case DataProvision(tick, serviceRef, data, _) =>
