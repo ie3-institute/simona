@@ -96,16 +96,20 @@ class EvcsModel private (
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
   ): EvcsState = {
-    receivedData
-      .collectFirst { case evData: ArrivingEvs =>
-        evData
-      }
-      .map(newData =>
-        state.copy(
-          state.evs ++ newData.arrivals
-        )
-      )
-      .getOrElse(state)
+    val arrivals = receivedData.collect { case evData: ArrivingEvs =>
+      evData.arrivals
+    }.flatten
+
+    // Filter out existing EVs based on UUIDs
+    val existingUuids = state.evs.map(_.uuid).toSet
+    val filteredArrivals =
+      arrivals.filterNot(arrival => existingUuids.contains(arrival.uuid))
+
+    if (filteredArrivals.nonEmpty) {
+      state.copy(evs = state.evs ++ filteredArrivals)
+    } else {
+      state
+    }
   }
 
   override def determineOperatingPoint(
