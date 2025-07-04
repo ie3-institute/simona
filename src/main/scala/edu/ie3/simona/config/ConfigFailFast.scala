@@ -143,7 +143,7 @@ object ConfigFailFast extends LazyLogging {
     checkOutputConfig(simonaConfig.simona.output)
 
     /* Check power flow resolution configuration */
-    checkPowerFlowResolutionConfiguration(simonaConfig.simona.powerflow)
+    simonaConfig.simona.powerflow.foreach(checkPowerFlowResolutionConfiguration)
 
     /* Check control scheme definitions */
     simonaConfig.simona.control.foreach(checkControlSchemes)

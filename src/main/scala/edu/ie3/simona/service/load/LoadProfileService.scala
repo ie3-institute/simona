@@ -28,6 +28,7 @@ import edu.ie3.simona.service.ServiceStateData.{
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
@@ -47,20 +48,20 @@ object LoadProfileService extends SimonaService {
     *   That stores that contains all load profiles.
     * @param profileToRefs
     *   Map: actor ref to [[LoadProfile]].
-    * @param nextActivationTick
-    *   The next tick for which this service should be activated.
+    * @param maybeNextActivationTick
+    *   The next tick, when this actor is triggered by scheduler.
+    * @param activationTicks
+    *   Linked collection of ticks, in which data is available.
     * @param simulationStartTime
     *   Start of the simulation.
-    * @param resolution
-    *   The resolution of this simulation.
     */
   final case class LoadProfileInitializedStateData(
       loadProfileStore: LoadProfileStore,
       profileToRefs: Map[LoadProfile, Seq[ActorRef[ParticipantAgent.Request]]] =
         Map.empty,
-      nextActivationTick: Long,
+      maybeNextActivationTick: Option[Long],
+      activationTicks: SortedDistinctSeq[Long] = SortedDistinctSeq.empty,
       simulationStartTime: ZonedDateTime,
-      resolution: FiniteDuration,
   ) extends ServiceBaseStateData
 
   /** Load profile service state data used for initialization of the load
@@ -73,14 +74,11 @@ object LoadProfileService extends SimonaService {
     *   The time the simulation is started.
     * @param simulationEnd
     *   The time the simulation ends.
-    * @param resolution
-    *   The resolution used for the load profiles.
     */
   final case class InitLoadProfileServiceStateData(
       sourceDefinition: Datasource,
       simulationStartTime: ZonedDateTime,
       simulationEnd: ZonedDateTime,
-      resolution: FiniteDuration = 15.minutes,
   ) extends InitializeServiceStateData
 
   override def init(
@@ -89,18 +87,21 @@ object LoadProfileService extends SimonaService {
     initServiceData match {
       case InitLoadProfileServiceStateData(
             dataSource,
-            simulationStartTime,
-            _,
-            resolution,
+            simStartTime,
+            simEndTime,
           ) =>
         val loadProfileStore = LoadProfileStore(dataSource)
+
+        val (maybeNextTick, furtherActivationTicks) = loadProfileStore
+          .getActivationTicks(simEndTime)(using simStartTime)
+          .pop
 
         val initializedStateData = LoadProfileInitializedStateData(
           loadProfileStore,
           Map.empty,
-          FIRST_TICK_IN_SIMULATION,
-          simulationStartTime = simulationStartTime,
-          resolution = resolution,
+          maybeNextTick,
+          furtherActivationTicks,
+          simStartTime,
         )
 
         Success(
@@ -216,9 +217,14 @@ object LoadProfileService extends SimonaService {
   ): (LoadProfileInitializedStateData, Option[Long]) = {
 
     /* Pop the next activation tick and update the state data */
-    val nextTick = tick + serviceStateData.resolution.toSeconds
+    val (maybeNextActivationTick, remainderActivationTicks) =
+      serviceStateData.activationTicks.pop
+
     val updatedStateData: LoadProfileInitializedStateData =
-      serviceStateData.copy(nextActivationTick = nextTick)
+      serviceStateData.copy(
+        maybeNextActivationTick = maybeNextActivationTick,
+        activationTicks = remainderActivationTicks,
+      )
 
     val time = tick.toDateTime(using serviceStateData.simulationStartTime)
     val loadProfileStore = serviceStateData.loadProfileStore
@@ -234,7 +240,7 @@ object LoadProfileService extends SimonaService {
               tick,
               ctx.self,
               LoadDataFunction(loadFunction),
-              Some(nextTick),
+              maybeNextActivationTick,
             )
           )
 
@@ -247,7 +253,7 @@ object LoadProfileService extends SimonaService {
                   tick,
                   ctx.self,
                   LoadData(averagePower),
-                  Some(nextTick),
+                  maybeNextActivationTick,
                 )
               )
             case None =>
@@ -261,7 +267,7 @@ object LoadProfileService extends SimonaService {
       }
     }
 
-    (updatedStateData, Some(nextTick))
+    (updatedStateData, maybeNextActivationTick)
   }
 
 }

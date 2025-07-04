@@ -32,8 +32,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.TimeUtil
+import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
@@ -46,7 +45,7 @@ import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{implicitConversions, postfixOps}
 import scala.util.{Failure, Success}
@@ -71,11 +70,20 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       simonaConfig: SimonaConfig,
       listener: Iterable[ActorRef[ResultEvent]],
   ): Behavior[Message] = Behaviors.withStash(100) { buffer =>
-    // this determines the agents regular time bin it wants to be triggered e.g. one hour
-    val resolution: Long = simonaConfig.simona.powerflow.resolution.toSeconds
+    val cfg = simonaConfig.simona
 
-    val simStartTime: ZonedDateTime = TimeUtil.withDefaults
-      .toZonedDateTime(simonaConfig.simona.time.startDateTime)
+    given simStartTime: ZonedDateTime = cfg.time.simStartTime
+    val simEndTime = cfg.time.simEndTime
+
+    // this determines the agents regular time bin it wants to be triggered e.g. one hour
+    // if no resolution is given, we use the end time to prevent powerflow calculation
+    val resolution: Long = cfg.powerflow match {
+      case Some(value) =>
+        value.resolution.toSeconds
+      case None =>
+        // powerflow is only performed after the simulation ended
+        simEndTime.toTick + 1
+    }
 
     val agentValues = GridAgentConstantData(
       environmentRefs,
@@ -83,8 +91,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       listener,
       resolution,
       simStartTime,
-      TimeUtil.withDefaults
-        .toZonedDateTime(simonaConfig.simona.time.endDateTime),
+      simEndTime,
     )
 
     uninitialized(using agentValues, buffer, simonaConfig)
@@ -133,12 +140,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         subGridContainer,
         refSystem,
         gridAgentInitData.voltageLimits,
-        TimeUtil.withDefaults.toZonedDateTime(
-          cfg.time.startDateTime
-        ),
-        TimeUtil.withDefaults.toZonedDateTime(
-          cfg.time.endDateTime
-        ),
+        constantData.simStartTime,
+        constantData.simEndTime,
         simonaConfig,
       )
 
@@ -163,6 +166,21 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
             nodeUuid -> actorSet
           }
 
+      // create powerflow parameters
+      val pfParams = cfg.powerflow match {
+        case Some(value) =>
+          PowerFlowParams(
+            value.maxSweepPowerDeviation,
+            value.newtonraphson.epsilon.toVector.sorted,
+            value.newtonraphson.iterations,
+            value.sweepTimeout,
+            value.stopOnFailure,
+          )
+        case None =>
+          // empty powerflow params, since we need an object
+          PowerFlowParams(0, Vector.empty, 0, 0.seconds, false)
+      }
+
       // create the GridAgentBaseData
       val gridAgentBaseData = GridAgentBaseData(
         gridModel,
@@ -171,13 +189,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         gridAgentInitData.superiorGridNodeUuids,
         gridAgentInitData.inferiorGridGates,
         gridAgentInitData.superiorGridGates,
-        PowerFlowParams(
-          cfg.powerflow.maxSweepPowerDeviation,
-          cfg.powerflow.newtonraphson.epsilon.toVector.sorted,
-          cfg.powerflow.newtonraphson.iterations,
-          cfg.powerflow.sweepTimeout,
-          cfg.powerflow.stopOnFailure,
-        ),
+        pfParams,
         CongestionManagementParams(
           cfg.congestionManagement.enableDetection,
           cfg.congestionManagement.timeout,

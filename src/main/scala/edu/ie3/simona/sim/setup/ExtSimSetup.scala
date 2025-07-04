@@ -49,8 +49,6 @@ object ExtSimSetup {
     *   The actor context of this actor system.
     * @param scheduler
     *   The scheduler of simona.
-    * @param resolution
-    *   The resolution of the power flow.
     * @return
     *   An [[ExtSimSetupData]] that holds information regarding the external
     *   data connections as well as the actor references of the created
@@ -62,7 +60,6 @@ object ExtSimSetup {
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      resolution: FiniteDuration,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
       // external simulation always needs at least an ExtSimAdapter
@@ -118,8 +115,6 @@ object ExtSimSetup {
     *   The scheduler of simona.
     * @param extSimAdapterData
     *   The adapter data for the external simulation.
-    * @param resolution
-    *   The resolution of the power flow.
     * @return
     *   An updated [[ExtSimSetupData]].
     */
@@ -130,7 +125,6 @@ object ExtSimSetup {
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
-      resolution: FiniteDuration,
   ): ExtSimSetupData = {
     given extSimAdapter: ActorRef[ControlResponseMessageFromExt] =
       extSimAdapterData.getAdapter
