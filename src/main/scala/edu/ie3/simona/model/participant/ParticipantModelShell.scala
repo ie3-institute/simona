@@ -323,7 +323,7 @@ final case class ParticipantModelShell[
     // Sanity check
     if (newChangeIndicator.changesAtTick.exists(_ <= currentTick))
       throw new CriticalFailureException(
-        s"Next tick (${newChangeIndicator.changesAtTick}) is same as or earlier than the current tick ($currentTick)."
+        s"Next tick (${newChangeIndicator.changesAtTick}) is same as or earlier than the current tick ($currentTick) for model ${model.id}."
       )
 
     copy(
