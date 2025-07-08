@@ -12,6 +12,10 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
 }
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
+import edu.ie3.simona.exceptions.{
+  InitializationException,
+  InvalidConfigParameterException,
+}
 import edu.ie3.simona.model.participant.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
@@ -23,7 +27,7 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyToSimona,
   PowerConversionSimona,
@@ -60,7 +64,7 @@ abstract class LoadModel[S <: ModelState]
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new LoadResult(
@@ -122,12 +126,20 @@ object LoadModel {
   def getFactory(
       input: LoadInput,
       config: LoadRuntimeConfig,
-  ): ParticipantModelFactory[_ <: ModelState] =
+      primary: Boolean,
+  ): ParticipantModelFactory[? <: ModelState] =
     LoadModelBehaviour(config.modelBehaviour) match {
+      case _ if primary =>
+        // we want to use primary data for the model, therefore we ignore the set model behaviour
+        PrimaryLoadModel.Factory(input)
       case LoadModelBehaviour.FIX =>
         FixedLoadModel.Factory(input, config)
-      case LoadModelBehaviour.PROFILE | LoadModelBehaviour.RANDOM =>
+      case LoadModelBehaviour.PROFILE =>
         ProfileLoadModel.Factory(input, config)
+      case LoadModelBehaviour.PRIMARY =>
+        throw new InitializationException(
+          s"Model behaviour was set to 'primary', but no primary data were provided for the input '${input.getUuid}'."
+        )
     }
 
 }
