@@ -77,13 +77,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
     // this determines the agents regular time bin it wants to be triggered e.g. one hour
     // if no resolution is given, we use the end time to prevent powerflow calculation
-    val resolution: Long = cfg.powerflow match {
-      case Some(value) =>
-        value.resolution.toSeconds
-      case None =>
-        // powerflow is only performed after the simulation ended
-        simEndTime.toTick + 1
-    }
+    val resolution = cfg.powerflow.map(_.resolution.toSeconds)
 
     val agentValues = GridAgentConstantData(
       environmentRefs,
@@ -197,11 +191,13 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         SimonaActorNaming.actorName(ctx.self),
       )
 
-      constantData.environmentRefs.scheduler ! ScheduleActivation(
-        ctx.self,
-        constantData.resolution,
-        Some(unlockKey),
-      )
+      constantData.resolution.foreach { resolution =>
+        constantData.environmentRefs.scheduler ! ScheduleActivation(
+          ctx.self,
+          resolution,
+          Some(unlockKey),
+        )
+      }
 
       idle(gridAgentBaseData)
   }
@@ -255,7 +251,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   private[grid] def afterPowerFlow(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
-      nextTick: Long,
+      nextTick: Option[Long],
       ctx: ActorContext[Message],
   )(using
       constantData: GridAgentConstantData,
@@ -305,7 +301,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     */
   private[grid] def gotoIdle(
       gridAgentBaseData: GridAgentBaseData,
-      nextTick: Long,
+      nextTick: Option[Long],
       results: Option[PowerFlowResultEvent],
       ctx: ActorContext[Message],
   )(using
@@ -329,7 +325,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
     constantData.environmentRefs.scheduler ! Completion(
       ctx.self,
-      Some(nextTick),
+      nextTick,
     )
 
     // return to Idle

@@ -83,7 +83,7 @@ object ParticipantAgentInit {
     *   The simulation end date and time.
     */
   final case class SimulationParameters(
-      expectedPowerRequestTick: Long,
+      expectedPowerRequestTick: Option[Long],
       requestVoltageDeviationTolerance: Dimensionless,
       simulationStart: ZonedDateTime,
       simulationEnd: ZonedDateTime,

@@ -159,7 +159,7 @@ object ParticipantAgent {
     */
   final case class GridSimulationFinished(
       tick: Long,
-      nextRequestTick: Long,
+      nextRequestTick: Option[Long],
   ) extends Request
 
   /** A request to the [[edu.ie3.simona.model.participant.ParticipantModel]]

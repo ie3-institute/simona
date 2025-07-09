@@ -49,7 +49,7 @@ import scala.util.{Failure, Success}
 final case class ParticipantGridAdapter(
     gridAgent: ActorRef[GridAgent.Message],
     nodalVoltage: Dimensionless,
-    private val expectedRequestTick: Long,
+    private val expectedRequestTick: Option[Long],
     private val tickToPower: SortedMap[Long, ComplexPower],
     avgPowerResult: Option[AvgPowerResult],
 )(private implicit val requestVoltageDeviationTolerance: Dimensionless) {
@@ -62,9 +62,8 @@ final case class ParticipantGridAdapter(
     * @return
     *   Whether a power request is awaited for the given tick.
     */
-  def isPowerRequestAwaited(currentTick: Long): Boolean = {
-    expectedRequestTick == currentTick
-  }
+  def isPowerRequestAwaited(currentTick: Long): Boolean =
+    expectedRequestTick.contains(currentTick)
 
   /** Store a power value that has been determined by the model for the given
     * tick.
@@ -107,7 +106,7 @@ final case class ParticipantGridAdapter(
       ],
       log: Logger,
   ): ParticipantGridAdapter = {
-    if (currentTick != expectedRequestTick)
+    if (!expectedRequestTick.contains(currentTick))
       throw new CriticalFailureException(
         s"Power request expected for $expectedRequestTick, but not for current tick $currentTick"
       )
@@ -165,7 +164,9 @@ final case class ParticipantGridAdapter(
     * @return
     *   The updated grid adapter.
     */
-  def updateNextRequestTick(nextRequestTick: Long): ParticipantGridAdapter =
+  def updateNextRequestTick(
+      nextRequestTick: Option[Long]
+  ): ParticipantGridAdapter =
     copy(expectedRequestTick = nextRequestTick)
 
 }
@@ -196,7 +197,7 @@ object ParticipantGridAdapter {
 
   def apply(
       gridAgentRef: ActorRef[GridAgent.Message],
-      expectedRequestTick: Long,
+      expectedRequestTick: Option[Long],
       requestVoltageDeviationTolerance: Dimensionless,
   ): ParticipantGridAdapter =
     new ParticipantGridAdapter(

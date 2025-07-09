@@ -106,7 +106,7 @@ class ThermalGridIT
         TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
       given SimulationParameters = SimulationParameters(
-        expectedPowerRequestTick = Long.MaxValue,
+        expectedPowerRequestTick = None,
         requestVoltageDeviationTolerance = Each(1e-14d),
         simulationStart = simulationStartDate,
         simulationEnd = simulationEndDate,
@@ -728,7 +728,7 @@ class ThermalGridIT
         TimeUtil.withDefaults.toZonedDateTime("2020-06-12T10:00:00Z")
 
       given SimulationParameters = SimulationParameters(
-        expectedPowerRequestTick = Long.MaxValue,
+        expectedPowerRequestTick = None,
         requestVoltageDeviationTolerance = Each(1e-14d),
         simulationStart = simulationStartWithPv,
         simulationEnd = simulationEndWithPv,

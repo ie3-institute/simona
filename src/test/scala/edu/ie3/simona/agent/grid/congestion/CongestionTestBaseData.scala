@@ -92,7 +92,7 @@ trait CongestionTestBaseData
       environmentRefs,
       simonaConfig,
       Iterable(resultListener.ref),
-      3600,
+      Some(3600),
       startTime,
       endTime,
     )

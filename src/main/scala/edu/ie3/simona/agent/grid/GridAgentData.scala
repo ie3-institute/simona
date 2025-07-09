@@ -57,7 +57,7 @@ object GridAgentData {
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
       listener: Iterable[ActorRef[ResultEvent]],
-      resolution: Long,
+      resolution: Option[Long],
       simStartTime: ZonedDateTime,
       simEndTime: ZonedDateTime,
   ) {

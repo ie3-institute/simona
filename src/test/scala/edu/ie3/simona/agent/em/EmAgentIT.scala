@@ -75,7 +75,7 @@ class EmAgentIT
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
   given simulationParams: SimulationParameters = SimulationParameters(
-    expectedPowerRequestTick = Long.MaxValue,
+    expectedPowerRequestTick = None,
     requestVoltageDeviationTolerance = Each(1e-14d),
     simulationStart = simulationStartDate,
     simulationEnd = simulationEndDate,

@@ -96,7 +96,7 @@ trait DCMAlgorithm extends CongestionDetection {
     // return to idle
     GridAgent.gotoIdle(
       stateData.gridAgentBaseData,
-      stateData.currentTick + constantData.resolution,
+      constantData.resolution.map(_ + stateData.currentTick),
       Some(powerFlowResults),
       ctx,
     )
