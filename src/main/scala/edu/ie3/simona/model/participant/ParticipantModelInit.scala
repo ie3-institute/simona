@@ -39,19 +39,23 @@ object ParticipantModelInit {
     *   represents the physical model at the core of the agent.
     * @param modelConfig
     *   The model runtime config.
+    * @param primary
+    *   True, if we want to create a physical model factory, that will be used
+    *   with primary data.
     * @return
     *   The [[ParticipantModel]].
     */
   def getPhysicalModelFactory(
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
+      inputContainer: InputModelContainer[? <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
-  ): ParticipantModelFactory[_ <: ModelState] = {
+      primary: Boolean = false,
+  ): ParticipantModelFactory[? <: ModelState] = {
     val scaledParticipantInput = {
       (inputContainer.electricalInputModel
         .copy()
         .scale(modelConfig.scaling) match {
         // matching needed because Scala has trouble recognizing the Java type parameter
-        case copyBuilder: SystemParticipantInputCopyBuilder[_] => copyBuilder
+        case copyBuilder: SystemParticipantInputCopyBuilder[?] => copyBuilder
       }).build()
     }
 
@@ -59,10 +63,10 @@ object ParticipantModelInit {
       case (input: FixedFeedInInput, _) =>
         FixedFeedInModel.Factory(input)
       case (input: LoadInput, config: LoadRuntimeConfig) =>
-        LoadModel.getFactory(input, config)
+        LoadModel.getFactory(input, config, primary)
       case (input: HpInput, _) =>
         val thermalGrid = inputContainer match {
-          case heatInputContainer: WithHeatInputContainer[_] =>
+          case heatInputContainer: WithHeatInputContainer[?] =>
             heatInputContainer.thermalGrid
 
           case other =>
@@ -105,14 +109,15 @@ object ParticipantModelInit {
     *   The [[PrimaryDataParticipantModel]].
     */
   def getPrimaryModelFactory[PD <: PrimaryData](
-      inputContainer: InputModelContainer[_ <: SystemParticipantInput],
+      inputContainer: InputModelContainer[? <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
       primaryDataExtra: PrimaryDataExtra[PD],
-  ): ParticipantModelFactory[_ <: ModelState] = {
+  ): ParticipantModelFactory[? <: ModelState] = {
     // Create a fitting physical model to extract parameters from
     val modelFactory = getPhysicalModelFactory(
       inputContainer,
       modelConfig,
+      primary = true,
     )
 
     PrimaryDataParticipantModel.Factory(
