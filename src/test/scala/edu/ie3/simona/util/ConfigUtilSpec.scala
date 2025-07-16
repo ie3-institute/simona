@@ -20,15 +20,15 @@ import edu.ie3.datamodel.models.result.{
   ResultEntity,
 }
 import edu.ie3.simona.config.ConfigParams.ResultKafkaParams
-import edu.ie3.simona.config.OutputConfig.GridOutputConfig
-import edu.ie3.simona.config.RuntimeConfig._
-import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
+import edu.ie3.simona.config.OutputConfig.*
+import edu.ie3.simona.config.RuntimeConfig.*
+import edu.ie3.simona.config.SimonaConfig.apply as _
 import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
-import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
-import edu.ie3.simona.util.ConfigUtil._
+import edu.ie3.simona.util.ConfigUtil.*
+import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier.*
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
 import java.util.UUID
@@ -705,7 +705,7 @@ class ConfigUtilSpec
   }
 
   "The participant model output config util" should {
-    val validInput = AssetConfigs(
+    val validInput = OutputConfig.ParticipantOutputConfigs(
       OutputConfig.ParticipantOutputConfig(
         notifier = "default"
       ),
@@ -761,7 +761,7 @@ class ConfigUtilSpec
     }
 
     "return the correct notifier identifiers when the default is to inform about new simulation results" in {
-      val inputConfig = AssetConfigs(
+      val inputConfig = OutputConfig.ParticipantOutputConfigs(
         OutputConfig.ParticipantOutputConfig(
           notifier = "default",
           simulationResult = true,
@@ -790,7 +790,7 @@ class ConfigUtilSpec
     }
 
     "return the correct notifier identifiers when the default is to NOT inform about new simulation results" in {
-      val inputConfig = AssetConfigs(
+      val inputConfig = OutputConfig.ParticipantOutputConfigs(
         OutputConfig.ParticipantOutputConfig(
           notifier = "default"
         ),
@@ -815,7 +815,7 @@ class ConfigUtilSpec
     }
 
     "return the correct result entity classes to be considered " in {
-      val inputConfig = AssetConfigs(
+      val inputConfig = OutputConfig.ParticipantOutputConfigs(
         OutputConfig.ParticipantOutputConfig(
           notifier = "default"
         ),

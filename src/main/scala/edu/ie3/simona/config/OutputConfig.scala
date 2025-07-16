@@ -6,13 +6,12 @@
 
 package edu.ie3.simona.config
 
-import edu.ie3.simona.config.OutputConfig.*
 import edu.ie3.simona.config.ConfigParams.{
   BaseInfluxDb1xParams,
   PsdmSinkCsvParams,
   ResultKafkaParams,
 }
-import edu.ie3.simona.config.SimonaConfig.AssetConfigs
+import edu.ie3.simona.config.OutputConfig.*
 import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto.deriveConvert
 import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
@@ -38,11 +37,11 @@ import scala.deriving.Mirror
 final case class OutputConfig(
     base: Base,
     flex: Boolean = false,
-    grid: GridOutputConfig,
+    grid: GridOutputConfig = GridOutputConfig(),
     log: Log = Log(),
-    participant: AssetConfigs[ParticipantOutputConfig],
+    participant: ParticipantOutputConfigs = ParticipantOutputConfigs(),
     sink: Sink = Sink(),
-    thermal: AssetConfigs[SimpleOutputConfig],
+    thermal: ThermalOutputConfigs = ThermalOutputConfigs(),
 ) derives ConfigConvert
 
 object OutputConfig {
@@ -101,6 +100,18 @@ object OutputConfig {
   ) extends BaseOutputConfig
       derives ConfigConvert
 
+  /** Case class contains default and individual configs for participants.
+    *
+    * @param defaultConfig
+    *   The default config used for all asset, that have no individual config.
+    * @param individualConfigs
+    *   Specific configs, that are used instead of the [[defaultConfig]].
+    */
+  final case class ParticipantOutputConfigs(
+      defaultConfig: ParticipantOutputConfig = ParticipantOutputConfig(),
+      individualConfigs: List[ParticipantOutputConfig] = List.empty,
+  ) derives ConfigConvert
+
   /** Simple output configuration (e.g. used for thermal outputs).
     * @param notifier
     *   That specifies the output asset type.
@@ -112,6 +123,18 @@ object OutputConfig {
       override val simulationResult: Boolean = false,
   ) extends BaseOutputConfig
       derives ConfigConvert
+
+  /** Case class contains default and individual configs for thermals.
+    *
+    * @param defaultConfig
+    *   The default config used for all asset, that have no individual config.
+    * @param individualConfigs
+    *   Specific configs, that are used instead of the [[defaultConfig]].
+    */
+  final case class ThermalOutputConfigs(
+      defaultConfig: SimpleOutputConfig = SimpleOutputConfig(),
+      individualConfigs: List[SimpleOutputConfig] = List.empty,
+  ) derives ConfigConvert
 
   /** Base output configuration
     * @param addTimestampToOutputDir
