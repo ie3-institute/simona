@@ -84,7 +84,7 @@ maxdepth: 1
 protocols
 ```
 
-## Release
+## Release Process
 
 We're following the git-flow approach to release new versions. The following steps are necessary to went through for a release:
 
@@ -111,7 +111,7 @@ We're following the git-flow approach to release new versions. The following ste
 7. Get a Reviewer who Merge your Release-PR
 
 
-### Release
+### Release on Maven Central
 8. After your Branch has been merged, one of the Repository-Admins needs to confirm the release within MavenCentral.
    - FIXME: Give more details here
 9. Final steps at Github
