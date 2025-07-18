@@ -83,3 +83,41 @@ maxdepth: 1
 ---
 protocols
 ```
+
+## Release
+
+We're following the git-flow approach to release new versions. The following steps are necessary to went through for a release:
+
+### Pre-Release
+1. Update gradle to latest version
+2. Create a new `Issue` with the new release version (e.g. Release 2.1.0)
+3. Milestone and link PRs to it
+   1. Create a new Milestone for this release version if it doesn't exist already
+   2. Search all PR's that are newer than the last release. This query might be helpful `is:closed is:pr no:milestone -author:app/dependabot`
+   3. Add all of these PR's to the Milestone
+4. Create a new branch based from MAIN
+   1. Name it `rel/YOUR_INITIALS/#ISSUE_NUMBER-release_RELEASE_VERSION where
+      - YOUR_INITIALS would be `kb` for [Prof. Dr. rer. hort. Klaus-Dieter Brokkoli](https://www.instagram.com/prof_broccoli/)
+      - ISSUE_NUMBER is the number of the issue created above
+      - RELEASE_Version would be e.g. 2.1.0
+   2. Merge dev-branch into the rel-Branch
+   3. Update the `version.properties` to new version number
+5. Adapt the `Changelog`
+   1. Change headline from `Unreleased` into the new version (e.g. 2.1.0)
+   2. Add a new `Unreleased` section
+   3. Adapt the from-till dates of the versions in the bottom part of the `Changelog` 
+6. Push the PR
+   - Keep in mind that you would like to merge into main, not dev.
+7. Get a Reviewer who Merge your Release-PR
+
+
+### Release
+8. After your Branch has been merged, one of the Repository-Admins needs to confirm the release within MavenCentral.
+   - FIXME: Give more details here
+9. Final steps at Github
+   1. Create a new Tags and create the Release also there
+   2. Add a change description (Copy from `Changelog` and adapt accordingly if necessary)
+   3. Increment MinorVersion of dev branch 
+      - Adapt `version.properties` by using gradle task `./gradlew incrementMinor`
+      - Use Force Push to overrule version check 
+   4. Merge-Back the Main-Branch into dev
