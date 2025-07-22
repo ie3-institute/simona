@@ -6,9 +6,11 @@
 
 package edu.ie3.simona.agent.participant
 
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.ParticipantGridAdapter._
+import edu.ie3.simona.agent.participant.ParticipantGridAdapter.*
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroMVAr, zeroMW}
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
@@ -52,6 +54,7 @@ final case class ParticipantGridAdapter(
     private val expectedRequestTick: Long,
     private val tickToPower: SortedMap[Long, ComplexPower],
     avgPowerResult: Option[AvgPowerResult],
+    lastResults: Iterable[ResultEntity] = Seq.empty,
 )(private implicit val requestVoltageDeviationTolerance: Dimensionless) {
 
   /** Whether a power request is expected and has not yet arrived, thus is
@@ -81,6 +84,15 @@ final case class ParticipantGridAdapter(
       tick: Long,
   ): ParticipantGridAdapter =
     copy(tickToPower = tickToPower.updated(tick, power))
+
+  def storeResults(
+      result: ResultsContainer,
+      tick: Long,
+  ): ParticipantGridAdapter =
+    copy(
+      tickToPower = tickToPower.updated(tick, result.totalPower),
+      lastResults = result.modelResults,
+    )
 
   /** Handles a power request by making sure an average power value has been
     * calculated, taking into account the new voltage value.

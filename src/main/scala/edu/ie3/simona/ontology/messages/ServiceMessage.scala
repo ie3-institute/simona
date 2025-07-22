@@ -161,13 +161,18 @@ object ServiceMessage {
       receiver: UUID | ActorRef[FlexResponse] | ActorRef[EmAgent.Message],
   ) extends ServiceResponseMessage
 
-  final case class ResultResponseMessage(result: ResultEntity)
+  final case class ResultResponseMessage(results: Iterable[ResultEntity])
       extends ServiceMessage
       with ServiceResponseMessage {
-    def tick(using startTime: ZonedDateTime): Long =
+    def tick(using startTime: ZonedDateTime): Long = {
+      val time = results match {
+        case res :: el => res.getTime
+      }
+
       TimeUtil.withDefaults.zonedDateTimeDifferenceInSeconds(
         startTime,
-        result.getTime,
+        time,
       )
+    }
   }
 }

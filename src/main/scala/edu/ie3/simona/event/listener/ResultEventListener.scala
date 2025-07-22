@@ -107,7 +107,7 @@ object ResultEventListener extends Transformer3wResultSupport {
               resultClass,
               ResultEntityCsvSink(
                 finalFileName,
-                new FixedResultEntityProcessor(resultClass),
+                new ResultEntityProcessor(resultClass),
                 enableCompression,
                 csv.delimiter,
               ),
@@ -235,7 +235,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       log: Logger,
   ): Unit =
     Try {
-      extSink.foreach(_ ! ResultResponseMessage(resultEntity))
+      extSink.foreach(_ ! ResultResponseMessage(Seq(resultEntity)))
 
       classToSink
         .get(resultEntity.getClass)

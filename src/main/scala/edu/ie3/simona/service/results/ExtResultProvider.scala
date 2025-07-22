@@ -7,6 +7,7 @@
 package edu.ie3.simona.service.results
 
 import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.api.data.connection.ExtResultDataConnection
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.results.{
@@ -207,49 +208,57 @@ object ExtResultProvider extends SimonaService with ExtDataSupport {
       extResponseMsg: ServiceResponseMessage
   )(using serviceStateData: ExtResultStateData): ExtResultStateData =
     extResponseMsg match {
-      case ResultResponseMessage(result) =>
+      case ResultResponseMessage(results) =>
         val receiveDataMap = serviceStateData.receiveDataMap
+
+        val participantResults = results.map {
+          case res: SystemParticipantResult =>
+            res.getInputModel -> res
+        }.toMap
 
         if (receiveDataMap.getExpectedKeys.isEmpty) {
 
           // we currently expect no result,
           // save received result in storage
           serviceStateData.copy(
-            resultStorage =
-              serviceStateData.resultStorage + (result.getInputModel -> result)
+            resultStorage = serviceStateData.resultStorage ++ participantResults
           )
 
         } else {
           // we expect results,
-          val model = result.getInputModel
 
-          if (receiveDataMap.getExpectedKeys.contains(model)) {
-            // the received model is expected
-            // save in data map
-            val updated = receiveDataMap.addData(result.getInputModel, result)
+          val (expectedModels, otherModels) = participantResults.keys.partition(
+            receiveDataMap.getExpectedKeys.contains
+          )
 
-            if (updated.isComplete) {
+          // storing the result, that were not requested
+          val updatedResultStorage =
+            serviceStateData.resultStorage ++ otherModels
+              .map(model => model -> participantResults(model))
+              .toMap
 
-              serviceStateData.extResultDataConnection.queueExtResponseMsg(
-                new ProvideResultEntities(updated.receivedData.asJava)
-              )
+          val updated = expectedModels.foldLeft(receiveDataMap) {
+            case (dataMap, model) =>
+              dataMap.addData(model, participantResults(model))
+          }
 
-              serviceStateData.copy(receiveDataMap = ReceiveDataMap.empty)
-            } else {
+          if (updated.isComplete) {
 
-              serviceStateData.copy(
-                receiveDataMap = updated
-              )
-            }
+            serviceStateData.extResultDataConnection.queueExtResponseMsg(
+              new ProvideResultEntities(updated.receivedData.asJava)
+            )
+
+            serviceStateData.copy(
+              receiveDataMap = ReceiveDataMap.empty,
+              resultStorage = updatedResultStorage,
+            )
           } else {
 
-            // the received result is not expected
-            // save in storage
             serviceStateData.copy(
-              resultStorage = serviceStateData.resultStorage + (model -> result)
+              receiveDataMap = updated,
+              resultStorage = updatedResultStorage,
             )
           }
         }
     }
-
 }

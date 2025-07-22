@@ -21,7 +21,6 @@ import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
 import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
 import edu.ie3.simona.config.RuntimeConfig.*
-import edu.ie3.simona.config.SimonaConfig.AssetConfigs
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException

@@ -183,27 +183,6 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.extResultListeners shouldBe Seq((resultConnection, resultRef))
     }
 
-    "return emDataService correctly" in {
-      val emConnection =
-        new ExtEmDataConnection(emptyListInput, EmMode.BASE)
-      val emRef = TestProbe("em_service").ref
-
-      val cases = Table(
-        ("extSimSetupData", "expectedConnection", "expectedService"),
-        (
-          ExtSimSetupData.apply.update(emConnection, emRef),
-          Some(emConnection),
-          Some(emRef),
-        ),
-        (ExtSimSetupData.apply, None, None),
-      )
-
-      forAll(cases) { (extSimSetupData, expectedConnection, expectedService) =>
-        extSimSetupData.emDataConnection shouldBe expectedConnection
-        extSimSetupData.emDataService shouldBe expectedService
-      }
-    }
-
     "return evDataService correctly" in {
       val evConnection = new ExtEvDataConnection()
       val evRef = TestProbe[ExtEvDataService.Message]("ev_service").ref

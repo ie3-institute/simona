@@ -78,7 +78,7 @@ final case class ExtResultSchedule(
     copy(
       scheduleMap = scheduleMap.updated(
         nextTick,
-        getScheduledKeys(nextTick) + msg.result.getInputModel,
+        getScheduledKeys(nextTick) ++ msg.results.map(_.getInputModel),
       )
     )
   }

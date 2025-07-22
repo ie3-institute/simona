@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant
 
 import breeze.numerics.{pow, sqrt}
+import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -18,9 +19,11 @@ import edu.ie3.simona.model.participant.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.ResultResponseMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
+import edu.ie3.simona.service.results.ExtResultProvider
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -145,6 +148,10 @@ object ParticipantAgent {
       eInPu: Dimensionless,
       fInPu: Dimensionless,
       replyTo: ActorRef[ProvidedPowerResponse],
+  ) extends Request
+
+  final case class RequestLastResult(
+      replyTo: ActorRef[ExtResultProvider.Message]
   ) extends Request
 
   /** Message announcing that calculations by the
@@ -303,6 +310,17 @@ object ParticipantAgent {
           updatedGridAdapter,
           resultHandler,
         )
+
+      case (ctx, RequestLastResult(replyTo)) =>
+        // send last calculated results to result service
+        replyTo ! ResultResponseMessage(gridAdapter.lastResults)
+
+        ParticipantAgent(
+          modelShell,
+          inputHandler,
+          gridAdapter,
+          resultHandler,
+        )
     }
 
   /** Starts a model calculation if all requirements have been met. A model
@@ -368,8 +386,7 @@ object ParticipantAgent {
 
                   results.modelResults.foreach(resultHandler.maybeSend)
 
-                  val newGridAdapter =
-                    gridAdapter.storePowerValue(results.totalPower, tick)
+                  val newGridAdapter = gridAdapter.storeResults(results, tick)
 
                   (newShell, newGridAdapter)
                 } else
@@ -428,10 +445,7 @@ object ParticipantAgent {
               results.modelResults.foreach(resultHandler.maybeSend)
 
               val gridAdapterWithResult =
-                gridAdapter.storePowerValue(
-                  results.totalPower,
-                  flexControl.tick,
-                )
+                gridAdapter.storeResults(results, flexControl.tick)
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 flexControl.tick,
