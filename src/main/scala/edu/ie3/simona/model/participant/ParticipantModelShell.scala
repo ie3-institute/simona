@@ -176,6 +176,12 @@ final case class ParticipantModelShell[
 
     def modelOperatingPoint(): (OP, OperationChangeIndicator) = {
       val (modelOp, modelNextTick) =
+      if (tick==0 && model.isInstanceOf[StorageModel]) {
+        val (modelOperatingP, changeInd) = model.determineOperatingPoint(currentState,zeroKW)
+
+        (modelOperatingP, changeInd.changesAtTick)
+      }
+      else
         model.determineOperatingPoint(currentState)
       // Sanity check
       if (modelNextTick.exists(_ <= tick))
