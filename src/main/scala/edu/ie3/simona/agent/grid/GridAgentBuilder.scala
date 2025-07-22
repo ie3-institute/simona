@@ -78,8 +78,14 @@ object GridAgentBuilder {
       filterSysParts(subGridContainer, constantData.environmentRefs)
 
     // ems that control at least one participant directly
-    val firstLevelEms = systemParticipants.flatMap {
-      _.getControllingEm.toScala.map(em => em.getUuid -> em)
+    val firstLevelEms = systemParticipants.flatMap { participant =>
+      val controllingEm = participant.getControllingEm
+      if (controllingEm.isPresent) {
+        val em = controllingEm.get()
+        Some(em.getUuid -> em)
+      } else {
+        None
+      }
     }.toMap
 
     val allEms = buildEmsRecursively(firstLevelEms)
