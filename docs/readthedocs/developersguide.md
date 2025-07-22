@@ -113,10 +113,16 @@ We're following the git-flow approach to release new versions. The following ste
 
 ### Release on Maven Central
 8. After your Branch has been merged, one of the Repository-Admins needs to confirm the release within MavenCentral.
-   - FIXME: Give more details here
+   1. Visit [Maven Central Publishing](https://central.sonatype.com/publishing/deployments).  If everything worked fine, the new release should be available under 'Deployments'. Else, check the CI-Pipeline for any errors.
+   2. Finally check the Deployment:
+      1. Are all necessary files there?
+      2. Is the deployment valid?
+   3. If so, publish. Else, choose 'drop'.
 9. Final steps at Github
    1. Create a new Tags and create the Release also there
-   2. Add a change description (Copy from `Changelog` and adapt accordingly if necessary)
+      1. Hint: Intellij -> Git -> Select 'Main-Branch' -> Choose commit
+      2. Push Tags to Github
+   2. Create a new release with the new tag version and the change description (Copy from `Changelog` and adapt accordingly if necessary)
    3. Increment MinorVersion of dev branch 
       - Adapt `version.properties` by using gradle task `./gradlew incrementMinor`
       - Use Force Push to overrule version check 
