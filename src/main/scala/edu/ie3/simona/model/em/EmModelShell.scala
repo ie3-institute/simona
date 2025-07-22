@@ -199,11 +199,11 @@ object EmModelShell {
 
           if (modelFound && !aggregateFlexFound)
             throw new CriticalFailureException(
-              s"Unknown model flex strategy $modelStrategyName for flex type ${flexOptionsMeta.classTag.runtimeClass.getSimpleName}."
+              s"Unknown aggregate flex strategy $aggregateFlexName for flex type ${flexOptionsMeta.classTag.runtimeClass.getSimpleName}."
             )
           else if (!modelFound && aggregateFlexFound)
             throw new CriticalFailureException(
-              s"Unknown aggregate flex $aggregateFlexName for flex type ${flexOptionsMeta.classTag.runtimeClass.getSimpleName}."
+              s"Unknown model flex strategy $modelStrategyName for flex type ${flexOptionsMeta.classTag.runtimeClass.getSimpleName}."
             )
 
           modelFound && aggregateFlexFound
