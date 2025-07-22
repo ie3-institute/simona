@@ -7,39 +7,76 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  FlexOptionsMeta,
+  FlexType,
+  MinMaxFlexOptions,
+}
 import squants.Power
-import squants.energy.Kilowatts
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
 /** Translating input data to a format that can be used by aggregation
   * strategies, em strategies etc.. Furthermore, sanity checks on calculated
   * data is performed.
   */
-final case class EmModelShell(
+final case class EmModelShell[FO <: FlexOptions](
     uuid: UUID,
     id: String,
-    modelStrategy: EmModelStrat,
-    aggregateFlex: EmAggregateFlex,
-    modelToParticipantInput: Map[UUID, AssetInput] = Map.empty,
-    lastFlexOptions: Option[FlexOptions] = None,
+    modelStrategy: EmModelStrat[FO],
+    aggregateFlex: EmAggregateFlex[FO],
+    private val modelToParticipantInput: Map[UUID, AssetInput] = Map.empty,
+    private val flexOptions: Option[FO] = None,
+    private val flexOptionsMeta: FlexOptionsMeta[FO],
 ) {
 
-  def addParticipant(modelUuid: UUID, inputModel: AssetInput): EmModelShell =
+  /** Returns a unique identifier for the model held by this model shell,
+    * including UUID and id of the model, for the purpose of log or exception
+    * messaging.
+    *
+    * @return
+    *   A unique identifier for the model
+    */
+  def identifier: String =
+    s"EmModel[$id/$uuid]"
+
+  def getFlexType: FlexType =
+    flexOptionsMeta.flexType
+
+  /** Returns the current flex options, if present, or throws a
+    * [[CriticalFailureException]]. Only call this if you are certain the flex
+    * options have been set.
+    *
+    * @return
+    *   The flex options.
+    */
+  def getFlexOptions: FO =
+    flexOptions.getOrElse(
+      throw new CriticalFailureException(
+        s"$identifier: Flex options have not been calculated!"
+      )
+    )
+
+  def addParticipant(
+      modelUuid: UUID,
+      inputModel: AssetInput,
+  ): EmModelShell[FO] =
     copy(
       modelToParticipantInput =
         modelToParticipantInput.updated(modelUuid, inputModel)
     )
 
-  def aggregateFlexOptions(
+  def updateFlexOptions(
       allFlexOptions: Iterable[
         (UUID, FlexOptions)
       ]
-  ): MinMaxFlexOptions = {
+  ): EmModelShell[FO] = {
     val updatedAllFlexOptions = allFlexOptions.map {
       case (modelUuid, flexOptions) =>
         val assetInput = modelToParticipantInput.getOrElse(
@@ -49,62 +86,57 @@ final case class EmModelShell(
           ),
         )
 
-        val minMaxFlexOptions = flexOptions match {
-          case flex: MinMaxFlexOptions => flex
-          case unsupported =>
-            throw new CriticalFailureException(
-              s"Received unsupported flex options $unsupported."
-            )
-        }
+        val typedFlexOptions = flexOptionsMeta.castFlexOptions(flexOptions)
 
         val updatedFlexOptions =
-          modelStrategy.adaptFlexOptions(assetInput, minMaxFlexOptions)
+          modelStrategy.adaptFlexOptions(assetInput, typedFlexOptions)
 
         assetInput -> updatedFlexOptions
     }
 
-    aggregateFlex.aggregateFlexOptions(updatedAllFlexOptions)
+    val aggregatedFlex =
+      aggregateFlex.aggregateFlexOptions(updatedAllFlexOptions)
+
+    copy(flexOptions = Some(aggregatedFlex))
   }
+
+  def determineFlexPower(flexCtrl: IssueFlexControl): Power =
+    flexOptionsMeta.determineFlexPower(getFlexOptions, flexCtrl)
 
   def determineFlexControl(
       allFlexOptions: Iterable[(UUID, FlexOptions)],
       target: Power,
   ): Iterable[(UUID, Power)] = {
 
-    val minMaxFlexOptions = allFlexOptions.toMap.view.mapValues {
-      case flex: MinMaxFlexOptions => flex
-      case unsupported =>
-        throw new CriticalFailureException(
-          s"Received unsupported flex options $unsupported."
-        )
-    }.toMap
+    val typedFlexOptions =
+      allFlexOptions.toMap.view
+        .mapValues(flexOptionsMeta.castFlexOptions)
+        .toMap
 
-    val uuidToFlexOptions = minMaxFlexOptions.map {
-      case (modelUuid, flexOptions) =>
-        val assetInput = modelToParticipantInput.getOrElse(
-          modelUuid,
-          throw new CriticalFailureException(
-            s"Asset input for model with UUID $modelUuid was not found."
-          ),
-        )
-        assetInput -> flexOptions
+    val uuidToFlexOptions = typedFlexOptions.map { case (modelUuid, fo) =>
+      val assetInput = modelToParticipantInput.getOrElse(
+        modelUuid,
+        throw new CriticalFailureException(
+          s"Asset input for model with UUID $modelUuid was not found."
+        ),
+      )
+      assetInput -> fo
     }
 
     val setPoints =
       modelStrategy.determineFlexControl(uuidToFlexOptions, target)
 
     setPoints.map { case (model, power) =>
-      val flexOptions =
-        minMaxFlexOptions.getOrElse(
-          model,
-          throw new CriticalFailureException(
-            s"Set point for model $model has been calculated by ${modelStrategy.getClass.getSimpleName}, which is not connected to this EM."
-          ),
-        )
+      val fo = typedFlexOptions.getOrElse(
+        model,
+        throw new CriticalFailureException(
+          s"Set point for model $model has been calculated by ${modelStrategy.getClass.getSimpleName}, which is not connected to this EM."
+        ),
+      )
 
       // sanity checks after strat calculation
       try {
-        EmTools.checkSetPower(flexOptions, power)
+        flexOptionsMeta.checkSetPower(fo, power)
       } catch {
         case fe: FlexException =>
           throw new CriticalFailureException(
@@ -117,59 +149,81 @@ final case class EmModelShell(
     }
   }
 
+  /** Returns a result for the current flex options.
+    *
+    * @param dateTime
+    *   The current date and time.
+    * @return
+    *   A flex options result.
+    */
+  def determineResults(dateTime: ZonedDateTime): FlexOptionsResult =
+    flexOptionsMeta.createResult(
+      getFlexOptions,
+      uuid,
+      dateTime,
+    )
+
 }
 
 object EmModelShell {
+
   def apply(
       uuid: UUID,
       id: String,
       modelStrategyName: String,
       modelConfig: EmRuntimeConfig,
-  ): EmModelShell = {
+  ): EmModelShell[?] = {
 
-    val modelStrategy = modelStrategyName match {
-      case "PROPORTIONAL" => ProportionalFlexStrat
-      case "PRIORITIZED" =>
-        PrioritizedFlexStrat(modelConfig.curtailRegenerative)
-      case unknown =>
-        throw new CriticalFailureException(s"Unknown model strategy $unknown")
-    }
+    case class StratFactoryWrapper[FO <: FlexOptions](
+        modelStrat: PartialFunction[String, EmModelStrat[FO]],
+        aggregateFlex: PartialFunction[String, EmAggregateFlex[FO]],
+        flexOptionsMeta: FlexOptionsMeta[FO],
+    )
 
-    val aggregateFlex = modelConfig.aggregateFlex match {
-      case "SELF_OPT_EXCL_REG" =>
-        EmAggregatePowerOpt(zeroKW, curtailRegenerative = false)
-      case "SELF_OPT" => EmAggregatePowerOpt(zeroKW, curtailRegenerative = true)
-      case "SIMPLE_SUM" => EmAggregateSimpleSum
+    val allFactories = Seq(
+      StratFactoryWrapper(
+        EmModelStrat.parseMinMax(modelConfig),
+        EmAggregateFlex.parseMinMax,
+        MinMaxFlexOptions,
+      )
+    )
 
-      case powerTargetAbsString
-          if powerTargetAbsString.startsWith("SELF_POWER_") =>
-        val pattern = """SELF_POWER_([\d.]+)(_EXCL_REG)?""".r
-        powerTargetAbsString match {
-          case pattern(value, exclReg) =>
-            try {
-              val powerTargetAbs = BigDecimal(value)
-              val curtailRegenerative = exclReg == null
-              EmAggregatePowerOpt(
-                Kilowatts(powerTargetAbs),
-                curtailRegenerative,
-              )
-            } catch {
-              case _: NumberFormatException =>
-                throw new CriticalFailureException(
-                  s"Invalid numeric value in aggregate flex strategy: $powerTargetAbsString"
-                )
-            }
-          case _ =>
+    val aggregateFlexName = modelConfig.aggregateFlex
+
+    allFactories
+      .find {
+        case StratFactoryWrapper(modelStrat, aggregateFlex, flexOptionsMeta) =>
+          val modelFound = modelStrat.isDefinedAt(modelStrategyName)
+          val aggregateFlexFound =
+            aggregateFlex.isDefinedAt(aggregateFlexName)
+
+          if (modelFound && !aggregateFlexFound)
             throw new CriticalFailureException(
-              s"Invalid format for aggregate flex strategy: $powerTargetAbsString"
+              s"Unknown model flex strategy $modelStrategyName for flex type ${flexOptionsMeta.classTag.runtimeClass.getSimpleName}."
             )
-        }
-      case unknown =>
-        throw new CriticalFailureException(
-          s"Unknown aggregate flex strategy $unknown"
-        )
-    }
+          else if (!modelFound && aggregateFlexFound)
+            throw new CriticalFailureException(
+              s"Unknown aggregate flex $aggregateFlexName for flex type ${flexOptionsMeta.classTag.runtimeClass.getSimpleName}."
+            )
 
-    EmModelShell(uuid, id, modelStrategy, aggregateFlex)
+          modelFound && aggregateFlexFound
+      }
+      .map {
+        case StratFactoryWrapper(modelStrat, aggregateFlex, flexOptionsMeta) =>
+          EmModelShell(
+            uuid,
+            id,
+            modelStrat(modelStrategyName),
+            aggregateFlex(aggregateFlexName),
+            flexOptionsMeta = flexOptionsMeta,
+          )
+      }
+      .getOrElse {
+        throw new CriticalFailureException(
+          s"Model strategy $modelStrategyName and aggregate flex $aggregateFlexName not found."
+        )
+      }
+
   }
+
 }

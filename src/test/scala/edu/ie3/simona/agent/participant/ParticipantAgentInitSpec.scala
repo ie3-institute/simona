@@ -29,6 +29,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   SecondaryServiceRegistrationMessage,
 }
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -56,9 +57,11 @@ class ParticipantAgentInitSpec
     with PvInputTestData
     with TestSpawnerTyped {
 
-  private implicit val simulationStart: ZonedDateTime = defaultSimulationStart
+  given simulationStart: ZonedDateTime = defaultSimulationStart
 
-  given simulationParams: SimulationParameters = SimulationParameters(
+  given FlexType = FlexType.MinMax
+
+  given SimulationParameters = SimulationParameters(
     3600,
     Each(1e-14),
     simulationStart,

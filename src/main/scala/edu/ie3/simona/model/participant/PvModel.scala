@@ -12,30 +12,31 @@ import edu.ie3.datamodel.models.result.system.{
   PvResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.model.participant.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  OperationChangeIndicator,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.PvModel.PvState
-import edu.ie3.simona.model.participant.SolarIrradiationCalculation._
+import edu.ie3.simona.model.participant.SolarIrradiationCalculation.*
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
+import edu.ie3.util.scala.quantities.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroWPerSM
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   DimensionlessToSimona,
   PowerConversionSimona,
   RadiansConversionSimona,
 }
-import edu.ie3.util.scala.quantities._
-import squants._
+import squants.*
 import squants.space.{Degrees, SquareMeters}
 
 import java.time.ZonedDateTime
@@ -58,7 +59,6 @@ class PvModel private (
       ActivePowerOperatingPoint,
       PvState,
     ]
-    with ParticipantSimpleFlexibility[PvState]
     with LazyLogging {
 
   /** Override sMax as the power output of a pv unit could become easily up to
@@ -74,6 +74,11 @@ class PvModel private (
 
   private val activationThreshold =
     sRated.toActivePower(cosPhiRated) * 0.001 * -1
+
+  override val flexModels: Map[FlexType, ParticipantFlexModel[PvState]] =
+    Map(
+      FlexType.MinMax -> ParticipantSimpleMinMaxFlexModel(this)
+    )
 
   override def determineState(
       lastState: PvState,
@@ -171,6 +176,12 @@ class PvModel private (
     (ActivePowerOperatingPoint(power), None)
   }
 
+  override def determineOperatingPoint(
+      state: PvState,
+      setPower: Power,
+  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
+    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
+
   override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
     ActivePowerOperatingPoint.zero
 
@@ -223,7 +234,7 @@ class PvModel private (
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new PvResult(

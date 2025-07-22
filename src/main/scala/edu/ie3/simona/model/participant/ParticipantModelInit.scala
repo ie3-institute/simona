@@ -22,7 +22,9 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.evcs.EvcsModel
+import edu.ie3.simona.model.participant.hp.HpModel
 import edu.ie3.simona.model.participant.load.LoadModel
+import edu.ie3.simona.model.participant.storage.StorageModel
 import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
 
 /** Helper object for constructing all types of [[ParticipantModel]]s, including

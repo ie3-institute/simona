@@ -69,13 +69,15 @@ object ParticipantAgent {
     *   The first tick at which data will be sent.
     * @param primaryDataExtra
     *   Extra functionality specific to the primary data class.
-    * @tparam P
+    * @tparam PD
     *   The type of primary data to be received.
     */
-  final case class PrimaryRegistrationSuccessfulMessage[P <: PrimaryData](
+  final case class PrimaryRegistrationSuccessfulMessage[
+      PD <: PrimaryData
+  ](
       override val serviceRef: ActorRef[ServiceMessage],
       firstDataTick: Long,
-      primaryDataExtra: PrimaryDataExtra[P],
+      primaryDataExtra: PrimaryDataExtra[PD],
   ) extends RegistrationResponseMessage
 
   /** Message announcing a failed registration.
@@ -392,12 +394,12 @@ object ParticipantAgent {
               )
               (shellWithOP, gridAdapterWithResult)
 
-            case FlexActivation(tick) =>
+            case FlexActivation(tick, flexType) =>
               val shellWithFlex =
                 if (isCalculationRequired(shell, inputHandler)) {
-                  val newShell = shell.updateFlexOptions(tick)
+                  val newShell = shell.updateFlexOptions(tick, flexType)
                   resultHandler.maybeSend(
-                    newShell.determineFlexOptionsResult(tick)
+                    newShell.determineFlexOptionsResult(tick, flexType)
                   )
                   newShell
                 } else

@@ -12,11 +12,11 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 /** Aggregates reference, minimum and maximum power by just simply summing up
   * each value.
   */
-object EmAggregateSimpleSum extends EmAggregateFlex {
+object EmAggregateSimpleSum extends EmAggregateFlex[MinMaxFlexOptions] {
 
   override def aggregateFlexOptions(
       flexOptions: Iterable[
-        (_ <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, MinMaxFlexOptions)
       ]
   ): MinMaxFlexOptions =
     flexOptions.map { case (_, flex: MinMaxFlexOptions) =>

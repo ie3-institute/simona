@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.EmInput
-import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
+import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
@@ -16,17 +16,17 @@ import edu.ie3.simona.event.ResultEvent.{
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.em.{EmModelShell, EmTools}
+import edu.ie3.simona.model.em.EmModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.QuantityUtils._
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.quantities.QuantityUtils.*
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
@@ -105,7 +105,7 @@ object EmAgent {
     */
   private def inactive(
       emData: EmData,
-      modelShell: EmModelShell,
+      modelShell: EmModelShell[?],
       core: EmDataCore.Inactive,
   ): Behavior[Message] = Behaviors.receivePartial {
 
@@ -167,7 +167,7 @@ object EmAgent {
 
   private def activate(
       emData: EmData,
-      modelShell: EmModelShell,
+      modelShell: EmModelShell[?],
       core: EmDataCore.Inactive,
       tick: Long,
   ) = {
@@ -175,7 +175,7 @@ object EmAgent {
 
     val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
     toActivate.foreach {
-      _ ! FlexActivation(tick)
+      _ ! FlexActivation(tick, modelShell.getFlexType)
     }
 
     newCore.fold(
@@ -189,7 +189,7 @@ object EmAgent {
     */
   private def awaitingFlexOptions(
       emData: EmData,
-      modelShell: EmModelShell,
+      modelShell: EmModelShell[?],
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
   ): Behavior[Message] = Behaviors.receiveMessagePartial {
     case provideFlex: ProvideFlexOptions =>
@@ -202,18 +202,13 @@ object EmAgent {
 
         val allFlexOptions = updatedCore.getFlexOptions
 
-        val emFlexOptions =
-          modelShell.aggregateFlexOptions(allFlexOptions)
+        val updatedModelShell = modelShell.updateFlexOptions(allFlexOptions)
 
         if (emData.outputConfig.flexResult) {
-          val flexResult = new FlexOptionsResult(
+          val flexResult = updatedModelShell.determineResults(
             flexOptionsCore.activeTick.toDateTime(using
               emData.simulationStartDate
-            ),
-            modelShell.uuid,
-            emFlexOptions.ref.toMegawatts.asMegaWatt,
-            emFlexOptions.min.toMegawatts.asMegaWatt,
-            emFlexOptions.max.toMegawatts.asMegaWatt,
+            )
           )
 
           emData.listener.foreach {
@@ -225,12 +220,8 @@ object EmAgent {
           case Right(parentEm) =>
             // provide aggregate flex options to parent
             parentEm ! ProvideFlexOptions(
-              modelShell.uuid,
-              emFlexOptions,
-            )
-
-            val updatedModelShell = modelShell.copy(
-              lastFlexOptions = Some(emFlexOptions)
+              updatedModelShell.uuid,
+              updatedModelShell.getFlexOptions,
             )
 
             awaitingFlexCtrl(emData, updatedModelShell, updatedCore)
@@ -241,7 +232,7 @@ object EmAgent {
             val setPower = zeroKW
 
             val flexControl =
-              modelShell.determineFlexControl(allFlexOptions, setPower)
+              updatedModelShell.determineFlexControl(allFlexOptions, setPower)
 
             val (allFlexMsgs, newCore) = updatedCore
               .handleFlexCtrl(flexControl)
@@ -252,7 +243,7 @@ object EmAgent {
               actor ! msg
             }
 
-            awaitingCompletions(emData, modelShell, newCore)
+            awaitingCompletions(emData, updatedModelShell, newCore)
         }
 
       } else {
@@ -276,19 +267,12 @@ object EmAgent {
     */
   private def awaitingFlexCtrl(
       emData: EmData,
-      modelShell: EmModelShell,
+      modelShell: EmModelShell[?],
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
   ): Behavior[Message] = Behaviors.receiveMessagePartial {
     case flexCtrl: IssueFlexControl =>
-      // flex options calculated by this EmAgent
-      val ownFlexOptions = modelShell.lastFlexOptions.getOrElse(
-        throw new CriticalFailureException(
-          s"Flex options have not been calculated by EmAgent."
-        )
-      )
-
       val setPointActivePower =
-        Try(EmTools.determineFlexPower(ownFlexOptions, flexCtrl))
+        Try(modelShell.determineFlexPower(flexCtrl))
           .recoverWith(exception =>
             Failure(
               new CriticalFailureException(
@@ -325,7 +309,7 @@ object EmAgent {
     */
   private def awaitingCompletions(
       emData: EmData,
-      modelShell: EmModelShell,
+      modelShell: EmModelShell[?],
       core: EmDataCore.AwaitingCompletions,
   ): Behavior[Message] = Behaviors.receivePartial {
     case (_, result: FlexResult) =>
@@ -367,7 +351,7 @@ object EmAgent {
     */
   private def sendCompletionCommunication(
       emData: EmData,
-      modelShell: EmModelShell,
+      modelShell: EmModelShell[?],
       inactiveCore: EmDataCore.Inactive,
       lastActiveTick: Long,
   )(using self: ActorRef[Message]): Unit = {
