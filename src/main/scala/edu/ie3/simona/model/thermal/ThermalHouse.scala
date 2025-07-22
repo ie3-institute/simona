@@ -191,11 +191,11 @@ final case class ThermalHouse(
     val (k1, k2) = getFactorsK1AndK2(thermalPower, ambientTemperature)
     // k1/k2 represents the temperature for limes t -> infinity
     val longTermTemperature = k1 / k2
-    val exponent_k2 = -1 * k2 * duration.toSeconds
+    val exponentK2 = -1 * k2 * duration.toSeconds
 
     val temperatureValue =
       (currentInnerTemperature.toKelvinScale - longTermTemperature) * Math.exp(
-        exponent_k2
+        exponentK2
       ) + longTermTemperature
 
     Kelvin(temperatureValue)
@@ -259,8 +259,10 @@ final case class ThermalHouse(
           qDot,
         ).map(HouseTemperatureLowerBoundaryReached)
       } else if (
-      isInnerTemperatureTooHigh(limitTemperature - temperatureTolerance)
-    ) { /* House has more gain than losses */
+      isInnerTemperatureTooHigh(
+        limitTemperature - temperatureTolerance
+      ) && qDot > zeroKW
+    ) { /* House has more gain than losses AND gain is not caused external (through ambient temperature) */
       nextActivation(
         thermalHouseState.tick,
         targetTemperature,
