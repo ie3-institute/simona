@@ -167,7 +167,7 @@ object ExtSimSetup {
             extSimSetupData.update(extPrimaryDataConnection, serviceRef)
 
           case extEmDataConnection: ExtEmDataConnection =>
-            if (setupData.emDataConnection.nonEmpty) {
+            if (setupData.emDataService.nonEmpty) {
               throw ServiceException(
                 s"Trying to connect another EmDataConnection. Currently only one is allowed."
               )
@@ -194,7 +194,7 @@ object ExtSimSetup {
             }
 
           case extEvDataConnection: ExtEvDataConnection =>
-            if (setupData.evDataConnection.nonEmpty) {
+            if (setupData.evDataService.nonEmpty) {
               throw ServiceException(
                 s"Trying to connect another EvDataConnection. Currently only one is allowed."
               )

@@ -157,7 +157,7 @@ class SimonaStandaloneSetup(
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
           simulationStart,
-          extSimSetupData.extPrimaryDataServices,
+          extSimSetupData.primaryDataServices,
         ),
       ),
       "primaryServiceProxyAgent",
@@ -287,7 +287,7 @@ class SimonaStandaloneSetup(
         .spawn(
           ResultEventListener(
             resultFileHierarchy,
-            extSimSetupData.resultDataServices,
+            extSimSetupData.resultServices,
           ),
           ResultEventListener.getClass.getSimpleName,
         )

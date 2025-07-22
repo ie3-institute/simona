@@ -317,7 +317,6 @@ class ExtEmCommunicationIT
             0.002200000413468004.asMegaWatt,
             0.002200000413468004.asMegaWatt,
             0.006200000413468004.asMegaWatt,
-            Optional.empty,
           ),
           emNode3Uuid -> new FlexOptions(
             emSupUuid,
@@ -325,7 +324,6 @@ class ExtEmCommunicationIT
             0.asMegaWatt,
             0.asMegaWatt,
             0.004.asMegaWatt,
-            Optional.empty,
           ),
           emNode4Uuid -> new FlexOptions(
             emSupUuid,
@@ -333,7 +331,6 @@ class ExtEmCommunicationIT
             0.002200000413468004.asMegaWatt,
             0.002200000413468004.asMegaWatt,
             0.002200000413468004.asMegaWatt,
-            Optional.empty,
           ),
         ),
         Map(
@@ -363,7 +360,6 @@ class ExtEmCommunicationIT
             0.002200000413468004.asMegaWatt,
             0.002200000413468004.asMegaWatt,
             0.006200000413468004.asMegaWatt,
-            Optional.empty,
           ),
           emNode3Uuid -> new FlexOptions(
             emSupUuid,
@@ -371,7 +367,6 @@ class ExtEmCommunicationIT
             0.asMegaWatt,
             0.asMegaWatt,
             0.004.asMegaWatt,
-            Optional.empty,
           ),
           emNode4Uuid -> new FlexOptions(
             emSupUuid,
@@ -379,7 +374,6 @@ class ExtEmCommunicationIT
             0.002200000413468004.asMegaWatt,
             0.002200000413468004.asMegaWatt,
             0.002200000413468004.asMegaWatt,
-            Optional.empty,
           ),
         ),
         Map(
@@ -411,11 +405,7 @@ class ExtEmCommunicationIT
       connection.sendFlexRequests(
         tick,
         Map(
-          emSupUuid -> new FlexOptionRequest(
-            emSupUuid,
-            Optional.empty,
-            Optional.empty,
-          )
+          emSupUuid -> new FlexOptionRequest(emSupUuid, Optional.empty)
         ).asJava,
         Optional.of(nextTick),
         log,
@@ -444,12 +434,10 @@ class ExtEmCommunicationIT
           emNode3Uuid -> new FlexOptionRequest(
             emNode3Uuid,
             Optional.of(emSupUuid),
-            Optional.empty,
           ),
           emNode4Uuid -> new FlexOptionRequest(
             emNode4Uuid,
             Optional.of(emSupUuid),
-            Optional.empty,
           ),
         ).asJava,
         Optional.of(nextTick),

@@ -72,6 +72,8 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                 ExtSimSetupData(
                   Iterable(extSim.toClassic),
                   Seq.empty,
+                  None,
+                  None,
                   Seq.empty,
                   Seq.empty,
                 )

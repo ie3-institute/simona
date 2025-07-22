@@ -400,7 +400,6 @@ class ExtEmDataServiceSpec
                   -3.asKiloWatt,
                   -1.asKiloWatt,
                   1.asKiloWatt,
-                  Optional.empty,
                 )
               ).asJava
           ).asJava,

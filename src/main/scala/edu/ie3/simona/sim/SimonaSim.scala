@@ -87,8 +87,12 @@ object SimonaSim {
         val extSimulationData =
           simonaSetup.extSimulations(ctx, scheduler, extSimDir)
 
+        // TODO: Refactor ExtResultProvider handling and move to beginning again
         val resultEventListeners =
-          simonaSetup.resultEventListener(ctx, extSimulationData)
+          simonaSetup.resultEventListener(
+            ctx,
+            extSimulationData,
+          ) ++ extSimulationData.resultListeners
 
         /* start services */
         // primary service proxy
@@ -119,22 +123,18 @@ object SimonaSim {
           resultEventListeners,
         )
 
-        val otherActors = Iterable[ActorRef[_]](
+        val otherActors = Iterable[ActorRef[?]](
           timeAdvancer,
           scheduler,
           primaryServiceProxy,
           weatherService,
         ) ++
           gridAgents ++
-          extSimulationData.extDataServices.map(_._2)
+          extSimulationData.allActorRefs
 
         /* watch all actors */
         resultEventListeners.foreach(ctx.watch)
         ctx.watch(runtimeEventListener)
-        extSimulationData.extResultListeners.foreach { case (_, ref) =>
-          ctx.watch(ref)
-        }
-        extSimulationData.extSimAdapters.foreach(ctx.watch)
         otherActors.foreach(ctx.watch)
 
         // End pre-initialization phase
@@ -144,10 +144,6 @@ object SimonaSim {
         timeAdvancer ! TimeAdvancer.Start
 
         val delayedActors = resultEventListeners.appended(runtimeEventListener)
-
-        extSimulationData.extResultListeners.foreach(ref =>
-          delayedActors.appended(ref)
-        )
 
         idle(
           ActorData(
