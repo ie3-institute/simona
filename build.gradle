@@ -28,7 +28,7 @@ ext {
   confluentKafkaVersion = '7.9.0'
   scapegoatVersion = '3.1.9'
 
-  junitVersion = '1.13.3'
+  junitVersion = '1.13.4'
   testContainerVersion = '0.43.0'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
