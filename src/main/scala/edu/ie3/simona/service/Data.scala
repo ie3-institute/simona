@@ -49,7 +49,7 @@ object Data {
     *   The type of primary data
     */
   sealed trait PrimaryDataExtra[T <: PrimaryData: ClassTag] {
-    
+
     def getClassTag: ClassTag[T] = summon[ClassTag[T]]
 
     /** Returns a zero value of the desired type
