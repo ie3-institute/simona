@@ -23,7 +23,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.load.LoadModel
-import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
+import edu.ie3.simona.service.Data.PrimaryDataExtra
 
 /** Helper object for constructing all types of [[ParticipantModel]]s, including
   * [[PrimaryDataParticipantModel]].
@@ -108,10 +108,10 @@ object ParticipantModelInit {
     * @return
     *   The [[PrimaryDataParticipantModel]].
     */
-  def getPrimaryModelFactory[PD <: PrimaryData](
+  def getPrimaryModelFactory(
       inputContainer: InputModelContainer[? <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
-      primaryDataExtra: PrimaryDataExtra[PD],
+      primaryDataExtra: PrimaryDataExtra[?],
   ): ParticipantModelFactory[? <: ModelState] = {
     // Create a fitting physical model to extract parameters from
     val modelFactory = getPhysicalModelFactory(

@@ -154,7 +154,9 @@ abstract class ParticipantModel[
     */
   def zeroPowerOperatingPoint: OP
 
-  /** @param state
+  /** Creates results from model calculation.
+    *
+    * @param state
     *   the current state.
     * @param lastOperatingPoint
     *   the last operating point before the current one, i.e. the one valid up
@@ -176,8 +178,17 @@ abstract class ParticipantModel[
       dateTime: ZonedDateTime,
   ): Iterable[ResultEntity]
 
+  /** Creates results from primary data.
+    *
+    * @param data
+    *   The primary data to create results from.
+    * @param dateTime
+    *   The associated date and time of the result.
+    * @return
+    *   The result entity.
+    */
   def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult
 
@@ -241,7 +252,7 @@ object ParticipantModel {
       * @return
       *   The specific [[ParticipantModel]].
       */
-    def create(): ParticipantModel[_ <: OperatingPoint, S]
+    def create(): ParticipantModel[? <: OperatingPoint, S]
   }
 
   trait OperatingPoint {
