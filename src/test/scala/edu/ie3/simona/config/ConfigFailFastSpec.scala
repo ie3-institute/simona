@@ -547,7 +547,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               |     calculateMissingReactivePowerWithModel = false
               |      uuids = ["fb8f1443-1843-4ecd-a94a-59be8148397f"]
               |      scaling = 1.5
-              |      modelBehaviour = "random"
+              |      modelBehaviour = "profile"
               |      reference = "energy"
               |      }
               |  ]
@@ -687,7 +687,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               |      calculateMissingReactivePowerWithModel = false
               |      uuids = ["49f250fa-41ff-4434-a083-79c98d260a76"]
               |      scaling = 1.5
-              |      modelBehaviour = "random"
+              |      modelBehaviour = "profile"
               |      reference = "energy"
               |      }
               |  ]
