@@ -20,7 +20,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data
-import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
+import edu.ie3.simona.service.Data.PrimaryDataExtra
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -69,13 +69,11 @@ object ParticipantAgent {
     *   The first tick at which data will be sent.
     * @param primaryDataExtra
     *   Extra functionality specific to the primary data class.
-    * @tparam P
-    *   The type of primary data to be received.
     */
-  final case class PrimaryRegistrationSuccessfulMessage[P <: PrimaryData](
+  final case class PrimaryRegistrationSuccessfulMessage(
       override val serviceRef: ActorRef[ServiceMessage],
       firstDataTick: Long,
-      primaryDataExtra: PrimaryDataExtra[P],
+      primaryDataExtra: PrimaryDataExtra[?],
   ) extends RegistrationResponseMessage
 
   /** Message announcing a failed registration.
