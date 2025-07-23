@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapted `ParticipantAgent` for scala 3 [#1420](https://github.com/ie3-institute/simona/issues/1420)
 - Adapted `EmAgent` for scala 3 [#1415](https://github.com/ie3-institute/simona/issues/1415)
 - Updated Version within `CITATION.cff` [#1425](https://github.com/ie3-institute/simona/issues/1425)
+- Primary data class parameter cleanup [#1459](https://github.com/ie3-institute/simona/issues/1459)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
