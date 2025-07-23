@@ -121,7 +121,7 @@ We're following the git-flow approach to release new versions. The following ste
    1. Create a new Tags and create the Release also there
       1. Hint: Intellij -> Git -> Select 'Main-Branch' -> Choose commit
       2. Push Tags to Github
-   2. Create a new release with the new tag version and the change description (Copy from `Changelog` and adapt accordingly if necessary)
+   2. Create a new release with the new tag version and the change description (Copy from changelog and adapt accordingly if necessary)
    3. Increment MinorVersion of dev branch
       - Adapt `version.properties` by using gradle task `./gradlew incrementMinor`
       - Use Force Push to overrule branch protection
