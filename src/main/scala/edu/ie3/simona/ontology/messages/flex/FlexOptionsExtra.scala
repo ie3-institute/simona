@@ -20,6 +20,7 @@ import scala.reflect.ClassTag
   * options.
   *
   * @tparam FO
+  *   The type of flex options.
   */
 trait FlexOptionsExtra[FO <: FlexOptions: ClassTag] {
 
