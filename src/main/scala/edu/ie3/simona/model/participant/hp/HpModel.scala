@@ -58,7 +58,7 @@ class HpModel private (
 
   override val flexModels: Map[FlexType, ParticipantFlexModel[HpState]] =
     Map(
-      FlexType.MinMax -> HpMinMaxFlexModel(this)
+      FlexType.PowerLimit -> HpPowerLimitFlexModel(this)
     )
 
   override def determineState(

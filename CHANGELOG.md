@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Primary data class parameter cleanup [#1459](https://github.com/ie3-institute/simona/issues/1459)
 - Set Institute as first author within `CITATION.cff` [#1427](https://github.com/ie3-institute/simona/issues/1427)
 - Provide abstraction for flex options in system participant and EM [#1456](https://github.com/ie3-institute/simona/issues/1456)
+- Rename `MinMaxFlexOptions` to `PowerLimitFlexOptions` [#1457](https://github.com/ie3-institute/simona/issues/1457)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

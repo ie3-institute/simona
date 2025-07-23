@@ -18,7 +18,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
@@ -26,7 +26,7 @@ import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.Celsius
 import squants.{Energy, Kelvin, Power, Temperature}
 
-class HpMinMaxFlexModelSpec extends UnitSpec with HpInputTestData {
+class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
 
   // Testing tolerances
   given Power = Kilowatts(1e-10)
@@ -36,9 +36,9 @@ class HpMinMaxFlexModelSpec extends UnitSpec with HpInputTestData {
   val hpModel: HpModel =
     HpModel.Factory(hpInputModel, hpModelSpecThermalGrid).create()
 
-  val flexModel = HpMinMaxFlexModel(hpModel)
+  val flexModel = HpPowerLimitFlexModel(hpModel)
 
-  "A HP MinMaxFlexModel" should {
+  "A HP PowerLimitFlexModel" should {
 
     "Calculate flex options" in {
 
@@ -589,7 +589,7 @@ class HpMinMaxFlexModelSpec extends UnitSpec with HpInputTestData {
 
           // Invoke determineFlexOptions and match the results
           flexModel.determineFlexOptions(state) match {
-            case MinMaxFlexOptions(
+            case PowerLimitFlexOptions(
                   referencePower,
                   minPower,
                   maxPower,

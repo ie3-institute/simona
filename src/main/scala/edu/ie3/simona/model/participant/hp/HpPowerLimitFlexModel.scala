@@ -9,10 +9,13 @@ package edu.ie3.simona.model.participant.hp
 import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.hp.HpModel.HpState
 import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 
-class HpMinMaxFlexModel(private val model: HpModel)
+class HpPowerLimitFlexModel(private val model: HpModel)
     extends ParticipantFlexModel[HpState] {
 
   override def determineFlexOptions(
@@ -27,7 +30,7 @@ class HpMinMaxFlexModel(private val model: HpModel)
         wasRunningLastOp,
       )
 
-    MinMaxFlexOptions(
+    PowerLimitFlexOptions(
       if (turnOn) model.sRated.toActivePower(model.cosPhiRated) else zeroKW,
       if (canBeOutOfOperation) zeroKW else model.pRated,
       if (canOperate) model.pRated else zeroKW,

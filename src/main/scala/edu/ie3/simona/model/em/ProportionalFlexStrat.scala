@@ -10,9 +10,9 @@ import edu.ie3.datamodel.models.input.AssetInput
 import EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptionsExtra,
-  MinMaxFlexOptions,
+  PowerLimitFlexOptions,
 }
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions.flexSum
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions.flexSum
 import squants.Power
 
 import java.util.UUID
@@ -20,7 +20,7 @@ import java.util.UUID
 /** Proportionally distributes flex control among connected agents, i.e. all
   * agents contribute the same share of their offered flex options
   */
-object ProportionalFlexStrat extends EmModelStrat[MinMaxFlexOptions] {
+object ProportionalFlexStrat extends EmModelStrat[PowerLimitFlexOptions] {
 
   /** Determine the power of controllable devices by proportionally distributing
     * flexibility usage to connected devices. This means that all devices are
@@ -36,7 +36,7 @@ object ProportionalFlexStrat extends EmModelStrat[MinMaxFlexOptions] {
     */
   override def determineFlexControl(
       modelFlexOptions: Iterable[
-        (? <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, PowerLimitFlexOptions)
       ],
       target: Power,
   ): Iterable[(UUID, Power)] = {
@@ -56,7 +56,7 @@ object ProportionalFlexStrat extends EmModelStrat[MinMaxFlexOptions] {
       Seq.empty
     } else if (target < totalOptions.ref) {
       val reducedOptions = flexOptions.map {
-        case (uuid, MinMaxFlexOptions(refPower, minPower, _)) =>
+        case (uuid, PowerLimitFlexOptions(refPower, minPower, _)) =>
           (uuid, refPower, minPower)
       }
 
@@ -68,7 +68,7 @@ object ProportionalFlexStrat extends EmModelStrat[MinMaxFlexOptions] {
       )
     } else {
       val reducedOptions = flexOptions.map {
-        case (uuid, MinMaxFlexOptions(refPower, _, maxPower)) =>
+        case (uuid, PowerLimitFlexOptions(refPower, _, maxPower)) =>
           (uuid, refPower, maxPower)
       }
 
@@ -134,7 +134,7 @@ object ProportionalFlexStrat extends EmModelStrat[MinMaxFlexOptions] {
 
   override def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: MinMaxFlexOptions,
-  ): MinMaxFlexOptions =
+      flexOptions: PowerLimitFlexOptions,
+  ): PowerLimitFlexOptions =
     flexOptions
 }

@@ -115,7 +115,7 @@ class StorageModel private (
 
   override val flexModels: Map[FlexType, ParticipantFlexModel[StorageState]] =
     Map(
-      FlexType.MinMax -> StorageMinMaxFlexModel(this)
+      FlexType.PowerLimit -> StoragePowerLimitFlexModel(this)
     )
 
   override def determineState(

@@ -70,7 +70,7 @@ class WecModel private (
 
   override val flexModels: Map[FlexType, ParticipantFlexModel[WecState]] =
     Map(
-      FlexType.MinMax -> ParticipantSimpleMinMaxFlexModel(this)
+      FlexType.PowerLimit -> ParticipantSimplePowerLimitFlexModel(this)
     )
 
   override def determineState(

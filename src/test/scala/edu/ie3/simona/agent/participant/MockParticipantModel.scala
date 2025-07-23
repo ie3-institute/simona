@@ -16,7 +16,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   FlexType,
-  MinMaxFlexOptions,
+  PowerLimitFlexOptions,
 }
 import edu.ie3.simona.service.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.service.{Data, ServiceType}
@@ -58,7 +58,7 @@ class MockParticipantModel(
     ] {
 
   override val flexModels: Map[FlexType, ParticipantFlexModel[MockState]] =
-    Map(FlexType.MinMax -> MockMinMaxFlexModel)
+    Map(FlexType.PowerLimit -> MockPowerLimitFlexModel)
 
   override def determineState(
       lastState: MockState,
@@ -164,13 +164,13 @@ object MockParticipantModel {
 
   val uuid: UUID = UUID.fromString("0-0-0-0-1")
 
-  object MockMinMaxFlexModel extends ParticipantFlexModel[MockState] {
+  object MockPowerLimitFlexModel extends ParticipantFlexModel[MockState] {
 
     override def determineFlexOptions(
         state: MockState
     ): FlexOptions = {
       val additionalP = state.additionalP.getOrElse(zeroKW)
-      MinMaxFlexOptions(
+      PowerLimitFlexOptions(
         Kilowatts(1) + additionalP,
         Kilowatts(-1) + additionalP,
         Kilowatts(3) + additionalP,

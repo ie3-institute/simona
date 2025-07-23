@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.helper.TableDrivenHelper
@@ -20,7 +20,7 @@ import squants.{Energy, Power}
 
 import java.time.ZonedDateTime
 
-class EvcsMinMaxFlexModelSpec
+class EvcsPowerLimitFlexModelSpec
     extends ScalaTestWithActorTestKit
     with UnitSpec
     with TableDrivenHelper
@@ -32,7 +32,7 @@ class EvcsMinMaxFlexModelSpec
   private def createModel(
       chargingStrategy: String,
       vehicle2Grid: Boolean = true,
-  ): EvcsMinMaxFlexModel = {
+  ): EvcsPowerLimitFlexModel = {
     val model = EvcsModel
       .Factory(
         evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
@@ -42,14 +42,14 @@ class EvcsMinMaxFlexModelSpec
       )
       .create()
 
-    EvcsMinMaxFlexModel(model)
+    EvcsPowerLimitFlexModel(model)
   }
 
   // Testing tolerances
   given Energy = KilowattHours(1e-10)
   given Power = Kilowatts(1e-10)
 
-  "An EVCS MinMaxFlexModel" should {
+  "An EVCS PowerLimitFlexModel" should {
 
     "calculate flex options correctly" when {
 
@@ -136,7 +136,7 @@ class EvcsMinMaxFlexModelSpec
                 currentTick,
               )
             ) match {
-              case MinMaxFlexOptions(
+              case PowerLimitFlexOptions(
                     refPower,
                     minPower,
                     maxPower,
@@ -230,7 +230,7 @@ class EvcsMinMaxFlexModelSpec
                 currentTick,
               )
             ) match {
-              case MinMaxFlexOptions(
+              case PowerLimitFlexOptions(
                     refPower,
                     minPower,
                     maxPower,
@@ -258,7 +258,7 @@ class EvcsMinMaxFlexModelSpec
             currentTick,
           )
         ) match {
-          case MinMaxFlexOptions(
+          case PowerLimitFlexOptions(
                 refPower,
                 minPower,
                 maxPower,
@@ -283,7 +283,7 @@ class EvcsMinMaxFlexModelSpec
         flexModel.determineFlexOptions(
           EvcsState(Seq(ev), currentTick)
         ) match {
-          case MinMaxFlexOptions(
+          case PowerLimitFlexOptions(
                 refPower,
                 minPower,
                 maxPower,

@@ -16,7 +16,7 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsState,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.Data.SecondaryData.ArrivingEvs
 import edu.ie3.simona.test.common.UnitSpec
