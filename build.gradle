@@ -5,7 +5,7 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '7.1.0' // code format
+  id 'com.diffplug.spotless' version '7.2.1' // code format
   id "com.github.ben-manes.versions" version '0.52.0'
   id "de.undercouch.download" version "5.6.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
@@ -23,12 +23,12 @@ ext {
 
   scalaVersion = '3'
   scalaBinaryVersion = '3.7.0'
-  pekkoVersion = '1.1.4'
+  pekkoVersion = '1.1.5'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.9.0'
   scapegoatVersion = '3.1.9'
 
-  junitVersion = '1.13.3'
+  junitVersion = '1.13.4'
   testContainerVersion = '0.43.0'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
@@ -82,7 +82,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:7.0.0') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:8.0.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -135,7 +135,7 @@ dependencies {
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
 
   /* config */
-  implementation 'com.typesafe:config:1.4.3'
+  implementation 'com.typesafe:config:1.4.4'
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
   implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.9"
   implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.9"
