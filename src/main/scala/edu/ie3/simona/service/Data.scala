@@ -19,6 +19,7 @@ import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
 
 import scala.jdk.OptionConverters.RichOptional
+import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 /** Trait to describe data structures, that are provided from the outside of a
@@ -47,7 +48,9 @@ object Data {
     * @tparam T
     *   The type of primary data
     */
-  sealed trait PrimaryDataExtra[T <: PrimaryData] {
+  sealed trait PrimaryDataExtra[T <: PrimaryData: ClassTag] {
+
+    def getClassTag: ClassTag[T] = summon[ClassTag[T]]
 
     /** Returns a zero value of the desired type
       */
@@ -211,8 +214,8 @@ object Data {
     }
 
     def getPrimaryDataExtra(
-        value: Class[_ <: Value]
-    ): PrimaryDataExtra[_ <: PrimaryData] = {
+        value: Class[? <: Value]
+    ): PrimaryDataExtra[?] = {
       val heatAndS = classOf[HeatAndSValue]
       val s = classOf[SValue]
       val heatAndP = classOf[HeatAndPValue]

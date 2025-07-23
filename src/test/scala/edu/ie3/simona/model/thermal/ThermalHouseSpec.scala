@@ -22,11 +22,11 @@ import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import edu.ie3.util.scala.quantities.WattsPerKelvin
-import org.scalatest.prop.{TableFor2, TableFor3, TableFor7}
-import squants.energy._
+import org.scalatest.prop.{TableFor2, TableFor3, TableFor4, TableFor7}
+import squants.energy.*
 import squants.space.Litres
-import squants.thermal._
-import squants.time._
+import squants.thermal.*
+import squants.time.*
 import squants.{Energy, Temperature, Volume}
 
 import java.time.ZonedDateTime
@@ -296,32 +296,43 @@ class ThermalHouseSpec
 
     "Check for the correct next threshold of house with thermal feed in" in {
       val house = thermalHouse(18, 22)
-      val ambientTemperature = Celsius(5d)
-      val initialHouseState = startingState(house, ambientTemperature)
 
-      val testCases: TableFor3[Double, Double, Option[ThermalThreshold]] =
+      val testCases
+          : TableFor4[Double, Double, Double, Option[ThermalThreshold]] =
         Table(
-          ("currentInnerTemp", "newOperatingPoint", "expectedThreshold"),
+          (
+            "ambientTemp",
+            "currentInnerTemp",
+            "newOperatingPoint",
+            "expectedThreshold",
+          ),
           // some OperatingPoints not capable to heat the house sufficient
-          (20d, 0d, Some(HouseTemperatureLowerBoundaryReached(5151))),
-          (20d, 1d, Some(HouseTemperatureLowerBoundaryReached(5549))),
-          (20d, 2d, Some(HouseTemperatureLowerBoundaryReached(6013))),
-          (20d, 10d, Some(HouseTemperatureLowerBoundaryReached(18389))),
+          (5d, 20d, 0d, Some(HouseTemperatureLowerBoundaryReached(5151))),
+          (5d, 20d, 1d, Some(HouseTemperatureLowerBoundaryReached(5549))),
+          (5d, 20d, 2d, Some(HouseTemperatureLowerBoundaryReached(6013))),
+          (5d, 20d, 10d, Some(HouseTemperatureLowerBoundaryReached(18389))),
           // OperatingPoint that keeps the house in perfect balance
-          (19d, 14d, None),
-          (20d, 15d, None),
+          (5d, 19d, 14d, None),
+          (5d, 20d, 15d, None),
           // some OperatingPoints that increase the house inner temperature after some cooling down first
-          (18d, 16d, Some(HouseTargetTemperatureReached(39550))),
-          (18d, 20d, Some(HouseTargetTemperatureReached(12113))),
-          (18d, 25d, Some(HouseTargetTemperatureReached(6563))),
+          (5d, 18d, 16d, Some(HouseTargetTemperatureReached(39550))),
+          (5d, 18d, 20d, Some(HouseTargetTemperatureReached(12113))),
+          (5d, 18d, 25d, Some(HouseTargetTemperatureReached(6563))),
+          // House is heated externally (ambient temperature)
+          (30d, 18d, 25d, Some(HouseTargetTemperatureReached(2000))),
+          (30d, 21.9d, 0d, None),
+          (30d, 25d, 0d, None),
         )
 
       forAll(testCases) {
         (
+            ambientTemp: Double,
             currentInnerTemp: Double,
             newOp: Double,
             expectedThreshold: Option[ThermalThreshold],
         ) =>
+          val ambientTemperature = Celsius(ambientTemp)
+          val initialHouseState = startingState(house, ambientTemperature)
           val newOperatingPoint = Kilowatts(newOp)
           val state =
             initialHouseState.copy(innerTemperature = Celsius(currentInnerTemp))

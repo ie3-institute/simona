@@ -462,15 +462,15 @@ object HpModel {
     }
 
     override def create(): HpModel = {
-      val bmType = input.getType
+      val hpType = input.getType
 
       new HpModel(
         input.getUuid,
         input.getId,
-        bmType.getsRated.toApparent,
+        hpType.getsRated.toApparent,
         input.getType.getCosPhiRated,
         QControl(input.getqCharacteristics),
-        bmType.getpThermal.toSquants,
+        hpType.getpThermal.toSquants,
         ThermalGrid(thermalGrid),
       )
     }
