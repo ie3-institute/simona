@@ -12,7 +12,6 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.StorageInputTestData
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power}
-import tech.units.indriya.quantity.Quantities.getQuantity
 
 class StoragePowerLimitFlexModelSpec
     extends UnitSpec
