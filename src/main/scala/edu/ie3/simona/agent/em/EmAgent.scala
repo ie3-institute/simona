@@ -109,9 +109,10 @@ object EmAgent {
       core: EmDataCore.Inactive,
   ): Behavior[Message] = Behaviors.receivePartial {
 
-    case (_, RegisterControlledAsset(actor, spi)) =>
-      val updatedModelShell = modelShell.addParticipant(spi.getUuid, spi)
-      val updatedCore = core.addParticipant(actor, spi.getUuid)
+    case (_, RegisterControlledAsset(actor, assetInput)) =>
+      val updatedModelShell =
+        modelShell.addControlledAsset(assetInput.getUuid, assetInput)
+      val updatedCore = core.addControlledAsset(actor, assetInput.getUuid)
       inactive(emData, updatedModelShell, updatedCore)
 
     case (ctx, ScheduleFlexActivation(participant, newTick, scheduleKey)) =>
@@ -202,7 +203,8 @@ object EmAgent {
 
         val allFlexOptions = updatedCore.getFlexOptions
 
-        val updatedModelShell = modelShell.updateFlexOptions(allFlexOptions)
+        val updatedModelShell =
+          modelShell.updateAggregatedFlexOptions(allFlexOptions)
 
         if (emData.outputConfig.flexResult) {
           val flexResult = updatedModelShell.determineResults(

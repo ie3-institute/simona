@@ -41,14 +41,14 @@ object FlexibilityMessage {
     *
     * @param participant
     *   The actor reference to the controlled asset model
-    * @param inputModel
+    * @param assetInput
     *   The asset input model of the controlled asset model
     */
   final case class RegisterControlledAsset(
       participant: ActorRef[FlexRequest],
-      inputModel: AssetInput,
+      assetInput: AssetInput,
   ) extends FlexResponse {
-    override val modelUuid: UUID = inputModel.getUuid
+    override val modelUuid: UUID = assetInput.getUuid
   }
 
   /** Message that schedules a flex activation for a controlled asset model at
@@ -75,7 +75,7 @@ object FlexibilityMessage {
     * @param tick
     *   The tick to request [[FlexOptions]] for.
     * @param flexType
-    *   The flexibility type to calculate [[FlexOptions]] in. Not used during
+    *   The flexibility type to calculate [[FlexOptions]] in. Unused during
     *   initialization.
     */
   final case class FlexActivation(override val tick: Long, flexType: FlexType)

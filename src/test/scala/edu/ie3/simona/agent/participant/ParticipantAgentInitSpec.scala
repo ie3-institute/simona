@@ -224,7 +224,7 @@ class ParticipantAgentInitSpec
 
         val emRegistrationMsg = em.expectMessageType[RegisterControlledAsset]
         emRegistrationMsg.modelUuid shouldBe mockInput.electricalInputModel.getUuid
-        emRegistrationMsg.inputModel shouldBe mockInput.electricalInputModel
+        emRegistrationMsg.assetInput shouldBe mockInput.electricalInputModel
         val activationRef = emRegistrationMsg.participant
 
         em.expectMessage(
@@ -287,7 +287,7 @@ class ParticipantAgentInitSpec
 
         val emRegistrationMsg = em.expectMessageType[RegisterControlledAsset]
         emRegistrationMsg.modelUuid shouldBe mockInput.electricalInputModel.getUuid
-        emRegistrationMsg.inputModel shouldBe mockInput.electricalInputModel
+        emRegistrationMsg.assetInput shouldBe mockInput.electricalInputModel
         val activationRef = emRegistrationMsg.participant
 
         em.expectMessage(
@@ -503,7 +503,7 @@ class ParticipantAgentInitSpec
 
         val emRegistrationMsg = em.expectMessageType[RegisterControlledAsset]
         emRegistrationMsg.modelUuid shouldBe mockInput.electricalInputModel.getUuid
-        emRegistrationMsg.inputModel shouldBe mockInput.electricalInputModel
+        emRegistrationMsg.assetInput shouldBe mockInput.electricalInputModel
         val activationRef = emRegistrationMsg.participant
 
         em.expectMessage(
@@ -581,7 +581,7 @@ class ParticipantAgentInitSpec
 
         val emRegistrationMsg = em.expectMessageType[RegisterControlledAsset]
         emRegistrationMsg.modelUuid shouldBe mockInput.electricalInputModel.getUuid
-        emRegistrationMsg.inputModel shouldBe mockInput.electricalInputModel
+        emRegistrationMsg.assetInput shouldBe mockInput.electricalInputModel
         val activationRef = emRegistrationMsg.participant
 
         em.expectMessage(

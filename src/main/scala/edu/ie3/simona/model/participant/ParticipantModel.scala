@@ -65,7 +65,7 @@ abstract class ParticipantModel[
     */
   val qControl: QControl
 
-  /** Map of offered flexibility models.
+  /** Map of flex type to offered flexibility model.
     */
   val flexModels: Map[FlexType, ParticipantFlexModel[S]]
 

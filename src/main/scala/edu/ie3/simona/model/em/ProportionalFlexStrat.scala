@@ -9,7 +9,7 @@ package edu.ie3.simona.model.em
 import edu.ie3.datamodel.models.input.AssetInput
 import EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.{
-  FlexOptionsMeta,
+  FlexOptionsExtra,
   MinMaxFlexOptions,
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions.flexSum

@@ -23,7 +23,7 @@ import edu.ie3.simona.model.participant.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
-  FlexOptionsMeta,
+  FlexOptionsExtra,
   FlexType,
   MinMaxFlexOptions,
 }
@@ -215,9 +215,9 @@ final case class ParticipantModelShell[
       tick: Long,
       flexType: FlexType,
   ): FlexOptionsResult = {
-    val meta = FlexOptionsMeta(flexType)
-    meta.createResult(
-      meta.castFlexOptions(getFlexOptions),
+    val extra = FlexOptionsExtra(flexType)
+    extra.createResult(
+      extra.castFlexOptions(getFlexOptions),
       uuid,
       tick.toDateTime(using simulationStart),
     )
@@ -311,10 +311,10 @@ final case class ParticipantModelShell[
           s"$identifier: Flex options have not been calculated!"
         )
       }
-      val meta = FlexOptionsMeta(flexType)
+      val extra = FlexOptionsExtra(flexType)
 
       val setPointActivePower =
-        Try(meta.determineFlexPower(meta.castFlexOptions(fo), flexControl))
+        Try(extra.determineFlexPower(extra.castFlexOptions(fo), flexControl))
           .recoverWith(exception =>
             Failure(
               new CriticalFailureException(

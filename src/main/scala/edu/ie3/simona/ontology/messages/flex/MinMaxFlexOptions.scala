@@ -51,7 +51,7 @@ final case class MinMaxFlexOptions(
 
 }
 
-object MinMaxFlexOptions extends FlexOptionsMeta[MinMaxFlexOptions] {
+object MinMaxFlexOptions extends FlexOptionsExtra[MinMaxFlexOptions] {
 
   override val flexType: FlexType = FlexType.MinMax
 
@@ -103,14 +103,6 @@ object MinMaxFlexOptions extends FlexOptionsMeta[MinMaxFlexOptions] {
         flexOptions.ref
     }
 
-  extension (flexOptions: Iterable[MinMaxFlexOptions]) {
-    def flexSum: MinMaxFlexOptions =
-      flexOptions.foldLeft(MinMaxFlexOptions(zeroKW, zeroKW, zeroKW)) {
-        case (sumOptions, addOptions) =>
-          sumOptions + addOptions
-      }
-  }
-
   override def createResult(
       flexOptions: MinMaxFlexOptions,
       modelUuid: UUID,
@@ -123,6 +115,14 @@ object MinMaxFlexOptions extends FlexOptionsMeta[MinMaxFlexOptions] {
       flexOptions.min.toMegawatts.asMegaWatt,
       flexOptions.max.toMegawatts.asMegaWatt,
     )
+
+  extension (flexOptions: Iterable[MinMaxFlexOptions]) {
+    def flexSum: MinMaxFlexOptions =
+      flexOptions.foldLeft(MinMaxFlexOptions(zeroKW, zeroKW, zeroKW)) {
+        case (sumOptions, addOptions) =>
+          sumOptions + addOptions
+      }
+  }
 
   /** Creates [[MinMaxFlexOptions]] with sanity checks regarding the power
     * values.

@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, FlexType}
+import edu.ie3.simona.ontology.messages.flex.FlexOptions
 
 trait ParticipantFlexModel[S <: ModelState] {
 

@@ -185,7 +185,7 @@ object PrimaryDataParticipantModel {
     override val reactivePower: Option[ReactivePower] = None
   }
 
-  final case class PrimaryDataMinMaxFlexModel[PD <: PrimaryData](
+  private final case class PrimaryDataMinMaxFlexModel[PD <: PrimaryData](
       model: PrimaryDataParticipantModel[PD]
   ) extends ParticipantFlexModel[PrimaryDataState[PD]] {
 

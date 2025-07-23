@@ -16,12 +16,28 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import scala.reflect.ClassTag
 
-trait FlexOptionsMeta[FO <: FlexOptions: ClassTag] {
+/** Trait for static functionality required for dealing with flexibility
+  * options.
+  *
+  * @tparam FO
+  */
+trait FlexOptionsExtra[FO <: FlexOptions: ClassTag] {
 
   val classTag: ClassTag[FO] = summon[ClassTag[FO]]
 
+  /** The type of flexibility associated with this extra class.
+    */
   val flexType: FlexType
 
+  /** Casts flex options to the required type. Only call this method if you're
+    * sure the flex options are of the required type. An exception is thrown
+    * otherwise.
+    *
+    * @param fo
+    *   The flex options to type cast
+    * @return
+    *   The flex options cast to the required type.
+    */
   def castFlexOptions(fo: FlexOptions): FO =
     fo match {
       case matched: FO =>
@@ -60,6 +76,17 @@ trait FlexOptionsMeta[FO <: FlexOptions: ClassTag] {
       setPower: Power,
   ): Unit
 
+  /** Creates a result entity for the provided flex options.
+    *
+    * @param flexOptions
+    *   The flex options to create a result entity for.
+    * @param modelUuid
+    *   The UUID of the model that the flex options were computed for.
+    * @param dateTime
+    *   The date and time for which the flex options are valid.
+    * @return
+    *   A result entity.
+    */
   def createResult(
       flexOptions: FO,
       modelUuid: UUID,
@@ -68,9 +95,9 @@ trait FlexOptionsMeta[FO <: FlexOptions: ClassTag] {
 
 }
 
-object FlexOptionsMeta {
+object FlexOptionsExtra {
 
-  def apply(flexType: FlexType): FlexOptionsMeta[?] =
+  def apply(flexType: FlexType): FlexOptionsExtra[?] =
     flexType match {
       case FlexType.MinMax =>
         MinMaxFlexOptions
