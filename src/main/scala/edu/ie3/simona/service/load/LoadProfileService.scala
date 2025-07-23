@@ -26,7 +26,10 @@ import edu.ie3.simona.service.ServiceStateData.{
   ServiceBaseStateData,
 }
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
+import edu.ie3.simona.util.SimonaConstants.{
+  FIRST_TICK_IN_SIMULATION,
+  INIT_SIM_TICK,
+}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
@@ -50,8 +53,6 @@ object LoadProfileService extends SimonaService {
     *   Map: actor ref to [[LoadProfile]].
     * @param maybeNextActivationTick
     *   The next tick, when this actor is triggered by scheduler.
-    * @param activationTicks
-    *   Linked collection of ticks, in which data is available.
     * @param simulationStartTime
     *   Start of the simulation.
     */
@@ -60,7 +61,6 @@ object LoadProfileService extends SimonaService {
       profileToRefs: Map[LoadProfile, Seq[ActorRef[ParticipantAgent.Request]]] =
         Map.empty,
       maybeNextActivationTick: Option[Long],
-      activationTicks: SortedDistinctSeq[Long] = SortedDistinctSeq.empty,
       simulationStartTime: ZonedDateTime,
   ) extends ServiceBaseStateData
 
@@ -92,15 +92,14 @@ object LoadProfileService extends SimonaService {
           ) =>
         val loadProfileStore = LoadProfileStore(dataSource)
 
-        val (maybeNextTick, furtherActivationTicks) = loadProfileStore
-          .getActivationTicks(simEndTime)(using simStartTime)
-          .pop
+        val maybeNextTick = loadProfileStore.getNextActivationTick(
+          INIT_SIM_TICK
+        )(using simStartTime)
 
         val initializedStateData = LoadProfileInitializedStateData(
           loadProfileStore,
           Map.empty,
           maybeNextTick,
-          furtherActivationTicks,
           simStartTime,
         )
 
@@ -215,19 +214,16 @@ object LoadProfileService extends SimonaService {
       serviceStateData: LoadProfileInitializedStateData,
       ctx: ActorContext[Message],
   ): (LoadProfileInitializedStateData, Option[Long]) = {
+    given ZonedDateTime = serviceStateData.simulationStartTime
+
+    val time = tick.toDateTime
+    val loadProfileStore = serviceStateData.loadProfileStore
 
     /* Pop the next activation tick and update the state data */
-    val (maybeNextActivationTick, remainderActivationTicks) =
-      serviceStateData.activationTicks.pop
+    val maybeNextActivationTick = loadProfileStore.getNextActivationTick(tick)
 
-    val updatedStateData: LoadProfileInitializedStateData =
-      serviceStateData.copy(
-        maybeNextActivationTick = maybeNextActivationTick,
-        activationTicks = remainderActivationTicks,
-      )
-
-    val time = tick.toDateTime(using serviceStateData.simulationStartTime)
-    val loadProfileStore = serviceStateData.loadProfileStore
+    val updatedStateData =
+      serviceStateData.copy(maybeNextActivationTick = maybeNextActivationTick)
 
     serviceStateData.profileToRefs.foreach { case (loadProfile, actorRefs) =>
       loadProfile match {

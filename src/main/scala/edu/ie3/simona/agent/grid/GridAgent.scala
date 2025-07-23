@@ -191,13 +191,20 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         SimonaActorNaming.actorName(ctx.self),
       )
 
-      constantData.resolution.foreach { resolution =>
-        constantData.environmentRefs.scheduler ! ScheduleActivation(
-          ctx.self,
-          resolution,
-          Some(unlockKey),
-        )
+      val messageToScheduler = constantData.resolution match {
+        case Some(nextTick) =>
+          ScheduleActivation(
+            ctx.self,
+            nextTick,
+            Some(unlockKey),
+          )
+
+        case None =>
+          unlockKey.unlock()
+          Completion(ctx.self)
       }
+
+      constantData.environmentRefs.scheduler ! messageToScheduler
 
       idle(gridAgentBaseData)
   }

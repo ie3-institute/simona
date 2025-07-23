@@ -13,20 +13,18 @@ import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
-import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyToSimona,
   PowerConversionSimona,
 }
 import tech.units.indriya.ComparableQuantity
-import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 
 import java.time.ZonedDateTime
 import java.util.Optional
 import javax.measure.quantity.{Energy, Power}
-import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
 import scala.jdk.OptionConverters.RichOptional
-import scala.jdk.CollectionConverters.ListHasAsScala
 
 /** Container class that stores all loaded load profiles.
   * @param profileToSource
@@ -70,41 +68,26 @@ final case class LoadProfileStore(
   def contains(loadProfile: LoadProfile): Boolean =
     profileToSource.contains(loadProfile)
 
-  /** Method to retrieve all future activation ticks.
-    * @param endTime
-    *   Of the simulation.
+  /** Method to find the next activation tick.
+    * @param tick
+    *   Current tick of the simulation.
     * @param startTime
     *   Of the simulation.
     * @return
-    *   A [[SortedDistinctSeq]] with all activation ticks.
+    *   An option for the next tick.
     */
-  def getActivationTicks(
-      endTime: ZonedDateTime
-  )(using startTime: ZonedDateTime): SortedDistinctSeq[Long] = {
-    val lastTick = endTime.toTick
+  def getNextActivationTick(
+      tick: Long
+  )(using startTime: ZonedDateTime): Option[Long] = {
+    if (tick < FIRST_TICK_IN_SIMULATION) {
+      Some(FIRST_TICK_IN_SIMULATION)
+    } else {
+      val currentTime = startTime.plusSeconds(tick)
 
-    val allTicks = FIRST_TICK_IN_SIMULATION +: profileToSource.flatMap {
-      case (_, source) =>
-        // find all ticks, that are in the simulation range
-        val ticks = source
-          .getTimeKeysAfter(startTime)
-          .asScala
-          .toSeq
-          .map(_.toTick)
-          .filter(_ <= lastTick)
-
-        ticks match {
-          case first :: Nil =>
-            // if there is only one tick present, we can use it as the step size of this source,
-            // because load profile sources are repetitive
-            Range.Long.inclusive(first, lastTick, first)
-          case _ =>
-            ticks
-        }
-    }.toSeq
-
-    // will remove duplicates and sort all ticks
-    SortedDistinctSeq(allTicks)
+      profileToSource.view.flatMap { case (_, source) =>
+        source.getTimeKeysAfter(currentTime).asScala.headOption.map(_.toTick)
+      }.minOption
+    }
   }
 
   /** Returns the load profiles entry (average power consumption of the current
