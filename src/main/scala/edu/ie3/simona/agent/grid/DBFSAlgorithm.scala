@@ -437,7 +437,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               FinishGridSimulationTrigger(currentTick),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
-          val nextTick = constantData.resolution.map(_ + currentTick)
+          val nextTick = currentTick + constantData.resolution
 
           // inform my child grids about the end of this grid simulation
           gridAgentBaseData.inferiorGridGates

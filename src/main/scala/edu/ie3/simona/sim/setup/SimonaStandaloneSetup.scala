@@ -201,7 +201,6 @@ class SimonaStandaloneSetup(
       InitLoadProfileServiceStateData(
         cfg.input.loadProfile.datasource,
         cfg.time.simStartTime,
-        cfg.time.simEndTime,
       ),
       ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
     )

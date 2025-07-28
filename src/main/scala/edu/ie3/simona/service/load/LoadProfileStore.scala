@@ -68,6 +68,12 @@ final case class LoadProfileStore(
   def contains(loadProfile: LoadProfile): Boolean =
     profileToSource.contains(loadProfile)
 
+  /** Returns a map: [[LoadProfile]] to profile resolution in seconds.
+    */
+  def getProfileResolutions: Map[LoadProfile, Long] = profileToSource.keys
+    .map(profile => profile -> LoadProfileSource.getResolution(profile))
+    .toMap
+
   /** Method to find the next activation tick.
     * @param tick
     *   Current tick of the simulation.

@@ -26,17 +26,12 @@ import edu.ie3.simona.service.ServiceStateData.{
   ServiceBaseStateData,
 }
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.util.SimonaConstants.{
-  FIRST_TICK_IN_SIMULATION,
-  INIT_SIM_TICK,
-}
+import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 import java.time.ZonedDateTime
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 
 /** Load Profile Service is responsible to register other actors that require
@@ -51,8 +46,10 @@ object LoadProfileService extends SimonaService {
     *   That stores that contains all load profiles.
     * @param profileToRefs
     *   Map: actor ref to [[LoadProfile]].
-    * @param maybeNextActivationTick
-    *   The next tick, when this actor is triggered by scheduler.
+    * @param profileResolutions
+    *   Map: [[LoadProfile]] to resolution.
+    * @param profileToNextActivationTick
+    *   Map: [[LoadProfile]] to next activation tick..
     * @param simulationStartTime
     *   Start of the simulation.
     */
@@ -60,7 +57,8 @@ object LoadProfileService extends SimonaService {
       loadProfileStore: LoadProfileStore,
       profileToRefs: Map[LoadProfile, Seq[ActorRef[ParticipantAgent.Request]]] =
         Map.empty,
-      maybeNextActivationTick: Option[Long],
+      profileResolutions: Map[LoadProfile, Long],
+      profileToNextActivationTick: Map[LoadProfile, Long],
       simulationStartTime: ZonedDateTime,
   ) extends ServiceBaseStateData
 
@@ -72,13 +70,10 @@ object LoadProfileService extends SimonaService {
     *   the build in load profiles can be used.
     * @param simulationStartTime
     *   The time the simulation is started.
-    * @param simulationEnd
-    *   The time the simulation ends.
     */
   final case class InitLoadProfileServiceStateData(
       sourceDefinition: Datasource,
       simulationStartTime: ZonedDateTime,
-      simulationEnd: ZonedDateTime,
   ) extends InitializeServiceStateData
 
   override def init(
@@ -88,18 +83,20 @@ object LoadProfileService extends SimonaService {
       case InitLoadProfileServiceStateData(
             dataSource,
             simStartTime,
-            simEndTime,
           ) =>
         val loadProfileStore = LoadProfileStore(dataSource)
 
-        val maybeNextTick = loadProfileStore.getNextActivationTick(
-          INIT_SIM_TICK
-        )(using simStartTime)
+        val profileResolutions = loadProfileStore.getProfileResolutions
+        val profiles = profileResolutions.keySet
+
+        val profileToNextActivationTick =
+          profiles.map(_ -> FIRST_TICK_IN_SIMULATION).toMap
 
         val initializedStateData = LoadProfileInitializedStateData(
           loadProfileStore,
           Map.empty,
-          maybeNextTick,
+          profileResolutions,
+          profileToNextActivationTick,
           simStartTime,
         )
 
@@ -215,55 +212,69 @@ object LoadProfileService extends SimonaService {
       ctx: ActorContext[Message],
   ): (LoadProfileInitializedStateData, Option[Long]) = {
     given ZonedDateTime = serviceStateData.simulationStartTime
-
     val time = tick.toDateTime
+
     val loadProfileStore = serviceStateData.loadProfileStore
+    val profileToRefs = serviceStateData.profileToRefs
 
-    /* Pop the next activation tick and update the state data */
-    val maybeNextActivationTick = loadProfileStore.getNextActivationTick(tick)
+    /* Calculate the next activation ticks */
+    val resolutions = serviceStateData.profileResolutions
 
-    val updatedStateData =
-      serviceStateData.copy(maybeNextActivationTick = maybeNextActivationTick)
+    val nextActivations = serviceStateData.profileToNextActivationTick
 
-    serviceStateData.profileToRefs.foreach { case (loadProfile, actorRefs) =>
-      loadProfile match {
-        case LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE =>
-          val loadFunction = loadProfileStore.randomEntrySupplier(time)
-
-          /* Providing random load value function to the requester */
-          actorRefs.foreach(recipient =>
-            recipient ! DataProvision(
-              tick,
-              ctx.self,
-              LoadDataFunction(loadFunction),
-              maybeNextActivationTick,
-            )
-          )
-
-        case _ =>
-          loadProfileStore.entry(time, loadProfile) match {
-            case Some(averagePower) =>
-              /* Sending the found value to the requester */
-              actorRefs.foreach(recipient =>
-                recipient ! DataProvision(
-                  tick,
-                  ctx.self,
-                  LoadData(averagePower),
-                  maybeNextActivationTick,
-                )
-              )
-            case None =>
-              /* There is no data available in the source. */
-              ctx.log.warn(
-                s"No power value found for load profile {} for time: {}",
-                loadProfile,
-                time,
-              )
-          }
+    val activations = nextActivations
+      .filter(_._2 == tick)
+      .map { case (profile, tick) =>
+        profile -> (tick + resolutions(profile))
       }
+
+    activations.foreach { case (loadProfile, nextTick) =>
+      profileToRefs.get(loadProfile).foreach { actorRefs =>
+        loadProfile match {
+          case LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE =>
+            val loadFunction = loadProfileStore.randomEntrySupplier(time)
+
+            /* Providing random load value function to the requester */
+            actorRefs.foreach(recipient =>
+              recipient ! DataProvision(
+                tick,
+                ctx.self,
+                LoadDataFunction(loadFunction),
+                Some(nextTick),
+              )
+            )
+
+          case _ =>
+            loadProfileStore.entry(time, loadProfile) match {
+              case Some(averagePower) =>
+                /* Sending the found value to the requester */
+                actorRefs.foreach(recipient =>
+                  recipient ! DataProvision(
+                    tick,
+                    ctx.self,
+                    LoadData(averagePower),
+                    Some(nextTick),
+                  )
+                )
+              case None =>
+                /* There is no data available in the source. */
+                ctx.log.warn(
+                  s"No power value found for load profile {} for time: {}",
+                  loadProfile,
+                  time,
+                )
+            }
+        }
+      }
+
     }
 
-    (updatedStateData, maybeNextActivationTick)
+    val updatedActivations = nextActivations ++ activations
+
+    (
+      serviceStateData.copy(profileToNextActivationTick = updatedActivations),
+      updatedActivations.values.minOption,
+    )
   }
 
 }

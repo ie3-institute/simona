@@ -72,7 +72,7 @@ class EvcsModelIT
     defaultSimulationStart
 
   given simulationParams: SimulationParameters = SimulationParameters(
-    Some(24 * 3600),
+    24 * 3600,
     Each(1e-14),
     defaultSimulationStart,
     defaultSimulationStart.plus(2, ChronoUnit.DAYS),

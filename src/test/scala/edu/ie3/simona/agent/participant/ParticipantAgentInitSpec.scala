@@ -59,7 +59,7 @@ class ParticipantAgentInitSpec
   private implicit val simulationStart: ZonedDateTime = defaultSimulationStart
 
   given simulationParams: SimulationParameters = SimulationParameters(
-    Some(3600L),
+    3600,
     Each(1e-14),
     simulationStart,
     defaultSimulationStart.plus(2, ChronoUnit.DAYS),

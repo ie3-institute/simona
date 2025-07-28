@@ -43,21 +43,21 @@ object GridAgentData {
     * across simulation time.
     *
     * @param environmentRefs
-    *   environment actor refs
+    *   Environment actor refs.
     * @param simonaConfig
-    *   config
+    *   Config.
     * @param listener
-    *   listeners
+    *   Listeners.
     * @param resolution
-    *   of the simulation
+    *   Of the simulation.
     * @param simStartTime
-    *   start time of the simulation
+    *   Start time of the simulation.
     */
   final case class GridAgentConstantData(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
       listener: Iterable[ActorRef[ResultEvent]],
-      resolution: Option[Long],
+      resolution: Long,
       simStartTime: ZonedDateTime,
       simEndTime: ZonedDateTime,
   ) {

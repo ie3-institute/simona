@@ -76,8 +76,9 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     val simEndTime = cfg.time.simEndTime
 
     // this determines the agents regular time bin it wants to be triggered e.g. one hour
-    // if no resolution is given, we use the end time to prevent powerflow calculation
-    val resolution = cfg.powerflow.map(_.resolution.toSeconds)
+    // if no resolution is given, we use the maximal long value, to prevent unwanted power flow calculation
+    val resolution =
+      cfg.powerflow.map(_.resolution.toSeconds).getOrElse(Long.MaxValue)
 
     val agentValues = GridAgentConstantData(
       environmentRefs,
@@ -191,17 +192,17 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         SimonaActorNaming.actorName(ctx.self),
       )
 
-      val messageToScheduler = constantData.resolution match {
-        case Some(nextTick) =>
-          ScheduleActivation(
-            ctx.self,
-            nextTick,
-            Some(unlockKey),
-          )
+      val resolution = constantData.resolution
 
-        case None =>
-          unlockKey.unlock()
-          Completion(ctx.self)
+      val messageToScheduler = if (resolution == Long.MaxValue) {
+        unlockKey.unlock()
+        Completion(ctx.self)
+      } else {
+        ScheduleActivation(
+          ctx.self,
+          resolution,
+          Some(unlockKey),
+        )
       }
 
       constantData.environmentRefs.scheduler ! messageToScheduler
@@ -258,7 +259,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   private[grid] def afterPowerFlow(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
-      nextTick: Option[Long],
+      nextTick: Long,
       ctx: ActorContext[Message],
   )(using
       constantData: GridAgentConstantData,
@@ -308,7 +309,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     */
   private[grid] def gotoIdle(
       gridAgentBaseData: GridAgentBaseData,
-      nextTick: Option[Long],
+      nextTick: Long,
       results: Option[PowerFlowResultEvent],
       ctx: ActorContext[Message],
   )(using
@@ -332,7 +333,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
     constantData.environmentRefs.scheduler ! Completion(
       ctx.self,
-      nextTick,
+      Some(nextTick),
     )
 
     // return to Idle
