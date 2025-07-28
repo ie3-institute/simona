@@ -13,9 +13,20 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAVOLTAMPERE
-import edu.ie3.util.scala.quantities.{Kilovoltamperes, Megavoltamperes}
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Kilovoltamperes,
+  Megavoltamperes,
+}
+import squants.energy.Kilowatts
+import squants.{Dimensionless, Each, Power}
+import tech.units.indriya.quantity.Quantities
 
 class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
+
+  implicit val powerTolerance: Power = Kilowatts(1e-9)
+  implicit val apparentPowerTolerance: ApparentPower = Megavoltamperes(1e-9)
+  implicit val doubleTolerance: Double = 1e-9
 
   "The fixed feed in model" should {
 
@@ -24,10 +35,12 @@ class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
       val model = FixedFeedInModel.Factory(fixedFeedInput).create()
 
       model.uuid shouldBe fixedFeedInput.getUuid
-      model.sRated shouldBe Megavoltamperes(
-        fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
+      model.sRated should approximate(
+        Megavoltamperes(
+          fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
+        )
       )
-      model.cosPhiRated shouldBe fixedFeedInput.getCosPhiRated
+      model.cosPhiRated should approximate(fixedFeedInput.getCosPhiRated)
       model.qControl shouldBe QControl(fixedFeedInput.getqCharacteristics)
 
     }
@@ -46,7 +59,7 @@ class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
 
       val (operatingPoint, nextTick) =
         model.determineOperatingPoint(FixedState(0))
-      operatingPoint.activePower shouldBe expectedPower
+      operatingPoint.activePower should approximate(expectedPower)
       nextTick shouldBe None
 
     }
