@@ -46,7 +46,7 @@ object GridAgentData {
     *   Containing actor references, that are relevant for the environment of
     *   the grid agent.
     * @param simonaConfig
-    *   Configuration of SIMONA, that is used for .
+    *   Configuration of SIMONA, that is used for.
     * @param listener
     *   A sequence of listeners, that will receive the results from the grid
     *   agent.
