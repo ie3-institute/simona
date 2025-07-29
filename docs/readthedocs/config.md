@@ -310,6 +310,9 @@ are described in the documentation of [voltage limits](models/voltage_limits).
 
 ## Power flow configuration 
 
+The powerflow configuration in SIMONA is an optional configuration. If no configuration is present, SIMONA will skip all
+powerflow calculations. This can be useful, if you only want to simulate system participants and/or energy management systems.
+
 Maximum allowed deviation in power between two sweeps, before overall convergence is assumed:
 
   `simona.powerflow.maxSweepPowerDeviation = 1E-5 `
