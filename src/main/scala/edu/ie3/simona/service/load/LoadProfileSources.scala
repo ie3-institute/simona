@@ -193,7 +193,7 @@ object LoadProfileSources {
     */
   private def buildSourcesFrom[
       P <: LoadProfile,
-      V <: LoadValues,
+      V <: LoadValues[P],
   ](
       datasource: DataSource,
       allMetaInformation: Map[String, LoadProfileMetaInformation],

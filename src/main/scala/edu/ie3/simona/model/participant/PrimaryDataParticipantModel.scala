@@ -199,8 +199,8 @@ object PrimaryDataParticipantModel {
     *   The physical participant model.
     * @param primaryDataExtra
     *   Extra functionality specific to the primary data class.
-   * @param scalingFactor
-   *   The scaling factor from the runtime config.
+    * @param scalingFactor
+    *   The scaling factor from the runtime config.
     */
   final case class Factory[PD <: PrimaryData](
       physicalModel: ParticipantModel[?, ?],

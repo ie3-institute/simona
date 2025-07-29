@@ -44,9 +44,9 @@ object EmTools {
             val min = minMaxFlexOptions.min
             val max = minMaxFlexOptions.max
 
-            if (setPower < min && (setPower ~= min)) {
+            if (setPower < min) {
               min
-            } else if (setPower > max && (setPower ~= max)) {
+            } else if (setPower > max) {
               max
             } else {
               // sanity check: setPower is in range of latest flex options
