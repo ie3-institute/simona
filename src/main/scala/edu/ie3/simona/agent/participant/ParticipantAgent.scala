@@ -72,13 +72,11 @@ object ParticipantAgent {
     *   The first tick at which data will be sent.
     * @param primaryDataExtra
     *   Extra functionality specific to the primary data class.
-    * @tparam P
-    *   The type of primary data to be received.
     */
-  final case class PrimaryRegistrationSuccessfulMessage[P <: PrimaryData](
+  final case class PrimaryRegistrationSuccessfulMessage(
       override val serviceRef: ActorRef[ServiceMessage],
       firstDataTick: Long,
-      primaryDataExtra: PrimaryDataExtra[P],
+      primaryDataExtra: PrimaryDataExtra[?],
   ) extends RegistrationResponseMessage
 
   /** Message announcing a failed registration.

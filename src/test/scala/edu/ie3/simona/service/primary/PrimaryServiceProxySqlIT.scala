@@ -19,11 +19,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.helper.TestContainerHelper
@@ -150,7 +146,7 @@ class PrimaryServiceProxySqlIT
 
       val msg =
         systemParticipantProbe
-          .expectMessageType[PrimaryRegistrationSuccessfulMessage[_]]
+          .expectMessageType[PrimaryRegistrationSuccessfulMessage]
       msg.firstDataTick shouldBe 0L
     }
 
