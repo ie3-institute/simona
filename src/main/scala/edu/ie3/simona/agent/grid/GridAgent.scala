@@ -76,7 +76,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     val simEndTime = cfg.time.simEndTime
 
     // this determines the agents regular time bin it wants to be triggered e.g. one hour
-    // if no resolution is given, we use the maximal long value, to prevent unwanted power flow calculation
+    // if no resolution is given, we use the maximal long value as a placeholder, as no future activation should take place
     val resolution =
       cfg.powerflow.map(_.resolution.toSeconds).getOrElse(Long.MaxValue)
 
@@ -194,18 +194,15 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
       val resolution = constantData.resolution
 
-      val messageToScheduler = if (resolution == Long.MaxValue) {
+      if (resolution == Long.MaxValue) {
         unlockKey.unlock()
-        Completion(ctx.self)
       } else {
-        ScheduleActivation(
+        constantData.environmentRefs.scheduler ! ScheduleActivation(
           ctx.self,
           resolution,
           Some(unlockKey),
         )
       }
-
-      constantData.environmentRefs.scheduler ! messageToScheduler
 
       idle(gridAgentBaseData)
   }

@@ -43,15 +43,20 @@ object GridAgentData {
     * across simulation time.
     *
     * @param environmentRefs
-    *   Environment actor refs.
+    *   Containing actor references, that are relevant for the environment of
+    *   the grid agent.
     * @param simonaConfig
-    *   Config.
+    *   Configuration of SIMONA, that is used for .
     * @param listener
-    *   Listeners.
+    *   A sequence of listeners, that will receive the results from the grid
+    *   agent.
     * @param resolution
-    *   Of the simulation.
+    *   That is used for the power flow. If no power flow should be carried out,
+    *   this value is set to [[Long.MaxValue]].
     * @param simStartTime
     *   Start time of the simulation.
+    * @param simEndTime
+    *   Send time of the simulation.
     */
   final case class GridAgentConstantData(
       environmentRefs: EnvironmentRefs,
