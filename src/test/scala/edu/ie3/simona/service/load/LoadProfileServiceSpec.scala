@@ -80,9 +80,6 @@ class LoadProfileServiceSpec
           TimeUtil.withDefaults.toZonedDateTime(
             simonaConfig.simona.time.startDateTime
           ),
-          TimeUtil.withDefaults.toZonedDateTime(
-            simonaConfig.simona.time.endDateTime
-          ),
         ),
         key,
       )
