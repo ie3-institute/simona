@@ -47,6 +47,7 @@ class HpModelSpec
       val ambientTemperature = Celsius(10)
       val defaultState = HpState(
         0,
+        defaultSimulationStart,
         thermalState(Celsius(17d), ambientTemperature),
         HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
         noThermalDemand,
@@ -104,7 +105,12 @@ class HpModelSpec
             thermalGridState = thermalState(Celsius(0), ambientTemperature),
             lastHpOperatingPoint = HpOperatingPoint(
               Kilowatts(80),
-              ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
+              ThermalGridOperatingPoint(
+                Kilowatts(80),
+                Kilowatts(80),
+                zeroKW,
+                zeroKW,
+              ),
             ),
           ),
           16.3142322,
@@ -116,7 +122,12 @@ class HpModelSpec
             thermalGridState = thermalState(Celsius(2), ambientTemperature),
             lastHpOperatingPoint = HpOperatingPoint(
               Kilowatts(80),
-              ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
+              ThermalGridOperatingPoint(
+                Kilowatts(80),
+                Kilowatts(80),
+                zeroKW,
+                zeroKW,
+              ),
             ),
           ),
           17.9516937,
@@ -128,7 +139,12 @@ class HpModelSpec
             thermalGridState = thermalState(Celsius(17), ambientTemperature),
             lastHpOperatingPoint = HpOperatingPoint(
               Kilowatts(80),
-              ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
+              ThermalGridOperatingPoint(
+                Kilowatts(80),
+                Kilowatts(80),
+                zeroKW,
+                zeroKW,
+              ),
             ),
           ),
           30.232655,
@@ -139,10 +155,10 @@ class HpModelSpec
 
       forAll(cases) {
         (
-            state,
-            expectedInnerTemperature,
-            exptHouseDemand,
-            exptHeatStorageDemand,
+          state,
+          expectedInnerTemperature,
+          exptHouseDemand,
+          exptHeatStorageDemand,
         ) =>
           val expectedTick = 7200
           val date = defaultSimulationStart
@@ -150,6 +166,7 @@ class HpModelSpec
             ThermalGridOperatingPoint(
               zeroKW,
               state.lastHpOperatingPoint.thermalOps.qDotHouse,
+              zeroKW,
               zeroKW,
             )
           )
@@ -162,6 +179,8 @@ class HpModelSpec
               KilowattHours(exptHeatStorageDemand._1),
               KilowattHours(exptHeatStorageDemand._2),
             ),
+            ThermalEnergyDemand.noDemand,
+            ThermalEnergyDemand(zeroKWh, zeroKWh),
           )
 
           val updatedState = hpModel.determineState(
@@ -173,11 +192,12 @@ class HpModelSpec
 
           updatedState match {
             case HpState(
-                  tick,
-                  ThermalGridState(Some(thermalHouseState), _),
-                  _,
-                  thermalDemands,
-                ) =>
+            tick,
+            _,
+            ThermalGridState(Some(thermalHouseState), _, _),
+            _,
+            thermalDemands,
+            ) =>
               tick shouldBe expectedTick
               thermalHouseState.tick shouldBe expectedTick
               thermalHouseState.innerTemperature should approximate(
