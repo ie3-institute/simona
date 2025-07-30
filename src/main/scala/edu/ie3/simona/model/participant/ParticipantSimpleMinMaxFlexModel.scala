@@ -12,8 +12,8 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 }
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
 
-/** Simple trait providing flexibility implementations to [[ParticipantModel]]s
-  * with [[ActivePowerOperatingPoint]]. No flexibility is provided.
+/** Simple trait providing a flexibility model to [[ParticipantModel]]s with
+  * [[ActivePowerOperatingPoint]]. No flexibility is provided.
   *
   * @tparam S
   *   The type of model state.

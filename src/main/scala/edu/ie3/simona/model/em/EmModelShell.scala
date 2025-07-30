@@ -236,20 +236,20 @@ object EmModelShell {
     allFactories
       .find {
         case StratFactoryWrapper(modelStrat, aggregateFlex, flexOptionsExtra) =>
-          val modelFound = modelStrat.isDefinedAt(modelStrategyName)
+          val modelStratFound = modelStrat.isDefinedAt(modelStrategyName)
           val aggregateFlexFound =
             aggregateFlex.isDefinedAt(aggregateFlexName)
 
-          if (modelFound && !aggregateFlexFound)
+          if (modelStratFound && !aggregateFlexFound)
             throw new CriticalFailureException(
               s"Unknown aggregate flex strategy $aggregateFlexName for flex type ${flexOptionsExtra.classTag.runtimeClass.getSimpleName}."
             )
-          else if (!modelFound && aggregateFlexFound)
+          else if (!modelStratFound && aggregateFlexFound)
             throw new CriticalFailureException(
               s"Unknown model flex strategy $modelStrategyName for flex type ${flexOptionsExtra.classTag.runtimeClass.getSimpleName}."
             )
 
-          modelFound && aggregateFlexFound
+          modelStratFound && aggregateFlexFound
       }
       .map {
         case StratFactoryWrapper(modelStrat, aggregateFlex, flexOptionsExtra) =>
