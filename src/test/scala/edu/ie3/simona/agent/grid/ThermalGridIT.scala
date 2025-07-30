@@ -41,7 +41,10 @@ import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.service.weather.WeatherService
-import edu.ie3.simona.test.common.input.EmInputTestData
+import edu.ie3.simona.test.common.input.{
+  EmInputTestData,
+  ThermalGridITInputTestData,
+}
 import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
 import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -78,6 +81,7 @@ class ThermalGridIT
     with AnyWordSpecLike
     with should.Matchers
     with QuantityMatchers
+    with ThermalGridITInputTestData
     with EmInputTestData
     with MockitoSugar
     with DefaultTestData

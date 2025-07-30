@@ -158,7 +158,7 @@ class ThermalGridSpec
       new edu.ie3.datamodel.models.input.container.ThermalGrid(
         thermalBusInput,
         Set(thermalHouseInput).asJava,
-        Set[ThermalStorageInput](thermalStorageInput).asJava,
+        Set[ThermalStorageInput](heatStorageInput).asJava,
         Set.empty[ThermalStorageInput].asJava,
       )
     )

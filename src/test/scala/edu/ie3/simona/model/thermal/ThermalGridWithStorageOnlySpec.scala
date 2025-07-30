@@ -40,13 +40,13 @@ class ThermalGridWithStorageOnlySpec
         new edu.ie3.datamodel.models.input.container.ThermalGrid(
           thermalBusInput,
           Set.empty[ThermalHouseInput].asJava,
-          Set[ThermalStorageInput](thermalStorageInput).asJava,
+          Set[ThermalStorageInput](heatStorageInput).asJava,
           Set.empty[ThermalStorageInput].asJava,
         )
 
       ThermalGrid(thermalGridInput) match {
         case ThermalGrid(None, Some(thermalStorageGenerated)) =>
-          thermalStorageGenerated shouldBe thermalStorage
+          thermalStorageGenerated shouldBe heatStorage
         case _ =>
           fail("Generation of thermal grid from thermal input grid failed.")
       }
@@ -58,7 +58,7 @@ class ThermalGridWithStorageOnlySpec
       new edu.ie3.datamodel.models.input.container.ThermalGrid(
         thermalBusInput,
         Set.empty[ThermalHouseInput].asJava,
-        Set[ThermalStorageInput](thermalStorageInput).asJava,
+        Set[ThermalStorageInput](heatStorageInput).asJava,
         Set.empty[ThermalStorageInput].asJava,
       )
     )
@@ -85,7 +85,7 @@ class ThermalGridWithStorageOnlySpec
               ) =>
             tick shouldBe expectedStorageStartingState.tick
             storedEnergy should approximate(
-              expectedStorageStartingState.storedEnergy
+              expectedHeatStorageStartingState.storedEnergy
             )
 
           case _ => fail("Determination of starting state failed")

@@ -49,7 +49,7 @@ class ThermalGridWithHouseAndStorageSpec
     new edu.ie3.datamodel.models.input.container.ThermalGrid(
       thermalBusInput,
       Set(thermalHouseInput).asJava,
-      Set[ThermalStorageInput](thermalStorageInput).asJava,
+      Set[ThermalStorageInput](heatStorageInput).asJava,
       Set.empty[ThermalStorageInput].asJava,
     )
   )
@@ -70,7 +70,7 @@ class ThermalGridWithHouseAndStorageSpec
         new edu.ie3.datamodel.models.input.container.ThermalGrid(
           thermalBusInput,
           Set(thermalHouseInput).asJava,
-          Set[ThermalStorageInput](thermalStorageInput).asJava,
+          Set[ThermalStorageInput](heatStorageInput).asJava,
           Set.empty[ThermalStorageInput].asJava,
         )
 
@@ -80,7 +80,7 @@ class ThermalGridWithHouseAndStorageSpec
               Some(thermalStorageGenerated),
             ) =>
           thermalHouseGenerated shouldBe thermalHouse
-          thermalStorageGenerated shouldBe thermalStorage
+          thermalStorageGenerated shouldBe heatStorage
         case _ =>
           fail("Generation of thermal grid from thermal input grid failed.")
       }
@@ -114,7 +114,7 @@ class ThermalGridWithHouseAndStorageSpec
               expectedHouseStartingState.innerTemperature
             )
             storedEnergy should approximate(
-              expectedStorageStartingState.storedEnergy
+              expectedHeatStorageStartingState.storedEnergy
             )
           case _ => fail("Determination of starting state failed")
         }
@@ -311,8 +311,8 @@ class ThermalGridWithHouseAndStorageSpec
         reachedThreshold shouldBe Some(StorageEmpty(1800))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           zeroKW,
-          thermalStorage.pThermalMax,
-          thermalStorage.pThermalMax * -1,
+          heatStorage.pThermalMax,
+          heatStorage.pThermalMax * -1,
         )
       }
 
@@ -349,8 +349,8 @@ class ThermalGridWithHouseAndStorageSpec
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           zeroKW,
-          thermalStorage.pThermalMax,
-          thermalStorage.pThermalMax * -1,
+          heatStorage.pThermalMax,
+          heatStorage.pThermalMax * -1,
         )
 
         reachedThreshold shouldBe Some(StorageEmpty(900))
@@ -431,8 +431,8 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
               zeroKW,
-              thermalStorage.pThermalMax,
-              thermalStorage.getpThermalMax * -1,
+              heatStorage.pThermalMax,
+              heatStorage.getpThermalMax * -1,
             )
             nextThreshold shouldBe Some(StorageEmpty(5400))
         }
@@ -482,8 +482,8 @@ class ThermalGridWithHouseAndStorageSpec
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           zeroKW,
-          thermalStorage.pThermalMax,
-          thermalStorage.pThermalMax * -1,
+          heatStorage.pThermalMax,
+          heatStorage.pThermalMax * -1,
         )
 
         threshold shouldBe Some(HouseTargetTemperatureReached(6344L))
@@ -501,7 +501,7 @@ class ThermalGridWithHouseAndStorageSpec
             Celsius(17),
           )
         ),
-        storageState = Some(expectedStorageStartingState),
+        storageState = Some(expectedHeatStorageStartingState),
       )
 
       val state = initialHpState.copy(
