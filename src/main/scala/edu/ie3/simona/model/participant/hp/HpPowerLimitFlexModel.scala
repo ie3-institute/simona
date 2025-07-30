@@ -8,12 +8,11 @@ package edu.ie3.simona.model.participant.hp
 
 import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.hp.HpModel.HpState
-import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   PowerLimitFlexOptions,
 }
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 
 class HpPowerLimitFlexModel(private val model: HpModel)
     extends ParticipantFlexModel[HpState] {
@@ -30,11 +29,46 @@ class HpPowerLimitFlexModel(private val model: HpModel)
         wasRunningLastOp,
       )
 
-    PowerLimitFlexOptions(
-      if (turnOn) model.sRated.toActivePower(model.cosPhiRated) else zeroKW,
-      if (canBeOutOfOperation) zeroKW else model.pRated,
-      if (canOperate) model.pRated else zeroKW,
-    )
+    val (refPower, minPower) = (turnOn, canBeOutOfOperation) match {
+      case (true, true) =>
+        if (
+          state.lastHpOperatingPoint.activePower > zeroKW &&
+          state.thermalDemands.houseDemand.hasPossibleDemand &&
+          state.thermalGridState.storageState
+            .map(_.storedEnergy)
+            .getOrElse(zeroKWh) == zeroKWh
+        )
+          // if Hp was running last state AND there is demand from the house AND the storage is empty,
+          // we would like to keep that behaviour even in strict interpretation of flexibility we could
+          // be out of operation for flex reasons. Thus, we force Hp to run.
+          (
+            model.sRated.toActivePower(model.cosPhiRated),
+            model.sRated.toActivePower(model.cosPhiRated),
+          )
+        else {
+          (model.sRated.toActivePower(model.cosPhiRated), zeroKW)
+        }
+      case (true, false) =>
+        (
+          model.sRated.toActivePower(model.cosPhiRated),
+          model.sRated.toActivePower(model.cosPhiRated),
+        )
+      case (false, true) =>
+        (
+          zeroKW,
+          zeroKW,
+        )
+      case _ =>
+        throw IllegalStateException(
+          "An unsupported FlexOption for a heat pump has been determined."
+        )
+      // should not be possible to reach
+    }
+
+    val maxPower =
+      if (canOperate) model.sRated.toActivePower(model.cosPhiRated) else zeroKW
+
+    PowerLimitFlexOptions(refPower, minPower, maxPower)
   }
 
 }
