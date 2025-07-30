@@ -27,9 +27,17 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsOperatingPoint,
   EvcsState,
 }
-import edu.ie3.simona.model.participant.{ChargingHelper, ParticipantModel}
+import edu.ie3.simona.model.participant.{
+  ChargingHelper,
+  ParticipantFlexModel,
+  ParticipantModel,
+}
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  FlexType,
+  MinMaxFlexOptions,
+}
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.Data.SecondaryData.*
@@ -53,16 +61,21 @@ class EvcsModel private (
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    strategy: EvcsChargingStrategy,
+    val strategy: EvcsChargingStrategy,
     override val currentType: ElectricCurrentType,
     override val lowestEvSoc: Double,
-    chargingPoints: Int,
-    vehicle2grid: Boolean,
+    val chargingPoints: Int,
+    val vehicle2grid: Boolean,
 ) extends ParticipantModel[
       EvcsOperatingPoint,
       EvcsState,
     ]
     with EvcsChargingProperties {
+
+  override val flexModels: Map[FlexType, ParticipantFlexModel[EvcsState]] =
+    Map(
+      FlexType.MinMax -> EvcsMinMaxFlexModel(this)
+    )
 
   override def determineState(
       lastState: EvcsState,
@@ -205,7 +218,7 @@ class EvcsModel private (
   }
 
   override def createPrimaryDataResult(
-      data: PrimaryData.PrimaryDataWithComplexPower[_],
+      data: PrimaryData.PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new EvcsResult(
@@ -214,69 +227,6 @@ class EvcsModel private (
       data.p.toMegawatts.asMegaWatt,
       data.q.toMegavars.asMegaVar,
     )
-
-  override def determineFlexOptions(
-      state: EvcsState
-  ): FlexOptions = {
-
-    val preferredPowers =
-      strategy.determineChargingPowers(
-        state.evs.filter(!isFull(_)),
-        state.tick,
-        this,
-      )
-
-    val (maxCharging, preferredPower, forcedCharging, minCharging) =
-      state.evs.foldLeft(
-        (zeroKW, zeroKW, zeroKW, zeroKW)
-      ) {
-        case (
-              (chargingSum, preferredSum, forcedSum, dischargingSum),
-              ev,
-            ) =>
-          val maxPower = getMaxAvailableChargingPower(ev)
-
-          val preferredPower = preferredPowers.get(ev.uuid)
-
-          val maxCharging =
-            if (!isFull(ev))
-              maxPower
-            else
-              zeroKW
-
-          val forced =
-            if (isEmpty(ev) && !isInLowerMargin(ev))
-              preferredPower.getOrElse(maxPower)
-            else
-              zeroKW
-
-          val maxDischarging =
-            if (!isEmpty(ev) && vehicle2grid)
-              maxPower * -1
-            else
-              zeroKW
-
-          (
-            chargingSum + maxCharging,
-            preferredSum + preferredPower.getOrElse(zeroKW),
-            forcedSum + forced,
-            dischargingSum + maxDischarging,
-          )
-      }
-
-    // if we need to charge at least one EV, we cannot discharge any other
-    val (adaptedPreferred, adaptedMinCharging) =
-      if (forcedCharging > zeroKW)
-        (preferredPower.max(forcedCharging), forcedCharging)
-      else
-        (preferredPower, minCharging)
-
-    MinMaxFlexOptions(
-      adaptedPreferred,
-      adaptedMinCharging,
-      maxCharging,
-    )
-  }
 
   override def determineOperatingPoint(
       state: EvcsState,
@@ -370,7 +320,7 @@ class EvcsModel private (
 
     if (evs.isEmpty) return (Seq.empty, setPower)
 
-    if (setPower.~=(zeroKW)(Kilowatts(1e-6))) {
+    if (setPower.~=(zeroKW)(using Kilowatts(1e-6))) {
       // No power left. Rest is not charging
       return (Seq.empty, zeroKW)
     }
@@ -533,7 +483,7 @@ class EvcsModel private (
     *   whether the given ev's stored energy is greater than the maximum charged
     *   energy allowed (minus a tolerance margin)
     */
-  private def isFull(ev: EvModelWrapper): Boolean =
+  def isFull(ev: EvModelWrapper): Boolean =
     ev.storedEnergy >= (ev.eStorage - calcToleranceMargin(ev))
 
   /** @param ev
@@ -542,7 +492,7 @@ class EvcsModel private (
     *   Whether the given ev's stored energy is less than the minimal charged
     *   energy allowed (plus a tolerance margin).
     */
-  private def isEmpty(ev: EvModelWrapper): Boolean =
+  def isEmpty(ev: EvModelWrapper): Boolean =
     ev.storedEnergy <= (
       ev.eStorage * lowestEvSoc + calcToleranceMargin(ev)
     )
@@ -553,7 +503,7 @@ class EvcsModel private (
     *   Whether the given ev's stored energy is within +- tolerance of the
     *   minimal charged energy allowed.
     */
-  private def isInLowerMargin(ev: EvModelWrapper): Boolean = {
+  def isInLowerMargin(ev: EvModelWrapper): Boolean = {
     val toleranceMargin = calcToleranceMargin(ev)
     val lowestSoc = ev.eStorage * lowestEvSoc
 

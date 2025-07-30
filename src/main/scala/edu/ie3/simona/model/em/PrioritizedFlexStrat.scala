@@ -30,12 +30,12 @@ import java.util.UUID
   *   Whether PV and WEC feed-in can be curtailed or not
   */
 final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
-    extends EmModelStrat {
+    extends EmModelStrat[MinMaxFlexOptions] {
 
   /** Only heat pumps, battery storages, charging stations and PVs/WECs (if
     * enabled) are controlled by this strategy
     */
-  private val controllableAssets: Seq[Class[_ <: AssetInput]] =
+  private val controllableAssets: Seq[Class[? <: AssetInput]] =
     Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput]) ++ Option
       .when(curtailRegenerative)(Seq(classOf[PvInput], classOf[WecInput]))
       .getOrElse(Seq.empty)
@@ -55,7 +55,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
     */
   override def determineFlexControl(
       flexOptions: Iterable[
-        (_ <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, MinMaxFlexOptions)
       ],
       target: Power,
   ): Seq[(UUID, Power)] = {
@@ -96,7 +96,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       }
       .filter(_ => curtailRegenerative) // only if enabled
 
-    if (zeroKW.~=(targetDelta)(tolerance)) {
+    if (zeroKW.~=(targetDelta)(using tolerance)) {
       Seq.empty
     } else if (targetDelta < zeroKW) {
       // suggested power too low, try to store difference/increase load
@@ -118,10 +118,10 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
           val flexPotential =
             flexOption.ref - flexOption.max
 
-          if (zeroKW.~=(remainingExcessPower)(tolerance)) {
+          if (zeroKW.~=(remainingExcessPower)(using tolerance)) {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if (zeroKW.~=(flexPotential)(tolerance)) {
+          } else if (zeroKW.~=(flexPotential)(using tolerance)) {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if (remainingExcessPower < flexPotential) {
@@ -170,10 +170,10 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
           val flexPotential =
             flexOption.ref - flexOption.min
 
-          if (zeroKW.~=(remainingExcessPower)(tolerance)) {
+          if (zeroKW.~=(remainingExcessPower)(using tolerance)) {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if (zeroKW.~=(flexPotential)(tolerance)) {
+          } else if (zeroKW.~=(flexPotential)(using tolerance)) {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if (remainingExcessPower > flexPotential) {

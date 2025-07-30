@@ -8,7 +8,10 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import EmModelStrat.tolerance
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptionsExtra,
+  MinMaxFlexOptions,
+}
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions.flexSum
 import squants.Power
 
@@ -17,7 +20,7 @@ import java.util.UUID
 /** Proportionally distributes flex control among connected agents, i.e. all
   * agents contribute the same share of their offered flex options
   */
-object ProportionalFlexStrat extends EmModelStrat {
+object ProportionalFlexStrat extends EmModelStrat[MinMaxFlexOptions] {
 
   /** Determine the power of controllable devices by proportionally distributing
     * flexibility usage to connected devices. This means that all devices are
@@ -33,7 +36,7 @@ object ProportionalFlexStrat extends EmModelStrat {
     */
   override def determineFlexControl(
       modelFlexOptions: Iterable[
-        (_ <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, MinMaxFlexOptions)
       ],
       target: Power,
   ): Iterable[(UUID, Power)] = {
@@ -49,7 +52,7 @@ object ProportionalFlexStrat extends EmModelStrat {
       flexOptions
     }.flexSum
 
-    if (target.~=(totalOptions.ref)(tolerance)) {
+    if (target.~=(totalOptions.ref)(using tolerance)) {
       Seq.empty
     } else if (target < totalOptions.ref) {
       val reducedOptions = flexOptions.map {

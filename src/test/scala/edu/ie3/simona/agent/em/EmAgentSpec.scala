@@ -18,8 +18,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.flex.{FlexType, MinMaxFlexOptions}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.test.common.input.EmInputTestData
@@ -27,7 +27,7 @@ import edu.ie3.simona.test.matchers.{QuantityMatchers, SquantsMatchers}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -50,17 +50,20 @@ class EmAgentSpec
     with QuantityMatchers
     with SquantsMatchers {
 
-  protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
-
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
     powerRequestReply = false,
     flexResult = true, // also test FlexOptionsResult if EM-controlled
   )
 
-  private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
-  private implicit val reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
+  given simulationStart: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
+
+  given FlexType = FlexType.MinMax
+
+  // Testing tolerances
+  given Power = Kilowatts(1e-10)
+  given ReactivePower = Kilovars(1e-10)
 
   "A self-optimizing EM agent" should {
     "be initialized correctly and run through some activations" in {
@@ -73,7 +76,7 @@ class EmAgentSpec
           EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
-          simulationStartDate,
+          simulationStart,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
         )
@@ -187,7 +190,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe simulationStartDate
+          emResult.getTime shouldBe simulationStart
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(-.0004.asMegaVar)
       }
@@ -261,7 +264,7 @@ class EmAgentSpec
           EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
-          simulationStartDate,
+          simulationStart,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
         )
@@ -353,7 +356,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe simulationStartDate
+          emResult.getTime shouldBe simulationStart
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(-.0004.asMegaVar)
       }
@@ -444,7 +447,7 @@ class EmAgentSpec
           EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
-          simulationStartDate,
+          simulationStart,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
         )
@@ -639,7 +642,7 @@ class EmAgentSpec
           EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
-          simulationStartDate,
+          simulationStart,
           parent = Right(parentEmAgent.ref),
           listener = Iterable(resultListener.ref),
         )

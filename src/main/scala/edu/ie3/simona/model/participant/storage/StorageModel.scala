@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant
+package edu.ie3.simona.model.participant.storage
 
 import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.result.system.{
@@ -18,18 +18,23 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.StorageModel.{
+import edu.ie3.simona.model.participant.storage.StorageModel.{
   RefTargetSocParams,
   StorageState,
 }
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.model.participant.{
+  ChargingHelper,
+  ParticipantFlexModel,
+  ParticipantModel,
+}
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.quantities.QuantityUtils.{asPu, asMegaWatt, asMegaVar}
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt, asPu}
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
@@ -48,8 +53,8 @@ class StorageModel private (
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    eStorage: Energy,
-    pMax: Power,
+    val eStorage: Energy,
+    val pMax: Power,
     eta: Dimensionless,
     targetSoc: Option[Double],
 ) extends ParticipantModel[
@@ -92,22 +97,26 @@ class StorageModel private (
   private val maxEnergyWithMargin: Energy =
     eStorage - (toleranceMargin * eta.toEach)
 
-  private val refTargetSoc: Option[RefTargetSocParams] = targetSoc.map {
-    target =>
-      val targetEnergy = eStorage * target
+  val refTargetSoc: Option[RefTargetSocParams] = targetSoc.map { target =>
+    val targetEnergy = eStorage * target
 
-      val targetWithPosMargin =
-        targetEnergy + (toleranceMargin / eta.toEach)
+    val targetWithPosMargin =
+      targetEnergy + (toleranceMargin / eta.toEach)
 
-      val targetWithNegMargin =
-        targetEnergy - (toleranceMargin * eta.toEach)
+    val targetWithNegMargin =
+      targetEnergy - (toleranceMargin * eta.toEach)
 
-      RefTargetSocParams(
-        targetEnergy,
-        targetWithPosMargin,
-        targetWithNegMargin,
-      )
+    RefTargetSocParams(
+      targetEnergy,
+      targetWithPosMargin,
+      targetWithNegMargin,
+    )
   }
+
+  override val flexModels: Map[FlexType, ParticipantFlexModel[StorageState]] =
+    Map(
+      FlexType.MinMax -> StorageMinMaxFlexModel(this)
+    )
 
   override def determineState(
       lastState: StorageState,
@@ -156,7 +165,7 @@ class StorageModel private (
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new StorageResult(
@@ -167,40 +176,6 @@ class StorageModel private (
       // Stored energy currently not supported by primary data time series
       -1.asPu,
     )
-
-  override def determineFlexOptions(
-      state: StorageState
-  ): FlexOptions = {
-
-    val chargingPossible = !isFull(state.storedEnergy)
-    val dischargingPossible = !isEmpty(state.storedEnergy)
-
-    val refPower = refTargetSoc
-      .map { targetParams =>
-        if (state.storedEnergy <= targetParams.targetWithPosMargin) {
-          if (state.storedEnergy >= targetParams.targetWithNegMargin) {
-            // is within target +/- margin, no charging needed
-            zeroKW
-          } else {
-            // below target - margin, charge up to target
-            pMax
-          }
-        } else {
-          // above target + margin, discharge to target
-          pMax * -1d
-        }
-      }
-      .getOrElse {
-        // no target set
-        zeroKW
-      }
-
-    MinMaxFlexOptions(
-      refPower,
-      if (dischargingPossible) pMax * -1 else zeroKW,
-      if (chargingPossible) pMax else zeroKW,
-    )
-  }
 
   override def determineOperatingPoint(
       state: StorageState,
@@ -282,7 +257,7 @@ class StorageModel private (
     *   whether the given stored energy is greater than the maximum charged
     *   energy allowed (minus a tolerance margin)
     */
-  private def isFull(storedEnergy: Energy): Boolean =
+  def isFull(storedEnergy: Energy): Boolean =
     storedEnergy >= maxEnergyWithMargin
 
   /** @param storedEnergy
@@ -291,7 +266,7 @@ class StorageModel private (
     *   whether the given stored energy is less than the minimal charged energy
     *   allowed (plus a tolerance margin)
     */
-  private def isEmpty(storedEnergy: Energy): Boolean =
+  def isEmpty(storedEnergy: Energy): Boolean =
     storedEnergy <= minEnergyWithMargin
 
 }

@@ -64,18 +64,21 @@ object EmDataCore {
       private val lastActiveTick: Option[Long],
   ) {
 
-    /** Adds a connected agent, given its model UUID and actor reference.
+    /** Adds a controlled agent, given its model UUID and actor reference.
       *
       * @param actor
-      *   The agent's [[ActorRef]].
-      * @param model
+      *   The asset agent's [[ActorRef]].
+      * @param asset
       *   The agent's model UUID.
       * @return
       *   The adapted [[Inactive]] core.
       */
-    def addParticipant(actor: ActorRef[FlexRequest], model: UUID): Inactive =
+    def addControlledAsset(
+        actor: ActorRef[FlexRequest],
+        asset: UUID,
+    ): Inactive =
       copy(
-        modelToActor = modelToActor.updated(model, actor)
+        modelToActor = modelToActor.updated(asset, actor)
       )
 
     /** Tries to handle an activation of the EmAgent for given tick. If the
