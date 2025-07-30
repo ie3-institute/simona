@@ -86,8 +86,8 @@ trait DefaultTestData {
       s"""
          |simona.simulationName = "ParticipantAgentTest"
          |
-         |simona.time.startDateTime = "01/01/2020 00:00:00Z"
-         |simona.time.endDateTime = "01/01/2020 01:00:00Z"
+         |simona.time.startDateTime = "2020-01-01T00:00:00Z"
+         |simona.time.endDateTime = "2020-01-01T01:00:00Z"
          |
          |simona.input.grid.datasource.id = "csv"
          |simona.output.base.dir = "testOutput/"

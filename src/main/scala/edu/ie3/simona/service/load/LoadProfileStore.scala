@@ -12,6 +12,8 @@ import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOA
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
+import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
+import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyToSimona,
   PowerConversionSimona,
@@ -21,9 +23,8 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.Optional
 import javax.measure.quantity.{Energy, Power}
-import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
 import scala.jdk.OptionConverters.RichOptional
-import scala.language.implicitConversions
 
 /** Container class that stores all loaded load profiles.
   * @param profileToSource
@@ -66,6 +67,34 @@ final case class LoadProfileStore(
     */
   def contains(loadProfile: LoadProfile): Boolean =
     profileToSource.contains(loadProfile)
+
+  /** Returns a map: [[LoadProfile]] to profile resolution in seconds.
+    */
+  def getProfileResolutions: Map[LoadProfile, Long] = profileToSource.keys
+    .map(profile => profile -> LoadProfileSource.getResolution(profile))
+    .toMap
+
+  /** Method to find the next activation tick.
+    * @param tick
+    *   Current tick of the simulation.
+    * @param startTime
+    *   Of the simulation.
+    * @return
+    *   An option for the next tick.
+    */
+  def getNextActivationTick(
+      tick: Long
+  )(using startTime: ZonedDateTime): Option[Long] = {
+    if (tick < FIRST_TICK_IN_SIMULATION) {
+      Some(FIRST_TICK_IN_SIMULATION)
+    } else {
+      val currentTime = startTime.plusSeconds(tick)
+
+      profileToSource.view.flatMap { case (_, source) =>
+        source.getTimeKeysAfter(currentTime).asScala.headOption.map(_.toTick)
+      }.minOption
+    }
+  }
 
   /** Returns the load profiles entry (average power consumption of the current
     * interval) for given time and load profile.

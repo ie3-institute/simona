@@ -9,7 +9,6 @@ package edu.ie3.simona.ontology.messages.flex
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, FlexType}
 import squants.Power
 
 import java.time.ZonedDateTime
@@ -65,7 +64,8 @@ trait FlexOptionsExtra[FO <: FlexOptions: ClassTag] {
   ): Power
 
   /** Checks whether given setPower fits the provided flex options, i.e. whether
-    * the set point is feasible given the flex options.
+    * the set point is feasible given the flex options. Throws a
+    * [[edu.ie3.simona.exceptions.FlexException]], if is not.
     *
     * @param flexOptions
     *   The flex options that the set point has to fit.

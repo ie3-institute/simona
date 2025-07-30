@@ -55,14 +55,6 @@ object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
 
   override val flexType: FlexType = FlexType.PowerLimit
 
-  /** Checks whether given setPower fits the provided flex options, i.e. whether
-    * the set point is feasible given the flex options.
-    *
-    * @param flexOptions
-    *   The flex options that the set point has to fit.
-    * @param setPower
-    *   The set point.
-    */
   override def checkSetPower(
       flexOptions: PowerLimitFlexOptions,
       setPower: Power,
@@ -77,16 +69,6 @@ object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
       )
   }
 
-  /** Determines the set point given a flex options message and a flex control
-    * message. Also validates the resulting power.
-    *
-    * @param flexOptions
-    *   The flex options.
-    * @param flexCtrl
-    *   The flex control message.
-    * @return
-    *   The resulting power set point.
-    */
   override def determineFlexPower(
       flexOptions: PowerLimitFlexOptions,
       flexCtrl: IssueFlexControl,

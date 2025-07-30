@@ -185,6 +185,13 @@ object PrimaryDataParticipantModel {
     override val reactivePower: Option[ReactivePower] = None
   }
 
+  /** Flex model for primary data. Does not allow for any flexibility.
+    *
+    * @param model
+    *   The model.
+    * @tparam PD
+    *   The type of primary data.
+    */
   private final case class PrimaryDataPowerLimitFlexModel[PD <: PrimaryData](
       model: PrimaryDataParticipantModel[PD]
   ) extends ParticipantFlexModel[PrimaryDataState[PD]] {
