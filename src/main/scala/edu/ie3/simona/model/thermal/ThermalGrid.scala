@@ -264,8 +264,10 @@ final case class ThermalGrid(
       handleFeedInStorage(state, qDotHeatStorage)
 
     val nextThreshold = determineMostRecentThreshold(
-      thermalHouseThreshold,
-      thermalStorageThreshold,
+      Seq(
+        thermalHouseThreshold,
+        thermalStorageThreshold,
+      )
     )
 
     (
@@ -351,19 +353,28 @@ final case class ThermalGrid(
     *   The next threshold.
     */
   private def determineMostRecentThreshold(
-      maybeHouseThreshold: Option[ThermalThreshold],
-      maybeStorageThreshold: Option[ThermalThreshold],
-  ): Option[ThermalThreshold] =
-    (maybeHouseThreshold, maybeStorageThreshold) match {
-      case (Some(houseThreshold), Some(storageThreshold)) =>
-        if (houseThreshold.tick <= storageThreshold.tick)
-          maybeHouseThreshold
-        else
-          maybeStorageThreshold
-      case (None, Some(_)) => maybeStorageThreshold
-      case (Some(_), None) => maybeHouseThreshold
-      case _               => None
+      thresholds: Seq[Option[ThermalThreshold]]
+  ): Option[ThermalThreshold] = {
+
+    @annotation.tailrec
+    def findMostRecent(
+        remaining: Seq[ThermalThreshold],
+        currentMin: Option[ThermalThreshold],
+    ): Option[ThermalThreshold] = {
+      remaining match {
+        case Nil => currentMin
+        case head :: tail =>
+          val newMin = currentMin match {
+            case None => Some(head)
+            case Some(minThreshold) =>
+              if (head.tick < minThreshold.tick) Some(head) else currentMin
+          }
+          findMostRecent(tail, newMin)
+      }
     }
+
+    findMostRecent(thresholds.flatten, None)
+  }
 
   /** Handle consumption (or no feed in) from thermal grid.
     *
@@ -429,8 +440,10 @@ final case class ThermalGrid(
         thermalStorage.getpThermalMax * -1,
       )
       val nextThreshold = determineMostRecentThreshold(
-        revisedHouseThreshold,
-        revisedStorageThreshold,
+        Seq(
+          revisedHouseThreshold,
+          revisedStorageThreshold,
+        )
       )
 
       (
