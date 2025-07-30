@@ -41,6 +41,20 @@ final class ThermalConductance private (
     this.toWattsPerKelvin * (temperatureInner.toKelvinScale - temperatureOuter.toKelvinScale) * time.toHours
   )
 
+  /** Calculates the thermal power (qDot) caused by a temperature delta.
+    * @param temperatureInner
+    *   Inner temperature of a medium
+    * @param temperatureOuter
+    *   Temperature outside the medium
+    * @return
+    */
+  def calcQDot(
+      temperatureInner: Temperature,
+      temperatureOuter: Temperature,
+  ): Power = Watts(
+    this.toWattsPerKelvin * (temperatureInner.toKelvinScale - temperatureOuter.toKelvinScale).abs
+  )
+
   def toWattsPerKelvin: Double = to(WattsPerKelvin)
 }
 

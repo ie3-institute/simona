@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `CODEOWNERS` file [#1387](https://github.com/ie3-institute/simona/issues/1387)
 - Added `LoadProfileService` to `ParticipantRefs` in `LoadProfileService` [#1418](https://github.com/ie3-institute/simona/issues/1418)
 - Enhance `Developer’s Guide` with information on steps for releasing a new version [#1450](https://github.com/ie3-institute/simona/issues/1450)
+- Enhance `ThermalConductance` by method to calculate for thermal power qDot [#1479](https://github.com/ie3-institute/simona/issues/1479)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
