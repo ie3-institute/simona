@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.simona.model.participant.HpModel.{HpOperatingPoint, HpState}
+import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,

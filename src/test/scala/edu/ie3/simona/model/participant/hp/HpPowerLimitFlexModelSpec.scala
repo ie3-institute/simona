@@ -210,37 +210,11 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                   Kilowatts(1),
                   Kilowatts(1),
                   zeroKW,
+                  zeroKW,
                 ),
-              ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
-            ),
-            (95.0, 95.0, 95.0),
-          ),
-          // 6. Same as before but the last operating point is now zero
-          // Hp runs but can be turned off
-          (
-            defaultState.copy(
-              thermalGridState = ThermalGridState(
-                Some(
-                  ThermalHouseState(
-                    0L,
-                    ambientTemperature,
-                    Celsius(19),
-                  )
-                ),
-                Some(
-                  ThermalStorageState(
-                    0L,
-                    zeroKWh,
-                  )
-                ),
-              ),
-              lastHpOperatingPoint = HpOperatingPoint(
-                zeroKW,
-                ThermalGridOperatingPoint(zeroKW, zeroKW, zeroKW),
               ),
               thermalDemands =
-                ThermalDemandWrapper(onlyAddDemand, demand, demand, noDemand),
+                ThermalDemandWrapper(onlyAddDemand, demand, noDemand, noDemand),
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -266,7 +240,7 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 zeroKW,
-                ThermalGridOperatingPoint(zeroKW, zeroKW, zeroKW, zeroKW),
+                ThermalGridOperatingPoint.zero,
               ),
               thermalDemands =
                 ThermalDemandWrapper(onlyAddDemand, demand, demand, noDemand),
@@ -762,7 +736,6 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
       }
     }
 
-  }
     "determine operating point without flex control correctly" in {
       val ambientTemperature = Celsius(10)
 
