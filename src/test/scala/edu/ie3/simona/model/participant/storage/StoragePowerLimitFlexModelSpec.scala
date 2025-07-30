@@ -7,14 +7,15 @@
 package edu.ie3.simona.model.participant.storage
 
 import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.StorageInputTestData
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power}
-import tech.units.indriya.quantity.Quantities.getQuantity
 
-class StorageMinMaxFlexModelSpec extends UnitSpec with StorageInputTestData {
+class StoragePowerLimitFlexModelSpec
+    extends UnitSpec
+    with StorageInputTestData {
 
   // Testing tolerances
   given Power = Kilowatts(1e-10)
@@ -22,7 +23,7 @@ class StorageMinMaxFlexModelSpec extends UnitSpec with StorageInputTestData {
 
   def createModel(
       targetSoc: Option[Double] = Option.empty
-  ): StorageMinMaxFlexModel = {
+  ): StoragePowerLimitFlexModel = {
     val model = StorageModel
       .Factory(
         storageInput,
@@ -30,10 +31,10 @@ class StorageMinMaxFlexModelSpec extends UnitSpec with StorageInputTestData {
       )
       .create()
 
-    StorageMinMaxFlexModel(model)
+    StoragePowerLimitFlexModel(model)
   }
 
-  "A Storage MinMaxFlexModel" should {
+  "A Storage PowerLimitFlexModel" should {
 
     "Calculate flex options" in {
       val storageModel = createModel()
@@ -61,12 +62,12 @@ class StorageMinMaxFlexModelSpec extends UnitSpec with StorageInputTestData {
           )
 
           storageModel.determineFlexOptions(state) match {
-            case result: MinMaxFlexOptions =>
+            case result: PowerLimitFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
               result.max should approximate(Kilowatts(pMax))
             case _ =>
-              fail("Expected result of type ProvideMinMaxFlexOptions")
+              fail("Expected result of type PowerLimitFlexOptions")
           }
       }
     }
@@ -103,12 +104,12 @@ class StorageMinMaxFlexModelSpec extends UnitSpec with StorageInputTestData {
           )
 
           storageModel.determineFlexOptions(state) match {
-            case result: MinMaxFlexOptions =>
+            case result: PowerLimitFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
               result.max should approximate(Kilowatts(pMax))
             case _ =>
-              fail("Expected result of type ProvideMinMaxFlexOptions")
+              fail("Expected result of type PowerLimitFlexOptions")
           }
       }
     }

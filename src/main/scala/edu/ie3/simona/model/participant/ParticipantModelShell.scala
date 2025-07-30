@@ -25,7 +25,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   FlexOptionsExtra,
   FlexType,
-  MinMaxFlexOptions,
+  PowerLimitFlexOptions,
 }
 import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
@@ -278,12 +278,12 @@ final case class ParticipantModelShell[
     )
 
     val updatedFlexOptions = flexType match {
-      case FlexType.MinMax =>
+      case FlexType.PowerLimit =>
         if (operationInterval.includes(tick)) {
           flexModel.determineFlexOptions(currentState)
         } else {
           // Out of operation, there's no way to operate besides 0 kW
-          MinMaxFlexOptions.noFlexOption(zeroKW)
+          PowerLimitFlexOptions.noFlexOption(zeroKW)
         }
     }
 

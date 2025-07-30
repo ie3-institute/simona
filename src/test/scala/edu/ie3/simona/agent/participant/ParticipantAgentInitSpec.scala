@@ -59,7 +59,7 @@ class ParticipantAgentInitSpec
 
   given simulationStart: ZonedDateTime = defaultSimulationStart
 
-  given FlexType = FlexType.MinMax
+  given FlexType = FlexType.PowerLimit
 
   given SimulationParameters = SimulationParameters(
     3600,

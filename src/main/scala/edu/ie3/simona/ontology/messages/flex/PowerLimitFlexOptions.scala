@@ -36,14 +36,14 @@ import java.util.UUID
   *   The maximum active power that the flex options provider allows at the
   *   current tick.
   */
-final case class MinMaxFlexOptions(
+final case class PowerLimitFlexOptions(
     ref: Power,
     min: Power,
     max: Power,
 ) extends FlexOptions {
 
-  def +(rhs: MinMaxFlexOptions): MinMaxFlexOptions =
-    MinMaxFlexOptions(
+  def +(rhs: PowerLimitFlexOptions): PowerLimitFlexOptions =
+    PowerLimitFlexOptions(
       ref + rhs.ref,
       min + rhs.min,
       max + rhs.max,
@@ -51,12 +51,12 @@ final case class MinMaxFlexOptions(
 
 }
 
-object MinMaxFlexOptions extends FlexOptionsExtra[MinMaxFlexOptions] {
+object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
 
-  override val flexType: FlexType = FlexType.MinMax
+  override val flexType: FlexType = FlexType.PowerLimit
 
   override def checkSetPower(
-      flexOptions: MinMaxFlexOptions,
+      flexOptions: PowerLimitFlexOptions,
       setPower: Power,
   ): Unit = {
     if (setPower < flexOptions.min)
@@ -70,7 +70,7 @@ object MinMaxFlexOptions extends FlexOptionsExtra[MinMaxFlexOptions] {
   }
 
   override def determineFlexPower(
-      flexOptions: MinMaxFlexOptions,
+      flexOptions: PowerLimitFlexOptions,
       flexCtrl: IssueFlexControl,
   ): Power =
     flexCtrl match {
@@ -86,7 +86,7 @@ object MinMaxFlexOptions extends FlexOptionsExtra[MinMaxFlexOptions] {
     }
 
   override def createResult(
-      flexOptions: MinMaxFlexOptions,
+      flexOptions: PowerLimitFlexOptions,
       modelUuid: UUID,
       dateTime: ZonedDateTime,
   ): FlexOptionsResult =
@@ -98,15 +98,15 @@ object MinMaxFlexOptions extends FlexOptionsExtra[MinMaxFlexOptions] {
       flexOptions.max.toMegawatts.asMegaWatt,
     )
 
-  extension (flexOptions: Iterable[MinMaxFlexOptions]) {
-    def flexSum: MinMaxFlexOptions =
-      flexOptions.foldLeft(MinMaxFlexOptions(zeroKW, zeroKW, zeroKW)) {
+  extension (flexOptions: Iterable[PowerLimitFlexOptions]) {
+    def flexSum: PowerLimitFlexOptions =
+      flexOptions.foldLeft(PowerLimitFlexOptions(zeroKW, zeroKW, zeroKW)) {
         case (sumOptions, addOptions) =>
           sumOptions + addOptions
       }
   }
 
-  /** Creates [[MinMaxFlexOptions]] with sanity checks regarding the power
+  /** Creates [[PowerLimitFlexOptions]] with sanity checks regarding the power
     * values.
     *
     * @param ref
@@ -120,13 +120,13 @@ object MinMaxFlexOptions extends FlexOptionsExtra[MinMaxFlexOptions] {
     *   The maximum active power that the flex options provider allows at the
     *   current tick.
     * @return
-    *   The [[MinMaxFlexOptions]].
+    *   The [[PowerLimitFlexOptions]].
     */
   def apply(
       ref: Power,
       min: Power,
       max: Power,
-  ): MinMaxFlexOptions = {
+  ): PowerLimitFlexOptions = {
     if (min > ref)
       throw new CriticalFailureException(
         s"Minimum power $min is greater than reference power $ref"
@@ -137,20 +137,20 @@ object MinMaxFlexOptions extends FlexOptionsExtra[MinMaxFlexOptions] {
         s"Reference power $ref is greater than maximum power $max"
       )
 
-    new MinMaxFlexOptions(ref, min, max)
+    new PowerLimitFlexOptions(ref, min, max)
   }
 
-  /** Creates [[MinMaxFlexOptions]] that do not allow any flexibility, meaning
-    * that min = ref = max power.
+  /** Creates [[PowerLimitFlexOptions]] that do not allow any flexibility,
+    * meaning that min = ref = max power.
     *
     * @param power
     *   The active power that the flex provider requires.
     * @return
-    *   The corresponding [[MinMaxFlexOptions]].
+    *   The corresponding [[PowerLimitFlexOptions]].
     */
   def noFlexOption(
       power: Power
-  ): MinMaxFlexOptions =
-    MinMaxFlexOptions(power, power, power)
+  ): PowerLimitFlexOptions =
+    PowerLimitFlexOptions(power, power, power)
 
 }

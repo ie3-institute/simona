@@ -8,7 +8,10 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  PowerLimitFlexOptions,
+}
 import squants.Power
 import squants.energy.Kilowatts
 
@@ -59,9 +62,9 @@ trait EmModelStrat[FO <: FlexOptions] {
 object EmModelStrat {
   val tolerance: Power = Kilowatts(1e-6d)
 
-  def parseMinMax(
+  def parsePowerLimitModel(
       modelConfig: EmRuntimeConfig
-  ): PartialFunction[String, EmModelStrat[MinMaxFlexOptions]] = {
+  ): PartialFunction[String, EmModelStrat[PowerLimitFlexOptions]] = {
     case "PROPORTIONAL" => ProportionalFlexStrat
     case "PRIORITIZED" =>
       PrioritizedFlexStrat(modelConfig.curtailRegenerative)

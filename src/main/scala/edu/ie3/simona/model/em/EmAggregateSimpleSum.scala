@@ -7,19 +7,19 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 
 /** Aggregates reference, minimum and maximum power by just simply summing up
   * each value.
   */
-object EmAggregateSimpleSum extends EmAggregateFlex[MinMaxFlexOptions] {
+object EmAggregateSimpleSum extends EmAggregateFlex[PowerLimitFlexOptions] {
 
   override def aggregateFlexOptions(
       flexOptions: Iterable[
-        (? <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, PowerLimitFlexOptions)
       ]
-  ): MinMaxFlexOptions =
-    flexOptions.map { case (_, flex: MinMaxFlexOptions) =>
+  ): PowerLimitFlexOptions =
+    flexOptions.map { case (_, flex: PowerLimitFlexOptions) =>
       flex
     }.flexSum
 

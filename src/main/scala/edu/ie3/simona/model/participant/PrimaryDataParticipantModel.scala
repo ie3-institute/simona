@@ -19,7 +19,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   FlexType,
-  MinMaxFlexOptions,
+  PowerLimitFlexOptions,
 }
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
@@ -63,7 +63,7 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
 
   override val flexModels
       : Map[FlexType, ParticipantFlexModel[PrimaryDataState[PD]]] = Map(
-    FlexType.MinMax -> PrimaryDataMinMaxFlexModel(this)
+    FlexType.PowerLimit -> PrimaryDataPowerLimitFlexModel(this)
   )
 
   override def determineState(
@@ -192,7 +192,7 @@ object PrimaryDataParticipantModel {
     * @tparam PD
     *   The type of primary data.
     */
-  private final case class PrimaryDataMinMaxFlexModel[PD <: PrimaryData](
+  private final case class PrimaryDataPowerLimitFlexModel[PD <: PrimaryData](
       model: PrimaryDataParticipantModel[PD]
   ) extends ParticipantFlexModel[PrimaryDataState[PD]] {
 
@@ -201,7 +201,7 @@ object PrimaryDataParticipantModel {
     ): FlexOptions = {
       val (operatingPoint, _) = model.determineOperatingPoint(state)
 
-      MinMaxFlexOptions.noFlexOption(operatingPoint.activePower)
+      PowerLimitFlexOptions.noFlexOption(operatingPoint.activePower)
     }
 
   }

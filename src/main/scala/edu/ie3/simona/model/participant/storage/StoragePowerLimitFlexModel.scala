@@ -8,10 +8,13 @@ package edu.ie3.simona.model.participant.storage
 
 import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 
-class StorageMinMaxFlexModel(private val model: StorageModel)
+class StoragePowerLimitFlexModel(private val model: StorageModel)
     extends ParticipantFlexModel[StorageState] {
 
   override def determineFlexOptions(
@@ -41,7 +44,7 @@ class StorageMinMaxFlexModel(private val model: StorageModel)
         zeroKW
       }
 
-    MinMaxFlexOptions(
+    PowerLimitFlexOptions(
       refPower,
       if (dischargingPossible) model.pMax * -1 else zeroKW,
       if (chargingPossible) model.pMax else zeroKW,

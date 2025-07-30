@@ -17,7 +17,7 @@ import edu.ie3.datamodel.models.input.system.{
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
 
@@ -30,7 +30,7 @@ import java.util.UUID
   *   Whether PV and WEC feed-in can be curtailed or not
   */
 final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
-    extends EmModelStrat[MinMaxFlexOptions] {
+    extends EmModelStrat[PowerLimitFlexOptions] {
 
   /** Only heat pumps, battery storages, charging stations and PVs/WECs (if
     * enabled) are controlled by this strategy
@@ -55,14 +55,14 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
     */
   override def determineFlexControl(
       flexOptions: Iterable[
-        (? <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, PowerLimitFlexOptions)
       ],
       target: Power,
   ): Seq[(UUID, Power)] = {
 
     val totalRefPower =
       flexOptions
-        .map { case (_, MinMaxFlexOptions(refPower, _, _)) =>
+        .map { case (_, PowerLimitFlexOptions(refPower, _, _)) =>
           refPower
         }
         .reduceOption { (power1, power2) =>
@@ -111,7 +111,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
               (issueCtrlMsgs, Some(remainingExcessPower)),
               (
                 inputModel: SystemParticipantInput,
-                flexOption: MinMaxFlexOptions,
+                flexOption: PowerLimitFlexOptions,
               ),
             ) =>
           // potential for decreasing feed-in/increasing load (negative)
@@ -163,7 +163,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
               (issueCtrlMsgs, Some(remainingExcessPower)),
               (
                 inputModel: SystemParticipantInput,
-                flexOption: MinMaxFlexOptions,
+                flexOption: PowerLimitFlexOptions,
               ),
             ) =>
           // potential for decreasing load/increasing feed-in
@@ -208,8 +208,8 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
 
   override def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: MinMaxFlexOptions,
-  ): MinMaxFlexOptions = {
+      flexOptions: PowerLimitFlexOptions,
+  ): PowerLimitFlexOptions = {
     if (controllableAssets.contains(assetInput.getClass))
       flexOptions
     else {

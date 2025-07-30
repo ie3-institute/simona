@@ -100,8 +100,8 @@ object FlexOptionsExtra {
 
   def apply(flexType: FlexType): FlexOptionsExtra[?] =
     flexType match {
-      case FlexType.MinMax =>
-        MinMaxFlexOptions
+      case FlexType.PowerLimit =>
+        PowerLimitFlexOptions
     }
 
 }

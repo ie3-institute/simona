@@ -36,7 +36,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   FlexType,
-  MinMaxFlexOptions,
+  PowerLimitFlexOptions,
 }
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
@@ -74,7 +74,7 @@ class EvcsModel private (
 
   override val flexModels: Map[FlexType, ParticipantFlexModel[EvcsState]] =
     Map(
-      FlexType.MinMax -> EvcsMinMaxFlexModel(this)
+      FlexType.PowerLimit -> EvcsPowerLimitFlexModel(this)
     )
 
   override def determineState(

@@ -15,7 +15,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   FlexOptionsExtra,
   FlexType,
-  MinMaxFlexOptions,
+  PowerLimitFlexOptions,
 }
 import squants.Power
 
@@ -225,9 +225,9 @@ object EmModelShell {
 
     val allFactories = Seq(
       StratFactoryWrapper(
-        EmModelStrat.parseMinMax(modelConfig),
-        EmAggregateFlex.parseMinMax,
-        MinMaxFlexOptions,
+        EmModelStrat.parsePowerLimitModel(modelConfig),
+        EmAggregateFlex.parsePowerLimitModel,
+        PowerLimitFlexOptions,
       )
     )
 

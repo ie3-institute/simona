@@ -43,7 +43,7 @@ class FixedFeedInModel(
   override val flexModels
       : Map[FlexType, ParticipantFlexModel[ParticipantModel.FixedState]] =
     Map(
-      FlexType.MinMax -> ParticipantInflexibleMinMaxFlexModel(this)
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
     )
 
   override def determineOperatingPoint(

@@ -10,7 +10,10 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
 }
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  PowerLimitFlexOptions,
+}
 
 /** Simple flexibility model for [[ParticipantModel]]s with
   * [[ActivePowerOperatingPoint]] returning flex options that do not allow for
@@ -19,7 +22,7 @@ import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
   * @tparam S
   *   The type of model state.
   */
-class ParticipantInflexibleMinMaxFlexModel[S <: ModelState](
+class ParticipantInflexiblePowerLimitFlexModel[S <: ModelState](
     private val model: ParticipantModel[?, S]
 ) extends ParticipantFlexModel[S] {
 
@@ -28,7 +31,7 @@ class ParticipantInflexibleMinMaxFlexModel[S <: ModelState](
   ): FlexOptions = {
     val (operatingPoint, _) = model.determineOperatingPoint(state)
 
-    MinMaxFlexOptions.noFlexOption(operatingPoint.activePower)
+    PowerLimitFlexOptions.noFlexOption(operatingPoint.activePower)
   }
 
 }

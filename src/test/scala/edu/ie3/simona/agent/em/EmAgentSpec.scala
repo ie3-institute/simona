@@ -19,7 +19,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{FlexType, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.test.common.input.EmInputTestData
@@ -59,7 +59,7 @@ class EmAgentSpec
   given simulationStart: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
 
-  given FlexType = FlexType.MinMax
+  given FlexType = FlexType.PowerLimit
 
   // Testing tolerances
   given Power = Kilowatts(1e-10)
@@ -132,7 +132,7 @@ class EmAgentSpec
       // send flex options
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
@@ -144,7 +144,7 @@ class EmAgentSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -213,7 +213,7 @@ class EmAgentSpec
       // send flex options again, ev is fully charged
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(0),
           Kilowatts(-11),
           Kilowatts(0),
@@ -295,7 +295,7 @@ class EmAgentSpec
       // send flex options
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
@@ -307,7 +307,7 @@ class EmAgentSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -377,7 +377,7 @@ class EmAgentSpec
       // send flex options again, now there's a cloud and thus less feed-in
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-3),
           Kilowatts(-3),
           Kilowatts(0),
@@ -478,7 +478,7 @@ class EmAgentSpec
       // send flex options
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
@@ -490,7 +490,7 @@ class EmAgentSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -561,7 +561,7 @@ class EmAgentSpec
       // send flex options again, now there's a cloud and thus less feed-in
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-3),
           Kilowatts(-3),
           Kilowatts(0),
@@ -573,7 +573,7 @@ class EmAgentSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -704,7 +704,7 @@ class EmAgentSpec
       // send flex options
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
@@ -716,7 +716,7 @@ class EmAgentSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -735,7 +735,7 @@ class EmAgentSpec
       parentEmAgent.expectMessageType[ProvideFlexOptions] match {
         case ProvideFlexOptions(
               modelUuid,
-              MinMaxFlexOptions(
+              PowerLimitFlexOptions(
                 referencePower,
                 minPower,
                 maxPower,

@@ -8,10 +8,13 @@ package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 
-class EvcsMinMaxFlexModel(private val model: EvcsModel)
+class EvcsPowerLimitFlexModel(private val model: EvcsModel)
     extends ParticipantFlexModel[EvcsState] {
 
   override def determineFlexOptions(
@@ -70,7 +73,7 @@ class EvcsMinMaxFlexModel(private val model: EvcsModel)
       else
         (preferredPower, minCharging)
 
-    MinMaxFlexOptions(
+    PowerLimitFlexOptions(
       adaptedPreferred,
       adaptedMinCharging,
       maxCharging,

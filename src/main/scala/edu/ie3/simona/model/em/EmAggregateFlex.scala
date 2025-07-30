@@ -8,7 +8,10 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.energy.Kilowatts
 
@@ -35,8 +38,8 @@ trait EmAggregateFlex[FO <: FlexOptions] {
 
 object EmAggregateFlex {
 
-  def parseMinMax
-      : PartialFunction[String, EmAggregateFlex[MinMaxFlexOptions]] = {
+  def parsePowerLimitModel
+      : PartialFunction[String, EmAggregateFlex[PowerLimitFlexOptions]] = {
     case "SELF_OPT_EXCL_REG" =>
       EmAggregatePowerOpt(zeroKW, curtailRegenerative = false)
     case "SELF_OPT"   => EmAggregatePowerOpt(zeroKW, curtailRegenerative = true)
