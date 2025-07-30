@@ -11,23 +11,19 @@ import edu.ie3.datamodel.models.result.system.{
   FixedFeedInResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.model.participant.ParticipantFlexibility.ParticipantSimpleFlexibility
-import edu.ie3.simona.model.participant.ParticipantModel.{
-  ActivePowerOperatingPoint,
-  FixedState,
-  ParticipantFixedState,
-  ParticipantModelFactory,
-}
+import edu.ie3.simona.model.participant.ParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
+import squants.Power
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -42,8 +38,13 @@ class FixedFeedInModel(
       ActivePowerOperatingPoint,
       FixedState,
     ]
-    with ParticipantFixedState[ActivePowerOperatingPoint]
-    with ParticipantSimpleFlexibility[FixedState] {
+    with ParticipantFixedState[ActivePowerOperatingPoint] {
+
+  override val flexModels
+      : Map[FlexType, ParticipantFlexModel[ParticipantModel.FixedState]] =
+    Map(
+      FlexType.MinMax -> ParticipantInflexibleMinMaxFlexModel(this)
+    )
 
   override def determineOperatingPoint(
       state: ParticipantModel.FixedState
@@ -52,6 +53,12 @@ class FixedFeedInModel(
 
     (ActivePowerOperatingPoint(power), None)
   }
+
+  override def determineOperatingPoint(
+      state: ParticipantModel.FixedState,
+      setPower: Power,
+  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
+    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
 
   override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
     ActivePowerOperatingPoint.zero
@@ -73,7 +80,7 @@ class FixedFeedInModel(
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new FixedFeedInResult(

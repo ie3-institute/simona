@@ -4,84 +4,38 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant
+package edu.ie3.simona.model.participant.storage
 
-import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.input.system.StorageInput
-import edu.ie3.datamodel.models.input.system.`type`.StorageTypeInput
-import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
-import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.model.participant.ParticipantModel.ActivePowerOperatingPoint
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.input.StorageInputTestData
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power}
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.quantity.Quantities.getQuantity
 
 import java.time.ZonedDateTime
-import java.util.UUID
 
-class StorageModelSpec extends UnitSpec with Matchers {
+class StorageModelSpec
+    extends UnitSpec
+    with StorageInputTestData
+    with Matchers {
 
-  final val inputModel: StorageInput = createStorageInput()
-  implicit val powerTolerance: Power = Kilowatts(1e-10)
-  implicit val energyTolerance: Energy = KilowattHours(1e-10)
+  // Testing tolerances
+  given Power = Kilowatts(1e-10)
+  given Energy = KilowattHours(1e-10)
 
   private val dateTime: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T03:04:05Z")
 
-  def createStorageInput(): StorageInput = {
-    val nodeInput = new NodeInput(
-      UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
-      "NodeInput",
-      OperatorInput.NO_OPERATOR_ASSIGNED,
-      OperationTime.notLimited(),
-      Quantities.getQuantity(1, PowerSystemUnits.PU),
-      false,
-      NodeInput.DEFAULT_GEO_POSITION,
-      GermanVoltageLevelUtils.LV,
-      -1,
-    )
-
-    val typeInput = new StorageTypeInput(
-      UUID.fromString("fbee4995-24dd-45e4-9c85-7d986fe99ff3"),
-      "Test_StorageTypeInput",
-      Quantities.getQuantity(10000d, EURO),
-      getQuantity(0.05d, EURO_PER_MEGAWATTHOUR),
-      Quantities.getQuantity(100d, KILOWATTHOUR),
-      getQuantity(13d, KILOVOLTAMPERE),
-      0.997,
-      getQuantity(10d, KILOWATT),
-      getQuantity(0.03, PU_PER_HOUR),
-      getQuantity(0.9, PU),
-    )
-
-    new StorageInput(
-      UUID.randomUUID(),
-      "Test_StorageInput",
-      new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
-      OperationTime.notLimited(),
-      nodeInput,
-      CosPhiFixed.CONSTANT_CHARACTERISTIC,
-      null,
-      typeInput,
-    )
-  }
-
-  def buildStorageModel(
+  def createModel(
       targetSoc: Option[Double] = Option.empty
   ): StorageModel =
     StorageModel
       .Factory(
-        inputModel,
+        storageInput,
         StorageRuntimeConfig(targetSoc = targetSoc),
       )
       .create()
@@ -89,7 +43,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
   "StorageModel" should {
 
     "Determine the current state" in {
-      val storageModel = buildStorageModel()
+      val storageModel = createModel()
 
       val lastTick = 3600L
 
@@ -176,86 +130,8 @@ class StorageModelSpec extends UnitSpec with Matchers {
       }
     }
 
-    "Calculate flex options" in {
-      val storageModel = buildStorageModel()
-      val tick = 3600L
-
-      val testCases = Table(
-        ("storedEnergy", "pRef", "pMin", "pMax"),
-        // completely empty
-        (0.0, 0.0, 0.0, 10.0),
-        // at a tiny bit above empty
-        (0.011, 0.0, -10.0, 10.0),
-        // at mid-level charge
-        (60.0, 0.0, -10.0, 10.0),
-        // almost fully charged
-        (99.989, 0.0, -10.0, 10.0),
-        // fully charged
-        (100.0, 0.0, -10.0, 0.0),
-      )
-
-      forAll(testCases) {
-        (storedEnergy: Double, pRef: Double, pMin: Double, pMax: Double) =>
-          val state = StorageModel.StorageState(
-            KilowattHours(storedEnergy),
-            tick,
-          )
-
-          storageModel.determineFlexOptions(state) match {
-            case result: MinMaxFlexOptions =>
-              result.ref should approximate(Kilowatts(pRef))
-              result.min should approximate(Kilowatts(pMin))
-              result.max should approximate(Kilowatts(pMax))
-            case _ =>
-              fail("Expected result of type ProvideMinMaxFlexOptions")
-          }
-      }
-    }
-
-    "Calculate flex options with target SOC" in {
-      val storageModel = buildStorageModel(Some(0.5d))
-      val tick = 3600L
-
-      val testCases = Table(
-        ("storedEnergy", "pRef", "pMin", "pMax"),
-        // completely empty
-        (0.0, 10.0, 0.0, 10.0),
-        // below margin of ref power target
-        (49.9974, 10.0, -10.0, 10.0),
-        // within margin below ref power target
-        (49.9976, 0.0, -10.0, 10.0),
-        // exactly at ref power target
-        (50.0, 0.0, -10.0, 10.0),
-        // within margin above ref power target
-        (50.0030, 0.0, -10.0, 10.0),
-        // above margin of ref power target
-        (50.0031, -10.0, -10.0, 10.0),
-        // at mid-level charge
-        (60.0, -10.0, -10.0, 10.0),
-        // fully charged
-        (100.0, -10.0, -10.0, 0.0),
-      )
-
-      forAll(testCases) {
-        (storedEnergy: Double, pRef: Double, pMin: Double, pMax: Double) =>
-          val state = StorageModel.StorageState(
-            KilowattHours(storedEnergy),
-            tick,
-          )
-
-          storageModel.determineFlexOptions(state) match {
-            case result: MinMaxFlexOptions =>
-              result.ref should approximate(Kilowatts(pRef))
-              result.min should approximate(Kilowatts(pMin))
-              result.max should approximate(Kilowatts(pMax))
-            case _ =>
-              fail("Expected result of type ProvideMinMaxFlexOptions")
-          }
-      }
-    }
-
     "Handle controlled power change" in {
-      val storageModel = buildStorageModel()
+      val storageModel = createModel()
       val tick = 3600L
 
       val testCases = Table(
@@ -318,7 +194,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
     }
 
     "Handle controlled power change with ref target SOC" in {
-      val storageModel = buildStorageModel(Some(0.5d))
+      val storageModel = createModel(Some(0.5d))
       val tick = 3600L
 
       val testCases = Table(
@@ -381,7 +257,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
     }
 
     "Handle the edge case of discharging in tolerance margins" in {
-      val storageModel = buildStorageModel()
+      val storageModel = createModel()
       val tick = 1800L
 
       // margin is at ~ 0.0030864 kWh
@@ -403,7 +279,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
     }
 
     "Handle the edge case of charging in tolerance margins" in {
-      val storageModel = buildStorageModel()
+      val storageModel = createModel()
       val tick = 1800L
 
       // margin is at ~ 99.9975 kWh
@@ -425,7 +301,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
     }
 
     "Handle the edge case of discharging in positive target margin" in {
-      val storageModel = buildStorageModel(Some(0.3d))
+      val storageModel = createModel(Some(0.3d))
       val tick = 1800L
 
       // margin is at ~ 30.0025 kWh
@@ -449,7 +325,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
     }
 
     "Handle the edge case of charging in negative target margin" in {
-      val storageModel = buildStorageModel(Some(0.4d))
+      val storageModel = createModel(Some(0.4d))
       val tick = 1800L
 
       // margin is at ~ 39.9975 kWh

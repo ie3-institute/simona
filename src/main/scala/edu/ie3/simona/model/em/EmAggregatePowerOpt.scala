@@ -28,11 +28,11 @@ import java.lang.Math.signum
 final case class EmAggregatePowerOpt(
     targetPowerAbs: Power = zeroKW,
     curtailRegenerative: Boolean,
-) extends EmAggregateFlex {
+) extends EmAggregateFlex[MinMaxFlexOptions] {
 
   override def aggregateFlexOptions(
       flexOptions: Iterable[
-        (_ <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, MinMaxFlexOptions)
       ]
   ): MinMaxFlexOptions = {
     val (minSum, refSum, maxSum) =

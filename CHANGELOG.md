@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Set Institute as first author within `CITATION.cff` [#1427](https://github.com/ie3-institute/simona/issues/1427)
 - Update Developers Guide - Release Process [#1466](https://github.com/ie3-institute/simona/issues/1466)
 - Made powerflow parameters in config options [#1443](https://github.com/ie3-institute/simona/issues/1443)
+- Provide abstraction for flex options in system participant and EM [#1456](https://github.com/ie3-institute/simona/issues/1456)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

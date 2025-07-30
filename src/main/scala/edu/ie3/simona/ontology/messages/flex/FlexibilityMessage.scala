@@ -41,14 +41,14 @@ object FlexibilityMessage {
     *
     * @param participant
     *   The actor reference to the controlled asset model
-    * @param inputModel
+    * @param assetInput
     *   The asset input model of the controlled asset model
     */
   final case class RegisterControlledAsset(
       participant: ActorRef[FlexRequest],
-      inputModel: AssetInput,
+      assetInput: AssetInput,
   ) extends FlexResponse {
-    override val modelUuid: UUID = inputModel.getUuid
+    override val modelUuid: UUID = assetInput.getUuid
   }
 
   /** Message that schedules a flex activation for a controlled asset model at
@@ -74,8 +74,33 @@ object FlexibilityMessage {
     *
     * @param tick
     *   The tick to request [[FlexOptions]] for.
+    * @param flexType
+    *   The flexibility type to calculate [[FlexOptions]] in. Unused during
+    *   initialization.
     */
-  final case class FlexActivation(override val tick: Long) extends FlexRequest
+  final case class FlexActivation(override val tick: Long, flexType: FlexType)
+      extends FlexRequest
+
+  object FlexActivation {
+
+    /** Convenience method for creating a [[FlexActivation]] with an implicit
+      * flexType.
+      *
+      * @param tick
+      *   The tick to request [[FlexOptions]] for.
+      * @param flexType
+      *   The flexibility type to calculate [[FlexOptions]] in. Not used during
+      *   initialization.
+      * @param dummy
+      *   Dummy implicit parameter needed due to method signature collisions.
+      * @return
+      *   A [[FlexActivation]].
+      */
+    def apply(
+        tick: Long
+    )(using flexType: FlexType, dummy: DummyImplicit): FlexActivation =
+      FlexActivation(tick, flexType)
+  }
 
   /** Message that provides [[FlexOptions]] to an
     * [[edu.ie3.simona.agent.em.EmAgent]] after they have been requested via
