@@ -14,8 +14,10 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
+  OperationChangeIndicator,
 }
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
@@ -41,7 +43,7 @@ import java.util.UUID
 abstract class ParticipantModel[
     OP <: OperatingPoint,
     S <: ModelState,
-] extends ParticipantFlexibility[OP, S] {
+] {
 
   /** The UUID identifying the system participant.
     */
@@ -63,10 +65,14 @@ abstract class ParticipantModel[
     */
   val qControl: QControl
 
+  /** Map of flex type to offered flexibility model.
+    */
+  val flexModels: Map[FlexType, ParticipantFlexModel[S]]
+
   /** The rated active power according to the rated apparent power and rated
     * power factor.
     */
-  protected val pRated: Power = sRated.toActivePower(cosPhiRated)
+  val pRated: Power = sRated.toActivePower(cosPhiRated)
 
   /** Determines the current state given the last state and the operating point
     * that has been valid from the last state up until now.
@@ -135,9 +141,8 @@ abstract class ParticipantModel[
     * the last state though.
     *
     * This method is only called if the participant is '''not''' em-controlled.
-    * If the participant '''is''' em-controlled,
-    * [[ParticipantFlexibility.determineOperatingPoint]] determines the
-    * operating point instead.
+    * If the participant '''is''' em-controlled, determineOperatingPoint(S,
+    * Power) determines the operating point instead.
     *
     * @param state
     *   the current state.
@@ -145,6 +150,32 @@ abstract class ParticipantModel[
     *   the operating point and optionally a next activation tick.
     */
   def determineOperatingPoint(state: S): (OP, Option[Long])
+
+  /** Given the current state, this method determines the operating point that
+    * is currently valid until the next operating point is determined, given a
+    * flex control power determined by EM. Also, optionally returns a tick at
+    * which the state will change unless the operating point changes due to
+    * external influences beforehand.
+    *
+    * This method should be able to handle calls at arbitrary points in
+    * simulation time (i.e. ticks), which have to be situated after the tick of
+    * the last state though.
+    *
+    * This method is only called if the participant '''is''' em-controlled. If
+    * the participant is '''not''' em-controlled, `determineOperatingPoint(S)`
+    * determines the operating point instead.
+    *
+    * @param state
+    *   The current state.
+    * @param setPower
+    *   The power set point determined by EM.
+    * @return
+    *   The operating point and optionally a next activation tick.
+    */
+  def determineOperatingPoint(
+      state: S,
+      setPower: Power,
+  ): (OP, OperationChangeIndicator)
 
   /** Operating point used when model is out of operation, thus
     * producing/consuming no power.

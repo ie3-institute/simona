@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import org.mockito.Mockito.when
@@ -112,13 +112,13 @@ class ProportionalFlexStratSpec
             expected1,
             expected2,
         ) =>
-          val flexOptions1 = MinMaxFlexOptions(
+          val flexOptions1 = PowerLimitFlexOptions(
             ref = Kilowatts(ref1),
             min = Kilowatts(min1),
             max = Kilowatts(max1),
           )
 
-          val flexOptions2 = MinMaxFlexOptions(
+          val flexOptions2 = PowerLimitFlexOptions(
             ref = Kilowatts(ref2),
             min = Kilowatts(min2),
             max = Kilowatts(max2),
@@ -162,7 +162,7 @@ class ProportionalFlexStratSpec
     "adapt flex options correctly" in {
       val assetInput = mock[AssetInput] // is not used
 
-      val flexOptionsIn = MinMaxFlexOptions(
+      val flexOptionsIn = PowerLimitFlexOptions(
         Kilowatts(1),
         Kilowatts(-1),
         Kilowatts(2),
