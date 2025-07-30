@@ -77,7 +77,7 @@ class PvModel private (
 
   override val flexModels: Map[FlexType, ParticipantFlexModel[PvState]] =
     Map(
-      FlexType.MinMax -> ParticipantSimpleMinMaxFlexModel(this)
+      FlexType.MinMax -> ParticipantInflexibleMinMaxFlexModel(this)
     )
 
   override def determineState(

@@ -57,7 +57,7 @@ final case class BmModel(
 
   override val flexModels: Map[FlexType, ParticipantFlexModel[BmState]] =
     Map(
-      FlexType.MinMax -> ParticipantSimpleMinMaxFlexModel(this)
+      FlexType.MinMax -> ParticipantInflexibleMinMaxFlexModel(this)
     )
 
   override def determineState(
