@@ -6,5 +6,9 @@
 
 package edu.ie3.simona.ontology.messages.flex
 
-/** Trait that all flex option types have to extend. */
-trait FlexOptions
+/** Enumeration of flexibility types handled by SIMONA. Implementation resides
+  * in subclasses of [[FlexOptions]].
+  */
+enum FlexType {
+  case PowerLimit
+}

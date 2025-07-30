@@ -102,6 +102,9 @@ We're following the git-flow approach to release new versions. The following ste
       - RELEASE_Version would be e.g. 2.1.0
    2. Merge dev-branch into the rel-Branch
    3. Update the `version.properties` to new version number
+   4. Update `CITATION.cff`
+      - Adapt new version number
+      - Adapt release date
 5. Adapt the *changelog*:
    1. Change headline from `Unreleased` into the new version (e.g. 2.1.0)
    2. Add a new `Unreleased` section
