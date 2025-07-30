@@ -7,7 +7,10 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.input.thermal.{CylindricalStorageInput, ThermalBusInput}
+import edu.ie3.datamodel.models.input.thermal.{
+  CylindricalStorageInput,
+  ThermalBusInput,
+}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.quantity.Quantities.getQuantity
@@ -30,7 +33,9 @@ trait ThermalStorageTestData extends ThermalGridTestData {
       getQuantity(20.0, PowerSystemUnits.KILOWATT),
     )
 
-  protected val heatStorage: CylindricalThermalStorage =    CylindricalThermalStorage(heatStorageInput)
+  protected val heatStorage: CylindricalThermalStorage =
+    CylindricalThermalStorage(heatStorageInput)
 
-  protected val expectedHeatStorageStartingState: ThermalStorageState = heatStorage.startingState
+  protected val expectedHeatStorageStartingState: ThermalStorageState =
+    heatStorage.startingState
 }
