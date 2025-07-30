@@ -15,7 +15,7 @@ import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.{
   ParticipantFlexModel,
   ParticipantModel,
-  ParticipantSimplePowerLimitFlexModel,
+  ParticipantInflexiblePowerLimitFlexModel,
 }
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
@@ -46,7 +46,7 @@ abstract class LoadModel[S <: ModelState]
 
   override val flexModels: Map[FlexType, ParticipantFlexModel[S]] =
     Map(
-      FlexType.PowerLimit -> ParticipantSimplePowerLimitFlexModel(this)
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
     )
 
   override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =

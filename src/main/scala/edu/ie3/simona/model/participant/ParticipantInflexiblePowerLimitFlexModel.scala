@@ -15,14 +15,14 @@ import edu.ie3.simona.ontology.messages.flex.{
   PowerLimitFlexOptions,
 }
 
-/** Simple trait providing a flexibility model to [[ParticipantModel]]s with
-  * [[ActivePowerOperatingPoint]]. It returns flex options that do not allow for
+/** Simple flexibility model for [[ParticipantModel]]s with
+  * [[ActivePowerOperatingPoint]] returning flex options that do not allow for
   * any flexibility around the current operating point.
   *
   * @tparam S
   *   The type of model state.
   */
-class ParticipantSimplePowerLimitFlexModel[S <: ModelState](
+class ParticipantInflexiblePowerLimitFlexModel[S <: ModelState](
     private val model: ParticipantModel[?, S]
 ) extends ParticipantFlexModel[S] {
 
