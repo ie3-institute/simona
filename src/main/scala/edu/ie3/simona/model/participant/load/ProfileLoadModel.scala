@@ -79,8 +79,7 @@ class ProfileLoadModel(
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
   ): LoadModelState = {
-
-    val averagePower = receivedData
+    receivedData
       .collectFirst {
         case loadData: LoadData =>
           loadData.averagePower
@@ -88,13 +87,8 @@ class ProfileLoadModel(
         case loadFunction: LoadDataFunction =>
           loadFunction.powerSupplier()
       }
-      .getOrElse(
-        throw new CriticalFailureException(
-          s"Expected LoadProfileData, got $receivedData"
-        )
-      )
-
-    state.copy(averagePower = averagePower)
+      .map(avgPower => state.copy(averagePower = avgPower))
+      .getOrElse(state)
   }
 }
 
