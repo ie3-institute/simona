@@ -25,7 +25,7 @@ import squants.{Energy, Temperature}
 
 class ThermalHouseSpec extends UnitSpec with HpInputTestData {
 
-  implicit val temperaturTolerance: Temperature = Celsius(1e-4)
+  implicit val temperatureTolerance: Temperature = Celsius(1e-4)
   implicit val energyTolerance: Energy = KilowattHours(1e-4)
 
   "ThermalHouse" should {
