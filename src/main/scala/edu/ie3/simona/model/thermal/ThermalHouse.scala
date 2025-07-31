@@ -27,7 +27,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
-import squants.thermal.{Kelvin, ThermalCapacity}
+import squants.thermal.{Celsius, Kelvin, ThermalCapacity}
 import squants.time.Seconds
 import squants.{Energy, Power, Temperature, Time}
 import tech.units.indriya.unit.Units
@@ -290,7 +290,7 @@ final case class ThermalHouse(
     )
 
     val durationValue = Math.log(
-      (nextInnerTemperatureToReach - longTermTemperature) / (currentInnerTemperature - longTermTemperature)
+      (nextInnerTemperatureToReach.toKelvinScale - longTermTemperature.toKelvinScale) / (currentInnerTemperature.toKelvinScale - longTermTemperature.toKelvinScale)
     ) / (k2 * -1)
 
     val duration = Math.floor(durationValue).toLong
@@ -334,14 +334,14 @@ object ThermalHouse {
         .getValue
         .doubleValue
     ) / Kelvin(1d),
-    Kelvin(
-      input.getTargetTemperature.to(Units.KELVIN).getValue.doubleValue
+    Celsius(
+      input.getTargetTemperature.to(Units.CELSIUS).getValue.doubleValue
     ),
-    Kelvin(
-      input.getLowerTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
+    Celsius(
+      input.getLowerTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
     ),
-    Kelvin(
-      input.getUpperTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
+    Celsius(
+      input.getUpperTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
     ),
   )
 
