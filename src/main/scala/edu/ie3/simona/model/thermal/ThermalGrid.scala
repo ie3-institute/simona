@@ -263,7 +263,7 @@ final case class ThermalGrid(
     val thermalStorageThreshold =
       handleFeedInStorage(state, qDotHeatStorage)
 
-    val nextThreshold = determineMostRecentThreshold(
+    val nextThreshold = determineNextThreshold(
       Seq(
         thermalHouseThreshold,
         thermalStorageThreshold,
@@ -343,16 +343,15 @@ final case class ThermalGrid(
     }
   }
 
-  /** Determines the most recent threshold of two given input thresholds.
+  /** Determines the next threshold of a given input sequence of thresholds.
     *
-    * @param maybeHouseThreshold
-    *   Option of a possible next threshold of the thermal house.
-    * @param maybeStorageThreshold
-    *   Option of a possible next threshold of the thermal storage.
+    * @param thresholds
+    *   Sequence of Options of possible next thresholds from the thermal house
+    *   or storage.
     * @return
     *   The next threshold.
     */
-  private def determineMostRecentThreshold(
+  private def determineNextThreshold(
       thresholds: Seq[Option[ThermalThreshold]]
   ): Option[ThermalThreshold] = {
 
@@ -439,7 +438,7 @@ final case class ThermalGrid(
         storageState,
         thermalStorage.getpThermalMax * -1,
       )
-      val nextThreshold = determineMostRecentThreshold(
+      val nextThreshold = determineNextThreshold(
         Seq(
           revisedHouseThreshold,
           revisedStorageThreshold,
