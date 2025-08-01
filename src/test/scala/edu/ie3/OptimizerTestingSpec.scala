@@ -12,7 +12,7 @@ import optimus.optimization.*
 import optimus.optimization.enums.SolverLib
 import optimus.optimization.model.{MPBinaryVar, MPFloatVar, MPVar}
 import org.scalatest.wordspec.AnyWordSpecLike
-import squants.Time
+import squants.{Each, Time}
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.time.Hours
 
@@ -78,62 +78,122 @@ class OptimizerTestingSpec extends AnyWordSpecLike {
 
     println(s"objective: $objectiveValue")
     println(s"z_charge = ${zCharge.value}")
+    println(s"z_discharge = ${zDischarge.value}")
     println(s"soc_0 = ${soc_0.value}")
     println(s"soc_1 = ${soc_1.value}")
 
     release()
   }
 
-  "StorageMinMaxFlexModel" in {
+  "Storage model" should {
 
-    val fo = MPFlexOptions(
-      currentEnergy = KilowattHours(50),
-      eStorage = KilowattHours(100),
-      pMax = Kilowatts(10),
-    )
+    "balance out additional power" in {
 
-    implicit val model: MPModel = MPModel(SolverLib.oJSolver)
+      val fo = MPFlexOptions(
+        currentEnergy = KilowattHours(50),
+        eStorage = KilowattHours(100),
+        pMax = Kilowatts(10),
+        eta = Each(0.8)
+      )
 
-    val timeSpan = Hours(1)
+      implicit val model: MPModel = MPModel(SolverLib.oJSolver)
 
-    val state0 = fo.addInitialState
-    val op0 = fo.addOperationConstraints(state0)
+      val timeSpan = Hours(1)
 
-    val state1 = fo.addNewStateConstraints(state0, op0, timeSpan)
-    val op1 = fo.addOperationConstraints(state1)
+      val state0 = fo.addInitialState
+      val op0 = fo.addOperationConstraints(state0)
 
-    val state2 = fo.addNewStateConstraints(state1, op1, timeSpan)
-    val op2 = fo.addOperationConstraints(state2)
+      val state1 = fo.addNewStateConstraints(state0, op0, timeSpan)
+      val op1 = fo.addOperationConstraints(state1)
 
-    val state3 = fo.addNewStateConstraints(state2, op2, timeSpan)
-    val op3 = fo.addOperationConstraints(state3)
+      val state2 = fo.addNewStateConstraints(state1, op1, timeSpan)
+      val op2 = fo.addOperationConstraints(state2)
 
-    val batPower = Seq(op0.p, op1.p, op2.p, op3.p)
-    val addPower = Seq(-5d, -11d, 10d, 2d)
+      val state3 = fo.addNewStateConstraints(state2, op2, timeSpan)
+      val op3 = fo.addOperationConstraints(state3)
 
-    val objective = batPower.zip(addPower).foldLeft[Expression](Zero) {
-      case (sum, (bat, add)) =>
-        val total = bat + add
-        sum + total * total
+      val state4 = fo.addNewStateConstraints(state3, op3, timeSpan)
+
+      val batOps = Seq(op0, op1, op2, op3)
+      val addPower = Seq(1d, -11d, 10d, 2d)
+
+      val objective = batOps.zip(addPower).foldLeft[Expression](Zero) {
+        case (sum, (bat, add)) =>
+          val total = bat.pCharge + bat.pDischarge + add
+          sum + total * total
+      }
+
+      model.minimize(objective)
+
+      start()
+
+      println(model.getStatus)
+
+      println(s"objective: $objectiveValue")
+      println(s"soc0 = ${state0.storedEnergy.value}")
+      println(s"op0.pCharge = ${op0.pCharge.value}")
+      println(s"op0.pDischarge = ${op0.pDischarge.value}")
+      println(s"soc1 = ${state1.storedEnergy.value}")
+      println(s"op1.pCharge = ${op1.pCharge.value}")
+      println(s"op1.pDischarge = ${op1.pDischarge.value}")
+      println(s"soc2 = ${state2.storedEnergy.value}")
+      println(s"op2.pCharge = ${op2.pCharge.value}")
+      println(s"op2.pDischarge = ${op2.pDischarge.value}")
+      println(s"soc3 = ${state3.storedEnergy.value}")
+      println(s"op3.pCharge = ${op3.pCharge.value}")
+      println(s"op3.pDischarge = ${op3.pDischarge.value}")
+
+      release()
     }
 
-    model.minimize(objective)
+    "work correctly at extreme values" in {
+      // battery full, almost full, half full, almost empty, empty
 
-    start()
+      // todo variable time? nope?
 
-    println(model.getStatus)
+      val fo = MPFlexOptions(
+        currentEnergy = KilowattHours(50),
+        eStorage = KilowattHours(100),
+        pMax = Kilowatts(10),
+        eta = Each(0.8)
+      )
 
-    println(s"objective: $objectiveValue")
-    println(s"soc0 = ${state0.storedEnergy.value}")
-    println(s"op0 = ${op0.p.value}")
-    println(s"soc1 = ${state1.storedEnergy.value}")
-    println(s"op1 = ${op1.p.value}")
-    println(s"soc2 = ${state2.storedEnergy.value}")
-    println(s"op2 = ${op2.p.value}")
-    println(s"soc3 = ${state3.storedEnergy.value}")
-    println(s"op3 = ${op3.p.value}")
+      implicit val model: MPModel = MPModel(SolverLib.oJSolver)
 
-    release()
+      val timeSpan = Hours(1)
+
+      val state0 = fo.addInitialState
+      val op0 = fo.addOperationConstraints(state0)
+
+      val state1 = fo.addNewStateConstraints(state0, op0, timeSpan)
+      val op1 = fo.addOperationConstraints(state1)
+
+      val batOps = Seq(op0, op1)
+      val addPower = Seq(1d, -11d)
+
+      val objective = batOps.zip(addPower).foldLeft[Expression](Zero) {
+        case (sum, (bat, add)) =>
+          val total = bat.pCharge + bat.pDischarge + add
+          sum + total * total
+      }
+
+      model.minimize(objective)
+
+      start()
+
+      println(model.getStatus)
+
+      println(s"objective: $objectiveValue")
+      println(s"soc0 = ${state0.storedEnergy.value}")
+      println(s"op0.pCharge = ${op0.pCharge.value}")
+      println(s"op0.pDischarge = ${op0.pDischarge.value}")
+      println(s"soc1 = ${state1.storedEnergy.value}")
+      println(s"op1.pCharge = ${op1.pCharge.value}")
+      println(s"op1.pDischarge = ${op1.pDischarge.value}")
+
+      release()
+
+    }
   }
 
 }

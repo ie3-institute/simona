@@ -16,7 +16,7 @@ import edu.ie3.simona.ontology.messages.flex.{
 import optimus.algebra.{Double2Const, Int2Const}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPBinaryVar, MPFloatVar, MPVar}
-import squants.Time
+import squants.{Dimensionless, Time}
 import squants.energy.{Energy, Power}
 
 class StorageMathProgrammingFlexModel(private val model: StorageModel)
@@ -29,6 +29,7 @@ class StorageMathProgrammingFlexModel(private val model: StorageModel)
       state.storedEnergy,
       model.eStorage,
       model.pMax,
+      model.eta,
     )
 }
 
@@ -36,12 +37,13 @@ object StorageMathProgrammingFlexModel {
 
   final case class StorageStateVars(storedEnergy: MPVar)
 
-  final case class StorageOperationVars(p: MPVar)
+  final case class StorageOperationVars(pCharge: MPVar, pDischarge: MPVar)
 
   final case class MPFlexOptions(
       currentEnergy: Energy,
       eStorage: Energy,
       pMax: Power,
+      eta: Dimensionless,
   ) extends MathProgrammingFlexOptions[StorageStateVars, StorageOperationVars] {
 
     override def addInitialState(using model: MPModel): StorageStateVars = {
@@ -54,18 +56,12 @@ object StorageMathProgrammingFlexModel {
     override def addOperationConstraints(state: StorageStateVars)(using
         model: MPModel
     ): StorageOperationVars = {
-      val zCharge = MPBinaryVar()
-      val zDischarge = MPBinaryVar()
-      val p = MPFloatVar(-pMax.toKilowatts, pMax.toKilowatts)
+      val pCharge = MPFloatVar(0, pMax.toKilowatts)
+      val pDischarge = MPFloatVar(-pMax.toKilowatts, 0)
 
-      model.add(
-        state.storedEnergy <:= eStorage.toKilowattHours - 0.0001 + (1e10 * (1 - zCharge))
-      )
-      model.add(p <:= pMax.toKilowatts * zCharge)
-      model.add(state.storedEnergy >:= 0.0001 - (1e10 * (1 - zDischarge)))
-      model.add(p >:= -pMax.toKilowatts * zDischarge)
+      model.add(pCharge * pDischarge := 0)
 
-      StorageOperationVars(p)
+      StorageOperationVars(pCharge, pDischarge)
     }
 
     override def addNewStateConstraints(
@@ -75,7 +71,9 @@ object StorageMathProgrammingFlexModel {
     )(using model: MPModel): StorageStateVars = {
       val storedEnergy = MPFloatVar(0, eStorage.toKilowattHours)
 
-      model.add(storedEnergy := oldState.storedEnergy + op.p * timeSpan.toHours)
+      model.add(
+        storedEnergy := oldState.storedEnergy + (op.pCharge * eta.toEach + op.pDischarge * (1 / eta.toEach)) * timeSpan.toHours
+      )
 
       StorageStateVars(storedEnergy)
     }
