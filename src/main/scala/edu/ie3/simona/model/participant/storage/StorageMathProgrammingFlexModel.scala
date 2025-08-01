@@ -13,11 +13,11 @@ import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   MathProgrammingFlexOptions,
 }
-import optimus.algebra.{Double2Const, Int2Const}
+import optimus.algebra.{Double2Const, Expression}
 import optimus.optimization.MPModel
-import optimus.optimization.model.{MPBinaryVar, MPFloatVar, MPVar}
+import optimus.optimization.model.{MPFloatVar, MPVar}
+import squants.energy.{Energy, Kilowatts, Power}
 import squants.{Dimensionless, Time}
-import squants.energy.{Energy, Power}
 
 class StorageMathProgrammingFlexModel(private val model: StorageModel)
     extends ParticipantFlexModel[
@@ -37,7 +37,21 @@ object StorageMathProgrammingFlexModel {
 
   final case class StorageStateVars(storedEnergy: MPVar)
 
-  final case class StorageOperationVars(pCharge: MPVar, pDischarge: MPVar)
+  final case class StorageOperationVars(pCharge: MPVar, pDischarge: MPVar) {
+
+    def getPowerExpression: Expression =
+      pCharge - pDischarge
+
+    def getPowerSolution: Option[Power] =
+      pCharge.value.zip(pDischarge.value).map { case (pChValue, pDischValue) =>
+        Kilowatts(pChValue - pDischValue)
+      }
+
+    def getSoftConstraints: Option[Expression] = {
+      val penalty = 1e-4
+      Some(penalty * pCharge * pDischarge)
+    }
+  }
 
   final case class MPFlexOptions(
       currentEnergy: Energy,
@@ -57,9 +71,10 @@ object StorageMathProgrammingFlexModel {
         model: MPModel
     ): StorageOperationVars = {
       val pCharge = MPFloatVar(0, pMax.toKilowatts)
-      val pDischarge = MPFloatVar(-pMax.toKilowatts, 0)
+      val pDischarge = MPFloatVar(0, pMax.toKilowatts)
 
-      model.add(pCharge * pDischarge := 0)
+      // soft constraint on simultaneous charging and discharging
+      model.add(pCharge + pDischarge <:= pMax.toKilowatts)
 
       StorageOperationVars(pCharge, pDischarge)
     }
@@ -72,7 +87,7 @@ object StorageMathProgrammingFlexModel {
       val storedEnergy = MPFloatVar(0, eStorage.toKilowattHours)
 
       model.add(
-        storedEnergy := oldState.storedEnergy + (op.pCharge * eta.toEach + op.pDischarge * (1 / eta.toEach)) * timeSpan.toHours
+        storedEnergy := oldState.storedEnergy + (op.pCharge * eta.toEach - op.pDischarge * (1 / eta.toEach)) * timeSpan.toHours
       )
 
       StorageStateVars(storedEnergy)

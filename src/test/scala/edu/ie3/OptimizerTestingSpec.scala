@@ -10,44 +10,13 @@ import edu.ie3.simona.model.participant.storage.StorageMathProgrammingFlexModel.
 import optimus.algebra.{Double2Const, Expression, Int2Const, Zero}
 import optimus.optimization.*
 import optimus.optimization.enums.SolverLib
-import optimus.optimization.model.{MPBinaryVar, MPFloatVar, MPVar}
+import optimus.optimization.model.{MPBinaryVar, MPFloatVar}
 import org.scalatest.wordspec.AnyWordSpecLike
-import squants.{Each, Time}
+import squants.Each
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.time.Hours
 
 class OptimizerTestingSpec extends AnyWordSpecLike {
-
-  "example" in {
-    implicit val model: MPModel = MPModel(SolverLib.oJSolver)
-
-    val x = MPFloatVar("x", 100, 200)
-    val y = MPFloatVar("y", 80, 170)
-
-    maximize(-2 * x + 5 * y)
-    add(y >:= -x + 200)
-
-    start()
-
-    println(s"objective: $objectiveValue")
-    println(s"x = ${x.value} y = ${y.value}")
-
-    release()
-  }
-
-  def addFlexOptionsConstraints(soc: MPVar, p: MPVar)(using model: MPModel) =
-    val zCharge = MPBinaryVar()
-    val zDischarge = MPBinaryVar()
-
-    add(soc <:= 1 - 0.0001 + (1e10 * (1 - zCharge)))
-    add(p <:= 100 * zCharge)
-    add(soc >:= 0.0001 - (1e10 * (1 - zDischarge)))
-    add(p >:= -100 * zDischarge)
-
-  def addStateConstraints(socOld: MPVar, p: MPVar, time: Time, socNew: MPVar)(
-      using model: MPModel
-  ) =
-    add(socNew := socOld + p * time.toHours)
 
   "battery" in {
     implicit val model: MPModel = MPModel(SolverLib.oJSolver)
@@ -93,7 +62,7 @@ class OptimizerTestingSpec extends AnyWordSpecLike {
         currentEnergy = KilowattHours(50),
         eStorage = KilowattHours(100),
         pMax = Kilowatts(10),
-        eta = Each(0.8)
+        eta = Each(0.8),
       )
 
       implicit val model: MPModel = MPModel(SolverLib.oJSolver)
@@ -115,12 +84,14 @@ class OptimizerTestingSpec extends AnyWordSpecLike {
       val state4 = fo.addNewStateConstraints(state3, op3, timeSpan)
 
       val batOps = Seq(op0, op1, op2, op3)
-      val addPower = Seq(1d, -11d, 10d, 2d)
+      val addPower = Seq(-3d, -11d, 10d, 2d)
 
       val objective = batOps.zip(addPower).foldLeft[Expression](Zero) {
         case (sum, (bat, add)) =>
-          val total = bat.pCharge + bat.pDischarge + add
-          sum + total * total
+          val d = MPFloatVar(0, Double.PositiveInfinity)
+          model.add(d >:= bat.getPowerExpression + add)
+          model.add(d >:= -(bat.getPowerExpression + add))
+          sum + d + bat.getSoftConstraints.getOrElse(Zero)
       }
 
       model.minimize(objective)
@@ -150,48 +121,6 @@ class OptimizerTestingSpec extends AnyWordSpecLike {
       // battery full, almost full, half full, almost empty, empty
 
       // todo variable time? nope?
-
-      val fo = MPFlexOptions(
-        currentEnergy = KilowattHours(50),
-        eStorage = KilowattHours(100),
-        pMax = Kilowatts(10),
-        eta = Each(0.8)
-      )
-
-      implicit val model: MPModel = MPModel(SolverLib.oJSolver)
-
-      val timeSpan = Hours(1)
-
-      val state0 = fo.addInitialState
-      val op0 = fo.addOperationConstraints(state0)
-
-      val state1 = fo.addNewStateConstraints(state0, op0, timeSpan)
-      val op1 = fo.addOperationConstraints(state1)
-
-      val batOps = Seq(op0, op1)
-      val addPower = Seq(1d, -11d)
-
-      val objective = batOps.zip(addPower).foldLeft[Expression](Zero) {
-        case (sum, (bat, add)) =>
-          val total = bat.pCharge + bat.pDischarge + add
-          sum + total * total
-      }
-
-      model.minimize(objective)
-
-      start()
-
-      println(model.getStatus)
-
-      println(s"objective: $objectiveValue")
-      println(s"soc0 = ${state0.storedEnergy.value}")
-      println(s"op0.pCharge = ${op0.pCharge.value}")
-      println(s"op0.pDischarge = ${op0.pDischarge.value}")
-      println(s"soc1 = ${state1.storedEnergy.value}")
-      println(s"op1.pCharge = ${op1.pCharge.value}")
-      println(s"op1.pDischarge = ${op1.pDischarge.value}")
-
-      release()
 
     }
   }
