@@ -291,5 +291,14 @@ object SetupHelper {
         )
         .simulationResultIdentifiersToConsider(thermal = true))
         .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
-      (if (outputConfig.flex) Seq(classOf[FlexOptionsResult]) else Seq.empty)
+      (if (
+         // Write FlexOption if either simona.output.flex or flexResult for one of the output-configs is true
+         outputConfig.flex || OutputConfigUtil
+           .participants(
+             outputConfig.participant
+           )
+           ._1
+           .flexResult
+       ) Seq(classOf[FlexOptionsResult])
+       else Seq.empty)
 }

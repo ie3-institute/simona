@@ -125,6 +125,7 @@ simona.output.participant.defaultConfig = {
   notifier = "default"
   powerRequestReply = false
   simulationResult = true
+  flexResult = false
 }
 ```
 
@@ -137,16 +138,19 @@ simona.output.participant.individualConfigs = [
     notifier = "pv"
     powerRequestReply = false
     simulationResult = true
+      flexResult = false
   },
   {
     notifier = "wec"
     powerRequestReply = false
     simulationResult = true
+      flexResult = false
   },
   {
     notifier = "evcs"
     powerRequestReply = false
     simulationResult = true
+      flexResult = false
   }
 ]
 ```
@@ -159,6 +163,7 @@ To use the default configuration the default notifier has to be used. By setting
 simona.output.thermal.defaultConfig = {
   notifier = "default",
   simulationResult = true
+    flexResult = false
 }
 ```
 
@@ -170,16 +175,40 @@ simona.output.thermal.individualConfigs = [
   {
     notifier = "house",
     simulationResult = true
+      flexResult = false
   },
   {
     notifier = "cylindricalstorage",
     simulationResult = true
+      flexResult = false
   }
 ]
 ```
 
 Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
+
+#### Output configuration for flexibility options
+
+The output of flexibility options either globally or for system participant groups or individual participants can also be applied. By setting "flexResult" to true, the participant is enabled to return the flexibility options results.
+
+```
+simona.output.participant.defaultConfig = {
+  notifier = "default"
+  powerRequestReply = false
+  simulationResult = true
+  flexResult = true
+}
+```
+
+Alternatively 
+
+```
+simona.output.flex = true
+```
+
+sets applies also the output of all flexibility options.
+```
 
 ## Logging level configuration
 
