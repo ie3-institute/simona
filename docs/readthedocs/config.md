@@ -201,13 +201,10 @@ simona.output.participant.defaultConfig = {
 }
 ```
 
-Alternatively 
+Alternatively, the output of all flexibility options can be apllied by: 
 
 ```
 simona.output.flex = true
-```
-
-sets applies also the output of all flexibility options.
 ```
 
 ## Logging level configuration
