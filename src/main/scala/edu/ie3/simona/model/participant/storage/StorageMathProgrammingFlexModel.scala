@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant.storage
 import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.storage.StorageMathProgrammingFlexModel.MPFlexOptions
 import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
+import edu.ie3.simona.ontology.messages.flex.MathProgrammingFlexOptions.OperationVars
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   MathProgrammingFlexOptions,
@@ -37,18 +38,19 @@ object StorageMathProgrammingFlexModel {
 
   final case class StorageStateVars(storedEnergy: MPVar)
 
-  final case class StorageOperationVars(pCharge: MPVar, pDischarge: MPVar) {
+  final case class StorageOperationVars(pCharge: MPVar, pDischarge: MPVar)
+      extends OperationVars {
 
-    def getPowerExpression: Expression =
+    override def getPowerExpression: Expression =
       pCharge - pDischarge
 
-    def getPowerSolution: Option[Power] =
+    override def getPowerSolution: Option[Power] =
       pCharge.value.zip(pDischarge.value).map { case (pChValue, pDischValue) =>
         Kilowatts(pChValue - pDischValue)
       }
 
-    def getSoftConstraints: Option[Expression] = {
-      val penalty = 1e-4
+    override def getSoftConstraints: Option[Expression] = {
+      val penalty = 1e-6
       Some(penalty * pCharge * pDischarge)
     }
   }
