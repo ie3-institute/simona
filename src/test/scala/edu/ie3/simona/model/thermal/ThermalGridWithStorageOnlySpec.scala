@@ -83,7 +83,7 @@ class ThermalGridWithStorageOnlySpec
                   )
                 ),
               ) =>
-            tick shouldBe expectedStorageStartingState.tick
+            tick shouldBe expectedHeatStorageStartingState.tick
             storedEnergy should approximate(
               expectedHeatStorageStartingState.storedEnergy
             )
