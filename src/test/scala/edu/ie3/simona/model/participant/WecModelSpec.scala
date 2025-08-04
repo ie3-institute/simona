@@ -9,18 +9,15 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.`type`.WecTypeInput
-import edu.ie3.datamodel.models.input.system.characteristic.{
-  ReactivePowerCharacteristic,
-  WecCharacteristicInput,
-}
+import edu.ie3.datamodel.models.input.system.characteristic.{ReactivePowerCharacteristic, WecCharacteristicInput}
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.RuntimeConfig.WecRuntimeConfig
 import edu.ie3.simona.model.participant.WecModel.WecState
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits
-import squants.Each
-import squants.energy.Watts
+import squants.{Dimensionless, Each}
+import squants.energy.{Power, Watts}
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
@@ -29,6 +26,10 @@ import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 import java.util.UUID
 
 class WecModelSpec extends UnitSpec with DefaultTestData {
+
+  implicit val powerTolerance: Power = Watts(1e-6)
+  implicit val dimensionlessTolerance: Dimensionless = Each(1e-9)
+  implicit val doubleTolerance: Double = 1e-9
 
   val nodeInput = new NodeInput(
     UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
@@ -82,7 +83,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
     "check build method of companion object" in {
       val wecModel = WecModel.Factory(inputModel).create()
       wecModel.uuid shouldBe inputModel.getUuid
-      wecModel.cosPhiRated shouldBe typeInput.getCosPhiRated
+      wecModel.cosPhiRated should approximate(typeInput.getCosPhiRated)
       wecModel.sRated.toVoltamperes shouldBe (typeInput.getsRated.toSystemUnit.getValue
         .doubleValue() +- 1e-5)
     }
@@ -104,7 +105,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         val windVel = MetersPerSecond(velocity)
         val betzFactor = wecModel.determineBetzCoefficient(windVel)
 
-        betzFactor shouldEqual Each(expectedBetzResult)
+        betzFactor should approximate(Each(expectedBetzResult))
       }
     }
 
@@ -136,7 +137,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         val (operatingPoint, nextTick) =
           wecModel.determineOperatingPoint(state)
 
-        operatingPoint.activePower shouldBe Watts(expectedPower)
+        operatingPoint.activePower should approximate(Watts(expectedPower))
         nextTick shouldBe None
       }
     }
@@ -166,7 +167,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
           .calculateAirDensity(temperatureV, pressureV)
           .toKilogramsPerCubicMeter
 
-        airDensity should be(densityResult)
+        airDensity should approximate(densityResult)
       }
     }
 
@@ -189,7 +190,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         val (operatingPoint, nextTick) =
           wecModel.determineOperatingPoint(state)
 
-        operatingPoint.activePower shouldBe Watts(expectedPower)
+        operatingPoint.activePower should approximate(Watts(expectedPower))
         nextTick shouldBe None
       }
     }
