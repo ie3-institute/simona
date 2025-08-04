@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Primary data class parameter cleanup [#1459](https://github.com/ie3-institute/simona/issues/1459)
 - Set Institute as first author within `CITATION.cff` [#1427](https://github.com/ie3-institute/simona/issues/1427)
 - Update Developers Guide - Release Process [#1466](https://github.com/ie3-institute/simona/issues/1466)
+- Made powerflow parameters in config options [#1443](https://github.com/ie3-institute/simona/issues/1443)
+- Provide abstraction for flex options in system participant and EM [#1456](https://github.com/ie3-institute/simona/issues/1456)
+- Rename `MinMaxFlexOptions` to `PowerLimitFlexOptions` [#1457](https://github.com/ie3-institute/simona/issues/1457)
 - Refactored some tests for usage of should approximate [#863](https://github.com/ie3-institute/simona/issues/863)
 
 ### Fixed
@@ -37,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ambient temperature can cause the next threshold of the `ThermalHouse` to be the same as the current tick [#1438](https://github.com/ie3-institute/simona/issues/1438)
 - Fixed crash when using load model with `profile` behaviour and primary data [#1436](https://github.com/ie3-institute/simona/issues/1436)
 - Fixed CFF-Version [#1464](https://github.com/ie3-institute/simona/issues/1464)
+- Fixed handleInput of `ProfileLoadModel` [#1441](https://github.com/ie3-institute/simona/issues/1441)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

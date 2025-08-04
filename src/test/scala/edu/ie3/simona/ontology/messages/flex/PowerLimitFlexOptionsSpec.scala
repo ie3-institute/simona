@@ -10,12 +10,12 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.test.common.UnitSpec
 import squants.energy.Watts
 
-class MinMaxFlexOptionsSpec extends UnitSpec {
+class PowerLimitFlexOptionsSpec extends UnitSpec {
 
-  "Creating a ProvideMinMaxFlexibilityMessage" should {
+  "Creating PowerLimitFlexOptions" should {
 
     "succeed if there is no flexibility" in {
-      val res = MinMaxFlexOptions.noFlexOption(power = Watts(1))
+      val res = PowerLimitFlexOptions.noFlexOption(power = Watts(1))
 
       res.ref shouldBe Watts(1)
       res.min shouldBe Watts(1)
@@ -23,7 +23,7 @@ class MinMaxFlexOptionsSpec extends UnitSpec {
     }
 
     "succeed if minimum, reference and maximum power are in order" in {
-      val res = MinMaxFlexOptions(
+      val res = PowerLimitFlexOptions(
         ref = Watts(1),
         min = Watts(0),
         max = Watts(2),
@@ -36,7 +36,7 @@ class MinMaxFlexOptionsSpec extends UnitSpec {
 
     "throw an exception if minimum power is greater then reference power" in {
       intercept[CriticalFailureException] {
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           ref = Watts(1),
           min = Watts(2),
           max = Watts(2),
@@ -46,7 +46,7 @@ class MinMaxFlexOptionsSpec extends UnitSpec {
 
     "throw an exception if reference power is greater then maximum power" in {
       intercept[CriticalFailureException] {
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           ref = Watts(1),
           min = Watts(1),
           max = Watts(0),
