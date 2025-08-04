@@ -41,9 +41,9 @@ class ThermalGridWithHouseAndStorageSpec
     with ThermalHouseTestData
     with ThermalStorageTestData {
 
-  implicit val tempTolerance: Temperature = Kelvin(1e-3)
-  implicit val powerTolerance: Power = Watts(1e-3)
-  implicit val energyTolerance: Energy = WattHours(1e-3)
+  protected given tempTolerance: Temperature = Kelvin(1e-3)
+  protected given powerTolerance: Power = Watts(1e-3)
+  protected given energyTolerance: Energy = WattHours(1e-3)
 
   val thermalGrid: ThermalGrid = ThermalGrid(
     new edu.ie3.datamodel.models.input.container.ThermalGrid(
@@ -77,10 +77,10 @@ class ThermalGridWithHouseAndStorageSpec
       ThermalGrid(thermalGridInput) match {
         case ThermalGrid(
               Some(thermalHouseGenerated),
-              Some(thermalStorageGenerated),
+              Some(heatStorageGenerated),
             ) =>
           thermalHouseGenerated shouldBe thermalHouse
-          thermalStorageGenerated shouldBe heatStorage
+          heatStorageGenerated shouldBe heatStorage
         case _ =>
           fail("Generation of thermal grid from thermal input grid failed.")
       }
