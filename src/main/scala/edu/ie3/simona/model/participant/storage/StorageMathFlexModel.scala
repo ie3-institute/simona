@@ -7,26 +7,23 @@
 package edu.ie3.simona.model.participant.storage
 
 import edu.ie3.simona.model.participant.ParticipantFlexModel
-import edu.ie3.simona.model.participant.storage.StorageMathProgrammingFlexModel.MPFlexOptions
+import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.StorageMathFlexOptions
 import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
-import edu.ie3.simona.ontology.messages.flex.MathProgrammingFlexOptions.OperationVars
-import edu.ie3.simona.ontology.messages.flex.{
-  FlexOptions,
-  MathProgrammingFlexOptions,
-}
+import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.OperationVars
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MathFlexOptions}
 import optimus.algebra.{Double2Const, Expression}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
 import squants.energy.{Energy, Kilowatts, Power}
 import squants.{Dimensionless, Time}
 
-class StorageMathProgrammingFlexModel(private val model: StorageModel)
+class StorageMathFlexModel(private val model: StorageModel)
     extends ParticipantFlexModel[
       StorageState
     ] {
 
   override def determineFlexOptions(state: StorageState): FlexOptions =
-    MPFlexOptions(
+    StorageMathFlexOptions(
       state.storedEnergy,
       model.eStorage,
       model.pMax,
@@ -34,7 +31,7 @@ class StorageMathProgrammingFlexModel(private val model: StorageModel)
     )
 }
 
-object StorageMathProgrammingFlexModel {
+object StorageMathFlexModel {
 
   final case class StorageStateVars(storedEnergy: MPVar)
 
@@ -55,12 +52,12 @@ object StorageMathProgrammingFlexModel {
     }
   }
 
-  final case class MPFlexOptions(
+  final case class StorageMathFlexOptions(
       currentEnergy: Energy,
       eStorage: Energy,
       pMax: Power,
       eta: Dimensionless,
-  ) extends MathProgrammingFlexOptions[StorageStateVars, StorageOperationVars] {
+  ) extends MathFlexOptions[StorageStateVars, StorageOperationVars] {
 
     override def addInitialState(using model: MPModel): StorageStateVars = {
       val currentKWh = currentEnergy.toKilowattHours

@@ -6,17 +6,19 @@
 
 package edu.ie3.simona.ontology.messages.flex
 
-import edu.ie3.simona.ontology.messages.flex.MathProgrammingFlexOptions.OperationVars
+import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.OperationVars
 import optimus.algebra.Expression
 import optimus.optimization.MPModel
 import squants.{Power, Time}
 
-/** @tparam SV
+/** Flex options used for mathematical programming, e.g. for optimization.
+  *
+  * @tparam SV
   *   State variables
   * @tparam OV
   *   Operation variables
   */
-trait MathProgrammingFlexOptions[SV, OV <: OperationVars] extends FlexOptions {
+trait MathFlexOptions[SV, OV <: OperationVars] extends FlexOptions {
 
   def addInitialState(using model: MPModel): SV
 
@@ -28,7 +30,7 @@ trait MathProgrammingFlexOptions[SV, OV <: OperationVars] extends FlexOptions {
 
 }
 
-object MathProgrammingFlexOptions {
+object MathFlexOptions {
 
   trait OperationVars {
 

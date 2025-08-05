@@ -7,12 +7,12 @@
 package edu.ie3.simona.model.participant.storage
 
 import edu.ie3.simona.model.em.OptimizedFlexStrat
-import edu.ie3.simona.model.participant.storage.StorageMathProgrammingFlexModel.{
-  MPFlexOptions,
+import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.{
+  StorageMathFlexOptions,
   StorageOperationVars,
   StorageStateVars,
 }
-import edu.ie3.simona.model.participant.storage.StorageMathProgrammingFlexModelSpec.*
+import edu.ie3.simona.model.participant.storage.StorageMathFlexModelSpec.*
 import edu.ie3.simona.test.common.UnitSpec
 import optimus.algebra.{Double2Const, Expression, Zero}
 import optimus.optimization.*
@@ -25,17 +25,17 @@ import squants.time.Hours
 
 import java.util.UUID
 
-class StorageMathProgrammingFlexModelSpec extends UnitSpec {
+class StorageMathFlexModelSpec extends UnitSpec {
 
   // Testing tolerances
   given Double = 1e-10
 
-  "StorageMathProgrammingFlexModelSpec" should {
+  "StorageMathFlexModelSpec" should {
 
     "balance out additional power with zero excess" in {
 
       // low efficiency for simplicity of the test
-      val fo = MPFlexOptions(
+      val fo = StorageMathFlexOptions(
         currentEnergy = KilowattHours(50),
         eStorage = KilowattHours(100),
         pMax = Kilowatts(10),
@@ -117,7 +117,7 @@ class StorageMathProgrammingFlexModelSpec extends UnitSpec {
     "balance out additional power with large excess" in {
 
       // low efficiency for simplicity of the test
-      val fo = MPFlexOptions(
+      val fo = StorageMathFlexOptions(
         currentEnergy = KilowattHours(50),
         eStorage = KilowattHours(100),
         pMax = Kilowatts(10),
@@ -195,7 +195,7 @@ class StorageMathProgrammingFlexModelSpec extends UnitSpec {
 
 }
 
-object StorageMathProgrammingFlexModelSpec extends OptionValues {
+object StorageMathFlexModelSpec extends OptionValues {
 
   extension (state: StorageStateVars)
     def energyVal: Double = state.storedEnergy.value.value

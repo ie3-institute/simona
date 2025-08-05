@@ -12,8 +12,8 @@ import edu.ie3.simona.model.em.OptimizedFlexStrat.{
   AssetVarContainer,
   addConstraints,
 }
-import edu.ie3.simona.ontology.messages.flex.MathProgrammingFlexOptions
-import edu.ie3.simona.ontology.messages.flex.MathProgrammingFlexOptions.OperationVars
+import edu.ie3.simona.ontology.messages.flex.MathFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.OperationVars
 import optimus.algebra.{Double2Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
@@ -26,11 +26,11 @@ import java.util.UUID
 final case class OptimizedFlexStrat(
     stepResolution: Time,
     predictionHorizon: Time,
-) extends EmModelStrat[MathProgrammingFlexOptions[?, ?]] {
+) extends EmModelStrat[MathFlexOptions[?, ?]] {
 
   override def determineFlexControl(
       flexOptions: Iterable[
-        (? <: AssetInput, MathProgrammingFlexOptions[?, ?])
+        (? <: AssetInput, MathFlexOptions[?, ?])
       ],
       target: Power,
   ): Iterable[(UUID, Power)] = {
@@ -90,8 +90,8 @@ final case class OptimizedFlexStrat(
 
   override def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: MathProgrammingFlexOptions[?, ?],
-  ): MathProgrammingFlexOptions[?, ?] = flexOptions
+      flexOptions: MathFlexOptions[?, ?],
+  ): MathFlexOptions[?, ?] = flexOptions
 }
 
 object OptimizedFlexStrat {
@@ -104,7 +104,7 @@ object OptimizedFlexStrat {
 
   def addConstraints[SV, OV <: OperationVars](
       assetUuid: UUID,
-      flexOptions: MathProgrammingFlexOptions[SV, OV],
+      flexOptions: MathFlexOptions[SV, OV],
       timeSteps: Int,
       stepResolution: Time,
   )(using model: MPModel): AssetVarContainer[SV, OV] = {
