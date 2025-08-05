@@ -11,11 +11,11 @@ import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.StorageMath
 import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
 import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.OperationVars
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MathFlexOptions}
-import optimus.algebra.{Double2Const, Expression}
+import optimus.algebra.{Long2Const, Double2Const, Expression}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
+import squants.Dimensionless
 import squants.energy.{Energy, Kilowatts, Power}
-import squants.{Dimensionless, Time}
 
 class StorageMathFlexModel(private val model: StorageModel)
     extends ParticipantFlexModel[
@@ -33,7 +33,7 @@ class StorageMathFlexModel(private val model: StorageModel)
 
 object StorageMathFlexModel {
 
-  final case class StorageStateVars(storedEnergy: MPVar)
+  final case class StorageStateVars(storedEnergy: MPVar, tick: Long)
 
   final case class StorageOperationVars(pCharge: MPVar, pDischarge: MPVar)
       extends OperationVars {
@@ -59,11 +59,13 @@ object StorageMathFlexModel {
       eta: Dimensionless,
   ) extends MathFlexOptions[StorageStateVars, StorageOperationVars] {
 
-    override def addInitialState(using model: MPModel): StorageStateVars = {
+    override def addInitialState(
+        tick: Long
+    )(using model: MPModel): StorageStateVars = {
       val currentKWh = currentEnergy.toKilowattHours
       val storedEnergy = MPFloatVar(currentKWh, currentKWh)
 
-      StorageStateVars(storedEnergy)
+      StorageStateVars(storedEnergy, tick)
     }
 
     override def addOperationConstraints(state: StorageStateVars)(using
@@ -79,17 +81,19 @@ object StorageMathFlexModel {
     }
 
     override def addNewStateConstraints(
-        oldState: StorageStateVars,
+        formerState: StorageStateVars,
         op: StorageOperationVars,
-        timeSpan: Time,
+        tick: Long,
     )(using model: MPModel): StorageStateVars = {
+
       val storedEnergy = MPFloatVar(0, eStorage.toKilowattHours)
+      val timeInHours = (tick - formerState.tick) / 3600
 
       model.add(
-        storedEnergy := oldState.storedEnergy + (op.pCharge * eta.toEach - op.pDischarge * (1 / eta.toEach)) * timeSpan.toHours
+        storedEnergy := formerState.storedEnergy + (op.pCharge * eta.toEach - op.pDischarge * (1 / eta.toEach)) * timeInHours
       )
 
-      StorageStateVars(storedEnergy)
+      StorageStateVars(storedEnergy, tick)
     }
   }
 

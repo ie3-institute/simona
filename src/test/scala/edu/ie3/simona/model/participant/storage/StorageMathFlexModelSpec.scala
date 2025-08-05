@@ -44,19 +44,16 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       implicit val model: MPModel = MPModel(SolverLib.oJSolver)
 
-      val timestepResolution = Hours(1)
-
       val container = OptimizedFlexStrat.addConstraints(
         assetUuid = UUID.randomUUID(),
         flexOptions = fo,
-        timeSteps = 4,
-        stepResolution = timestepResolution,
+        ticks = Range.Long(0, 18000, 3600),
       )
 
       container.states should have length 5
       container.operationVars should have length 4
 
-      // powers all within pMax
+      // additional powers for each time step, all within pMax
       val addPower = Seq(5d, -10d, 10d, -2d)
 
       val mainObjectiveDifferences =
@@ -80,8 +77,6 @@ class StorageMathFlexModelSpec extends UnitSpec {
       model.minimize(objective)
 
       model.start()
-
-      println(model.getStatus)
 
       model.getStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -131,14 +126,13 @@ class StorageMathFlexModelSpec extends UnitSpec {
       val container = OptimizedFlexStrat.addConstraints(
         assetUuid = UUID.randomUUID(),
         flexOptions = fo,
-        timeSteps = 4,
-        stepResolution = timestepResolution,
+        ticks = Range.Long(0, 18000, 3600).toSeq,
       )
 
       container.states should have length 5
       container.operationVars should have length 4
 
-      // powers all within pMax
+      // additional powers for each time step, some far beyond pMax
       val addPower = Seq(5d, -60d, 110d, -2d)
 
       val objective = container.operationVars

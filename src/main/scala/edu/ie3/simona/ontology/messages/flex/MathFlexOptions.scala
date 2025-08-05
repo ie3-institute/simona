@@ -20,11 +20,11 @@ import squants.{Power, Time}
   */
 trait MathFlexOptions[SV, OV <: OperationVars] extends FlexOptions {
 
-  def addInitialState(using model: MPModel): SV
+  def addInitialState(tick: Long)(using model: MPModel): SV
 
   def addOperationConstraints(state: SV)(using model: MPModel): OV
 
-  def addNewStateConstraints(formerState: SV, op: OV, timeSpan: Time)(using
+  def addNewStateConstraints(formerState: SV, op: OV, tick: Long)(using
       model: MPModel
   ): SV
 

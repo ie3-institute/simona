@@ -26,22 +26,28 @@ import java.util.UUID
 final case class OptimizedFlexStrat(
     stepResolution: Time,
     predictionHorizon: Time,
-) extends EmModelStrat[MathFlexOptions[?, ?]] {
+) extends EmModelStrat[MathFlexOptions[?, ? <: OperationVars]] {
 
   override def determineFlexControl(
       flexOptions: Iterable[
-        (? <: AssetInput, MathFlexOptions[?, ?])
+        (? <: AssetInput, MathFlexOptions[?, ? <: OperationVars])
       ],
       target: Power,
   ): Iterable[(UUID, Power)] = {
 
     implicit val model: MPModel = MPModel(SolverLib.oJSolver)
 
-    val timeSteps = predictionHorizon.divide(stepResolution).toInt
+    val currentTick: Long = ???
+    val tickResolution = stepResolution.toSeconds.toLong
+    val lastTick = currentTick + predictionHorizon.toSeconds.toLong
+
+    val ticks = Range.Long(currentTick, lastTick, tickResolution)
 
     val allAssetVars = flexOptions.map { case (asset: AssetInput, fo) =>
-      addConstraints(asset.getUuid, fo, timeSteps, stepResolution)
+      addConstraints(asset.getUuid, fo, ticks)
     }
+
+    val timeSteps = ticks.size
 
     val objective = Range(0, timeSteps)
       .map { timeStep =>
@@ -73,6 +79,7 @@ final case class OptimizedFlexStrat(
         s"Optimization ended with unexpected status ${model.getStatus}, ${SolutionStatus.OPTIMAL} was expected."
       )
 
+    // we're only interested in the solutions for the current time step
     val assetCtrl = allAssetVars.map {
       case AssetVarContainer(assetUuid, _, operationVars) =>
         val firstOp = operationVars(0)
@@ -90,8 +97,8 @@ final case class OptimizedFlexStrat(
 
   override def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: MathFlexOptions[?, ?],
-  ): MathFlexOptions[?, ?] = flexOptions
+      flexOptions: MathFlexOptions[?, ? <: OperationVars],
+  ): MathFlexOptions[?, ? <: OperationVars] = flexOptions
 }
 
 object OptimizedFlexStrat {
@@ -105,20 +112,27 @@ object OptimizedFlexStrat {
   def addConstraints[SV, OV <: OperationVars](
       assetUuid: UUID,
       flexOptions: MathFlexOptions[SV, OV],
-      timeSteps: Int,
-      stepResolution: Time,
+      ticks: Seq[Long],
   )(using model: MPModel): AssetVarContainer[SV, OV] = {
-    val state0 = flexOptions.addInitialState
+
+    val firstTick = ticks.headOption.getOrElse(
+      throw new CriticalFailureException(
+        "No ticks to add constraints for were given."
+      )
+    )
+    val otherTicks = ticks.tail
+
+    val initialState = flexOptions.addInitialState(firstTick)
 
     val (allStates, allOperationVars) =
-      Range(0, timeSteps).foldLeft(IndexedSeq(state0), IndexedSeq.empty[OV]) {
-        case ((states, operationVars), step) =>
+      otherTicks.foldLeft(IndexedSeq(initialState), IndexedSeq.empty[OV]) {
+        case ((states, operationVars), tick) =>
           val addOp = flexOptions.addOperationConstraints(states.last)
           val addState =
             flexOptions.addNewStateConstraints(
               states.last,
               addOp,
-              stepResolution,
+              tick,
             )
 
           (states.appended(addState), operationVars.appended(addOp))
