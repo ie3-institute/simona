@@ -15,14 +15,13 @@ import edu.ie3.datamodel.models.input.system.characteristic.{
 }
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.config.RuntimeConfig.WecRuntimeConfig
 import edu.ie3.simona.model.participant.WecModel.WecState
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits
-import squants.{Dimensionless, Each}
 import squants.energy.{Power, Watts}
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
+import squants.{Dimensionless, Each}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 
@@ -30,9 +29,9 @@ import java.util.UUID
 
 class WecModelSpec extends UnitSpec with DefaultTestData {
 
-  implicit val powerTolerance: Power = Watts(1e-6)
-  implicit val dimensionlessTolerance: Dimensionless = Each(1e-9)
-  implicit val doubleTolerance: Double = 1e-9
+  protected given powerTolerance: Power = Watts(1e-9)
+  protected given dimensionlessTolerance: Dimensionless = Each(1e-12)
+  protected given doubleTolerance: Double = 1e-9
 
   val nodeInput = new NodeInput(
     UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),

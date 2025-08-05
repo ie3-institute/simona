@@ -9,20 +9,14 @@ package edu.ie3.simona.model.grid
 import edu.ie3.simona.test.common.UnitSpec
 import org.scalatest.matchers.should.Matchers
 import squants.{Dimensionless, Each, ElectricCurrent}
-import squants.electro.{
-  Amperes,
-  ElectricPotential,
-  ElectricalResistance,
-  Kilovolts,
-  Ohms,
-}
+import squants.electro.*
 import squants.energy.{Kilowatts, Megawatts, Power}
 
 class RefSystemSpec extends UnitSpec with Matchers {
 
-  implicit val tolerance: Dimensionless = Each(1e-12)
-  implicit val currentTolerance: ElectricCurrent = Amperes(1e-9)
-  implicit val impedanceTolerance: ElectricalResistance = Ohms(1e-9)
+  protected given tolerance: Dimensionless = Each(1e-12)
+  protected given currentTolerance: ElectricCurrent = Amperes(1e-9)
+  protected given impedanceTolerance: ElectricalResistance = Ohms(1e-9)
 
   "A RefSystem with nominal power and nominal voltage" should {
 
@@ -44,7 +38,7 @@ class RefSystemSpec extends UnitSpec with Matchers {
     }
   }
 
-  "A dimensionless impedance be transferred correctly between reference systems" in {
+  "transfer a dimensionless impedance correctly to another reference system" in {
     val from = RefSystem(Megawatts(60d), Kilovolts(110d))
     val to = RefSystem(Megawatts(40d), Kilovolts(110d))
     val impedance = Each(0.1d)
@@ -55,7 +49,7 @@ class RefSystemSpec extends UnitSpec with Matchers {
     actual should approximate(expected)
   }
 
-  "A dimensionless admittance be transferred correctly between reference systems" in {
+  "transfer a dimensionless admittance correctly to another reference system" in {
     val from = RefSystem(Megawatts(60d), Kilovolts(110d))
     val to = RefSystem(Megawatts(40d), Kilovolts(110d))
     val admittance = Each(0.1d)

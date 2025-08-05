@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.config.RuntimeConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.model.participant.ParticipantModel.FixedState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.UnitSpec
@@ -18,15 +17,14 @@ import edu.ie3.util.scala.quantities.{
   Kilovoltamperes,
   Megavoltamperes,
 }
+import squants.Power
 import squants.energy.Kilowatts
-import squants.{Dimensionless, Each, Power}
-import tech.units.indriya.quantity.Quantities
 
 class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
 
-  implicit val powerTolerance: Power = Kilowatts(1e-9)
-  implicit val apparentPowerTolerance: ApparentPower = Megavoltamperes(1e-9)
-  implicit val doubleTolerance: Double = 1e-9
+  protected given powerTolerance: Power = Kilowatts(1e-9)
+  protected given apparentPowerTolerance: ApparentPower = Megavoltamperes(1e-9)
+  protected given doubleTolerance: Double = 1e-9
 
   "The fixed feed in model" should {
 
