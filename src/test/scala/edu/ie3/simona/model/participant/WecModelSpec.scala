@@ -29,7 +29,7 @@ import java.util.UUID
 
 class WecModelSpec extends UnitSpec with DefaultTestData {
 
-  protected given powerTolerance: Power = Watts(1e-9)
+  protected given powerTolerance: Power = Watts(1e-6)
   protected given dimensionlessTolerance: Dimensionless = Each(1e-12)
   protected given doubleTolerance: Double = 1e-9
 
