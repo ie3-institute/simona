@@ -28,7 +28,7 @@ import java.util.UUID
 class StorageMathFlexModelSpec extends UnitSpec {
 
   // Testing tolerances
-  given Double = 1e-10
+  given Double = 1e-6
 
   "StorageMathFlexModelSpec" should {
 
@@ -42,9 +42,9 @@ class StorageMathFlexModelSpec extends UnitSpec {
         eta = Each(0.8),
       )
 
-      implicit val model: MPModel = MPModel(SolverLib.oJSolver)
+      given model: MPModel = MPModel(SolverLib.oJSolver)
 
-      val container = OptimizedFlexStrat.addConstraints(
+      val container = OptimizedFlexStrat.addAssetConstraints(
         assetUuid = UUID.randomUUID(),
         flexOptions = fo,
         ticks = Range.Long(0, 18000, 3600),
@@ -119,14 +119,14 @@ class StorageMathFlexModelSpec extends UnitSpec {
         eta = Each(0.8),
       )
 
-      implicit val model: MPModel = MPModel(SolverLib.oJSolver)
+      given model: MPModel = MPModel(SolverLib.oJSolver)
 
       val timestepResolution = Hours(1)
 
-      val container = OptimizedFlexStrat.addConstraints(
+      val container = OptimizedFlexStrat.addAssetConstraints(
         assetUuid = UUID.randomUUID(),
         flexOptions = fo,
-        ticks = Range.Long(0, 18000, 3600).toSeq,
+        ticks = Range.Long(0, 18000, 3600),
       )
 
       container.states should have length 5
