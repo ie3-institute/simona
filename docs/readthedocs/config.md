@@ -201,12 +201,6 @@ simona.output.participant.defaultConfig = {
 }
 ```
 
-Alternatively, the output of all flexibility options can be apllied by: 
-
-```
-simona.output.flex = true
-```
-
 ## Logging level configuration
 
 To specify which log statements should be logged in the `simona.log` file and which log statements should be printed to
