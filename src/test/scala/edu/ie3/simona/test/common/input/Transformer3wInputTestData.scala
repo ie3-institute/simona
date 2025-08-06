@@ -81,9 +81,9 @@ trait Transformer3wInputTestData extends DefaultTestData {
     GermanVoltageLevelUtils.HV,
     2,
   )
-  private val nodeC20kV = new NodeInput(
+  private val nodeC = new NodeInput(
     UUID.fromString("c838f8a5-03d4-40d3-94fa-815e1bcd0aa0"),
-    "nodeC20kV",
+    "nodeC",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     defaultOperationTime,
     Quantities.getQuantity(1d, PU),
@@ -93,17 +93,6 @@ trait Transformer3wInputTestData extends DefaultTestData {
     3,
   )
 
-  private val nodeC10kV = new NodeInput(
-    UUID.fromString("a865a429-615e-44be-9d00-d384298986f6"),
-    "nodeC10kV",
-    OperatorInput.NO_OPERATOR_ASSIGNED,
-    OperationTime.notLimited(),
-    Quantities.getQuantity(1d, PU),
-    false,
-    NodeInput.DEFAULT_GEO_POSITION,
-    GermanVoltageLevelUtils.MV_10KV,
-    3,
-  )
   private val transformerType1 = new Transformer3WTypeInput(
     UUID.randomUUID(),
     "HöS-HS-MS_1",
@@ -112,7 +101,7 @@ trait Transformer3wInputTestData extends DefaultTestData {
     Quantities.getQuantity(40d, MEGAVOLTAMPERE),
     Quantities.getQuantity(380d, KILOVOLT),
     Quantities.getQuantity(110d, KILOVOLT),
-    Quantities.getQuantity(10d, KILOVOLT),
+    Quantities.getQuantity(20d, KILOVOLT),
     Quantities.getQuantity(0.3, OHM),
     Quantities.getQuantity(0.025, OHM),
     Quantities.getQuantity(0.0008, OHM),
@@ -135,7 +124,7 @@ trait Transformer3wInputTestData extends DefaultTestData {
     OperationTime.notLimited(),
     nodeA,
     nodeB,
-    nodeC10kV,
+    nodeC,
     1,
     transformerType1,
     0,
@@ -144,7 +133,7 @@ trait Transformer3wInputTestData extends DefaultTestData {
 
   protected val threeWindingTestGrid: JointGridContainer = {
     val rawGridElements = new RawGridElements(
-      Set(nodeA, nodeB, nodeC10kV).asJava,
+      Set(nodeA, nodeB, nodeC).asJava,
       Set.empty[LineInput].asJava,
       Set.empty[Transformer2WInput].asJava,
       Set(transformer1).asJava,
@@ -188,7 +177,7 @@ trait Transformer3wInputTestData extends DefaultTestData {
     defaultOperationTime,
     nodeA,
     nodeB,
-    nodeC20kV,
+    nodeC,
     1,
     transformer3wType,
     0,
@@ -203,7 +192,7 @@ trait Transformer3wInputTestData extends DefaultTestData {
       postponedOperationTime,
       nodeA,
       nodeB,
-      nodeC20kV,
+      nodeC,
       1,
       transformer3wType,
       0,
@@ -218,7 +207,7 @@ trait Transformer3wInputTestData extends DefaultTestData {
       defaultOperationTime,
       nodeA,
       nodeB,
-      nodeC20kV,
+      nodeC,
       1,
       transformer3wType,
       10,
@@ -254,7 +243,7 @@ trait Transformer3wInputTestData extends DefaultTestData {
 
   protected val transformer3wTestGrid: JointGridContainer = {
     val rawGridElements = new RawGridElements(
-      Set(nodeA, nodeB, nodeC20kV).asJava,
+      Set(nodeA, nodeB, nodeC).asJava,
       Set.empty[LineInput].asJava,
       Set.empty[Transformer2WInput].asJava,
       Set(transformer3wInput).asJava,
