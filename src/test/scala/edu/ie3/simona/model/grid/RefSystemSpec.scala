@@ -30,10 +30,10 @@ class RefSystemSpec extends UnitSpec with Matchers {
       refSystem.nominalPower should be(nominalPower)
       refSystem.nominalVoltage should be(nominalVoltage)
       refSystem.nominalCurrent should approximate(
-        Amperes(34.64101615137755)
+        Amperes(34.641016151)
       )
       refSystem.nominalImpedance should approximate(
-        Ohms(166.66666666666666)
+        Ohms(166.666666666)
       )
     }
   }
@@ -42,7 +42,7 @@ class RefSystemSpec extends UnitSpec with Matchers {
     val from = RefSystem(Megawatts(60d), Kilovolts(110d))
     val to = RefSystem(Megawatts(40d), Kilovolts(110d))
     val impedance = Each(0.1d)
-    val expected = Each(0.06666666666666667d)
+    val expected = Each(0.066666666666d)
 
     val actual: Dimensionless = RefSystem.transferImpedance(impedance, from, to)
 
@@ -53,7 +53,7 @@ class RefSystemSpec extends UnitSpec with Matchers {
     val from = RefSystem(Megawatts(60d), Kilovolts(110d))
     val to = RefSystem(Megawatts(40d), Kilovolts(110d))
     val admittance = Each(0.1d)
-    val expected = Each(0.15000000000000002d)
+    val expected = Each(0.1500000000000d)
 
     val actual: Dimensionless =
       RefSystem.transferAdmittance(admittance, from, to)

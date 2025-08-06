@@ -116,16 +116,16 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       val testCases = Table(
         ("velocity", "expectedPower"),
         (1.0, 0.0),
-        (2.0, -2948.8095851378266),
-        (3.0, -24573.41320418286),
-        (7.0, -522922.2325710509),
+        (2.0, -2948.809585),
+        (3.0, -24573.413204),
+        (7.0, -522922.232571),
         (9.0, -1140000.0),
         (13.0, -1140000.0),
         (15.0, -1140000.0),
         (19.0, -1140000.0),
         (23.0, -1140000.0),
         (27.0, -1140000.0),
-        (34.0, -24573.39638823692),
+        (34.0, -24573.396388),
         (40.0, 0.0),
       )
 
@@ -177,9 +177,9 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       val wecModel = WecModel.Factory(inputModel).create()
       val testCases = Table(
         ("temperature", "expectedPower"),
-        (35.0, -23377.23862017266),
-        (20.0, -24573.41320418286),
-        (-25.0, -29029.60338829823),
+        (35.0, -23377.238620),
+        (20.0, -24573.413204),
+        (-25.0, -29029.603388),
       )
 
       forAll(testCases) { (temperature: Double, expectedPower: Double) =>
