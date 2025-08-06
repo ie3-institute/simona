@@ -65,7 +65,8 @@ object StorageMathFlexModel {
         tick: Long
     )(using model: MPModel): StorageStateVars = {
       val currentKWh = currentEnergy.toKilowattHours
-      val storedEnergy = MPFloatVar(currentKWh, currentKWh)
+      // todo formulate as constant?
+      val storedEnergy = MPFloatVar("storedEnergy", currentKWh, currentKWh)
 
       StorageStateVars(storedEnergy, tick)
     }
@@ -73,8 +74,8 @@ object StorageMathFlexModel {
     override def addOperationConstraints(state: StorageStateVars)(using
         model: MPModel
     ): StorageOperationVars = {
-      val pCharge = MPFloatVar(0, pMax.toKilowatts)
-      val pDischarge = MPFloatVar(0, pMax.toKilowatts)
+      val pCharge = MPFloatVar("pCharge", 0, pMax.toKilowatts)
+      val pDischarge = MPFloatVar("pDischarge", 0, pMax.toKilowatts)
 
       // soft constraint on simultaneous charging and discharging
       model.add(pCharge + pDischarge <:= pMax.toKilowatts)
@@ -88,7 +89,7 @@ object StorageMathFlexModel {
         tick: Long,
     )(using model: MPModel): StorageStateVars = {
 
-      val storedEnergy = MPFloatVar(0, eStorage.toKilowattHours)
+      val storedEnergy = MPFloatVar("storedEnergy", 0, eStorage.toKilowattHours)
       val timeInHours = (tick - formerState.tick) / 3600
 
       model.add(
