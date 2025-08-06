@@ -7,28 +7,17 @@
 package edu.ie3.simona.test.common.input
 
 import breeze.math.Complex
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
-import edu.ie3.datamodel.models.input.connector.{
-  LineInput,
-  SwitchInput,
-  Transformer2WInput,
-  Transformer3WInput,
-}
-import edu.ie3.datamodel.models.input.container.{
-  JointGridContainer,
-  RawGridElements,
-}
-import edu.ie3.datamodel.models.input.{
-  MeasurementUnitInput,
-  NodeInput,
-  OperatorInput,
-}
+import edu.ie3.datamodel.models.input.connector.{LineInput, SwitchInput, Transformer2WInput, Transformer3WInput}
+import edu.ie3.datamodel.models.input.container.{JointGridContainer, RawGridElements}
+import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.grid.{RefSystem, Transformer3wModel}
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.TestGridFactory
-import edu.ie3.util.quantities.PowerSystemUnits._
-import org.scalatest.prop.TableDrivenPropertyChecks._
+import edu.ie3.util.quantities.PowerSystemUnits.*
+import org.scalatest.prop.TableDrivenPropertyChecks.*
 import org.scalatest.prop.{TableFor2, TableFor4}
 import squants.electro.Kilovolts
 import squants.energy.{Kilowatts, Megawatts}
@@ -36,7 +25,7 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{OHM, PERCENT}
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Test data for a [[Transformer3WInput]] */
 trait Transformer3wTestData extends DefaultTestData {
@@ -80,9 +69,9 @@ trait Transformer3wTestData extends DefaultTestData {
     GermanVoltageLevelUtils.HV,
     2,
   )
-  private val nodeC = new NodeInput(
+  private val nodeC20kV = new NodeInput(
     UUID.fromString("c838f8a5-03d4-40d3-94fa-815e1bcd0aa0"),
-    "nodeC",
+    "nodeC20kV",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     defaultOperationTime,
     Quantities.getQuantity(1d, PU),
@@ -91,6 +80,70 @@ trait Transformer3wTestData extends DefaultTestData {
     GermanVoltageLevelUtils.MV_20KV,
     3,
   )
+
+  private val nodeC10kV = new NodeInput(
+    UUID.fromString("a865a429-615e-44be-9d00-d384298986f6"),
+    "nodeC10kV",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    Quantities.getQuantity(1d, PU),
+    false,
+    NodeInput.DEFAULT_GEO_POSITION,
+    GermanVoltageLevelUtils.MV_10KV,
+    3,
+  )
+  private val transformerType1 = new Transformer3WTypeInput(
+    UUID.randomUUID(),
+    "HöS-HS-MS_1",
+    Quantities.getQuantity(120d, MEGAVOLTAMPERE),
+    Quantities.getQuantity(60d, MEGAVOLTAMPERE),
+    Quantities.getQuantity(40d, MEGAVOLTAMPERE),
+    Quantities.getQuantity(380d, KILOVOLT),
+    Quantities.getQuantity(110d, KILOVOLT),
+    Quantities.getQuantity(10d, KILOVOLT),
+    Quantities.getQuantity(0.3, OHM),
+    Quantities.getQuantity(0.025, OHM),
+    Quantities.getQuantity(0.0008, OHM),
+    Quantities.getQuantity(1.0, OHM),
+    Quantities.getQuantity(0.08, OHM),
+    Quantities.getQuantity(0.003, OHM),
+    Quantities.getQuantity(40d, NANOSIEMENS),
+    Quantities.getQuantity(-1d, NANOSIEMENS),
+    Quantities.getQuantity(1.5, PERCENT),
+    Quantities.getQuantity(0d, DEGREE_GEOM),
+    0,
+    -10,
+    10,
+  )
+
+  private val transformer1 = new Transformer3WInput(
+    UUID.fromString("6faeb364-030d-4b2c-bd3f-905ec9413fae"),
+    "testTransformer",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    nodeA,
+    nodeB,
+    nodeC10kV,
+    1,
+    transformerType1,
+    0,
+    true,
+  )
+
+  protected val threeWindingTestGrid: JointGridContainer = {
+    val rawGridElements = new RawGridElements(
+      Set(nodeA, nodeB, nodeC10kV).asJava,
+      Set.empty[LineInput].asJava,
+      Set.empty[Transformer2WInput].asJava,
+      Set(transformer1).asJava,
+      Set.empty[SwitchInput].asJava,
+      Set.empty[MeasurementUnitInput].asJava,
+    )
+    TestGridFactory.createJointGrid(
+      gridName = "threeWindingTestGrid",
+      rawGridElements = rawGridElements,
+    )
+  }
 
   protected val transformer3wType = new Transformer3WTypeInput(
     UUID.randomUUID(),
@@ -123,7 +176,7 @@ trait Transformer3wTestData extends DefaultTestData {
     defaultOperationTime,
     nodeA,
     nodeB,
-    nodeC,
+    nodeC20kV,
     1,
     transformer3wType,
     0,
@@ -138,7 +191,7 @@ trait Transformer3wTestData extends DefaultTestData {
       postponedOperationTime,
       nodeA,
       nodeB,
-      nodeC,
+      nodeC20kV,
       1,
       transformer3wType,
       0,
@@ -153,7 +206,7 @@ trait Transformer3wTestData extends DefaultTestData {
       defaultOperationTime,
       nodeA,
       nodeB,
-      nodeC,
+      nodeC20kV,
       1,
       transformer3wType,
       10,
@@ -189,7 +242,7 @@ trait Transformer3wTestData extends DefaultTestData {
 
   protected val transformer3wTestGrid: JointGridContainer = {
     val rawGridElements = new RawGridElements(
-      Set(nodeA, nodeB, nodeC).asJava,
+      Set(nodeA, nodeB, nodeC20kV).asJava,
       Set.empty[LineInput].asJava,
       Set.empty[Transformer2WInput].asJava,
       Set(transformer3wInput).asJava,
