@@ -47,8 +47,10 @@ object StorageMathFlexModel {
       }
 
     override def getSoftConstraints: Option[Expression] = {
-      val penalty = 1e-6
-      Some(penalty * pCharge * pDischarge)
+      // putting a penalty on the sum of charging and positive discharging power,
+      // so that the optimizer is incentivized to set at least one of both to 0
+      val penalty = 1e-9
+      Some(penalty * (pCharge + pDischarge))
     }
   }
 
