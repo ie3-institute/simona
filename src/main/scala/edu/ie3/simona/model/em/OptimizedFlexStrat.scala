@@ -8,10 +8,7 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.em.OptimizedFlexStrat.{
-  AssetVarContainer,
-  addConstraints,
-}
+import edu.ie3.simona.model.em.OptimizedFlexStrat.*
 import edu.ie3.simona.ontology.messages.flex.MathFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.OperationVars
 import optimus.algebra.{Double2Const, Expression, Zero}
@@ -43,32 +40,11 @@ final case class OptimizedFlexStrat(
 
     val ticks = Range.Long(currentTick, lastTick, tickResolution)
 
-    val allAssetVars = flexOptions.map { case (asset: AssetInput, fo) =>
-      addConstraints(asset.getUuid, fo, ticks)
+    val assetVars = flexOptions.map { case (asset: AssetInput, fo) =>
+      addAssetConstraints(asset.getUuid, fo, ticks)
     }
 
-    val timeSteps = ticks.size
-
-    val objective = Range(0, timeSteps)
-      .map { timeStep =>
-        allAssetVars.map {
-          _.operationVars(timeStep)
-        }
-      }
-      .foldLeft[Expression](Zero) { case (sum, opVars) =>
-        val difference = opVars.foldLeft[Expression](Zero) { case (all, op) =>
-          sum + op.getPowerExpression
-        } - target.toKilowatts
-
-        val softConstraints =
-          opVars.flatMap(_.getSoftConstraints).reduceLeft(_ + _)
-
-        val d = MPFloatVar(0, Double.PositiveInfinity)
-        model.add(d >:= difference)
-        model.add(d >:= -difference)
-
-        sum + d + softConstraints
-      }
+    val objective = buildObjective(assetVars, target)
 
     model.minimize(objective)
 
@@ -80,7 +56,7 @@ final case class OptimizedFlexStrat(
       )
 
     // we're only interested in the solutions for the current time step
-    val assetCtrl = allAssetVars.map {
+    val assetCtrl = assetVars.map {
       case AssetVarContainer(assetUuid, _, operationVars) =>
         val firstOp = operationVars(0)
         assetUuid -> firstOp.getPowerSolution.getOrElse(
@@ -109,7 +85,7 @@ object OptimizedFlexStrat {
       operationVars: IndexedSeq[OV],
   )
 
-  def addConstraints[SV, OV <: OperationVars](
+  def addAssetConstraints[SV, OV <: OperationVars](
       assetUuid: UUID,
       flexOptions: MathFlexOptions[SV, OV],
       ticks: Seq[Long],
@@ -139,6 +115,35 @@ object OptimizedFlexStrat {
       }
 
     AssetVarContainer(assetUuid, allStates, allOperationVars)
+  }
+
+  def buildObjective(
+      assetVars: Iterable[AssetVarContainer[?, ? <: OperationVars]],
+      target: Power,
+  )(using model: MPModel): Expression = {
+    // asset vars should all have the same amount of operation vars
+    val timeSteps = assetVars.headOption.map(_.operationVars.size).getOrElse(0)
+
+    Range(0, timeSteps)
+      .map { timeStep =>
+        assetVars.map {
+          _.operationVars(timeStep)
+        }
+      }
+      .foldLeft[Expression](Zero) { case (objective, opVars) =>
+        val difference = opVars.foldLeft[Expression](Zero) { case (powers, op) =>
+          powers + op.getPowerExpression
+        } - target.toKilowatts
+
+        val softConstraints =
+          opVars.flatMap(_.getSoftConstraints).reduceLeft(_ + _)
+
+        val d = MPFloatVar("d", 0, Double.PositiveInfinity)
+        model.add(d >:= difference)
+        model.add(d >:= -difference)
+
+        objective + d + softConstraints
+      }
   }
 
 }
