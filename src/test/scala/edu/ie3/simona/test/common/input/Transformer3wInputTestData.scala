@@ -93,59 +93,7 @@ trait Transformer3wInputTestData extends DefaultTestData {
     3,
   )
 
-  private val transformerType1 = new Transformer3WTypeInput(
-    UUID.randomUUID(),
-    "HöS-HS-MS_1",
-    Quantities.getQuantity(120d, MEGAVOLTAMPERE),
-    Quantities.getQuantity(60d, MEGAVOLTAMPERE),
-    Quantities.getQuantity(40d, MEGAVOLTAMPERE),
-    Quantities.getQuantity(380d, KILOVOLT),
-    Quantities.getQuantity(110d, KILOVOLT),
-    Quantities.getQuantity(20d, KILOVOLT),
-    Quantities.getQuantity(0.3, OHM),
-    Quantities.getQuantity(0.025, OHM),
-    Quantities.getQuantity(0.0008, OHM),
-    Quantities.getQuantity(1.0, OHM),
-    Quantities.getQuantity(0.08, OHM),
-    Quantities.getQuantity(0.003, OHM),
-    Quantities.getQuantity(40d, NANOSIEMENS),
-    Quantities.getQuantity(-1d, NANOSIEMENS),
-    Quantities.getQuantity(1.5, PERCENT),
-    Quantities.getQuantity(0d, DEGREE_GEOM),
-    0,
-    -10,
-    10,
-  )
-
-  private val transformer1 = new Transformer3WInput(
-    UUID.fromString("6faeb364-030d-4b2c-bd3f-905ec9413fae"),
-    "testTransformer",
-    OperatorInput.NO_OPERATOR_ASSIGNED,
-    OperationTime.notLimited(),
-    nodeA,
-    nodeB,
-    nodeC,
-    1,
-    transformerType1,
-    0,
-    true,
-  )
-
-  protected val threeWindingTestGrid: JointGridContainer = {
-    val rawGridElements = new RawGridElements(
-      Set(nodeA, nodeB, nodeC).asJava,
-      Set.empty[LineInput].asJava,
-      Set.empty[Transformer2WInput].asJava,
-      Set(transformer1).asJava,
-      Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava,
-    )
-    TestGridFactory.createJointGrid(
-      gridName = "threeWindingTestGrid",
-      rawGridElements = rawGridElements,
-    )
-  }
-
+  // Reference Diss C. Kittl
   protected val transformer3wType = new Transformer3WTypeInput(
     UUID.randomUUID(),
     "HöS-HS-MS_1",
@@ -213,6 +161,35 @@ trait Transformer3wInputTestData extends DefaultTestData {
       10,
       false,
     )
+
+  private val transformer = new Transformer3WInput(
+    UUID.fromString("6faeb364-030d-4b2c-bd3f-905ec9413fae"),
+    "test3wTransformer",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    nodeA,
+    nodeB,
+    nodeC,
+    1,
+    transformer3wType,
+    0,
+    true,
+  )
+
+  protected val threeWindingTestGrid: JointGridContainer = {
+    val rawGridElements = new RawGridElements(
+      Set(nodeA, nodeB, nodeC).asJava,
+      Set.empty[LineInput].asJava,
+      Set.empty[Transformer2WInput].asJava,
+      Set(transformer).asJava,
+      Set.empty[SwitchInput].asJava,
+      Set.empty[MeasurementUnitInput].asJava,
+    )
+    TestGridFactory.createJointGrid(
+      gridName = "threeWindingTestGrid",
+      rawGridElements = rawGridElements,
+    )
+  }
 
   protected def transformerModelEhv: Transformer3wModel =
     Transformer3wModel(
