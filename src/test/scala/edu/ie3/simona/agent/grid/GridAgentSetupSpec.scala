@@ -8,7 +8,10 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
-import edu.ie3.simona.test.common.input.{Transformer3wTestData, TransformerInputTestData}
+import edu.ie3.simona.test.common.input.{
+  Transformer3wInputTestData,
+  Transformer2wInputTestData,
+}
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.testkit.typed.Effect.Spawned
@@ -19,9 +22,9 @@ import org.scalatestplus.mockito.MockitoSugar
 class GridAgentSetupSpec
     extends UnitSpec
     with MockitoSugar
-    with TransformerInputTestData
+    with Transformer2wInputTestData
     with ConfigTestData
-    with Transformer3wTestData {
+    with Transformer3wInputTestData {
 
   "The setup of grid agents" must {
 

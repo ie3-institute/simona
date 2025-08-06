@@ -9,9 +9,21 @@ package edu.ie3.simona.test.common.input
 import breeze.math.Complex
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
-import edu.ie3.datamodel.models.input.connector.{LineInput, SwitchInput, Transformer2WInput, Transformer3WInput}
-import edu.ie3.datamodel.models.input.container.{JointGridContainer, RawGridElements}
-import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput, OperatorInput}
+import edu.ie3.datamodel.models.input.connector.{
+  LineInput,
+  SwitchInput,
+  Transformer2WInput,
+  Transformer3WInput,
+}
+import edu.ie3.datamodel.models.input.container.{
+  JointGridContainer,
+  RawGridElements,
+}
+import edu.ie3.datamodel.models.input.{
+  MeasurementUnitInput,
+  NodeInput,
+  OperatorInput,
+}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.grid.{RefSystem, Transformer3wModel}
 import edu.ie3.simona.test.common.DefaultTestData
@@ -28,7 +40,7 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.*
 
 /** Test data for a [[Transformer3WInput]] */
-trait Transformer3wTestData extends DefaultTestData {
+trait Transformer3wInputTestData extends DefaultTestData {
   val mainRefSystemEhv: RefSystem = {
     val nominalPower = Megawatts(1000d)
     val nominalVoltage = Kilovolts(380d)
