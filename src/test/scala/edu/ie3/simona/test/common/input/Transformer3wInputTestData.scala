@@ -93,7 +93,6 @@ trait Transformer3wInputTestData extends DefaultTestData {
     3,
   )
 
-  // Reference Diss C. Kittl
   protected val transformer3wType = new Transformer3WTypeInput(
     UUID.randomUUID(),
     "HöS-HS-MS_1",
