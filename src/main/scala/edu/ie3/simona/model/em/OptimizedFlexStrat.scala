@@ -131,14 +131,15 @@ object OptimizedFlexStrat {
         }
       }
       .foldLeft[Expression](Zero) { case (objective, opVars) =>
-        val difference = opVars.foldLeft[Expression](Zero) { case (powers, op) =>
-          powers + op.getPowerExpression
+        val difference = opVars.foldLeft[Expression](Zero) {
+          case (powers, op) =>
+            powers + op.getPowerExpression
         } - target.toKilowatts
 
         val softConstraints =
           opVars.flatMap(_.getSoftConstraints).reduceLeft(_ + _)
 
-        val d = MPFloatVar("d", 0, Double.PositiveInfinity)
+        val d = MPFloatVar.positive("d")
         model.add(d >:= difference)
         model.add(d >:= -difference)
 
