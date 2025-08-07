@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provide abstraction for flex options in system participant and EM [#1456](https://github.com/ie3-institute/simona/issues/1456)
 - Rename `MinMaxFlexOptions` to `PowerLimitFlexOptions` [#1457](https://github.com/ie3-institute/simona/issues/1457)
 - Align temperature scale of parameter for `ThermalInputs` [#1484](https://github.com/ie3-institute/simona/issues/1484)
+- Refactored some tests for usage of should approximate [#863](https://github.com/ie3-institute/simona/issues/863)
 - Refactored method to determine next Threshold within `ThermalGrid` [#1477](https://github.com/ie3-institute/simona/issues/1477)
 
 ### Fixed
