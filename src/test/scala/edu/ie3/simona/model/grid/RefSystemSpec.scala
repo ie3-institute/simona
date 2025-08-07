@@ -53,7 +53,7 @@ class RefSystemSpec extends UnitSpec with Matchers {
     val from = RefSystem(Megawatts(60d), Kilovolts(110d))
     val to = RefSystem(Megawatts(40d), Kilovolts(110d))
     val admittance = Each(0.1d)
-    val expected = Each(0.1500000000000d)
+    val expected = Each(0.15)
 
     val actual: Dimensionless =
       RefSystem.transferAdmittance(admittance, from, to)
