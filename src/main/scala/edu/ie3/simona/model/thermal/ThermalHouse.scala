@@ -8,6 +8,7 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.TemperatureConversionSimona
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
@@ -334,15 +335,9 @@ object ThermalHouse {
         .getValue
         .doubleValue
     ) / Kelvin(1d),
-    Celsius(
-      input.getTargetTemperature.to(Units.CELSIUS).getValue.doubleValue
-    ),
-    Celsius(
-      input.getLowerTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
-    ),
-    Celsius(
-      input.getUpperTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
-    ),
+    input.getTargetTemperature.toSquants,
+    input.getLowerTemperatureLimit.toSquants,
+    input.getUpperTemperatureLimit.toSquants,
   )
 
   /** State of a thermal house.
