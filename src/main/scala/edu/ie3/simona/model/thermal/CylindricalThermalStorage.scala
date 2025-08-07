@@ -192,9 +192,9 @@ object CylindricalThermalStorage {
     * @param c
     *   Specific heat capacity
     * @param inletTemp
-    *   Inlet temperature
+    *   Inlet temperature in [°C]
     * @param returnTemp
-    *   Return temperature
+    *   Return temperature in [°C]
     * @return
     *   energy
     */
@@ -214,9 +214,9 @@ object CylindricalThermalStorage {
     * @param c
     *   Specific heat capacity
     * @param inletTemp
-    *   Inlet temperature
+    *   Inlet temperature in [°C]
     * @param returnTemp
-    *   Return temperature
+    *   Return temperature in [°C]
     * @return
     *   volume
     */
