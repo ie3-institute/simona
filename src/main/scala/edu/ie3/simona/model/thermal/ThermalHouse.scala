@@ -8,6 +8,7 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.TemperatureConversionSimona
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
@@ -513,7 +514,7 @@ final case class ThermalHouse(
     )
 
     val durationValue = Math.log(
-      (nextInnerTemperatureToReach - longTermTemperature) / (currentInnerTemperature - longTermTemperature)
+      (nextInnerTemperatureToReach.toKelvinScale - longTermTemperature.toKelvinScale) / (currentInnerTemperature.toKelvinScale - longTermTemperature.toKelvinScale)
     ) / (k2 * -1)
 
     val duration = Math.floor(durationValue).toLong
@@ -557,15 +558,9 @@ object ThermalHouse {
         .getValue
         .doubleValue
     ) / Kelvin(1d),
-    Kelvin(
-      input.getTargetTemperature.to(Units.KELVIN).getValue.doubleValue
-    ),
-    Kelvin(
-      input.getLowerTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
-    ),
-    Kelvin(
-      input.getUpperTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
-    ),
+    input.getTargetTemperature.toSquants,
+    input.getLowerTemperatureLimit.toSquants,
+    input.getUpperTemperatureLimit.toSquants,
     input.getHousingType,
     input.getNumberOfInhabitants,
   )
