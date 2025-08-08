@@ -34,7 +34,7 @@ class HpPowerLimitFlexModel(private val model: HpModel)
         if (
           state.lastHpOperatingPoint.activePower > zeroKW &&
           state.thermalDemands.houseDemand.hasPossibleDemand &&
-          state.thermalGridState.storageState
+          state.thermalGridState.heatStorageState
             .map(_.storedEnergy)
             .getOrElse(zeroKWh) == zeroKWh
         )
