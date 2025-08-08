@@ -150,7 +150,7 @@ class ThermalGridSpec
         thermalGridOnlyHouse,
         testGridAmbientTemperature,
       )
-      val result = initialState.isThermalStorageEmpty
+      val result = initialState.isHeatStorageEmpty
       result shouldBe true
     }
 
@@ -166,19 +166,19 @@ class ThermalGridSpec
     "return true when all stored energy is effectively zero" in {
       val initialState =
         ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
-      val result = initialState.isThermalStorageEmpty
+      val result = initialState.isHeatStorageEmpty
       result shouldBe true
     }
 
     "return false when storage is not empty" in {
       val initialState =
         ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
-      val gridState = initialState.copy(storageState =
-        initialState.storageState.map(storageState =>
+      val gridState = initialState.copy(heatStorageState =
+        initialState.heatStorageState.map(storageState =>
           storageState.copy(storedEnergy = KilowattHours(1))
         )
       )
-      val result = gridState.isThermalStorageEmpty
+      val result = gridState.isHeatStorageEmpty
       result shouldBe false
     }
   }

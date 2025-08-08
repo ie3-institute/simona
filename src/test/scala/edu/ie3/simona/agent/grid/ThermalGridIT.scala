@@ -188,7 +188,7 @@ class ThermalGridIT
       /* TICK 0
       Start of Simulation
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat storage demand  : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
       Heat pump: turned on - to serve the storage demand
        */
       heatPumpAgent ! Activation(0)
@@ -230,7 +230,7 @@ class ThermalGridIT
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 0.toDateTime
-                qDot should equalWithTolerance(0.0.asMegaWatt)
+                qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
               case CylindricalThermalStorageResult(
                     time,
@@ -238,7 +238,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -250,7 +250,7 @@ class ThermalGridIT
       /* TICK 3416
       Heat storage is fully heated up
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.36 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on since it was on and the house has possible demand
        */
       heatPumpAgent ! Activation(3416)
@@ -288,7 +288,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 3416.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -300,7 +300,7 @@ class ThermalGridIT
       /* TICK 3600
       New weather data (unchanged) incoming
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.92 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on, we got triggered by incoming weather data. So we continue with same behaviour as before
        */
       heatPumpAgent ! Activation(3600)
@@ -330,7 +330,7 @@ class ThermalGridIT
       }
 
       // Since this activation is caused by new weather data, we don't expect any
-      // message for house or storage since there is no change of their operating
+      // message for house or heat storage since there is no change of their operating
       // point nor one of it reached any boundary.
       resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(4412)))
@@ -338,7 +338,7 @@ class ThermalGridIT
       /* TICK 4412
       House reaches target temperature boundary
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned off
        */
       heatPumpAgent ! Activation(4412)
@@ -379,7 +379,7 @@ class ThermalGridIT
       House would reach lowerTempBoundary at tick 50797.
       But now it's getting colder which should decrease inner temp of house faster.
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 11.56 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays off
        */
       heatPumpAgent ! Activation(21600)
@@ -402,12 +402,12 @@ class ThermalGridIT
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 21600.toDateTime
-          hpResult.getP should equalWithTolerance(0.0.asMegaWatt)
-          hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
+          hpResult.getP should equalWithTolerance(0.asMegaWatt)
+          hpResult.getQ should equalWithTolerance(0.asMegaVar)
       }
 
       // Since this activation is caused by new weather data, we don't expect any
-      // message for house or storage since there is no change of their operating
+      // message for house or heat storage since there is no change of their operating
       // point nor one of it reached any boundary.
       resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(23288)))
@@ -415,7 +415,7 @@ class ThermalGridIT
       /* TICK 23288
       House reach lowerTemperatureBoundary
       House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.00 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays off, demand should be covered by storage
        */
       heatPumpAgent ! Activation(23288)
@@ -453,7 +453,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 23288.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -463,10 +463,10 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(25000)))
 
       /* TICK 25000
-        Storage will be empty at tick 26705
+        Heat storage will be empty at tick 26705
         Additional trigger caused by (unchanged) weather data should not change this
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.51 kWh
-        Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand =4.96 kWh
+        HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand =4.96 kWh
         Heat pump: stays off
        */
       heatPumpAgent ! Activation(25000)
@@ -494,7 +494,7 @@ class ThermalGridIT
       }
 
       // Since this activation is caused by new weather data, we don't expect any
-      // message for house or storage since there is no change of their operating
+      // message for house or heat storage since there is no change of their operating
       // point nor one of it reached any boundary.
       resultListener.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(26887)))
@@ -502,7 +502,7 @@ class ThermalGridIT
       /* TICK 26887
         Heat storage is empty
         House demand heating : requiredDemand = 0.0kWh, possibleDemand = 11.88 kWh
-        Heat storage demand  : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
        */
       heatPumpAgent ! Activation(26887)
@@ -540,7 +540,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 26887.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -552,7 +552,7 @@ class ThermalGridIT
       /* TICK 28000
         New weather data: it's getting warmer again
         House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.75 kWh
-        Heat storage demand  : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays on
        */
       heatPumpAgent ! Activation(28000)
@@ -587,7 +587,7 @@ class ThermalGridIT
       /* TICK 32043
         House will reach the upperTemperatureBoundary
         House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
-        Heat storage demand  : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays on to recharge the storage now
        */
       heatPumpAgent ! Activation(32043)
@@ -625,7 +625,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 32043.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -637,7 +637,7 @@ class ThermalGridIT
       /* TICK 35459
         Storage will be fully charged, but meanwhile the house cooled a bit
         House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 1.42 kWh
-        Heat storage demand  : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+        HeatStorage          : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
         Heat pump: stays on
        */
       heatPumpAgent ! Activation(35459)
@@ -675,7 +675,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 35459.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -685,9 +685,9 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(35995)))
 
       /* TICK 35995
-      Neither house nor storage have any demand
+      Neither house nor heat storage have any demand
       House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
-      Heat storage demand  : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+      HeatStorage          : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
       Heat pump: turned off
        */
       heatPumpAgent ! Activation(35995)
@@ -715,7 +715,7 @@ class ThermalGridIT
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 35995.toDateTime
-                qDot should equalWithTolerance(0.0.asMegaWatt)
+                qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
             }
         }
@@ -867,7 +867,7 @@ class ThermalGridIT
         Start of Simulation, No sun at the moment.
         PV: 0.0 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand 0.0 kWh
-        Heat storage demand  : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays out - since requiredDemand of heat storage not necessarily demand hp operation.
        */
       emAgentActivation ! Activation(0)
@@ -922,7 +922,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -935,7 +935,7 @@ class ThermalGridIT
         New Weather: The sun comes out, PV will produce.
         PV: -6.3 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.25 kWh
-        Heat storage demand  : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: turns on - since now we have flexibility potential available which can be used by hp to serve the reqDemand of ThermalStorage
        */
       emAgentActivation ! Activation(1800)
@@ -985,7 +985,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 1800.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -998,7 +998,7 @@ class ThermalGridIT
       Storage is fully heated up, meanwhile house cooled a bit.
       PV: -6.3 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 3.59 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on since it was on and the house has possible demand
        */
       emAgentActivation ! Activation(5216)
@@ -1042,7 +1042,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 5216.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -1055,7 +1055,7 @@ class ThermalGridIT
       PV: 0.0 kW
       New weather data, sun is gone again, thus we should now heat the house by storage.
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 3.15 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turns off
        */
       emAgentActivation ! Activation(5400)
@@ -1112,7 +1112,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 5400.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -1125,7 +1125,7 @@ class ThermalGridIT
      The house reaches target temperature
      PV: 0.0 kW
      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-     Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+     HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
      Heat pump: stays off
        */
       emAgentActivation ! Activation(6824)
@@ -1168,9 +1168,9 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 6824.toDateTime
-                qDot should equalWithTolerance(0.0.asMegaWatt)
+                qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.0063104.asMegaWattHour)
             }
         }
@@ -1181,7 +1181,7 @@ class ThermalGridIT
      The sun is back again, storage first.
      PV: -5.2 kW
      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.64 kWh
-     Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
+     HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 4.13 kWh
      Heat pump: turned on
        */
 
@@ -1232,7 +1232,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 9200.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(
@@ -1247,7 +1247,7 @@ class ThermalGridIT
       Storage is full, now heating the house till target temperature.
       PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.57 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on
        */
 
@@ -1291,7 +1291,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 10551.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -1304,7 +1304,7 @@ class ThermalGridIT
       House reaches target temperature boundary.
       PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned off
        */
       emAgentActivation ! Activation(11638)
@@ -1351,7 +1351,7 @@ class ThermalGridIT
       but now it's getting colder which should decrease inner temp of house faster, but the sun is still there.
       PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.25 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned on, since there is possibleDemand and setPower is 3800 W which is > 0.5 sRated of Hp
        */
       emAgentActivation ! Activation(12000)
@@ -1411,7 +1411,7 @@ class ThermalGridIT
       PV: 0.0 kW
       House reaches the target temperature.
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned off
        */
       emAgentActivation ! Activation(12139)
@@ -1456,7 +1456,7 @@ class ThermalGridIT
        Inner temperature of the house is decreasing but above the lower boundary.
        Thus, updated weather data (sun is gone) should not change behaviour.
        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.45 kWh
-       Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
        Heat pump: stays off
        */
       emAgentActivation ! Activation(12500)
@@ -1504,7 +1504,7 @@ class ThermalGridIT
         House reaches lower boundary, since we don't have surplus energy from pv, we would use the energy from storage to heat the house.
         PV: 0.0 kW
         House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
-        Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+        HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         Heat pump: stays off
        */
       emAgentActivation ! Activation(24413)
@@ -1545,7 +1545,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 24413.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -1558,7 +1558,7 @@ class ThermalGridIT
         The sun comes out and it's getting warmer.
         PV: -4.4 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.66 kWh
-        Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+        HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
         Heat pump: will be turned on and will continue heating the house
        */
       emAgentActivation ! Activation(25200)
@@ -1619,9 +1619,9 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 25200.toDateTime
-                qDot should equalWithTolerance(0.0.asMegaWatt)
+                qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
                   0.008157699999999999.asMegaWattHour
                 )
@@ -1634,7 +1634,7 @@ class ThermalGridIT
         Additional trigger caused by (unchanged) weather data should not change this.
         PV: -3.9 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.14 kWh
-        Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+        HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
         Heat pump: stays on
        */
       emAgentActivation ! Activation(27500)
@@ -1682,8 +1682,8 @@ class ThermalGridIT
         House reaches target temperature, since Hp is running we now charge the storage.
         PV: -3.9 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-        Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
-        Heat pump: stays on - to serve the remaining heat demand of the storage.
+        HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 2.28 kWh
+        Heat pump: stays on - to serve the remaining heat demand of the heat storage.
        */
       emAgentActivation ! Activation(30923)
 
@@ -1728,7 +1728,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 30923.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(
@@ -1743,7 +1743,7 @@ class ThermalGridIT
       The sun is gone again, it's getting colder as well.
       PV: 0.0 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.2 kWh
-      Heat storage demand  : requiredDemand = 0.0 kWh, possibleDemand = 2.05 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 2.05 kWh
       Heat pump: Will be turned off since no required demand need to be covered.
        */
       emAgentActivation ! Activation(31000)
@@ -1778,10 +1778,10 @@ class ThermalGridIT
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 31000.toDateTime
                 emResult._3 should equalWithTolerance(
-                  0.0.asMegaWatt
+                  0.asMegaWatt
                 )
                 emResult._4 should equalWithTolerance(
-                  0.0.asMegaVar
+                  0.asMegaVar
                 )
             }
           case ThermalResultEvent(thermalUnitResult) =>
@@ -1792,7 +1792,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 31000.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
@@ -1807,7 +1807,7 @@ class ThermalGridIT
         House reach lower temperature boundary
         PV: 0.0 kW
         House demand heating : requiredDemand = 15.00 kWh, possibleDemand = 15.00 kWh
-        Heat storage demand  : requiredDemand = 0.00 kWh, possibleDemand = 2.05 kWh
+        HeatStorage          : requiredDemand = 0.00 kWh, possibleDemand = 2.05 kWh
         Heat pump: stays off - demand will be covered by storage.
        */
       emAgentActivation ! Activation(40964)
@@ -1827,12 +1827,8 @@ class ThermalGridIT
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 40964.toDateTime
-                emResult._3 should equalWithTolerance(
-                  0.0.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(
-                  0.0.asMegaVar
-                )
+                emResult._3 should equalWithTolerance(0.asMegaWatt)
+                emResult._4 should equalWithTolerance(0.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -1852,7 +1848,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 40964.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(
@@ -1871,7 +1867,7 @@ class ThermalGridIT
         (lower Temp < innerTemp < targetTemp && storage must not directly recharged).
         PV: 0.0 kW
         House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 10.89 kWh
-        Heat storage demand  : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays off
        */
       emAgentActivation ! Activation(43858)
@@ -1892,12 +1888,8 @@ class ThermalGridIT
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 43858.toDateTime
-                emResult._3 should equalWithTolerance(
-                  0.0.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(
-                  0.asMegaVar
-                )
+                emResult._3 should equalWithTolerance(0.asMegaWatt)
+                emResult._4 should equalWithTolerance(0.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -1919,10 +1911,10 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 43858.toDateTime
-                qDot should equalWithTolerance(0.0.asMegaWatt)
-                energy should equalWithTolerance(0.0.asMegaWattHour)
+                qDot should equalWithTolerance(0.asMegaWatt)
+                energy should equalWithTolerance(0.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -1932,7 +1924,7 @@ class ThermalGridIT
         House will reach the lower temperature boundary
         PV: 0.0 kW
         House demand heating : requiredDemand = 15.00 kWh, possibleDemand = 15.00 kWh
-        Heat storage demand  : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: turned on to heat the house
        */
       emAgentActivation ! Activation(46635)
@@ -1952,12 +1944,8 @@ class ThermalGridIT
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 46635.toDateTime
-                emResult._3 should equalWithTolerance(
-                  pRunningHp
-                )
-                emResult._4 should equalWithTolerance(
-                  qRunningHp
-                )
+                emResult._3 should equalWithTolerance(pRunningHp)
+                emResult._4 should equalWithTolerance(qRunningHp)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -1980,7 +1968,7 @@ class ThermalGridIT
         House will reach target temperature
         PV: 0.0 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-        Heat storage demand  : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+        HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: turned off - no surplus energy to recharge the storage now
        */
       emAgentActivation ! Activation(56278)
@@ -2000,12 +1988,8 @@ class ThermalGridIT
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 56278.toDateTime
-                emResult._3 should equalWithTolerance(
-                  0.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(
-                  0.asMegaVar
-                )
+                emResult._3 should equalWithTolerance(0.asMegaWatt)
+                emResult._4 should equalWithTolerance(0.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {

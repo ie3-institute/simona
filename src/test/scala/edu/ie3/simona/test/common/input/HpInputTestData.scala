@@ -104,7 +104,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     2.0,
   )
 
-  protected val typicalThermalStorage: CylindricalStorageInput =
+  protected val typicalHeatStorage: CylindricalStorageInput =
     new CylindricalStorageInput(
       UUID.fromString("4b8933dc-aeb6-4573-b8aa-59d577214150"),
       "thermal storage",
@@ -119,7 +119,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
   protected val typicalThermalGrid = new container.ThermalGrid(
     thermalBusInput,
     Seq(typicalThermalHouse).asJava,
-    Set[ThermalStorageInput](typicalThermalStorage).asJava,
+    Set[ThermalStorageInput](typicalHeatStorage).asJava,
     Set.empty[ThermalStorageInput].asJava,
   )
 
