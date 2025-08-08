@@ -59,7 +59,7 @@ trait ThermalGridITInputTestData
     new container.ThermalGrid(
       thermalBusInput,
       Seq(typicalThermalHouse).asJava,
-      Seq[ThermalStorageInput](typicalThermalStorage).asJava,
+      Seq[ThermalStorageInput](typicalHeatStorage).asJava,
       Seq[ThermalStorageInput](littleDomesticHotWaterStorageInput).asJava,
     )
 
@@ -67,7 +67,7 @@ trait ThermalGridITInputTestData
     new container.ThermalGrid(
       thermalBusInput,
       Seq(typicalThermalHouse).asJava,
-      Seq[ThermalStorageInput](typicalThermalStorage).asJava,
+      Seq[ThermalStorageInput](typicalHeatStorage).asJava,
       Seq[ThermalStorageInput](smallDomesticHotWaterStorageInput).asJava,
     )
 
