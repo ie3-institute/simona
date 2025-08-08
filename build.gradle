@@ -205,8 +205,6 @@ shadowJar {
 tasks.withType(ScalaCompile).configureEach {
   scalaCompileOptions.additionalParameters = scala3compilerOptions + [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-    "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/src/",
-    "-P:scapegoat:disabledInspections:TryGet"
   ]
   scalaCompileOptions.forkOptions.jvmArgs = [
     '-Xss2m',
@@ -218,8 +216,6 @@ tasks.withType(ScalaCompile).configureEach {
 compileTestScala {
   scalaCompileOptions.additionalParameters = scala3compilerOptions + [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-    "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/",
-    "-P:scapegoat:disabledInspections:TryGet"
   ]
 }
 

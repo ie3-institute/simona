@@ -10,6 +10,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.ResultResponseMessage
 
 import java.util.UUID
 
+@deprecated
 final case class ExtResultSchedule(
     scheduleMap: Map[Long, Set[UUID]] = Map.empty,
     unscheduledList: Set[UUID] = Set.empty,

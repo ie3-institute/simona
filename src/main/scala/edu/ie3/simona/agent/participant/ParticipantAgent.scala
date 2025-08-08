@@ -8,19 +8,14 @@ package edu.ie3.simona.agent.participant
 
 import breeze.numerics.{pow, sqrt}
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  ProvidedPowerResponse,
-}
+import edu.ie3.simona.agent.grid.GridAgentMessages.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, ProvidedPowerResponse}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.model.participant.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.ResultResponseMessage
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
 import edu.ie3.simona.service.results.ExtResultProvider
@@ -311,7 +306,7 @@ object ParticipantAgent {
 
       case (ctx, RequestLastResult(replyTo)) =>
         // send last calculated results to result service
-        replyTo ! ResultResponseMessage(gridAdapter.lastResults)
+        // replyTo ! ResultResponseMessage(gridAdapter.lastResults)
 
         ParticipantAgent(
           modelShell,

@@ -52,7 +52,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.emDataService shouldBe None
       updated.evDataService shouldBe None
       updated.resultListeners shouldBe empty
-      updated.resultServices shouldBe empty
+      updated.resultProviders shouldBe empty
     }
 
     "be updated with multiple ExtPrimaryDataConnection correctly" in {
@@ -78,7 +78,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.emDataService shouldBe None
       updated.evDataService shouldBe None
       updated.resultListeners shouldBe empty
-      updated.resultServices shouldBe empty
+      updated.resultProviders shouldBe empty
     }
 
     "be updated with an ExtInputDataConnection correctly" in {
@@ -124,7 +124,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
         updated.emDataService shouldBe expected.emDataService
         updated.evDataService shouldBe expected.evDataService
         updated.resultListeners shouldBe empty
-        updated.resultServices shouldBe empty
+        updated.resultProviders shouldBe empty
       }
     }
 
@@ -147,7 +147,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.emDataService shouldBe None
       updated.evDataService shouldBe None
       updated.resultListeners shouldBe empty
-      updated.resultServices shouldBe Seq(resultRef)
+      updated.resultProviders shouldBe Seq(resultRef)
     }
 
     "be updated with multiple different connections correctly" in {
@@ -188,7 +188,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.emDataService shouldBe Some(emRef)
       updated.evDataService shouldBe Some(evRef)
       updated.resultListeners shouldBe empty
-      updated.resultServices shouldBe Seq(resultRef)
+      updated.resultProviders shouldBe Seq(resultRef)
     }
 
     "return evDataService correctly" in {

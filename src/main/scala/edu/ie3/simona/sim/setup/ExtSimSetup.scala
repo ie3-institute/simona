@@ -6,17 +6,12 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.simona.api.data.connection.ExtInputDataConnection
-import edu.ie3.simona.api.data.connection.{
-  ExtEmDataConnection,
-  ExtEvDataConnection,
-  ExtPrimaryDataConnection,
-  ExtResultDataConnection,
-}
+import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
+import edu.ie3.simona.event.listener.ExtResultEvent
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -27,8 +22,6 @@ import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
-import edu.ie3.simona.service.results.ExtResultProvider
-import edu.ie3.simona.service.results.ExtResultProvider.InitExtResultData
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -36,7 +29,6 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
 import scala.util.{Failure, Success, Try}
 
@@ -54,8 +46,6 @@ object ExtSimSetup {
     *   The actor context of this actor system.
     * @param scheduler
     *   The scheduler of simona.
-    * @param resolution
-    *   The resolution of the power flow.
     * @return
     *   An [[ExtSimSetupData]] that holds information regarding the external
     *   data connections as well as the actor references of the created
@@ -68,7 +58,6 @@ object ExtSimSetup {
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       startTime: ZonedDateTime,
-      resolution: FiniteDuration,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
       // external simulation always needs at least an ExtSimAdapter
@@ -124,8 +113,6 @@ object ExtSimSetup {
     *   The scheduler of simona.
     * @param extSimAdapterData
     *   The adapter data for the external simulation.
-    * @param resolution
-    *   The resolution of the power flow.
     * @return
     *   An updated [[ExtSimSetupData]].
     */
@@ -137,7 +124,6 @@ object ExtSimSetup {
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
       startTime: ZonedDateTime,
-      resolution: FiniteDuration,
   ): ExtSimSetupData = {
     given extSimAdapter: ActorRef[ControlResponseMessageFromExt] =
       extSimAdapterData.getAdapter
@@ -215,19 +201,25 @@ object ExtSimSetup {
 
           case extResultDataConnection: ExtResultDataConnection =>
             val extResultProvider = context.spawn(
-              ExtResultProvider(scheduler),
-              s"ExtResultDataProvider",
+              ExtResultEvent
+                .provider(extResultDataConnection, scheduler, startTime),
+              s"ExtResultProvider",
             )
 
-            val powerFlowResolution = resolution.toSeconds
-
-            setupService(
-              extResultDataConnection,
+            extResultDataConnection.setActorRefs(
               extResultProvider,
-              InitExtResultData(_, powerFlowResolution, startTime),
+              extSimAdapter,
             )
 
             extSimSetupData.update(extResultDataConnection, extResultProvider)
+
+          case extResultListener: ExtResultListener =>
+            val extResultEventListener = context.spawn(
+              ExtResultEvent.listener(extResultListener),
+              s"ExtResultListener",
+            )
+
+            extSimSetupData.update(extResultListener, extResultEventListener)
 
           case otherConnection =>
             log.warn(

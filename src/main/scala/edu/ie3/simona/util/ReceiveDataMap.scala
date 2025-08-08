@@ -25,6 +25,8 @@ final case class ReceiveDataMap[K, V](
 
   def nonComplete: Boolean = expectedKeys.nonEmpty
 
+  def expects(key: K): Boolean = expectedKeys.contains(key)
+
   def addData(
       key: K,
       value: V,

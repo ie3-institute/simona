@@ -59,6 +59,8 @@ trait EmServiceCore {
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = responseMsg match {
     case EmFlexMessage(flexRequest: FlexRequest, receiver) =>
+      log.warn(s"$receiver <- $flexRequest")
+
       receiver match {
         case ref: ActorRef[FlexRequest] =>
           handleFlexRequest(flexRequest, ref)
@@ -70,6 +72,8 @@ trait EmServiceCore {
       }
 
     case EmFlexMessage(flexResponse: FlexResponse, receiver) =>
+      log.warn(s"$receiver <- $flexResponse")
+
       receiver match {
         case uuid: UUID =>
           handleFlexResponse(tick, flexResponse, Left(uuid))

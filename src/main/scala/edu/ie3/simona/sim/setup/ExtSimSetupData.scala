@@ -8,14 +8,10 @@ package edu.ie3.simona.sim.setup
 
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.connection.*
-import edu.ie3.simona.api.ontology.DataMessageFromExt
-import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.listener.ExtResultEventListener
+import edu.ie3.simona.event.listener.ExtResultEvent
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
-import edu.ie3.simona.service.primary.ExtPrimaryDataService
-import edu.ie3.simona.service.results.ExtResultProvider
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Case class that holds information regarding the external data connections as
@@ -31,8 +27,8 @@ import org.apache.pekko.actor.typed.ActorRef
   *   Option for an external ev data service.
   * @param resultListeners
   *   Seq: external result listeners.
-  * @param resultServices
-  *   Seq: external result services.
+  * @param resultProviders
+  *   Seq: external result providers.
   */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
@@ -41,8 +37,8 @@ final case class ExtSimSetupData(
     ],
     emDataService: Option[ActorRef[ExtEmDataService.Message]],
     evDataService: Option[ActorRef[ExtEvDataService.Message]],
-    resultListeners: Seq[ActorRef[ExtResultEventListener.Message]],
-    resultServices: Seq[ActorRef[ServiceMessage]],
+    resultListeners: Seq[ActorRef[ExtResultEvent.Message]],
+    resultProviders: Seq[ActorRef[ExtResultEvent.Message]],
 ) {
 
   private[setup] def update(
@@ -53,7 +49,7 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtDataConnection,
-      ref: ActorRef[? >: ServiceMessage],
+      ref: ActorRef[?],
   ): ExtSimSetupData = (connection, ref) match {
     case (
           primaryConnection: ExtPrimaryDataConnection,
@@ -72,14 +68,14 @@ final case class ExtSimSetupData(
       copy(evDataService = Some(serviceRef))
     case (
           _: ExtResultDataConnection,
-          serviceRef: ActorRef[ServiceMessage],
+          providerRef: ActorRef[ExtResultEvent.Message],
         ) =>
-      copy(resultServices = resultServices ++ Seq(serviceRef))
+      copy(resultProviders = resultProviders ++ Seq(providerRef))
     case (
           _: ExtResultListener,
-          serviceRef: ActorRef[ExtResultEventListener.Message],
+          listenerRef: ActorRef[ExtResultEvent.Message],
         ) =>
-      copy(resultListeners = resultListeners ++ Seq(serviceRef))
+      copy(resultListeners = resultListeners ++ Seq(listenerRef))
     case (_, _) =>
       this
   }
@@ -98,7 +94,7 @@ final case class ExtSimSetupData(
     extSimAdapters ++ primaryDataServices.map(_._2) ++ Seq(
       emDataService,
       evDataService,
-    ).flatten ++ resultListeners ++ resultServices
+    ).flatten ++ resultListeners ++ resultProviders
 }
 
 object ExtSimSetupData {

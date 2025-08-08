@@ -35,6 +35,7 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 import scala.util.{Failure, Success, Try}
 
+@deprecated
 object ExtResultProvider extends SimonaService with ExtDataSupport {
 
   override type S = ExtResultStateData

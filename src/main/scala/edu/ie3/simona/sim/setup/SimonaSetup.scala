@@ -54,7 +54,7 @@ trait SimonaSetup {
     *   An actor reference to the runtime event listener
     */
   def runtimeEventListener(
-      context: ActorContext[_]
+      context: ActorContext[?]
   ): ActorRef[RuntimeEventListener.Request]
 
   /** Creates a sequence of result event listeners
@@ -65,8 +65,7 @@ trait SimonaSetup {
     *   A sequence of actor references to result event listeners
     */
   def resultEventListener(
-      context: ActorContext[_],
-      extSimSetupData: ExtSimSetupData,
+      context: ActorContext[?]
   ): Seq[ActorRef[ResultEventListener.Request]]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
@@ -131,7 +130,7 @@ trait SimonaSetup {
     *   External simulations and their init data
     */
   def extSimulations(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimPath: Option[Path],
   ): ExtSimSetupData

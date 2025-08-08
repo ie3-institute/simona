@@ -48,12 +48,9 @@ object ResultEventListener extends Transformer3wResultSupport {
     * @param classToSink
     *   a map containing the sink for each class that should be processed by the
     *   listener
-    * @param extSink
-    *   actors for external result data services
     */
   private final case class BaseData(
       classToSink: Map[Class[_], ResultEntitySink],
-      extSink: Iterable[ActorRef[ServiceMessage]] = Iterable.empty,
       threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult,
@@ -166,7 +163,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       baseData: BaseData,
       log: Logger,
   ): BaseData = {
-    handOverToSink(resultEntity, baseData.classToSink, baseData.extSink, log)
+    handOverToSink(resultEntity, baseData.classToSink, log)
     baseData
   }
 
@@ -198,7 +195,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       if (updatedResult.ready) {
         // if result is complete, we can write it out
         updatedResult.consolidate.foreach {
-          handOverToSink(_, baseData.classToSink, baseData.extSink, log)
+          handOverToSink(_, baseData.classToSink, log)
         }
         // also remove partial result from map
         baseData.threeWindingResults.removed(key)
@@ -231,12 +228,9 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handOverToSink(
       resultEntity: ResultEntity,
       classToSink: Map[Class[_], ResultEntitySink],
-      extSink: Iterable[ActorRef[ServiceMessage]],
       log: Logger,
   ): Unit =
     Try {
-      extSink.foreach(_ ! ResultResponseMessage(Seq(resultEntity)))
-
       classToSink
         .get(resultEntity.getClass)
         .foreach(_.handleResultEntity(resultEntity))
@@ -245,8 +239,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     }
 
   def apply(
-      resultFileHierarchy: ResultFileHierarchy,
-      extResultListeners: Iterable[ActorRef[ServiceMessage]] = Iterable.empty,
+      resultFileHierarchy: ResultFileHierarchy
   ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
     ctx.log.debug("Starting initialization!")
     resultFileHierarchy.resultSinkType match {
@@ -270,16 +263,14 @@ object ResultEventListener extends Transformer3wResultSupport {
       case Success(result)               => SinkResponse(result.toMap)
     }
 
-    init(extResultListeners)
+    init
   }
 
-  private def init(
-      extResultListeners: Iterable[ActorRef[ServiceMessage]] = Iterable.empty
-  ): Behavior[Request] = Behaviors.withStash(200) { buffer =>
+  private def init: Behavior[Request] = Behaviors.withStash(200) { buffer =>
     Behaviors.receive[Request] {
       case (ctx, SinkResponse(response)) =>
         ctx.log.debug("Initialization complete!")
-        buffer.unstashAll(idle(BaseData(response, extResultListeners)))
+        buffer.unstashAll(idle(BaseData(response)))
 
       case (ctx, InitFailed(ex)) =>
         ctx.log.error("Unable to setup ResultEventListener.", ex)

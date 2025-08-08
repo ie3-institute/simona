@@ -48,8 +48,7 @@ class SimonaSetupSpec
     )
 
   override def resultEventListener(
-      context: ActorContext[_],
-      extSimSetupData: ExtSimSetupData,
+      context: ActorContext[_]
   ): Seq[ActorRef[ResultEventListener.Request]] =
     throw new NotImplementedException("This is a dummy setup")
 
