@@ -32,6 +32,7 @@ import org.apache.pekko.actor.typed.scaladsl.{
   StashBuffer,
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.slf4j.Logger
 
 import scala.util.{Failure, Success, Try}
 
@@ -96,7 +97,7 @@ abstract class SimonaService {
     case (ctx, Activation(INIT_SIM_TICK)) =>
       // init might take some time and could go wrong if invalid initialize service data is received
       // execute complete and unstash only if init is carried out successfully
-      init(initializeStateData) match {
+      init(initializeStateData)(using ctx.log) match {
         case Success((serviceStateData, maybeNewTick)) =>
           scheduler ! Completion(
             ctx.self,
@@ -223,13 +224,15 @@ abstract class SimonaService {
     *
     * @param initServiceData
     *   The data that should be used for initialization
+    * @param log
+    *   The logger for logging.
     * @return
     *   The state data of this service and optional tick that should be included
     *   in the completion message
     */
   def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(S, Option[Long])]
+  )(using log: Logger): Try[(S, Option[Long])]
 
   /** Handle a request to register for information from this service
     *

@@ -60,7 +60,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
 
   override def init(
       initServiceData: ServiceStateData.InitializeServiceStateData
-  ): Try[
+  )(using log: Logger): Try[
     (
         ExtEvStateData,
         Option[Long],

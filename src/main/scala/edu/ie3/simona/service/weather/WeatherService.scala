@@ -33,6 +33,7 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import scala.util.{Failure, Success, Try}
@@ -88,23 +89,9 @@ object WeatherService extends SimonaService {
       simulationEnd: ZonedDateTime,
   ) extends InitializeServiceStateData
 
-  /** Initialize the concrete service implementation using the provided
-    * initialization data. This method should perform all heavyweight tasks
-    * before the actor becomes ready. The return values are a) the state data of
-    * the initialized service and b) optional triggers that should be sent to
-    * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
-    * message that is sent in response to the trigger that is sent to start the
-    * initialization process
-    *
-    * @param initServiceData
-    *   the data that should be used for initialization
-    * @return
-    *   the state data of this service and optional triggers that should be
-    *   included in the completion message
-    */
   override def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(WeatherInitializedStateData, Option[Long])] =
+  )(using log: Logger): Try[(WeatherInitializedStateData, Option[Long])] =
     initServiceData match {
       case InitWeatherServiceStateData(
             sourceDefinition,

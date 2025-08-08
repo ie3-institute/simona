@@ -155,18 +155,10 @@ object PrimaryServiceWorker extends SimonaService {
 
   override type S = PrimaryServiceInitializedStateData[Value]
 
-  /** Initialize the actor with the given information. Try to figure out the
-    * initialized state data and the next activation ticks, that will then be
-    * sent to the scheduler
-    *
-    * @param initServiceData
-    *   The data that should be used for initialization
-    * @return
-    *   The state data of this service actor and optional tick that should be
-    *   included in the completion message
-    */
   override def init(
       initServiceData: InitializeServiceStateData
+  )(using
+      log: Logger
   ): Try[(PrimaryServiceInitializedStateData[Value], Option[Long])] = {
     (initServiceData match {
       case PrimaryServiceWorker.CsvInitPrimaryServiceStateData(
@@ -255,11 +247,13 @@ object PrimaryServiceWorker extends SimonaService {
             .map(_.toTick)
         ).pop
 
-        (maybeNextTick, furtherActivationTicks) match {
-          case (Some(tick), furtherActivationTicks) if tick == 0L =>
+        val previousOption =
+          source.getLastTimeKeyBefore(simulationStart).toScala
+
+        (maybeNextTick, previousOption) match {
+          case (Some(tick), _) if tick == 0L =>
             /* Set up the state data and determine the next activation tick. */
-            val initializedStateData
-                : PrimaryServiceInitializedStateData[Value] =
+            val initializedStateData =
               PrimaryServiceInitializedStateData(
                 maybeNextTick,
                 furtherActivationTicks,
@@ -270,13 +264,51 @@ object PrimaryServiceWorker extends SimonaService {
 
             Success(initializedStateData, maybeNextTick)
 
-          case (Some(tick), _) if tick > 0L =>
-            /* The start of the data needs to be at the first tick of the simulation. */
+          case (Some(tick), None) if tick > 0L =>
+            /* No data for the first tick or before, but the start of the data needs to be at the first tick of the simulation. */
             Failure(
               new ServiceRegistrationException(
                 s"The data for the timeseries '${source.getTimeSeries.getUuid}' starts after the start of this simulation (tick: $tick)! This is not allowed!"
               )
             )
+
+          case (Some(_), Some(value)) =>
+            /* We have data before and after the start of the simulation, but not at tick 0 */
+            log.debug(
+              s"No data at the start of the simulation. Use last know data for tick: ${value.toTick}"
+            )
+
+            /* Set up the state data. */
+            val initializedStateData =
+              PrimaryServiceInitializedStateData(
+                maybeNextTick,
+                furtherActivationTicks,
+                simulationStart,
+                valueClass,
+                source,
+              )
+
+            Success(initializedStateData, maybeNextTick)
+
+          case (_, Some(value)) =>
+            /* We have data before, but not after the start of the simulation */
+            log.debug(
+              s"Only found data before the start of the simulation. Tick: ${value.toTick}"
+            )
+
+            val nextTick = Some(0L)
+
+            /* Set up the state data. */
+            val initializedStateData =
+              PrimaryServiceInitializedStateData(
+                nextTick,
+                furtherActivationTicks,
+                simulationStart,
+                valueClass,
+                source,
+              )
+
+            Success(initializedStateData, nextTick)
 
           case _ =>
             /* No data for the simulation. */
@@ -316,18 +348,6 @@ object PrimaryServiceWorker extends SimonaService {
         )
     }
 
-  /** Send out the information to all registered recipients
-    *
-    * @param tick
-    *   Current tick data should be announced for
-    * @param serviceBaseStateData
-    *   The current state data of this service
-    * @return
-    *   The service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is sent
-    *   in response to the trigger that is sent to start the initialization
-    *   process
-    */
   override protected def announceInformation(
       tick: Long
   )(using
@@ -340,7 +360,7 @@ object PrimaryServiceWorker extends SimonaService {
     /* Get the information to distribute */
     val simulationTime =
       tick.toDateTime(using serviceBaseStateData.startDateTime)
-    serviceBaseStateData.source.getValue(simulationTime).toScala match {
+    serviceBaseStateData.source.getValueOrLast(simulationTime).toScala match {
       case Some(value) =>
         processDataAndAnnounce(tick, value, serviceBaseStateData)(using
           ctx.self,
@@ -353,7 +373,7 @@ object PrimaryServiceWorker extends SimonaService {
           tick,
           simulationTime,
         )
-        updateStateDataAndBuildTriggerMessages(serviceBaseStateData)
+        updateStateDataAndBuildTriggerMessages(serviceBaseStateData, tick)
     }
   }
 
@@ -362,25 +382,35 @@ object PrimaryServiceWorker extends SimonaService {
     *
     * @param baseStateData
     *   The base state data to update
+    * @param currentTick
+    *   The current tick for which data was provided.
     * @return
     *   Updated base state data and an option on a sequence of schedule trigger
     *   messages
     */
   private def updateStateDataAndBuildTriggerMessages[V <: Value](
-      baseStateData: PrimaryServiceInitializedStateData[V]
+      baseStateData: PrimaryServiceInitializedStateData[V],
+      currentTick: Long,
   ): (
       PrimaryServiceInitializedStateData[V],
       Option[Long],
   ) = {
-    val (maybeNextActivationTick, remainderActivationTicks) =
-      baseStateData.activationTicks.pop
-    (
-      baseStateData.copy(
-        maybeNextActivationTick = maybeNextActivationTick,
-        activationTicks = remainderActivationTicks,
-      ),
-      maybeNextActivationTick,
-    )
+    val ticks = baseStateData.activationTicks
+
+    baseStateData.maybeNextActivationTick match {
+      case Some(nextTick) if nextTick > currentTick =>
+        (baseStateData, Some(nextTick))
+
+      case _ =>
+        val (maybeNextActivationTick, remainderActivationTicks) = ticks.pop
+        (
+          baseStateData.copy(
+            maybeNextActivationTick = maybeNextActivationTick,
+            activationTicks = remainderActivationTicks,
+          ),
+          maybeNextActivationTick,
+        )
+    }
   }
 
   /** Process the information from source and announce it to subscribers
@@ -415,7 +445,7 @@ object PrimaryServiceWorker extends SimonaService {
           "\nException: {}",
         exception,
       )
-      updateStateDataAndBuildTriggerMessages(serviceBaseStateData)
+      updateStateDataAndBuildTriggerMessages(serviceBaseStateData, tick)
   }
 
   /** Announce the given primary data to all subscribers
@@ -438,17 +468,12 @@ object PrimaryServiceWorker extends SimonaService {
       PrimaryServiceInitializedStateData[V],
       Option[Long],
   ) = {
-    val (maybeNextTick, remainderActivationTicks) =
-      serviceBaseStateData.activationTicks.pop
-    val updatedStateData =
-      serviceBaseStateData.copy(
-        maybeNextActivationTick = maybeNextTick,
-        activationTicks = remainderActivationTicks,
-      )
+    val (updatedStateData, maybeNextTick) =
+      updateStateDataAndBuildTriggerMessages(serviceBaseStateData, tick)
 
-    val provisionMessage =
-      DataProvision(tick, self, primaryData, maybeNextTick)
+    val provisionMessage = DataProvision(tick, self, primaryData, maybeNextTick)
     serviceBaseStateData.subscribers.foreach(_ ! provisionMessage)
+
     (updatedStateData, maybeNextTick)
   }
 }

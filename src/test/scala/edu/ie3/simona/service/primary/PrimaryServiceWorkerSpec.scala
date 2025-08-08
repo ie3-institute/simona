@@ -21,11 +21,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
@@ -42,7 +38,6 @@ import edu.ie3.simona.test.matchers.SquantsMatchers
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -124,7 +119,7 @@ class PrimaryServiceWorkerSpec
 
       PrimaryServiceWorker.init(initData) match {
         case Failure(exception) =>
-          exception.getMessage shouldBe "No data found for timeseries 'b73a7e3f-9045-40cd-b518-c11a9a6a1025'!"
+          exception.getMessage shouldBe "No appropriate data found within simulation time range in timeseries 'b73a7e3f-9045-40cd-b518-c11a9a6a1025'!"
         case Success(_) =>
           fail("Initialisation with unsupported init data is meant to fail.")
       }
@@ -148,9 +143,8 @@ class PrimaryServiceWorkerSpec
         simulationStart = validInitData.simulationStart.plusHours(1)
       )
 
-      service.init(initData) match {
-        case Success((stateData, maybeNextTick)) =>
-          stateData.maybeValue shouldBe Some(new PValue(1500.asKiloWatt))
+      PrimaryServiceWorker.init(initData) match {
+        case Success((_, maybeNextTick)) =>
           maybeNextTick shouldBe Some(0L)
 
         case Failure(_) =>
@@ -163,9 +157,8 @@ class PrimaryServiceWorkerSpec
         simulationStart = validInitData.simulationStart.plusMinutes(5)
       )
 
-      service.init(initData) match {
-        case Success((stateData, maybeNextTick)) =>
-          stateData.maybeValue shouldBe Some(new PValue(1000.asKiloWatt))
+      PrimaryServiceWorker.init(initData) match {
+        case Success((_, maybeNextTick)) =>
           maybeNextTick shouldBe Some(600L)
 
         case Failure(_) =>
@@ -208,7 +201,6 @@ class PrimaryServiceWorkerSpec
                   simulationStart,
                   valueClass,
                   source,
-                  maybeValue,
                   subscribers,
                 ) =>
               nextActivationTick shouldBe Some(0L)
@@ -219,7 +211,6 @@ class PrimaryServiceWorkerSpec
               simulationStart shouldBe validInitData.simulationStart
               valueClass shouldBe classOf[PValue]
               source.getClass shouldBe classOf[CsvTimeSeriesSource[PValue]]
-              maybeValue shouldBe None
               subscribers.isEmpty shouldBe true
           }
           /* We expect a request to be triggered in tick 0 */
@@ -416,20 +407,27 @@ class PrimaryServiceWorkerSpec
       )
     }
 
-    "should not announce anything, if time step is not covered in source" in {
+    "should announce last data, if time step is not covered in source but previous data is available" in {
 
       serviceRef ! Activation(200)
 
       val completionMsg = scheduler.expectMessageType[Completion]
-      completionMsg.newTick shouldBe Some(1800)
+      completionMsg.newTick shouldBe Some(900)
 
-      systemParticipant.expectNoMessage()
+      systemParticipant.expectMessage(
+        DataProvision(
+          200L,
+          serviceRef,
+          ActivePower(Kilowatts(1000)),
+          Some(900L),
+        )
+      )
     }
 
     "should announce something, if the time step is covered in source" in {
       serviceRef ! Activation(900)
       val completionMsg = scheduler.expectMessageType[Completion]
-      completionMsg.newTick shouldBe None
+      completionMsg.newTick shouldBe Some(1800)
 
       inside(
         systemParticipant.expectMessageType[DataProvision[PrimaryData]]
@@ -447,7 +445,7 @@ class PrimaryServiceWorkerSpec
               p should approximate(Kilowatts(1250.0))
             case _ => fail("Expected to get active power only.")
           }
-          nextDataTick shouldBe None
+          nextDataTick shouldBe Some(1800)
       }
     }
   }
