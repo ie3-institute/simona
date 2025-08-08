@@ -2985,7 +2985,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 31937.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.0054404.asMegaWattHour)
