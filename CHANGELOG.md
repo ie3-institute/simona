@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Align temperature scale of parameter for `ThermalInputs` [#1484](https://github.com/ie3-institute/simona/issues/1484)
 - Refactored some tests for usage of should approximate [#863](https://github.com/ie3-institute/simona/issues/863)
 - Create trait for ThermalStorageCalculations [#1473](https://github.com/ie3-institute/simona/issues/1473)
+- Rename 'thermalStorage' to 'heatStorage' [#1475](https://github.com/ie3-institute/simona/issues/1475)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
