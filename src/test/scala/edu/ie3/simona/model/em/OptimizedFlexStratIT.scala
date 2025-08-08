@@ -66,8 +66,6 @@ class OptimizedFlexStratIT extends UnitSpec {
 
         model.getStatus shouldBe SolutionStatus.OPTIMAL
 
-        // fixme charging and discharging here because battery capacity is hit
-        println(batVars.operationVars.map(_.pCharge.value.value))
         println(batVars.operationVars.map(_.getPowerSolution))
 
       }
