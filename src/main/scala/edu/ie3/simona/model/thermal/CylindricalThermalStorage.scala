@@ -18,6 +18,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   PowerConversionSimona,
   TemperatureConversionSimona,
@@ -70,7 +71,8 @@ final case class CylindricalThermalStorage(
       bus,
       maxEnergyThreshold,
       pThermalMax,
-    ) {
+    )
+    with ThermalStorageCalculations {
 
   /** Updates the given last state. Based on the then set thermal influx, the
     * current state is calculated. Positive values of influx are consider to
@@ -146,7 +148,7 @@ final case class CylindricalThermalStorage(
   )
 }
 
-object CylindricalThermalStorage {
+object CylindricalThermalStorage extends ThermalStorageCalculations {
 
   /** Function to construct a new [[CylindricalThermalStorage]] based on a
     * provided [[CylindricalStorageInput]]
@@ -183,51 +185,5 @@ object CylindricalThermalStorage {
       pThermalMax,
       initialStoredEnergy,
     )
-  }
-
-  /** Equation from docs for the relation between needed volume and energy.
-    *
-    * @param volume
-    *   needed/available volume
-    * @param c
-    *   Specific heat capacity
-    * @param inletTemp
-    *   Inlet temperature in [°C]
-    * @param returnTemp
-    *   Return temperature in [°C]
-    * @return
-    *   energy
-    */
-  def volumeToEnergy(
-      volume: Volume,
-      c: SpecificHeatCapacity,
-      inletTemp: Temperature,
-      returnTemp: Temperature,
-  ): Energy = {
-    c.calcEnergy(returnTemp, inletTemp, volume)
-  }
-
-  /** Equation from docs for the relation between stored heat and volume change.
-    *
-    * @param energy
-    *   available energy
-    * @param c
-    *   Specific heat capacity
-    * @param inletTemp
-    *   Inlet temperature in [°C]
-    * @param returnTemp
-    *   Return temperature in [°C]
-    * @return
-    *   volume
-    */
-  def energyToVolume(
-      energy: Energy,
-      c: SpecificHeatCapacity,
-      inletTemp: Temperature,
-      returnTemp: Temperature,
-  ): Volume = {
-    val energyDensity = c.calcEnergyDensity(returnTemp, inletTemp)
-
-    energy.calcVolume(energyDensity)
   }
 }
