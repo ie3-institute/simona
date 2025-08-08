@@ -7,7 +7,11 @@
 package edu.ie3.util.quantities
 
 import edu.ie3.util.scala.quantities.KilowattHoursPerCubicMeter
-import edu.ie3.util.scala.quantities.SquantsUtils.{RichElectricPotential, RichEnergy, RichThermalCapacity}
+import edu.ie3.util.scala.quantities.SquantsUtils.{
+  RichElectricPotential,
+  RichEnergy,
+  RichThermalCapacity,
+}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.Each
