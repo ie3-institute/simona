@@ -329,7 +329,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
       }
 
-      "deliver the correct house and storage demand" in {
+      "deliver the correct house and heat storage demand" in {
         val tick = 10800
 
         val hoursToDetermine =
@@ -359,13 +359,13 @@ class ThermalGridWithHouseAndStorageSpec
           )
 
         val houseDemand = thermalDemands.houseDemand
-        val storageDemand = thermalDemands.heatStorageDemand
+        val heatStorageDemand = thermalDemands.heatStorageDemand
         val waterStorageDemand = thermalDemands.domesticHotWaterStorageDemand
 
         houseDemand.required should approximate(KilowattHours(45.59701))
         houseDemand.possible should approximate(KilowattHours(45.59701))
-        storageDemand.required should approximate(KilowattHours(1150d))
-        storageDemand.possible should approximate(KilowattHours(1150d))
+        heatStorageDemand.required should approximate(KilowattHours(1150d))
+        heatStorageDemand.possible should approximate(KilowattHours(1150d))
         waterStorageDemand.required should approximate(KilowattHours(0d))
         waterStorageDemand.possible should approximate(KilowattHours(0d))
       }

@@ -240,7 +240,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -341,7 +341,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 3416.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -654,7 +654,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 23288.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -819,7 +819,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 26887.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -1052,7 +1052,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 32239.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -1184,7 +1184,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 35655.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -1487,7 +1487,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -1613,7 +1613,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 1800.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -1772,7 +1772,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 5216.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -1854,7 +1854,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 5400.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -1912,7 +1912,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 6824.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.0063104.asMegaWattHour)
@@ -2062,7 +2062,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 9200.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(
@@ -2121,7 +2121,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 10551.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -2518,7 +2518,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 24413.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -2589,7 +2589,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.0081577.asMegaWattHour)
@@ -2926,7 +2926,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 31000.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(0.008157699999.asMegaWattHour)
@@ -3077,7 +3077,7 @@ class ThermalGridIT
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 41937.toDateTime
                 qDot should equalWithTolerance(-0.01044.asMegaWatt)
                 energy should equalWithTolerance(0.0054404.asMegaWattHour)
@@ -3217,7 +3217,7 @@ The results are checked implicitly through the state of stored energy at the nex
                     qDot,
                     energy,
                   ) =>
-                inputModel shouldBe typicalThermalStorage.getUuid
+                inputModel shouldBe typicalHeatStorage.getUuid
                 time shouldBe 43812.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
