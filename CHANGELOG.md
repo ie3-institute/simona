@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename `MinMaxFlexOptions` to `PowerLimitFlexOptions` [#1457](https://github.com/ie3-institute/simona/issues/1457)
 - Align temperature scale of parameter for `ThermalInputs` [#1484](https://github.com/ie3-institute/simona/issues/1484)
 - Refactored some tests for usage of should approximate [#863](https://github.com/ie3-institute/simona/issues/863)
+- Create trait for ThermalStorageCalculations [#1473](https://github.com/ie3-institute/simona/issues/1473)
 - Harmonisation of `TestInputData` for `Transformer` [#163](https://github.com/ie3-institute/simona/issues/163)
 
 ### Fixed
