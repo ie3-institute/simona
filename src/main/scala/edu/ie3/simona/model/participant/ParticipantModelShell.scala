@@ -8,15 +8,11 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.system.{
-  FlexOptionsResult,
-  SystemParticipantResult,
-}
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.em.EmTools
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
@@ -25,14 +21,18 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  FlexOptionsExtra,
+  FlexType,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
@@ -66,7 +66,8 @@ import scala.util.{Failure, Try}
   *   The operating point valid before the current [[operatingPoint]], if
   *   applicable.
   * @param flexOptions
-  *   The most recent flex options, if they have been calculated already.
+  *   The most recent flex options plus flex type, if they have been calculated
+  *   already.
   * @param operationChange
   *   The operation change indicator, which indicates until when the current
   *   results are valid.
@@ -79,14 +80,13 @@ final case class ParticipantModelShell[
     OP <: OperatingPoint,
     S <: ModelState,
 ](
-    private val model: ParticipantModel[OP, S]
-      with ParticipantFlexibility[OP, S],
+    private val model: ParticipantModel[OP, S],
     private val operationInterval: OperationInterval,
     private val simulationStart: ZonedDateTime,
     private val state: S,
     private val operatingPoint: OP,
     private val lastOperatingPoint: Option[OP] = None,
-    private val flexOptions: Option[FlexOptions] = None,
+    private val flexOptions: Option[(FlexOptions, FlexType)] = None,
     private val operationChange: OperationChangeIndicator =
       OperationChangeIndicator(),
 ) {
@@ -123,11 +123,15 @@ final case class ParticipantModelShell[
     *   The flex options.
     */
   def getFlexOptions: FlexOptions =
-    flexOptions.getOrElse(
-      throw new CriticalFailureException(
-        "Flex options have not been calculated!"
+    flexOptions
+      .map { case (fo, _) =>
+        fo
+      }
+      .getOrElse(
+        throw new CriticalFailureException(
+          s"$identifier: Flex options have not been calculated!"
+        )
       )
-    )
 
   /** Returns the reactive power function that takes a nodal voltage value and
     * an active power as input.
@@ -180,7 +184,7 @@ final case class ParticipantModelShell[
       // Sanity check
       if (modelNextTick.exists(_ <= tick))
         throw new CriticalFailureException(
-          s"Next tick ($modelNextTick) is same as or earlier than the current tick ($tick)."
+          s"$identifier: Next tick ($modelNextTick) is same as or earlier than the current tick ($tick)."
         )
 
       val modelIndicator =
@@ -208,19 +212,14 @@ final case class ParticipantModelShell[
     *   The flex options results.
     */
   def determineFlexOptionsResult(
-      tick: Long
+      tick: Long,
+      flexType: FlexType,
   ): FlexOptionsResult = {
-    val minMaxFlexOptions =
-      getFlexOptions match {
-        case flex: MinMaxFlexOptions => flex
-      }
-
-    new FlexOptionsResult(
-      tick.toDateTime(simulationStart),
+    val extra = FlexOptionsExtra(flexType)
+    extra.createResult(
+      extra.castFlexOptions(getFlexOptions),
       uuid,
-      minMaxFlexOptions.ref.toMegawatts.asMegaWatt,
-      minMaxFlexOptions.min.toMegawatts.asMegaWatt,
-      minMaxFlexOptions.max.toMegawatts.asMegaWatt,
+      tick.toDateTime(using simulationStart),
     )
   }
 
@@ -249,7 +248,7 @@ final case class ParticipantModelShell[
       lastOperatingPoint,
       operatingPoint,
       complexPower,
-      tick.toDateTime(simulationStart),
+      tick.toDateTime(using simulationStart),
     )
 
     ResultsContainer(
@@ -265,18 +264,30 @@ final case class ParticipantModelShell[
     * @return
     *   An updated [[ParticipantModelShell]].
     */
-  def updateFlexOptions(tick: Long): ParticipantModelShell[OP, S] = {
+  def updateFlexOptions(
+      tick: Long,
+      flexType: FlexType,
+  ): ParticipantModelShell[OP, S] = {
     val currentState = determineCurrentState(tick)
 
-    val updatedFlexOptions =
-      if (operationInterval.includes(tick)) {
-        model.determineFlexOptions(currentState)
-      } else {
-        // Out of operation, there's no way to operate besides 0 kW
-        MinMaxFlexOptions.noFlexOption(zeroKW)
-      }
+    val flexModel = model.flexModels.getOrElse(
+      flexType,
+      throw new CriticalFailureException(
+        s"$identifier: Flex model $flexType not available."
+      ),
+    )
 
-    copy(state = currentState, flexOptions = Some(updatedFlexOptions))
+    val updatedFlexOptions = flexType match {
+      case FlexType.PowerLimit =>
+        if (operationInterval.includes(tick)) {
+          flexModel.determineFlexOptions(currentState)
+        } else {
+          // Out of operation, there's no way to operate besides 0 kW
+          PowerLimitFlexOptions.noFlexOption(zeroKW)
+        }
+    }
+
+    copy(state = currentState, flexOptions = Some(updatedFlexOptions, flexType))
   }
 
   /** Update operating point on receiving [[IssueFlexControl]], i.e. when the
@@ -295,12 +306,15 @@ final case class ParticipantModelShell[
     val currentState = determineCurrentState(currentTick)
 
     def modelOperatingPoint(): (OP, OperationChangeIndicator) = {
-      val fo = flexOptions.getOrElse(
-        throw new CriticalFailureException("No flex options available!")
-      )
+      val (fo, flexType) = flexOptions.getOrElse {
+        throw new CriticalFailureException(
+          s"$identifier: Flex options have not been calculated!"
+        )
+      }
+      val extra = FlexOptionsExtra(flexType)
 
       val setPointActivePower =
-        Try(EmTools.determineFlexPower(fo, flexControl))
+        Try(extra.determineFlexPower(extra.castFlexOptions(fo), flexControl))
           .recoverWith(exception =>
             Failure(
               new CriticalFailureException(
@@ -323,7 +337,7 @@ final case class ParticipantModelShell[
     // Sanity check
     if (newChangeIndicator.changesAtTick.exists(_ <= currentTick))
       throw new CriticalFailureException(
-        s"Next tick (${newChangeIndicator.changesAtTick}) is same as or earlier than the current tick ($currentTick)."
+        s"$identifier: Next tick (${newChangeIndicator.changesAtTick}) is same as or earlier than the current tick ($currentTick)."
       )
 
     copy(
@@ -407,7 +421,7 @@ final case class ParticipantModelShell[
     *   An updated [[ParticipantModelShell]].
     */
   def handleRequest(
-      ctx: ActorContext[ParticipantAgent.Request],
+      ctx: ActorContext[ParticipantAgent.Message],
       request: ParticipantRequest,
   ): ParticipantModelShell[OP, S] = {
     val currentState = determineCurrentState(request.tick)
@@ -434,7 +448,7 @@ final case class ParticipantModelShell[
           state,
           operatingPoint,
           tick,
-          tick.toDateTime(simulationStart),
+          tick.toDateTime(using simulationStart),
         )
       } else {
         // The state is up-to-date, no need to update
@@ -443,7 +457,7 @@ final case class ParticipantModelShell[
 
     if (newState.tick != tick)
       throw new CriticalFailureException(
-        s"The current state $newState is not set to current tick $tick"
+        s"$identifier: The current state $newState is not set to current tick $tick"
       )
 
     newState
@@ -454,7 +468,7 @@ final case class ParticipantModelShell[
 object ParticipantModelShell {
 
   /** Container holding the resulting total complex power as well as
-    * [[SystemParticipantResult]] specific to the [[ParticipantModel]].
+    * [[ResultEntity]] specific to the [[ParticipantModel]].
     *
     * @param totalPower
     *   The total complex power produced or consumed.
@@ -484,7 +498,7 @@ object ParticipantModelShell {
       operationTime: OperationTime,
       simulationStart: ZonedDateTime,
       simulationEnd: ZonedDateTime,
-  ): ParticipantModelShell[_ <: OperatingPoint, S] = {
+  ): ParticipantModelShell[? <: OperatingPoint, S] = {
 
     val model = modelFactory.create()
 

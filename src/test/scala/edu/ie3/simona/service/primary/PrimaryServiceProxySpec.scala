@@ -25,16 +25,13 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage,
-  WrappedActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.ServiceStateData.ServiceConstantStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
   PrimaryServiceStateData,
@@ -128,22 +125,15 @@ class PrimaryServiceProxySpec
     validPrimaryConfig,
   )
 
-  implicit def wrap(msg: Activation): WrappedActivation =
-    WrappedActivation(msg)
-
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
+  private given schedulerRef: ActorRef[SchedulerMessage] = scheduler.ref
 
-  implicit val constantData: ServiceConstantStateData = {
-    val m = mock[ServiceConstantStateData]
-    when(m.scheduler).thenReturn(scheduler.ref)
-    m
-  }
+  private val service =
+    TestProbe[PrimaryServiceProxy.Message]("primaryServiceProxy")
 
-  private val service = TestProbe[ServiceMessage]("primaryServiceProxy")
-
-  implicit val log: Logger = LoggerFactory.getLogger("PrimaryServiceProxySpec")
-  implicit val ctx: ActorContext[ServiceMessage] = {
-    val m = mock[ActorContext[ServiceMessage]]
+  given log: Logger = LoggerFactory.getLogger("PrimaryServiceProxySpec")
+  given ctx: ActorContext[PrimaryServiceProxy.Message] = {
+    val m = mock[ActorContext[PrimaryServiceProxy.Message]]
     when(m.log).thenReturn(log)
     when(m.self).thenReturn(service.ref)
     m
@@ -154,9 +144,8 @@ class PrimaryServiceProxySpec
       validPrimaryConfig,
       simulationStart,
     )
-  val proxy: ActorRef[ServiceMessage] = testKit.spawn(
-    PrimaryServiceProxy(scheduler.ref, initStateData)
-  )
+  val proxy: ActorRef[PrimaryServiceProxy.Message] =
+    testKit.spawn(PrimaryServiceProxy(scheduler.ref, initStateData))
 
   "Building state data from given config" should {
     "succeed with empty state data, in case no config is given" in {
@@ -265,10 +254,15 @@ class PrimaryServiceProxySpec
 
   "Spinning off a worker" should {
     "successfully instantiate an actor within the actor system" in {
-      val testKit = BehaviorTestKit(Behaviors.setup[AnyRef] { ctx =>
-        PrimaryServiceProxy.classToWorkerRef(workerId)(using constantData, ctx)
-        Behaviors.stopped
-      })
+      val testKit = BehaviorTestKit(
+        Behaviors.setup[PrimaryServiceProxy.Message] { ctx =>
+          PrimaryServiceProxy.classToWorkerRef(workerId)(using
+            scheduler.ref,
+            ctx,
+          )
+          Behaviors.stopped
+        }
+      )
 
       testKit.expectEffectPF { case Spawned(_, actorName, _) =>
         actorName shouldBe workerId
@@ -346,25 +340,28 @@ class PrimaryServiceProxySpec
     "succeed on fine input data" in {
       /* We "fake" the creation of the worker to infiltrate a test probe. This empowers us to check, if a matching init
        * message is sent to the worker */
-      val worker = TestProbe[ServiceMessage]("workerTestProbe")
+      val worker = TestProbe[PrimaryServiceProxy.Message]("workerTestProbe")
       val lockProbe = TestProbe[ScheduleLock.Message]("lockProbe")
-      val activationAdapter = TestProbe[Activation]("activationAdapter")
 
       val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
         metaPq,
         Paths.get("its_pq_" + uuidPq),
       )
 
-      val context: ActorContext[?] = {
-        val m = mock[ActorContext[?]]
+      val context: ActorContext[PrimaryServiceProxy.Message] = {
+        val m = mock[ActorContext[PrimaryServiceProxy.Message]]
         when(m.log).thenReturn(log)
 
-        when(m.spawn(any[Behavior[ServiceMessage]], any[String], any()))
+        when(
+          m.spawn(
+            any[Behavior[PrimaryServiceProxy.Message]],
+            any[String],
+            any(),
+          )
+        )
           .thenReturn(worker.ref)
         when(m.spawnAnonymous(any[Behavior[ScheduleLock.Message]], any()))
           .thenReturn(lockProbe.ref)
-        when(m.spawnAnonymous(any[Behavior[Activation]], any()))
-          .thenReturn(activationAdapter.ref)
 
         m
       }
@@ -373,7 +370,7 @@ class PrimaryServiceProxySpec
         metaInformation,
         simulationStart,
         initStateData.primaryConfig,
-      )(using constantData, context)
+      )(using scheduler.ref, context)
 
       inside(worker.expectMessageType[Create]) {
         case Create(
@@ -410,7 +407,8 @@ class PrimaryServiceProxySpec
     }
   }
 
-  private val dummyWorker = TestProbe[ServiceMessage]("dummyWorker")
+  private val dummyWorker =
+    TestProbe[PrimaryServiceProxy.Message]("dummyWorker")
   private val agentToBeRegistered = TestProbe[Any]("agent")
 
   "Updating state data" should {
@@ -503,7 +501,7 @@ class PrimaryServiceProxySpec
 
     "spin off a worker, if needed and forward the registration request" in {
       /* We once again fake the class, so that we can infiltrate a probe */
-      val worker = TestProbe[ServiceMessage]("workerTestProbe")
+      val worker = TestProbe[PrimaryServiceProxy.Message]("workerTestProbe")
 
       val adaptedStateData = proxyStateData.copy(
         timeSeriesToSourceRef = Map(
@@ -603,7 +601,7 @@ class PrimaryServiceProxySpec
 
     "succeed, if model is handled" in {
       /* We once again fake the class, so that we can infiltrate a probe */
-      val worker = TestProbe[ServiceMessage]("workerTestProbe")
+      val worker = TestProbe[PrimaryServiceProxy.Message]("workerTestProbe")
 
       val adaptedStateData = proxyStateData.copy(
         modelToTimeSeries = Map(modelUuid -> uuidPq),

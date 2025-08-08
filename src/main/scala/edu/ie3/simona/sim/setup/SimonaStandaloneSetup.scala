@@ -19,12 +19,7 @@ import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
-  ServiceMessage,
-  WeatherMessage,
-}
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
@@ -46,7 +41,7 @@ import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Sample implementation to run a standalone simulation of simona configured
   * with the provided [[SimonaConfig]] and [[ResultFileHierarchy]]
@@ -149,13 +144,12 @@ class SimonaStandaloneSetup(
   }
 
   override def primaryServiceProxy(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
   ): ActorRef[ServiceMessage] = {
-    val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
-      simonaConfig.simona.time.startDateTime
-    )
+    val simulationStart = simonaConfig.simona.time.simStartTime
+
     val primaryServiceProxy = context.spawn(
       PrimaryServiceProxy(
         scheduler,
@@ -173,7 +167,7 @@ class SimonaStandaloneSetup(
   override def weatherService(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ActorRef[WeatherMessage] = {
+  ): ActorRef[ServiceMessage] = {
     val weatherService = context.spawn(
       WeatherService(scheduler),
       "weatherAgent",
@@ -193,9 +187,9 @@ class SimonaStandaloneSetup(
   }
 
   override def loadProfileService(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-  ): ActorRef[LoadProfileMessage] = {
+  ): ActorRef[ServiceMessage] = {
     val loadProfileService = context.spawn(
       LoadProfileService(scheduler),
       "loadProfileService",
@@ -206,11 +200,7 @@ class SimonaStandaloneSetup(
     loadProfileService ! ServiceMessage.Create(
       InitLoadProfileServiceStateData(
         cfg.input.loadProfile.datasource,
-        TimeUtil.withDefaults
-          .toZonedDateTime(cfg.time.startDateTime),
-        TimeUtil.withDefaults
-          .toZonedDateTime(cfg.time.endDateTime),
-        cfg.powerflow.resolution,
+        cfg.time.simStartTime,
       ),
       ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
     )
@@ -226,10 +216,9 @@ class SimonaStandaloneSetup(
     val jars = ExtSimLoader.scanInputFolder(extSimPath)
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
 
-    setupExtSim(extLinks, args)(
+    setupExtSim(extLinks, args)(using
       context,
       scheduler,
-      simonaConfig.simona.powerflow.resolution,
     )
   }
 

@@ -6,51 +6,58 @@
 
 package edu.ie3.simona.model.grid
 
-import org.scalatest.flatspec.AnyFlatSpec
+import edu.ie3.simona.test.common.UnitSpec
 import org.scalatest.matchers.should.Matchers
-import squants.{Dimensionless, Each}
-import squants.electro.{Amperes, ElectricPotential, Kilovolts, Ohms}
-import squants.energy.{Megawatts, Power, Kilowatts}
+import squants.{Dimensionless, Each, ElectricCurrent}
+import squants.electro.*
+import squants.energy.{Kilowatts, Megawatts, Power}
 
-class RefSystemSpec extends AnyFlatSpec with Matchers {
+class RefSystemSpec extends UnitSpec with Matchers {
 
-  "A RefSystem with nominal power and nominal voltage" should "provide corresponding nominal current and nominal impedance" in {
+  protected given tolerance: Dimensionless = Each(1e-12)
+  protected given currentTolerance: ElectricCurrent = Amperes(1e-9)
+  protected given impedanceTolerance: ElectricalResistance = Ohms(1e-9)
 
-    val nominalPower: Power = Kilowatts(600)
-    val nominalVoltage: ElectricPotential = Kilovolts(10)
+  "A RefSystem with nominal power and nominal voltage" should {
 
-    val refSystem = RefSystem(nominalPower, nominalVoltage)
+    "provide corresponding nominal current and nominal impedance" in {
 
-    refSystem.nominalPower should be(nominalPower)
-    refSystem.nominalVoltage should be(nominalVoltage)
-    refSystem.nominalCurrent should be(
-      Amperes(34.64101615137754774109785366023500d)
-    )
-    refSystem.nominalImpedance should be(
-      Ohms(166.6666666666666666666666666666666d)
-    )
+      val nominalPower: Power = Kilowatts(600)
+      val nominalVoltage: ElectricPotential = Kilovolts(10)
+
+      val refSystem = RefSystem(nominalPower, nominalVoltage)
+
+      refSystem.nominalPower should be(nominalPower)
+      refSystem.nominalVoltage should be(nominalVoltage)
+      refSystem.nominalCurrent should approximate(
+        Amperes(34.641016151)
+      )
+      refSystem.nominalImpedance should approximate(
+        Ohms(166.666666666)
+      )
+    }
   }
 
-  "A dimensionless impedance" should "be transferred correctly between reference systems" in {
+  "transfer a dimensionless impedance correctly to another reference system" in {
     val from = RefSystem(Megawatts(60d), Kilovolts(110d))
     val to = RefSystem(Megawatts(40d), Kilovolts(110d))
     val impedance = Each(0.1d)
-    val expected = Each(0.06666666666666667d)
+    val expected = Each(0.066666666666d)
 
     val actual: Dimensionless = RefSystem.transferImpedance(impedance, from, to)
 
-    actual should be(expected)
+    actual should approximate(expected)
   }
 
-  "A dimensionless admittance" should "be transferred correctly between reference systems" in {
+  "transfer a dimensionless admittance correctly to another reference system" in {
     val from = RefSystem(Megawatts(60d), Kilovolts(110d))
     val to = RefSystem(Megawatts(40d), Kilovolts(110d))
     val admittance = Each(0.1d)
-    val expected = Each(0.15000000000000002d)
+    val expected = Each(0.15)
 
     val actual: Dimensionless =
       RefSystem.transferAdmittance(admittance, from, to)
 
-    actual should be(expected)
+    actual should approximate(expected)
   }
 }

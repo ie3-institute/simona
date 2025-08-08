@@ -8,6 +8,7 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.TemperatureConversionSimona
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
@@ -27,7 +28,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
-import squants.thermal.{Kelvin, ThermalCapacity}
+import squants.thermal.{Celsius, Kelvin, ThermalCapacity}
 import squants.time.Seconds
 import squants.{Energy, Power, Temperature, Time}
 import tech.units.indriya.unit.Units
@@ -51,11 +52,11 @@ import java.util.UUID
   * @param ethCapa
   *   heat energy storage capability of thermal house, usually in [kWh/K]
   * @param targetTemperature
-  *   Target room temperature [K]
+  *   Target room temperature [°C]
   * @param lowerBoundaryTemperature
-  *   Lower temperature boundary [K]
+  *   Lower temperature boundary [°C]
   * @param upperBoundaryTemperature
-  *   Upper boundary temperature [K]
+  *   Upper boundary temperature [°C]
   */
 final case class ThermalHouse(
     uuid: UUID,
@@ -191,11 +192,11 @@ final case class ThermalHouse(
     val (k1, k2) = getFactorsK1AndK2(thermalPower, ambientTemperature)
     // k1/k2 represents the temperature for limes t -> infinity
     val longTermTemperature = k1 / k2
-    val exponent_k2 = -1 * k2 * duration.toSeconds
+    val exponentK2 = -1 * k2 * duration.toSeconds
 
     val temperatureValue =
       (currentInnerTemperature.toKelvinScale - longTermTemperature) * Math.exp(
-        exponent_k2
+        exponentK2
       ) + longTermTemperature
 
     Kelvin(temperatureValue)
@@ -259,8 +260,10 @@ final case class ThermalHouse(
           qDot,
         ).map(HouseTemperatureLowerBoundaryReached)
       } else if (
-      isInnerTemperatureTooHigh(limitTemperature - temperatureTolerance)
-    ) { /* House has more gain than losses */
+      isInnerTemperatureTooHigh(
+        limitTemperature - temperatureTolerance
+      ) && qDot > zeroKW
+    ) { /* House has more gain than losses AND gain is not caused external (through ambient temperature) */
       nextActivation(
         thermalHouseState.tick,
         targetTemperature,
@@ -288,7 +291,7 @@ final case class ThermalHouse(
     )
 
     val durationValue = Math.log(
-      (nextInnerTemperatureToReach - longTermTemperature) / (currentInnerTemperature - longTermTemperature)
+      (nextInnerTemperatureToReach.toKelvinScale - longTermTemperature.toKelvinScale) / (currentInnerTemperature.toKelvinScale - longTermTemperature.toKelvinScale)
     ) / (k2 * -1)
 
     val duration = Math.floor(durationValue).toLong
@@ -332,15 +335,9 @@ object ThermalHouse {
         .getValue
         .doubleValue
     ) / Kelvin(1d),
-    Kelvin(
-      input.getTargetTemperature.to(Units.KELVIN).getValue.doubleValue
-    ),
-    Kelvin(
-      input.getLowerTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
-    ),
-    Kelvin(
-      input.getUpperTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
-    ),
+    input.getTargetTemperature.toSquants,
+    input.getLowerTemperatureLimit.toSquants,
+    input.getUpperTemperatureLimit.toSquants,
   )
 
   /** State of a thermal house.

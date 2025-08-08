@@ -14,9 +14,13 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   OperationChangeIndicator,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.PrimaryDataParticipantModel._
+import edu.ie3.simona.model.participant.PrimaryDataParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  FlexType,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   EnrichableData,
@@ -44,7 +48,7 @@ import scala.reflect.ClassTag
   * @tparam PD
   *   The type of primary data.
   */
-final case class PrimaryDataParticipantModel[PD <: PrimaryData](
+final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
     override val uuid: UUID,
     override val id: String,
     override val sRated: ApparentPower,
@@ -56,6 +60,11 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData](
       PrimaryOperatingPoint[PD],
       PrimaryDataState[PD],
     ] {
+
+  override val flexModels
+      : Map[FlexType, ParticipantFlexModel[PrimaryDataState[PD]]] = Map(
+    FlexType.PowerLimit -> PrimaryDataPowerLimitFlexModel(this)
+  )
 
   override def determineState(
       lastState: PrimaryDataState[PD],
@@ -103,19 +112,11 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData](
   }
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult = throw new CriticalFailureException(
     "Method not implemented by this model."
   )
-
-  override def determineFlexOptions(
-      state: PrimaryDataState[PD]
-  ): FlexOptions = {
-    val (operatingPoint, _) = determineOperatingPoint(state)
-
-    MinMaxFlexOptions.noFlexOption(operatingPoint.activePower)
-  }
 
   override def determineOperatingPoint(
       state: PrimaryDataState[PD],
@@ -133,52 +134,6 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData](
 
 object PrimaryDataParticipantModel {
 
-  /** Constructs a [[PrimaryDataParticipantModel]] for the given physical
-    * [[ParticipantModel]] and the given primary data.
-    *
-    * @param physicalModel
-    *   The physical participant model.
-    * @param primaryDataExtra
-    *   Extra functionality specific to the primary data class.
-    */
-  final case class Factory[PD <: PrimaryData](
-      physicalModel: ParticipantModel[_, _],
-      primaryDataExtra: PrimaryDataExtra[PD],
-  ) extends ParticipantModelFactory[PrimaryDataState[PD]] {
-
-    override def getRequiredSecondaryServices: Iterable[ServiceType] =
-      Iterable.empty
-
-    override def getInitialState(
-        tick: Long,
-        simulationTime: ZonedDateTime,
-    ): PrimaryDataState[PD] =
-      PrimaryDataState(
-        primaryDataExtra.zero,
-        tick,
-      )
-
-    override def create(): PrimaryDataParticipantModel[PD] = {
-      val primaryResultFunc = new PrimaryResultFunc {
-        override def createResult(
-            data: PrimaryData.PrimaryDataWithComplexPower[_],
-            dateTime: ZonedDateTime,
-        ): SystemParticipantResult =
-          physicalModel.createPrimaryDataResult(data, dateTime)
-      }
-
-      new PrimaryDataParticipantModel(
-        physicalModel.uuid,
-        physicalModel.id,
-        physicalModel.sRated,
-        physicalModel.cosPhiRated,
-        physicalModel.qControl,
-        primaryResultFunc,
-        primaryDataExtra,
-      )
-    }
-  }
-
   /** Trait that provides functionality that can create the same result objects
     * as the corresponding physical object.
     *
@@ -187,7 +142,7 @@ object PrimaryDataParticipantModel {
     */
   private[participant] trait PrimaryResultFunc {
     def createResult(
-        data: PrimaryDataWithComplexPower[_],
+        data: PrimaryDataWithComplexPower[?],
         dateTime: ZonedDateTime,
     ): SystemParticipantResult
   }
@@ -216,18 +171,85 @@ object PrimaryDataParticipantModel {
   }
 
   private final case class PrimaryApparentPowerOperatingPoint[
-      PD <: PrimaryDataWithComplexPower[_]
+      PD <: PrimaryDataWithComplexPower[?]
   ](override val data: PD)
       extends PrimaryOperatingPoint[PD] {
     override val reactivePower: Option[ReactivePower] = Some(data.q)
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
-      PE <: PrimaryData with EnrichableData[_ <: PrimaryData]
+      PE <: PrimaryData with EnrichableData[? <: PrimaryData]
   ](
       override val data: PE
   ) extends PrimaryOperatingPoint[PE] {
     override val reactivePower: Option[ReactivePower] = None
+  }
+
+  /** Flex model for primary data. Does not allow for any flexibility.
+    *
+    * @param model
+    *   The model.
+    * @tparam PD
+    *   The type of primary data.
+    */
+  private final case class PrimaryDataPowerLimitFlexModel[PD <: PrimaryData](
+      model: PrimaryDataParticipantModel[PD]
+  ) extends ParticipantFlexModel[PrimaryDataState[PD]] {
+
+    override def determineFlexOptions(
+        state: PrimaryDataState[PD]
+    ): FlexOptions = {
+      val (operatingPoint, _) = model.determineOperatingPoint(state)
+
+      PowerLimitFlexOptions.noFlexOption(operatingPoint.activePower)
+    }
+
+  }
+
+  /** Constructs a [[PrimaryDataParticipantModel]] for the given physical
+    * [[ParticipantModel]] and the given primary data.
+    *
+    * @param physicalModel
+    *   The physical participant model.
+    * @param primaryDataExtra
+    *   Extra functionality specific to the primary data class.
+    */
+  final case class Factory[PD <: PrimaryData](
+      physicalModel: ParticipantModel[?, ?],
+      primaryDataExtra: PrimaryDataExtra[PD],
+  ) extends ParticipantModelFactory[PrimaryDataState[PD]] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): PrimaryDataState[PD] =
+      PrimaryDataState(
+        primaryDataExtra.zero,
+        tick,
+      )
+
+    override def create(): PrimaryDataParticipantModel[PD] = {
+      val primaryResultFunc = new PrimaryResultFunc {
+        override def createResult(
+            data: PrimaryData.PrimaryDataWithComplexPower[?],
+            dateTime: ZonedDateTime,
+        ): SystemParticipantResult =
+          physicalModel.createPrimaryDataResult(data, dateTime)
+      }
+
+      new PrimaryDataParticipantModel(
+        physicalModel.uuid,
+        physicalModel.id,
+        physicalModel.sRated,
+        physicalModel.cosPhiRated,
+        physicalModel.qControl,
+        primaryResultFunc,
+        primaryDataExtra,
+      )(using primaryDataExtra.getClassTag)
+    }
   }
 
 }

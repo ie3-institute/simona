@@ -9,24 +9,22 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
-  ServiceMessage,
-  WeatherMessage,
-}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.load.LoadProfileService
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -51,12 +49,15 @@ class DBFSAlgorithmFailedPowerFlowSpec
     with TestSpawnerTyped {
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
-  private val runtimeEvents: TestProbe[RuntimeEvent] =
-    TestProbe("runtimeEvents")
-  private val primaryService = TestProbe[ServiceMessage]("primaryService")
-  private val weatherService = TestProbe[WeatherMessage]("weatherService")
+  private val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
+    "runtimeEvents"
+  )
+  private val primaryService =
+    TestProbe[PrimaryServiceProxy.Message]("primaryService")
+  private val weatherService =
+    TestProbe[WeatherService.Message]("weatherService")
   private val loadProfileService =
-    TestProbe[LoadProfileMessage]("loadProfileService")
+    TestProbe[LoadProfileService.Message]("loadProfileService")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),

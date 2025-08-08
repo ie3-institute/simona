@@ -18,8 +18,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.test.common.input.EmInputTestData
@@ -27,7 +27,7 @@ import edu.ie3.simona.test.matchers.{QuantityMatchers, SquantsMatchers}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -50,17 +50,20 @@ class EmAgentSpec
     with QuantityMatchers
     with SquantsMatchers {
 
-  protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
-
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
     powerRequestReply = false,
     flexResult = true, // also test FlexOptionsResult if EM-controlled
   )
 
-  private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
-  private implicit val reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
+  given simulationStart: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
+
+  given FlexType = FlexType.PowerLimit
+
+  // Testing tolerances
+  given Power = Kilowatts(1e-10)
+  given ReactivePower = Kilovars(1e-10)
 
   "A self-optimizing EM agent" should {
     "be initialized correctly and run through some activations" in {
@@ -73,7 +76,7 @@ class EmAgentSpec
           EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
-          simulationStartDate,
+          simulationStart,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
         )
@@ -83,10 +86,7 @@ class EmAgentSpec
       emAgent ! RegisterControlledAsset(pvAgent.ref, pvInput)
       emAgent ! ScheduleFlexActivation(pvInput.getUuid, INIT_SIM_TICK)
 
-      val sa1 = scheduler.expectMessageType[ScheduleActivation]
-      sa1.tick shouldBe INIT_SIM_TICK
-      sa1.unlockKey shouldBe None
-      val emAgentActivation = sa1.actor
+      scheduler.expectMessage(ScheduleActivation(emAgent.ref, INIT_SIM_TICK))
 
       val evcsAgent = TestProbe[FlexRequest]("EvcsAgent")
       emAgent ! RegisterControlledAsset(evcsAgent.ref, evcsInput)
@@ -96,7 +96,7 @@ class EmAgentSpec
       scheduler.expectNoMessage()
 
       /* TICK -1 */
-      emAgentActivation ! Activation(INIT_SIM_TICK)
+      emAgent ! Activation(INIT_SIM_TICK)
 
       // expect flex activations
       pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
@@ -119,11 +119,11 @@ class EmAgentSpec
       resultListener.expectNoMessage()
       // expect completion from EmAgent
       scheduler.expectMessage(
-        Completion(emAgentActivation, Some(0))
+        Completion(emAgent, Some(0))
       )
 
       /* TICK 0 */
-      emAgentActivation ! Activation(0)
+      emAgent ! Activation(0)
 
       // expect flex activations
       pvAgent.expectMessage(FlexActivation(0))
@@ -132,7 +132,7 @@ class EmAgentSpec
       // send flex options
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
@@ -144,7 +144,7 @@ class EmAgentSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -181,7 +181,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
@@ -190,18 +190,18 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe simulationStartDate
+          emResult.getTime shouldBe simulationStart
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(-.0004.asMegaVar)
       }
 
       // expect completion from EmAgent
       scheduler.expectMessage(
-        Completion(emAgentActivation, Some(300))
+        Completion(emAgent, Some(300))
       )
 
       /* TICK 300 */
-      emAgentActivation ! Activation(300)
+      emAgent ! Activation(300)
 
       // expect activations and flex requests.
       // only participant 2 has been scheduled for this tick,
@@ -213,7 +213,7 @@ class EmAgentSpec
       // send flex options again, ev is fully charged
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(0),
           Kilowatts(-11),
           Kilowatts(0),
@@ -235,7 +235,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 300.toDateTime
           flexResult.getpRef() should equalWithTolerance(-.005.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(-.005.asMegaWatt)
@@ -244,13 +244,13 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 300.toDateTime
           emResult.getP should equalWithTolerance(-.005.asMegaWatt)
           emResult.getQ should equalWithTolerance(-.0005.asMegaVar)
       }
 
       // expect completion from EmAgent
-      scheduler.expectMessage(Completion(emAgentActivation, Some(600)))
+      scheduler.expectMessage(Completion(emAgent, Some(600)))
 
     }
 
@@ -264,7 +264,7 @@ class EmAgentSpec
           EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
-          simulationStartDate,
+          simulationStart,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
         )
@@ -274,10 +274,7 @@ class EmAgentSpec
       emAgent ! RegisterControlledAsset(pvAgent.ref, pvInput)
       emAgent ! ScheduleFlexActivation(pvInput.getUuid, 0)
 
-      val sa1 = scheduler.expectMessageType[ScheduleActivation]
-      sa1.tick shouldBe 0
-      sa1.unlockKey shouldBe None
-      val emAgentActivation = sa1.actor
+      scheduler.expectMessage(ScheduleActivation(emAgent.ref, 0))
 
       val evcsAgent = TestProbe[FlexRequest]("EvcsAgent")
       emAgent ! RegisterControlledAsset(evcsAgent.ref, evcsInput)
@@ -289,7 +286,7 @@ class EmAgentSpec
       // We skip initialization here for simplicity
 
       /* TICK 0 */
-      emAgentActivation ! Activation(0)
+      emAgent ! Activation(0)
 
       // expect flex activations
       pvAgent.expectMessage(FlexActivation(0))
@@ -298,7 +295,7 @@ class EmAgentSpec
       // send flex options
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
@@ -310,7 +307,7 @@ class EmAgentSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -350,7 +347,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
@@ -359,16 +356,16 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe simulationStartDate
+          emResult.getTime shouldBe simulationStart
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(-.0004.asMegaVar)
       }
 
       // expect completion from EmAgent
-      scheduler.expectMessage(Completion(emAgentActivation, Some(300)))
+      scheduler.expectMessage(Completion(emAgent, Some(300)))
 
       /* TICK 300 */
-      emAgentActivation ! Activation(300)
+      emAgent ! Activation(300)
 
       // expect activations and flex activations.
       // only pv agent has been scheduled for this tick,
@@ -380,7 +377,7 @@ class EmAgentSpec
       // send flex options again, now there's a cloud and thus less feed-in
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-3),
           Kilowatts(-3),
           Kilowatts(0),
@@ -420,7 +417,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 300.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.014.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.008.asMegaWatt)
@@ -429,14 +426,14 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 300.toDateTime
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(0.asMegaVar)
       }
 
       // expect completion from EmAgent with new tick (800) instead of revoked tick (600)
       scheduler.expectMessage(
-        Completion(emAgentActivation, Some(800))
+        Completion(emAgent, Some(800))
       )
     }
 
@@ -450,7 +447,7 @@ class EmAgentSpec
           EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
-          simulationStartDate,
+          simulationStart,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
         )
@@ -460,10 +457,7 @@ class EmAgentSpec
       emAgent ! RegisterControlledAsset(pvAgent.ref, pvInput)
       emAgent ! ScheduleFlexActivation(pvInput.getUuid, 0)
 
-      val sa1 = scheduler.expectMessageType[ScheduleActivation]
-      sa1.tick shouldBe 0
-      sa1.unlockKey shouldBe None
-      val emAgentActivation = sa1.actor
+      scheduler.expectMessage(ScheduleActivation(emAgent.ref, 0))
 
       val evcsAgent = TestProbe[FlexRequest]("EvcsAgent")
       emAgent ! RegisterControlledAsset(evcsAgent.ref, evcsInput)
@@ -475,7 +469,7 @@ class EmAgentSpec
       // We skip initialization here for simplicity
 
       /* TICK 0 */
-      emAgentActivation ! Activation(0)
+      emAgent ! Activation(0)
 
       // expect flex activations
       pvAgent.expectMessage(FlexActivation(0))
@@ -484,7 +478,7 @@ class EmAgentSpec
       // send flex options
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
@@ -496,7 +490,7 @@ class EmAgentSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -537,7 +531,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
@@ -546,16 +540,16 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 0.toDateTime
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(-.0004.asMegaVar)
       }
 
       // expect completion from EmAgent
-      scheduler.expectMessage(Completion(emAgentActivation, Some(300)))
+      scheduler.expectMessage(Completion(emAgent, Some(300)))
 
       /* TICK 300 */
-      emAgentActivation ! Activation(300)
+      emAgent ! Activation(300)
 
       // FLEX OPTIONS
 
@@ -567,7 +561,7 @@ class EmAgentSpec
       // send flex options again, now there's a cloud and thus less feed-in
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-3),
           Kilowatts(-3),
           Kilowatts(0),
@@ -579,7 +573,7 @@ class EmAgentSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -616,7 +610,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 300.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.014.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.008.asMegaWatt)
@@ -625,13 +619,13 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 300.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 300.toDateTime
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(0.asMegaVar)
       }
 
       // no more activation, since evcs activation got revoked
-      scheduler.expectMessage(Completion(emAgentActivation))
+      scheduler.expectMessage(Completion(emAgent))
     }
 
   }
@@ -648,7 +642,7 @@ class EmAgentSpec
           EmRuntimeConfig(),
           outputConfig,
           "PRIORITIZED",
-          simulationStartDate,
+          simulationStart,
           parent = Right(parentEmAgent.ref),
           listener = Iterable(resultListener.ref),
         )
@@ -658,12 +652,7 @@ class EmAgentSpec
       emAgent ! RegisterControlledAsset(pvAgent.ref, pvInput)
       emAgent ! ScheduleFlexActivation(pvInput.getUuid, INIT_SIM_TICK)
 
-      val emAgentFlex =
-        parentEmAgent.expectMessageType[RegisterControlledAsset] match {
-          case RegisterControlledAsset(participant, inputModel) =>
-            inputModel shouldBe emInput
-            participant
-        }
+      parentEmAgent.expectMessage(RegisterControlledAsset(emAgent, emInput))
       parentEmAgent.expectMessage(
         ScheduleFlexActivation(emInput.getUuid, INIT_SIM_TICK)
       )
@@ -676,7 +665,7 @@ class EmAgentSpec
       parentEmAgent.expectNoMessage()
 
       /* TICK -1 */
-      emAgentFlex ! FlexActivation(INIT_SIM_TICK)
+      emAgent ! FlexActivation(INIT_SIM_TICK)
 
       // expect flex activations
       pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
@@ -706,7 +695,7 @@ class EmAgentSpec
       )
 
       /* TICK 0 */
-      emAgentFlex ! FlexActivation(0)
+      emAgent ! FlexActivation(0)
 
       // expect activations and flex requests
       pvAgent.expectMessage(FlexActivation(0))
@@ -715,7 +704,7 @@ class EmAgentSpec
       // send flex options
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
@@ -727,7 +716,7 @@ class EmAgentSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -737,7 +726,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
@@ -746,7 +735,7 @@ class EmAgentSpec
       parentEmAgent.expectMessageType[ProvideFlexOptions] match {
         case ProvideFlexOptions(
               modelUuid,
-              MinMaxFlexOptions(
+              PowerLimitFlexOptions(
                 referencePower,
                 minPower,
                 maxPower,
@@ -760,7 +749,7 @@ class EmAgentSpec
 
       // issue power control and expect EmAgent to distribute it
       // we want max power = 6 kW
-      emAgentFlex ! IssuePowerControl(0, Kilowatts(6))
+      emAgent ! IssuePowerControl(0, Kilowatts(6))
 
       // expect issue power control
       pvAgent.expectMessage(IssueNoControl(0))
@@ -794,7 +783,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 0.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 0.toDateTime
           emResult.getP should equalWithTolerance(.006.asMegaWatt)
           emResult.getQ should equalWithTolerance(.0006.asMegaVar)
       }
@@ -818,7 +807,7 @@ class EmAgentSpec
       // so that the flex control changes before new flex option calculations are due
 
       // no control means reference power of the latest flex options = 0 kW
-      emAgentFlex ! IssueNoControl(150)
+      emAgent ! IssueNoControl(150)
 
       // We already sent NoControl at last tick, so we're still at -5 kW
       pvAgent.expectNoMessage()
@@ -844,7 +833,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 150.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 150.toDateTime
           emResult.getP should equalWithTolerance(0.asMegaWatt)
           emResult.getQ should equalWithTolerance(0.asMegaVar)
       }

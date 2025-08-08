@@ -61,7 +61,7 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar with EmInputTestData {
       }
 
       exception.getMessage should include(
-        "Unknown model strategy UNKNOWN_STRATEGY"
+        "Unknown model flex strategy UNKNOWN_STRATEGY"
       )
     }
 

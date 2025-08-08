@@ -756,7 +756,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // by a superior grid arrives)
         case (powerResponse: PowerResponse, _) =>
           ctx.log.debug(
-            "Received Request for Grid Power too early. Stashing away"
+            "Received request for Grid Power too early. Stashing away"
           )
 
           buffer.stash(powerResponse)
