@@ -181,6 +181,24 @@ simona.output.thermal.individualConfigs = [
 Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
 
+## Logging level configuration
+
+To specify which log statements should be logged in the `simona.log` file and which log statements should be printed to
+the console, SIMONA offers the user two configuration options.
+
+The first options sets the default log level for the log file as well as the console.
+
+```
+simona.output.log.level = "INFO"
+```
+
+If the console should use a different log level, this level must be selected in the following example.
+
+```
+simona.output.log.consoleLevel = "DEBUG"
+```
+
+
 ## Runtime configuration 
 
 Specification of the runtime of subgrids and voltage levels:
@@ -195,7 +213,7 @@ The participant runtime can be either based on default configuration or individu
 simona.runtime.participant.load = {
   defaultConfig = {
     calculateMissingReactivePowerWithModel = false
-    uuids = ["default"]
+    uuids = []
     scaling = 1.0
     modelBehaviour = "fix"
     reference = "power"
@@ -208,19 +226,20 @@ The reactive power is determined based on the chosen Q-control of the participan
 
     calculateMissingReactivePowerWithModel = true
 
-Using the default configuration the universally unique identifier can be set to "default". 
+Using the default configuration, the universally unique identifier should be empty. 
+Alternatively, the parameter can be omitted to use the default empty list.
 
-    uuids = ["default"]
+    uuids = []
 
 Choosing the scaling factor of relevant participant parameters such as rated power or annual power consumption: 
 
     scaling = 1.0
 
-The model behaviour specifies which type of load model is used. The load model can equal a fixed set point ("fix"), a predefined profile ("profile") or a randomly created profile ("random"). 
+The model behaviour specifies which type of load model is used. The load model can equal a fixed set point ("fix") or a predefined profile ("profile"). When using primary data for a load model, the model behaviour will be ignored. 
 
     modelBehaviour = "fix"
 
-The load reference can scale the load model behaviour to reach the given annual energy consumption ("energyConsumption") or the foreseen active power ("power"). 
+The load reference can scale the load model behaviour to reach the given annual energy consumption ("energyConsumption") or the foreseen active power ("power"). When using primary data for a load model, the load reference will be ignored.
 
     reference = "power"
 
@@ -290,6 +309,9 @@ are described in the documentation of [voltage limits](models/voltage_limits).
 
 
 ## Power flow configuration 
+
+The powerflow configuration in SIMONA is an optional configuration. If no configuration is present, SIMONA will skip all
+powerflow calculations. This can be useful, if you only want to simulate system participants and/or energy management systems.
 
 Maximum allowed deviation in power between two sweeps, before overall convergence is assumed:
 

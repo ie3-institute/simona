@@ -17,10 +17,14 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  OhmToSimona,
+  PowerConversionSimona,
+  SiemensToSimona,
+  VoltageToSimona,
+}
 import squants.Each
-import squants.electro.{Kilovolts, Ohms, Siemens}
-import squants.energy.Watts
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -50,6 +54,8 @@ import scala.math.BigDecimal.RoundingMode
   *   nominal current on the high voltage side of the transformer
   * @param iNomLv
   *   nominal current on the low voltage side of the transformer
+  * @param sRated
+  *   the rated power of the transformer
   * @param r
   *   resistance r, real part of the transformer impedance z (referenced to the
   *   nominal impedance of the grid) in p.u.
@@ -74,6 +80,7 @@ final case class TransformerModel(
     voltRatioNominal: BigDecimal,
     iNomHv: squants.electro.ElectricCurrent,
     iNomLv: squants.electro.ElectricCurrent,
+    sRated: ApparentPower,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
@@ -140,34 +147,10 @@ case object TransformerModel {
     /* Determine the physical pi equivalent circuit diagram parameters from the perspective
      * of the transformer's low voltage side */
     val (rTrafo, xTrafo, gTrafo, bTrafo) = (
-      Ohms(
-        trafoType.getrSc
-          .to(OHM)
-          .divide(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
-      Ohms(
-        trafoType.getxSc
-          .to(OHM)
-          .divide(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
-      Siemens(
-        trafoType.getgM
-          .to(SIEMENS)
-          .multiply(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
-      Siemens(
-        trafoType.getbM
-          .to(SIEMENS)
-          .multiply(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
+      trafoType.getrSc.toSquants / squaredNominalVoltRatio.doubleValue,
+      trafoType.getxSc.toSquants / squaredNominalVoltRatio.doubleValue,
+      trafoType.getgM.toSquants * squaredNominalVoltRatio.doubleValue,
+      trafoType.getbM().toSquants * squaredNominalVoltRatio.doubleValue,
     )
 
     /* Transfer the dimensionless parameters into the grid reference system */
@@ -181,27 +164,13 @@ case object TransformerModel {
     // iNomHv, iNomLv
     val calcINom
         : squants.electro.ElectricPotential => squants.electro.ElectricCurrent = {
-      portVoltage: squants.electro.ElectricPotential =>
-        Watts(
-          trafoType.getsRated
-            .to(VOLTAMPERE)
-            .getValue
-            .doubleValue()
-        ) / Math.sqrt(3) / portVoltage
-
+      (portVoltage: squants.electro.ElectricPotential) =>
+        trafoType.getsRated.toApparent / Math.sqrt(3) / portVoltage
     }
     val (iNomHv, iNomLv) =
       (
-        calcINom(
-          Kilovolts(
-            trafoType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
-          )
-        ),
-        calcINom(
-          Kilovolts(
-            trafoType.getvRatedB.to(KILOVOLT).getValue.doubleValue()
-          )
-        ),
+        calcINom(trafoType.getvRatedA.toSquants),
+        calcINom(trafoType.getvRatedB.toSquants),
       )
 
     // get the element port, where the transformer tap is located
@@ -237,6 +206,7 @@ case object TransformerModel {
       voltRatioNominal,
       iNomHv,
       iNomLv,
+      trafoType.getsRated.toApparent,
       r,
       x,
       g,
@@ -316,7 +286,7 @@ case object TransformerModel {
   def y0(transformerModel: TransformerModel, port: ConnectorPort): Complex = {
     val amount = transformerModel.amount
     val tapSide = transformerModel.tapSide
-    val tapRatio = transformerModel.tapRatio
+    val tapRatio = transformerModel.getTapRation
     val g0 = transformerModel.g0().value.doubleValue()
     val b0 = transformerModel.b0().value.doubleValue()
     val gij = transformerModel.gij().value.doubleValue()
@@ -365,7 +335,7 @@ case object TransformerModel {
     */
   def yij(transformerModel: TransformerModel): Complex = {
     val amount = transformerModel.amount
-    val tapRatio = transformerModel.tapRatio
+    val tapRatio = transformerModel.getTapRation
 
     new Complex(
       transformerModel.gij().value.doubleValue(),

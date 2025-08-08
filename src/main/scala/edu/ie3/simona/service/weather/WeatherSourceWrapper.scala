@@ -25,16 +25,15 @@ import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
   WeatherSource => PsdmWeatherSource,
 }
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
+import edu.ie3.simona.config.InputConfig
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  BaseInfluxDb1xParams,
   CouchbaseParams,
-  InfluxDb1xParams,
   SqlParams,
 }
 import edu.ie3.simona.exceptions.InitializationException
-import edu.ie3.simona.ontology.messages.services.WeatherMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   EMPTY_WEATHER_DATA,
   WeatherScheme,
@@ -43,7 +42,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
-import edu.ie3.util.DoubleUtils.ImplicitDouble
+import edu.ie3.util.DoubleUtils.!~=
 import edu.ie3.util.interval.ClosedInterval
 import tech.units.indriya.ComparableQuantity
 
@@ -96,7 +95,7 @@ private[weather] final case class WeatherSourceWrapper private (
   override def getWeather(
       tick: Long,
       weightedCoordinates: WeatherSource.WeightedCoordinates,
-  ): WeatherMessage.WeatherData = {
+  ): WeatherData = {
     val dateTime = tick.toDateTime
     val interval = new ClosedInterval(dateTime, dateTime)
     val coordinates = weightedCoordinates.weighting.keys.toList.asJavaCollection
@@ -213,26 +212,25 @@ private[weather] final case class WeatherSourceWrapper private (
 }
 
 private[weather] object WeatherSourceWrapper extends LazyLogging {
-  private val DEFAULT_RESOLUTION = 3600L
 
   def apply(
       source: PsdmWeatherSource
   )(implicit
       simulationStart: ZonedDateTime,
       idCoordinateSource: IdCoordinateSource,
-      resolution: Option[Long],
+      resolution: Long,
       distance: ComparableQuantity[Length],
   ): WeatherSourceWrapper = {
     WeatherSourceWrapper(
       source,
       idCoordinateSource,
-      resolution.getOrElse(DEFAULT_RESOLUTION),
+      resolution,
       distance,
     )
   }
 
   private[weather] def buildPSDMSource(
-      cfgParams: SimonaConfig.Simona.Input.Weather.Datasource,
+      cfgParams: InputConfig.WeatherDatasource,
       definedWeatherSources: Option[Serializable],
   )(implicit
       idCoordinateSource: IdCoordinateSource
@@ -273,7 +271,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
             "yyyy-MM-dd'T'HH:mm:ssxxx",
           )
         )
-      case InfluxDb1xParams(database, _, url) =>
+      case BaseInfluxDb1xParams(database, _, url) =>
         // initializing an influxDb weather source
         val influxDb1xConnector =
           new InfluxDbConnector(url, database)
@@ -305,9 +303,9 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         None
     }
 
-    source.foreach { source =>
+    source.foreach { src =>
       logger.info(
-        s"Successfully initialized ${source.getClass.getSimpleName} as source for WeatherSourceWrapper."
+        s"Successfully initialized ${src.getClass.getSimpleName} as source for WeatherSourceWrapper."
       )
     }
 
@@ -364,16 +362,16 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       windVel: Double,
   ) {
     def add(
-        diffIrr: Double,
-        dirIrr: Double,
-        temp: Double,
-        windVel: Double,
+        addedDiffIrr: Double,
+        addedDirIrr: Double,
+        addedTemp: Double,
+        addedWindVel: Double,
     ): WeightSum =
       WeightSum(
-        this.diffIrr + diffIrr,
-        this.dirIrr + dirIrr,
-        this.temp + temp,
-        this.windVel + windVel,
+        this.diffIrr + addedDiffIrr,
+        this.dirIrr + addedDirIrr,
+        this.temp + addedTemp,
+        this.windVel + addedWindVel,
       )
 
     /** Scale the given [[WeatherData]] by dividing by the sum of weights per

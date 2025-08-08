@@ -15,26 +15,22 @@ class QuantityMatchersSpec extends UnitSpec {
     val quant = Quantities.getQuantity(5d, Units.METRE)
     val toleranceQuantity = Quantities.getQuantity(1e-10, Units.METRE)
 
-    val testTolerance = 1e-10
+    given testTolerance: Double = 1e-10
 
     "testing for equality" should {
       "pass if quantities are exactly the same" in {
-        quant should equalWithTolerance(quant, testTolerance)
+        quant should equalWithTolerance(quant)
       }
 
       "pass if quantities are approximately the same" in {
         quant should equalWithTolerance(
-          quant.add(toleranceQuantity.multiply(0.9)),
-          testTolerance,
+          quant.add(toleranceQuantity.multiply(0.9))
         )
       }
 
       "detect mismatch on tolerance exceeding" in {
         quant should not(
-          equalWithTolerance(
-            quant.add(toleranceQuantity.multiply(1.1)),
-            testTolerance,
-          )
+          equalWithTolerance(quant.add(toleranceQuantity.multiply(1.1)))
         )
       }
     }

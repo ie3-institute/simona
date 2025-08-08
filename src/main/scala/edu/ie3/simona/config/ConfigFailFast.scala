@@ -8,27 +8,19 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.config.ConfigParams._
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   LoadRuntimeConfig,
-  ParticipantRuntimeConfigs,
   StorageRuntimeConfig,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
-  CouchbaseParams,
-  InfluxDb1xParams,
-  SampleParams,
-  SqlParams,
-}
-import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
-import edu.ie3.simona.model.participant2.load.{
+import edu.ie3.simona.model.participant.load.{
   LoadModelBehaviour,
   LoadReferenceType,
 }
-import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherSource.WeatherScheme
 import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
@@ -43,6 +35,7 @@ import edu.ie3.util.{StringUtils, TimeUtil}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.UUID
@@ -150,7 +143,7 @@ object ConfigFailFast extends LazyLogging {
     checkOutputConfig(simonaConfig.simona.output)
 
     /* Check power flow resolution configuration */
-    checkPowerFlowResolutionConfiguration(simonaConfig.simona.powerflow)
+    simonaConfig.simona.powerflow.foreach(checkPowerFlowResolutionConfiguration)
 
     /* Check control scheme definitions */
     simonaConfig.simona.control.foreach(checkControlSchemes)
@@ -165,7 +158,7 @@ object ConfigFailFast extends LazyLogging {
     *   the output configuration that should be checked
     */
   private def checkOutputConfig(
-      outputConfig: SimonaConfig.Simona.Output
+      outputConfig: OutputConfig
   ): Unit = {
 
     /* check if at least one data sink is defined */
@@ -186,7 +179,7 @@ object ConfigFailFast extends LazyLogging {
     * @param sink
     *   the sink configuration that should be checked
     */
-  private def checkDataSink(sink: SimonaConfig.Simona.Output.Sink): Unit = {
+  private def checkDataSink(sink: OutputConfig.Sink): Unit = {
     // ensures failure if new output sinks are added to enforce adaptions of the check sink method as well
     val supportedSinks = Set("influxdb1x", "csv", "kafka")
     if (
@@ -223,7 +216,7 @@ object ConfigFailFast extends LazyLogging {
       )
 
     sinkConfigs.find(_.isDefined) match {
-      case Some(Some(influxDb1x: InfluxDb1x)) =>
+      case Some(Some(influxDb1x: InfluxDb1xParams)) =>
         checkInfluxDb1xParams(
           "Sink",
           ResultSinkType.buildInfluxDb1xUrl(influxDb1x),
@@ -252,6 +245,11 @@ object ConfigFailFast extends LazyLogging {
       throw new InvalidConfigParameterException(
         s"Invalid time configuration." +
           s"Please ensure that the start time of the simulation is before the end time."
+      )
+    if (startDate.isEqual(endDate))
+      throw new InvalidConfigParameterException(
+        s"Invalid time configuration." +
+          s"Please ensure that the start time of the simulation is not equal to the end time."
       )
   }
 
@@ -334,23 +332,17 @@ object ConfigFailFast extends LazyLogging {
   }
 
   /** Check participants' basic runtime configurations, as well as in default as
-    * in individual configs. This comprises
-    * i.e. uuid and scaling factor
+    * in individual configs. This comprises i.e. uuid and scaling factor
     */
   private def checkBaseRuntimeConfigs(
       defaultConfig: BaseRuntimeConfig,
       individualConfigs: List[BaseRuntimeConfig],
-      defaultString: String = "default",
   ): Unit = {
     // special default config check
-    val uuidString = defaultConfig.uuids.mkString(",")
-    if (
-      StringUtils
-        .cleanString(uuidString)
-        .toLowerCase != StringUtils.cleanString(defaultString).toLowerCase
-    )
+    val defaultUuids = defaultConfig.uuids
+    if (defaultUuids.nonEmpty)
       logger.warn(
-        s"You provided '$uuidString' as uuid reference for the default model config. Those references will not be considered!"
+        s"You provided '${defaultUuids.mkString(",")}' as uuid reference for the default model config. Those references will not be considered!"
       )
 
     // special individual configs check
@@ -361,75 +353,36 @@ object ConfigFailFast extends LazyLogging {
       )
 
     // check that is valid for all model configs
-    val allConfigs = Map(defaultConfig -> Some(defaultString)) ++
-      individualConfigs.map(config => (config, None)).toMap
+    val allConfigs = Map(defaultConfig -> true) ++
+      individualConfigs.map(config => (config, false)).toMap
 
-    allConfigs.foreach { case (config, singleEntryStringOpt) =>
-      /* Checking the uuids */
-      if (config.uuids.isEmpty)
-        throw new InvalidConfigParameterException(
-          "There has to be at least one identifier for each participant."
-        )
-      /* If there is an option to a String that is also valid as a single entry, then check for this */
-      singleEntryStringOpt match {
-        case Some(singleString) =>
-          checkSingleString(singleString, config.uuids)
-        case None =>
-          config.uuids.foreach(uuid =>
-            try {
-              UUID.fromString(uuid)
-            } catch {
-              case e: IllegalArgumentException =>
-                throw new InvalidConfigParameterException(
-                  s"The UUID '$uuid' cannot be parsed as it is invalid.",
-                  e,
-                )
-            }
+    allConfigs.foreach { case (config, default) =>
+      // we only check the uuids for individual configs
+      if (!default) {
+        /* Checking the uuids */
+        if (config.uuids.isEmpty)
+          throw new InvalidConfigParameterException(
+            "There has to be at least one identifier for each participant."
           )
+
+        /* Checking if all uuids are valid */
+        config.uuids.foreach(uuid =>
+          try {
+            UUID.fromString(uuid)
+          } catch {
+            case e: IllegalArgumentException =>
+              throw new InvalidConfigParameterException(
+                s"The UUID '$uuid' cannot be parsed as it is invalid.",
+                e,
+              )
+          }
+        )
       }
 
       // check for scaling
       if (config.scaling < 0)
         throw new InvalidConfigParameterException(
           s"The scaling factor for system participants with UUID '${config.uuids.mkString(",")}' may not be negative."
-        )
-    }
-  }
-
-  /** Check method for a single string, normally the default string
-    *
-    * @param singleString
-    *   the single string that is expected
-    * @param uuids
-    *   the corresponding list of uuids
-    */
-  private def checkSingleString(
-      singleString: String,
-      uuids: List[String],
-  ): Unit = {
-    if (uuids.toVector.size != 1)
-      throw new InvalidConfigParameterException(
-        "The list of UUIDs is supposed to only have one entry!"
-      )
-    uuids.headOption match {
-      case Some(singleEntry) =>
-        if (
-          StringUtils
-            .cleanString(singleEntry)
-            .toLowerCase() != singleString
-        )
-          try {
-            UUID.fromString(singleEntry)
-          } catch {
-            case e: IllegalArgumentException =>
-              throw new InvalidConfigParameterException(
-                s"Found invalid UUID '$singleEntry' it was meant to be the string '$singleString' or a valid UUID.",
-                e,
-              )
-          }
-      case None =>
-        throw new InvalidConfigParameterException(
-          "There is no valid uuid entry in the list."
         )
     }
   }
@@ -562,7 +515,7 @@ object ConfigFailFast extends LazyLogging {
   }
 
   private def checkGridDataSource(
-      gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource
+      gridDataSource: InputConfig.GridDatasource
   ): Unit = {
 
     // grid source information provided?
@@ -593,12 +546,47 @@ object ConfigFailFast extends LazyLogging {
   }
 
   private def checkPrimaryDataSource(
-      primary: SimonaConfig.Simona.Input.Primary
-  ): Unit =
-    PrimaryServiceProxy.checkConfig(primary)
+      primaryConfig: InputConfig.Primary
+  ): Unit = {
+    val supportedSources =
+      Set("csv", "sql")
+
+    val sourceConfigs = Seq(
+      primaryConfig.couchbaseParams,
+      primaryConfig.csvParams,
+      primaryConfig.influxDb1xParams,
+      primaryConfig.sqlParams,
+    ).filter(_.isDefined).flatten
+
+    if (sourceConfigs.size > 1)
+      throw new InvalidConfigParameterException(
+        s"${sourceConfigs.size} time series source types defined. " +
+          s"Please define only one type!\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"
+      )
+    else if (sourceConfigs.isEmpty) {
+      logger.warn("No primary data source configured.")
+    } else {
+      sourceConfigs.headOption match {
+        case Some(csvParams: TimeStampedCsvParams) =>
+          checkTimePattern(csvParams.timePattern)
+        case Some(sqlParams: TimeStampedSqlParams) =>
+          checkTimePattern(sqlParams.timePattern)
+        case Some(x) =>
+          throw new InvalidConfigParameterException(
+            s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources
+                .mkString("\n\t")}"
+          )
+        case None =>
+          throw new InvalidConfigParameterException(
+            s"No configuration for a time series mapping source provided.\nPlease provide one of the available sources:\n\t${supportedSources
+                .mkString("\n\t")}"
+          )
+      }
+    }
+  }
 
   private def checkWeatherDataSource(
-      weatherDataSourceCfg: SimonaConfig.Simona.Input.Weather.Datasource
+      weatherDataSourceCfg: InputConfig.WeatherDatasource
   ): Unit = {
     // check coordinate source
     val definedCoordinateSource: String = checkCoordinateSource(
@@ -635,10 +623,12 @@ object ConfigFailFast extends LazyLogging {
         checkBaseCsvParams(baseCsvParams, "WeatherSource")
       case Some(params: CouchbaseParams) =>
         checkCouchbaseParams(params)
-      case Some(InfluxDb1xParams(database, _, url)) =>
+      case Some(BaseInfluxDb1xParams(database, _, url)) =>
         checkInfluxDb1xParams("WeatherSource", url, database)
-      case Some(params: SqlParams) =>
-        checkSqlParams(params)
+      case Some(
+            BaseSqlParams(jdbcUrl, password, schemaName, tableName, userName)
+          ) =>
+        checkSqlParams(jdbcUrl, password, schemaName, tableName, userName)
       case Some(_: SampleParams) =>
         // sample weather, no check required
         // coordinate source must be sample coordinate source
@@ -668,7 +658,7 @@ object ConfigFailFast extends LazyLogging {
     *   [[edu.ie3.datamodel.io.source.IdCoordinateSource]]
     */
   private def checkCoordinateSource(
-      coordinateSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+      coordinateSourceConfig: InputConfig.CoordinateSource
   ): String = {
     val supportedCoordinateSources = Set("csv", "sql", "sample")
     val definedCoordSources = Vector(
@@ -697,12 +687,18 @@ object ConfigFailFast extends LazyLogging {
         }
 
         "csv"
-      case Some(sqlParams: SqlParams) =>
-        checkSqlParams(sqlParams)
-        "sql"
       case Some(
-            _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
+            BaseSqlParams(
+              jdbcUrl,
+              password,
+              schemaName,
+              tableName,
+              userName,
+            )
           ) =>
+        checkSqlParams(jdbcUrl, password, schemaName, tableName, userName)
+        "sql"
+      case Some(_: SampleParams) =>
         "sample"
       case None | Some(_) =>
         throw new InvalidConfigParameterException(
@@ -719,7 +715,7 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkParticipantsOutputConfig(
-      subConfig: SimonaConfig.Simona.Output.Participant
+      subConfig: AssetConfigs[OutputConfig.ParticipantOutputConfig]
   ): Unit = {
 
     (subConfig.defaultConfig :: subConfig.individualConfigs).foreach(c =>
@@ -741,7 +737,7 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkThermalOutputConfig(
-      subConfig: SimonaConfig.Simona.Output.Thermal
+      subConfig: AssetConfigs[OutputConfig.SimpleOutputConfig]
   ): Unit = {
     implicit val elementType: String = "thermal"
     checkDefaultBaseOutputConfig(subConfig.defaultConfig)
@@ -754,13 +750,20 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for log
     */
   private def checkLogOutputConfig(
-      subConfig: SimonaConfig.Simona.Output.Log
+      subConfig: OutputConfig.Log
   ): Unit = {
     val validLogLevels = Seq("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
     if (!validLogLevels.contains(subConfig.level))
       throw new InvalidConfigParameterException(
         s"Invalid log level \"${subConfig.level}\". Valid log levels: ${validLogLevels.mkString(", ")}"
       )
+
+    subConfig.consoleLevel.foreach { level =>
+      if (!validLogLevels.contains(level))
+        throw new InvalidConfigParameterException(
+          s"Invalid console log level \"$level\". Valid log levels: ${validLogLevels.mkString(", ")}"
+        )
+    }
   }
 
   /** Checks resolution of power flow calculation
@@ -845,7 +848,7 @@ object ConfigFailFast extends LazyLogging {
     *   RuntimeConfig of Storages
     */
   private def checkStoragesConfig(
-      storageRuntimeConfig: ParticipantRuntimeConfigs[StorageRuntimeConfig]
+      storageRuntimeConfig: AssetConfigs[StorageRuntimeConfig]
   ): Unit = {
     if (
       storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
@@ -884,7 +887,7 @@ object ConfigFailFast extends LazyLogging {
     *   String that is meant to denote the default config
     */
   private def checkDefaultBaseOutputConfig(
-      config: SimonaConfig.BaseOutputConfig,
+      config: OutputConfig.BaseOutputConfig,
       defaultString: String = "default",
   )(implicit elementType: String): Unit = {
     if (
@@ -903,7 +906,7 @@ object ConfigFailFast extends LazyLogging {
     *   List of individual config entries
     */
   private def checkIndividualOutputConfigs(
-      configs: List[SimonaConfig.BaseOutputConfig]
+      configs: List[OutputConfig.BaseOutputConfig]
   )(implicit elementType: String): Unit = {
     val duplicateKeys = configs
       .map(config => StringUtils.cleanString(config.notifier).toLowerCase())
@@ -933,7 +936,7 @@ object ConfigFailFast extends LazyLogging {
     configs.foreach(checkBaseOutputConfig)
   }
 
-  /** Check the content of a [[BaseOutputConfig]]
+  /** Check the content of a [[OutputConfig.BaseOutputConfig]]
     *
     * @param config
     *   to be checked
@@ -941,7 +944,7 @@ object ConfigFailFast extends LazyLogging {
     *   a set of all valid identifiers
     */
   private def checkBaseOutputConfig(
-      config: BaseOutputConfig
+      config: OutputConfig.BaseOutputConfig
   )(implicit exceptedNotifiers: Set[NotifierIdentifier.Value]): Unit = {
     checkNotifierIdentifier(config.notifier, exceptedNotifiers)
   }
@@ -974,4 +977,22 @@ object ConfigFailFast extends LazyLogging {
         )
     }
   }
+
+  /** Check the validity of the given time pattern.
+    * @param dtfPattern
+    *   That should be checked.
+    */
+  private def checkTimePattern(dtfPattern: String): Unit =
+    Try {
+      new SimpleDateFormat(dtfPattern)
+    } match {
+      case Failure(exception) =>
+        throw new InvalidConfigParameterException(
+          s"Invalid timePattern '$dtfPattern' found. Please provide a valid pattern!" +
+            s"\nException: $exception"
+        )
+      case Success(_) =>
+      // this is fine
+    }
+
 }

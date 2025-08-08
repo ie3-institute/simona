@@ -55,7 +55,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
         (
           Some(requestedAbscissaQuantity),
           Some(
-            b.map(_ + (m * deltaX).value)
+            b.map(_ + (deltaX * m).value)
           ),
         )
       case _ =>

@@ -19,14 +19,14 @@ import edu.ie3.datamodel.models.input.container.{
 }
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.datamodel.utils.validation.ValidationUtils
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.InputConfig
 
 import java.nio.file.Path
 import scala.jdk.CollectionConverters._
 
-/** Takes [[edu.ie3.simona.config.SimonaConfig.Simona.Input.Grid.Datasource]] as
-  * input and provides a [[JointGridContainer]] based on the configuration incl.
-  * necessary sanity checks
+/** Takes [[InputConfig.GridDatasource]] as input and provides a
+  * [[JointGridContainer]] based on the configuration incl. necessary sanity
+  * checks
   *
   * @version 0.1
   * @since 28.04.20
@@ -35,7 +35,7 @@ object GridProvider extends LazyLogging {
 
   def gridFromConfig(
       simulationName: String,
-      gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource,
+      gridDataSource: InputConfig.GridDatasource,
   ): JointGridContainer = {
     GridSourceType(gridDataSource.id.toLowerCase) match {
       case GridSourceType.CSV =>
@@ -86,7 +86,7 @@ object GridProvider extends LazyLogging {
   }
 
   def getThermalGridsFromConfig(
-      gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource
+      gridDataSource: InputConfig.GridDatasource
   ): Map[ThermalBusInput, ThermalGrid] = GridSourceType(
     gridDataSource.id.toLowerCase
   ) match {

@@ -103,7 +103,7 @@ object QControl {
     * @param cosPhi
     *   the fixed cosPhi
     */
-  final case class CosPhiFixed private (cosPhi: Double) extends QControl {
+  final case class CosPhiFixed(cosPhi: Double) extends QControl {
 
     /** Obtain the function, that transfers active into reactive power
       *
@@ -120,7 +120,7 @@ object QControl {
         sRated: ApparentPower,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless,
-    ): Power => ReactivePower = { activePower: Power =>
+    ): Power => ReactivePower = { (activePower: Power) =>
       _cosPhiMultiplication(cosPhi, activePower)
     }
   }
@@ -130,7 +130,7 @@ object QControl {
     * @param xyCoordinates
     *   the characteristic as sequence of (x,y)
     */
-  final case class QV private (
+  final case class QV(
       xyCoordinates: SortedSet[
         XYPair[Dimensionless, Dimensionless]
       ]
@@ -172,7 +172,7 @@ object QControl {
         sRated: ApparentPower,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless,
-    ): Power => ReactivePower = { activePower: Power =>
+    ): Power => ReactivePower = { (activePower: Power) =>
       // Q = sqrt(S^2 - P^2)
       val qMaxFromP = Megavars(
         sqrt(pow(sRated.toMegavoltamperes, 2) - pow(activePower.toMegawatts, 2))
@@ -211,7 +211,7 @@ object QControl {
     * @param xyCoordinates
     *   the characteristic as sequence of (x,y)
     */
-  final case class CosPhiP private (
+  final case class CosPhiP(
       xyCoordinates: SortedSet[
         XYPair[Dimensionless, Dimensionless]
       ]
@@ -247,7 +247,7 @@ object QControl {
         sRated: ApparentPower,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless,
-    ): Power => ReactivePower = { activePower: Power =>
+    ): Power => ReactivePower = { (activePower: Power) =>
       /* cosphi( P / P_N ) = cosphi( P / (S_N * cosphi_rated) ) */
       val pInPu =
         activePower / sRated.toActivePower(cosPhiRated)

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event
 
-import edu.ie3.datamodel.models.result.NodeResult
+import edu.ie3.datamodel.models.result.{CongestionResult, NodeResult}
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
@@ -21,6 +21,7 @@ import edu.ie3.datamodel.models.result.thermal.{
   ThermalHouseResult,
   ThermalUnitResult,
 }
+import edu.ie3.datamodel.models.result.system.{EmResult, HpResult}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.listener.ResultEventListener
 import tech.units.indriya.ComparableQuantity
@@ -45,6 +46,44 @@ object ResultEvent {
       systemParticipantResult: SystemParticipantResult
   ) extends ResultEvent
 
+  object HpResult {
+    def unapply(hpResult: HpResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Power],
+      )
+    ] =
+      Option(hpResult).map { result =>
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getP,
+          result.getQ,
+        )
+      }
+  }
+
+  object EmResult {
+    def unapply(emResult: EmResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Power],
+      )
+    ] =
+      Option(emResult).map { result =>
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getP,
+          result.getQ,
+        )
+      }
+  }
+
   /** Event, that is triggered every time a thermal model has a new result
     * @param thermalResult
     *   Result of the thermal calculation
@@ -54,7 +93,7 @@ object ResultEvent {
   ) extends ResultEvent
 
   object ThermalHouseResult {
-    def unapply(result: ThermalHouseResult): Option[
+    def unapply(thermalHouseResult: ThermalHouseResult): Option[
       (
           ZonedDateTime,
           UUID,
@@ -62,7 +101,7 @@ object ResultEvent {
           ComparableQuantity[Temperature],
       )
     ] =
-      Option(result).map { result =>
+      Option(thermalHouseResult).map { result =>
         (
           result.getTime,
           result.getInputModel,
@@ -73,7 +112,7 @@ object ResultEvent {
   }
 
   object CylindricalThermalStorageResult {
-    def unapply(result: CylindricalStorageResult): Option[
+    def unapply(cylindricalStorageResult: CylindricalStorageResult): Option[
       (
           ZonedDateTime,
           UUID,
@@ -81,7 +120,7 @@ object ResultEvent {
           ComparableQuantity[Energy],
       )
     ] = {
-      Option(result).map { result =>
+      Option(cylindricalStorageResult).map { result =>
         (
           result.getTime,
           result.getInputModel,
@@ -107,6 +146,8 @@ object ResultEvent {
     *   the power flow results for two winding transformers
     * @param transformer3wResults
     *   the <b>partial</b> power flow results for three winding transformers
+    * @param congestionResults
+    *   the congestion found by the congestion managements (default: empty)
     */
   final case class PowerFlowResultEvent(
       nodeResults: Iterable[NodeResult],
@@ -114,7 +155,15 @@ object ResultEvent {
       lineResults: Iterable[LineResult],
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult],
-  ) extends ResultEvent
+      congestionResults: Iterable[CongestionResult] = Iterable.empty,
+  ) extends ResultEvent {
+
+    def +(congestionResult: Iterable[CongestionResult]): PowerFlowResultEvent =
+      copy(
+        congestionResults = congestionResult
+      )
+
+  }
 
   /** Event that holds the flexibility options result of a
     * [[edu.ie3.simona.model.participant.SystemParticipant]]

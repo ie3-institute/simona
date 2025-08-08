@@ -56,23 +56,23 @@ class ThermalGridSpec
       }
     }
 
-    "checking for required and additional demand" should {
-      "return proper information, if no required and no additional demand is apparent" in {
+    "checking for required and possible demand" should {
+      "return proper information, if no required and no possible demand is apparent" in {
         val required = MegawattHours(0d)
         val possible = MegawattHours(0d)
 
         val energyDemand = ThermalEnergyDemand(required, possible)
         energyDemand.hasRequiredDemand shouldBe false
-        energyDemand.hasAdditionalDemand shouldBe false
+        energyDemand.hasPossibleDemand shouldBe false
       }
 
-      "return proper information, if no required but additional demand is apparent" in {
+      "return proper information, if no required but possible demand is apparent" in {
         val required = MegawattHours(0d)
         val possible = MegawattHours(45d)
 
         val energyDemand = ThermalEnergyDemand(required, possible)
         energyDemand.hasRequiredDemand shouldBe false
-        energyDemand.hasAdditionalDemand shouldBe true
+        energyDemand.hasPossibleDemand shouldBe true
       }
 
       "throw exception, if required demand is higher than possible demand" in {
@@ -113,7 +113,7 @@ class ThermalGridSpec
 
         val energyDemand = ThermalEnergyDemand(required, possible)
         energyDemand.hasRequiredDemand shouldBe true
-        energyDemand.hasAdditionalDemand shouldBe true
+        energyDemand.hasPossibleDemand shouldBe true
       }
     }
 
@@ -146,8 +146,11 @@ class ThermalGridSpec
     )
 
     "return true when there is no storage" in {
-      val initialState = ThermalGrid.startingState(thermalGridOnlyHouse)
-      val result = initialState.isThermalStorageEmpty
+      val initialState = ThermalGrid.startingState(
+        thermalGridOnlyHouse,
+        testGridAmbientTemperature,
+      )
+      val result = initialState.isHeatStorageEmpty
       result shouldBe true
     }
 
@@ -155,25 +158,27 @@ class ThermalGridSpec
       new edu.ie3.datamodel.models.input.container.ThermalGrid(
         thermalBusInput,
         Set(thermalHouseInput).asJava,
-        Set[ThermalStorageInput](thermalStorageInput).asJava,
+        Set[ThermalStorageInput](heatStorageInput).asJava,
         Set.empty[ThermalStorageInput].asJava,
       )
     )
 
     "return true when all stored energy is effectively zero" in {
-      val initialState = ThermalGrid.startingState(thermalGrid)
-      val result = initialState.isThermalStorageEmpty
+      val initialState =
+        ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
+      val result = initialState.isHeatStorageEmpty
       result shouldBe true
     }
 
     "return false when storage is not empty" in {
-      val initialState = ThermalGrid.startingState(thermalGrid)
-      val gridState = initialState.copy(storageState =
-        initialState.storageState.map(storageState =>
+      val initialState =
+        ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
+      val gridState = initialState.copy(heatStorageState =
+        initialState.heatStorageState.map(storageState =>
           storageState.copy(storedEnergy = KilowattHours(1))
         )
       )
-      val result = gridState.isThermalStorageEmpty
+      val result = gridState.isHeatStorageEmpty
       result shouldBe false
     }
   }

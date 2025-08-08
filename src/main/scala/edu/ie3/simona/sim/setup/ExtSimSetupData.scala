@@ -6,13 +6,14 @@
 
 package edu.ie3.simona.sim.setup
 
+import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtInputDataConnection
 import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.results.ExtResultDataConnection
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 /** Case class that holds information regarding the external data connections as
   * well as the actor references of the created services.
@@ -20,22 +21,26 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
   * @param extSimAdapters
   *   All adapters to external simulations.
   * @param extPrimaryDataServices
-  *   Map: external primary data connections to service references.
+  *   Seq: external primary data connections to service references.
   * @param extDataServices
-  *   Map: external input data connection to service references.
+  *   Seq: external input data connection to service references.
   * @param extResultListeners
   *   Map: external result data connections to result data providers.
   */
 final case class ExtSimSetupData(
-    extSimAdapters: Iterable[ClassicRef],
-    extPrimaryDataServices: Seq[(ExtPrimaryDataConnection, ClassicRef)],
-    extDataServices: Seq[(ExtInputDataConnection, ClassicRef)],
-    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[_])],
+    extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
+    extPrimaryDataServices: Seq[
+      (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
+    ],
+    extDataServices: Seq[
+      (? <: ExtInputDataConnection, ActorRef[ServiceMessage])
+    ],
+    extResultListeners: Seq[(ExtResultDataConnection, ActorRef[ServiceMessage])],
 ) {
 
   private[setup] def update(
       connection: ExtPrimaryDataConnection,
-      ref: ClassicRef,
+      ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData =
     copy(extPrimaryDataServices =
       extPrimaryDataServices ++ Seq((connection, ref))
@@ -43,7 +48,7 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtInputDataConnection,
-      ref: ClassicRef,
+      ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData = connection match {
     case primaryConnection: ExtPrimaryDataConnection =>
       update(primaryConnection, ref)
@@ -53,22 +58,24 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtResultDataConnection,
-      ref: ActorRef[_],
+      ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData =
     copy(extResultListeners = extResultListeners ++ Seq((connection, ref)))
 
-  private[setup] def update(extSimAdapter: ClassicRef): ExtSimSetupData =
+  private[setup] def update(
+      extSimAdapter: ActorRef[ExtSimAdapter.Request]
+  ): ExtSimSetupData =
     copy(extSimAdapters = extSimAdapters ++ Set(extSimAdapter))
 
-  def evDataService: Option[ClassicRef] =
-    extDataServices.collectFirst { case (_: ExtEvDataConnection, ref) => ref }
+  def evDataService: Option[ActorRef[ServiceMessage]] =
+    extDataServices.collectFirst {
+      case (_: ExtEvDataConnection, ref: ActorRef[ServiceMessage]) => ref
+    }
 
-  def emDataService: Option[ClassicRef] =
-    extDataServices.collectFirst { case (_: ExtEmDataConnection, ref) => ref }
-
-  def dataServices: Seq[ClassicRef] = extDataServices.map { case (_, ref) =>
-    ref
-  }
+  def emDataService: Option[ActorRef[ServiceMessage]] =
+    extDataServices.collectFirst {
+      case (_: ExtEmDataConnection, ref: ActorRef[ServiceMessage]) => ref
+    }
 
   def evDataConnection: Option[ExtEvDataConnection] =
     extDataServices.collectFirst { case (connection: ExtEvDataConnection, _) =>
@@ -95,7 +102,7 @@ object ExtSimSetupData {
 
   /** Returns an empty [[ExtSimSetupData]].
     */
-  def apply(): ExtSimSetupData = ExtSimSetupData(
+  def apply: ExtSimSetupData = ExtSimSetupData(
     Iterable.empty,
     Seq.empty,
     Seq.empty,

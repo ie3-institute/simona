@@ -90,8 +90,6 @@ class NotifierSpec
           classOf[BmResult],
         Evcs ->
           classOf[EvcsResult],
-        ChpPlant ->
-          classOf[ChpResult],
         Storage ->
           classOf[StorageResult],
         Ev ->

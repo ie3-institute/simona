@@ -12,9 +12,10 @@ import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.test.common.model.MockEvModel
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils._
 
 import java.util.UUID
 
@@ -34,6 +35,8 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     EvcsLocationType.HOME,
     true,
   )
+
+  protected val evcsInputContainer = SimpleInputContainer(evcsInputModel)
 
   protected val ev1 = new MockEvModel(
     UUID.fromString("0-0-0-1-1"),

@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
+- Added `CODEOWNERS` file [#1387](https://github.com/ie3-institute/simona/issues/1387)
+- Added `LoadProfileService` to `ParticipantRefs` in `LoadProfileService` [#1418](https://github.com/ie3-institute/simona/issues/1418)
+- Enhance `Developer’s Guide` with information on steps for releasing a new version [#1450](https://github.com/ie3-institute/simona/issues/1450)
+- Considering primary data that start before simulation [#1034](https://github.com/ie3-institute/simona/issues/1034)
+
+### Changed
+- Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
+- Refactoring `GridAgentBuilder` to an object [#1372](https://github.com/ie3-institute/simona/issues/1372)
+- Converted `ExtSimAdapter` to typed [#1094](https://github.com/ie3-institute/simona/issues/1094)
+- Simplifying ScheduleLock in scala 3 [#1411](https://github.com/ie3-institute/simona/issues/1411)
+- Refactored `GridAgent` messages [#1404](https://github.com/ie3-institute/simona/issues/1404)
+- Refactored service messages [#1266](https://github.com/ie3-institute/simona/issues/1266)
+- Adapted `ParticipantAgent` for scala 3 [#1420](https://github.com/ie3-institute/simona/issues/1420)
+- Adapted `EmAgent` for scala 3 [#1415](https://github.com/ie3-institute/simona/issues/1415)
+- Updated Version within `CITATION.cff` [#1425](https://github.com/ie3-institute/simona/issues/1425)
+- Primary data class parameter cleanup [#1459](https://github.com/ie3-institute/simona/issues/1459)
+- Set Institute as first author within `CITATION.cff` [#1427](https://github.com/ie3-institute/simona/issues/1427)
+- Update Developers Guide - Release Process [#1466](https://github.com/ie3-institute/simona/issues/1466)
+- Made powerflow parameters in config options [#1443](https://github.com/ie3-institute/simona/issues/1443)
+- Provide abstraction for flex options in system participant and EM [#1456](https://github.com/ie3-institute/simona/issues/1456)
+- Rename `MinMaxFlexOptions` to `PowerLimitFlexOptions` [#1457](https://github.com/ie3-institute/simona/issues/1457)
+- Align temperature scale of parameter for `ThermalInputs` [#1484](https://github.com/ie3-institute/simona/issues/1484)
+- Refactored some tests for usage of should approximate [#863](https://github.com/ie3-institute/simona/issues/863)
+- Create trait for ThermalStorageCalculations [#1473](https://github.com/ie3-institute/simona/issues/1473)
+- Rename 'thermalStorage' to 'heatStorage' [#1475](https://github.com/ie3-institute/simona/issues/1475)
+
+### Fixed
+- Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
+- Fixed variable shadowing [#1371](https://github.com/ie3-institute/simona/issues/1371)
+- Updated dev's guide [#1409](https://github.com/ie3-institute/simona/issues/1409)
+- Fixed bug in returned next tick after congestion management [#1393](https://github.com/ie3-institute/simona/issues/1393)
+- Fixed bug in `CongestionResult` values [#1395](https://github.com/ie3-institute/simona/issues/1395)
+- Fixed typo in `HpModel` for model type [#1432](https://github.com/ie3-institute/simona/issues/1432)
+- Ambient temperature can cause the next threshold of the `ThermalHouse` to be the same as the current tick [#1438](https://github.com/ie3-institute/simona/issues/1438)
+- Fixed crash when using load model with `profile` behaviour and primary data [#1436](https://github.com/ie3-institute/simona/issues/1436)
+- Fixed CFF-Version [#1464](https://github.com/ie3-institute/simona/issues/1464)
+- Fixed handleInput of `ProfileLoadModel` [#1441](https://github.com/ie3-institute/simona/issues/1441)
+
+### Removed
+- Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
+- Removed dedicated `random` load model behaviour [#1436](https://github.com/ie3-institute/simona/issues/1436)
+
+## [4.0.0] - 2025-05-09
+
+### Added
 - Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
 - Re-implemented ResultEventListener in akka typed [#343](https://github.com/ie3-institute/simona/issues/343)
 - Add additional test cases from references for PvModelTest [#590](https://github.com/ie3-institute/simona/issues/590)
@@ -47,7 +93,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for topologies without transformers and slack grids with multiple nodes [#1099](https://github.com/ie3-institute/simona/issues/1099)
 - Checking the number of slack nodes [#1122](https://github.com/ie3-institute/simona/issues/1122)
 - Enhance exception message in case of InvalidGridException [#1124](https://github.com/ie3-institute/simona/issues/1124)
-- Integration test for thermal grids [#1145](https://github.com/ie3-institute/simona/issues/1145)
 - Added `VoltageLimits` [#1133](https://github.com/ie3-institute/simona/issues/1133)
 - Introducing new ParticipantAgent and ParticipantModel [#1134](https://github.com/ie3-institute/simona/issues/1134)
 - Using new `ParticipantAgent.Request` messages everywhere [#1195](https://github.com/ie3-institute/simona/issues/1195)
@@ -57,9 +102,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `PvModel` with its new implementation [#1149](https://github.com/ie3-institute/simona/issues/1149)
 - Replace `WecModel` with its new implementation [#1154](https://github.com/ie3-institute/simona/issues/1154)
 - Replace `StorageModel` with its new implementation [#1153](https://github.com/ie3-institute/simona/issues/1153)
+- Added `Version Check` to GitHub Actions Pipeline [#1067](https://github.com/ie3-institute/simona/issues/1067)
 - Use ValidationUtils for ThermalGrids [#1117](https://github.com/ie3-institute/simona/issues/1117)
 - Replace `EvcsModel` with its new implementation [#1151](https://github.com/ie3-institute/simona/issues/1151)
-- Considering primary data that start before simulation [#1034](https://github.com/ie3-institute/simona/issues/1034)
+- Fix determination of qDotIntoGrid in HpModel.calcState() in case heatStorage should feed the thermal grid [#1165](https://github.com/ie3-institute/simona/issues/1165)
+- Replace `BmModel` with its new implementation [#1157](https://github.com/ie3-institute/simona/issues/1157)
+- Integration test for thermal grids without Em [#1145](https://github.com/ie3-institute/simona/issues/1145)
+- Change thermal house behaviour to heat till targetTemperature [#1176](https://github.com/ie3-institute/simona/issues/1176)
+- Add test case to EmAgentIT to check for correct reactive power [#1185](https://github.com/ie3-institute/simona/issues/1185)
+- Integration test for thermal grids with Em [#1146](https://github.com/ie3-institute/simona/issues/1146)
+- Added check for equal start and end date of simulation to ConfigFailFast [#1317](https://github.com/ie3-institute/simona/issues/1317)
+- Introduce ParticipantModel factory pattern [#1324](https://github.com/ie3-institute/simona/issues/1324)
+- Replace `HpModel` with its new implementation [#1236](https://github.com/ie3-institute/simona/issues/1236)
+- Add conversion utils between `ComparableQuantity` and `Squants` [#1313](https://github.com/ie3-institute/simona/issues/1313)
+- Implementing auto-merge for dependabot PRs [#1339](https://github.com/ie3-institute/simona/issues/1339)
+- Introduce operatingPoints also to `ThermalGrid` [#1338](https://github.com/ie3-institute/simona/issues/1338)
+- Added configuration for console log level [#1364](https://github.com/ie3-institute/simona/issues/1364)
+- Introduced `BmModel` to `ParticipantAgent` [#1332](https://github.com/ie3-institute/simona/issues/1332)
+- Added load profile service [#951](https://github.com/ie3-institute/simona/issues/951)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -150,6 +210,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated to changes of PSDM release v6.0.0 [#1107](https://github.com/ie3-institute/simona/issues/1107)
 - Refactor external simulation setup [#1136](https://github.com/ie3-institute/simona/issues/1136)
 - Use new tick retrieval methods from PSDM [#920](https://github.com/ie3-institute/simona/issues/920)
+- Refactor input and output configs [#1175](https://github.com/ie3-institute/simona/issues/1175)
+- Use `Math.floor` when calcNextEventTick for charging entities [#1256](https://github.com/ie3-institute/simona/issues/1256) 
+- Removed Jenkinsfile to begin with using GitHub Actions[#1260](https://github.com/ie3-institute/simona/issues/1260)
+- Sequential test execution for (hopefully) more reliability [#1262](https://github.com/ie3-institute/simona/issues/1262)
+- Converting `ExtEvDataService` to pekko typed [#1214](https://github.com/ie3-institute/simona/issues/1214)
+- Updated Gradle to version 8.13 and removed deprecated syntax [#1286](https://github.com/ie3-institute/PowerSystemDataModel/issues/1286)
+- Consider inputContainer when initialize participant models [#1251](https://github.com/ie3-institute/simona/issues/1251) 
+- Change logging level for unsupported messages from ExtDataSupport [#1286](https://github.com/ie3-institute/simona/issues/1286)
+- Converting `WeatherService` to pekko typed [#1216](https://github.com/ie3-institute/simona/issues/1216)
+- Converting `PrimaryServiceWorker` to pekko typed [#1229](https://github.com/ie3-institute/simona/issues/1229)
+- Converting `PrimaryServiceProxy` to pekko typed [#1230](https://github.com/ie3-institute/simona/issues/1230)
+- Made some methods of `PvModel` static [#1217](https://github.com/ie3-institute/simona/issues/1217)
+- FlexOptions types in `FlexibilityMessage` [#1306](https://github.com/ie3-institute/simona/issues/1306)
+- Isolate solar radiation calculations of PvModel to its own object [#1327](https://github.com/ie3-institute/simona/issues/1327)
+- Reorganized CI order [#1333](https://github.com/ie3-institute/simona/issues/1333)
+- Fixed determining FlexOptions of `Evcs` [#1322](https://github.com/ie3-institute/simona/issues/1322)
+- Refactor handleFeedIn and handleConsumption of `ThermalGrid` due to qDotIntoGrid [#1343](https://github.com/ie3-institute/simona/issues/1343)
+- Adapted to typed actor in simonaAPI [#1311](https://github.com/ie3-institute/simona/issues/1311)
+- Making primary data source optional [#134](https://github.com/ie3-institute/simona/issues/134)
+- Refactoring uuids in default runtime configs [#1336](https://github.com/ie3-institute/simona/issues/1336)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -204,10 +284,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix input data handling in `ParticipantModel` [#1237](https://github.com/ie3-institute/simona/issues/1237)
 - Show full stacktrace of failing tests with `gradle test` [#1245](https://github.com/ie3-institute/simona/issues/1245)
 - Fix copernicus url in readthedocs [#1248](https://github.com/ie3-institute/simona/issues/1248)
+- Check for fully charged Evs when determine next OperationPoint of Evcs [#1253](https://github.com/ie3-institute/simona/issues/1253)
+- Fix bug in `ExtDataSupport.adapter` that leads to an exception while scheduling the service [#1273](https://github.com/ie3-institute/simona/issues/1273)
+- Fixed CI inconsistency after removing deprecations of Gradle [#1275](https://github.com/ie3-institute/simona/issues/1275)
+- Fix initialization by using ScheduleLocks [#1272](https://github.com/ie3-institute/simona/issues/1272)
+- Fix schedule lock in PrimaryServiceProxy [#1289](https://github.com/ie3-institute/simona/issues/1289)
+- Fix vn_simona time series mapping [#1288](https://github.com/ie3-institute/simona/issues/1288)
+- Fix hierarchical em structures leading to exception while initializing [#1293](https://github.com/ie3-institute/simona/issues/1293)
+- Fix failing `ExtEvDataServiceSpec` [#1297](https://github.com/ie3-institute/simona/issues/1297)
+- Fixed pekko config not written as output [#1302](https://github.com/ie3-institute/simona/issues/1302)
+- Cleanups and log capturing in `ExtEvDataServiceSpec` [#1320](https://github.com/ie3-institute/simona/issues/1320)
+- Fix tolerance in `ThermalGridIT` [#1345](https://github.com/ie3-institute/simona/issues/1345)
+- Fix startingState of `ThermalHouse` and `ThermalStorage` [#1347](https://github.com/ie3-institute/simona/issues/1347)
+- Added auto-approval to dependabot workflow and restrictions to updates [#1353](https://github.com/ie3-institute/simona/issues/1353)
+- Fix default config values not written to output config file [#1355](https://github.com/ie3-institute/simona/issues/1355)
+- Calculate `ThermalHouse` inner temperature correct [#1349](https://github.com/ie3-institute/simona/issues/1349)
+- Fix some default config values not being used [#1362](https://github.com/ie3-institute/simona/issues/1362)
 
 ### Removed
 - Removed `SimonaListerner` and related code [#1205](https://github.com/ie3-institute/simona/issues/1205)
 - Removed unused parameters in `ArgsParser` [#1192](https://github.com/ie3-institute/simona/issues/1192), [#1178](https://github.com/ie3-institute/simona/issues/1178)
+- Remove pausing/continuing functionality from TimeAdvancer [#1271](https://github.com/ie3-institute/simona/issues/1271)
+- Remove `ChpModel` [#1156](https://github.com/ie3-institute/simona/issues/1156)
+- Remove `MutableStorage` [#1280](https://github.com/ie3-institute/simona/issues/1280)
+- Removed untyped simona service [#1298](https://github.com/ie3-institute/simona/issues/1298)
 
 ## [3.0.0] - 2023-08-07
 
@@ -312,5 +412,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove RocketChat notification from Jenkinsfile [#234](https://github.com/ie3-institute/simona/issues/234)
 - Removed one-jar gradle plugin [#564](https://github.com/ie3-institute/simona/issues/564)
 
-[Unreleased]: https://github.com/ie3-institute/simona/compare/3.0.0...HEAD
+[Unreleased]: https://github.com/ie3-institute/simona/compare/4.0.0...HEAD
+[4.0.0]: https://github.com/ie3-institute/simona/compare/3.0.0...4.0.0
 [3.0.0]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...3.0.0

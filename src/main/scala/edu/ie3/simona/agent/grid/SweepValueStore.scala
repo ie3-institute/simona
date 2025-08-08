@@ -34,7 +34,7 @@ case object SweepValueStore {
     * @param nodeUuid
     *   node uuid of the sweep data
     */
-  final case class SweepValueStoreData private (
+  final case class SweepValueStoreData(
       nodeUuid: UUID,
       stateData: StateData,
   )

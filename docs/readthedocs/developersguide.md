@@ -11,8 +11,8 @@ local:
 
 ## Contributing code
 
-If you intend to produce some lines of code, pick an issue and get some hands on! For any questions feel
-free to contact us (see [`README.md`](https://github.com/ie3-institute/simona/blob/dev/README.md) for contact information).
+If you intend to produce some lines of code, pick an issue and get some hands on!
+For any questions feel free to contact us (see [`README.md`](https://github.com/ie3-institute/simona/blob/dev/README.md) for contact information).
 
 ### Branching and handing in pull requests
 
@@ -28,7 +28,7 @@ We also encourage you to create pull requests early in your development cycle wh
 When you are ready for a review, invite one or more reviewers through the pull request.
 In short, mergeable PRs have to meet our standards in several areas:
 - Automated checks
-  - [Jenkins](https://simona.ie3.e-technik.tu-dortmund.de/ci/job/ie3-institute/job/simona/) run succeeds, i.e. 
+  - GitHub Actions run succeeds, i.e. 
     - The code needs to be properly formatted (`gradle spotlessApply`)
     - The code needs to compile
     - All tests need to succeed
@@ -49,12 +49,10 @@ There can be exceptions to these rules, which have to be approved by the reviewe
 
 ### Tests
 
-We have good experiences using [ScalaTest](https://www.scalatest.org/) and [Spock](http://spockframework.org/) as testing frameworks.
-Please do not only try to achieve a high _line coverage_, but also aim at covering as many [_branches_](https://en.wikipedia.org/wiki/Code_coverage) as possible.
-In order to execute _all_ available tests, execute `gradle test` or comment `!test` on your PR, which automatically queues a run in our CI.
-
-When practical, we like to use [test driven development (TDD)](https://www.guru99.com/test-driven-development.html):
-It can pay off to write a failing test first for new functionality to be implemented, then implement and alter the actual functionality until the tests pass.
+We have good experiences using [ScalaTest](https://www.scalatest.org/) ([Spock](http://spockframework.org/) in other projects) as testing frameworks.
+Please do not only try to achieve a high _line coverage_, but test where it makes sense.
+For crucial parts, aim at covering as many [_branches_](https://en.wikipedia.org/wiki/Code_coverage) as possible.
+In order to execute _all_ available tests, execute `gradle test`.
 
 ### Coding conventions
 
@@ -85,3 +83,49 @@ maxdepth: 1
 ---
 protocols
 ```
+
+## Release Process
+
+We're following the git-flow approach to release new versions. The following steps are necessary to went through for a release:
+
+### Pre-Release
+1. Update gradle to latest version: `./gradlew wrapper --gradle-version=<version> --distribution-type=bin`
+2. Create a new *issue* with the new release version (e.g. Release 2.1.0)
+3. Milestone and link PRs to it:
+   1. Create a new Milestone for this release version if it doesn't exist already
+   2. Search all PRs that are newer than the last release. This query might be helpful `is:closed is:pr no:milestone -author:app/dependabot`
+   3. Add all of these PRs to the Milestone
+4. Create a new branch based from MAIN:
+   1. Name it `rel/YOUR_INITIALS/#ISSUE_NUMBER-release_RELEASE_VERSION where
+      - YOUR_INITIALS would be `kb` for [Prof. Dr. rer. hort. Klaus-Dieter Brokkoli](https://www.instagram.com/prof_broccoli/)
+      - ISSUE_NUMBER is the number of the issue created above
+      - RELEASE_Version would be e.g. 2.1.0
+   2. Merge dev-branch into the rel-Branch
+   3. Update the `version.properties` to new version number
+   4. Update `CITATION.cff`
+      - Adapt new version number
+      - Adapt release date
+5. Adapt the *changelog*:
+   1. Change headline from `Unreleased` into the new version (e.g. 2.1.0)
+   2. Add a new `Unreleased` section
+   3. Adapt the from-till dates of the versions in the bottom part of the changelog
+6. Push the PR
+   - Keep in mind that you would like to merge into main, not dev.
+7. Get a Reviewer who Merge your release PR
+
+### Release on Maven Central
+8. After your Branch has been merged, one of the Repository-Admins needs to confirm the release within MavenCentral.
+   1. Visit [Maven Central Publishing](https://central.sonatype.com/publishing/deployments). If everything worked fine, the new release should be available under 'Deployments'. Else, check the CI-Pipeline for any errors.
+   2. Finally check the Deployment:
+      - Are all necessary files there?
+      - Is the deployment valid?
+   3. If so, publish. Else, choose 'drop'.
+9. Final steps at Github
+   1. Create a new Tags and create the Release also there
+      1. Hint: Intellij -> Git -> Select 'Main-Branch' -> Choose commit
+      2. Push Tags to Github
+   2. Create a new release with the new tag version and the change description (Copy from changelog and adapt accordingly if necessary)
+   3. Increment MinorVersion of dev branch
+      - Adapt `version.properties` by using gradle task `./gradlew incrementMinor`
+      - Use Force Push to overrule branch protection
+   4. Merge back the main branch into dev

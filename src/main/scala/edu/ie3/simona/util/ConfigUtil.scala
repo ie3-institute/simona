@@ -18,10 +18,25 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
   Transformer3WResult,
 }
-import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
+import edu.ie3.datamodel.models.result.{
+  CongestionResult,
+  NodeResult,
+  ResultEntity,
+}
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  CouchbaseParams,
+  KafkaParams,
+  SqlParams,
+}
+import edu.ie3.simona.config.OutputConfig.{
+  GridOutputConfig,
+  ParticipantOutputConfig,
+  SimpleOutputConfig,
+}
+import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, EmRuntimeConfig}
-import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.SimonaConfig.AssetConfigs
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
@@ -118,6 +133,7 @@ object ConfigUtil {
       ParticipantConfigUtil(
         buildUuidMapping(
           Seq(
+            subConfig.bm.individualConfigs,
             subConfig.load.individualConfigs,
             subConfig.fixedFeedIn.individualConfigs,
             subConfig.pv.individualConfigs,
@@ -127,6 +143,7 @@ object ConfigUtil {
           ).flatten
         ),
         Seq(
+          subConfig.bm.defaultConfig,
           subConfig.load.defaultConfig,
           subConfig.fixedFeedIn.defaultConfig,
           subConfig.pv.defaultConfig,
@@ -205,11 +222,11 @@ object ConfigUtil {
   }
 
   object OutputConfigUtil {
-    def apply(
-        subConfig: SimonaConfig.Simona.Output.Participant
+    def participants(
+        subConfig: AssetConfigs[ParticipantOutputConfig]
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
-        case ParticipantBaseOutputConfig(
+        case ParticipantOutputConfig(
               _,
               simulationResult,
               flexResult,
@@ -218,7 +235,7 @@ object ConfigUtil {
           NotifierConfig(simulationResult, powerRequestReply, flexResult)
       }
       val configMap = subConfig.individualConfigs.map {
-        case ParticipantBaseOutputConfig(
+        case ParticipantOutputConfig(
               notifier,
               simulationResult,
               flexResult,
@@ -242,8 +259,8 @@ object ConfigUtil {
       new OutputConfigUtil(defaultConfig, configMap)
     }
 
-    def apply(
-        subConfig: SimonaConfig.Simona.Output.Thermal
+    def thermal(
+        subConfig: AssetConfigs[SimpleOutputConfig]
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case SimpleOutputConfig(_, simulationResult) =>
@@ -295,6 +312,8 @@ object ConfigUtil {
         entities += classOf[Transformer2WResult]
       if (subConfig.transformers3w)
         entities += classOf[Transformer3WResult]
+      if (subConfig.congestions)
+        entities += classOf[CongestionResult]
 
       entities.toSet
     }
@@ -305,7 +324,6 @@ object ConfigUtil {
     */
   object NotifierIdentifier extends ParsableEnumeration {
     val BioMassPlant: Value = Value("bm")
-    val ChpPlant: Value = Value("chp")
     val Em: Value = Value("em")
     val Ev: Value = Value("ev")
     val Evcs: Value = Value("evcs")
@@ -340,7 +358,7 @@ object ConfigUtil {
       *   descriptive exception messages)
       */
     def checkBaseCsvParams(
-        params: SimonaConfig.BaseCsvParams,
+        params: BaseCsvParams,
         csvParamsName: String,
     ): Unit = params match {
       case BaseCsvParams(csvSep, directoryPath, _) =>
@@ -380,42 +398,46 @@ object ConfigUtil {
   object DatabaseConfigUtil extends LazyLogging {
 
     def checkSqlParams(
-        sql: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
+        jdbcUrl: String,
+        password: String,
+        schemaName: String,
+        tableName: String,
+        userName: String,
     ): Unit = {
-      if (!sql.jdbcUrl.trim.startsWith("jdbc:")) {
+      if (!jdbcUrl.trim.startsWith("jdbc:")) {
         throw new InvalidConfigParameterException(
-          s"The provided JDBC url '${sql.jdbcUrl}' is invalid! The url should start with 'jdbc:'"
+          s"The provided JDBC url '$jdbcUrl' is invalid! The url should start with 'jdbc:'"
         )
       }
-      if (!sql.jdbcUrl.trim.startsWith("jdbc:postgresql://")) {
+      if (!jdbcUrl.trim.startsWith("jdbc:postgresql://")) {
         logger.warn(
           "It seems like you intend to use the SqlWeatherSource with an other dialect than PostgreSQL. Please be aware that this usage has neither been tested nor been considered in development."
         )
       }
-      if (sql.userName.isEmpty)
+      if (userName.isEmpty)
         throw new InvalidConfigParameterException(
           "User name for SQL weather source cannot be empty"
         )
-      if (sql.password.isEmpty)
+      if (password.isEmpty)
         logger.info(
           "Password for SQL weather source is empty. This is allowed, but not common. Please check if this an intended setting."
         )
-      if (sql.tableName.isEmpty)
+      if (tableName.isEmpty)
         throw new InvalidConfigParameterException(
           "Weather table name for SQL weather source cannot be empty"
         )
-      if (sql.schemaName.isEmpty)
+      if (schemaName.isEmpty)
         throw new InvalidConfigParameterException(
           "Schema name for SQL weather source cannot be empty"
         )
 
       /* Try to build a connection */
       Try(
-        new SqlConnector(sql.jdbcUrl, sql.userName, sql.password).getConnection
+        new SqlConnector(jdbcUrl, userName, password).getConnection
       ) match {
         case Failure(exception) =>
           throw new IllegalArgumentException(
-            s"Unable to reach configured SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'. Exception: $exception",
+            s"Unable to reach configured SQL database with url '$jdbcUrl' and user name '$userName'. Exception: $exception",
             exception,
           )
         case Success(connection) =>
@@ -423,17 +445,17 @@ object ConfigUtil {
           connection.close()
           if (!validConnection)
             throw new IllegalArgumentException(
-              s"Unable to reach configured SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'."
+              s"Unable to reach configured SQL database with url '$jdbcUrl' and user name '$userName'."
             )
           else
             logger.debug(
-              s"Successfully pinged SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'"
+              s"Successfully pinged SQL database with url '$jdbcUrl' and user name '$userName'"
             )
       }
     }
 
     def checkCouchbaseParams(
-        couchbase: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams
+        couchbase: CouchbaseParams
     ): Unit = {
       if (couchbase.url.isEmpty)
         throw new InvalidConfigParameterException(

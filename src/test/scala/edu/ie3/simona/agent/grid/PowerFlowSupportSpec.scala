@@ -31,7 +31,7 @@ import edu.ie3.simona.test.common.model.grid.{
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils._
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -65,9 +65,9 @@ class PowerFlowSupportSpec
     with PowerFlowSupport
     with GridResultsSupport {
 
-  implicit val log: Logger = LoggerFactory.getLogger(this.getClass)
-  val actorRef: ActorRef[GridAgent.Request] =
-    TestProbe[GridAgent.Request]("mock_grid_agent").ref
+  given log: Logger = LoggerFactory.getLogger(this.getClass)
+  val actorRef: ActorRef[GridAgent.Message] =
+    TestProbe[GridAgent.Message]("mock_grid_agent").ref
 
   /** Setting voltage at slack node to 110 kV and introducing a load of 1 MW at
     * node 1
@@ -97,8 +97,7 @@ class PowerFlowSupportSpec
       ),
     )
 
-  val currentTolerance = 1e-3 // 1 mA
-  val angleTolerance = 1e-3 // 0.001 deg
+  given currentAnAngleTolerance: Double = 1e-3 // 1 mA, 0.001 deg
 
   /** We test for angle regardless of direction of the lines here, thus
     * normalize to [0, 180] degrees
@@ -166,21 +165,13 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => loadLinesLeft.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              30.4954d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              30.4954d.asAmpere,
-              currentTolerance,
-            )
+            lineRes.getiAMag() should equalWithTolerance(30.4954d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(30.4954d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance,
+              179.7095d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance,
+              179.7095d.asDegreeGeom
             )
           }
 
@@ -194,21 +185,13 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => loadLinesRight.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              27.723d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              27.723d.asAmpere,
-              currentTolerance,
-            )
+            lineRes.getiAMag() should equalWithTolerance(27.723d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(27.723d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance,
+              179.7095d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance,
+              179.7095d.asDegreeGeom
             )
           }
 
@@ -262,15 +245,9 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => loadLinesLeft.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance,
-            )
-          // angles are not reliable enough with such small magnitudes
+            lineRes.getiAMag() should equalWithTolerance(0.0001d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(0.0001d.asAmpere)
+            // angles are not reliable enough with such small magnitudes
           }
 
         // right/bottom side segments (lines that are adjacent to the closed switch) should have load
@@ -279,21 +256,13 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => loadLinesRight.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              58.6017d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              58.6017d.asAmpere,
-              currentTolerance,
-            )
+            lineRes.getiAMag() should equalWithTolerance(58.6017d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(58.6017d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.4090d.asDegreeGeom,
-              angleTolerance,
+              179.4090d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.4090d.asDegreeGeom,
-              angleTolerance,
+              179.4090d.asDegreeGeom
             )
           }
 
@@ -347,21 +316,13 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => expectedLoadLines.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              58.5343d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              58.5343d.asAmpere,
-              currentTolerance,
-            )
+            lineRes.getiAMag() should equalWithTolerance(58.5343d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(58.5343d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.461d.asDegreeGeom,
-              angleTolerance,
+              179.461d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.461d.asDegreeGeom,
-              angleTolerance,
+              179.461d.asDegreeGeom
             )
           }
 
@@ -373,15 +334,9 @@ class PowerFlowSupportSpec
             expectedNoLoadLines.contains(lineRes.getInputModel)
           )
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance,
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance,
-            )
-          // angles are not reliable enough with such small magnitudes
+            lineRes.getiAMag() should equalWithTolerance(0.0001d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(0.0001d.asAmpere)
+            // angles are not reliable enough with such small magnitudes
           }
 
       }
@@ -461,8 +416,8 @@ class PowerFlowSupportSpec
   object TestData extends DbfsTestGrid with ConfigTestData {
     val time: Simona.Time = simonaConfig.simona.time
 
-    implicit def toZoneDateTime(time: String): ZonedDateTime =
-      TimeUtil.withDefaults.toZonedDateTime(time)
+    implicit def toZoneDateTime(timeString: String): ZonedDateTime =
+      TimeUtil.withDefaults.toZonedDateTime(timeString)
 
     implicit def toGridModel(
         subGridContainer: SubGridContainer

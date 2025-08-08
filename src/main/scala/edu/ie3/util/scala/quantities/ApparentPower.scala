@@ -7,6 +7,7 @@
 package edu.ie3.util.scala.quantities
 
 import squants._
+import squants.electro.{Amperes, ElectricPotential}
 import squants.energy._
 import squants.time.Time
 
@@ -26,6 +27,10 @@ final class ApparentPower private (
 ) extends Quantity[ApparentPower] {
 
   def dimension: ApparentPower.type = ApparentPower
+
+  def /(that: ElectricPotential): ElectricCurrent = Amperes(
+    this.toVoltamperes / that.toVolts
+  )
 
   def toMillivoltamperes: Double = to(Millivoltamperes)
   def toVoltamperes: Double = to(Voltamperes)

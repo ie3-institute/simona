@@ -12,16 +12,20 @@ import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.LineInput
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  CurrentToSimona,
+  OhmPerLengthToSimona,
+  SiemensPerLengthToSimona,
+}
 import squants.Each
-import squants.electro.{Amperes, Ohms, Siemens}
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import javax.measure.quantity.Length
 
 /** This model represents an electric wire or overhead line
   *
@@ -146,44 +150,14 @@ case object LineModel extends LazyLogging {
       endDate: ZonedDateTime,
   ): LineModel = {
 
+    implicit val length: ComparableQuantity[Length] = lineInput.getLength
+
     val lineType = lineInput.getType
     val (r, x, g, b) = (
-      refSystem.rInPu(
-        Ohms(
-          lineType.getR
-            .to(OHM_PER_KILOMETRE)
-            .multiply(lineInput.getLength.to(KILOMETRE))
-            .getValue
-            .doubleValue()
-        )
-      ),
-      refSystem.xInPu(
-        Ohms(
-          lineType.getX
-            .to(OHM_PER_KILOMETRE)
-            .multiply(lineInput.getLength.to(KILOMETRE))
-            .getValue
-            .doubleValue()
-        )
-      ),
-      refSystem.gInPu(
-        Siemens(
-          lineType.getG
-            .to(SIEMENS_PER_KILOMETRE)
-            .multiply(lineInput.getLength.to(KILOMETRE))
-            .getValue
-            .doubleValue()
-        )
-      ),
-      refSystem.bInPu(
-        Siemens(
-          lineType.getB
-            .to(SIEMENS_PER_KILOMETRE)
-            .multiply(lineInput.getLength.to(KILOMETRE))
-            .getValue
-            .doubleValue()
-        )
-      ),
+      refSystem.rInPu(lineType.getR.toSquants),
+      refSystem.xInPu(lineType.getX.toSquants),
+      refSystem.gInPu(lineType.getG.toSquants),
+      refSystem.bInPu(lineType.getB.toSquants),
     )
 
     val operationInterval =
@@ -200,9 +174,7 @@ case object LineModel extends LazyLogging {
       lineInput.getNodeA.getUuid,
       lineInput.getNodeB.getUuid,
       lineInput.getParallelDevices,
-      Amperes(
-        lineType.getiMax().to(AMPERE).getValue.doubleValue()
-      ),
+      lineType.getiMax().toSquants,
       r,
       x,
       g,

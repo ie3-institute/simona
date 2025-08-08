@@ -17,23 +17,21 @@ import edu.ie3.simona.event.listener.{
 }
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.sim.SimonaSim.SimulationEnded
-import edu.ie3.simona.sim.SimonaSimSpec._
+import edu.ie3.simona.sim.SimonaSimSpec.*
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter.*
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.nio.file.Path
 import java.util.UUID
@@ -86,7 +84,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         simonaSim ! SimonaSim.Start(starter.ref)
 
         // Initialization has started, mock actors are being created
-        timeAdvancer.expectMessage(TimeAdvancer.Start())
+        timeAdvancer.expectMessage(TimeAdvancer.Start)
 
         // Simulation should still "run" at this point
         starter.expectNoMessage()
@@ -119,7 +117,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val timeAdvancer = TestProbe[TimeAdvancer.Request]("timeAdvancer")
 
         val receiveThrowingActor =
-          TestProbe[ActorRef[SchedulerMessage]]("receiveThrowingActor")
+          TestProbe[ActorRef[Any]]("receiveThrowingActor")
 
         val simonaSim = spawn(
           SimonaSim(
@@ -129,13 +127,13 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Some(timeAdvancer.ref),
             ) {
 
-              override def scheduler(
+              override def primaryServiceProxy(
                   context: ActorContext[_],
-                  timeAdvancer: ActorRef[SchedulerMessage],
-                  coreFactory: CoreFactory,
-              ): ActorRef[SchedulerMessage] = {
+                  scheduler: ActorRef[SchedulerMessage],
+                  extSimSetupData: ExtSimSetupData,
+              ): ActorRef[ServiceMessage] = {
                 val throwingActor = context
-                  .spawn[SchedulerMessage](
+                  .spawn[Any](
                     throwOnMessage,
                     uniqueName("throwingActor"),
                   )
@@ -153,8 +151,8 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // Initialization has started, mock actors are being created
         val throwingActor =
-          receiveThrowingActor.expectMessageType[ActorRef[SchedulerMessage]]
-        timeAdvancer.expectMessage(TimeAdvancer.Start())
+          receiveThrowingActor.expectMessageType[ActorRef[Any]]
+        timeAdvancer.expectMessage(TimeAdvancer.Start)
 
         // Simulation should still "run" at this point
         starter.expectNoMessage()
@@ -162,7 +160,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // We cause an actor to fail.
         // (The mock actor reacts to any message with an
         // exception, we just pick the first best fit)
-        throwingActor ! Completion(TestProbe().ref)
+        throwingActor ! "throw"
 
         // Runtime/result event listeners receive stop message
         runtimeListener.expectMessage(
@@ -185,7 +183,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val timeAdvancer = TestProbe[TimeAdvancer.Request]("timeAdvancer")
 
         val receiveStoppingActor =
-          TestProbe[ActorRef[SchedulerMessage]]("receiveStoppingActor")
+          TestProbe[ActorRef[Any]]("receiveStoppingActor")
 
         val simonaSim = spawn(
           SimonaSim(
@@ -195,13 +193,13 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Some(timeAdvancer.ref),
             ) {
 
-              override def scheduler(
+              override def primaryServiceProxy(
                   context: ActorContext[_],
-                  timeAdvancer: ActorRef[SchedulerMessage],
-                  coreFactory: CoreFactory,
-              ): ActorRef[SchedulerMessage] = {
+                  scheduler: ActorRef[SchedulerMessage],
+                  extSimSetupData: ExtSimSetupData,
+              ): ActorRef[ServiceMessage] = {
                 val stoppingActor =
-                  context.spawn[SchedulerMessage](
+                  context.spawn[Any](
                     stopOnMessage,
                     uniqueName("stoppingActor"),
                   )
@@ -218,8 +216,8 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // Initialization has started, mock actors are being created
         val stoppingActor =
-          receiveStoppingActor.expectMessageType[ActorRef[SchedulerMessage]]
-        timeAdvancer.expectMessage(TimeAdvancer.Start())
+          receiveStoppingActor.expectMessageType[ActorRef[Any]]
+        timeAdvancer.expectMessage(TimeAdvancer.Start)
 
         // Simulation should still "run" at this point
         starter.expectNoMessage()
@@ -227,7 +225,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // We cause an actor to fail.
         // (The mock actor reacts to any message by stopping
         // itself, we just pick the first best fit)
-        stoppingActor ! Completion(TestProbe().ref)
+        stoppingActor ! "stop"
 
         // Runtime/result event listeners receive stop message
         runtimeListener.expectMessage(
@@ -284,7 +282,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val throwingActor =
           receiveThrowingActor
             .expectMessageType[ActorRef[RuntimeEventListener.Request]]
-        timeAdvancer.expectMessage(TimeAdvancer.Start())
+        timeAdvancer.expectMessage(TimeAdvancer.Start)
 
         // Simulation should still "run" at this point
         starter.expectNoMessage()
@@ -430,14 +428,20 @@ object SimonaSimSpec {
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
         extSimSetupData: ExtSimSetupData,
-    ): ClassicRef =
-      context.spawn(empty, uniqueName("primaryService")).toClassic
+    ): ActorRef[ServiceMessage] =
+      context.spawn(empty, uniqueName("primaryService"))
 
     override def weatherService(
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
-    ): ClassicRef =
-      context.spawn(empty, uniqueName("weatherService")).toClassic
+    ): ActorRef[ServiceMessage] =
+      context.spawn(empty, uniqueName("weatherService"))
+
+    override def loadProfileService(
+        context: ActorContext[_],
+        scheduler: ActorRef[SchedulerMessage],
+    ): ActorRef[ServiceMessage] =
+      context.spawn(empty, uniqueName("loadProfileService"))
 
     override def timeAdvancer(
         context: ActorContext[_],
@@ -460,13 +464,13 @@ object SimonaSimSpec {
         context: ActorContext[_],
         environmentRefs: EnvironmentRefs,
         resultEventListeners: Seq[ActorRef[ResultEvent]],
-    ): Iterable[ActorRef[GridAgent.Request]] = Iterable.empty
+    ): Iterable[ActorRef[GridAgent.Message]] = Iterable.empty
 
     override def extSimulations(
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
         extSimPath: Option[Path],
     ): ExtSimSetupData =
-      ExtSimSetupData()
+      ExtSimSetupData.apply
   }
 }

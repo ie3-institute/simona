@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
@@ -81,6 +81,18 @@ trait NodeInputTestData extends DefaultTestData {
       GermanVoltageLevelUtils.MV_20KV,
       1,
     )
+
+  protected val nodeInputNoSlackMs30Kv = new NodeInput(
+    UUID.fromString("89dcdc78-04e4-447b-824c-46dc454329e8"),
+    "nodeInputNoSlackMs30Kv",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    defaultOperationTime,
+    Quantities.getQuantity(1.0, PU),
+    false,
+    NodeInput.DEFAULT_GEO_POSITION,
+    GermanVoltageLevelUtils.MV_30KV,
+    30,
+  )
 
   // 110 kV node input models
   protected val nodeInputNoSlackMs110Kv =

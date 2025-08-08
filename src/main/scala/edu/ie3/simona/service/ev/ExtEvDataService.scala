@@ -6,13 +6,14 @@
 
 package edu.ie3.simona.service.ev
 
-import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology._
+import edu.ie3.simona.api.data.ev.ontology.*
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{
@@ -20,37 +21,33 @@ import edu.ie3.simona.exceptions.{
   InitializationException,
   ServiceException,
 }
-import edu.ie3.simona.model.participant2.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.services.EvMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
+import edu.ie3.simona.service.Data.SecondaryData.ArrivingEvs
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.ev.ExtEvDataService.{
-  ExtEvStateData,
-  InitExtEvData,
-}
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.slf4j.Logger
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success, Try}
 
-object ExtEvDataService {
+object ExtEvDataService extends SimonaService with ExtDataSupport {
 
-  def props(scheduler: ActorRef): Props =
-    Props(
-      new ExtEvDataService(scheduler: ActorRef)
-    )
+  override type S = ExtEvStateData
 
   final case class ExtEvStateData(
       extEvData: ExtEvDataConnection,
-      uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
+      uuidToActorRef: Map[UUID, ActorRef[ParticipantAgent.Request]] = Map.empty,
       extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: ReceiveDataMap[UUID, Int] = ReceiveDataMap.empty,
       departingEvResponses: ReceiveDataMap[UUID, Seq[EvModelWrapper]] =
@@ -60,12 +57,6 @@ object ExtEvDataService {
   final case class InitExtEvData(
       extEvData: ExtEvDataConnection
   ) extends InitializeServiceStateData
-
-}
-
-class ExtEvDataService(override val scheduler: ActorRef)
-    extends SimonaService[ExtEvStateData](scheduler)
-    with ExtDataSupport[ExtEvStateData] {
 
   override def init(
       initServiceData: ServiceStateData.InitializeServiceStateData
@@ -94,23 +85,14 @@ class ExtEvDataService(override val scheduler: ActorRef)
         )
     }
 
-  /** Handle a request to register for information from this service
-    *
-    * @param registrationMessage
-    *   registration message to handle
-    * @param serviceStateData
-    *   current state data of the actor
-    * @return
-    *   the service stata data that should be used in the next state (normally
-    *   with updated values)
-    */
   override def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
-  )(implicit
-      serviceStateData: ExtEvStateData
-  ): Try[ExtEvStateData] =
+  )(using
+      serviceStateData: S,
+      ctx: ActorContext[Message],
+  ): Try[S] =
     registrationMessage match {
-      case RegisterForEvDataMessage(requestingActor, evcs) =>
+      case SecondaryServiceRegistrationMessage(requestingActor, evcs: UUID) =>
         Success(handleRegistrationRequest(requestingActor, evcs))
       case invalidMessage =>
         Failure(
@@ -135,12 +117,13 @@ class ExtEvDataService(override val scheduler: ActorRef)
     *   information if the registration has been carried out successfully
     */
   private def handleRegistrationRequest(
-      agentToBeRegistered: ActorRef,
+      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
       evcs: UUID,
-  )(implicit
-      serviceStateData: ExtEvStateData
+  )(using
+      serviceStateData: ExtEvStateData,
+      ctx: ActorContext[Message],
   ): ExtEvStateData = {
-    log.debug(
+    ctx.log.debug(
       "Received ev movement service registration from {} for [Evcs:{}]",
       agentToBeRegistered.path.name,
       evcs,
@@ -157,7 +140,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         )
       case Some(_) =>
         // actor is already registered, do nothing
-        log.warning(
+        ctx.log.warn(
           "Sending actor {} is already registered",
           agentToBeRegistered,
         )
@@ -165,50 +148,48 @@ class ExtEvDataService(override val scheduler: ActorRef)
     }
   }
 
-  /** Send out the information to all registered recipients
-    *
-    * @param tick
-    *   current tick data should be announced for
-    * @param serviceStateData
-    *   the current state data of this service
-    * @return
-    *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is sent
-    *   in response to the trigger that was sent to start this announcement
-    */
   override protected def announceInformation(
       tick: Long
-  )(implicit serviceStateData: ExtEvStateData, ctx: ActorContext): (
-      ExtEvStateData,
+  )(using
+      serviceStateData: S,
+      ctx: ActorContext[Message],
+  ): (
+      S,
       Option[Long],
   ) = {
     def asScala[E]
         : java.util.Map[UUID, java.util.List[E]] => Map[UUID, Seq[E]] = map =>
       map.asScala.view.mapValues(_.asScala.toSeq).toMap
 
-    serviceStateData.extEvMessage.getOrElse(
-      throw ServiceException(
-        "ExtEvDataService was triggered without ExtEvMessage available"
-      )
-    ) match {
-      case _: RequestCurrentPrices =>
-        requestCurrentPrices()
-      case _: RequestEvcsFreeLots =>
-        requestFreeLots(tick)
-      case departingEvsRequest: RequestDepartingEvs =>
-        requestDepartingEvs(tick, asScala(departingEvsRequest.departures))
-      case arrivingEvsProvision: ProvideArrivingEvs =>
-        handleArrivingEvs(
-          tick,
-          asScala(arrivingEvsProvision.arrivals),
-          arrivingEvsProvision.maybeNextTick.toScala.map(Long2long),
-        )(
-          serviceStateData
+    given context: ActorContext[Message] = ctx
+    given log: Logger = ctx.log
+
+    serviceStateData.extEvMessage
+      .map {
+        case _: RequestCurrentPrices =>
+          requestCurrentPrices()
+        case _: RequestEvcsFreeLots =>
+          requestFreeLots(tick, ctx)
+        case departingEvsRequest: RequestDepartingEvs =>
+          requestDepartingEvs(
+            tick,
+            asScala(departingEvsRequest.departures),
+          )
+        case arrivingEvsProvision: ProvideArrivingEvs =>
+          handleArrivingEvs(
+            tick,
+            asScala(arrivingEvsProvision.arrivals),
+            arrivingEvsProvision.maybeNextTick.toScala.map(Long2long),
+          )
+      }
+      .getOrElse(
+        throw ServiceException(
+          "ExtEvDataService was triggered without ExtEvMessage available"
         )
-    }
+      )
   }
 
-  private def requestCurrentPrices()(implicit
+  private def requestCurrentPrices()(using
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
     // currently not supported, return dummy
@@ -228,11 +209,11 @@ class ExtEvDataService(override val scheduler: ActorRef)
     )
   }
 
-  private def requestFreeLots(tick: Long)(implicit
+  private def requestFreeLots(tick: Long, ctx: ActorContext[Message])(using
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
     serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
-      evcsActor ! EvFreeLotsRequest(tick, context.self)
+      evcsActor ! EvFreeLotsRequest(tick, ctx.self)
     }
 
     val freeLots =
@@ -256,20 +237,21 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def requestDepartingEvs(
       tick: Long,
       requestedDepartingEvs: Map[UUID, Seq[UUID]],
-  )(implicit
-      serviceStateData: ExtEvStateData
+  )(using
+      serviceStateData: ExtEvStateData,
+      ctx: ActorContext[Message],
   ): (ExtEvStateData, Option[Long]) = {
 
     val departingEvResponses =
       requestedDepartingEvs.flatMap { case (evcs, departingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
           case Some(evcsActor) =>
-            evcsActor ! DepartingEvsRequest(tick, departingEvs, context.self)
+            evcsActor ! DepartingEvsRequest(tick, departingEvs, ctx.self)
 
             Some(evcs)
 
           case None =>
-            log.warning(
+            ctx.log.warn(
               "A corresponding actor ref for UUID {} could not be found",
               evcs,
             )
@@ -296,8 +278,9 @@ class ExtEvDataService(override val scheduler: ActorRef)
       tick: Long,
       allArrivingEvs: Map[UUID, Seq[EvModel]],
       maybeNextTick: Option[Long],
-  )(implicit
-      serviceStateData: ExtEvStateData
+  )(using
+      serviceStateData: ExtEvStateData,
+      ctx: ActorContext[Message],
   ): (ExtEvStateData, Option[Long]) = {
 
     if (tick == INIT_SIM_TICK) {
@@ -312,7 +295,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
       serviceStateData.uuidToActorRef.foreach { case (_, actor) =>
         actor ! RegistrationSuccessfulMessage(
-          self,
+          ctx.self,
           nextTick,
         )
       }
@@ -324,7 +307,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
         actor ! DataProvision(
           tick,
-          self,
+          ctx.self,
           ArrivingEvs(evs.map(EvModelWrapper.apply)),
           maybeNextTick,
         )
@@ -342,7 +325,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   override protected def handleDataMessage(
       extMsg: DataMessageFromExt
-  )(implicit serviceStateData: ExtEvStateData): ExtEvStateData =
+  )(using serviceStateData: S): S =
     extMsg match {
       case extEvMessage: EvDataMessageFromExt =>
         serviceStateData.copy(
@@ -351,8 +334,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
     }
 
   override protected def handleDataResponseMessage(
-      extResponseMsg: EvResponseMessage
-  )(implicit serviceStateData: ExtEvStateData): ExtEvStateData = {
+      extResponseMsg: ServiceResponseMessage
+  )(using serviceStateData: ExtEvStateData): ExtEvStateData = {
     extResponseMsg match {
       case DepartingEvsResponse(evcs, evModels) =>
         val updatedResponses =

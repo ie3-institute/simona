@@ -8,7 +8,7 @@ package edu.ie3.simona.event.listener
 
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import com.sksamuel.avro4s.RecordFormat
-import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
+import edu.ie3.simona.config.{ConfigParams, RuntimeConfig}
 import edu.ie3.simona.event.RuntimeEvent.{Done, Error, PowerFlowFailed}
 import edu.ie3.simona.io.runtime.RuntimeEventKafkaSink.SimonaEndMessage
 import edu.ie3.simona.test.KafkaSpecLike
@@ -38,8 +38,6 @@ class RuntimeEventListenerKafkaSpec
     with RuntimeTestData {
   private var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] = _
 
-  private implicit lazy val resultFormat: RecordFormat[SimonaEndMessage] =
-    RecordFormat[SimonaEndMessage]
   private val deserializer: Deserializer[SimonaEndMessage] =
     ScalaReflectionSerde.reflectionDeserializer4S[SimonaEndMessage]
 
@@ -87,7 +85,7 @@ class RuntimeEventListenerKafkaSpec
           RuntimeConfig.Listener(
             None,
             Some(
-              SimonaConfig.RuntimeKafkaParams(
+              ConfigParams.RuntimeKafkaParams(
                 bootstrapServers = kafka.bootstrapServers,
                 linger = 0,
                 runId = runId.toString,
@@ -127,9 +125,9 @@ class RuntimeEventListenerKafkaSpec
         listenerRef ! event
 
         val receivedRecord =
-          eventually(timeout(20 seconds), interval(1 second)) {
+          eventually(timeout(20.seconds), interval(1.second)) {
             val records =
-              testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+              testConsumer.poll(1.second.toJava).asScala.map(_.value()).toList
 
             // run until one record is received. After each second, if no record
             // was received, the length check below fails and we retry

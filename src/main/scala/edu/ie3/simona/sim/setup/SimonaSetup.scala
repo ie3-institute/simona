@@ -13,14 +13,13 @@ import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.sim.SimonaSim
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.nio.file.Path
 
@@ -87,7 +86,7 @@ trait SimonaSetup {
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
-  ): ClassicRef
+  ): ActorRef[ServiceMessage]
 
   /** Creates a weather service
     *
@@ -102,7 +101,22 @@ trait SimonaSetup {
   def weatherService(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef
+  ): ActorRef[ServiceMessage]
+
+  /** Creates a load profile service
+    *
+    * @param context
+    *   Actor context to use
+    * @param scheduler
+    *   Actor reference to it's according scheduler to use
+    * @return
+    *   An actor reference to the service as well as matching data to initialize
+    *   the service
+    */
+  def loadProfileService(
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ActorRef[ServiceMessage]
 
   /** Loads external simulations and provides corresponding actors and init data
     *
@@ -172,7 +186,7 @@ trait SimonaSetup {
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
-  ): Iterable[ActorRef[GridAgent.Request]]
+  ): Iterable[ActorRef[GridAgent.Message]]
 
   /** SIMONA links sub grids connected by a three winding transformer a bit
     * different. Therefore, the internal node has to be set as superior node.

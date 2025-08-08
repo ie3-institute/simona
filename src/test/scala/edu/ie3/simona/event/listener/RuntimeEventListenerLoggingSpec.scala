@@ -7,7 +7,7 @@
 package edu.ie3.simona.event.listener
 
 import com.typesafe.config.ConfigValueFactory
-import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
+import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.event.RuntimeEvent.{
   CheckWindowPassed,
   Done,
@@ -15,7 +15,6 @@ import edu.ie3.simona.event.RuntimeEvent.{
   InitComplete,
   Initializing,
   PowerFlowFailed,
-  Ready,
   Simulating,
 }
 import edu.ie3.simona.test.common.UnitSpec
@@ -79,11 +78,6 @@ class RuntimeEventListenerLoggingSpec
           InitComplete(0L),
           Level.INFO,
           s"Initialization complete. (duration: 0h : 0m : 0s : 0ms )",
-        ),
-        (
-          Ready(currentTick, 0L),
-          Level.INFO,
-          s"Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(currentTick)}.",
         ),
         (
           Simulating(currentTick, endTick),
