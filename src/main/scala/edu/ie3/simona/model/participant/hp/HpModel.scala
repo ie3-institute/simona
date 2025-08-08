@@ -242,20 +242,20 @@ class HpModel private (
   ): (Boolean, Boolean, Boolean) = {
 
     val demandHouse = thermalDemands.houseDemand
-    val demandThermalStorage = thermalDemands.heatStorageDemand
-    val noThermalStorageOrEmpty = thermalGridState.isThermalStorageEmpty
+    val demandHeatStorage = thermalDemands.heatStorageDemand
+    val noHeatStorageOrEmpty = thermalGridState.isHeatStorageEmpty
 
     val turnHpOn =
-      (demandHouse.hasRequiredDemand && noThermalStorageOrEmpty) ||
+      (demandHouse.hasRequiredDemand && noHeatStorageOrEmpty) ||
         (demandHouse.hasPossibleDemand && wasRunningLastPeriod ||
-          demandThermalStorage.hasRequiredDemand ||
-          (demandThermalStorage.hasPossibleDemand && wasRunningLastPeriod))
+          demandHeatStorage.hasRequiredDemand ||
+          (demandHeatStorage.hasPossibleDemand && wasRunningLastPeriod))
 
     val canOperate =
       demandHouse.hasRequiredDemand || demandHouse.hasPossibleDemand ||
-        demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasPossibleDemand
+        demandHeatStorage.hasRequiredDemand || demandHeatStorage.hasPossibleDemand
     val canBeOutOfOperation =
-      !(demandHouse.hasRequiredDemand && noThermalStorageOrEmpty)
+      !(demandHouse.hasRequiredDemand && noHeatStorageOrEmpty)
 
     (
       turnHpOn,
@@ -327,7 +327,7 @@ object HpModel {
     *   The thermal power output of the heat pump.
     * @param qDotHouse
     *   The thermal power input of the
-    *   [[edu.ie3.simona.model.thermal.ThermalHouse]].
+    *   [[edu.ie3.simona.model.thermal.ThermalHouse]] used for space heating.
     * @param qDotHeatStorage
     *   The thermal power input of the
     *   [[edu.ie3.simona.model.thermal.ThermalStorage]].
