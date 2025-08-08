@@ -12,19 +12,20 @@ import edu.ie3.datamodel.models.result.system.{
   BmResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.model.participant.BmModel._
-import edu.ie3.simona.model.participant.ParticipantFlexibility.ParticipantSimpleFlexibility
+import edu.ie3.simona.model.participant.BmModel.*
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  OperationChangeIndicator,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyPriceToSimona,
@@ -37,7 +38,7 @@ import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.math._
+import scala.math.*
 
 final case class BmModel(
     override val uuid: UUID,
@@ -52,8 +53,12 @@ final case class BmModel(
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
       BmState,
-    ]
-    with ParticipantSimpleFlexibility[BmState] {
+    ] {
+
+  override val flexModels: Map[FlexType, ParticipantFlexModel[BmState]] =
+    Map(
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
+    )
 
   override def determineState(
       lastState: BmState,
@@ -100,6 +105,12 @@ final case class BmModel(
 
     (ActivePowerOperatingPoint(outputPower), None)
   }
+
+  override def determineOperatingPoint(
+      state: BmState,
+      setPower: Power,
+  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
+    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
 
   /** Calculates electrical output from usage and efficiency.
     *
@@ -170,7 +181,7 @@ final case class BmModel(
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryData.PrimaryDataWithComplexPower[_],
+      data: PrimaryData.PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new BmResult(

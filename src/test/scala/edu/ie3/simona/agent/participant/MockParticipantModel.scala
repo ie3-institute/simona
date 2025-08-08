@@ -7,17 +7,21 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.participant.MockParticipantModel._
+import edu.ie3.simona.agent.participant.MockParticipantModel.*
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
-import edu.ie3.simona.model.participant.ParticipantModel
-import edu.ie3.simona.model.participant.ParticipantModel._
+import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
+import edu.ie3.simona.model.participant.ParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  FlexType,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.simona.service.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -28,7 +32,7 @@ import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Power => QuantPower}
+import javax.measure.quantity.Power as QuantPower
 
 /** Mock [[ParticipantModel]] to test various functionality of
   * [[edu.ie3.simona.model.participant.ParticipantModelShell]] and
@@ -52,6 +56,9 @@ class MockParticipantModel(
       ActivePowerOperatingPoint,
       MockState,
     ] {
+
+  override val flexModels: Map[FlexType, ParticipantFlexModel[MockState]] =
+    Map(FlexType.PowerLimit -> MockPowerLimitFlexModel)
 
   override def determineState(
       lastState: MockState,
@@ -115,7 +122,7 @@ class MockParticipantModel(
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryData.PrimaryDataWithComplexPower[_],
+      data: PrimaryData.PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult = {
     MockResult(
@@ -123,17 +130,6 @@ class MockParticipantModel(
       uuid,
       data.p.toMegawatts.asMegaWatt,
       data.q.toMegavars.asMegaVar,
-    )
-  }
-
-  override def determineFlexOptions(
-      state: MockState
-  ): FlexOptions = {
-    val additionalP = state.additionalP.getOrElse(zeroKW)
-    MinMaxFlexOptions(
-      Kilowatts(1) + additionalP,
-      Kilowatts(-1) + additionalP,
-      Kilowatts(3) + additionalP,
     )
   }
 
@@ -167,6 +163,21 @@ class MockParticipantModel(
 object MockParticipantModel {
 
   val uuid: UUID = UUID.fromString("0-0-0-0-1")
+
+  object MockPowerLimitFlexModel extends ParticipantFlexModel[MockState] {
+
+    override def determineFlexOptions(
+        state: MockState
+    ): FlexOptions = {
+      val additionalP = state.additionalP.getOrElse(zeroKW)
+      PowerLimitFlexOptions(
+        Kilowatts(1) + additionalP,
+        Kilowatts(-1) + additionalP,
+        Kilowatts(3) + additionalP,
+      )
+    }
+
+  }
 
   /** Simple [[ModelState]] to test its usage in operation point calculations.
     * Produced and consumed energy is counted in order to test the handling of

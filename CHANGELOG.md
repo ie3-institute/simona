@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added congestion detection [#1186](https://github.com/ie3-institute/simona/issues/1186)
 - Added `CODEOWNERS` file [#1387](https://github.com/ie3-institute/simona/issues/1387)
 - Added `LoadProfileService` to `ParticipantRefs` in `LoadProfileService` [#1418](https://github.com/ie3-institute/simona/issues/1418)
+- Enhance `Developer’s Guide` with information on steps for releasing a new version [#1450](https://github.com/ie3-institute/simona/issues/1450)
 - Enhancing config with more default value [#1413](https://github.com/ie3-institute/simona/issues/1413)
 
 ### Changed
@@ -23,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapted `EmAgent` for scala 3 [#1415](https://github.com/ie3-institute/simona/issues/1415)
 - Updated Version within `CITATION.cff` [#1425](https://github.com/ie3-institute/simona/issues/1425)
 - Primary data class parameter cleanup [#1459](https://github.com/ie3-institute/simona/issues/1459)
+- Set Institute as first author within `CITATION.cff` [#1427](https://github.com/ie3-institute/simona/issues/1427)
+- Update Developers Guide - Release Process [#1466](https://github.com/ie3-institute/simona/issues/1466)
+- Made powerflow parameters in config options [#1443](https://github.com/ie3-institute/simona/issues/1443)
+- Provide abstraction for flex options in system participant and EM [#1456](https://github.com/ie3-institute/simona/issues/1456)
+- Rename `MinMaxFlexOptions` to `PowerLimitFlexOptions` [#1457](https://github.com/ie3-institute/simona/issues/1457)
+- Align temperature scale of parameter for `ThermalInputs` [#1484](https://github.com/ie3-institute/simona/issues/1484)
+- Refactored some tests for usage of should approximate [#863](https://github.com/ie3-institute/simona/issues/863)
+- Create trait for ThermalStorageCalculations [#1473](https://github.com/ie3-institute/simona/issues/1473)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -33,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed typo in `HpModel` for model type [#1432](https://github.com/ie3-institute/simona/issues/1432)
 - Ambient temperature can cause the next threshold of the `ThermalHouse` to be the same as the current tick [#1438](https://github.com/ie3-institute/simona/issues/1438)
 - Fixed crash when using load model with `profile` behaviour and primary data [#1436](https://github.com/ie3-institute/simona/issues/1436)
+- Fixed CFF-Version [#1464](https://github.com/ie3-institute/simona/issues/1464)
+- Fixed handleInput of `ProfileLoadModel` [#1441](https://github.com/ie3-institute/simona/issues/1441)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

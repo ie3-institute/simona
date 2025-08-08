@@ -37,7 +37,7 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
 import edu.ie3.simona.ontology.messages.{
   Activation,
   SchedulerMessage,
@@ -64,7 +64,7 @@ import java.time.temporal.ChronoUnit
   */
 class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
-  private implicit val simulationStartDate: ZonedDateTime =
+  given simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
 
   private val simulationEndDate: ZonedDateTime =
@@ -81,8 +81,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
     flexResult = true,
   )
 
-  private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
-  private implicit val reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
+  given FlexType = FlexType.PowerLimit
+
+  // Testing tolerances
+  given Power = Kilowatts(1e-10)
+  given ReactivePower = Kilovars(1e-10)
 
   "A ParticipantAgent that is not controlled by EM" when {
 
@@ -916,7 +919,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(1))
@@ -988,7 +991,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
@@ -1097,7 +1100,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(1))
@@ -1167,7 +1170,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(1))
@@ -1216,7 +1219,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
@@ -1345,7 +1348,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
@@ -1417,7 +1420,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(2))
@@ -1497,7 +1500,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(3))
@@ -1560,7 +1563,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(6))
@@ -1612,7 +1615,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
@@ -1737,7 +1740,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
@@ -1800,7 +1803,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(3))
@@ -1877,7 +1880,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(6))
@@ -1937,7 +1940,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(3))
@@ -1985,7 +1988,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             modelUuid shouldBe MockParticipantModel.uuid
             ref should approximate(Kilowatts(0))
