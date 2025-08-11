@@ -109,7 +109,7 @@ class RunSimonaStandaloneIT
       checkRuntimeEvents(runtimeEventQueue.asScala)
 
       // check result data
-      // todo implement if valid result handling is implemented
+      // todo implement if valid result handling is implemented (see issue #1491)
       val pvResultFileContent = getFileSource(
         resultFileHierarchy,
         classOf[PvResult],
@@ -193,7 +193,7 @@ class RunSimonaStandaloneIT
       checkRuntimeEvents(runtimeEventQueue.asScala)
 
       // check result data
-      // todo implement if valid result handling is implemented
+      // todo implement if valid result handling is implemented (see issue #1491)
       val pvResultFileContent = getFileSource(
         resultFileHierarchy,
         classOf[PvResult],
