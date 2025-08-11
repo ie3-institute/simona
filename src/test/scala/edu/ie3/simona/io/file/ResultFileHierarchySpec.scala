@@ -45,7 +45,7 @@ class ResultFileHierarchySpec
           currentRunOutputDir,
           ResultEntityPathConfig(
             Set(classOf[PvResult]),
-            ResultSinkType.Csv("csv", "pref", "suff"),
+            ResultSinkType.Csv("csv", "pref", "suff", delimiter = ","),
           ),
           configureLogger =
             LogbackConfiguration.default("INFO", Some("ERROR"))(_),
@@ -73,7 +73,7 @@ class ResultFileHierarchySpec
           runOutputDir,
           ResultEntityPathConfig(
             Set(classOf[PvResult]),
-            ResultSinkType.Csv("csv", "pref", "suff"),
+            ResultSinkType.Csv("csv", "pref", "suff", delimiter = ","),
           ),
           configureLogger =
             LogbackConfiguration.default("INFO", Some("ERROR"))(_),

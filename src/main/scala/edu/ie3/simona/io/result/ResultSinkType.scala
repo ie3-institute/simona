@@ -23,6 +23,7 @@ object ResultSinkType {
       filePrefix: String = "",
       fileSuffix: String = "",
       compressOutputs: Boolean = false,
+      delimiter: String,
   ) extends ResultSinkType
 
   final case class InfluxDb1x(url: String, database: String, scenario: String)
@@ -55,6 +56,7 @@ object ResultSinkType {
           params.filePrefix,
           params.fileSuffix,
           params.compressOutputs,
+          params.csvSep,
         )
       case Some(params: InfluxDb1xParams) =>
         InfluxDb1x(buildInfluxDb1xUrl(params), params.database, runName)

@@ -237,7 +237,7 @@ object ResultFileHierarchy extends LazyLogging {
       bw.write(
         config
           .root()
-          .withFallback(simonaConfig.defaults)
+          .withFallback(simonaConfig.values)
           .render(
             ConfigRenderOptions
               .defaults()
