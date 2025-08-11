@@ -2,7 +2,12 @@
 
 # Configuration 
 
-To configure a SIMONA simulation, several parameters must be specified. Each simulation is performed within a reference system for a given runtime and is based on a power flow calculation using the Newton-Raphson algorithm. Individual steps for configuring the simulation are performed below.
+To configure a SIMONA simulation, several parameters must be specified. Each simulation is performed within a reference
+system for a given runtime and is based on a power flow calculation using the Newton-Raphson algorithm. Individual steps
+for configuring the simulation are performed below.
+
+An overview of all default values can be found below. These values are used when no other value is set in the configuration
+file.
 
 ## Configuration Parameters 
 
@@ -387,3 +392,225 @@ Minimum Voltage Limit in p.u.:
 Maximum Voltage Limit in p.u.:
 
 `vMax = 1.02`
+
+
+## Default configuration values
+
+### Time
+```
+simona.time.schedulerReadyCheckWindow = None
+```
+
+### Input
+
+```
+simona.input = {
+    extSimDir = None
+    
+    loadProfile = {
+        csvParams = None
+        sqlParams = None
+    }
+    
+    primary = {
+      couchbaseParams = None
+      csvParams = None
+      influxDb1xParams = None
+      sqlParams = None
+    }
+    
+    weather.datasource = {
+        coordinateSource = {
+          csvParams = None
+          gridModel = "icon"
+          sampleParams = None
+          sqlParams = None
+        }
+        couchbaseParams = None
+        csvParams: = None
+        influxDb1xParams = None
+        maxCoordinateDistance = 50000
+        resolution = 3600
+        sampleParams = None
+        scheme = "icon"
+        sqlParams = None
+        timestampPattern = None
+    }
+}
+```
+
+### Output
+
+```
+simona.output = {
+    base.addTimestampToOutputDir = true
+
+    flex = false
+    
+    grid = {
+      congestions = false
+      lines = false
+      nodes = false
+      switches = false
+      transformers2w = false
+      transformers3w = false
+    }
+    
+    sink = {
+      csv = None
+      influxDb1x = None
+      kafka = None
+    }    
+    
+    log = {
+        level = "INFO"
+        consoleLevel = None
+    }
+    
+    participant = {
+        defaultConfig = {
+            notifier = "default"
+            simulationResult = false
+            flexResult = false
+            powerRequestReply = false
+        }
+        indvidualConfigs = [] 
+    }
+    
+    thermal = {
+        defaultConfig = {
+            notifier = "default"
+            simulationResult = false
+        }
+        indvidualConfigs = []
+    }
+}
+```
+
+### Runtime
+
+```
+simona.runtime = {
+    selectedSubgrids = []
+    selectedVoltLvls = []
+
+    listener = {
+      eventsToProcess = None
+      kafka = None
+    }
+    
+    em = {
+        defaultConfig = {
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
+            uuids = []
+            aggregateFlex = "SELF_OPT_EXCL_REG"
+            curtailRegenerative = false
+        }
+        individualConfigs = []
+    }
+    
+    participant = {
+        requestVoltageDeviationThreshold = 1e-14
+        bm = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+            }
+            individualConfigs = []
+        }
+        evcs = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+                chargingStrategy = "maxPower"
+                lowestEvSoc = 0.2
+            }
+            individualConfigs = []
+        }
+        fixedFeedIn = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+            }
+            individualConfigs = []
+        }
+        hp = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+            }
+            individualConfigs = []
+        }
+        load = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+                modelBehaviour = "fix"
+                reference = "power"
+            }
+            individualConfigs = []
+        }
+        pv = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+            }
+            individualConfigs = []
+        }
+        storage = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+                initialSoc = 0.0
+                targetSoc = None                
+            }
+            individualConfigs = []
+        }
+        wec = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+            }
+            individualConfigs = []
+        }
+    }
+}
+```
+
+### PowerFlow
+
+```
+simona.powerflow = {
+    maxSweepPowerDeviation = 1e-5
+    newtonraphson.iterations = 50
+    resolution = 3600s
+    stopOnFailure = false
+    sweepTimeout = 30s
+}
+```
+
+### Congestion management
+
+```
+simona.congestionManagement = {
+    enableDetection = false
+    timeout = 30s
+}
+```
+
+### Control
+
+```
+simona.control = {
+    transformer = []
+}
+```
