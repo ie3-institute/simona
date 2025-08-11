@@ -40,13 +40,13 @@ class ThermalGridWithStorageOnlySpec
         new edu.ie3.datamodel.models.input.container.ThermalGrid(
           thermalBusInput,
           Set.empty[ThermalHouseInput].asJava,
-          Set[ThermalStorageInput](thermalStorageInput).asJava,
+          Set[ThermalStorageInput](heatStorageInput).asJava,
           Set.empty[ThermalStorageInput].asJava,
         )
 
       ThermalGrid(thermalGridInput) match {
         case ThermalGrid(None, Some(thermalStorageGenerated)) =>
-          thermalStorageGenerated shouldBe thermalStorage
+          thermalStorageGenerated shouldBe heatStorage
         case _ =>
           fail("Generation of thermal grid from thermal input grid failed.")
       }
@@ -58,7 +58,7 @@ class ThermalGridWithStorageOnlySpec
       new edu.ie3.datamodel.models.input.container.ThermalGrid(
         thermalBusInput,
         Set.empty[ThermalHouseInput].asJava,
-        Set[ThermalStorageInput](thermalStorageInput).asJava,
+        Set[ThermalStorageInput](heatStorageInput).asJava,
         Set.empty[ThermalStorageInput].asJava,
       )
     )
@@ -83,9 +83,9 @@ class ThermalGridWithStorageOnlySpec
                   )
                 ),
               ) =>
-            tick shouldBe expectedStorageStartingState.tick
+            tick shouldBe expectedHeatStorageStartingState.tick
             storedEnergy should approximate(
-              expectedStorageStartingState.storedEnergy
+              expectedHeatStorageStartingState.storedEnergy
             )
 
           case _ => fail("Determination of starting state failed")
@@ -114,7 +114,7 @@ class ThermalGridWithStorageOnlySpec
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
         updatedThermalGridState.houseState shouldBe None
-        updatedThermalGridState.storageState shouldBe Some(
+        updatedThermalGridState.heatStorageState shouldBe Some(
           ThermalStorageState(
             10800,
             zeroKWh,
@@ -124,8 +124,8 @@ class ThermalGridWithStorageOnlySpec
 
       "deliver the capabilities of a half full storage" in {
         val initialLoading = KilowattHours(575d)
-        val gridState = initialGridState.copy(storageState =
-          initialGridState.storageState.map(storageState =>
+        val gridState = initialGridState.copy(heatStorageState =
+          initialGridState.heatStorageState.map(storageState =>
             storageState.copy(tick = 10800, storedEnergy = initialLoading)
           )
         )
@@ -176,8 +176,8 @@ class ThermalGridWithStorageOnlySpec
 
       "do not consume energy from storage if there is no heat sink for this consumption" in {
         val initialLoading = KilowattHours(200d)
-        val gridState = initialGridState.copy(storageState =
-          initialGridState.storageState.map(storageState =>
+        val gridState = initialGridState.copy(heatStorageState =
+          initialGridState.heatStorageState.map(storageState =>
             storageState.copy(storedEnergy = initialLoading, tick = 0)
           )
         )
