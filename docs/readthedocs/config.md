@@ -143,19 +143,19 @@ simona.output.participant.individualConfigs = [
     notifier = "pv"
     powerRequestReply = false
     simulationResult = true
-      flexResult = false
+    flexResult = false
   },
   {
     notifier = "wec"
     powerRequestReply = false
     simulationResult = true
-      flexResult = false
+    flexResult = false
   },
   {
     notifier = "evcs"
     powerRequestReply = false
     simulationResult = true
-      flexResult = false
+    flexResult = false
   }
 ]
 ```
@@ -168,7 +168,7 @@ To use the default configuration the default notifier has to be used. By setting
 simona.output.thermal.defaultConfig = {
   notifier = "default",
   simulationResult = true
-    flexResult = false
+  flexResult = false
 }
 ```
 
@@ -180,12 +180,12 @@ simona.output.thermal.individualConfigs = [
   {
     notifier = "house",
     simulationResult = true
-      flexResult = false
+    flexResult = false
   },
   {
     notifier = "cylindricalstorage",
     simulationResult = true
-      flexResult = false
+    flexResult = false
   }
 ]
 ```
@@ -445,8 +445,6 @@ simona.input = {
 simona.output = {
     base.addTimestampToOutputDir = true
 
-    flex = false
-    
     grid = {
       congestions = false
       lines = false
