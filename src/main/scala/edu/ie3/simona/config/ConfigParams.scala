@@ -78,6 +78,8 @@ object ConfigParams {
   /** Csv parameters used by the [[edu.ie3.datamodel.io.sink.CsvFileSink]].
     * @param compressOutputs
     *   If output files should be compressed (default: false).
+    * @param csvSep
+    *   Separator for data in a csv line.
     * @param fileFormat
     *   That is used (default: .csv).
     * @param filePrefix
@@ -89,6 +91,7 @@ object ConfigParams {
     */
   final case class PsdmSinkCsvParams(
       compressOutputs: Boolean = false,
+      csvSep: String = ",",
       fileFormat: String = ".csv",
       filePrefix: String = "",
       fileSuffix: String = "",

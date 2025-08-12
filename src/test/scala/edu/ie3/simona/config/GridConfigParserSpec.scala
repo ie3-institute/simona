@@ -119,16 +119,27 @@ class GridConfigParserSpec extends UnitSpec {
       )
 
       configRefSystems invokePrivate voltLvLRefSystems() shouldBe Map(
+        GermanVoltageLevelUtils.LV -> RefSystem(
+          Kilowatts(100),
+          Kilovolts(0.4),
+        ), // default value
         GermanVoltageLevelUtils.MV_10KV -> configRefSystemOne,
         GermanVoltageLevelUtils.MV_20KV -> configRefSystemOne,
+        GermanVoltageLevelUtils.MV_30KV -> RefSystem(
+          "150 MVA",
+          "30 kV",
+        ), // default value
         GermanVoltageLevelUtils.HV -> configRefSystemTwo,
+        GermanVoltageLevelUtils.EHV_220KV -> RefSystem(
+          "800 MVA",
+          "220 kV",
+        ), // default value
         GermanVoltageLevelUtils.EHV_380KV -> configRefSystemTwo,
       )
 
     }
 
     "throw an InvalidConfigParameterException when provided gridIds contain duplicate entries" in {
-
       val validRefSystems: Option[List[SimonaConfig.RefSystemConfig]] =
         Some(
           List(
@@ -149,7 +160,6 @@ class GridConfigParserSpec extends UnitSpec {
     }
 
     "throw an InvalidConfigParameterException when provided voltLvls contain duplicate entries" in {
-
       val validRefSystems: Option[List[SimonaConfig.RefSystemConfig]] =
         Some(
           List(
@@ -178,7 +188,6 @@ class GridConfigParserSpec extends UnitSpec {
     }
 
     "throw an InvalidConfigParameterException when the provided gridId format is unknown" in {
-
       val validRefSystems: Option[List[SimonaConfig.RefSystemConfig]] =
         Some(
           List(
@@ -295,16 +304,24 @@ class GridConfigParserSpec extends UnitSpec {
       )
 
       configVoltageLimits invokePrivate voltLvLVoltageLimits() shouldBe Map(
+        GermanVoltageLevelUtils.LV -> VoltageLimits(0.9, 1.1), // default value
         GermanVoltageLevelUtils.MV_10KV -> configVoltageLimitsOne,
         GermanVoltageLevelUtils.MV_20KV -> configVoltageLimitsOne,
+        GermanVoltageLevelUtils.MV_30KV -> VoltageLimits(
+          0.9,
+          1.1,
+        ), // default value
         GermanVoltageLevelUtils.HV -> configVoltageLimitsTwo,
+        GermanVoltageLevelUtils.EHV_220KV -> VoltageLimits(
+          0.9,
+          1.118,
+        ), // default value
         GermanVoltageLevelUtils.EHV_380KV -> configVoltageLimitsTwo,
       )
 
     }
 
     "throw an InvalidConfigParameterException when provided gridIds contain duplicate entries" in {
-
       val validVoltageLimits: Option[List[VoltageLimitsConfig]] =
         Some(
           List(
@@ -325,7 +342,6 @@ class GridConfigParserSpec extends UnitSpec {
     }
 
     "throw an InvalidConfigParameterException when provided voltLvls contain duplicate entries" in {
-
       val validVoltageLimits: Option[List[VoltageLimitsConfig]] =
         Some(
           List(
@@ -354,7 +370,6 @@ class GridConfigParserSpec extends UnitSpec {
     }
 
     "throw an InvalidConfigParameterException when the provided gridId format is unknown" in {
-
       val validVoltageLimits: Option[List[VoltageLimitsConfig]] =
         Some(
           List(
@@ -385,7 +400,6 @@ class GridConfigParserSpec extends UnitSpec {
   }
 
   "A valid ConfigRefSystem" must {
-
     val validRefSystems: Option[List[SimonaConfig.RefSystemConfig]] =
       Some(
         List(
@@ -418,48 +432,36 @@ class GridConfigParserSpec extends UnitSpec {
     val configRefSystemTwo = RefSystem("5000 MVA", "110 kV")
 
     "find the corresponding RefSystem for a present gridId if no voltLvl is provided" in {
-
       configRefSystems.find(1) shouldBe Some(configRefSystemOne)
-
     }
 
     "find the corresponding RefSystem for a present gridId if a voltLvl is provided" in {
-
       configRefSystems.find(
         1,
         Some(GermanVoltageLevelUtils.MV_10KV),
       ) shouldBe Some(
         configRefSystemOne
       )
-
     }
 
     "find the corresponding RefSystem for a non-present gridId if a voltLvl is provided" in {
-
       configRefSystems.find(
         1000,
         Some(GermanVoltageLevelUtils.HV),
       ) shouldBe Some(
         configRefSystemTwo
       )
-
     }
 
     "return None if a RefSystem cannot be found by it's gridId and no voltLvl is provided" in {
-
       configRefSystems.find(1000) shouldBe None
-
     }
 
-    "return None if a RefSystem cannot be found neither by its gridId nor by its voltLvl" in {
-
+    "return the default value if no custom RefSystem can be found by its gridId or by its voltLvl" in {
       configRefSystems.find(
         1000,
         Some(GermanVoltageLevelUtils.EHV_220KV),
-      ) shouldBe None
-
+      ) shouldBe Some(RefSystem(Megawatts(800), Kilovolts(220)))
     }
-
   }
-
 }

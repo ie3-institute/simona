@@ -156,7 +156,7 @@ object ResultEntityCsvSink {
       outfileName: String,
       resultEntityProcessor: ResultEntityProcessor,
       compressOutputFiles: Boolean,
-      delimiter: String = ",",
+      delimiter: String,
   ): ResultEntityCsvSink = {
 
     val file = new File(outfileName)
