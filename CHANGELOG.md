@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `CODEOWNERS` file [#1387](https://github.com/ie3-institute/simona/issues/1387)
 - Added `LoadProfileService` to `ParticipantRefs` in `LoadProfileService` [#1418](https://github.com/ie3-institute/simona/issues/1418)
 - Enhance `Developer’s Guide` with information on steps for releasing a new version [#1450](https://github.com/ie3-institute/simona/issues/1450)
+- Enhancing config with more default value [#1413](https://github.com/ie3-institute/simona/issues/1413)
 - Introduce `DomesticHotWaterStorage` [#1481](https://github.com/ie3-institute/simona/issues/1481)
 
 ### Changed
@@ -33,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored some tests for usage of should approximate [#863](https://github.com/ie3-institute/simona/issues/863)
 - Create trait for ThermalStorageCalculations [#1473](https://github.com/ie3-institute/simona/issues/1473)
 - Rename 'thermalStorage' to 'heatStorage' [#1475](https://github.com/ie3-institute/simona/issues/1475)
+- Simplify flex option result configuration [#1111](https://github.com/ie3-institute/simona/issues/1111)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
