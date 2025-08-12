@@ -8,13 +8,13 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.config.ConfigParams._
+import edu.ie3.simona.config.ConfigParams.*
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   LoadRuntimeConfig,
   StorageRuntimeConfig,
 }
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.SimonaConfig.*
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{
@@ -715,7 +715,7 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkParticipantsOutputConfig(
-      subConfig: AssetConfigs[OutputConfig.ParticipantOutputConfig]
+      subConfig: OutputConfig.ParticipantOutputConfigs
   ): Unit = {
 
     (subConfig.defaultConfig :: subConfig.individualConfigs).foreach(c =>
@@ -737,7 +737,7 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkThermalOutputConfig(
-      subConfig: AssetConfigs[OutputConfig.SimpleOutputConfig]
+      subConfig: OutputConfig.ThermalOutputConfigs
   ): Unit = {
     implicit val elementType: String = "thermal"
     checkDefaultBaseOutputConfig(subConfig.defaultConfig)
@@ -848,7 +848,7 @@ object ConfigFailFast extends LazyLogging {
     *   RuntimeConfig of Storages
     */
   private def checkStoragesConfig(
-      storageRuntimeConfig: AssetConfigs[StorageRuntimeConfig]
+      storageRuntimeConfig: RuntimeConfig.StorageRuntimeConfigs
   ): Unit = {
     if (
       storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
