@@ -77,7 +77,7 @@ class ResultEventListenerSpec
       compressResults: Boolean = false,
   ): ResultFileHierarchy = {
     val resultSinkType: ResultSinkType =
-      Csv(fileFormat, "", "", compressResults)
+      Csv(fileFormat, "", "", compressResults, ",")
 
     ResultFileHierarchy(
       outputDir = testTmpDir + File.separator + runId,
@@ -381,7 +381,7 @@ class ResultEventListenerSpec
             specificOutputFileHierarchy
           )
         )
-        ResultSinkType.Csv(fileFormat = ".csv.gz")
+        ResultSinkType.Csv(fileFormat = ".csv.gz", delimiter = ",")
 
         listenerRef ! ParticipantResultEvent(dummyPvResult)
 
