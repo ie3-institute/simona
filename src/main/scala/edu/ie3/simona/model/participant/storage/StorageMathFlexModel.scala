@@ -109,7 +109,7 @@ object StorageMathFlexModel {
     ): StorageMathFlexOptions = {
 
       val etaAvg =
-        1 - ((1 / etaCharging.toEach - etaDischarging.toEach) / (1 / etaCharging.toEach + etaDischarging.toEach))
+        (2 * etaCharging.toEach * etaDischarging.toEach) / (1 + etaCharging.toEach * etaDischarging.toEach)
 
       val adaptedCurrentEnergy = (currentEnergy / etaCharging.toEach) * etaAvg
       val adaptedEStorage = (eStorage / etaCharging.toEach) * etaAvg
