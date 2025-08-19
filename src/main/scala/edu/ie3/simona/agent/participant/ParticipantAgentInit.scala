@@ -60,13 +60,13 @@ object ParticipantAgentInit {
     * @param services
     *   References to services by service type.
     * @param resultListener
-    *   Reference to the result listeners.
+    *   Reference to the result service proxy.
     */
   final case class ParticipantRefs(
       gridAgent: ActorRef[GridAgent.Message],
       primaryServiceProxy: ActorRef[ServiceMessage],
       services: Map[ServiceType, ActorRef[ServiceMessage]],
-      resultListener: Iterable[ActorRef[ResultEvent]],
+      resultListener: ActorRef[ResultEvent],
   )
 
   /** Container class that holds parameters related to the simulation.

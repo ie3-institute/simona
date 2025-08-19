@@ -13,7 +13,11 @@ import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.event.listener.ExtResultEvent
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.{
+  RequestResultMessage,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.em.ExtEmDataService
@@ -57,6 +61,7 @@ object ExtSimSetup {
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
+      resultProxy: ActorRef[RequestResultMessage],
       startTime: ZonedDateTime,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
@@ -123,6 +128,7 @@ object ExtSimSetup {
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
+      resultProxy: ActorRef[RequestResultMessage],
       startTime: ZonedDateTime,
   ): ExtSimSetupData = {
     given extSimAdapter: ActorRef[ControlResponseMessageFromExt] =
@@ -202,7 +208,12 @@ object ExtSimSetup {
           case extResultDataConnection: ExtResultDataConnection =>
             val extResultProvider = context.spawn(
               ExtResultEvent
-                .provider(extResultDataConnection, scheduler, startTime),
+                .provider(
+                  extResultDataConnection,
+                  scheduler,
+                  resultProxy,
+                  startTime,
+                ),
               s"ExtResultProvider",
             )
 

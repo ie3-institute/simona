@@ -31,7 +31,7 @@ import org.apache.pekko.actor.typed.ActorRef
   *   The result configuration.
   */
 final case class ParticipantResultHandler(
-    private val listener: Iterable[ActorRef[ResultEvent]],
+    private val listener: ActorRef[ResultEvent],
     private val config: NotifierConfig,
 ) {
 
@@ -42,18 +42,16 @@ final case class ParticipantResultHandler(
     */
   def maybeSend(result: ResultEntity): Unit =
     if (config.simulationResultInfo) {
-      listener.foreach(actor =>
-        result match {
-          case thermalResult: ThermalUnitResult =>
-            actor ! ThermalResultEvent(thermalResult)
-          case participantResult: SystemParticipantResult =>
-            actor ! ParticipantResultEvent(participantResult)
-          case unsupported =>
-            throw new CriticalFailureException(
-              s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."
-            )
-        }
-      )
+      result match {
+        case thermalResult: ThermalUnitResult =>
+          listener ! ThermalResultEvent(thermalResult)
+        case participantResult: SystemParticipantResult =>
+          listener ! ParticipantResultEvent(participantResult)
+        case unsupported =>
+          throw new CriticalFailureException(
+            s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."
+          )
+      }
     }
 
   /** Send the flex options result to all listeners, if enabled.
@@ -63,9 +61,7 @@ final case class ParticipantResultHandler(
     */
   def maybeSend(result: FlexOptionsResult): Unit =
     if (config.flexResult) {
-      listener.foreach(
-        _ ! FlexOptionsResultEvent(result)
-      )
+      listener ! FlexOptionsResultEvent(result)
     }
 
 }

@@ -161,6 +161,7 @@ object ServiceMessage {
       receiver: UUID | ActorRef[FlexResponse] | ActorRef[EmAgent.Message],
   ) extends ServiceResponseMessage
 
+  @deprecated
   final case class ResultResponseMessage(results: Iterable[ResultEntity])
       extends ServiceMessage
       with ServiceResponseMessage {

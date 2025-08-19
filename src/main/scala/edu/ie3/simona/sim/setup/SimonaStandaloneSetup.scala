@@ -19,7 +19,11 @@ import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.{
+  RequestResultMessage,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
@@ -27,6 +31,8 @@ import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
+import edu.ie3.simona.service.results.ResultServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy.Message
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
@@ -62,7 +68,6 @@ class SimonaStandaloneSetup(
   override def gridAgents(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
-      resultEventListeners: Seq[ActorRef[ResultEvent]],
   ): Iterable[ActorRef[GridAgent.Message]] = {
 
     /* get the grid */
@@ -85,7 +90,6 @@ class SimonaStandaloneSetup(
       subGridTopologyGraph,
       context,
       environmentRefs,
-      resultEventListeners,
     )
 
     val keys = ScheduleLock.multiKey(
@@ -166,6 +170,15 @@ class SimonaStandaloneSetup(
     primaryServiceProxy
   }
 
+  override def resultServiceProxy(
+      context: ActorContext[_],
+      listeners: Seq[ActorRef[ResultEvent.ResultResponse]],
+  ): ActorRef[ResultServiceProxy.Message] =
+    context.spawn(
+      ResultServiceProxy(listeners),
+      "resultEventProxyAgent",
+    )
+
   override def weatherService(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
@@ -217,6 +230,7 @@ class SimonaStandaloneSetup(
   override def extSimulations(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
+      resultProxy: ActorRef[RequestResultMessage],
       extSimPath: Option[Path],
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder(extSimPath)
@@ -225,6 +239,7 @@ class SimonaStandaloneSetup(
     setupExtSim(extLinks, args)(using
       context,
       scheduler,
+      resultProxy,
       simonaConfig.simona.time.startTime,
     )
   }
@@ -278,7 +293,7 @@ class SimonaStandaloneSetup(
 
   override def resultEventListener(
       context: ActorContext[_]
-  ): Seq[ActorRef[ResultEventListener.Request]] = {
+  ): Seq[ActorRef[ResultEventListener.Message]] = {
     // append ResultEventListener as well to write raw output files
     Seq(
       context
@@ -293,7 +308,6 @@ class SimonaStandaloneSetup(
       subGridTopologyGraph: SubGridTopologyGraph,
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
-      resultEventListeners: Seq[ActorRef[ResultEvent]],
   ): Map[Int, ActorRef[GridAgent.Message]] = {
     subGridTopologyGraph
       .vertexSet()
@@ -304,7 +318,6 @@ class SimonaStandaloneSetup(
             GridAgent(
               environmentRefs,
               simonaConfig,
-              resultEventListeners,
             ),
             subGridContainer.getSubnet.toString,
           )

@@ -46,8 +46,6 @@ object GridAgentData {
     *   environment actor refs
     * @param simonaConfig
     *   config
-    * @param listener
-    *   listeners
     * @param resolution
     *   of the simulation
     * @param simStartTime
@@ -56,14 +54,12 @@ object GridAgentData {
   final case class GridAgentConstantData(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
-      listener: Iterable[ActorRef[ResultEvent]],
       resolution: Long,
       simStartTime: ZonedDateTime,
       simEndTime: ZonedDateTime,
   ) {
-    def notifyListeners(event: ResultEvent): Unit = {
-      listener.foreach(_ ! event)
-    }
+    def notifyListeners(event: ResultEvent): Unit =
+      environmentRefs.resultProxy ! event
 
     val participantConfigUtil: ParticipantConfigUtil =
       ConfigUtil.ParticipantConfigUtil(simonaConfig.simona.runtime.participant)

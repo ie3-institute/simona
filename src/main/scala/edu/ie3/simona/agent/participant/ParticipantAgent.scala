@@ -7,18 +7,23 @@
 package edu.ie3.simona.agent.participant
 
 import breeze.numerics.{pow, sqrt}
-import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.grid.GridAgentMessages.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, ProvidedPowerResponse}
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+  ProvidedPowerResponse,
+}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.model.participant.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.ServiceMessage.ResultResponseMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.service.Data
-import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
-import edu.ie3.simona.service.results.ExtResultProvider
+import edu.ie3.simona.service.Data.PrimaryDataExtra
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -141,10 +146,6 @@ object ParticipantAgent {
       eInPu: Dimensionless,
       fInPu: Dimensionless,
       replyTo: ActorRef[ProvidedPowerResponse],
-  ) extends Request
-
-  final case class RequestLastResult(
-      replyTo: ActorRef[ExtResultProvider.Message]
   ) extends Request
 
   /** Message announcing that calculations by the
@@ -301,17 +302,6 @@ object ParticipantAgent {
           updatedShell,
           updatedInputHandler,
           updatedGridAdapter,
-          resultHandler,
-        )
-
-      case (ctx, RequestLastResult(replyTo)) =>
-        // send last calculated results to result service
-        // replyTo ! ResultResponseMessage(gridAdapter.lastResults)
-
-        ParticipantAgent(
-          modelShell,
-          inputHandler,
-          gridAdapter,
           resultHandler,
         )
     }

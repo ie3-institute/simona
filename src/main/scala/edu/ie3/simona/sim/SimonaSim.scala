@@ -73,6 +73,10 @@ object SimonaSim {
         val runtimeEventListener = simonaSetup.runtimeEventListener(ctx)
         val resultEventListeners = simonaSetup.resultEventListener(ctx)
 
+        // result proxy
+        val resultProxy =
+          simonaSetup.resultServiceProxy(ctx, resultEventListeners)
+
         val timeAdvancer =
           simonaSetup.timeAdvancer(ctx, ctx.self, runtimeEventListener)
         val scheduler = simonaSetup.scheduler(ctx, timeAdvancer)
@@ -86,10 +90,11 @@ object SimonaSim {
           simonaSetup.simonaConfig.simona.input.extSimDir.map(Path.of(_))
 
         val extSimulationData =
-          simonaSetup.extSimulations(ctx, scheduler, extSimDir)
+          simonaSetup.extSimulations(ctx, scheduler, resultProxy, extSimDir)
 
         val allResultEventListeners =
-          resultEventListeners ++ extSimulationData.resultListeners ++ extSimulationData.resultProviders
+          resultEventListeners ++ extSimulationData.resultListeners
+        val resultProviders = extSimulationData.resultProviders
 
         /* start services */
         // primary service proxy
@@ -107,6 +112,7 @@ object SimonaSim {
           scheduler,
           runtimeEventListener,
           primaryServiceProxy,
+          resultProxy,
           weatherService,
           loadProfileService,
           extSimulationData.emDataService,
@@ -114,11 +120,7 @@ object SimonaSim {
         )
 
         /* start grid agents  */
-        val gridAgents = simonaSetup.gridAgents(
-          ctx,
-          environmentRefs,
-          allResultEventListeners,
-        )
+        val gridAgents = simonaSetup.gridAgents(ctx, environmentRefs)
 
         val otherActors = Iterable[ActorRef[?]](
           timeAdvancer,
@@ -131,6 +133,7 @@ object SimonaSim {
 
         /* watch all actors */
         allResultEventListeners.foreach(ctx.watch)
+        resultProviders.foreach(ctx.watch)
         ctx.watch(runtimeEventListener)
         otherActors.foreach(ctx.watch)
 
@@ -141,7 +144,9 @@ object SimonaSim {
         timeAdvancer ! TimeAdvancer.Start
 
         val delayedActors =
-          allResultEventListeners.appended(runtimeEventListener)
+          allResultEventListeners
+            .appendedAll(resultProviders)
+            .appended(runtimeEventListener)
 
         idle(
           ActorData(

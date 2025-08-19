@@ -8,23 +8,16 @@ package edu.ie3.simona.event.listener
 
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.ResultEvent.{
-  FlexOptionsResultEvent,
-  ParticipantResultEvent,
-  PowerFlowResultEvent,
-  ThermalResultEvent,
-}
+import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.ResultEvent.ResultResponse
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   ProcessResultEventException,
 }
 import edu.ie3.simona.io.result.*
-import edu.ie3.simona.ontology.messages.ServiceMessage
-import edu.ie3.simona.ontology.messages.ServiceMessage.ResultResponseMessage
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import org.slf4j.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -35,6 +28,8 @@ import scala.util.{Failure, Success, Try}
 object ResultEventListener extends Transformer3wResultSupport {
 
   trait Request
+
+  type Message = Request | ResultEvent.Response
 
   private final case class SinkResponse(
       response: Map[Class[_], ResultEntitySink]
@@ -50,11 +45,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     *   listener
     */
   private final case class BaseData(
-      classToSink: Map[Class[_], ResultEntitySink],
-      threeWindingResults: Map[
-        Transformer3wKey,
-        AggregatedTransformer3wResult,
-      ] = Map.empty,
+      classToSink: Map[Class[_], ResultEntitySink]
   )
 
   /** Initialize the sinks for this listener based on the provided collection
@@ -149,73 +140,19 @@ object ResultEventListener extends Transformer3wResultSupport {
     }
   }
 
-  /** Handle the given result and possibly update the state data
+  /** Handle the given results.
     *
-    * @param resultEntity
-    *   Result entity to handle
+    * @param resultEntities
+    *   Results entity to handle.
     * @param baseData
-    *   Base data
-    * @return
-    *   The possibly update base data
+    *   Base data.
     */
-  private def handleResult(
-      resultEntity: ResultEntity,
+  private def handleResults(
+      resultEntities: Iterable[ResultEntity],
       baseData: BaseData,
       log: Logger,
-  ): BaseData = {
-    handOverToSink(resultEntity, baseData.classToSink, log)
-    baseData
-  }
-
-  /** Handle a partial three winding result properly by adding it to an
-    * [[AggregatedTransformer3wResult]] and flushing then possibly completed
-    * results. Finally, the base data are updated.
-    *
-    * @param result
-    *   Result entity to handle
-    * @param baseData
-    *   Base data
-    * @return
-    *   The possibly update base data
-    */
-  private def handlePartialTransformer3wResult(
-      result: PartialTransformer3wResult,
-      baseData: BaseData,
-      log: Logger,
-  ): BaseData = {
-    val key = Transformer3wKey(result.input, result.time)
-    // retrieve existing partial result or use empty one
-    val partialResult =
-      baseData.threeWindingResults.getOrElse(
-        key,
-        AggregatedTransformer3wResult.EMPTY,
-      )
-    // add partial result
-    val updatedResults = partialResult.add(result).map { updatedResult =>
-      if (updatedResult.ready) {
-        // if result is complete, we can write it out
-        updatedResult.consolidate.foreach {
-          handOverToSink(_, baseData.classToSink, log)
-        }
-        // also remove partial result from map
-        baseData.threeWindingResults.removed(key)
-      } else {
-        // if result is not complete yet, just update it
-        baseData.threeWindingResults + (key -> updatedResult)
-      }
-    } match {
-      case Success(results) => results
-      case Failure(exception) =>
-        log.warn(
-          "Failure when handling partial Transformer3w result",
-          exception,
-        )
-        // on failure, we just continue with previous results
-        baseData.threeWindingResults
-    }
-
-    baseData.copy(threeWindingResults = updatedResults)
-  }
+  ): Unit =
+    resultEntities.foreach(handOverToSink(_, baseData.classToSink, log))
 
   /** Handing over the given result entity to the sink, that might be apparent
     * in the map
@@ -240,7 +177,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   def apply(
       resultFileHierarchy: ResultFileHierarchy
-  ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
+  ): Behavior[Message] = Behaviors.setup[Message] { ctx =>
     ctx.log.debug("Starting initialization!")
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Kafka =>
@@ -266,8 +203,8 @@ object ResultEventListener extends Transformer3wResultSupport {
     init
   }
 
-  private def init: Behavior[Request] = Behaviors.withStash(200) { buffer =>
-    Behaviors.receive[Request] {
+  private def init: Behavior[Message] = Behaviors.withStash(200) { buffer =>
+    Behaviors.receive[Message] {
       case (ctx, SinkResponse(response)) =>
         ctx.log.debug("Initialization complete!")
         buffer.unstashAll(idle(BaseData(response)))
@@ -283,47 +220,12 @@ object ResultEventListener extends Transformer3wResultSupport {
     }
   }
 
-  private def idle(baseData: BaseData): Behavior[Request] = Behaviors
-    .receivePartial[Request] {
-      case (ctx, ParticipantResultEvent(participantResult)) =>
-        val updatedBaseData = handleResult(participantResult, baseData, ctx.log)
-        idle(updatedBaseData)
+  private def idle(baseData: BaseData): Behavior[Message] = Behaviors
+    .receivePartial[Message] {
+      case (ctx, ResultResponse(results)) =>
+        handleResults(results, baseData, ctx.log)
 
-      case (ctx, ThermalResultEvent(thermalResult)) =>
-        val updatedBaseData = handleResult(thermalResult, baseData, ctx.log)
-        idle(updatedBaseData)
-
-      case (
-            ctx,
-            PowerFlowResultEvent(
-              nodeResults,
-              switchResults,
-              lineResults,
-              transformer2wResults,
-              transformer3wResults,
-              congestionResults,
-            ),
-          ) =>
-        val updatedBaseData =
-          (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults ++ congestionResults)
-            .foldLeft(baseData) {
-              case (currentBaseData, resultEntity: ResultEntity) =>
-                handleResult(resultEntity, currentBaseData, ctx.log)
-              case (
-                    currentBaseData,
-                    partialTransformerResult: PartialTransformer3wResult,
-                  ) =>
-                handlePartialTransformer3wResult(
-                  partialTransformerResult,
-                  currentBaseData,
-                  ctx.log,
-                )
-            }
-        idle(updatedBaseData)
-
-      case (ctx, FlexOptionsResultEvent(flexOptionsResult)) =>
-        val updatedBaseData = handleResult(flexOptionsResult, baseData, ctx.log)
-        idle(updatedBaseData)
+        Behaviors.same
 
       case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
         DelayedStopHelper.handleMsg((ctx, msg))
@@ -331,15 +233,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     }
     .receiveSignal { case (ctx, PostStop) =>
       // wait until all I/O has finished
-      ctx.log.debug(
-        "Shutdown initiated.\n\tThe following three winding results are not comprehensive and are not " +
-          "handled in sinks:{}\n\tWaiting until writing result data is completed ...",
-        baseData.threeWindingResults.keys
-          .map { case Transformer3wKey(model, zdt) =>
-            s"model '$model' at $zdt"
-          }
-          .mkString("\n\t\t"),
-      )
+      ctx.log.debug("Shutdown initiated.")
 
       // close sinks concurrently to speed up closing (closing calls might be blocking)
       Await.ready(

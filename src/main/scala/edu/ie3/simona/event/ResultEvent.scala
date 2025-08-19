@@ -6,14 +6,15 @@
 
 package edu.ie3.simona.event
 
-import edu.ie3.datamodel.models.result.{CongestionResult, NodeResult}
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
   Transformer2WResult,
 }
 import edu.ie3.datamodel.models.result.system.{
+  EmResult,
   FlexOptionsResult,
+  HpResult,
   SystemParticipantResult,
 }
 import edu.ie3.datamodel.models.result.thermal.{
@@ -21,7 +22,11 @@ import edu.ie3.datamodel.models.result.thermal.{
   ThermalHouseResult,
   ThermalUnitResult,
 }
-import edu.ie3.datamodel.models.result.system.{EmResult, HpResult}
+import edu.ie3.datamodel.models.result.{
+  CongestionResult,
+  NodeResult,
+  ResultEntity,
+}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.listener.ResultEventListener
 import tech.units.indriya.ComparableQuantity
@@ -30,7 +35,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Energy, Power, Temperature}
 
-sealed trait ResultEvent extends Event with ResultEventListener.Request
+sealed trait ResultEvent extends Event
 
 /** Calculation result events
   */
@@ -43,7 +48,8 @@ object ResultEvent {
     *   the calculation result
     */
   final case class ParticipantResultEvent(
-      systemParticipantResult: SystemParticipantResult
+      systemParticipantResult: SystemParticipantResult,
+      maybeNextTick: Option[Long] = None,
   ) extends ResultEvent
 
   object HpResult {
@@ -89,7 +95,8 @@ object ResultEvent {
     *   Result of the thermal calculation
     */
   final case class ThermalResultEvent(
-      thermalResult: ThermalUnitResult
+      thermalResult: ThermalUnitResult,
+      maybeNextTick: Option[Long] = None,
   ) extends ResultEvent
 
   object ThermalHouseResult {
@@ -156,6 +163,7 @@ object ResultEvent {
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult],
       congestionResults: Iterable[CongestionResult] = Iterable.empty,
+      maybeNextTick: Option[Long] = None,
   ) extends ResultEvent {
 
     def +(congestionResult: Iterable[CongestionResult]): PowerFlowResultEvent =
@@ -172,7 +180,12 @@ object ResultEvent {
     *   the flex options result
     */
   final case class FlexOptionsResultEvent(
-      flexOptionsResult: FlexOptionsResult
+      flexOptionsResult: FlexOptionsResult,
+      maybeNextTick: Option[Long] = None,
   ) extends ResultEvent
+
+  sealed trait Response
+
+  final case class ResultResponse(results: List[ResultEntity]) extends Response
 
 }

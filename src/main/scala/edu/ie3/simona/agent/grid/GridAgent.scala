@@ -69,7 +69,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   def apply(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
-      listener: Iterable[ActorRef[ResultEvent]],
   ): Behavior[Message] = Behaviors.withStash(100) { buffer =>
     // this determines the agents regular time bin it wants to be triggered e.g. one hour
     val resolution: Long = simonaConfig.simona.powerflow.resolution.toSeconds
@@ -80,7 +79,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     val agentValues = GridAgentConstantData(
       environmentRefs,
       simonaConfig,
-      listener,
       resolution,
       simStartTime,
       TimeUtil.withDefaults
