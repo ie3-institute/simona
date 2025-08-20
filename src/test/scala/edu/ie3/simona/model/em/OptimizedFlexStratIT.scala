@@ -9,11 +9,13 @@ package edu.ie3.simona.model.em
 import edu.ie3.simona.model.em.OptimizedFlexStratIT.toPowerMap
 import edu.ie3.simona.model.participant.PowerMathFlexOptions
 import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.StorageMathFlexOptions
+import edu.ie3.simona.model.participant.storage.StorageMathFlexModelSpec.energyVal
 import edu.ie3.simona.test.common.UnitSpec
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import squants.{Each, Power}
 import squants.energy.{KilowattHours, Kilowatts}
+import squants.time.Hours
 
 import java.util.UUID
 import scala.collection.SortedMap
@@ -25,6 +27,7 @@ class OptimizedFlexStratIT extends UnitSpec {
       "compensate the load and feed-in with battery flexibility" in {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
+        val m1 = model
 
         given ticks: Seq[Long] = Range.Long(0, 12 * 3600, 3600)
 
@@ -46,10 +49,11 @@ class OptimizedFlexStratIT extends UnitSpec {
 
         val batVars = OptimizedFlexStrat.addAssetConstraints(
           UUID.fromString("0-0-0-0-3"),
-          StorageMathFlexOptions(
+          StorageMathFlexOptions.createAdaptedFlexOptions(
             KilowattHours(0),
             KilowattHours(20),
             Kilowatts(10),
+            Each(0.8),
             Each(0.8),
           ),
           ticks,
@@ -58,6 +62,7 @@ class OptimizedFlexStratIT extends UnitSpec {
         val objective = OptimizedFlexStrat.buildObjective(
           Iterable(pvVars, loadVars, batVars),
           Kilowatts(0),
+          Hours(1),
         )
 
         model.minimize(objective)
@@ -67,6 +72,10 @@ class OptimizedFlexStratIT extends UnitSpec {
         model.getStatus shouldBe SolutionStatus.OPTIMAL
 
         println(batVars.operationVars.map(_.getPowerSolution))
+
+        // TODO result checking
+
+        model.release()
 
       }
     }

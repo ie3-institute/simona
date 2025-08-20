@@ -38,7 +38,11 @@ object MathFlexOptions {
 
     def getPowerSolution: Option[Power]
 
-    def getSoftConstraints: Option[Expression]
+    /** @param duration
+      *   The duration that the system participant was operating at this
+      *   operating point, i.e. the time step size.
+      */
+    def getSoftConstraints(duration: Time): Option[Expression]
 
   }
 

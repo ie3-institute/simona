@@ -44,7 +44,7 @@ final case class OptimizedFlexStrat(
       addAssetConstraints(asset.getUuid, fo, ticks)
     }
 
-    val objective = buildObjective(assetVars, target)
+    val objective = buildObjective(assetVars, target, stepResolution)
 
     model.minimize(objective)
 
@@ -120,6 +120,7 @@ object OptimizedFlexStrat {
   def buildObjective(
       assetVars: Iterable[AssetVarContainer[?, ? <: OperationVars]],
       target: Power,
+      stepResolution: Time,
   )(using model: MPModel): Expression = {
     // asset vars should all have the same amount of operation vars
     val timeSteps = assetVars.headOption.map(_.operationVars.size).getOrElse(0)
@@ -137,7 +138,7 @@ object OptimizedFlexStrat {
         } - target.toKilowatts
 
         val softConstraints =
-          opVars.flatMap(_.getSoftConstraints).reduceLeft(_ + _)
+          opVars.flatMap(_.getSoftConstraints(stepResolution)).reduceLeft(_ + _)
 
         val d = MPFloatVar.positive("d")
         model.add(d >:= difference)

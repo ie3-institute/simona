@@ -12,7 +12,7 @@ import edu.ie3.simona.ontology.messages.flex.MathFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.OperationVars
 import optimus.algebra.{Const, Expression}
 import optimus.optimization.MPModel
-import squants.Power
+import squants.{Power, Time}
 import squants.energy.Kilowatts
 
 import scala.collection.SortedMap
@@ -55,7 +55,7 @@ object PowerMathFlexOptions {
 
     override def getPowerSolution: Option[Power] = Some(Kilowatts(power.value))
 
-    override def getSoftConstraints: Option[Expression] = None
+    override def getSoftConstraints(duration: Time): Option[Expression] = None
   }
 
 }

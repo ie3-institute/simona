@@ -109,6 +109,9 @@ class StorageMathFlexModelSpec extends UnitSpec {
         etaDischarging = Each(0.8),
       )
 
+      val stepResolution = Hours(1)
+      val tickResolution = stepResolution.toSeconds.toLong
+
       given model: MPModel = MPModel(SolverLib.oJSolver)
 
       // since energy values have been adapted, we need this
@@ -118,7 +121,7 @@ class StorageMathFlexModelSpec extends UnitSpec {
       val container = OptimizedFlexStrat.addAssetConstraints(
         assetUuid = UUID.randomUUID(),
         flexOptions = fo,
-        ticks = Range.Long(0, 18000, 3600),
+        ticks = Range.Long(0, tickResolution * 5, tickResolution),
       )
 
       container.states should have length 5
@@ -129,7 +132,7 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       val mainObjectiveDifferences =
         container.operationVars.zip(addPower).map { case (opVar, add) =>
-          val d = MPFloatVar(0, Double.PositiveInfinity)
+          val d = MPFloatVar("d", 0, Double.PositiveInfinity)
           model.add(d >:= opVar.getPowerExpression + add)
           model.add(d >:= -(opVar.getPowerExpression + add))
 
@@ -137,7 +140,7 @@ class StorageMathFlexModelSpec extends UnitSpec {
         }
 
       val softConstraints =
-        container.operationVars.flatMap(_.getSoftConstraints)
+        container.operationVars.flatMap(_.getSoftConstraints(stepResolution))
 
       val objective = mainObjectiveDifferences
         .appendedAll(softConstraints)
@@ -187,18 +190,19 @@ class StorageMathFlexModelSpec extends UnitSpec {
         etaDischarging = Each(0.8),
       )
 
+      val stepResolution = Hours(1)
+      val tickResolution = stepResolution.toSeconds.toLong
+
       given model: MPModel = MPModel(SolverLib.oJSolver)
 
       // since energy values have been adapted, we need this
       // factor to convert back to "real" values
       given EnergyConversionFactor = EnergyConversionFactor(0.8 / fo.eta.toEach)
 
-      val timestepResolution = Hours(1)
-
       val container = OptimizedFlexStrat.addAssetConstraints(
         assetUuid = UUID.randomUUID(),
         flexOptions = fo,
-        ticks = Range.Long(0, 18000, 3600),
+        ticks = Range.Long(0, tickResolution * 5, tickResolution),
       )
 
       container.states should have length 5
@@ -210,10 +214,10 @@ class StorageMathFlexModelSpec extends UnitSpec {
       val objective = container.operationVars
         .zip(addPower)
         .foldLeft[Expression](Zero) { case (sum, (bat, add)) =>
-          val d = MPFloatVar(0, Double.PositiveInfinity)
+          val d = MPFloatVar("d", 0, Double.PositiveInfinity)
           model.add(d >:= bat.getPowerExpression + add)
           model.add(d >:= -(bat.getPowerExpression + add))
-          sum + d + bat.getSoftConstraints.getOrElse(Zero)
+          sum + d + bat.getSoftConstraints(stepResolution).getOrElse(Zero)
         }
 
       model.minimize(objective)
@@ -259,33 +263,34 @@ class StorageMathFlexModelSpec extends UnitSpec {
         etaDischarging = Each(0.8),
       )
 
+      val stepResolution = Hours(1)
+      val tickResolution = stepResolution.toSeconds.toLong
+
       given model: MPModel = MPModel(SolverLib.oJSolver)
 
       // since energy values have been adapted, we need this
       // factor to convert back to "real" values
       given EnergyConversionFactor = EnergyConversionFactor(0.8 / fo.eta.toEach)
 
-      val timestepResolution = Hours(1)
-
       val container = OptimizedFlexStrat.addAssetConstraints(
         assetUuid = UUID.randomUUID(),
         flexOptions = fo,
-        ticks = Range.Long(0, 18000, 3600),
+        ticks = Range.Long(0, tickResolution * 5, tickResolution),
       )
 
       container.states should have length 5
       container.operationVars should have length 4
 
       // additional powers for each time step, some far beyond pMax
-      val addPower = Seq(-5d, -10d, 10d, 5d)
+      val addPower = Seq(-5d, -10d, 10d, 10d)
 
       val objective = container.operationVars
         .zip(addPower)
         .foldLeft[Expression](Zero) { case (sum, (bat, add)) =>
-          val d = MPFloatVar(0, Double.PositiveInfinity)
+          val d = MPFloatVar("d", 0, Double.PositiveInfinity)
           model.add(d >:= bat.getPowerExpression + add)
           model.add(d >:= -(bat.getPowerExpression + add))
-          sum + d + bat.getSoftConstraints.getOrElse(Zero)
+          sum + d + bat.getSoftConstraints(stepResolution).getOrElse(Zero)
         }
 
       model.minimize(objective)
@@ -300,24 +305,31 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       container.states(0).energyVal should approximate(10)
 
-      println(container.operationVars(0).pVal)
+      // possibly charging
+      container.operationVars(0).pVal should be >= 0d
+      container.states(1).energyVal should (be <= 20d and be >= 0d)
 
-      // todo fixme results
-      // discharging 5 kWh plus 1.25 kWh losses
-      container.operationVars(0).pVal should approximate(5)
-      container.states(1).energyVal should approximate(14)
+      // possibly charging, now we should have reached 20 kWh
+      container.operationVars(1).pVal should be >= 0d
+      container.states(2).energyVal should approximate(20d)
 
-      // charging 10 kWh minus 2 kWh losses
-      container.operationVars(1).pVal should approximate(10)
-      container.states(2).energyVal should approximate(51.75)
+      // we should've charged 10 kWh plus 2.5 kWh losses
+      val totalCharged =
+        container.operationVars(0).pVal + container.operationVars(1).pVal
+      totalCharged should approximate(12.5d)
 
-      // discharging 10 kWh plus 2.5 kWh losses
-      container.operationVars(2).pVal should approximate(-10)
-      container.states(3).energyVal should approximate(39.25)
+      // possibly discharging
+      container.operationVars(2).pVal should be <= 0d
+      container.states(3).energyVal should (be <= 20d and be >= 0d)
 
-      // charging 2 kWh minus 0.4 kWh losses
-      container.operationVars(3).pVal should approximate(2)
-      container.states(4).energyVal should approximate(40.85)
+      // possibly discharging, now we should have reached 0 kWh
+      container.operationVars(3).pVal should be <= 0d
+      container.states(4).energyVal should approximate(0d)
+
+      // we should've discharged 20 kWh minus 4 kWh losses
+      val totalDischarged =
+        container.operationVars(2).pVal + container.operationVars(3).pVal
+      totalDischarged should approximate(-16d)
 
       model.release()
 
@@ -371,7 +383,9 @@ object StorageMathFlexModelSpec extends OptionValues {
     def energyVal(using conversion: EnergyConversionFactor): Double =
       state.storedEnergy.value.value * conversion.factor
 
-  extension (state: StorageOperationVars) def pVal: Double = state.p.value.value
+  extension (state: StorageOperationVars)
+    def pVal: Double =
+      state.p.value.value
 
   final case class EnergyConversionFactor(factor: Double)
 

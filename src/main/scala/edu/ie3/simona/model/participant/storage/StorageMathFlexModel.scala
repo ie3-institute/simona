@@ -14,7 +14,7 @@ import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MathFlexOptions}
 import optimus.algebra.{Double2Const, Expression, Long2Const}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
-import squants.{Dimensionless, Each}
+import squants.{Dimensionless, Each, Time}
 import squants.energy.{Energy, Kilowatts, Power}
 
 class StorageMathFlexModel(private val model: StorageModel)
@@ -36,8 +36,18 @@ object StorageMathFlexModel {
 
   final case class StorageStateVars(storedEnergy: MPVar, tick: Long)
 
-  final case class StorageOperationVars(p: MPVar, pAbs: MPVar)
-      extends OperationVars {
+  /** @param p
+    *   in kW
+    * @param pAbs
+    *   in kW
+    * @param eta
+    *   The efficiency
+    */
+  final case class StorageOperationVars(
+      p: MPVar,
+      pAbs: MPVar,
+      eta: Dimensionless,
+  ) extends OperationVars {
 
     override def getPowerExpression: Expression =
       p
@@ -45,10 +55,10 @@ object StorageMathFlexModel {
     override def getPowerSolution: Option[Power] =
       p.value.map(Kilowatts.apply)
 
-    override def getSoftConstraints: Option[Expression] = {
+    override def getSoftConstraints(duration: Time): Option[Expression] = {
       // putting a penalty on pAbs, so that it comes as close as possible to the absolute power
-      val penalty = 1e-2
-      Some(penalty * pAbs)
+      val epsilon = 1e-6
+      Some(pAbs * (1 - eta.toEach + epsilon) * duration.toHours)
     }
   }
 
@@ -78,7 +88,7 @@ object StorageMathFlexModel {
       model.add(pAbs >:= p)
       model.add(pAbs >:= -p)
 
-      StorageOperationVars(p, pAbs)
+      StorageOperationVars(p, pAbs, eta)
     }
 
     override def addNewStateConstraints(
@@ -121,6 +131,7 @@ object StorageMathFlexModel {
         Each(etaAvg),
       )
     }
+
   }
 
 }
