@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create trait for ThermalStorageCalculations [#1473](https://github.com/ie3-institute/simona/issues/1473)
 - Rename 'thermalStorage' to 'heatStorage' [#1475](https://github.com/ie3-institute/simona/issues/1475)
 - Simplify flex option result configuration [#1111](https://github.com/ie3-institute/simona/issues/1111)
+- Harmonisation of `TestInputData` for `Transformer` [#163](https://github.com/ie3-institute/simona/issues/163)
 - Adapt ThermalHouse and HP flexibility behaviour [#1391](https://github.com/ie3-institute/simona/issues/1391)
 
 ### Fixed
