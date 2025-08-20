@@ -116,7 +116,7 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       // since energy values have been adapted, we need this
       // factor to convert back to "real" values
-      given EnergyConversionFactor = EnergyConversionFactor(0.8 / fo.eta.toEach)
+      given EnergyConversionFactor = EnergyConversionFactor(Each(0.8), fo.eta)
 
       val container = OptimizedFlexStrat.addAssetConstraints(
         assetUuid = UUID.randomUUID(),
@@ -197,7 +197,7 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       // since energy values have been adapted, we need this
       // factor to convert back to "real" values
-      given EnergyConversionFactor = EnergyConversionFactor(0.8 / fo.eta.toEach)
+      given EnergyConversionFactor = EnergyConversionFactor(Each(0.8), fo.eta)
 
       val container = OptimizedFlexStrat.addAssetConstraints(
         assetUuid = UUID.randomUUID(),
@@ -270,7 +270,7 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       // since energy values have been adapted, we need this
       // factor to convert back to "real" values
-      given EnergyConversionFactor = EnergyConversionFactor(0.8 / fo.eta.toEach)
+      given EnergyConversionFactor = EnergyConversionFactor(Each(0.8), fo.eta)
 
       val container = OptimizedFlexStrat.addAssetConstraints(
         assetUuid = UUID.randomUUID(),
@@ -307,7 +307,7 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       // possibly charging
       container.operationVars(0).pVal should be >= 0d
-      container.states(1).energyVal should (be <= 20d and be >= 0d)
+      container.states(1).energyVal should (be >= 0d and be <= 20d)
 
       // possibly charging, now we should have reached 20 kWh
       container.operationVars(1).pVal should be >= 0d
@@ -320,7 +320,7 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       // possibly discharging
       container.operationVars(2).pVal should be <= 0d
-      container.states(3).energyVal should (be <= 20d and be >= 0d)
+      container.states(3).energyVal should (be >= 0d and be <= 20d)
 
       // possibly discharging, now we should have reached 0 kWh
       container.operationVars(3).pVal should be <= 0d
@@ -388,5 +388,13 @@ object StorageMathFlexModelSpec extends OptionValues {
       state.p.value.value
 
   final case class EnergyConversionFactor(factor: Double)
+
+  object EnergyConversionFactor {
+    def apply(
+        regularChargingEta: Dimensionless,
+        adaptedEta: Dimensionless,
+    ): EnergyConversionFactor =
+      new EnergyConversionFactor(regularChargingEta.toEach / adaptedEta.toEach)
+  }
 
 }
