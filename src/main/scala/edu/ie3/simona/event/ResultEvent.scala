@@ -48,8 +48,7 @@ object ResultEvent {
     *   the calculation result
     */
   final case class ParticipantResultEvent(
-      systemParticipantResult: SystemParticipantResult,
-      maybeNextTick: Option[Long] = None,
+      systemParticipantResult: SystemParticipantResult
   ) extends ResultEvent
 
   object HpResult {
@@ -95,8 +94,7 @@ object ResultEvent {
     *   Result of the thermal calculation
     */
   final case class ThermalResultEvent(
-      thermalResult: ThermalUnitResult,
-      maybeNextTick: Option[Long] = None,
+      thermalResult: ThermalUnitResult
   ) extends ResultEvent
 
   object ThermalHouseResult {
@@ -155,6 +153,8 @@ object ResultEvent {
     *   the <b>partial</b> power flow results for three winding transformers
     * @param congestionResults
     *   the congestion found by the congestion managements (default: empty)
+    * @param nextTick
+    *   The next tick, for which new result will be sent.
     */
   final case class PowerFlowResultEvent(
       nodeResults: Iterable[NodeResult],
@@ -163,7 +163,7 @@ object ResultEvent {
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult],
       congestionResults: Iterable[CongestionResult] = Iterable.empty,
-      maybeNextTick: Option[Long] = None,
+      nextTick: Long,
   ) extends ResultEvent {
 
     def +(congestionResult: Iterable[CongestionResult]): PowerFlowResultEvent =
@@ -180,8 +180,7 @@ object ResultEvent {
     *   the flex options result
     */
   final case class FlexOptionsResultEvent(
-      flexOptionsResult: FlexOptionsResult,
-      maybeNextTick: Option[Long] = None,
+      flexOptionsResult: FlexOptionsResult
   ) extends ResultEvent
 
   sealed trait Response

@@ -14,7 +14,7 @@ import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.event.listener.ExtResultEvent
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.{
-  RequestResultMessage,
+  RequestResult,
   SchedulerMessage,
   ServiceMessage,
 }
@@ -61,7 +61,7 @@ object ExtSimSetup {
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      resultProxy: ActorRef[RequestResultMessage],
+      resultProxy: ActorRef[RequestResult],
       startTime: ZonedDateTime,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
@@ -128,7 +128,7 @@ object ExtSimSetup {
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
-      resultProxy: ActorRef[RequestResultMessage],
+      resultProxy: ActorRef[RequestResult],
       startTime: ZonedDateTime,
   ): ExtSimSetupData = {
     given extSimAdapter: ActorRef[ControlResponseMessageFromExt] =
@@ -212,7 +212,6 @@ object ExtSimSetup {
                   extResultDataConnection,
                   scheduler,
                   resultProxy,
-                  startTime,
                 ),
               s"ExtResultProvider",
             )

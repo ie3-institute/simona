@@ -15,7 +15,7 @@ import edu.ie3.simona.event.ResultEvent.ResultResponse
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.{
-  RequestResultMessage,
+  RequestResult,
   SchedulerMessage,
   ServiceMessage,
 }
@@ -145,7 +145,7 @@ trait SimonaSetup {
   def extSimulations(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      resultProxy: ActorRef[RequestResultMessage],
+      resultProxy: ActorRef[RequestResult],
       extSimPath: Option[Path],
   ): ExtSimSetupData
 

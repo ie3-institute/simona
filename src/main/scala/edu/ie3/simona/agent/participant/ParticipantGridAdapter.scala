@@ -94,6 +94,8 @@ final case class ParticipantGridAdapter(
       lastResults = result.modelResults,
     )
 
+  def clearLastResults: ParticipantGridAdapter = copy(lastResults = Seq.empty)
+
   /** Handles a power request by making sure an average power value has been
     * calculated, taking into account the new voltage value.
     *
@@ -217,7 +219,7 @@ object ParticipantGridAdapter {
       expectedRequestTick = expectedRequestTick,
       tickToPower = SortedMap.empty,
       avgPowerResult = None,
-    )(
+    )(using
       requestVoltageDeviationTolerance = requestVoltageDeviationTolerance
     )
 

@@ -48,6 +48,7 @@ trait DCMAlgorithm extends CongestionDetection {
   private[grid] def startCongestionManagement(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
+      nextTick: Long,
       results: Option[PowerFlowResultEvent],
       ctx: ActorContext[Message],
   )(using
@@ -59,7 +60,7 @@ trait DCMAlgorithm extends CongestionDetection {
     val congestionManagementData = results
       .map(res => CongestionManagementData(gridAgentBaseData, currentTick, res))
       .getOrElse(
-        CongestionManagementData.empty(gridAgentBaseData, currentTick)
+        CongestionManagementData.empty(gridAgentBaseData, currentTick, nextTick)
       )
 
     ctx.self ! StartStep

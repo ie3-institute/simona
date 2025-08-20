@@ -26,7 +26,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{
   Activation,
-  RequestResultMessage,
+  RequestResult,
   SchedulerMessage,
 }
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
@@ -43,11 +43,11 @@ object ExtResultEvent {
 
   private final case class ProviderState(
       scheduler: ActorRef[SchedulerMessage],
-      resultProxy: ActorRef[RequestResultMessage],
+      resultProxy: ActorRef[RequestResult],
       connection: ExtResultDataConnection,
       extMessage: Option[ResultDataMessageFromExt] = None,
-      simStartTime: ZonedDateTime,
-      gridAssets: List[UUID] = List.empty,
+      gridAssets: Seq[UUID],
+      flexAssets: Seq[UUID],
   )
 
   def listener(connection: ExtResultListener): Behavior[Message] =
@@ -66,18 +66,15 @@ object ExtResultEvent {
   def provider(
       connection: ExtResultDataConnection,
       scheduler: ActorRef[SchedulerMessage],
-      resultProxy: ActorRef[RequestResultMessage],
-      simStartTime: ZonedDateTime,
+      resultProxy: ActorRef[RequestResult],
   ): Behavior[Message | DataMessageFromExt | Activation] = {
-    val gridResults = connection.getGridResultDataAssets.asScala
-
     val stateData =
       ProviderState(
         scheduler,
         resultProxy,
         connection,
-        simStartTime = simStartTime,
-        gridAssets = gridResults.toList,
+        gridAssets = connection.getGridResultDataAssets.asScala.toSeq,
+        flexAssets = connection.getFlexOptionAssets.asScala.toSeq,
       )
 
     provider(stateData)
@@ -125,13 +122,16 @@ object ExtResultEvent {
             val requestedResults =
               new util.ArrayList(requestResultEntities.requestedResults)
 
+            // TODO: flex result are currently not supported by the result provider
+            requestedResults.removeAll(stateData.flexAssets.asJava)
+            
             if requestResultEntities.tick == 0 then {
               // removing the grid assets for tick 0, since SIMONA will produce no output
               requestedResults.removeAll(stateData.gridAssets.asJava)
             }
 
             // request results from result proxy
-            stateData.resultProxy ! RequestResultMessage(
+            stateData.resultProxy ! RequestResult(
               requestedResults.asScala.toSeq,
               tick,
               ctx.self,

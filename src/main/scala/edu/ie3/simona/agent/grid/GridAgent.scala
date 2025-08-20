@@ -256,6 +256,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           createResultModels(
             gridAgentBaseData.gridEnv.gridModel,
             valueStore,
+            nextTick
           )(using
             currentTick.toDateTime(using constantData.simStartTime),
             ctx.log,
@@ -264,7 +265,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
     // check if congestion management is enabled
     if (gridAgentBaseData.congestionManagementParams.detectionEnabled) {
-      startCongestionManagement(gridAgentBaseData, currentTick, results, ctx)
+      startCongestionManagement(gridAgentBaseData, currentTick, nextTick, results, ctx)
     } else {
       // clean up agent and go back to idle
       gotoIdle(gridAgentBaseData, nextTick, results, ctx)
@@ -300,7 +301,9 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   ): Behavior[Message] = {
 
     // notify listener about the results
-    results.foreach(constantData.notifyListeners)
+    results
+      .map(_.copy(nextTick = nextTick))
+      .foreach(constantData.notifyListeners)
 
     // do my cleanup stuff
     ctx.log.debug("Doing my cleanup stuff")

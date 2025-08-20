@@ -16,7 +16,7 @@ import edu.ie3.simona.event.listener.ResultEventListener.{
   AggregatedTransformer3wResult,
   Transformer3wKey,
 }
-import edu.ie3.simona.ontology.messages.RequestResultMessage
+import edu.ie3.simona.ontology.messages.RequestResult
 import edu.ie3.simona.service.ServiceStateData.ServiceBaseStateData
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
@@ -27,8 +27,7 @@ import scala.util.{Failure, Success}
 
 object ResultServiceProxy {
 
-  type Message = ResultEvent | RequestResultMessage |
-    DelayedStopHelper.StoppingMsg
+  type Message = ResultEvent | RequestResult | DelayedStopHelper.StoppingMsg
 
   private final case class ResultServiceStateData(
       listeners: Seq[ActorRef[ResultEvent.ResultResponse]],
@@ -41,6 +40,9 @@ object ResultServiceProxy {
   ) extends ServiceBaseStateData {
     def notifyListener(results: List[ResultEntity]): Unit =
       listeners.foreach(_ ! ResultResponse(results))
+
+    def notifyListener(result: ResultEntity): Unit =
+      listeners.foreach(_ ! ResultResponse(List(result)))
   }
 
   def apply(
@@ -63,7 +65,7 @@ object ResultServiceProxy {
 
         // un-stash received requests
         buffer.unstashAll(idle(updatedStateData))
-      case (ctx, requestResultMessage: RequestResultMessage) =>
+      case (ctx, requestResultMessage: RequestResult) =>
         val requestedResults = requestResultMessage.requestedResults
         val tick = requestResultMessage.tick
 
@@ -110,27 +112,17 @@ object ResultServiceProxy {
       resultEvent: ResultEvent,
       stateData: ResultServiceStateData,
   )(using log: Logger): ResultServiceStateData = resultEvent match {
-    case ParticipantResultEvent(systemParticipantResult, maybeNextTick) =>
+    case ParticipantResultEvent(systemParticipantResult) =>
       // notify listener
-      stateData.notifyListener(List(systemParticipantResult))
+      stateData.notifyListener(systemParticipantResult)
 
       val uuid = systemParticipantResult.getInputModel
 
-      val nextTicks = stateData.nextTicks
-
-      val updatedNextTicks = maybeNextTick match {
-        case Some(value) =>
-          nextTicks.updated(uuid, value)
-        case None =>
-          nextTicks
-      }
-
       stateData.copy(
-        nextTicks = updatedNextTicks,
         resultMapping = stateData.resultMapping.updated(
           uuid,
           systemParticipantResult,
-        ),
+        )
       )
 
     case PowerFlowResultEvent(
@@ -140,7 +132,7 @@ object ResultServiceProxy {
           transformer2wResults,
           partialTransformer3wResults,
           congestionResults,
-          maybeNextTick,
+          nextTick,
         ) =>
       // handling of three winding transformers
       val (updatedResults, transformer3wResults) =
@@ -159,13 +151,8 @@ object ResultServiceProxy {
 
       val nextTicks = stateData.nextTicks
 
-      val updatedNextTicks = maybeNextTick match {
-        case Some(value) =>
-          nextTicks ++ results.keys.map(key => key -> value).toMap
-
-        case None =>
-          nextTicks
-      }
+      val updatedNextTicks =
+        nextTicks ++ results.keys.map(key => key -> nextTick).toMap
 
       stateData.copy(
         nextTicks = updatedNextTicks,
@@ -173,46 +160,25 @@ object ResultServiceProxy {
         threeWindingResults = updatedResults,
       )
 
-    case ThermalResultEvent(thermalResult, maybeNextTick) =>
+    case ThermalResultEvent(thermalResult) =>
       // notify listener
-      stateData.notifyListener(List(thermalResult))
-
+      stateData.notifyListener(thermalResult)
       val uuid = thermalResult.getInputModel
 
-      val nextTicks = stateData.nextTicks
-
-      val updatedNextTicks = maybeNextTick match {
-        case Some(value) =>
-          nextTicks.updated(uuid, value)
-        case None =>
-          nextTicks
-      }
-
       stateData.copy(
-        nextTicks = updatedNextTicks,
         resultMapping = stateData.resultMapping
-          .updated(uuid, thermalResult),
+          .updated(uuid, thermalResult)
       )
 
-    case FlexOptionsResultEvent(flexOptionsResult, maybeNextTick) =>
+    case FlexOptionsResultEvent(flexOptionsResult) =>
       // notify listener
-      stateData.notifyListener(List(flexOptionsResult))
+      stateData.notifyListener(flexOptionsResult)
 
       val uuid = flexOptionsResult.getInputModel
 
-      val nextTicks = stateData.nextTicks
-
-      val updatedNextTicks = maybeNextTick match {
-        case Some(value) =>
-          nextTicks.updated(uuid, value)
-        case None =>
-          nextTicks
-      }
-
       stateData.copy(
-        nextTicks = updatedNextTicks,
         resultMapping = stateData.resultMapping
-          .updated(uuid, flexOptionsResult),
+          .updated(uuid, flexOptionsResult)
       )
   }
 

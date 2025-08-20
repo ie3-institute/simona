@@ -32,7 +32,7 @@ import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
+import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
 import scala.util.{Failure, Success, Try}
 
 @deprecated
@@ -164,7 +164,7 @@ object ExtResultProvider extends SimonaService with ExtDataSupport {
           if (updated.isComplete) {
 
             serviceStateData.extResultDataConnection.queueExtResponseMsg(
-              new ProvideResultEntities(updated.receivedData.asJava)
+              new ProvideResultEntities(updated.receivedData.values.toList.asJava)
             )
 
             serviceStateData.copy(
@@ -246,7 +246,7 @@ object ExtResultProvider extends SimonaService with ExtDataSupport {
           if (updated.isComplete) {
 
             serviceStateData.extResultDataConnection.queueExtResponseMsg(
-              new ProvideResultEntities(updated.receivedData.asJava)
+              new ProvideResultEntities(updated.receivedData.values.toList.asJava)
             )
 
             serviceStateData.copy(

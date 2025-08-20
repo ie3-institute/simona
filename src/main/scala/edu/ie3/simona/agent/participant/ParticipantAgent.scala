@@ -7,11 +7,16 @@
 package edu.ie3.simona.agent.participant
 
 import breeze.numerics.{pow, sqrt}
+import edu.ie3.datamodel.models.result.system.{
+  FlexOptionsResult,
+  SystemParticipantResult,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
   ProvidedPowerResponse,
 }
+import edu.ie3.simona.event.ResultEvent.ResultResponse
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.model.participant.ParticipantModelShell
@@ -19,6 +24,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{
   Activation,
+  RequestResult,
   SchedulerMessage,
   ServiceMessage,
 }
@@ -35,7 +41,7 @@ import squants.{Dimensionless, Each}
   */
 object ParticipantAgent {
 
-  type Message = Request | ActivationRequest
+  type Message = Request | ActivationRequest | RequestResult
 
   type ActivationRequest = Activation | FlexRequest
 
@@ -304,6 +310,17 @@ object ParticipantAgent {
           updatedGridAdapter,
           resultHandler,
         )
+
+      case (ctx, request: RequestResult) =>
+        val tick = request.tick
+
+        if inputHandler.activation.exists(_.tick <= tick) then {
+          ctx.self ! request
+        } else {
+          request.replyTo ! ResultResponse(gridAdapter.lastResults.toList)
+        }
+
+        Behaviors.same
     }
 
   /** Starts a model calculation if all requirements have been met. A model
@@ -460,7 +477,7 @@ object ParticipantAgent {
 
       (updatedShell, inputHandler.completeActivation(), updatedGridAdapter)
     } else
-      (modelShell, inputHandler, gridAdapter)
+      (modelShell, inputHandler, gridAdapter.clearLastResults)
   }
 
   /** Checks if all required messages needed for calculation have been received.

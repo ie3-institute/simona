@@ -11,7 +11,7 @@ import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
 
-final case class RequestResultMessage(
+final case class RequestResult(
     requestedResults: Seq[UUID],
     tick: Long,
     replyTo: ActorRef[ResultEvent.Response],

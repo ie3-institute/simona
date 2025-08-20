@@ -20,7 +20,7 @@ import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.{
-  RequestResultMessage,
+  RequestResult,
   SchedulerMessage,
   ServiceMessage,
 }
@@ -230,7 +230,7 @@ class SimonaStandaloneSetup(
   override def extSimulations(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      resultProxy: ActorRef[RequestResultMessage],
+      resultProxy: ActorRef[RequestResult],
       extSimPath: Option[Path],
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder(extSimPath)
