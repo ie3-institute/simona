@@ -140,7 +140,7 @@ object ExtSimSetup {
       case (setupData, connection) =>
         connection match {
           case extEvDataConnection: ExtEvDataConnection =>
-            if (setupData.evDataConnection.nonEmpty) {
+            if setupData.evDataConnection.nonEmpty then {
               throw ServiceException(
                 s"Trying to connect another EvDataConnection. Currently only one is allowed."
               )
@@ -233,7 +233,7 @@ object ExtSimSetup {
         .groupBy(identity)
         .collect { case (uuid, values) if values.size > 1 => uuid }
 
-    if (duplicateAssets.nonEmpty) {
+    if duplicateAssets.nonEmpty then {
       throw ServiceException(
         s"Multiple data connections provide primary data for assets: ${duplicateAssets.mkString(",")}"
       )

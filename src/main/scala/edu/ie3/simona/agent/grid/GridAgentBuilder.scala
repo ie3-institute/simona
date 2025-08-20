@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   SimulationParameters,
 }
 import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
-import edu.ie3.simona.config.RuntimeConfig._
+import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -35,7 +35,7 @@ import edu.ie3.simona.ontology.messages.{
 }
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.util.ConfigUtil._
+import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -138,7 +138,7 @@ object GridAgentBuilder {
             }
         }
 
-    if (notProcessedElements.nonEmpty)
+    if notProcessedElements.nonEmpty then
       log.warn(
         s"The following elements have been removed, " +
           s"as the agents are not implemented yet: $notProcessedElements"
@@ -222,8 +222,7 @@ object GridAgentBuilder {
     // Uncontrolled EMs can be built right away.
     val (controlledEmInputs, uncontrolledEms) = emInputs
       .partitionMap { case (uuid, emInput) =>
-        if (emInput.getControllingEm.isPresent)
-          Left(uuid -> emInput)
+        if emInput.getControllingEm.isPresent then Left(uuid -> emInput)
         else {
           val actor = buildEm(
             emInput,
@@ -236,7 +235,7 @@ object GridAgentBuilder {
     val previousLevelAndUncontrolledEms =
       previousLevelEms ++ uncontrolledEms.toMap
 
-    if (controlledEmInputs.nonEmpty) {
+    if controlledEmInputs.nonEmpty then {
       // For controlled EMs at the current level, more EMs
       // might need to be built at the next recursion level.
       val controllingEms = controlledEmInputs.toMap.flatMap {

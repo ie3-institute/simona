@@ -194,7 +194,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
       val resolution = constantData.resolution
 
-      if (resolution == Long.MaxValue) {
+      if resolution == Long.MaxValue then {
         unlockKey.unlock()
       } else {
         constantData.environmentRefs.scheduler ! ScheduleActivation(
@@ -278,7 +278,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       }
 
     // check if congestion management is enabled
-    if (gridAgentBaseData.congestionManagementParams.detectionEnabled) {
+    if gridAgentBaseData.congestionManagementParams.detectionEnabled then {
       startCongestionManagement(gridAgentBaseData, currentTick, results, ctx)
     } else {
       // clean up agent and go back to idle
@@ -357,7 +357,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       resMsgBuilder: Vector[(ActorRef[GridAgent.Message], T)] => InternalReply,
       ctx: ActorContext[GridAgent.Message],
   )(using timeout: FiniteDuration): Unit = {
-    if (inferiorGridRefs.nonEmpty) {
+    if inferiorGridRefs.nonEmpty then {
       // creating implicit vals
       given ec: ExecutionContext = ctx.executionContext
       given scheduler: Scheduler = ctx.system.scheduler
@@ -403,9 +403,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       actorName: String,
       onlyOneSubGrid: Boolean,
   ): Unit = {
-    if (
-      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty && !onlyOneSubGrid
-    )
+    if gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty && !onlyOneSubGrid
+    then
       throw new GridAgentInitializationException(
         s"$actorName has neither superior nor inferior grids! This can either " +
           s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"

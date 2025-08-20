@@ -214,7 +214,7 @@ object ParticipantAgentInit {
       )
       val requiredServiceTypes = modelFactory.getRequiredSecondaryServices
 
-      if (requiredServiceTypes.isEmpty) {
+      if requiredServiceTypes.isEmpty then {
         // not requiring any secondary services, thus we're ready to go
         completeInitialization(
           modelFactory,
@@ -328,7 +328,7 @@ object ParticipantAgentInit {
             ),
           ) =>
         // received registration success message from secondary service
-        if (!expectedRegistrations.contains(serviceRef))
+        if !expectedRegistrations.contains(serviceRef) then
           throw new CriticalFailureException(
             s"${participantInput.identifier}: Registration response from $serviceRef was not expected!"
           )
@@ -342,7 +342,7 @@ object ParticipantAgentInit {
           case None                              => modelFactory
         }
 
-        if (newExpectedRegistrations.isEmpty)
+        if newExpectedRegistrations.isEmpty then
           // all secondary services set up, ready to go
           completeInitialization(
             updatedFactory,
@@ -388,7 +388,7 @@ object ParticipantAgentInit {
     val dataCompletedTick = inputHandler.getDataCompletedTick
 
     dataCompletedTick.foreach { dataCompleted =>
-      if (dataCompleted > firstTick)
+      if dataCompleted > firstTick then
         throw new CriticalFailureException(
           s"${modelShell.identifier}: Input data will only be fully received at tick $dataCompleted. " +
             s"It needs to be available with operation start $firstTick though."

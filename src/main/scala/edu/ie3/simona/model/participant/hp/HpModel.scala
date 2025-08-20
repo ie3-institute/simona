@@ -165,13 +165,12 @@ class HpModel private (
 
     /* Determine how qDot is used in thermalGrid and get threshold */
     val (thermalGridOperatingPoint, maybeThreshold) =
-      if (qDotIntoGrid > zeroKW) {
+      if qDotIntoGrid > zeroKW then {
         thermalGrid.handleFeedIn(
           state,
           qDotIntoGrid,
         )
-      } else
-        thermalGrid.handleConsumption(state)
+      } else thermalGrid.handleConsumption(state)
 
     val operatingPoint =
       HpOperatingPoint(
@@ -215,7 +214,7 @@ class HpModel private (
         )._1
     }
 
-    if (turnOn) (pRated, pThermal)
+    if turnOn then (pRated, pThermal)
     else (zeroKW, zeroKW)
   }
 

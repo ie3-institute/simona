@@ -31,9 +31,9 @@ class HpPowerLimitFlexModel(private val model: HpModel)
       )
 
     PowerLimitFlexOptions(
-      if (turnOn) model.sRated.toActivePower(model.cosPhiRated) else zeroKW,
-      if (canBeOutOfOperation) zeroKW else model.pRated,
-      if (canOperate) model.pRated else zeroKW,
+      if turnOn then model.sRated.toActivePower(model.cosPhiRated) else zeroKW,
+      if canBeOutOfOperation then zeroKW else model.pRated,
+      if canOperate then model.pRated else zeroKW,
     )
   }
 

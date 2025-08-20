@@ -101,9 +101,9 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] = {
     val primaryDataWithApparentPower = currentOperatingPoint.data match {
-      case primaryDataWithApparentPower: PrimaryDataWithComplexPower[_] =>
+      case primaryDataWithApparentPower: PrimaryDataWithComplexPower[?] =>
         primaryDataWithApparentPower
-      case enrichableData: EnrichableData[_] =>
+      case enrichableData: EnrichableData[?] =>
         enrichableData.add(complexPower.q)
     }
     Iterable(
@@ -163,9 +163,9 @@ object PrimaryDataParticipantModel {
         data: PD
     ): PrimaryOperatingPoint[PD] =
       data match {
-        case apparentPowerData: PD with PrimaryDataWithComplexPower[_] =>
+        case apparentPowerData: PD with PrimaryDataWithComplexPower[?] =>
           PrimaryApparentPowerOperatingPoint(apparentPowerData)
-        case other: PD with EnrichableData[_] =>
+        case other: PD with EnrichableData[?] =>
           PrimaryActivePowerOperatingPoint(other)
       }
   }

@@ -85,7 +85,7 @@ final case class LoadProfileStore(
   def getNextActivationTick(
       tick: Long
   )(using startTime: ZonedDateTime): Option[Long] = {
-    if (tick < FIRST_TICK_IN_SIMULATION) {
+    if tick < FIRST_TICK_IN_SIMULATION then {
       Some(FIRST_TICK_IN_SIMULATION)
     } else {
       val currentTime = startTime.plusSeconds(tick)

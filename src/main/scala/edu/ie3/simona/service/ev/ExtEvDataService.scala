@@ -222,7 +222,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       }.toSet
 
     // if there are no evcs, we're sending response right away
-    if (freeLots.isEmpty)
+    if freeLots.isEmpty then
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideEvcsFreeLots())
 
     (
@@ -262,7 +262,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
 
     // if there are no departing evs during this tick,
     // we're sending response right away
-    if (departingEvResponses.isEmpty)
+    if departingEvResponses.isEmpty then
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideDepartingEvs())
 
     (
@@ -283,7 +283,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       ctx: ActorContext[Message],
   ): (ExtEvStateData, Option[Long]) = {
 
-    if (tick == INIT_SIM_TICK) {
+    if tick == INIT_SIM_TICK then {
       // During initialization, an empty ProvideArrivingEvs message
       // is sent, which includes the first relevant tick
 
@@ -341,7 +341,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
         val updatedResponses =
           serviceStateData.departingEvResponses.addData(evcs, evModels)
 
-        if (updatedResponses.nonComplete) {
+        if updatedResponses.nonComplete then {
           // responses are still incomplete
           serviceStateData.copy(
             departingEvResponses = updatedResponses
@@ -362,7 +362,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       case FreeLotsResponse(evcs, freeLots) =>
         val updatedFreeLots = serviceStateData.freeLots.addData(evcs, freeLots)
 
-        if (updatedFreeLots.nonComplete) {
+        if updatedFreeLots.nonComplete then {
           // responses are still incomplete
           serviceStateData.copy(
             freeLots = updatedFreeLots

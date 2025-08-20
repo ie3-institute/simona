@@ -205,7 +205,7 @@ object SimonaSim {
     * with delayed stops to stop
     */
   private def stopChildren(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       actorData: ActorData,
       simulationSuccessful: Boolean,
   ): Behavior[Request] = {
@@ -250,12 +250,12 @@ object SimonaSim {
     * have stopped
     */
   private def maybeStop(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       starter: ActorRef[SimonaEnded],
       remainingListeners: Seq[ActorRef[_]],
       simulationSuccessful: Boolean,
   ): Behavior[Request] = {
-    if (remainingListeners.isEmpty) {
+    if remainingListeners.isEmpty then {
       ctx.log.debug(
         "All actors with delayed stops have terminated. Ending simulation."
       )
