@@ -216,7 +216,7 @@ object LoadProfileService extends SimonaService {
   ): (LoadProfileInitializedStateData, Option[Long]) = {
 
     /* Pop the next activation tick and update the state data */
-    val nextTick = tick + serviceStateData.resolution.toSeconds
+    val nextTick = tick + 15.minutes.toSeconds
     val updatedStateData: LoadProfileInitializedStateData =
       serviceStateData.copy(nextActivationTick = nextTick)
 
