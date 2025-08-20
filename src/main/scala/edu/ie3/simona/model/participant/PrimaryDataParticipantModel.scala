@@ -163,9 +163,9 @@ object PrimaryDataParticipantModel {
         data: PD
     ): PrimaryOperatingPoint[PD] =
       data match {
-        case apparentPowerData: PD with PrimaryDataWithComplexPower[?] =>
+        case apparentPowerData: (PD & PrimaryDataWithComplexPower[?]) =>
           PrimaryApparentPowerOperatingPoint(apparentPowerData)
-        case other: PD with EnrichableData[?] =>
+        case other: (PD & EnrichableData[?]) =>
           PrimaryActivePowerOperatingPoint(other)
       }
   }
@@ -178,7 +178,7 @@ object PrimaryDataParticipantModel {
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
-      PE <: PrimaryData with EnrichableData[? <: PrimaryData]
+      PE <: PrimaryData & EnrichableData[? <: PrimaryData]
   ](
       override val data: PE
   ) extends PrimaryOperatingPoint[PE] {

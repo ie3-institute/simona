@@ -51,8 +51,8 @@ trait CongestionDetection {
       // request congestion check if we have inferior grids
       askInferior(
         stateData.inferiorGridRefs,
-        CongestionCheckRequest,
-        ReceivedCongestions,
+        CongestionCheckRequest.apply,
+        ReceivedCongestions.apply,
         ctx,
       )(using stateData.timeout)
 

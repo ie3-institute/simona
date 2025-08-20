@@ -33,7 +33,7 @@ class SetupHelperSpec
     with UnitSpec
     with GridInputTestData {
 
-  private final object SetupHelperInstance extends SetupHelper
+  private object SetupHelperInstance extends SetupHelper
 
   "A setup helper" should {
     val actorRef: ActorRef[GridAgent.Message] =

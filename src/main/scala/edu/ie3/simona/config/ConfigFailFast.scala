@@ -12,7 +12,6 @@ import edu.ie3.simona.config.ConfigParams.*
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   LoadRuntimeConfig,
-  StorageRuntimeConfig,
 }
 import edu.ie3.simona.config.SimonaConfig.*
 import edu.ie3.simona.exceptions.InvalidConfigParameterException

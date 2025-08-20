@@ -22,7 +22,7 @@ import edu.ie3.simona.exceptions.{
   ServiceException,
 }
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.SecondaryData.ArrivingEvs
 import edu.ie3.simona.service.ServiceStateData.{
@@ -34,7 +34,6 @@ import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.slf4j.Logger
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
@@ -162,7 +161,6 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       map.asScala.view.mapValues(_.asScala.toSeq).toMap
 
     given context: ActorContext[Message] = ctx
-    given log: Logger = ctx.log
 
     serviceStateData.extEvMessage
       .map {

@@ -116,7 +116,7 @@ object SimonaSim {
           resultEventListeners,
         )
 
-        val otherActors = Iterable[ActorRef[_]](
+        val otherActors = Iterable[ActorRef[?]](
           timeAdvancer,
           scheduler,
           primaryServiceProxy,
@@ -237,7 +237,7 @@ object SimonaSim {
     */
   private def waitingForListener(
       starter: ActorRef[SimonaEnded],
-      remainingListeners: Seq[ActorRef[_]],
+      remainingListeners: Seq[ActorRef[?]],
       simulationSuccessful: Boolean,
   ): Behavior[Request] = Behaviors.receiveSignal[Request] {
     case (ctx, Terminated(actor)) if remainingListeners.contains(actor) =>
@@ -252,7 +252,7 @@ object SimonaSim {
   private def maybeStop(
       ctx: ActorContext[?],
       starter: ActorRef[SimonaEnded],
-      remainingListeners: Seq[ActorRef[_]],
+      remainingListeners: Seq[ActorRef[?]],
       simulationSuccessful: Boolean,
   ): Behavior[Request] = {
     if remainingListeners.isEmpty then {
@@ -292,6 +292,6 @@ object SimonaSim {
       extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
       runtimeEventListener: ActorRef[RuntimeEventListener.Request],
       delayedStoppingActors: Seq[ActorRef[DelayedStopHelper.StoppingMsg]],
-      otherActors: Iterable[ActorRef[_]],
+      otherActors: Iterable[ActorRef[?]],
   )
 }

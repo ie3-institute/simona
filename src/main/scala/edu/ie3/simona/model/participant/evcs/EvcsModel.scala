@@ -33,11 +33,7 @@ import edu.ie3.simona.model.participant.{
   ParticipantModel,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
-import edu.ie3.simona.ontology.messages.flex.{
-  FlexOptions,
-  FlexType,
-  PowerLimitFlexOptions,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.Data.SecondaryData.*

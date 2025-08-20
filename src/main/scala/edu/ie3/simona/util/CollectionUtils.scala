@@ -10,7 +10,6 @@ import squants.Quantity
 
 import scala.annotation.tailrec
 import scala.collection.immutable.HashSet
-import scala.math.Ordering.Double
 
 object CollectionUtils {
 
@@ -110,8 +109,6 @@ object CollectionUtils {
       key: A,
   ): Seq[(A, O)] = {
     import scala.collection.immutable.TreeMap
-    implicit val ordering: Double.IeeeOrdering.type =
-      Ordering.Double.IeeeOrdering
     val treeMap = TreeMap(map.toSeq*) // preserves order
 
     Seq(

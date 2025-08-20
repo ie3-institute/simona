@@ -8,7 +8,6 @@ package edu.ie3.simona.model.participant.hp
 
 import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.hp.HpModel.HpState
-import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   PowerLimitFlexOptions,

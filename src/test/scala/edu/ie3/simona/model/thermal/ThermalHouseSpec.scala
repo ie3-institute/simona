@@ -267,15 +267,15 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         qDot,
       )
 
-      val tolerance = 1d
+      given tolerance: Double = 1d
       (finalThresholdCaseA, finalThresholdCaseB, finalThresholdCaseC) match {
         case (Some(thresholdA), Some(thresholdB), Some(thresholdC)) =>
           thresholdA.tick.doubleValue should approximate(
             thresholdB.tick.doubleValue
-          )(tolerance)
+          )
           thresholdB.tick.doubleValue should approximate(
             thresholdC.tick.doubleValue
-          )(tolerance)
+          )
           thresholdC shouldBe HouseTargetTemperatureReached(23732)
         case _ => fail("Could not match thresholds.")
       }

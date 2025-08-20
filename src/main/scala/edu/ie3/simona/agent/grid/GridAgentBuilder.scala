@@ -28,11 +28,7 @@ import edu.ie3.simona.model.InputModelContainer.{
   WithHeatInputContainer,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil.*

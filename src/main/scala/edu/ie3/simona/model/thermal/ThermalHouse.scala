@@ -8,7 +8,6 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.TemperatureConversionSimona
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
@@ -25,13 +24,13 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.TemperatureConversionSimona
 import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
-import squants.thermal.{Celsius, Kelvin, ThermalCapacity}
+import squants.thermal.{Kelvin, ThermalCapacity}
 import squants.time.Seconds
 import squants.{Energy, Power, Temperature, Time}
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
@@ -257,7 +256,7 @@ final case class ThermalHouse(
         thermalHouseState.innerTemperature,
         thermalHouseState.ambientTemperature,
         qDot,
-      ).map(HouseTemperatureLowerBoundaryReached)
+      ).map(HouseTemperatureLowerBoundaryReached.apply)
     } else if isInnerTemperatureTooHigh(
         limitTemperature - temperatureTolerance
       ) && qDot > zeroKW
@@ -268,7 +267,7 @@ final case class ThermalHouse(
         thermalHouseState.innerTemperature,
         thermalHouseState.ambientTemperature,
         qDot,
-      ).map(HouseTargetTemperatureReached)
+      ).map(HouseTargetTemperatureReached.apply)
     } else {
       /* House is in perfect balance */
       None

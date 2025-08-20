@@ -18,18 +18,14 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   PowerConversionSimona,
   TemperatureConversionSimona,
   VolumeConversionSimona,
   toSquants,
 }
-import edu.ie3.util.scala.quantities.SpecificHeatCapacity
-import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
-import squants.space.Volume
 import squants.time.Seconds
-import squants.{Energy, Power, Temperature}
+import squants.{Energy, Power}
 
 import java.util.UUID
 

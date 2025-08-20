@@ -32,7 +32,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
+import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
