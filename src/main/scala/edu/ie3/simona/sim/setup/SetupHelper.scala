@@ -23,7 +23,7 @@ import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
-import edu.ie3.simona.logging.logback.LogbackConfiguration
+import edu.ie3.simona.logging.LogbackConfiguration
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
@@ -62,7 +62,7 @@ trait SetupHelper extends LazyLogging {
     */
   def buildGridAgentInitData(
       subGridContainer: SubGridContainer,
-      subGridToActorRef: Map[Int, ActorRef[GridAgent.Request]],
+      subGridToActorRef: Map[Int, ActorRef[GridAgent.Message]],
       gridGates: Set[SubGridGate],
       configRefSystems: ConfigRefSystems,
       configVoltageLimits: ConfigVoltageLimits,
@@ -107,24 +107,24 @@ trait SetupHelper extends LazyLogging {
     *   A mapping from [[SubGridGate]] to corresponding actor reference.
     */
   def buildGateToActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
+      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Message]],
       subGridGates: Set[SubGridGate],
       currentSubGrid: Int,
-  ): Map[SubGridGate, ActorRef[GridAgent.Request]] =
+  ): Map[SubGridGate, ActorRef[GridAgent.Message]] =
     subGridGates
       .groupBy(gate => (gate.superiorNode, gate.inferiorNode))
       .flatMap(_._2.headOption)
       .map(gate => {
         val superiorSubGrid = gate.getSuperiorSubGrid
         val inferiorSubGrid = gate.getInferiorSubGrid
-        if inferiorSubGrid == currentSubGrid then {
+        if (inferiorSubGrid == currentSubGrid) {
           /* This is a gate to a superior sub grid */
           gate -> getActorRef(
             subGridToActorRefMap,
             currentSubGrid,
             superiorSubGrid,
           )
-        } else if superiorSubGrid == currentSubGrid then {
+        } else if (superiorSubGrid == currentSubGrid) {
           /* This is a gate to an inferior sub grid */
           gate -> getActorRef(
             subGridToActorRefMap,
@@ -152,10 +152,10 @@ trait SetupHelper extends LazyLogging {
     *   The actor reference of the sub grid to look for.
     */
   private def getActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
+      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Message]],
       currentSubGrid: Int,
       queriedSubGrid: Int,
-  ): ActorRef[GridAgent.Request] = {
+  ): ActorRef[GridAgent.Message] = {
     subGridToActorRefMap.get(queriedSubGrid) match {
       case Some(hit) => hit
       case _ =>
@@ -198,7 +198,7 @@ trait SetupHelper extends LazyLogging {
         .doubleValue
     )
 
-    if refSystem.nominalVoltage != containerPotential then
+    if (refSystem.nominalVoltage != containerPotential)
       logger.warn(
         s"The configured RefSystem for subGrid ${subGridContainer.getSubnet} differs in its nominal voltage (${refSystem.nominalVoltage}) from the grids" +
           s"predominant voltage level nominal voltage ($containerPotential). If this is by intention and still valid, this warning can be just ignored!"
@@ -275,7 +275,7 @@ object SetupHelper {
     */
   private def allResultEntitiesToWrite(
       outputConfig: OutputConfig
-  ): Set[Class[? <: ResultEntity]] =
+  ): Set[Class[_ <: ResultEntity]] =
     GridOutputConfigUtil(
       outputConfig.grid
     ).simulationResultEntitiesToConsider ++
@@ -291,5 +291,13 @@ object SetupHelper {
         )
         .simulationResultIdentifiersToConsider(thermal = true))
         .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
-      (if outputConfig.flex then Seq(classOf[FlexOptionsResult]) else Seq.empty)
+      (if (
+         OutputConfigUtil
+           .participants(
+             outputConfig.participant
+           )
+           ._1
+           .flexResult
+       ) Seq(classOf[FlexOptionsResult])
+       else Seq.empty)
 }

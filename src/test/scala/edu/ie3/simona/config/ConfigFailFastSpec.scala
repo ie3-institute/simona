@@ -14,13 +14,13 @@ import edu.ie3.simona.config.InputConfig.{
   Primary as PrimaryConfig,
 }
 import edu.ie3.simona.config.OutputConfig.Sink
-import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.{
+  StorageRuntimeConfig,
+  StorageRuntimeConfigs,
+}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
-import edu.ie3.simona.config.SimonaConfig.{
-  AssetConfigs,
-  TransformerControlGroup,
-}
+import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
@@ -518,9 +518,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             loadModelConfig.withFallback(typesafeConfig).resolve()
           val simonaConfig = SimonaConfig(config)
 
-          val checkParticipantRuntimeConfiguration =
-            PrivateMethod[Unit](Symbol("checkParticipantRuntimeConfiguration"))
-
           noException shouldBe thrownBy {
             ConfigFailFast invokePrivate checkParticipantRuntimeConfiguration(
               simonaConfig.simona.runtime.participant
@@ -550,7 +547,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               |     calculateMissingReactivePowerWithModel = false
               |      uuids = ["fb8f1443-1843-4ecd-a94a-59be8148397f"]
               |      scaling = 1.5
-              |      modelBehaviour = "random"
+              |      modelBehaviour = "profile"
               |      reference = "energy"
               |      }
               |  ]
@@ -690,7 +687,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               |      calculateMissingReactivePowerWithModel = false
               |      uuids = ["49f250fa-41ff-4434-a083-79c98d260a76"]
               |      scaling = 1.5
-              |      modelBehaviour = "random"
+              |      modelBehaviour = "profile"
               |      reference = "energy"
               |      }
               |  ]
@@ -1425,7 +1422,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             -0.5,
             Some(0.8),
           )
-        val storageConfig = AssetConfigs(defaultConfig, List.empty)
+        val storageConfig = StorageRuntimeConfigs(defaultConfig, List.empty)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1441,7 +1438,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             0.5,
             Some(-0.8),
           )
-        val storageConfig = AssetConfigs(defaultConfig, List.empty)
+        val storageConfig = StorageRuntimeConfigs(defaultConfig, List.empty)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1467,7 +1464,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(0.8),
           )
         )
-        val storageConfig = AssetConfigs(defaultConfig, individualConfig)
+        val storageConfig =
+          StorageRuntimeConfigs(defaultConfig, individualConfig)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1493,7 +1491,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(-0.8),
           )
         )
-        val storageConfig = AssetConfigs(defaultConfig, individualConfig)
+        val storageConfig =
+          StorageRuntimeConfigs(defaultConfig, individualConfig)
 
         intercept[RuntimeException] {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
@@ -1518,7 +1517,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(0.8),
           )
         )
-        val storageConfig = AssetConfigs(defaultConfig, individualConfig)
+        val storageConfig =
+          StorageRuntimeConfigs(defaultConfig, individualConfig)
 
         noException should be thrownBy {
           ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)

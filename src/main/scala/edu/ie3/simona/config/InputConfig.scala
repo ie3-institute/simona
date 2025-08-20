@@ -27,9 +27,9 @@ import scala.deriving.Mirror
   *   Source for weather data (default: empty).
   */
 final case class InputConfig(
-    extSimDir: Option[String],
+    extSimDir: Option[String] = None,
     grid: Grid,
-    loadProfile: LoadProfile = LoadProfile.empty,
+    loadProfile: LoadProfile = LoadProfile(),
     primary: Primary = Primary(),
     weather: Weather = Weather(),
 ) derives ConfigConvert
@@ -50,6 +50,18 @@ object InputConfig {
       datasource: GridDatasource
   ) derives ConfigConvert
 
+  /** Source containing the grid data.
+    *
+    * @param csvParams
+    *   Parameters for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]].
+    * @param id
+    *   Of the datasource.
+    */
+  final case class GridDatasource(
+      csvParams: Option[BaseCsvParams] = None,
+      id: String,
+  ) derives ConfigConvert
+
   /** Case class with option for load profile data source.
     *
     * @param datasource
@@ -58,11 +70,8 @@ object InputConfig {
   final case class LoadProfile(
       datasource: LoadProfile.Datasource = LoadProfile.Datasource()
   )
-  object LoadProfile {
 
-    /** Returns an empty [[LoadProfile]] with default params.
-      */
-    def empty: LoadProfile = LoadProfile()
+  object LoadProfile {
 
     /** Case class with options for load profile data source parameters.
       *
@@ -100,19 +109,12 @@ object InputConfig {
       sqlParams: Option[TimeStampedSqlParams] = None,
   ) derives ConfigConvert
 
+  /** Case class that holds all information for weather.
+    * @param datasource
+    *   That hold the weather data (default: empty).
+    */
   final case class Weather(
       datasource: WeatherDatasource = WeatherDatasource()
-  ) derives ConfigConvert
-
-  /** Source containing the grid data.
-    * @param csvParams
-    *   Parameters for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]].
-    * @param id
-    *   Of the datasource.
-    */
-  final case class GridDatasource(
-      csvParams: Option[BaseCsvParams] = None,
-      id: String,
   ) derives ConfigConvert
 
   /** Case class with parameters for a weather source.

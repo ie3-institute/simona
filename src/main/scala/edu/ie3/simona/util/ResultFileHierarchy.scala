@@ -20,7 +20,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.FileHierarchyException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.io.result.ResultSinkType.Csv
-import edu.ie3.simona.logging.logback.LogbackConfiguration
+import edu.ie3.simona.logging.LogbackConfiguration
 import edu.ie3.util.io.FileIOUtils
 import org.apache.commons.io.FilenameUtils.*
 
@@ -236,7 +236,7 @@ object ResultFileHierarchy extends LazyLogging {
       bw.write(
         config
           .root()
-          .withFallback(simonaConfig.defaults)
+          .withFallback(simonaConfig.values)
           .render(
             ConfigRenderOptions
               .defaults()

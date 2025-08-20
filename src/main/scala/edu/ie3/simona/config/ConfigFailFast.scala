@@ -143,7 +143,7 @@ object ConfigFailFast extends LazyLogging {
     checkOutputConfig(simonaConfig.simona.output)
 
     /* Check power flow resolution configuration */
-    checkPowerFlowResolutionConfiguration(simonaConfig.simona.powerflow)
+    simonaConfig.simona.powerflow.foreach(checkPowerFlowResolutionConfiguration)
 
     /* Check control scheme definitions */
     simonaConfig.simona.control.foreach(checkControlSchemes)
@@ -713,7 +713,7 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkParticipantsOutputConfig(
-      subConfig: AssetConfigs[OutputConfig.ParticipantOutputConfig]
+      subConfig: OutputConfig.ParticipantOutputConfigs
   ): Unit = {
 
     (subConfig.defaultConfig :: subConfig.individualConfigs).foreach(c =>
@@ -735,7 +735,7 @@ object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkThermalOutputConfig(
-      subConfig: AssetConfigs[OutputConfig.SimpleOutputConfig]
+      subConfig: OutputConfig.ThermalOutputConfigs
   ): Unit = {
     implicit val elementType: String = "thermal"
     checkDefaultBaseOutputConfig(subConfig.defaultConfig)
@@ -846,7 +846,7 @@ object ConfigFailFast extends LazyLogging {
     *   RuntimeConfig of Storages
     */
   private def checkStoragesConfig(
-      storageRuntimeConfig: AssetConfigs[StorageRuntimeConfig]
+      storageRuntimeConfig: RuntimeConfig.StorageRuntimeConfigs
   ): Unit = {
     if storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
     then

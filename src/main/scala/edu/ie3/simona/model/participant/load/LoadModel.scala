@@ -12,18 +12,23 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
 }
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.ParticipantFlexibility.ParticipantSimpleFlexibility
-import edu.ie3.simona.model.participant.ParticipantModel
+import edu.ie3.simona.model.participant.{
+  ParticipantFlexModel,
+  ParticipantModel,
+  ParticipantInflexiblePowerLimitFlexModel,
+}
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  OperationChangeIndicator,
   ParticipantModelFactory,
 }
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyToSimona,
   PowerConversionSimona,
@@ -37,11 +42,21 @@ abstract class LoadModel[S <: ModelState]
     extends ParticipantModel[
       ActivePowerOperatingPoint,
       S,
-    ]
-    with ParticipantSimpleFlexibility[S] {
+    ] {
+
+  override val flexModels: Map[FlexType, ParticipantFlexModel[S]] =
+    Map(
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
+    )
 
   override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
     ActivePowerOperatingPoint.zero
+
+  override def determineOperatingPoint(
+      state: S,
+      setPower: Power,
+  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
+    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
 
   override def createResults(
       state: S,
@@ -122,11 +137,17 @@ object LoadModel {
   def getFactory(
       input: LoadInput,
       config: LoadRuntimeConfig,
+      primary: Boolean,
   ): ParticipantModelFactory[? <: ModelState] =
     LoadModelBehaviour(config.modelBehaviour) match {
+      case _ if primary =>
+        // we want to use primary data for the model
+        // we build a fixed load model here, since we want to use the createPrimaryDataResult method
+        // without introducing a new model
+        FixedLoadModel.Factory(input, config)
       case LoadModelBehaviour.FIX =>
         FixedLoadModel.Factory(input, config)
-      case LoadModelBehaviour.PROFILE | LoadModelBehaviour.RANDOM =>
+      case LoadModelBehaviour.PROFILE =>
         ProfileLoadModel.Factory(input, config)
     }
 

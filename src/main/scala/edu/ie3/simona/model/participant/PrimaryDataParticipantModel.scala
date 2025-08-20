@@ -16,7 +16,11 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant.PrimaryDataParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  FlexType,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   EnrichableData,
@@ -29,6 +33,7 @@ import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.reflect.ClassTag
 
 /** A [[ParticipantModel]] that does not do any physical calculations, but just
   * "replays" the primary data that it received via model input. It is used in
@@ -43,7 +48,7 @@ import java.util.UUID
   * @tparam PD
   *   The type of primary data.
   */
-final case class PrimaryDataParticipantModel[PD <: PrimaryData](
+final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
     override val uuid: UUID,
     override val id: String,
     override val sRated: ApparentPower,
@@ -55,6 +60,11 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData](
       PrimaryOperatingPoint[PD],
       PrimaryDataState[PD],
     ] {
+
+  override val flexModels
+      : Map[FlexType, ParticipantFlexModel[PrimaryDataState[PD]]] = Map(
+    FlexType.PowerLimit -> PrimaryDataPowerLimitFlexModel(this)
+  )
 
   override def determineState(
       lastState: PrimaryDataState[PD],
@@ -91,9 +101,9 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData](
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] = {
     val primaryDataWithApparentPower = currentOperatingPoint.data match {
-      case primaryDataWithApparentPower: PrimaryDataWithComplexPower[?] =>
+      case primaryDataWithApparentPower: PrimaryDataWithComplexPower[_] =>
         primaryDataWithApparentPower
-      case enrichableData: EnrichableData[?] =>
+      case enrichableData: EnrichableData[_] =>
         enrichableData.add(complexPower.q)
     }
     Iterable(
@@ -107,14 +117,6 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData](
   ): SystemParticipantResult = throw new CriticalFailureException(
     "Method not implemented by this model."
   )
-
-  override def determineFlexOptions(
-      state: PrimaryDataState[PD]
-  ): FlexOptions = {
-    val (operatingPoint, _) = determineOperatingPoint(state)
-
-    MinMaxFlexOptions.noFlexOption(operatingPoint.activePower)
-  }
 
   override def determineOperatingPoint(
       state: PrimaryDataState[PD],
@@ -131,6 +133,78 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData](
 }
 
 object PrimaryDataParticipantModel {
+
+  /** Trait that provides functionality that can create the same result objects
+    * as the corresponding physical object.
+    *
+    * The function needs to be packaged in a trait in order to be stored in a
+    * val.
+    */
+  private[participant] trait PrimaryResultFunc {
+    def createResult(
+        data: PrimaryDataWithComplexPower[?],
+        dateTime: ZonedDateTime,
+    ): SystemParticipantResult
+  }
+
+  final case class PrimaryDataState[+PD <: PrimaryData](
+      data: PD,
+      override val tick: Long,
+  ) extends ModelState
+
+  trait PrimaryOperatingPoint[+PD <: PrimaryData] extends OperatingPoint {
+    val data: PD
+
+    override val activePower: Power = data.p
+  }
+
+  private object PrimaryOperatingPoint {
+    def apply[PD <: PrimaryData](
+        data: PD
+    ): PrimaryOperatingPoint[PD] =
+      data match {
+        case apparentPowerData: PD with PrimaryDataWithComplexPower[_] =>
+          PrimaryApparentPowerOperatingPoint(apparentPowerData)
+        case other: PD with EnrichableData[_] =>
+          PrimaryActivePowerOperatingPoint(other)
+      }
+  }
+
+  private final case class PrimaryApparentPowerOperatingPoint[
+      PD <: PrimaryDataWithComplexPower[?]
+  ](override val data: PD)
+      extends PrimaryOperatingPoint[PD] {
+    override val reactivePower: Option[ReactivePower] = Some(data.q)
+  }
+
+  private final case class PrimaryActivePowerOperatingPoint[
+      PE <: PrimaryData with EnrichableData[? <: PrimaryData]
+  ](
+      override val data: PE
+  ) extends PrimaryOperatingPoint[PE] {
+    override val reactivePower: Option[ReactivePower] = None
+  }
+
+  /** Flex model for primary data. Does not allow for any flexibility.
+    *
+    * @param model
+    *   The model.
+    * @tparam PD
+    *   The type of primary data.
+    */
+  private final case class PrimaryDataPowerLimitFlexModel[PD <: PrimaryData](
+      model: PrimaryDataParticipantModel[PD]
+  ) extends ParticipantFlexModel[PrimaryDataState[PD]] {
+
+    override def determineFlexOptions(
+        state: PrimaryDataState[PD]
+    ): FlexOptions = {
+      val (operatingPoint, _) = model.determineOperatingPoint(state)
+
+      PowerLimitFlexOptions.noFlexOption(operatingPoint.activePower)
+    }
+
+  }
 
   /** Constructs a [[PrimaryDataParticipantModel]] for the given physical
     * [[ParticipantModel]] and the given primary data.
@@ -174,59 +248,8 @@ object PrimaryDataParticipantModel {
         physicalModel.qControl,
         primaryResultFunc,
         primaryDataExtra,
-      )
+      )(using primaryDataExtra.getClassTag)
     }
-  }
-
-  /** Trait that provides functionality that can create the same result objects
-    * as the corresponding physical object.
-    *
-    * The function needs to be packaged in a trait in order to be stored in a
-    * val.
-    */
-  private[participant] trait PrimaryResultFunc {
-    def createResult(
-        data: PrimaryDataWithComplexPower[?],
-        dateTime: ZonedDateTime,
-    ): SystemParticipantResult
-  }
-
-  final case class PrimaryDataState[+PD <: PrimaryData](
-      data: PD,
-      override val tick: Long,
-  ) extends ModelState
-
-  trait PrimaryOperatingPoint[+PD <: PrimaryData] extends OperatingPoint {
-    val data: PD
-
-    override val activePower: Power = data.p
-  }
-
-  private object PrimaryOperatingPoint {
-    def apply[PD <: PrimaryData](
-        data: PD
-    ): PrimaryOperatingPoint[PD] =
-      data match {
-        case apparentPowerData: (PD & PrimaryDataWithComplexPower[?]) =>
-          PrimaryApparentPowerOperatingPoint(apparentPowerData)
-        case other: (PD & EnrichableData[?]) =>
-          PrimaryActivePowerOperatingPoint(other)
-      }
-  }
-
-  private final case class PrimaryApparentPowerOperatingPoint[
-      PD <: PrimaryDataWithComplexPower[?]
-  ](override val data: PD)
-      extends PrimaryOperatingPoint[PD] {
-    override val reactivePower: Option[ReactivePower] = Some(data.q)
-  }
-
-  private final case class PrimaryActivePowerOperatingPoint[
-      PE <: PrimaryData & EnrichableData[? <: PrimaryData]
-  ](
-      override val data: PE
-  ) extends PrimaryOperatingPoint[PE] {
-    override val reactivePower: Option[ReactivePower] = None
   }
 
 }

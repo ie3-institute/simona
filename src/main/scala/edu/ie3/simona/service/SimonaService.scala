@@ -11,19 +11,19 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
-  ScheduleServiceActivation,
   ServiceRegistrationMessage,
-  WrappedActivation,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
-  ServiceConstantStateData,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.{
@@ -33,18 +33,16 @@ import org.apache.pekko.actor.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
-import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
 /** Abstract description of a service agent, that is able to announce new
-  * information to registered participants
-  *
-  * @tparam T
-  *   The type of messages this service accepts
+  * information to registered participants.
   */
-abstract class SimonaService[
-    T >: ServiceMessage
-] {
+abstract class SimonaService {
+
+  /** Describes all messages this service can receive.
+    */
+  type Message >: ServiceMessage | Activation
 
   /** The service specific type of the [[ServiceStateData]]
     */
@@ -53,20 +51,10 @@ abstract class SimonaService[
   def apply(
       scheduler: ActorRef[SchedulerMessage],
       bufferSize: Int = 10000,
-  ): Behavior[T] = Behaviors.withStash(bufferSize) { buffer =>
-    Behaviors.setup { ctx =>
-      val activationAdapter: ActorRef[Activation] =
-        ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
-
-      val constantData: ServiceConstantStateData =
-        ServiceConstantStateData(
-          scheduler,
-          activationAdapter,
-        )
-
-      uninitialized(using constantData, buffer)
+  ): Behavior[Message] =
+    Behaviors.withStash[Message](bufferSize) { buffer =>
+      uninitialized(using scheduler, buffer)
     }
-  }
 
   /** Receive method that is used before the service is initialized. Represents
     * the state "Uninitialized".
@@ -74,19 +62,19 @@ abstract class SimonaService[
     * @return
     *   IdleInternal methods for the uninitialized state
     */
-  def uninitialized(implicit
-      constantData: ServiceConstantStateData,
-      buffer: StashBuffer[T],
-  ): Behavior[T] = Behaviors.receive {
+  def uninitialized(using
+      scheduler: ActorRef[SchedulerMessage],
+      buffer: StashBuffer[Message],
+  ): Behavior[Message] = Behaviors.receive {
     case (
-          _,
+          ctx,
           Create(
             initializeStateData: InitializeServiceStateData,
             unlockKey: ScheduleKey,
           ),
         ) =>
-      constantData.scheduler ! ScheduleActivation(
-        constantData.activationAdapter,
+      scheduler ! ScheduleActivation(
+        ctx.self,
         INIT_SIM_TICK,
         Some(unlockKey),
       )
@@ -97,25 +85,24 @@ abstract class SimonaService[
     case (_, msg: ServiceRegistrationMessage) =>
       buffer.stash(msg)
       Behaviors.same
-
   }
 
   private def initializing(
       initializeStateData: InitializeServiceStateData
-  )(implicit
-      constantData: ServiceConstantStateData,
-      buffer: StashBuffer[T],
-  ): Behavior[T] = Behaviors.receive {
-    case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
+  )(using
+      scheduler: ActorRef[SchedulerMessage],
+      buffer: StashBuffer[Message],
+  ): Behavior[Message] = Behaviors.receive {
+    case (ctx, Activation(INIT_SIM_TICK)) =>
       // init might take some time and could go wrong if invalid initialize service data is received
       // execute complete and unstash only if init is carried out successfully
       init(initializeStateData) match {
         case Success((serviceStateData, maybeNewTick)) =>
-          constantData.scheduler ! Completion(
-            constantData.activationAdapter,
+          scheduler ! Completion(
+            ctx.self,
             maybeNewTick,
           )
-          buffer.unstashAll(idle(using serviceStateData, constantData))
+          buffer.unstashAll(idle(using serviceStateData, scheduler))
         case Failure(exception) =>
           // initialize service trigger with invalid data
           ctx.log.error(
@@ -138,7 +125,7 @@ abstract class SimonaService[
       buffer.stash(msg)
       Behaviors.same
 
-    case (_, msg: WrappedActivation) =>
+    case (_, msg: Activation) =>
       buffer.stash(msg)
       Behaviors.same
 
@@ -156,24 +143,24 @@ abstract class SimonaService[
     * @return
     *   Default idleInternal method when the service is initialized
     */
-  final protected def idle(implicit
+  final protected def idle(using
       stateData: S,
-      constantData: ServiceConstantStateData,
-  ): Behavior[T] = Behaviors.receive[T] { case (ctx, msg) =>
+      scheduler: ActorRef[SchedulerMessage],
+  ): Behavior[Message] = Behaviors.receive[Message] { case (ctx, msg) =>
     idleInternal
       .orElse(idleExternal)
       .applyOrElse((ctx, msg), unhandled.tupled)
   }
 
-  private def idleInternal(implicit
+  private def idleInternal(using
       stateData: S,
-      constantData: ServiceConstantStateData,
-  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = {
+      scheduler: ActorRef[SchedulerMessage],
+  ): PartialFunction[(ActorContext[Message], Message), Behavior[Message]] = {
     // agent registration process
     case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
       handleRegistrationRequest(registrationMsg)(using stateData, ctx) match {
-        case Success(stateData) => idle(using stateData, constantData)
+        case Success(stateData) => idle(using stateData, scheduler)
         case Failure(exception) =>
           ctx.log.error(
             "Error during registration." +
@@ -189,30 +176,22 @@ abstract class SimonaService[
           )
       }
 
-    case (_, ScheduleServiceActivation(tick, unlockKey)) =>
-      constantData.scheduler ! ScheduleActivation(
-        constantData.activationAdapter,
-        tick,
-        Some(unlockKey),
-      )
-
-      idle
-
     // activity start trigger for this service
-    case (ctx, WrappedActivation(Activation(tick))) =>
+    case (ctx, Activation(tick)) =>
       /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
       val (updatedStateData, maybeNextTick) =
         announceInformation(tick)(using stateData, ctx)
 
-      constantData.scheduler ! Completion(
-        constantData.activationAdapter,
+      scheduler ! Completion(
+        ctx.self,
         maybeNextTick,
       )
 
-      idle(using updatedStateData, constantData)
+      idle(using updatedStateData, scheduler)
   }
 
-  private def unhandled: (ActorContext[T], T) => Behavior[T] = {
+  private def unhandled
+      : (ActorContext[Message], Message) => Behavior[Message] = {
     case (ctx, msg) =>
       ctx.log.error("Unhandled message received:{}", msg)
       Behaviors.unhandled
@@ -227,10 +206,12 @@ abstract class SimonaService[
     *   Empty partial function as default. To override, extend
     *   [[ExtDataSupport]].
     */
-  protected def idleExternal(implicit
+  protected def idleExternal(using
       stateData: S,
-      constantData: ServiceConstantStateData,
-  ): PartialFunction[(ActorContext[T], T), Behavior[T]] = PartialFunction.empty
+      scheduler: ActorRef[SchedulerMessage],
+  ): PartialFunction[(ActorContext[Message], Message), Behavior[
+    Message
+  ]] = PartialFunction.empty
 
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
@@ -262,9 +243,9 @@ abstract class SimonaService[
     */
   protected def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
-  )(implicit
+  )(using
       serviceStateData: S,
-      ctx: ActorContext[T],
+      ctx: ActorContext[Message],
   ): Try[S]
 
   /** Send out the information to all registered recipients
@@ -278,9 +259,9 @@ abstract class SimonaService[
     *   with updated values) together with the completion message that is sent
     *   in response to the trigger that was sent to start this announcement
     */
-  protected def announceInformation(tick: Long)(implicit
+  protected def announceInformation(tick: Long)(using
       serviceStateData: S,
-      ctx: ActorContext[T],
+      ctx: ActorContext[Message],
   ): (S, Option[Long])
 
 }

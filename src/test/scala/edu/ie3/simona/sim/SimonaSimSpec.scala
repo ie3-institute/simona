@@ -17,12 +17,7 @@ import edu.ie3.simona.event.listener.{
 }
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.services.{
-  LoadProfileMessage,
-  ServiceMessage,
-  WeatherMessage,
-}
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
@@ -439,13 +434,13 @@ object SimonaSimSpec {
     override def weatherService(
         context: ActorContext[?],
         scheduler: ActorRef[SchedulerMessage],
-    ): ActorRef[WeatherMessage] =
+    ): ActorRef[ServiceMessage] =
       context.spawn(empty, uniqueName("weatherService"))
 
     override def loadProfileService(
         context: ActorContext[?],
         scheduler: ActorRef[SchedulerMessage],
-    ): ActorRef[LoadProfileMessage] =
+    ): ActorRef[ServiceMessage] =
       context.spawn(empty, uniqueName("loadProfileService"))
 
     override def timeAdvancer(
@@ -469,7 +464,7 @@ object SimonaSimSpec {
         context: ActorContext[?],
         environmentRefs: EnvironmentRefs,
         resultEventListeners: Seq[ActorRef[ResultEvent]],
-    ): Iterable[ActorRef[GridAgent.Request]] = Iterable.empty
+    ): Iterable[ActorRef[GridAgent.Message]] = Iterable.empty
 
     override def extSimulations(
         context: ActorContext[?],

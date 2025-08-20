@@ -7,6 +7,7 @@
 package edu.ie3.simona.test.common.input
 
 import breeze.math.Complex
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
 import edu.ie3.datamodel.models.input.connector.{
   LineInput,
@@ -39,7 +40,7 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.*
 
 /** Test data for a [[Transformer3WInput]] */
-trait Transformer3wTestData extends DefaultTestData {
+trait Transformer3wInputTestData extends DefaultTestData {
   val mainRefSystemEhv: RefSystem = {
     val nominalPower = Megawatts(1000d)
     val nominalVoltage = Kilovolts(380d)
@@ -159,6 +160,35 @@ trait Transformer3wTestData extends DefaultTestData {
       10,
       false,
     )
+
+  private val transformer = new Transformer3WInput(
+    UUID.fromString("6faeb364-030d-4b2c-bd3f-905ec9413fae"),
+    "test3wTransformer",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    nodeA,
+    nodeB,
+    nodeC,
+    1,
+    transformer3wType,
+    0,
+    true,
+  )
+
+  protected val threeWindingTestGrid: JointGridContainer = {
+    val rawGridElements = new RawGridElements(
+      Set(nodeA, nodeB, nodeC).asJava,
+      Set.empty[LineInput].asJava,
+      Set.empty[Transformer2WInput].asJava,
+      Set(transformer).asJava,
+      Set.empty[SwitchInput].asJava,
+      Set.empty[MeasurementUnitInput].asJava,
+    )
+    TestGridFactory.createJointGrid(
+      gridName = "threeWindingTestGrid",
+      rawGridElements = rawGridElements,
+    )
+  }
 
   protected def transformerModelEhv: Transformer3wModel =
     Transformer3wModel(

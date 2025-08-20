@@ -7,15 +7,19 @@
 package edu.ie3.simona.service
 
 import edu.ie3.datamodel.models.value.*
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
+import edu.ie3.util.scala.quantities.Irradiance
+import squants.{Temperature, Velocity}
 import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
 
 import scala.jdk.OptionConverters.RichOptional
+import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 /** Trait to describe data structures, that are provided from the outside of a
@@ -44,7 +48,9 @@ object Data {
     * @tparam T
     *   The type of primary data
     */
-  sealed trait PrimaryDataExtra[T <: PrimaryData] {
+  sealed trait PrimaryDataExtra[T <: PrimaryData: ClassTag] {
+
+    def getClassTag: ClassTag[T] = summon[ClassTag[T]]
 
     /** Returns a zero value of the desired type
       */
@@ -73,7 +79,7 @@ object Data {
     sealed trait PrimaryDataWithComplexPower[T] extends PrimaryData {
       val q: ReactivePower
 
-      def withReactivePower(q: ReactivePower): T
+      def withReactivePower(reactivePower: ReactivePower): T
     }
 
     /** Adding thermal power
@@ -120,8 +126,10 @@ object Data {
     ) extends PrimaryDataWithComplexPower[ComplexPower] {
       override def toComplexPower: ComplexPower = this
 
-      override def withReactivePower(q: ReactivePower): ComplexPower =
-        copy(q = q)
+      override def withReactivePower(
+          reactivePower: ReactivePower
+      ): ComplexPower =
+        copy(q = reactivePower)
     }
 
     object ComplexPowerExtra extends PrimaryDataExtra[ComplexPower] {
@@ -183,8 +191,10 @@ object Data {
       override def toComplexPower: ComplexPower =
         ComplexPower(p, q)
 
-      override def withReactivePower(q: ReactivePower): ComplexPowerAndHeat =
-        copy(q = q)
+      override def withReactivePower(
+          reactivePower: ReactivePower
+      ): ComplexPowerAndHeat =
+        copy(q = reactivePower)
     }
 
     object ComplexPowerAndHeatExtra
@@ -205,7 +215,7 @@ object Data {
 
     def getPrimaryDataExtra(
         value: Class[? <: Value]
-    ): PrimaryDataExtra[? <: PrimaryData] = {
+    ): PrimaryDataExtra[?] = {
       val heatAndS = classOf[HeatAndSValue]
       val s = classOf[SValue]
       val heatAndP = classOf[HeatAndPValue]
@@ -320,8 +330,59 @@ object Data {
     * participant models to determine their actual interaction with the grid
     */
   trait SecondaryData extends Data
+
   object SecondaryData {
+
+    /** Holds arrivals for one charging station
+      *
+      * @param arrivals
+      *   EVs arriving at the charging station
+      */
+    final case class ArrivingEvs(
+        arrivals: Seq[EvModelWrapper]
+    ) extends SecondaryData
+
+    /** Container class for the load profile information at a certain point in
+      * time.
+      *
+      * @param averagePower
+      *   The average power for the current interval.
+      */
+    final case class LoadData(
+        averagePower: Power
+    ) extends SecondaryData
+
+    /** Container class for the load profile information at a certain point in
+      * time.
+      *
+      * @param powerSupplier
+      *   A supplier, that will return a load value.
+      */
+    final case class LoadDataFunction(
+        powerSupplier: () => Power
+    ) extends SecondaryData
+
+    /** Container class for the entirety of weather information at a certain
+      * point in time and at a certain coordinate
+      *
+      * @param diffIrr
+      *   Diffuse irradiance on the horizontal pane
+      * @param dirIrr
+      *   Direct irradiance on the horizontal pane
+      * @param temp
+      *   Temperature
+      * @param windVel
+      *   Wind velocity
+      */
+    final case class WeatherData(
+        diffIrr: Irradiance,
+        dirIrr: Irradiance,
+        temp: Temperature,
+        windVel: Velocity,
+    ) extends SecondaryData
+
     final case class WholesalePrice(price: ComparableQuantity[EnergyPrice])
         extends SecondaryData
+
   }
 }

@@ -8,8 +8,8 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.datamodel.models.input.system.{PvInput, WecInput}
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
 
 import java.lang.Math.signum
@@ -28,18 +28,18 @@ import java.lang.Math.signum
 final case class EmAggregatePowerOpt(
     targetPowerAbs: Power = zeroKW,
     curtailRegenerative: Boolean,
-) extends EmAggregateFlex {
+) extends EmAggregateFlex[PowerLimitFlexOptions] {
 
   override def aggregateFlexOptions(
       flexOptions: Iterable[
-        (? <: AssetInput, MinMaxFlexOptions)
+        (? <: AssetInput, PowerLimitFlexOptions)
       ]
-  ): MinMaxFlexOptions = {
+  ): PowerLimitFlexOptions = {
     val (minSum, refSum, maxSum) =
       flexOptions.foldLeft((zeroKW, zeroKW, zeroKW)) {
         case (
               (sumMin, sumRef, sumMax),
-              (_, MinMaxFlexOptions(addRef, addMin, addMax)),
+              (_, PowerLimitFlexOptions(addRef, addMin, addMax)),
             ) =>
           (
             sumMin + addMin,
@@ -49,12 +49,13 @@ final case class EmAggregatePowerOpt(
       }
 
     val maxRefSum =
-      if curtailRegenerative then maxSum
+      if (curtailRegenerative)
+        maxSum
       else
         flexOptions.foldLeft(zeroKW) {
           case (
                 maxSumExclReg,
-                (inputModel, MinMaxFlexOptions(_, addMin, addMax)),
+                (inputModel, PowerLimitFlexOptions(_, addMin, addMax)),
               ) =>
             inputModel match {
               case _: PvInput | _: WecInput =>
@@ -63,12 +64,12 @@ final case class EmAggregatePowerOpt(
             }
         }
 
-    val targetAbs = if targetPowerAbs.abs < refSum.abs then {
+    val targetAbs = if (targetPowerAbs.abs < refSum.abs) {
       targetPowerAbs * signum(refSum.toKilowatts)
     } else refSum
 
     val refAgg = minSum.max(maxRefSum.min(targetAbs))
 
-    MinMaxFlexOptions(refAgg, minSum, maxSum)
+    PowerLimitFlexOptions(refAgg, minSum, maxSum)
   }
 }

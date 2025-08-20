@@ -332,14 +332,14 @@ trait PowerFlowSupport {
     val targetVoltage = a.targetVoltage
 
     def combineOptionals(
-        a: Option[Double],
-        b: Option[Double],
+        pA: Option[Double],
+        pB: Option[Double],
         f: (Double, Double) => Double,
-    ): Option[Double] = (a, b) match {
-      case (Some(a), Some(b)) => Some(f(a, b))
-      case (Some(a), None)    => Some(a)
-      case (None, Some(b))    => Some(b)
-      case (None, None)       => None
+    ): Option[Double] = (pA, pB) match {
+      case (Some(vA), Some(vB)) => Some(f(vA, vB))
+      case (Some(vA), None)     => Some(vA)
+      case (None, Some(vB))     => Some(vB)
+      case (None, None)         => None
     }
 
     val activePowerMin =
@@ -558,7 +558,7 @@ trait PowerFlowSupport {
       maxIterations: Int,
       operatingPoint: Array[PresetData],
       slackVoltages: WithForcedStartVoltages,
-  )(epsilons: Vector[Double])(implicit log: Logger): PowerFlowResult = {
+  )(epsilons: Vector[Double])(using log: Logger): PowerFlowResult = {
     epsilons.headOption match {
       case Some(epsilon) =>
         val admittanceMatrix =
@@ -626,7 +626,7 @@ trait PowerFlowSupport {
       gridModel: GridModel,
       receivedValueStore: ReceivedValuesStore,
       powerFlowParams: PowerFlowParams,
-  )(implicit log: Logger): PowerFlowResult = {
+  )(using log: Logger): PowerFlowResult = {
     /* This is the highest grid agent, therefore no data is received for the slack node. Suppress, that it is looked
      * up in the empty store. */
     val (operationPoint, slackNodeVoltages) = composeOperatingPoint(

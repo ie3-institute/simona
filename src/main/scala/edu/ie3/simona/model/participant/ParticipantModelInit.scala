@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemParticipantInputCopyBuilder
 import edu.ie3.datamodel.models.input.system.*
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemParticipantInputCopyBuilder
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   EvcsRuntimeConfig,
@@ -22,8 +22,10 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.evcs.EvcsModel
+import edu.ie3.simona.model.participant.hp.HpModel
 import edu.ie3.simona.model.participant.load.LoadModel
-import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
+import edu.ie3.simona.model.participant.storage.StorageModel
+import edu.ie3.simona.service.Data.PrimaryDataExtra
 
 /** Helper object for constructing all types of [[ParticipantModel]]s, including
   * [[PrimaryDataParticipantModel]].
@@ -39,12 +41,16 @@ object ParticipantModelInit {
     *   represents the physical model at the core of the agent.
     * @param modelConfig
     *   The model runtime config.
+    * @param primary
+    *   True, if we want to create a physical model factory, that will be used
+    *   with primary data.
     * @return
     *   The [[ParticipantModel]].
     */
   def getPhysicalModelFactory(
       inputContainer: InputModelContainer[? <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
+      primary: Boolean = false,
   ): ParticipantModelFactory[? <: ModelState] = {
     val scaledParticipantInput = {
       (inputContainer.electricalInputModel
@@ -59,7 +65,7 @@ object ParticipantModelInit {
       case (input: FixedFeedInInput, _) =>
         FixedFeedInModel.Factory(input)
       case (input: LoadInput, config: LoadRuntimeConfig) =>
-        LoadModel.getFactory(input, config)
+        LoadModel.getFactory(input, config, primary)
       case (input: HpInput, _) =>
         val thermalGrid = inputContainer match {
           case heatInputContainer: WithHeatInputContainer[?] =>
@@ -104,15 +110,16 @@ object ParticipantModelInit {
     * @return
     *   The [[PrimaryDataParticipantModel]].
     */
-  def getPrimaryModelFactory[PD <: PrimaryData](
+  def getPrimaryModelFactory(
       inputContainer: InputModelContainer[? <: SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
-      primaryDataExtra: PrimaryDataExtra[PD],
+      primaryDataExtra: PrimaryDataExtra[?],
   ): ParticipantModelFactory[? <: ModelState] = {
     // Create a fitting physical model to extract parameters from
     val modelFactory = getPhysicalModelFactory(
       inputContainer,
       modelConfig,
+      primary = true,
     )
 
     PrimaryDataParticipantModel.Factory(

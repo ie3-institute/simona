@@ -4,10 +4,10 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.test.common
+package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
+import edu.ie3.datamodel.models.input.connector.`type`.Transformer2WTypeInput
 import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
@@ -24,100 +24,110 @@ import edu.ie3.datamodel.models.input.{
   OperatorInput,
 }
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
+import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.*
+import tech.units.indriya.unit.Units.{OHM, PERCENT}
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
 
-/** Simple grid structure with only one three winding transformer
+/** Test data for a [[Transformer2WInput]].
+  *
+  * {{{
+  * Transformer type:
+  *   d_v = 1.5 %
+  *   tap_min = -13
+  *   tap_max = 13
+  *   tap_neut = 0
+  *   is_autotap = true
+  *   tapSide = high voltage side (ConnectorPort.B -> None in
+  *     [[edu.ie3.simona.model.grid.TransformerTappingModel]])
+  *   r = 30.25 Ω
+  *   x = 4.5375 Ω
+  *   g = 0
+  *   b = 1.1 nS
+  *   s_rated = 40000 kVA -> iNomHv = 209.9455524325912 A
+  *     -> iNomLv = 2309.401076758503 A
+  *   capex = 100.000 €
+  *   opex = 0 €
+  *
+  * Transformer model:
+  *   tap_side = hv (element port A)
+  *   tap_pos = 0
+  *   auto_tap = false
+  *   amount = 1
+  *   vHv = 110 kV
+  *   vLv = 10 kV
+  * }}}
   */
-trait ThreeWindingTestData extends DefaultTestData {
+trait Transformer2wInputTestData extends DefaultTestData {
   private val nodeA = new NodeInput(
-    UUID.fromString("fc3a7c59-0402-4ec1-8a50-b26fb67238bc"),
+    UUID.fromString("c1c83216-f813-4f77-a63b-1f24dbd5afa0"),
     "nodeA",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    Quantities.getQuantity(1d, PU),
+    Quantities.getQuantity(1.0, PU),
     true,
     NodeInput.DEFAULT_GEO_POSITION,
-    GermanVoltageLevelUtils.EHV_380KV,
+    GermanVoltageLevelUtils.HV,
     1,
   )
   private val nodeB = new NodeInput(
-    UUID.fromString("3d4c66a3-dc11-4ec8-857a-53d77beb15ee"),
+    UUID.fromString("d46ac046-70c0-478f-8ab1-92d70f0ba172"),
     "nodeB",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    Quantities.getQuantity(1d, PU),
-    false,
-    NodeInput.DEFAULT_GEO_POSITION,
-    GermanVoltageLevelUtils.HV,
-    2,
-  )
-  private val nodeC = new NodeInput(
-    UUID.fromString("a865a429-615e-44be-9d00-d384298986f6"),
-    "nodeC",
-    OperatorInput.NO_OPERATOR_ASSIGNED,
-    OperationTime.notLimited(),
-    Quantities.getQuantity(1d, PU),
+    Quantities.getQuantity(1.0, PU),
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.MV_10KV,
-    3,
+    2,
   )
 
-  private val transformerType = new Transformer3WTypeInput(
+  protected val transformerType = new Transformer2WTypeInput(
     UUID.randomUUID(),
-    "HöS-HS-MS_1",
-    Quantities.getQuantity(120d, MEGAVOLTAMPERE),
-    Quantities.getQuantity(60d, MEGAVOLTAMPERE),
+    "HS-MS_1",
+    Quantities.getQuantity(30.25, OHM),
+    Quantities.getQuantity(4.5375, OHM),
     Quantities.getQuantity(40d, MEGAVOLTAMPERE),
-    Quantities.getQuantity(380d, KILOVOLT),
     Quantities.getQuantity(110d, KILOVOLT),
     Quantities.getQuantity(10d, KILOVOLT),
-    Quantities.getQuantity(0.3, OHM),
-    Quantities.getQuantity(0.025, OHM),
-    Quantities.getQuantity(0.0008, OHM),
-    Quantities.getQuantity(1.0, OHM),
-    Quantities.getQuantity(0.08, OHM),
-    Quantities.getQuantity(0.003, OHM),
-    Quantities.getQuantity(40d, NANOSIEMENS),
-    Quantities.getQuantity(-1d, NANOSIEMENS),
+    Quantities.getQuantity(0d, NANOSIEMENS),
+    Quantities.getQuantity(-1.1, NANOSIEMENS),
     Quantities.getQuantity(1.5, PERCENT),
     Quantities.getQuantity(0d, DEGREE_GEOM),
+    false,
     0,
-    -10,
-    10,
+    -13,
+    13,
   )
 
-  private val transformer = new Transformer3WInput(
-    UUID.fromString("6faeb364-030d-4b2c-bd3f-905ec9413fae"),
+  val transformerInput = new Transformer2WInput(
+    UUID.fromString("5641c062-3f8c-4d9d-a3a8-c871465e4503"),
     "testTransformer",
     OperatorInput.NO_OPERATOR_ASSIGNED,
-    OperationTime.notLimited(),
+    defaultOperationTime,
     nodeA,
     nodeB,
-    nodeC,
     1,
     transformerType,
-    0,
-    true,
+    10,
+    false,
   )
 
-  protected val threeWindingTestGrid: JointGridContainer = {
+  protected val gridContainer: JointGridContainer = {
     val rawGridElements = new RawGridElements(
-      Set(nodeA, nodeB, nodeC).asJava,
+      Set(nodeA, nodeB).asJava,
       Set.empty[LineInput].asJava,
-      Set.empty[Transformer2WInput].asJava,
-      Set(transformer).asJava,
+      Set(transformerInput).asJava,
+      Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava,
     )
     TestGridFactory.createJointGrid(
-      gridName = "threeWindingTestGrid",
+      gridName = "twoWindingTestGrid",
       rawGridElements = rawGridElements,
     )
   }

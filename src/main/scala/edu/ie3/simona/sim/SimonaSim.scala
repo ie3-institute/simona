@@ -15,10 +15,8 @@ import edu.ie3.simona.scheduler.{ScheduleLock, TimeAdvancer}
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import edu.ie3.util.scala.Scope
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop, Terminated}
-import org.apache.pekko.actor.{ActorRef as ClassicRef}
 
 import java.nio.file.Path
 
@@ -118,7 +116,7 @@ object SimonaSim {
           resultEventListeners,
         )
 
-        val otherActors = Iterable[ActorRef[?]](
+        val otherActors = Iterable[ActorRef[_]](
           timeAdvancer,
           scheduler,
           primaryServiceProxy,
@@ -133,9 +131,7 @@ object SimonaSim {
         extSimulationData.extResultListeners.foreach { case (_, ref) =>
           ctx.watch(ref)
         }
-        extSimulationData.extSimAdapters.foreach(extSimAdapter =>
-          ctx.watch(extSimAdapter.toTyped)
-        )
+        extSimulationData.extSimAdapters.foreach(ctx.watch)
         otherActors.foreach(ctx.watch)
 
         // End pre-initialization phase
@@ -209,7 +205,7 @@ object SimonaSim {
     * with delayed stops to stop
     */
   private def stopChildren(
-      ctx: ActorContext[?],
+      ctx: ActorContext[_],
       actorData: ActorData,
       simulationSuccessful: Boolean,
   ): Behavior[Request] = {
@@ -219,7 +215,7 @@ object SimonaSim {
     }
 
     actorData.extSimAdapters.foreach { extSimAdapter =>
-      ctx.unwatch(extSimAdapter.toTyped)
+      ctx.unwatch(extSimAdapter)
       extSimAdapter ! ExtSimAdapter.Stop(simulationSuccessful)
     }
 
@@ -241,7 +237,7 @@ object SimonaSim {
     */
   private def waitingForListener(
       starter: ActorRef[SimonaEnded],
-      remainingListeners: Seq[ActorRef[?]],
+      remainingListeners: Seq[ActorRef[_]],
       simulationSuccessful: Boolean,
   ): Behavior[Request] = Behaviors.receiveSignal[Request] {
     case (ctx, Terminated(actor)) if remainingListeners.contains(actor) =>
@@ -254,12 +250,12 @@ object SimonaSim {
     * have stopped
     */
   private def maybeStop(
-      ctx: ActorContext[?],
+      ctx: ActorContext[_],
       starter: ActorRef[SimonaEnded],
-      remainingListeners: Seq[ActorRef[?]],
+      remainingListeners: Seq[ActorRef[_]],
       simulationSuccessful: Boolean,
   ): Behavior[Request] = {
-    if remainingListeners.isEmpty then {
+    if (remainingListeners.isEmpty) {
       ctx.log.debug(
         "All actors with delayed stops have terminated. Ending simulation."
       )
@@ -293,9 +289,9 @@ object SimonaSim {
     */
   private final case class ActorData(
       starter: ActorRef[SimonaEnded],
-      extSimAdapters: Iterable[ClassicRef],
+      extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
       runtimeEventListener: ActorRef[RuntimeEventListener.Request],
       delayedStoppingActors: Seq[ActorRef[DelayedStopHelper.StoppingMsg]],
-      otherActors: Iterable[ActorRef[?]],
+      otherActors: Iterable[ActorRef[_]],
   )
 }

@@ -47,7 +47,7 @@ import scala.util.{Failure, Success}
   *   recalculate reactive power.
   */
 final case class ParticipantGridAdapter(
-    gridAgent: ActorRef[GridAgent.Request],
+    gridAgent: ActorRef[GridAgent.Message],
     nodalVoltage: Dimensionless,
     private val expectedRequestTick: Long,
     private val tickToPower: SortedMap[Long, ComplexPower],
@@ -62,9 +62,8 @@ final case class ParticipantGridAdapter(
     * @return
     *   Whether a power request is awaited for the given tick.
     */
-  def isPowerRequestAwaited(currentTick: Long): Boolean = {
+  def isPowerRequestAwaited(currentTick: Long): Boolean =
     expectedRequestTick == currentTick
-  }
 
   /** Store a power value that has been determined by the model for the given
     * tick.
@@ -195,7 +194,7 @@ object ParticipantGridAdapter {
   )
 
   def apply(
-      gridAgentRef: ActorRef[GridAgent.Request],
+      gridAgentRef: ActorRef[GridAgent.Message],
       expectedRequestTick: Long,
       requestVoltageDeviationTolerance: Dimensionless,
   ): ParticipantGridAdapter =

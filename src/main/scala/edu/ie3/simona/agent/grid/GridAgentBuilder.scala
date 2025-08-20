@@ -12,15 +12,13 @@ import edu.ie3.datamodel.models.input.system.*
 import edu.ie3.simona.actor.SimonaActorNaming.*
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentConstantData
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
 }
 import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
-import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
-import edu.ie3.simona.config.RuntimeConfig.*
-import edu.ie3.simona.config.SimonaConfig.AssetConfigs
-import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -29,88 +27,68 @@ import edu.ie3.simona.model.InputModelContainer.{
   SimpleInputContainer,
   WithHeatInputContainer,
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.simona.util.ConfigUtil.*
+import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
 import squants.Each
 
-import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 
-/** Holds all methods that should be available to a [[GridAgent]]
+/** Provides functionality for building system participants of a [[GridAgent]].
   *
-  * @param gridAgentContext
-  *   ActorContext of the grid agent
-  * @param environmentRefs
-  *   The environment refs
-  * @param simulationStartDate
-  *   Simulation start date
-  * @param simulationEndDate
-  *   Simulation end date
-  * @param participantsConfig
-  *   Configuration information for participant models
-  * @param outputConfig
-  *   Configuration information for output behaviour
-  * @param resolution
-  *   The agents time resolution it wants to be triggered
-  * @param listener
-  *   System participant listeners
-  * @param log
-  *   The logging adapter to use here
   * @since 2019-07-18
   */
-class GridAgentBuilder(
-    gridAgentContext: ActorContext[GridAgent.Request],
-    environmentRefs: EnvironmentRefs,
-    simulationStartDate: ZonedDateTime,
-    simulationEndDate: ZonedDateTime,
-    emConfigs: AssetConfigs[EmRuntimeConfig],
-    participantsConfig: Participant,
-    outputConfig: AssetConfigs[ParticipantOutputConfig],
-    resolution: Long,
-    listener: Iterable[ActorRef[ResultEvent]],
-    log: Logger,
-) {
+object GridAgentBuilder {
+
+  /** Builds the relevant system participant for the given subgrid.
+    *
+    * @param subGridContainer
+    *   The subgrid container containing the system participants.
+    * @param thermalIslandGridsByBusId
+    *   Thermal islands by bus UUID.
+    * @param constantData
+    *   Constant values related to the [[GridAgent]].
+    * @param gridAgentContext
+    *   ActorContext of the grid agent.
+    * @param log
+    *   The logging adapter to use here.
+    */
   def buildSystemParticipants(
       subGridContainer: SubGridContainer,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
+  )(using
+      constantData: GridAgentConstantData,
+      gridAgentContext: ActorContext[GridAgent.Message],
+      log: Logger,
   ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = {
 
     val systemParticipants =
-      filterSysParts(subGridContainer, environmentRefs)
-
-    val outputConfigUtil =
-      ConfigUtil.OutputConfigUtil.participants(outputConfig)
+      filterSysParts(subGridContainer, constantData.environmentRefs)
 
     // ems that control at least one participant directly
     val firstLevelEms = systemParticipants.flatMap {
       _.getControllingEm.toScala.map(em => em.getUuid -> em)
     }.toMap
 
-    val allEms = buildEmsRecursively(
-      EmConfigUtil(emConfigs),
-      outputConfigUtil,
-      firstLevelEms,
-    )
+    val allEms = buildEmsRecursively(firstLevelEms)
 
     /* Browse through all system participants, build actors and map their node's UUID to the actor references */
     buildParticipantToActorRef(
-      participantsConfig,
       allEms,
-      outputConfigUtil,
       systemParticipants,
       thermalIslandGridsByBusId,
-      environmentRefs,
     )
   }
 
@@ -123,21 +101,21 @@ class GridAgentBuilder(
     * below.
     *
     * @param subGridContainer
-    *   the original subGrid container
+    *   The original subGrid container.
     * @return
-    *   a filtered subGrid container w/o assets for which no agent
-    *   implementations exist atm
+    *   A filtered subGrid container w/o assets for which no agent
+    *   implementations exist atm.
     */
   private def filterSysParts(
       subGridContainer: SubGridContainer,
       environmentRefs: EnvironmentRefs,
-  ) = {
+  )(using log: Logger): Seq[SystemParticipantInput] = {
 
     val (notProcessedElements, availableSysParts) =
       subGridContainer.getSystemParticipants
         .allEntitiesAsList()
         .asScala
-        .foldLeft((Set.empty[String], Vector.empty[SystemParticipantInput])) {
+        .foldLeft((Set.empty[String], Seq.empty[SystemParticipantInput])) {
           case (
                 (notProcessedElements, availableSystemParticipants),
                 curSysPart,
@@ -160,7 +138,7 @@ class GridAgentBuilder(
             }
         }
 
-    if notProcessedElements.nonEmpty then
+    if (notProcessedElements.nonEmpty)
       log.warn(
         s"The following elements have been removed, " +
           s"as the agents are not implemented yet: $notProcessedElements"
@@ -175,34 +153,23 @@ class GridAgentBuilder(
     * agents are also introduced to the agent environment and the scheduler is
     * requested to send an initialisation trigger.
     *
-    * @param participantsConfig
-    *   Configuration information for participant models
     * @param emAgents
-    *   mapping: em uuid to agent
-    * @param outputConfigUtil
-    *   Containing configuration information for output behaviour
+    *   Mapping: em uuid to agent.
     * @param participants
-    *   Set of system participants to create agents for
+    *   Set of system participants to create agents for.
     * @param thermalIslandGridsByBusId
-    *   Collection of thermal island grids, mapped by their thermal bus uuid
-    * @param environmentRefs
-    *   References to singleton entities representing the agent environment
+    *   Collection of thermal island grids, mapped by their thermal bus uuid.
     * @return
-    *   A map from coupling point to set of actor references
+    *   A map from coupling point to set of actor references.
     */
   private def buildParticipantToActorRef(
-      participantsConfig: Participant,
       emAgents: Map[UUID, ActorRef[FlexResponse]],
-      outputConfigUtil: OutputConfigUtil,
-      participants: Vector[SystemParticipantInput],
+      participants: Seq[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
-      environmentRefs: EnvironmentRefs,
+  )(using
+      constantData: GridAgentConstantData,
+      gridAgentContext: ActorContext[GridAgent.Message],
   ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = {
-    /* Prepare the config util for the participant models, which (possibly) utilizes as map to speed up the initialization
-     * phase */
-    val participantConfigUtil =
-      ConfigUtil.ParticipantConfigUtil(participantsConfig)
-
     participants
       .map { participant =>
         val node = participant.getNode
@@ -220,12 +187,8 @@ class GridAgentBuilder(
             )
 
         val actorRef = buildParticipantActor(
-          participantsConfig.requestVoltageDeviationThreshold,
-          participantConfigUtil,
-          outputConfigUtil,
-          participant,
           thermalIslandGridsByBusId,
-          environmentRefs,
+          participant,
           controllingEm,
         )
         // return uuid to actorRef
@@ -240,34 +203,30 @@ class GridAgentBuilder(
     * its way up to EMs at root level, which are not EM-controlled themselves.
     * The first level can also be root level.
     *
-    * @param emConfigUtil
-    *   Configuration util for participant models
-    * @param outputConfigUtil
-    *   Configuration util for output behaviour
     * @param emInputs
     *   EMs of the current level, which can be controlled by further EMs at
-    *   higher levels
+    *   higher levels.
     * @param previousLevelEms
-    *   EMs that have been built by the previous recursion level
+    *   EMs that have been built by the previous recursion level.
     * @return
-    *   Map from model UUID to EmAgent ActorRef
+    *   Map from model UUID to EmAgent ActorRef.
     */
   private def buildEmsRecursively(
-      emConfigUtil: ConfigUtil.EmConfigUtil,
-      outputConfigUtil: OutputConfigUtil,
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
+  )(using
+      constantData: GridAgentConstantData,
+      gridAgentContext: ActorContext[GridAgent.Message],
   ): Map[UUID, ActorRef[FlexResponse]] = {
     // For the current level, split controlled and uncontrolled EMs.
     // Uncontrolled EMs can be built right away.
     val (controlledEmInputs, uncontrolledEms) = emInputs
       .partitionMap { case (uuid, emInput) =>
-        if emInput.getControllingEm.isPresent then Left(uuid -> emInput)
+        if (emInput.getControllingEm.isPresent)
+          Left(uuid -> emInput)
         else {
           val actor = buildEm(
             emInput,
-            emConfigUtil.getOrDefault(uuid),
-            outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
             maybeControllingEm = None,
           )
           Right(uuid -> actor)
@@ -277,7 +236,7 @@ class GridAgentBuilder(
     val previousLevelAndUncontrolledEms =
       previousLevelEms ++ uncontrolledEms.toMap
 
-    if controlledEmInputs.nonEmpty then {
+    if (controlledEmInputs.nonEmpty) {
       // For controlled EMs at the current level, more EMs
       // might need to be built at the next recursion level.
       val controllingEms = controlledEmInputs.toMap.flatMap {
@@ -287,8 +246,6 @@ class GridAgentBuilder(
 
       // Return value includes previous level and uncontrolled EMs of this level
       val recursiveEms = buildEmsRecursively(
-        emConfigUtil,
-        outputConfigUtil,
         controllingEms,
         previousLevelAndUncontrolledEms,
       )
@@ -307,8 +264,6 @@ class GridAgentBuilder(
 
         uuid -> buildEm(
           emInput,
-          emConfigUtil.getOrDefault(uuid),
-          outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
           maybeControllingEm = controllingEm,
         )
       }.toMap
@@ -320,108 +275,107 @@ class GridAgentBuilder(
   }
 
   private def buildParticipantActor(
-      requestVoltageDeviationThreshold: Double,
-      participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
-      outputConfigUtil: OutputConfigUtil,
-      participantInputModel: SystemParticipantInput,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
-      environmentRefs: EnvironmentRefs,
+      participantInputModel: SystemParticipantInput,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
+  )(using
+      constantData: GridAgentConstantData,
+      gridAgentContext: ActorContext[GridAgent.Message],
   ): ActorRef[ParticipantAgent.Request] = {
 
-    val serviceMap: Map[ServiceType, ActorRef[? >: ServiceMessage]] =
+    val environmentRefs = constantData.environmentRefs
+
+    val serviceMap: Map[ServiceType, ActorRef[ServiceMessage]] =
       Seq(
         Some(ServiceType.WeatherService -> environmentRefs.weather),
+        Some(ServiceType.LoadProfileService -> environmentRefs.loadProfiles),
         environmentRefs.evDataService.map(ref =>
           ServiceType.EvMovementService -> ref
         ),
       ).flatten.toMap
 
-    val participantRefs = ParticipantRefs(
+    given ParticipantRefs = ParticipantRefs(
       gridAgentContext.self,
-      environmentRefs.primaryServiceProxy,
+      constantData.environmentRefs.primaryServiceProxy,
       serviceMap,
-      listener,
+      constantData.listener,
     )
 
-    val simParams = SimulationParameters(
-      resolution,
-      Each(requestVoltageDeviationThreshold),
-      simulationStartDate,
-      simulationEndDate,
+    given SimulationParameters = SimulationParameters(
+      constantData.resolution,
+      Each(
+        constantData.simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+      ),
+      constantData.simStartTime,
+      constantData.simEndTime,
     )
 
     participantInputModel match {
       case input: FixedFeedInInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          participantConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
-            input.getUuid
+          constantData.participantConfigUtil
+            .getOrDefault[FixedFeedInRuntimeConfig](
+              input.getUuid
+            ),
+          constantData.outputConfigUtil.getOrDefault(
+            NotifierIdentifier.FixedFeedIn
           ),
-          outputConfigUtil.getOrDefault(NotifierIdentifier.FixedFeedIn),
-          participantRefs,
-          simParams,
-          environmentRefs.scheduler,
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: LoadInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          participantConfigUtil.getOrDefault[LoadRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[LoadRuntimeConfig](
             input.getUuid
           ),
-          outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
-          participantRefs,
-          simParams,
-          environmentRefs.scheduler,
+          constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: PvInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          participantConfigUtil.getOrDefault[PvRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[PvRuntimeConfig](
             input.getUuid
           ),
-          outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant),
-          participantRefs,
-          simParams,
-          environmentRefs.scheduler,
+          constantData.outputConfigUtil.getOrDefault(
+            NotifierIdentifier.PvPlant
+          ),
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: BmInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          participantConfigUtil.getOrDefault[BmRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[BmRuntimeConfig](
             input.getUuid
           ),
-          outputConfigUtil.getOrDefault(NotifierIdentifier.BioMassPlant),
-          participantRefs,
-          simParams,
-          environmentRefs.scheduler,
+          constantData.outputConfigUtil.getOrDefault(
+            NotifierIdentifier.BioMassPlant
+          ),
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: WecInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          participantConfigUtil.getOrDefault[WecRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[WecRuntimeConfig](
             input.getUuid
           ),
-          outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
-          participantRefs,
-          simParams,
-          environmentRefs.scheduler,
+          constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: EvcsInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
             input.getUuid
           ),
-          outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
-          participantRefs,
-          simParams,
-          environmentRefs.scheduler,
+          constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: HpInput =>
@@ -429,13 +383,11 @@ class GridAgentBuilder(
           case Some(thermalGrid) =>
             buildParticipant(
               WithHeatInputContainer(input, thermalGrid),
-              participantConfigUtil.getOrDefault[HpRuntimeConfig](
+              constantData.participantConfigUtil.getOrDefault[HpRuntimeConfig](
                 input.getUuid
               ),
-              outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
-              participantRefs,
-              simParams,
-              environmentRefs.scheduler,
+              constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
+              constantData.environmentRefs.scheduler,
               maybeControllingEm,
             )
           case None =>
@@ -446,13 +398,13 @@ class GridAgentBuilder(
       case input: StorageInput =>
         buildParticipant(
           SimpleInputContainer(input),
-          participantConfigUtil.getOrDefault[StorageRuntimeConfig](
+          constantData.participantConfigUtil.getOrDefault[StorageRuntimeConfig](
             input.getUuid
           ),
-          outputConfigUtil.getOrDefault(NotifierIdentifier.Storage),
-          participantRefs,
-          simParams,
-          environmentRefs.scheduler,
+          constantData.outputConfigUtil.getOrDefault(
+            NotifierIdentifier.Storage
+          ),
+          constantData.environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: SystemParticipantInput =>
@@ -466,10 +418,12 @@ class GridAgentBuilder(
       inputContainer: InputModelContainer[? <: SystemParticipantInput],
       runtimeConfig: BaseRuntimeConfig,
       notifierConfig: NotifierConfig,
-      participantRefs: ParticipantRefs,
-      simParams: SimulationParameters,
       scheduler: ActorRef[SchedulerMessage],
       maybeControllingEm: Option[ActorRef[FlexResponse]],
+  )(using
+      participantRefs: ParticipantRefs,
+      simParams: SimulationParameters,
+      gridAgentContext: ActorContext[GridAgent.Message],
   ): ActorRef[ParticipantAgent.Request] = {
 
     val key = ScheduleLock.singleKey(gridAgentContext, scheduler, PRE_INIT_TICK)
@@ -479,8 +433,6 @@ class GridAgentBuilder(
         inputContainer,
         runtimeConfig,
         notifierConfig,
-        participantRefs,
-        simParams,
         maybeControllingEm.toRight(scheduler),
         key,
       ),
@@ -499,10 +451,6 @@ class GridAgentBuilder(
     *
     * @param emInput
     *   The input model
-    * @param modelConfiguration
-    *   Runtime configuration for the agent
-    * @param outputConfig
-    *   Configuration for output notification
     * @param maybeControllingEm
     *   The parent EmAgent, if applicable
     * @return
@@ -510,21 +458,22 @@ class GridAgentBuilder(
     */
   private def buildEm(
       emInput: EmInput,
-      modelConfiguration: EmRuntimeConfig,
-      outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
+  )(using
+      constantData: GridAgentConstantData,
+      gridAgentContext: ActorContext[GridAgent.Message],
   ): ActorRef[FlexResponse] =
     gridAgentContext.spawn(
       EmAgent(
         emInput,
-        modelConfiguration,
-        outputConfig,
+        constantData.emConfigUtil.getOrDefault(emInput.getUuid),
+        constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
         emInput.getControlStrategy,
-        simulationStartDate,
+        constantData.simStartTime,
         maybeControllingEm.toRight(
-          environmentRefs.scheduler
+          constantData.environmentRefs.scheduler
         ),
-        listener,
+        constantData.listener,
       ),
       actorName(classOf[EmAgent.type], emInput.getId),
     )

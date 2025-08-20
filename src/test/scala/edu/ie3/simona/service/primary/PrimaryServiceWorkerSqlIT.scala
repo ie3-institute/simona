@@ -18,14 +18,17 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   WorkerRegistrationMessage,
-  WrappedActivation,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.{
   ActivePower,
@@ -63,9 +66,6 @@ class PrimaryServiceWorkerSqlIT
     with TestContainerHelper
     with TestSpawnerTyped {
 
-  implicit def wrap(msg: Activation): ServiceMessage =
-    WrappedActivation(msg)
-
   override val container: PostgreSQLContainer = PostgreSQLContainer(
     DockerImageName.parse("postgres:14.2")
   )
@@ -95,7 +95,7 @@ class PrimaryServiceWorkerSqlIT
   "A primary service actor with SQL source" should {
     "initialize and send out data when activated" in {
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
-      val lock = TestProbe[LockMsg]("lock")
+      val lock = TestProbe[ScheduleLock.Message]("lock")
 
       val cases = Table(
         (

@@ -25,8 +25,8 @@ import squants.energy.{Kilowatts, Megawatts}
 
 object GridConfigParser {
   abstract class ParsedGridConfig[T](
-      protected val gridIdMap: Map[Int, T],
-      protected val voltLvlMap: Map[VoltageLevel, T],
+      val gridIdMap: Map[Int, T],
+      val voltLvlMap: Map[VoltageLevel, T],
   ) {
 
     /** Returns a [[GridConfig]] based on the provided gridId or the voltLvl as
@@ -156,7 +156,7 @@ object GridConfigParser {
     )(using "voltageLimits")
   }
 
-  def parseWithDefaults[C, E, T <: ParsedGridConfig[?]](
+  def parseWithDefaults[C, E, T <: ParsedGridConfig[E]](
       configs: Option[List[C]],
       gridIds: C => Option[List[String]],
       voltLvls: C => Option[List[VoltLvlConfig]],
@@ -201,20 +201,25 @@ object GridConfigParser {
           )
         }
 
-      if CollectionUtils.listHasDuplicates(parsedIdList) then {
+      if (CollectionUtils.listHasDuplicates(parsedIdList)) {
         throw new InvalidConfigParameterException(
           s"The provided gridIds in simona.gridConfig.$gridConfigType contain duplicates. " +
             "Please check if there are either duplicate entries or overlapping ranges!"
         )
       }
 
-      if CollectionUtils.listHasDuplicates(parsedVoltLvlList) then
+      if (CollectionUtils.listHasDuplicates(parsedVoltLvlList))
         throw new InvalidConfigParameterException(
           s"The provided voltLvls in simona.gridConfig.$gridConfigType contain duplicates. " +
             "Please check your configuration for duplicates in voltLvl entries!"
         )
 
-      builder(parsedIdList.toMap, parsedVoltLvlList.toMap)
+      // this will use the default values as a base and overrides those with the config values
+      val idListWithDefaults = defaults.gridIdMap ++ parsedIdList.toMap
+      val voltLvlListWithDefaults =
+        defaults.voltLvlMap ++ parsedVoltLvlList.toMap
+
+      builder(idListWithDefaults, voltLvlListWithDefaults)
     case _ =>
       defaults
   }

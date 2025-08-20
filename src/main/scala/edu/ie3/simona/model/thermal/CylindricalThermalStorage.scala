@@ -17,19 +17,19 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull,
 }
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
-import edu.ie3.util.scala.quantities.{
-  KilowattHoursPerKelvinCubicMeters,
-  SpecificHeatCapacity,
+import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  PowerConversionSimona,
+  TemperatureConversionSimona,
+  VolumeConversionSimona,
+  toSquants,
 }
-import squants.energy.Kilowatts
-import squants.space.{CubicMeters, Volume}
-import squants.thermal.Celsius
+import edu.ie3.util.scala.quantities.SpecificHeatCapacity
+import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
+import squants.space.Volume
 import squants.time.Seconds
 import squants.{Energy, Power, Temperature}
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
@@ -71,7 +71,8 @@ final case class CylindricalThermalStorage(
       bus,
       maxEnergyThreshold,
       pThermalMax,
-    ) {
+    )
+    with ThermalStorageCalculations {
 
   /** Updates the given last state. Based on the then set thermal influx, the
     * current state is calculated. Positive values of influx are consider to
@@ -79,7 +80,7 @@ final case class CylindricalThermalStorage(
     *
     * @param tick
     *   Tick, where this change happens.
-    * @param lastThermalStorageState
+    * @param lastHeatStorageState
     *   Last state of the heat storage.
     * @param qDotHeatStorage
     *   Influx of the heat storage.
@@ -88,19 +89,22 @@ final case class CylindricalThermalStorage(
     */
   override def determineState(
       tick: Long,
-      lastThermalStorageState: ThermalStorageState,
+      lastHeatStorageState: ThermalStorageState,
       qDotHeatStorage: Power,
   ): ThermalStorageState = {
     /* Determine new state based on time difference and given state */
     val energyBalance =
       qDotHeatStorage * Seconds(
-        tick - lastThermalStorageState.tick
+        tick - lastHeatStorageState.tick
       )
-    val newEnergy = lastThermalStorageState.storedEnergy + energyBalance
+    val newEnergy = lastHeatStorageState.storedEnergy + energyBalance
     val updatedEnergy =
-      if isFull(newEnergy) then maxEnergyThreshold
-      else if isEmpty(newEnergy) then zeroKWh
-      else newEnergy
+      if (isFull(newEnergy))
+        maxEnergyThreshold
+      else if (isEmpty(newEnergy))
+        zeroKWh
+      else
+        newEnergy
 
     ThermalStorageState(tick, updatedEnergy)
   }
@@ -118,19 +122,24 @@ final case class CylindricalThermalStorage(
       thermalStorageState: ThermalStorageState,
       qDotHeatStorage: Power,
   ): Option[ThermalThreshold] = {
-    if qDotHeatStorage > zeroKW then {
+    if (qDotHeatStorage > zeroKW) {
       val duration =
         (maxEnergyThreshold - thermalStorageState.storedEnergy) / qDotHeatStorage
       val durationInTicks = Math.floor(duration.toSeconds).toLong
-      if durationInTicks <= 0L then None
-      else Some(StorageFull(thermalStorageState.tick + durationInTicks))
-    } else if qDotHeatStorage < zeroKW then {
+      if (durationInTicks <= 0L)
+        None
+      else
+        Some(StorageFull(thermalStorageState.tick + durationInTicks))
+    } else if (qDotHeatStorage < zeroKW) {
       val duration =
         thermalStorageState.storedEnergy / qDotHeatStorage * -1
       val durationInTicks = Math.floor(duration.toSeconds).toLong
-      if durationInTicks <= 0L then None
-      else Some(StorageEmpty(thermalStorageState.tick + durationInTicks))
-    } else None
+      if (durationInTicks <= 0L)
+        None
+      else
+        Some(StorageEmpty(thermalStorageState.tick + durationInTicks))
+    } else
+      None
   }
 
   override def startingState: ThermalStorageState = ThermalStorageState(
@@ -139,7 +148,7 @@ final case class CylindricalThermalStorage(
   )
 }
 
-object CylindricalThermalStorage {
+object CylindricalThermalStorage extends ThermalStorageCalculations {
 
   /** Function to construct a new [[CylindricalThermalStorage]] based on a
     * provided [[CylindricalStorageInput]]
@@ -157,29 +166,14 @@ object CylindricalThermalStorage {
       input: CylindricalStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
   ): CylindricalThermalStorage = {
-
-    val maxEnergyThreshold: Energy =
-      CylindricalThermalStorage.volumeToEnergy(
-        CubicMeters(
-          input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
-        ),
-        KilowattHoursPerKelvinCubicMeters(
-          input.getC
-            .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
-            .getValue
-            .doubleValue
-        ),
-        Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
-        Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
-      )
-
-    val pThermalMax = Kilowatts(
-      input
-        .getpThermalMax()
-        .to(PowerSystemUnits.KILOWATT)
-        .getValue
-        .doubleValue()
+    val maxEnergyThreshold = volumeToEnergy(
+      input.getStorageVolumeLvl.toSquants,
+      input.getC.toSquants,
+      input.getInletTemp.toSquants,
+      input.getReturnTemp.toSquants,
     )
+
+    val pThermalMax = input.getpThermalMax().toSquants
 
     new CylindricalThermalStorage(
       input.getUuid,
@@ -191,51 +185,5 @@ object CylindricalThermalStorage {
       pThermalMax,
       initialStoredEnergy,
     )
-  }
-
-  /** Equation from docs for the relation between needed volume and energy.
-    *
-    * @param volume
-    *   needed/available volume
-    * @param c
-    *   Specific heat capacity
-    * @param inletTemp
-    *   Inlet temperature
-    * @param returnTemp
-    *   Return temperature
-    * @return
-    *   energy
-    */
-  def volumeToEnergy(
-      volume: Volume,
-      c: SpecificHeatCapacity,
-      inletTemp: Temperature,
-      returnTemp: Temperature,
-  ): Energy = {
-    c.calcEnergy(returnTemp, inletTemp, volume)
-  }
-
-  /** Equation from docs for the relation between stored heat and volume change.
-    *
-    * @param energy
-    *   available energy
-    * @param c
-    *   Specific heat capacity
-    * @param inletTemp
-    *   Inlet temperature
-    * @param returnTemp
-    *   Return temperature
-    * @return
-    *   volume
-    */
-  def energyToVolume(
-      energy: Energy,
-      c: SpecificHeatCapacity,
-      inletTemp: Temperature,
-      returnTemp: Temperature,
-  ): Volume = {
-    val energyDensity = c.calcEnergyDensity(returnTemp, inletTemp)
-
-    energy.calcVolume(energyDensity)
   }
 }

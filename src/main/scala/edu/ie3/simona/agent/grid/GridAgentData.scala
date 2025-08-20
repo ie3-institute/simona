@@ -20,6 +20,12 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.simona.util.ConfigUtil.{
+  EmConfigUtil,
+  OutputConfigUtil,
+  ParticipantConfigUtil,
+}
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.time.ZonedDateTime
@@ -33,19 +39,24 @@ object GridAgentData {
 
   private[grid] trait GridAgentDataInternal extends GridAgentData
 
-  /** Class holding some [[GridAgent]] values that are immutable.
+  /** Class holding some [[GridAgent]] values that can be considered constant
+    * across simulation time.
+    *
     * @param environmentRefs
-    *   environment actor refs
+    *   Containing actor references, that are relevant for the environment of
+    *   the grid agent.
     * @param simonaConfig
-    *   config
+    *   Configuration of SIMONA, that is used for.
     * @param listener
-    *   listeners
+    *   A sequence of listeners, that will receive the results from the grid
+    *   agent.
     * @param resolution
-    *   of the simulation
+    *   That is used for the power flow. If no power flow should be carried out,
+    *   this value is set to [[Long.MaxValue]].
     * @param simStartTime
-    *   start time of the simulation
-    * @param activationAdapter
-    *   adapter for [[Activation]]
+    *   Start time of the simulation.
+    * @param simEndTime
+    *   Send time of the simulation.
     */
   final case class GridAgentConstantData(
       environmentRefs: EnvironmentRefs,
@@ -53,11 +64,23 @@ object GridAgentData {
       listener: Iterable[ActorRef[ResultEvent]],
       resolution: Long,
       simStartTime: ZonedDateTime,
-      activationAdapter: ActorRef[Activation],
+      simEndTime: ZonedDateTime,
   ) {
     def notifyListeners(event: ResultEvent): Unit = {
-      listener.foreach(listener => listener ! event)
+      listener.foreach(_ ! event)
     }
+
+    val participantConfigUtil: ParticipantConfigUtil =
+      ConfigUtil.ParticipantConfigUtil(simonaConfig.simona.runtime.participant)
+
+    val outputConfigUtil: OutputConfigUtil =
+      ConfigUtil.OutputConfigUtil.participants(
+        simonaConfig.simona.output.participant
+      )
+
+    val emConfigUtil: EmConfigUtil =
+      EmConfigUtil(simonaConfig.simona.runtime.em)
+
   }
 
   /** Data that is sent to the [[GridAgent]] directly after startup. It contains
@@ -81,7 +104,7 @@ object GridAgentData {
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,
       thermalIslandGrids: Seq[ThermalGrid],
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
       refSystem: RefSystem,
       voltageLimits: VoltageLimits,
   ) extends GridAgentData
@@ -125,11 +148,11 @@ object GridAgentData {
     * be copied several times at several places for each state transition with
     * updated data. So be careful in adding more data on it!
     */
-  final case object GridAgentBaseData extends GridAgentData {
+  case object GridAgentBaseData extends GridAgentData {
 
     def apply(
         gridModel: GridModel,
-        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
         nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
@@ -190,8 +213,8 @@ object GridAgentData {
       */
     def buildInferiorGridRefs(
         inferiorGridGates: Vector[SubGridGate],
-        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
-    ): Map[ActorRef[GridAgent.Request], Seq[UUID]] =
+        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
+    ): Map[ActorRef[GridAgent.Message], Seq[UUID]] =
       inferiorGridGates
         .map { inferiorGridGate =>
           subgridGateToActorRef(
@@ -221,8 +244,8 @@ object GridAgentData {
       */
     def buildSuperiorGridRefs(
         superiorGridGates: Vector[SubGridGate],
-        subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
-    ): Map[ActorRef[GridAgent.Request], Seq[UUID]] =
+        subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
+    ): Map[ActorRef[GridAgent.Message], Seq[UUID]] =
       superiorGridGates
         .groupBy(subGridGateToActorRef(_))
         .map { case (superiorGridAgent, gridGates) =>
@@ -296,8 +319,8 @@ object GridAgentData {
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
       actorName: String,
-      inferiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] = Map.empty,
-      superiorGridRefs: Map[ActorRef[GridAgent.Request], Seq[UUID]] = Map.empty,
+      inferiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] = Map.empty,
+      superiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] = Map.empty,
   ) extends GridAgentData
       with GridAgentDataHelper {
 

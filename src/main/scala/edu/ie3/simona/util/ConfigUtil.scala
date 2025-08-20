@@ -31,11 +31,12 @@ import edu.ie3.simona.config.ConfigParams.{
 import edu.ie3.simona.config.OutputConfig.{
   GridOutputConfig,
   ParticipantOutputConfig,
+  ParticipantOutputConfigs,
   SimpleOutputConfig,
+  ThermalOutputConfigs,
 }
 import edu.ie3.simona.config.RuntimeConfig
-import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, EmRuntimeConfig}
-import edu.ie3.simona.config.SimonaConfig.AssetConfigs
+import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
@@ -78,7 +79,7 @@ object ConfigUtil {
       * @return
       *   a matching config utility
       */
-    def apply(subConfig: AssetConfigs[EmRuntimeConfig]): EmConfigUtil =
+    def apply(subConfig: EmRuntimeConfigs): EmConfigUtil =
       EmConfigUtil(
         buildUuidMapping(subConfig.individualConfigs),
         subConfig.defaultConfig,
@@ -186,9 +187,9 @@ object ConfigUtil {
     def simulationResultIdentifiersToConsider(
         thermal: Boolean
     ): Set[NotifierIdentifier.Value] = {
-      if defaultConfig.simulationResultInfo then {
+      if (defaultConfig.simulationResultInfo) {
         val notifiers =
-          if thermal then NotifierIdentifier.getThermalIdentifiers
+          if (thermal) NotifierIdentifier.getThermalIdentifiers
           else NotifierIdentifier.getParticipantIdentifiers
         /* Generally inform about all simulation results, but not on those, that are explicitly marked */
         notifiers -- configs.flatMap {
@@ -222,7 +223,7 @@ object ConfigUtil {
 
   object OutputConfigUtil {
     def participants(
-        subConfig: AssetConfigs[ParticipantOutputConfig]
+        subConfig: ParticipantOutputConfigs
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case ParticipantOutputConfig(
@@ -259,7 +260,7 @@ object ConfigUtil {
     }
 
     def thermal(
-        subConfig: AssetConfigs[SimpleOutputConfig]
+        subConfig: ThermalOutputConfigs
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case SimpleOutputConfig(_, simulationResult) =>
@@ -301,12 +302,18 @@ object ConfigUtil {
     def simulationResultEntitiesToConsider: Set[Class[? <: ResultEntity]] = {
       val entities = mutable.Set.empty[Class[? <: ResultEntity]]
 
-      if subConfig.nodes then entities += classOf[NodeResult]
-      if subConfig.lines then entities += classOf[LineResult]
-      if subConfig.switches then entities += classOf[SwitchResult]
-      if subConfig.transformers2w then entities += classOf[Transformer2WResult]
-      if subConfig.transformers3w then entities += classOf[Transformer3WResult]
-      if subConfig.congestions then entities += classOf[CongestionResult]
+      if (subConfig.nodes)
+        entities += classOf[NodeResult]
+      if (subConfig.lines)
+        entities += classOf[LineResult]
+      if (subConfig.switches)
+        entities += classOf[SwitchResult]
+      if (subConfig.transformers2w)
+        entities += classOf[Transformer2WResult]
+      if (subConfig.transformers3w)
+        entities += classOf[Transformer3WResult]
+      if (subConfig.congestions)
+        entities += classOf[CongestionResult]
 
       entities.toSet
     }
@@ -355,13 +362,14 @@ object ConfigUtil {
         csvParamsName: String,
     ): Unit = params match {
       case BaseCsvParams(csvSep, directoryPath, _) =>
-        if !(csvSep.equals(";") || csvSep.equals(",")) then
+        if (!(csvSep.equals(";") || csvSep.equals(",")))
           throw new InvalidConfigParameterException(
             s"The csvSep parameter '$csvSep' for '$csvParamsName' configuration is invalid! Please choose between ';' or ','!"
           )
-        if directoryPath.isEmpty || !new File(directoryPath)
+        if (
+          directoryPath.isEmpty || !new File(directoryPath)
             .exists() || new File(directoryPath).isFile
-        then
+        )
           throw new InvalidConfigParameterException(
             s"The provided directoryPath for .csv-files '$directoryPath' for '$csvParamsName' configuration is invalid! Please correct the path!"
           )
@@ -373,13 +381,14 @@ object ConfigUtil {
         csvSep: String,
         folderPath: String,
     ): Unit = {
-      if !(csvSep.equals(";") || csvSep.equals(",")) then
+      if (!(csvSep.equals(";") || csvSep.equals(",")))
         throw new InvalidConfigParameterException(
           s"The csvSep parameter '$csvSep' for '$csvParamsName' configuration is invalid! Please choose between ';' or ','!"
         )
-      if folderPath.isEmpty || !new File(folderPath)
+      if (
+        folderPath.isEmpty || !new File(folderPath)
           .exists() || new File(folderPath).isFile
-      then
+      )
         throw new InvalidConfigParameterException(
           s"The provided folderPath for .csv-files '$folderPath' for '$csvParamsName' configuration is invalid! Please correct the path!"
         )
@@ -395,29 +404,29 @@ object ConfigUtil {
         tableName: String,
         userName: String,
     ): Unit = {
-      if !jdbcUrl.trim.startsWith("jdbc:") then {
+      if (!jdbcUrl.trim.startsWith("jdbc:")) {
         throw new InvalidConfigParameterException(
           s"The provided JDBC url '$jdbcUrl' is invalid! The url should start with 'jdbc:'"
         )
       }
-      if !jdbcUrl.trim.startsWith("jdbc:postgresql://") then {
+      if (!jdbcUrl.trim.startsWith("jdbc:postgresql://")) {
         logger.warn(
           "It seems like you intend to use the SqlWeatherSource with an other dialect than PostgreSQL. Please be aware that this usage has neither been tested nor been considered in development."
         )
       }
-      if userName.isEmpty then
+      if (userName.isEmpty)
         throw new InvalidConfigParameterException(
           "User name for SQL weather source cannot be empty"
         )
-      if password.isEmpty then
+      if (password.isEmpty)
         logger.info(
           "Password for SQL weather source is empty. This is allowed, but not common. Please check if this an intended setting."
         )
-      if tableName.isEmpty then
+      if (tableName.isEmpty)
         throw new InvalidConfigParameterException(
           "Weather table name for SQL weather source cannot be empty"
         )
-      if schemaName.isEmpty then
+      if (schemaName.isEmpty)
         throw new InvalidConfigParameterException(
           "Schema name for SQL weather source cannot be empty"
         )
@@ -434,7 +443,7 @@ object ConfigUtil {
         case Success(connection) =>
           val validConnection = connection.isValid(5000)
           connection.close()
-          if !validConnection then
+          if (!validConnection)
             throw new IllegalArgumentException(
               s"Unable to reach configured SQL database with url '$jdbcUrl' and user name '$userName'."
             )
@@ -448,27 +457,27 @@ object ConfigUtil {
     def checkCouchbaseParams(
         couchbase: CouchbaseParams
     ): Unit = {
-      if couchbase.url.isEmpty then
+      if (couchbase.url.isEmpty)
         throw new InvalidConfigParameterException(
           "URL for Couchbase weather source cannot be empty"
         )
-      if couchbase.userName.isEmpty then
+      if (couchbase.userName.isEmpty)
         throw new InvalidConfigParameterException(
           "User name for Couchbase weather source cannot be empty"
         )
-      if couchbase.password.isEmpty then
+      if (couchbase.password.isEmpty)
         throw new InvalidConfigParameterException(
           "Password for Couchbase weather source cannot be empty"
         )
-      if couchbase.bucketName.isEmpty then
+      if (couchbase.bucketName.isEmpty)
         throw new InvalidConfigParameterException(
           "Bucket name for Couchbase weather source cannot be empty"
         )
-      if couchbase.coordinateColumnName.isEmpty then
+      if (couchbase.coordinateColumnName.isEmpty)
         throw new InvalidConfigParameterException(
           "Coordinate column for Couchbase weather source cannot be empty"
         )
-      if couchbase.keyPrefix.isEmpty then
+      if (couchbase.keyPrefix.isEmpty)
         throw new InvalidConfigParameterException(
           "Key prefix for Couchbase weather source cannot be empty"
         )
@@ -490,7 +499,7 @@ object ConfigUtil {
         case Success(connector) =>
           val validConnection = connector.isConnectionValid
           connector.shutdown()
-          if !validConnection then
+          if (!validConnection)
             throw new IllegalArgumentException(
               s"Unable to reach configured Couchbase database with url '${couchbase.url}', bucket '${couchbase.bucketName}' and user name '${couchbase.userName}'"
             )

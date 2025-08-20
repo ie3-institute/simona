@@ -104,6 +104,7 @@ object ResultEventListener extends Transformer3wResultSupport {
                 finalFileName,
                 new ResultEntityProcessor(resultClass),
                 enableCompression,
+                csv.delimiter,
               ),
             )
 
