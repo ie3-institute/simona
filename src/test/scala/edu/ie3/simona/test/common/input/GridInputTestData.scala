@@ -43,8 +43,8 @@ import scala.jdk.CollectionConverters._
   */
 trait GridInputTestData
     extends LineInputTestData
-    with TransformerInputTestData
-    with Transformer3wTestData
+    with Transformer2wInputTestData
+    with Transformer3wInputTestData
     with DefaultTestData {
 
   // create the nodes
