@@ -27,17 +27,17 @@ import edu.ie3.simona.config.ConfigParams.{
   BaseCsvParams,
   CouchbaseParams,
   KafkaParams,
-  SqlParams,
 }
 import edu.ie3.simona.config.OutputConfig.{
   GridOutputConfig,
   ParticipantOutputConfig,
+  ParticipantOutputConfigs,
   SimpleOutputConfig,
+  ThermalOutputConfigs,
 }
 import edu.ie3.simona.config.RuntimeConfig
-import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, EmRuntimeConfig}
-import edu.ie3.simona.config.SimonaConfig.AssetConfigs
-import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
+import edu.ie3.simona.config.RuntimeConfig.*
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.common.KafkaException
@@ -46,7 +46,7 @@ import java.io.File
 import java.util.concurrent.ExecutionException
 import java.util.{Properties, UUID}
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try, Using}
 
@@ -79,7 +79,7 @@ object ConfigUtil {
       * @return
       *   a matching config utility
       */
-    def apply(subConfig: AssetConfigs[EmRuntimeConfig]): EmConfigUtil =
+    def apply(subConfig: EmRuntimeConfigs): EmConfigUtil =
       EmConfigUtil(
         buildUuidMapping(subConfig.individualConfigs),
         subConfig.defaultConfig,
@@ -88,7 +88,7 @@ object ConfigUtil {
 
   final case class ParticipantConfigUtil private (
       private val configs: Map[UUID, BaseRuntimeConfig],
-      private val defaultConfigs: Map[Class[_], BaseRuntimeConfig],
+      private val defaultConfigs: Map[Class[?], BaseRuntimeConfig],
   ) {
 
     /** Queries for a [[BaseRuntimeConfig]] of type [[T]], that applies for the
@@ -215,7 +215,7 @@ object ConfigUtil {
 
     def simulationResultEntitiesToConsider(
         thermal: Boolean
-    ): Set[Class[_ <: ResultEntity]] =
+    ): Set[Class[? <: ResultEntity]] =
       simulationResultIdentifiersToConsider(thermal).map(notifierId =>
         EntityMapperUtil.getResultEntityClass(notifierId)
       )
@@ -223,7 +223,7 @@ object ConfigUtil {
 
   object OutputConfigUtil {
     def participants(
-        subConfig: AssetConfigs[ParticipantOutputConfig]
+        subConfig: ParticipantOutputConfigs
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case ParticipantOutputConfig(
@@ -260,7 +260,7 @@ object ConfigUtil {
     }
 
     def thermal(
-        subConfig: AssetConfigs[SimpleOutputConfig]
+        subConfig: ThermalOutputConfigs
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case SimpleOutputConfig(_, simulationResult) =>
@@ -299,8 +299,8 @@ object ConfigUtil {
       * @return
       *   Set of result entity classes
       */
-    def simulationResultEntitiesToConsider: Set[Class[_ <: ResultEntity]] = {
-      val entities = mutable.Set.empty[Class[_ <: ResultEntity]]
+    def simulationResultEntitiesToConsider: Set[Class[? <: ResultEntity]] = {
+      val entities = mutable.Set.empty[Class[? <: ResultEntity]]
 
       if (subConfig.nodes)
         entities += classOf[NodeResult]

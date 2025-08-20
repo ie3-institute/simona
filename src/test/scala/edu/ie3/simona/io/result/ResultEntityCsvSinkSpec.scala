@@ -56,6 +56,7 @@ class ResultEntityCsvSinkSpec
           outFileName,
           resultEntityProcessor,
           outFileName.endsWith(".gz"),
+          delimiter = ",",
         )
 
       resultEntitySink.outfileName shouldBe outFileName
@@ -109,6 +110,7 @@ class ResultEntityCsvSinkSpec
         outFileName,
         resultEntityProcessor,
         outFileName.endsWith(".gz"),
+        delimiter = ",",
       )
 
       // close sink to ensure that everything is written out
@@ -156,6 +158,7 @@ class ResultEntityCsvSinkSpec
           outFileName,
           resultEntityProcessor,
           outFileName.endsWith(".gz"),
+          delimiter = ",",
         )
 
       resultEntitySink.handleResultEntity(dummyPvResult)
@@ -200,6 +203,7 @@ class ResultEntityCsvSinkSpec
           outFileName,
           resultEntityProcessor,
           outFileName.endsWith(".gz"),
+          delimiter = ",",
         )
 
       val exception = intercept[ProcessResultEventException] {
