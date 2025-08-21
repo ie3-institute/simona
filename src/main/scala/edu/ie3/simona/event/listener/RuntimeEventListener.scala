@@ -67,7 +67,7 @@ object RuntimeEventListener {
 
   private def apply(
       listeners: Iterable[RuntimeEventSink],
-      eventsToProcess: Option[List[String]] = None,
+      eventsToProcess: Option[List[String]],
       runtimeStats: RuntimeStats = RuntimeStats(),
   ): Behavior[Request] = Behaviors
     .receive[Request] {

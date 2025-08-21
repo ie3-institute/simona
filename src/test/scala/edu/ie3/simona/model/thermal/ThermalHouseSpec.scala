@@ -101,17 +101,10 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
               Kilowatts(lastOperatingPoint),
             )
 
-          thermalHouseState match {
-            case ThermalHouseState(
-                  tick,
-                  _,
-                  temperature,
-                ) =>
-              tick shouldBe 3600L
-              temperature should approximate(Kelvin(expectedTemperature))
-            case unexpected =>
-              fail(s"Expected a thermalHouseState but got none $unexpected.")
-          }
+          thermalHouseState.tick shouldBe 3600L
+          thermalHouseState.innerTemperature should approximate(
+            Kelvin(expectedTemperature)
+          )
       }
     }
 
@@ -162,19 +155,10 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
             Kilowatts(qDotFirstPeriod),
           )
 
-          thermalHouseState match {
-            case ThermalHouseState(
-                  tick,
-                  _,
-                  temperature,
-                ) =>
-              tick shouldBe firstTick
-              temperature should approximate(
-                Celsius(expectedTemperatureFirstPeriod)
-              )
-            case unexpected =>
-              fail(s"Expected a thermalHouseState but got none $unexpected.")
-          }
+          thermalHouseState.tick shouldBe firstTick
+          thermalHouseState.innerTemperature should approximate(
+            Celsius(expectedTemperatureFirstPeriod)
+          )
 
           val finalThermalHouseState = house.determineState(
             secondTick,
@@ -182,19 +166,10 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
             Kilowatts(qDotSecondPeriod),
           )
 
-          finalThermalHouseState match {
-            case ThermalHouseState(
-                  tick,
-                  _,
-                  temperature,
-                ) =>
-              tick shouldBe secondTick
-              temperature should approximate(
-                Celsius(expectedTemperatureSecondPeriod)
-              )
-            case unexpected =>
-              fail(s"Expected a thermalHouseState but got none $unexpected.")
-          }
+          finalThermalHouseState.tick shouldBe secondTick
+          finalThermalHouseState.innerTemperature should approximate(
+            Celsius(expectedTemperatureSecondPeriod)
+          )
       }
     }
 
@@ -329,13 +304,7 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
             newOperatingPoint,
           )
 
-          thresholdOption match {
-            case threshold => threshold shouldBe expectedThreshold
-            case unexpected =>
-              fail(
-                s"Expected a thermalHouseThreshold but got none $unexpected."
-              )
-          }
+          thresholdOption shouldBe expectedThreshold
       }
     }
 

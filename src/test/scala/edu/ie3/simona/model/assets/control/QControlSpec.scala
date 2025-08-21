@@ -33,9 +33,8 @@ import scala.collection.immutable.TreeSet
 
 class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
 
-  private val defaultTolerance = 1e-12
-  private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-12)
-  private implicit val tolerance: squants.Dimensionless = Each(1e-12)
+  private given ReactivePower = Megavars(1e-12)
+  private given squants.Dimensionless = Each(1e-12)
 
   val validCosPhiPInput: characteristic.CosPhiP = new CosPhiPInput(
     "cosPhiP:{(0.0,-1.0),(0.5,-0.8),(1.0,-0.2)}"

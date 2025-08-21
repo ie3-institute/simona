@@ -6,18 +6,16 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.model.participant.ParticipantModel.{
-  ActivePowerOperatingPoint,
-  ModelState,
-}
+import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   PowerLimitFlexOptions,
 }
 
 /** Simple flexibility model for [[ParticipantModel]]s with
-  * [[ActivePowerOperatingPoint]] returning flex options that do not allow for
-  * any flexibility around the current operating point.
+  * [[edu.ie3.simona.model.participant.ParticipantModel.ActivePowerOperatingPoint]]
+  * returning flex options that do not allow for any flexibility around the
+  * current operating point.
   *
   * @tparam S
   *   The type of model state.

@@ -242,7 +242,7 @@ object ParticipantGridAdapter {
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
-      ] = None,
+      ],
       log: Logger,
   ): ComplexPower = {
     val p = QuantityUtil.average[Power, Energy](
