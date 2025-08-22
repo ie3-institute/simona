@@ -62,7 +62,7 @@ import scala.jdk.CollectionConverters._
   *   vLv = 10 kV
   * }}}
   */
-trait TransformerInputTestData extends DefaultTestData {
+trait Transformer2wInputTestData extends DefaultTestData {
   private val nodeA = new NodeInput(
     UUID.fromString("c1c83216-f813-4f77-a63b-1f24dbd5afa0"),
     "nodeA",
