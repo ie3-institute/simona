@@ -6,10 +6,14 @@
 
 package edu.ie3.simona.model.participant.storage
 
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.StorageMathFlexOptions
 import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
-import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.OperationVars
+import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.{
+  OperationVars,
+  SoftConstraint,
+}
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MathFlexOptions}
 import optimus.algebra.{Double2Const, Expression, Long2Const}
 import optimus.optimization.MPModel
@@ -55,11 +59,37 @@ object StorageMathFlexModel {
     override def getPowerSolution: Option[Power] =
       p.value.map(Kilowatts.apply)
 
-    // todo class that includes error calc
-    override def getSoftConstraints(duration: Time): Option[Expression] = {
+    override def getSoftConstraints(duration: Time): Option[SoftConstraint] = {
       // putting a penalty on pAbs, so that it comes as close as possible to the absolute power
-      val epsilon = 1e-6
-      Some(pAbs * (1 - eta.toEach + epsilon) * duration.toHours)
+      Some(new StorageSoftConstraint(duration))
+    }
+
+    private class StorageSoftConstraint(duration: Time) extends SoftConstraint {
+
+      override def getExpression: Expression = {
+        val epsilon = 1e-6
+
+        pAbs * (1 - eta.toEach + epsilon) * duration.toHours
+      }
+
+      override def getError: Double = {
+        val (pValue, pAbsValue) = getVals
+        math.abs(math.abs(pValue) - pAbsValue)
+      }
+
+      override def getWarningMessage: String = {
+        val (pValue, pAbsValue) = getVals
+        s"Soft constraint for storage: Approximated absolute power value $pAbsValue and absolute power value |$pValue| are $getError apart."
+      }
+
+      private def getVals: (Double, Double) = p.value
+        .zip(pAbs.value)
+        .getOrElse(
+          throw new CriticalFailureException(
+            "Solution are expected to be determined at this point!"
+          )
+        )
+
     }
   }
 

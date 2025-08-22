@@ -10,11 +10,15 @@ import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.OptimizedFlexStrat.*
 import edu.ie3.simona.ontology.messages.flex.MathFlexOptions
-import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.OperationVars
+import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.{
+  OperationVars,
+  SoftConstraint,
+}
 import optimus.algebra.{Double2Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.MPFloatVar
+import org.slf4j.Logger
 import squants.{Power, Time}
 
 import java.util.UUID
@@ -24,6 +28,7 @@ final case class OptimizedFlexStrat(
     stepResolution: Time,
     predictionHorizon: Time,
     powerObjective: PowerObjectiveFactory,
+    logger: Logger,
 ) extends EmModelStrat[MathFlexOptions[?, ? <: OperationVars]] {
 
   override def determineFlexControl(
@@ -45,10 +50,10 @@ final case class OptimizedFlexStrat(
       addAssetConstraints(asset.getUuid, fo, ticks)
     }
 
-    val objective =
+    val objectiveContainer =
       buildObjective(assetVars, target, stepResolution, powerObjective)
 
-    model.minimize(objective)
+    model.minimize(objectiveContainer.objective)
 
     model.start()
 
@@ -56,6 +61,11 @@ final case class OptimizedFlexStrat(
       throw new CriticalFailureException(
         s"Optimization ended with unexpected status ${model.getStatus}, ${SolutionStatus.OPTIMAL} was expected."
       )
+
+    objectiveContainer.softConstraints.filter(_.getError > 1e-3).foreach {
+      constraint =>
+        logger.warn(constraint.getWarningMessage)
+    }
 
     // we're only interested in the solutions for the current time step
     val assetCtrl = assetVars.map {
@@ -85,6 +95,11 @@ object OptimizedFlexStrat {
       assetUuid: UUID,
       states: IndexedSeq[SV],
       operationVars: IndexedSeq[OV],
+  )
+
+  final case class ObjectiveContainer(
+      objective: Expression,
+      softConstraints: Iterable[SoftConstraint],
   )
 
   def addAssetConstraints[SV, OV <: OperationVars](
@@ -124,29 +139,40 @@ object OptimizedFlexStrat {
       target: Power,
       stepResolution: Time,
       powerObjectiveBuilder: PowerObjectiveFactory,
-  )(using model: MPModel): Expression = {
+  )(using model: MPModel): ObjectiveContainer = {
     // asset vars should all have the same amount of operation vars
     val timeSteps = assetVars.headOption.map(_.operationVars.size).getOrElse(0)
 
-    Range(0, timeSteps)
-      .map { timeStep =>
-        assetVars.map {
-          _.operationVars(timeStep)
+    val (objectiveResult, softConstraintsResult) =
+      Range(0, timeSteps)
+        .map { timeStep =>
+          assetVars.map {
+            _.operationVars(timeStep)
+          }
         }
-      }
-      .foldLeft[Expression](Zero) { case (objective, opVars) =>
-        val difference = opVars.foldLeft[Expression](Zero) {
-          case (powers, op) =>
-            powers + op.getPowerExpression
-        } - target.toKilowatts
+        .foldLeft[(Expression, Seq[SoftConstraint])](Zero, Seq.empty) {
+          case ((objective, allConstraints), opVars) =>
+            val difference = opVars.foldLeft[Expression](Zero) {
+              case (powers, op) =>
+                powers + op.getPowerExpression
+            } - target.toKilowatts
 
-        val softConstraints =
-          opVars.flatMap(_.getSoftConstraints(stepResolution)).reduceLeft(_ + _)
+            val constraints =
+              opVars.flatMap(_.getSoftConstraints(stepResolution))
+            val constraintsExpression = constraints
+              .map(_.getExpression)
+              .reduceLeftOption(_ + _)
+              .getOrElse(Zero)
 
-        val powerObjective = powerObjectiveBuilder.build(difference)
+            val powerObjective = powerObjectiveBuilder.build(difference)
 
-        objective + softConstraints + powerObjective
-      }
+            (
+              objective + constraintsExpression + powerObjective,
+              allConstraints.appendedAll(constraints),
+            )
+        }
+
+    ObjectiveContainer(objectiveResult, softConstraintsResult)
   }
 
   trait PowerObjectiveFactory {

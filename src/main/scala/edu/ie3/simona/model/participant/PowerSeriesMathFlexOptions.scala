@@ -9,7 +9,10 @@ package edu.ie3.simona.model.participant
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.PowerSeriesMathFlexOptions.*
 import edu.ie3.simona.ontology.messages.flex.MathFlexOptions
-import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.OperationVars
+import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.{
+  OperationVars,
+  SoftConstraint,
+}
 import optimus.algebra.{Const, Expression}
 import optimus.optimization.MPModel
 import squants.{Power, Time}
@@ -55,7 +58,9 @@ object PowerSeriesMathFlexOptions {
 
     override def getPowerSolution: Option[Power] = Some(Kilowatts(power.value))
 
-    override def getSoftConstraints(duration: Time): Option[Expression] = None
+    override def getSoftConstraints(duration: Time): Option[SoftConstraint] =
+      None
+
   }
 
 }

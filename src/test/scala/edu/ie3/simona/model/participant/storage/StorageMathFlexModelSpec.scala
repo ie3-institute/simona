@@ -11,7 +11,7 @@ import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.StorageMath
 import edu.ie3.simona.model.participant.storage.StorageMathFlexModelSpec.*
 import edu.ie3.simona.test.common.{MathFlexTestLike, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
-import optimus.algebra.{Double2Const, Expression, Zero}
+import optimus.algebra.{Double2Const, Zero}
 import optimus.optimization.*
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.MPFloatVar
@@ -27,6 +27,7 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
   // Testing tolerances
   given Double = 1e-6
   given Energy = WattHours(1e-9)
+  val constraintTolerance = 1e-3
 
   "StorageMathFlexModelSpec" should {
 
@@ -131,7 +132,6 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
           val d = MPFloatVar.positive("d")
           model.add(d >:= opVar.getPowerExpression + add)
           model.add(d >:= -(opVar.getPowerExpression + add))
-
           d
         }
 
@@ -139,10 +139,9 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
         container.operationVars.flatMap(_.getSoftConstraints(stepResolution))
 
       val objective = mainObjectiveDifferences
-        .appendedAll(softConstraints)
-        .foldLeft[Expression](Zero) { case (sum, expr) =>
-          sum + expr
-        }
+        .appendedAll(softConstraints.map(_.getExpression))
+        .reduceLeftOption(_ + _)
+        .getOrElse(Zero)
 
       model.minimize(objective)
 
@@ -153,6 +152,12 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
       // Battery should be able to fully cover the additional power
 
       {
+        softConstraints.foreach { constraint =>
+          withClue(constraint.getWarningMessage) {
+            constraint.getError should be < constraintTolerance
+          }
+        }
+
         container.states(0).energyVal should approximate(50)
 
         // discharging 5 kWh plus 1.25 kWh losses
@@ -208,14 +213,21 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
       // additional powers for each time step, some far beyond pMax
       val addPower = Seq(5d, -60d, 110d, -2d)
 
-      val objective = container.operationVars
-        .zip(addPower)
-        .foldLeft[Expression](Zero) { case (sum, (bat, add)) =>
+      val mainObjectiveDifferences =
+        container.operationVars.zip(addPower).map { case (opVar, add) =>
           val d = MPFloatVar.positive("d")
-          model.add(d >:= bat.getPowerExpression + add)
-          model.add(d >:= -(bat.getPowerExpression + add))
-          sum + d + bat.getSoftConstraints(stepResolution).getOrElse(Zero)
+          model.add(d >:= opVar.getPowerExpression + add)
+          model.add(d >:= -(opVar.getPowerExpression + add))
+          d
         }
+
+      val softConstraints =
+        container.operationVars.flatMap(_.getSoftConstraints(stepResolution))
+
+      val objective = mainObjectiveDifferences
+        .appendedAll(softConstraints.map(_.getExpression))
+        .reduceLeftOption(_ + _)
+        .getOrElse(Zero)
 
       model.minimize(objective)
 
@@ -226,6 +238,12 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
       // Battery should be able to fully cover the additional power
 
       {
+        softConstraints.foreach { constraint =>
+          withClue(constraint.getWarningMessage) {
+            constraint.getError should be < constraintTolerance
+          }
+        }
+
         container.states(0).energyVal should approximate(50)
 
         // discharging 5 kWh plus 1.25 kWh losses
@@ -280,14 +298,21 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
       // additional powers for each time step
       val addPower = Seq(-5d, -10d, 10d, 10d)
 
-      val objective = container.operationVars
-        .zip(addPower)
-        .foldLeft[Expression](Zero) { case (sum, (bat, add)) =>
+      val mainObjectiveDifferences =
+        container.operationVars.zip(addPower).map { case (opVar, add) =>
           val d = MPFloatVar.positive("d")
-          model.add(d >:= bat.getPowerExpression + add)
-          model.add(d >:= -(bat.getPowerExpression + add))
-          sum + d + bat.getSoftConstraints(stepResolution).getOrElse(Zero)
+          model.add(d >:= opVar.getPowerExpression + add)
+          model.add(d >:= -(opVar.getPowerExpression + add))
+          d
         }
+
+      val softConstraints =
+        container.operationVars.flatMap(_.getSoftConstraints(stepResolution))
+
+      val objective = mainObjectiveDifferences
+        .appendedAll(softConstraints.map(_.getExpression))
+        .reduceLeftOption(_ + _)
+        .getOrElse(Zero)
 
       model.minimize(objective)
 
@@ -305,6 +330,12 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
        */
 
       {
+        softConstraints.foreach { constraint =>
+          withClue(constraint.getWarningMessage) {
+            constraint.getError should be < constraintTolerance
+          }
+        }
+
         container.states(0).energyVal should approximate(10)
 
         // possibly charging

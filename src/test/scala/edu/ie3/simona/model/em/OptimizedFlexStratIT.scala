@@ -34,6 +34,7 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
 
   // Testing tolerances
   given Double = 1e-6
+  val constraintTolerance = 1e-3
 
   "An optimized flex strat" when {
     "provided with battery and constant constraints" should {
@@ -93,14 +94,14 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
         val loadVars = createLoadVars
         val batVars = createBatVars
 
-        val objective = OptimizedFlexStrat.buildObjective(
+        val objectiveContainer = OptimizedFlexStrat.buildObjective(
           Iterable(pvVars, loadVars, batVars),
           Kilowatts(0),
           Hours(1),
           MinAbsPowerObjectiveFactory,
         )
 
-        model.minimize(objective)
+        model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
 
         model.getStatus shouldBe SolutionStatus.OPTIMAL
@@ -115,6 +116,12 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
          */
 
         {
+          objectiveContainer.softConstraints.foreach { constraint =>
+            withClue(constraint.getWarningMessage) {
+              constraint.getError should be < constraintTolerance
+            }
+          }
+
           batVars.states(0).energyVal should approximate(0d)
 
           batVars.states.slice(0, 5).foreach {
@@ -156,7 +163,7 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
         val loadVars = createLoadVars
         val batVars = createBatVars
 
-        val objective = OptimizedFlexStrat.buildObjective(
+        val objectiveContainer = OptimizedFlexStrat.buildObjective(
           Iterable(pvVars, loadVars, batVars),
           Kilowatts(0),
           Hours(1),
@@ -166,7 +173,7 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
           ),
         )
 
-        model.minimize(objective)
+        model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
 
         model.getStatus shouldBe SolutionStatus.OPTIMAL
@@ -183,6 +190,12 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
          */
 
         {
+          objectiveContainer.softConstraints.foreach { constraint =>
+            withClue(constraint.getWarningMessage) {
+              constraint.getError should be < constraintTolerance
+            }
+          }
+
           batVars.states(0).energyVal should approximate(0d)
 
           // 0 kW to compensate
