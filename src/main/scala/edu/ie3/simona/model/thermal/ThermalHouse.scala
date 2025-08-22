@@ -28,10 +28,9 @@ import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
-import squants.thermal.{Celsius, Kelvin, ThermalCapacity}
+import squants.thermal.{Kelvin, ThermalCapacity}
 import squants.time.Seconds
 import squants.{Energy, Power, Temperature, Time}
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
@@ -48,15 +47,15 @@ import java.util.UUID
   * @param bus
   *   Thermal bus input
   * @param ethLosses
-  *   transmission coefficient of heat storage, usually in [kW/K]
+  *   transmission coefficient of heat storage
   * @param ethCapa
-  *   heat energy storage capability of thermal house, usually in [kWh/K]
+  *   heat energy storage capability of thermal house
   * @param targetTemperature
-  *   Target room temperature [°C]
+  *   Target room temperature
   * @param lowerBoundaryTemperature
-  *   Lower temperature boundary [°C]
+  *   Lower temperature boundary
   * @param upperBoundaryTemperature
-  *   Upper boundary temperature [°C]
+  *   Upper boundary temperature
   */
 final case class ThermalHouse(
     uuid: UUID,
