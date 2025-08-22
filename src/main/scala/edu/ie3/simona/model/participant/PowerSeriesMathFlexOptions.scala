@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.PowerMathFlexOptions.*
+import edu.ie3.simona.model.participant.PowerSeriesMathFlexOptions.*
 import edu.ie3.simona.ontology.messages.flex.MathFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.OperationVars
 import optimus.algebra.{Const, Expression}
@@ -17,7 +17,7 @@ import squants.energy.Kilowatts
 
 import scala.collection.SortedMap
 
-class PowerMathFlexOptions(powers: SortedMap[Long, Power])
+class PowerSeriesMathFlexOptions(powers: SortedMap[Long, Power])
     extends MathFlexOptions[PowerStateVars, PowerOperationVars] {
 
   override def addInitialState(tick: Long)(using
@@ -45,7 +45,7 @@ class PowerMathFlexOptions(powers: SortedMap[Long, Power])
 
 }
 
-object PowerMathFlexOptions {
+object PowerSeriesMathFlexOptions {
 
   final case class PowerStateVars(tick: Long)
 

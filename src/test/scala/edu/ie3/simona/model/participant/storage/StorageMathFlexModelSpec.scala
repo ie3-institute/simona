@@ -7,13 +7,9 @@
 package edu.ie3.simona.model.participant.storage
 
 import edu.ie3.simona.model.em.OptimizedFlexStrat
-import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.{
-  StorageMathFlexOptions,
-  StorageOperationVars,
-  StorageStateVars,
-}
+import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.StorageMathFlexOptions
 import edu.ie3.simona.model.participant.storage.StorageMathFlexModelSpec.*
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{MathFlexTestLike, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import optimus.algebra.{Double2Const, Expression, Zero}
 import optimus.optimization.*
@@ -26,7 +22,7 @@ import squants.{Dimensionless, Each, Power, Time}
 
 import java.util.UUID
 
-class StorageMathFlexModelSpec extends UnitSpec {
+class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
 
   // Testing tolerances
   given Double = 1e-6
@@ -132,7 +128,7 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       val mainObjectiveDifferences =
         container.operationVars.zip(addPower).map { case (opVar, add) =>
-          val d = MPFloatVar("d", 0, Double.PositiveInfinity)
+          val d = MPFloatVar.positive("d")
           model.add(d >:= opVar.getPowerExpression + add)
           model.add(d >:= -(opVar.getPowerExpression + add))
 
@@ -154,27 +150,28 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       model.getStatus shouldBe SolutionStatus.OPTIMAL
 
-      // Battery should be able to fully cover the additional power,
-      // and soft constraints should amount to zero as well
-      // model.objectiveValue should approximate(0)
+      // Battery should be able to fully cover the additional power
 
-      container.states(0).energyVal should approximate(50)
+      {
+        container.states(0).energyVal should approximate(50)
 
-      // discharging 5 kWh plus 1.25 kWh losses
-      container.operationVars(0).pVal should approximate(-5)
-      container.states(1).energyVal should approximate(43.75)
+        // discharging 5 kWh plus 1.25 kWh losses
+        container.operationVars(0).pVal should approximate(-5)
+        container.states(1).energyVal should approximate(43.75)
 
-      // charging 10 kWh minus 2 kWh losses
-      container.operationVars(1).pVal should approximate(10)
-      container.states(2).energyVal should approximate(51.75)
+        // charging 10 kWh minus 2 kWh losses
+        container.operationVars(1).pVal should approximate(10)
+        container.states(2).energyVal should approximate(51.75)
 
-      // discharging 10 kWh plus 2.5 kWh losses
-      container.operationVars(2).pVal should approximate(-10)
-      container.states(3).energyVal should approximate(39.25)
+        // discharging 10 kWh plus 2.5 kWh losses
+        container.operationVars(2).pVal should approximate(-10)
+        container.states(3).energyVal should approximate(39.25)
 
-      // charging 2 kWh minus 0.4 kWh losses
-      container.operationVars(3).pVal should approximate(2)
-      container.states(4).energyVal should approximate(40.85)
+        // charging 2 kWh minus 0.4 kWh losses
+        container.operationVars(3).pVal should approximate(2)
+        container.states(4).energyVal should approximate(40.85)
+
+      } withClue buildDebugString(container)
 
       model.release()
     }
@@ -214,7 +211,7 @@ class StorageMathFlexModelSpec extends UnitSpec {
       val objective = container.operationVars
         .zip(addPower)
         .foldLeft[Expression](Zero) { case (sum, (bat, add)) =>
-          val d = MPFloatVar("d", 0, Double.PositiveInfinity)
+          val d = MPFloatVar.positive("d")
           model.add(d >:= bat.getPowerExpression + add)
           model.add(d >:= -(bat.getPowerExpression + add))
           sum + d + bat.getSoftConstraints(stepResolution).getOrElse(Zero)
@@ -226,34 +223,33 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       model.getStatus shouldBe SolutionStatus.OPTIMAL
 
-      // Battery should be able to fully cover the additional power,
-      // and soft constraints should amount to zero as well
-      // model.objectiveValue should approximate(150)
+      // Battery should be able to fully cover the additional power
 
-      container.states(0).energyVal should approximate(50)
+      {
+        container.states(0).energyVal should approximate(50)
 
-      // discharging 5 kWh plus 1.25 kWh losses
-      container.operationVars(0).pVal should approximate(-5)
-      container.states(1).energyVal should approximate(43.75)
+        // discharging 5 kWh plus 1.25 kWh losses
+        container.operationVars(0).pVal should approximate(-5)
+        container.states(1).energyVal should approximate(43.75)
 
-      // charging 10 kWh minus 2 kWh losses
-      container.operationVars(1).pVal should approximate(10)
-      container.states(2).energyVal should approximate(51.75)
+        // charging 10 kWh minus 2 kWh losses
+        container.operationVars(1).pVal should approximate(10)
+        container.states(2).energyVal should approximate(51.75)
 
-      // discharging 10 kWh plus 2.5 kWh losses
-      container.operationVars(2).pVal should approximate(-10)
-      container.states(3).energyVal should approximate(39.25)
+        // discharging 10 kWh plus 2.5 kWh losses
+        container.operationVars(2).pVal should approximate(-10)
+        container.states(3).energyVal should approximate(39.25)
 
-      // charging 2 kWh minus 0.4 kWh losses
-      container.operationVars(3).pVal should approximate(2)
-      container.states(4).energyVal should approximate(40.85)
+        // charging 2 kWh minus 0.4 kWh losses
+        container.operationVars(3).pVal should approximate(2)
+        container.states(4).energyVal should approximate(40.85)
+
+      } withClue buildDebugString(container)
 
       model.release()
     }
 
     "work correctly at extreme values" in {
-      // battery full, almost full, half full, almost empty, empty
-
       // low efficiency for simplicity of the test
       val fo = StorageMathFlexOptions.createAdaptedFlexOptions(
         currentEnergy = KilowattHours(10),
@@ -281,13 +277,13 @@ class StorageMathFlexModelSpec extends UnitSpec {
       container.states should have length 5
       container.operationVars should have length 4
 
-      // additional powers for each time step, some far beyond pMax
+      // additional powers for each time step
       val addPower = Seq(-5d, -10d, 10d, 10d)
 
       val objective = container.operationVars
         .zip(addPower)
         .foldLeft[Expression](Zero) { case (sum, (bat, add)) =>
-          val d = MPFloatVar("d", 0, Double.PositiveInfinity)
+          val d = MPFloatVar.positive("d")
           model.add(d >:= bat.getPowerExpression + add)
           model.add(d >:= -(bat.getPowerExpression + add))
           sum + d + bat.getSoftConstraints(stepResolution).getOrElse(Zero)
@@ -299,37 +295,45 @@ class StorageMathFlexModelSpec extends UnitSpec {
 
       model.getStatus shouldBe SolutionStatus.OPTIMAL
 
-      // Battery should be able to fully cover the additional power,
-      // and soft constraints should amount to zero as well
-      // model.objectiveValue should approximate(150)
+      /*
+        EXPECTED RESULTS
+        Since excess power costs the same at all points in time and
+        at all magnitudes, there are many optimal solutions.
+        Thus, we only test for things that are true for every optimal
+        solution: We know when the battery should be definitely
+        full/empty and how much energy was charged/discharged.
+       */
 
-      container.states(0).energyVal should approximate(10)
+      {
+        container.states(0).energyVal should approximate(10)
 
-      // possibly charging
-      container.operationVars(0).pVal should be >= 0d
-      container.states(1).energyVal should (be >= 0d and be <= 20d)
+        // possibly charging
+        container.operationVars(0).pVal should be >= 0d
+        container.states(1).energyVal should (be >= 0d and be <= 20d)
 
-      // possibly charging, now we should have reached 20 kWh
-      container.operationVars(1).pVal should be >= 0d
-      container.states(2).energyVal should approximate(20d)
+        // possibly charging, now we should have reached 20 kWh
+        container.operationVars(1).pVal should be >= 0d
+        container.states(2).energyVal should approximate(20d)
 
-      // we should've charged 10 kWh plus 2.5 kWh losses
-      val totalCharged =
-        container.operationVars(0).pVal + container.operationVars(1).pVal
-      totalCharged should approximate(12.5d)
+        // we should've charged 10 kWh plus 2.5 kWh losses
+        val totalCharged =
+          container.operationVars(0).pVal + container.operationVars(1).pVal
+        totalCharged should approximate(12.5d)
 
-      // possibly discharging
-      container.operationVars(2).pVal should be <= 0d
-      container.states(3).energyVal should (be >= 0d and be <= 20d)
+        // possibly discharging
+        container.operationVars(2).pVal should be <= 0d
+        container.states(3).energyVal should (be >= 0d and be <= 20d)
 
-      // possibly discharging, now we should have reached 0 kWh
-      container.operationVars(3).pVal should be <= 0d
-      container.states(4).energyVal should approximate(0d)
+        // possibly discharging, now we should have reached 0 kWh
+        container.operationVars(3).pVal should be <= 0d
+        container.states(4).energyVal should approximate(0d)
 
-      // we should've discharged 20 kWh minus 4 kWh losses
-      val totalDischarged =
-        container.operationVars(2).pVal + container.operationVars(3).pVal
-      totalDischarged should approximate(-16d)
+        // we should've discharged 20 kWh minus 4 kWh losses
+        val totalDischarged =
+          container.operationVars(2).pVal + container.operationVars(3).pVal
+        totalDischarged should approximate(-16d)
+
+      } withClue buildDebugString(container)
 
       model.release()
 
@@ -377,24 +381,6 @@ object StorageMathFlexModelSpec extends OptionValues {
 
       copy(currentEnergy = newEnergy)
     }
-  }
-
-  extension (state: StorageStateVars)
-    def energyVal(using conversion: EnergyConversionFactor): Double =
-      state.storedEnergy.value.value * conversion.factor
-
-  extension (state: StorageOperationVars)
-    def pVal: Double =
-      state.p.value.value
-
-  final case class EnergyConversionFactor(factor: Double)
-
-  object EnergyConversionFactor {
-    def apply(
-        regularChargingEta: Dimensionless,
-        adaptedEta: Dimensionless,
-    ): EnergyConversionFactor =
-      new EnergyConversionFactor(regularChargingEta.toEach / adaptedEta.toEach)
   }
 
 }

@@ -23,6 +23,7 @@ import java.util.UUID
 final case class OptimizedFlexStrat(
     stepResolution: Time,
     predictionHorizon: Time,
+    powerObjective: PowerObjectiveFactory,
 ) extends EmModelStrat[MathFlexOptions[?, ? <: OperationVars]] {
 
   override def determineFlexControl(
@@ -44,7 +45,8 @@ final case class OptimizedFlexStrat(
       addAssetConstraints(asset.getUuid, fo, ticks)
     }
 
-    val objective = buildObjective(assetVars, target, stepResolution)
+    val objective =
+      buildObjective(assetVars, target, stepResolution, powerObjective)
 
     model.minimize(objective)
 
@@ -121,6 +123,7 @@ object OptimizedFlexStrat {
       assetVars: Iterable[AssetVarContainer[?, ? <: OperationVars]],
       target: Power,
       stepResolution: Time,
+      powerObjectiveBuilder: PowerObjectiveFactory,
   )(using model: MPModel): Expression = {
     // asset vars should all have the same amount of operation vars
     val timeSteps = assetVars.headOption.map(_.operationVars.size).getOrElse(0)
@@ -140,12 +143,60 @@ object OptimizedFlexStrat {
         val softConstraints =
           opVars.flatMap(_.getSoftConstraints(stepResolution)).reduceLeft(_ + _)
 
-        val d = MPFloatVar.positive("d")
-        model.add(d >:= difference)
-        model.add(d >:= -difference)
+        val powerObjective = powerObjectiveBuilder.build(difference)
 
-        objective + d + softConstraints
+        objective + softConstraints + powerObjective
       }
+  }
+
+  trait PowerObjectiveFactory {
+    def build(power: Expression)(using model: MPModel): Expression
+  }
+
+  object MinAbsPowerObjectiveFactory extends PowerObjectiveFactory {
+
+    override def build(
+        power: Expression
+    )(using model: MPModel): Expression = {
+      val d = MPFloatVar.positive("d")
+      model.add(d >:= power)
+      model.add(d >:= -power)
+
+      d
+    }
+
+  }
+
+  class LinearizedQuadraticPowerObjectiveFactory(
+      stepCount: Int,
+      lastStep: Double,
+  ) extends PowerObjectiveFactory {
+
+    override def build(
+        power: Expression
+    )(using model: MPModel): Expression = {
+
+      val powerAbs = MPFloatVar.positive("powerAbs")
+      model.add(powerAbs >:= power)
+      model.add(powerAbs >:= -power)
+
+      val stepSize = lastStep / stepCount
+
+      val t = MPFloatVar.positive("t")
+
+      val normalizeDivisor = lastStep * lastStep
+
+      Range.inclusive(0, stepCount).map(_ * stepSize).sliding(2).foreach {
+        case Seq(uCurrent, uNext) =>
+          val m = uCurrent + uNext
+          val b = -uCurrent * uNext
+
+          model.add(t >:= m * powerAbs + b)
+      }
+
+      t * (1 / lastStep)
+    }
+
   }
 
 }

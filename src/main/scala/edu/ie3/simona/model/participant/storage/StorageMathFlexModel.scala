@@ -55,6 +55,7 @@ object StorageMathFlexModel {
     override def getPowerSolution: Option[Power] =
       p.value.map(Kilowatts.apply)
 
+    // todo class that includes error calc
     override def getSoftConstraints(duration: Time): Option[Expression] = {
       // putting a penalty on pAbs, so that it comes as close as possible to the absolute power
       val epsilon = 1e-6
