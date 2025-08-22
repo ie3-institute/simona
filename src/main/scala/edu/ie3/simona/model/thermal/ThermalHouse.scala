@@ -26,12 +26,12 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   temperatureTolerance,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
 import squants.space.Litres
-import squants.thermal.{Kelvin, ThermalCapacity}
+import squants.thermal.{Celsius, Kelvin, ThermalCapacity}
 import squants.time.Seconds
 import squants.{Energy, Power, Temperature, Time, Volume}
 
