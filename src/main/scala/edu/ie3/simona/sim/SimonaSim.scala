@@ -77,7 +77,7 @@ object SimonaSim {
         val resultProxy = simonaSetup.resultServiceProxy(
           ctx,
           resultEventListeners,
-          simonaSetup.simonaConfig.simona.time.startTime,
+          simonaSetup.simonaConfig.simona.time.simStartTime,
         )
 
         val timeAdvancer =

@@ -237,7 +237,7 @@ class SimonaStandaloneSetup(
       context,
       scheduler,
       resultProxy,
-      simonaConfig.simona.time.startTime,
+      simonaConfig.simona.time.simStartTime,
     )
   }
 
@@ -246,19 +246,15 @@ class SimonaStandaloneSetup(
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Request] = {
-    val startDateTime = TimeUtil.withDefaults.toZonedDateTime(
-      simonaConfig.simona.time.startDateTime
-    )
-    val endDateTime = TimeUtil.withDefaults.toZonedDateTime(
-      simonaConfig.simona.time.endDateTime
-    )
+    val startDateTime = simonaConfig.simona.time.simStartTime
+    val endDateTime =  simonaConfig.simona.time.simEndTime
 
     context.spawn(
       TimeAdvancer(
         simulation,
         Some(runtimeEventListener),
         simonaConfig.simona.time.schedulerReadyCheckWindow,
-        endDateTime.toTick(startDateTime),
+        endDateTime.toTick(using startDateTime),
       ),
       TimeAdvancer.getClass.getSimpleName,
     )

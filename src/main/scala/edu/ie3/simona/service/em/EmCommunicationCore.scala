@@ -8,15 +8,12 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.model.em.{
-  EmSetPointResult,
-  ExtendedFlexOptionsResult,
-  FlexOptionRequestResult,
-}
+import edu.ie3.simona.api.data.model.em.{EmSetPointResult, ExtendedFlexOptionsResult, FlexOptionRequestResult}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
+import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
 import edu.ie3.simona.service.em.EmCommunicationCore.DataMap
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -30,12 +27,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power
-import scala.jdk.CollectionConverters.{
-  IterableHasAsScala,
-  MapHasAsJava,
-  MapHasAsScala,
-  SetHasAsJava,
-}
+import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsJava, MapHasAsScala, SetHasAsJava}
 import scala.jdk.OptionConverters.RichOption
 
 final case class EmCommunicationCore(
@@ -107,11 +99,15 @@ final case class EmCommunicationCore(
       } else {
         log.info(s"Receive a request for completion for tick '$tick'.")
 
+        /*
         uuidToAgent.foreach { case (_, emAgent) =>
           emAgent ! IssueNoControl(tick)
         }
 
         (this, Some(new EmCompletion(getMaybeNextTick.toJava)))
+         */
+
+        (this, None)
       }
 
     case provideFlexRequests: ProvideFlexRequestData =>
@@ -126,7 +122,7 @@ final case class EmCommunicationCore(
 
       val agents = emEntities.map(uuidToAgent)
 
-      agents.foreach(_ ! FlexActivation(tick))
+      agents.foreach(_ ! FlexActivation(tick, FlexType.PowerLimit))
 
       (
         copy(
@@ -153,7 +149,7 @@ final case class EmCommunicationCore(
               flexOptions.asScala.foreach { option =>
                 receiver ! ProvideFlexOptions(
                   option.sender,
-                  MinMaxFlexOptions(
+                  PowerLimitFlexOptions(
                     option.pRef.toSquants,
                     option.pMin.toSquants,
                     option.pMax.toSquants,
@@ -192,7 +188,7 @@ final case class EmCommunicationCore(
             ref ! scheduleFlexActivation
 
           case Left(uuid) =>
-            uuidToAgent(uuid) ! FlexActivation(INIT_SIM_TICK)
+            uuidToAgent(uuid) ! FlexActivation(INIT_SIM_TICK, PowerLimit)
         }
       } else {
         log.warn(s"$scheduleFlexActivation not handled!")
@@ -226,7 +222,7 @@ final case class EmCommunicationCore(
         val (updated, updatedAdditional) = provideFlexOptions match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+          PowerLimitFlexOptions(ref, min, max),
               ) =>
             val result = new ExtendedFlexOptionsResult(
               tick.toDateTime(using startTime),
@@ -328,7 +324,7 @@ final case class EmCommunicationCore(
       startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = flexRequest match {
-    case flexActivation @ FlexActivation(tick) =>
+    case flexActivation @ FlexActivation(tick, _) =>
       if (tick == INIT_SIM_TICK) {
         receiver ! flexActivation
 

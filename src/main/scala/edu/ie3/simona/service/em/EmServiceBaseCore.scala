@@ -11,8 +11,9 @@ import edu.ie3.simona.api.data.model.em.ExtendedFlexOptionsResult
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
+import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -21,11 +22,7 @@ import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters.{
-  ListHasAsScala,
-  MapHasAsJava,
-  SetHasAsScala,
-}
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, SetHasAsScala}
 import scala.jdk.OptionConverters.RichOption
 
 final case class EmServiceBaseCore(
@@ -90,7 +87,7 @@ final case class EmServiceBaseCore(
       }
 
       emEntities.map(uuidToAgent).foreach { ref =>
-        ref ! FlexActivation(tick)
+        ref ! FlexActivation(tick, PowerLimit)
       }
 
       (
@@ -112,7 +109,7 @@ final case class EmServiceBaseCore(
         val emEntities = provideEmSetPoints.emSetPoints.keySet.asScala
 
         emEntities.map(uuidToAgent).foreach { ref =>
-          ref ! FlexActivation(tick)
+          ref ! FlexActivation(tick, PowerLimit)
         }
 
         (
@@ -145,7 +142,7 @@ final case class EmServiceBaseCore(
         val (updated, updatedAdditional) = provideFlexOptions match {
           case ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             val result = new ExtendedFlexOptionsResult(
               tick.toDateTime,
