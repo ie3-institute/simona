@@ -87,7 +87,7 @@ object ExtSimSetup {
         )
 
         // setup data services that belong to this external simulation
-        val updatedSetupData = connect(extSimulation, extSimSetupData)
+        val updatedSetupData = connect(extSimulation, extSimSetupData, index)
 
         // starting external simulation
         new Thread(extSimulation, s"External simulation $index")
@@ -112,6 +112,8 @@ object ExtSimSetup {
     *   To connect.
     * @param extSimSetupData
     *   That contains information about all external simulations.
+    * @param index
+    *   Index of the external link interface.
     * @param context
     *   The actor context of this actor system.
     * @param scheduler
@@ -124,6 +126,7 @@ object ExtSimSetup {
   private[setup] def connect(
       extSimulation: ExtSimulation,
       extSimSetupData: ExtSimSetupData,
+      index: Int,
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
@@ -226,7 +229,7 @@ object ExtSimSetup {
           case extResultListener: ExtResultListener =>
             val extResultEventListener = context.spawn(
               ExtResultEvent.listener(extResultListener),
-              s"ExtResultListener",
+              s"ExtResultListener_$index",
             )
 
             extSimSetupData.update(extResultListener, extResultEventListener)

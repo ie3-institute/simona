@@ -185,6 +185,7 @@ object ResultEvent {
 
   sealed trait Response
 
-  final case class ResultResponse(results: List[ResultEntity]) extends Response
+  final case class ResultResponse(results: Map[UUID, Iterable[ResultEntity]])
+      extends Response
 
 }

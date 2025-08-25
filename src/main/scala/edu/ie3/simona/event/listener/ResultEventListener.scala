@@ -223,7 +223,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def idle(baseData: BaseData): Behavior[Message] = Behaviors
     .receivePartial[Message] {
       case (ctx, ResultResponse(results)) =>
-        handleResults(results, baseData, ctx.log)
+        handleResults(results.values.flatten, baseData, ctx.log)
 
         Behaviors.same
 

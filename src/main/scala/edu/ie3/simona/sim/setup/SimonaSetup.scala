@@ -28,6 +28,7 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 import java.nio.file.Path
+import java.time.ZonedDateTime
 
 /** Trait that can be used to set up a customized simona simulation by providing
   * implementations for all setup information required by a
@@ -96,7 +97,8 @@ trait SimonaSetup {
 
   def resultServiceProxy(
       context: ActorContext[?],
-      listeners: Seq[ActorRef[ResultResponse]],
+      listeners: Seq[ActorRef[ResultEvent.ResultResponse]],
+      simStartTime: ZonedDateTime,
   ): ActorRef[ResultServiceProxy.Message]
 
   /** Creates a weather service

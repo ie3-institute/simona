@@ -18,38 +18,117 @@ import edu.ie3.simona.event.listener.ResultEventListener.{
 }
 import edu.ie3.simona.ontology.messages.RequestResult
 import edu.ie3.simona.service.ServiceStateData.ServiceBaseStateData
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import org.slf4j.Logger
 
+import java.time.ZonedDateTime
 import java.util.UUID
 import scala.util.{Failure, Success}
 
 object ResultServiceProxy {
 
-  type Message = ResultEvent | RequestResult | DelayedStopHelper.StoppingMsg
+  type Message = ResultEvent | RequestResult | ExpectResult |
+    DelayedStopHelper.StoppingMsg
+
+  final case class ExpectResult(assets: UUID | Seq[UUID], tick: Long)
 
   private final case class ResultServiceStateData(
       listeners: Seq[ActorRef[ResultEvent.ResultResponse]],
-      nextTicks: Map[UUID, Long] = Map.empty,
-      resultMapping: Map[UUID, ResultEntity] = Map.empty,
+      simStartTime: ZonedDateTime,
+      currentTick: Long = INIT_SIM_TICK,
       threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult,
       ] = Map.empty,
+      gridResults: Map[UUID, Iterable[ResultEntity]] = Map.empty,
+      results: Map[UUID, Iterable[ResultEntity]] = Map.empty,
+      waitingForResults: Map[UUID, Long] = Map.empty,
   ) extends ServiceBaseStateData {
-    def notifyListener(results: List[ResultEntity]): Unit =
+    def notifyListener(results: Map[UUID, Iterable[ResultEntity]]): Unit =
       listeners.foreach(_ ! ResultResponse(results))
 
     def notifyListener(result: ResultEntity): Unit =
-      listeners.foreach(_ ! ResultResponse(List(result)))
+      listeners.foreach(
+        _ ! ResultResponse(Map(result.getInputModel -> List(result)))
+      )
+
+    def isWaiting(uuids: Iterable[UUID], tick: Long): Boolean = {
+      uuids.exists { uuid =>
+        waitingForResults.get(uuid) match {
+          case Some(nextTick) if nextTick <= tick => true
+          case _                                  => false
+        }
+      }
+    }
+
+    def updateTick(tick: Long): ResultServiceStateData =
+      copy(currentTick = tick)
+
+    def waitForResult(expectResult: ExpectResult): ResultServiceStateData =
+      expectResult.assets match {
+        case uuid: UUID =>
+          copy(waitingForResults =
+            waitingForResults.updated(uuid, expectResult.tick)
+          )
+        case uuids: Seq[UUID] =>
+          val tick = expectResult.tick
+
+          copy(waitingForResults =
+            waitingForResults ++ uuids.map(uuid => uuid -> tick).toMap
+          )
+      }
+
+    def addResult(result: ResultEntity): ResultServiceStateData = {
+      val uuid = result.getInputModel
+      val tick = result.getTime.toTick(using simStartTime)
+
+      val updatedWaitingForResults =
+        if waitingForResults.get(uuid).contains(tick) then {
+          waitingForResults.removed(uuid)
+        } else waitingForResults
+
+      val updatedResults = results.get(uuid) match {
+        case Some(values) =>
+          val updatedValues = values
+            .map { value => value.getClass -> value }
+            .toMap
+            .updated(result.getClass, result)
+            .values
+
+          results.updated(uuid, updatedValues)
+
+        case None =>
+          results.updated(uuid, Iterable(result))
+      }
+
+      copy(
+        results = updatedResults,
+        waitingForResults = updatedWaitingForResults,
+      )
+    }
+
+    def getResults(uuids: Seq[UUID]): Map[UUID, Iterable[ResultEntity]] = {
+      uuids.flatMap { uuid =>
+        gridResults.get(uuid) match {
+          case Some(values) =>
+            Some(uuid -> values)
+          case None =>
+            results.get(uuid).map { res => uuid -> res }
+        }
+      }.toMap
+    }
+
   }
 
   def apply(
       listeners: Seq[ActorRef[ResultEvent.ResultResponse]],
+      simStartTime: ZonedDateTime,
       bufferSize: Int = 10000,
   ): Behavior[Message] = Behaviors.withStash(bufferSize) { buffer =>
-    idle(ResultServiceStateData(listeners))(using buffer)
+    idle(ResultServiceStateData(listeners, simStartTime))(using buffer)
   }
 
   private def idle(
@@ -58,7 +137,12 @@ object ResultServiceProxy {
       buffer: StashBuffer[Message]
   ): Behavior[Message] = Behaviors
     .receivePartial[Message] {
+      case (_, expectResult: ExpectResult) =>
+        idle(stateData.waitForResult(expectResult))
+
       case (ctx, resultEvent: ResultEvent) =>
+        ctx.log.warn(s"Received results: $resultEvent")
+
         // handles the event and updates the state data
         val updatedStateData =
           handleResultEvent(resultEvent, stateData)(using ctx.log)
@@ -69,24 +153,15 @@ object ResultServiceProxy {
         val requestedResults = requestResultMessage.requestedResults
         val tick = requestResultMessage.tick
 
-        val nextTicks = stateData.nextTicks
-        val results = stateData.resultMapping
+        if stateData.isWaiting(requestedResults, tick) then {
+          ctx.log.warn(s"Cannot answer request: $requestedResults")
 
-        val allResultsPresent = requestedResults.forall(results.contains)
-        val allResultsUpToDate = requestedResults.forall { uuid =>
-          nextTicks.get(uuid) match {
-            case Some(value) => value < tick
-            case None        => true
-          }
-        }
-
-        if allResultsPresent && allResultsUpToDate then {
-          val res = requestedResults.map(results).toList
-          ctx.log.debug(s"Answering message: $requestResultMessage")
-
-          requestResultMessage.replyTo ! ResultResponse(res)
-        } else {
           buffer.stash(requestResultMessage)
+        } else {
+
+          requestResultMessage.replyTo ! ResultResponse(
+            stateData.getResults(requestedResults)
+          )
         }
 
         Behaviors.same
@@ -112,19 +187,6 @@ object ResultServiceProxy {
       resultEvent: ResultEvent,
       stateData: ResultServiceStateData,
   )(using log: Logger): ResultServiceStateData = resultEvent match {
-    case ParticipantResultEvent(systemParticipantResult) =>
-      // notify listener
-      stateData.notifyListener(systemParticipantResult)
-
-      val uuid = systemParticipantResult.getInputModel
-
-      stateData.copy(
-        resultMapping = stateData.resultMapping.updated(
-          uuid,
-          systemParticipantResult,
-        )
-      )
-
     case PowerFlowResultEvent(
           nodeResults,
           switchResults,
@@ -141,45 +203,37 @@ object ResultServiceProxy {
           stateData.threeWindingResults,
         )
 
-      val results =
-        (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults).map {
-          res => res.getInputModel -> res
-        }.toMap
+      val gridResults =
+        (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults)
+          .groupBy(_.getInputModel)
 
       // notify listener
-      stateData.notifyListener(results.values.toList)
-
-      val nextTicks = stateData.nextTicks
-
-      val updatedNextTicks =
-        nextTicks ++ results.keys.map(key => key -> nextTick).toMap
+      stateData.notifyListener(gridResults)
 
       stateData.copy(
-        nextTicks = updatedNextTicks,
-        resultMapping = stateData.resultMapping ++ results,
+        gridResults = stateData.gridResults ++ gridResults,
         threeWindingResults = updatedResults,
+        waitingForResults =
+          stateData.waitingForResults.removedAll(gridResults.keys),
       )
+
+    case ParticipantResultEvent(systemParticipantResult) =>
+      // notify listener
+      stateData.notifyListener(systemParticipantResult)
+
+      stateData.addResult(systemParticipantResult)
 
     case ThermalResultEvent(thermalResult) =>
       // notify listener
       stateData.notifyListener(thermalResult)
-      val uuid = thermalResult.getInputModel
 
-      stateData.copy(
-        resultMapping = stateData.resultMapping
-          .updated(uuid, thermalResult)
-      )
+      stateData.addResult(thermalResult)
 
     case FlexOptionsResultEvent(flexOptionsResult) =>
       // notify listener
       stateData.notifyListener(flexOptionsResult)
 
-      val uuid = flexOptionsResult.getInputModel
-
-      stateData.copy(
-        resultMapping = stateData.resultMapping
-          .updated(uuid, flexOptionsResult)
-      )
+      stateData.addResult(flexOptionsResult)
   }
 
   private def handleThreeWindingTransformers(

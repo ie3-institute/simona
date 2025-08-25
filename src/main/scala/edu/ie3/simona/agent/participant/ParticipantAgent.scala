@@ -41,7 +41,7 @@ import squants.{Dimensionless, Each}
   */
 object ParticipantAgent {
 
-  type Message = Request | ActivationRequest | RequestResult
+  type Message = Request | ActivationRequest
 
   type ActivationRequest = Activation | FlexRequest
 
@@ -203,6 +203,9 @@ object ParticipantAgent {
       case (ctx, activation: ActivationRequest) =>
         given ActorRef[Message] = ctx.self
 
+        // inform the result proxy that this grid agent will send new results
+        resultHandler.informProxy(modelShell.uuid, activation.tick)
+
         val coreWithActivation = inputHandler.handleActivation(activation)
 
         val (updatedShell, updatedInputHandler, updatedGridAdapter) =
@@ -222,6 +225,9 @@ object ParticipantAgent {
 
       case (ctx, msg: DataInputMessage) =>
         given ActorRef[Message] = ctx.self
+
+        // inform the result proxy that this grid agent will send new results
+        resultHandler.informProxy(modelShell.uuid, msg.tick)
 
         val inputHandlerWithData = inputHandler.handleDataInputMessage(msg)
 
@@ -310,17 +316,6 @@ object ParticipantAgent {
           updatedGridAdapter,
           resultHandler,
         )
-
-      case (ctx, request: RequestResult) =>
-        val tick = request.tick
-
-        if inputHandler.activation.exists(_.tick <= tick) then {
-          ctx.self ! request
-        } else {
-          request.replyTo ! ResultResponse(gridAdapter.lastResults.toList)
-        }
-
-        Behaviors.same
     }
 
   /** Starts a model calculation if all requirements have been met. A model

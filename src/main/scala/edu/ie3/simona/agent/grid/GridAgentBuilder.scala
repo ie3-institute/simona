@@ -312,8 +312,8 @@ object GridAgentBuilder {
     given ParticipantRefs = ParticipantRefs(
       gridAgentContext.self,
       environmentRefs.primaryServiceProxy,
-      serviceMap,
       environmentRefs.resultProxy,
+      serviceMap,
     )
 
     given SimulationParameters = SimulationParameters(

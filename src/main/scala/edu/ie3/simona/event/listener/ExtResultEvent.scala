@@ -32,9 +32,9 @@ import edu.ie3.simona.ontology.messages.{
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
-import java.time.ZonedDateTime
 import java.util
 import java.util.UUID
+import edu.ie3.simona.util.CollectionUtils.asJava
 import scala.jdk.CollectionConverters.*
 
 object ExtResultEvent {
@@ -85,6 +85,8 @@ object ExtResultEvent {
   ): Behavior[Message | DataMessageFromExt | Activation] =
     Behaviors.receivePartial[Message | DataMessageFromExt | Activation] {
       case (ctx, ResultResponse(results)) =>
+        ctx.log.warn(s"Sending results to ext. Results: $results")
+
         // send result to external simulation
         stateData.connection.queueExtResponseMsg(
           new ProvideResultEntities(results.asJava)
@@ -124,7 +126,7 @@ object ExtResultEvent {
 
             // TODO: flex result are currently not supported by the result provider
             requestedResults.removeAll(stateData.flexAssets.asJava)
-            
+
             if requestResultEntities.tick == 0 then {
               // removing the grid assets for tick 0, since SIMONA will produce no output
               requestedResults.removeAll(stateData.gridAssets.asJava)

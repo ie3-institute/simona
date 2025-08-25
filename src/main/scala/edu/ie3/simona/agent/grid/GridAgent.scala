@@ -32,6 +32,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
@@ -214,6 +215,13 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         ctx.self,
         Some(activation.tick),
       )
+
+      // inform the result proxy that this grid agent will send new results
+      constantData.environmentRefs.resultProxy ! ExpectResult(
+        gridAgentBaseData.assets,
+        activation.tick,
+      )
+
       buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
 
     case (_, msg: Message) =>
@@ -256,7 +264,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           createResultModels(
             gridAgentBaseData.gridEnv.gridModel,
             valueStore,
-            nextTick
+            nextTick,
           )(using
             currentTick.toDateTime(using constantData.simStartTime),
             ctx.log,
@@ -265,7 +273,13 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
     // check if congestion management is enabled
     if (gridAgentBaseData.congestionManagementParams.detectionEnabled) {
-      startCongestionManagement(gridAgentBaseData, currentTick, nextTick, results, ctx)
+      startCongestionManagement(
+        gridAgentBaseData,
+        currentTick,
+        nextTick,
+        results,
+        ctx,
+      )
     } else {
       // clean up agent and go back to idle
       gotoIdle(gridAgentBaseData, nextTick, results, ctx)

@@ -164,7 +164,9 @@ object ExtResultProvider extends SimonaService with ExtDataSupport {
           if (updated.isComplete) {
 
             serviceStateData.extResultDataConnection.queueExtResponseMsg(
-              new ProvideResultEntities(updated.receivedData.values.toList.asJava)
+              new ProvideResultEntities(
+                updated.receivedData.values.toList.asJava
+              )
             )
 
             serviceStateData.copy(
@@ -246,7 +248,9 @@ object ExtResultProvider extends SimonaService with ExtDataSupport {
           if (updated.isComplete) {
 
             serviceStateData.extResultDataConnection.queueExtResponseMsg(
-              new ProvideResultEntities(updated.receivedData.values.toList.asJava)
+              new ProvideResultEntities(
+                updated.receivedData.values.toList.asJava
+              )
             )
 
             serviceStateData.copy(

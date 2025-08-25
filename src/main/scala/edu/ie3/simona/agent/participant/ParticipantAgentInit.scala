@@ -35,6 +35,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
@@ -57,16 +58,16 @@ object ParticipantAgentInit {
     *   Reference to the grid agent.
     * @param primaryServiceProxy
     *   Reference to the primary service proxy.
+    * @param resultServiceProxy
+    *   Reference to the result service proxy.
     * @param services
     *   References to services by service type.
-    * @param resultListener
-    *   Reference to the result service proxy.
     */
   final case class ParticipantRefs(
       gridAgent: ActorRef[GridAgent.Message],
       primaryServiceProxy: ActorRef[ServiceMessage],
+      resultServiceProxy: ActorRef[ResultEvent | ExpectResult],
       services: Map[ServiceType, ActorRef[ServiceMessage]],
-      resultListener: ActorRef[ResultEvent],
   )
 
   /** Container class that holds parameters related to the simulation.
@@ -416,7 +417,7 @@ object ParticipantAgentInit {
         simulationParams.requestVoltageDeviationTolerance,
       ),
       ParticipantResultHandler(
-        participantRefs.resultListener,
+        participantRefs.resultServiceProxy,
         notifierConfig,
       ),
     )

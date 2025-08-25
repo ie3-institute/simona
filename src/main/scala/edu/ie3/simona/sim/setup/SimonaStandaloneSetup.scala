@@ -45,6 +45,7 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 import java.nio.file.Path
+import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters.*
@@ -173,9 +174,10 @@ class SimonaStandaloneSetup(
   override def resultServiceProxy(
       context: ActorContext[_],
       listeners: Seq[ActorRef[ResultEvent.ResultResponse]],
+      simStartTime: ZonedDateTime,
   ): ActorRef[ResultServiceProxy.Message] =
     context.spawn(
-      ResultServiceProxy(listeners),
+      ResultServiceProxy(listeners, simStartTime),
       "resultEventProxyAgent",
     )
 
