@@ -126,7 +126,6 @@ class SimonaConfigSpec extends UnitSpec {
       simonaConfig.output shouldBe OutputConfig(
         base = OutputConfig
           .Base(addTimestampToOutputDir = true, dir = "testOutput/"),
-        flex = false,
         grid = OutputConfig.GridOutputConfig(
           congestions = false,
           lines = false,
@@ -155,12 +154,14 @@ class SimonaConfigSpec extends UnitSpec {
       )
 
       // powerflow config
-      simonaConfig.powerflow shouldBe Powerflow(
-        maxSweepPowerDeviation = 1e-5,
-        newtonraphson = Newtonraphson(epsilon = List(1e-12), iterations = 50),
-        resolution = 1.hours,
-        stopOnFailure = false,
-        sweepTimeout = 30.seconds,
+      simonaConfig.powerflow shouldBe Some(
+        Powerflow(
+          maxSweepPowerDeviation = 1e-5,
+          newtonraphson = Newtonraphson(epsilon = List(1e-12), iterations = 50),
+          resolution = 1.hours,
+          stopOnFailure = false,
+          sweepTimeout = 30.seconds,
+        )
       )
 
       // runtime config

@@ -65,9 +65,8 @@ final case class ParticipantGridAdapter(
     * @return
     *   Whether a power request is awaited for the given tick.
     */
-  def isPowerRequestAwaited(currentTick: Long): Boolean = {
+  def isPowerRequestAwaited(currentTick: Long): Boolean =
     expectedRequestTick == currentTick
-  }
 
   /** Store a power value that has been determined by the model for the given
     * tick.

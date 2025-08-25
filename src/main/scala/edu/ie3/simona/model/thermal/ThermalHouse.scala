@@ -8,6 +8,7 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.TemperatureConversionSimona
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
@@ -30,7 +31,6 @@ import squants.energy.KilowattHours
 import squants.thermal.{Kelvin, ThermalCapacity}
 import squants.time.Seconds
 import squants.{Energy, Power, Temperature, Time}
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
@@ -47,15 +47,15 @@ import java.util.UUID
   * @param bus
   *   Thermal bus input
   * @param ethLosses
-  *   transmission coefficient of heat storage, usually in [kW/K]
+  *   transmission coefficient of heat storage
   * @param ethCapa
-  *   heat energy storage capability of thermal house, usually in [kWh/K]
+  *   heat energy storage capability of thermal house
   * @param targetTemperature
-  *   Target room temperature [K]
+  *   Target room temperature
   * @param lowerBoundaryTemperature
-  *   Lower temperature boundary [K]
+  *   Lower temperature boundary
   * @param upperBoundaryTemperature
-  *   Upper boundary temperature [K]
+  *   Upper boundary temperature
   */
 final case class ThermalHouse(
     uuid: UUID,
@@ -290,7 +290,7 @@ final case class ThermalHouse(
     )
 
     val durationValue = Math.log(
-      (nextInnerTemperatureToReach - longTermTemperature) / (currentInnerTemperature - longTermTemperature)
+      (nextInnerTemperatureToReach.toKelvinScale - longTermTemperature.toKelvinScale) / (currentInnerTemperature.toKelvinScale - longTermTemperature.toKelvinScale)
     ) / (k2 * -1)
 
     val duration = Math.floor(durationValue).toLong
@@ -334,15 +334,9 @@ object ThermalHouse {
         .getValue
         .doubleValue
     ) / Kelvin(1d),
-    Kelvin(
-      input.getTargetTemperature.to(Units.KELVIN).getValue.doubleValue
-    ),
-    Kelvin(
-      input.getLowerTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
-    ),
-    Kelvin(
-      input.getUpperTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
-    ),
+    input.getTargetTemperature.toSquants,
+    input.getLowerTemperatureLimit.toSquants,
+    input.getUpperTemperatureLimit.toSquants,
   )
 
   /** State of a thermal house.

@@ -14,7 +14,7 @@ import edu.ie3.datamodel.models.result.thermal.{
   ThermalHouseResult,
 }
 import edu.ie3.simona.exceptions.InvalidParameterException
-import edu.ie3.simona.model.participant.HpModel.{
+import edu.ie3.simona.model.participant.hp.HpModel.{
   HpOperatingPoint,
   HpState,
   ThermalGridOperatingPoint,
@@ -84,19 +84,20 @@ final case class ThermalGrid(
       case _ => None
     }
 
-    val updatedStorageState = heatStorage.zip(lastState.storageState) match {
-      case Some((storage, heatStorageState)) =>
-        Some(
-          storage.determineState(
-            tick,
-            heatStorageState,
-            heatStorageQDot,
+    val updatedHeatStorageState =
+      heatStorage.zip(lastState.heatStorageState) match {
+        case Some((storage, heatStorageState)) =>
+          Some(
+            storage.determineState(
+              tick,
+              heatStorageState,
+              heatStorageQDot,
+            )
           )
-        )
-      case _ => None
-    }
+        case _ => None
+      }
 
-    ThermalGridState(updatedHouseState, updatedStorageState)
+    ThermalGridState(updatedHouseState, updatedHeatStorageState)
   }
 
   /** Determine the energy demand of the thermalGrid.
@@ -119,23 +120,24 @@ final case class ThermalGrid(
       case None => ThermalEnergyDemand.noDemand
     }
 
-    val storageDemand = heatStorage.zip(thermalGridState.storageState) match {
-      case Some((storage, storageState)) =>
-        val storedEnergy = storageState.storedEnergy
-        val storageRequired = {
-          if (storedEnergy == zeroKWh)
-            storage.getMaxEnergyThreshold
-          else
-            zeroMWh
-        }
+    val heatStorageDemand =
+      heatStorage.zip(thermalGridState.heatStorageState) match {
+        case Some((storage, storageState)) =>
+          val storedEnergy = storageState.storedEnergy
+          val storageRequired = {
+            if (storedEnergy == zeroKWh)
+              storage.getMaxEnergyThreshold
+            else
+              zeroMWh
+          }
 
-        val storagePossible = storage.getMaxEnergyThreshold - storedEnergy
-        ThermalEnergyDemand(
-          storageRequired,
-          storagePossible,
-        )
-      case None => ThermalEnergyDemand.noDemand
-    }
+          val storagePossible = storage.getMaxEnergyThreshold - storedEnergy
+          ThermalEnergyDemand(
+            storageRequired,
+            storagePossible,
+          )
+        case None => ThermalEnergyDemand.noDemand
+      }
 
     ThermalDemandWrapper(
       ThermalEnergyDemand(
@@ -143,8 +145,8 @@ final case class ThermalGrid(
         houseDemand.possible,
       ),
       ThermalEnergyDemand(
-        storageDemand.required,
-        storageDemand.possible,
+        heatStorageDemand.required,
+        heatStorageDemand.possible,
       ),
     )
   }
@@ -260,12 +262,12 @@ final case class ThermalGrid(
     val (_, thermalHouseThreshold) =
       handleFeedInHouse(state, qDotHouse)
 
-    val thermalStorageThreshold =
+    val heatStorageThreshold =
       handleFeedInStorage(state, qDotHeatStorage)
 
     val nextThreshold = determineMostRecentThreshold(
       thermalHouseThreshold,
-      thermalStorageThreshold,
+      heatStorageThreshold,
     )
 
     (
@@ -331,7 +333,7 @@ final case class ThermalGrid(
       state: HpState,
       qDotStorage: Power,
   ): Option[ThermalThreshold] = {
-    heatStorage.zip(state.thermalGridState.storageState) match {
+    heatStorage.zip(state.thermalGridState.heatStorageState) match {
       case Some((thermalStorage, storageState)) =>
         thermalStorage.determineNextThreshold(
           storageState,
@@ -405,7 +407,7 @@ final case class ThermalGrid(
       maybeHouseThreshold: Option[ThermalThreshold],
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = house
     .zip(state.thermalGridState.houseState)
-    .zip(heatStorage.zip(state.thermalGridState.storageState)) match {
+    .zip(heatStorage.zip(state.thermalGridState.heatStorageState)) match {
     case Some(
           (
             (thermalHouse, houseState),
@@ -490,7 +492,7 @@ final case class ThermalGrid(
     def createCylindricalStorageResult(
         storage: CylindricalThermalStorage
     ): Option[CylindricalStorageResult] = {
-      state.thermalGridState.storageState
+      state.thermalGridState.heatStorageState
         .collectFirst { case ThermalStorageState(_, storedEnergy) =>
           new CylindricalStorageResult(
             dateTime,
@@ -522,7 +524,7 @@ final case class ThermalGrid(
     }
 
     // We always want the results if there are changes or it's the first tick
-    val maybeStorageResult = {
+    val maybeHeatStorageResult = {
       (
         heatStorage,
         lastOpThermals.forall(
@@ -535,7 +537,7 @@ final case class ThermalGrid(
       }
     }
 
-    Seq(maybeHouseResult, maybeStorageResult).flatten
+    Seq(maybeHouseResult, maybeHeatStorageResult).flatten
   }
 }
 
@@ -544,7 +546,7 @@ object ThermalGrid {
       input: edu.ie3.datamodel.models.input.container.ThermalGrid
   ): ThermalGrid = {
     val houses = input.houses().asScala.map(ThermalHouse(_)).toSet
-    val storages = input
+    val heatStorages = input
       .heatStorages()
       .asScala
       .flatMap {
@@ -555,31 +557,31 @@ object ThermalGrid {
       .toSet
     new ThermalGrid(
       houses.headOption,
-      storages.headOption,
+      heatStorages.headOption,
     )
   }
 
   /** Current state of a grid.
     * @param houseState
     *   State of the thermal house.
-    * @param storageState
-    *   State of the thermal storage.
+    * @param heatStorageState
+    *   State of the thermal heat storage.
     */
   final case class ThermalGridState(
       houseState: Option[ThermalHouseState],
-      storageState: Option[ThermalStorageState],
+      heatStorageState: Option[ThermalStorageState],
   ) {
 
     /** This method will return booleans whether there is a heat demand of house
-      * or thermal storage as well as a boolean indicating if there is no
-      * thermal storage, or it is empty.
+      * or thermal storage as well as a boolean indicating if there is no heat
+      * storage, or it is empty.
       *
       * @return
-      *   boolean which is true, if there is no thermalStorage, or it's empty.
+      *   boolean which is true, if there is no heat storage, or it's empty.
       */
-    def isThermalStorageEmpty: Boolean = {
+    def isHeatStorageEmpty: Boolean = {
       implicit val tolerance: Energy = KilowattHours(1e-3)
-      storageState.isEmpty || storageState
+      heatStorageState.isEmpty || heatStorageState
         .exists(
           _.storedEnergy =~ zeroKWh
         )

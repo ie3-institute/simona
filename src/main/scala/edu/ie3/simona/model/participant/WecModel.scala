@@ -13,10 +13,10 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
   WecResult,
 }
-import edu.ie3.simona.model.participant.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
+  OperationChangeIndicator,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.WecModel.{
@@ -28,26 +28,27 @@ import edu.ie3.simona.model.participant.WecModel.{
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
-import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaVar}
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.Scope
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   AreaToSimona,
   PowerConversionSimona,
 }
-import squants._
+import squants.*
 import squants.energy.Watts
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
 import squants.thermal.{Celsius, JoulesPerKelvin}
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -65,8 +66,12 @@ class WecModel private (
       ActivePowerOperatingPoint,
       WecState,
     ]
-    with ParticipantSimpleFlexibility[WecState]
     with LazyLogging {
+
+  override val flexModels: Map[FlexType, ParticipantFlexModel[WecState]] =
+    Map(
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
+    )
 
   override def determineState(
       lastState: WecState,
@@ -133,6 +138,12 @@ class WecModel private (
     (ActivePowerOperatingPoint(activePower), None)
   }
 
+  override def determineOperatingPoint(
+      state: WecState,
+      setPower: Power,
+  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
+    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
+
   /** The coefficient is dependent on the wind velocity v. Therefore use v to
     * determine the betz coefficient cₚ.
     *
@@ -197,7 +208,7 @@ class WecModel private (
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new WecResult(
@@ -246,7 +257,7 @@ object WecModel {
 
   object WecCharacteristic {
 
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
 
     /** Transform the inputs points from [[java.util.SortedSet]] to
       * [[scala.collection.SortedSet]], which is fed into [[WecCharacteristic]].

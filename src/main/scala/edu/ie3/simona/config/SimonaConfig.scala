@@ -10,10 +10,10 @@ import com.typesafe.config.{Config, ConfigValue}
 import edu.ie3.simona.config.SimonaConfig.writer
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.util.TimeUtil
-import pureconfig.*
 import pureconfig.error.*
 import pureconfig.generic.*
 import pureconfig.generic.semiauto.deriveConvert
+import pureconfig.*
 
 import java.time.ZonedDateTime
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -109,7 +109,7 @@ object SimonaConfig {
       gridConfig: Simona.GridConfig = Simona.GridConfig(),
       input: InputConfig,
       output: OutputConfig,
-      powerflow: Simona.Powerflow,
+      powerflow: Option[Simona.Powerflow] = None,
       runtime: RuntimeConfig = RuntimeConfig(),
       simulationName: String,
       time: Simona.Time,
@@ -148,8 +148,12 @@ object SimonaConfig {
         schedulerReadyCheckWindow: Option[Int] = None,
         startDateTime: String,
     ) derives ConfigConvert {
-      def startTime: ZonedDateTime =
+
+      val simStartTime: ZonedDateTime =
         TimeUtil.withDefaults.toZonedDateTime(startDateTime)
+
+      val simEndTime: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime(endDateTime)
     }
   }
 }

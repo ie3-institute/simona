@@ -26,6 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Primary data class parameter cleanup [#1459](https://github.com/ie3-institute/simona/issues/1459)
 - Set Institute as first author within `CITATION.cff` [#1427](https://github.com/ie3-institute/simona/issues/1427)
 - Update Developers Guide - Release Process [#1466](https://github.com/ie3-institute/simona/issues/1466)
+- Made powerflow parameters in config options [#1443](https://github.com/ie3-institute/simona/issues/1443)
+- Provide abstraction for flex options in system participant and EM [#1456](https://github.com/ie3-institute/simona/issues/1456)
+- Rename `MinMaxFlexOptions` to `PowerLimitFlexOptions` [#1457](https://github.com/ie3-institute/simona/issues/1457)
+- Align temperature scale of parameter for `ThermalInputs` [#1484](https://github.com/ie3-institute/simona/issues/1484)
+- Refactored some tests for usage of should approximate [#863](https://github.com/ie3-institute/simona/issues/863)
+- Create trait for ThermalStorageCalculations [#1473](https://github.com/ie3-institute/simona/issues/1473)
+- Rename 'thermalStorage' to 'heatStorage' [#1475](https://github.com/ie3-institute/simona/issues/1475)
+- Simplify flex option result configuration [#1111](https://github.com/ie3-institute/simona/issues/1111)
+- Harmonisation of `TestInputData` for `Transformer` [#163](https://github.com/ie3-institute/simona/issues/163)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -37,10 +46,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ambient temperature can cause the next threshold of the `ThermalHouse` to be the same as the current tick [#1438](https://github.com/ie3-institute/simona/issues/1438)
 - Fixed crash when using load model with `profile` behaviour and primary data [#1436](https://github.com/ie3-institute/simona/issues/1436)
 - Fixed CFF-Version [#1464](https://github.com/ie3-institute/simona/issues/1464)
+- Fixed handleInput of `ProfileLoadModel` [#1441](https://github.com/ie3-institute/simona/issues/1441)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
 - Removed dedicated `random` load model behaviour [#1436](https://github.com/ie3-institute/simona/issues/1436)
+- Removed some units from scalaDoc within `ThermalHouse` [#1495](https://github.com/ie3-institute/simona/issues/1495)
 
 ## [4.0.0] - 2025-05-09
 

@@ -149,13 +149,12 @@ class SimonaStandaloneSetup(
   }
 
   override def primaryServiceProxy(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
   ): ActorRef[ServiceMessage] = {
-    val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
-      simonaConfig.simona.time.startDateTime
-    )
+    val simulationStart = simonaConfig.simona.time.simStartTime
+
     val primaryServiceProxy = context.spawn(
       PrimaryServiceProxy(
         scheduler,
@@ -204,7 +203,7 @@ class SimonaStandaloneSetup(
   }
 
   override def loadProfileService(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[ServiceMessage] = {
     val loadProfileService = context.spawn(
@@ -217,11 +216,7 @@ class SimonaStandaloneSetup(
     loadProfileService ! ServiceMessage.Create(
       InitLoadProfileServiceStateData(
         cfg.input.loadProfile.datasource,
-        TimeUtil.withDefaults
-          .toZonedDateTime(cfg.time.startDateTime),
-        TimeUtil.withDefaults
-          .toZonedDateTime(cfg.time.endDateTime),
-        cfg.powerflow.resolution,
+        cfg.time.simStartTime,
       ),
       ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
     )

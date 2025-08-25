@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant
+package edu.ie3.simona.model.participant.hp
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.container.ThermalGrid as PsdmThermalGrid
@@ -14,7 +14,6 @@ import edu.ie3.datamodel.models.result.system.{
   HpResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.model.participant.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
@@ -22,24 +21,22 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
+import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.model.thermal.ThermalGrid.*
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
-import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   ComplexPowerAndHeat,
   PrimaryDataWithComplexPower,
 }
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
-import edu.ie3.util.scala.quantities.DefaultQuantities.{
-  zeroCelsius,
-  zeroKW,
-  zeroKWh,
-}
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import edu.ie3.util.scala.quantities.*
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import squants.*
 
 import java.time.ZonedDateTime
@@ -58,6 +55,11 @@ class HpModel private (
       HpState,
     ]
     with LazyLogging {
+
+  override val flexModels: Map[FlexType, ParticipantFlexModel[HpState]] =
+    Map(
+      FlexType.PowerLimit -> HpPowerLimitFlexModel(this)
+    )
 
   override def determineState(
       lastState: HpState,
@@ -101,24 +103,6 @@ class HpModel private (
         )
       )
       .getOrElse(state)
-  }
-
-  override def determineFlexOptions(
-      state: HpState
-  ): FlexOptions = {
-    val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
-    // Determining the operation point and limitations at this tick
-    val (turnOn, canOperate, canBeOutOfOperation) = determineHpOperatingOptions(
-      state.thermalGridState,
-      state.thermalDemands,
-      wasRunningLastOp,
-    )
-
-    MinMaxFlexOptions(
-      if (turnOn) sRated.toActivePower(cosPhiRated) else zeroKW,
-      if (canBeOutOfOperation) zeroKW else sRated.toActivePower(cosPhiRated),
-      if (canOperate) sRated.toActivePower(cosPhiRated) else zeroKW,
-    )
   }
 
   /** Calculate the active power behaviour of the model.
@@ -251,27 +235,27 @@ class HpModel private (
     *   Boolean defining if the heat pump will run as default behaviour, if it
     *   can be in operation and can be out of operation as flexibility options.
     */
-  private def determineHpOperatingOptions(
+  def determineHpOperatingOptions(
       thermalGridState: ThermalGridState,
       thermalDemands: ThermalDemandWrapper,
       wasRunningLastPeriod: Boolean,
   ): (Boolean, Boolean, Boolean) = {
 
     val demandHouse = thermalDemands.houseDemand
-    val demandThermalStorage = thermalDemands.heatStorageDemand
-    val noThermalStorageOrEmpty = thermalGridState.isThermalStorageEmpty
+    val demandHeatStorage = thermalDemands.heatStorageDemand
+    val noHeatStorageOrEmpty = thermalGridState.isHeatStorageEmpty
 
     val turnHpOn =
-      (demandHouse.hasRequiredDemand && noThermalStorageOrEmpty) ||
+      (demandHouse.hasRequiredDemand && noHeatStorageOrEmpty) ||
         (demandHouse.hasPossibleDemand && wasRunningLastPeriod ||
-          demandThermalStorage.hasRequiredDemand ||
-          (demandThermalStorage.hasPossibleDemand && wasRunningLastPeriod))
+          demandHeatStorage.hasRequiredDemand ||
+          (demandHeatStorage.hasPossibleDemand && wasRunningLastPeriod))
 
     val canOperate =
       demandHouse.hasRequiredDemand || demandHouse.hasPossibleDemand ||
-        demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasPossibleDemand
+        demandHeatStorage.hasRequiredDemand || demandHeatStorage.hasPossibleDemand
     val canBeOutOfOperation =
-      !(demandHouse.hasRequiredDemand && noThermalStorageOrEmpty)
+      !(demandHouse.hasRequiredDemand && noHeatStorageOrEmpty)
 
     (
       turnHpOn,
@@ -304,7 +288,7 @@ class HpModel private (
   }
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithComplexPower[_],
+      data: PrimaryDataWithComplexPower[?],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult = {
     data match {
@@ -343,7 +327,7 @@ object HpModel {
     *   The thermal power output of the heat pump.
     * @param qDotHouse
     *   The thermal power input of the
-    *   [[edu.ie3.simona.model.thermal.ThermalHouse]].
+    *   [[edu.ie3.simona.model.thermal.ThermalHouse]] used for space heating.
     * @param qDotHeatStorage
     *   The thermal power input of the
     *   [[edu.ie3.simona.model.thermal.ThermalStorage]].
