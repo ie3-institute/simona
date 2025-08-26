@@ -36,15 +36,15 @@ final case class OptimizedFlexStrat(
         (? <: AssetInput, MathFlexOptions[?, ? <: OperationVars])
       ],
       target: Power,
+      currentTick: Long,
   ): Iterable[(UUID, Power)] = {
 
     implicit val model: MPModel = MPModel(SolverLib.oJSolver)
 
-    val currentTick: Long = ???
     val tickResolution = stepResolution.toSeconds.toLong
-    val lastTick = currentTick + predictionHorizon.toSeconds.toLong
+    val lastPredictedTick = currentTick + predictionHorizon.toSeconds.toLong
 
-    val ticks = Range.Long(currentTick, lastTick, tickResolution)
+    val ticks = Range.Long(currentTick, lastPredictedTick, tickResolution)
 
     val assetVars = flexOptions.map { case (asset: AssetInput, fo) =>
       addAssetConstraints(asset.getUuid, fo, ticks)

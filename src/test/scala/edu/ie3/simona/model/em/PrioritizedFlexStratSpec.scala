@@ -160,6 +160,7 @@ class PrioritizedFlexStratSpec
             strat.determineFlexControl(
               flexOptions,
               Kilowatts(target),
+              currentTick = 0L,
             )
 
           actualResults should have size expectedResult.size withClue
@@ -269,6 +270,7 @@ class PrioritizedFlexStratSpec
             strat.determineFlexControl(
               flexOptions,
               Kilowatts(0d),
+              currentTick = 0L,
             )
 
           actualResults should have size expectedResult.size withClue

@@ -131,6 +131,7 @@ class ProportionalFlexStratSpec
                 (assetInput2, flexOptions2),
               ),
               Kilowatts(target),
+              currentTick = 0L,
             )
             .toMap
 
