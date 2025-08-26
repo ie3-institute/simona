@@ -16,6 +16,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.util.ReceiveDataMap
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
 import org.apache.pekko.actor.typed.ActorRef
@@ -63,7 +64,13 @@ trait EmServiceCore {
 
       receiver match {
         case ref: ActorRef[FlexRequest] =>
-          handleFlexRequest(flexRequest, ref)
+          if tick == INIT_SIM_TICK then {
+            ref ! flexRequest
+
+            (this, None)
+          } else {
+            handleFlexRequest(flexRequest, ref)
+          }
 
         case _ =>
           // should not happen
@@ -79,7 +86,12 @@ trait EmServiceCore {
           handleFlexResponse(tick, flexResponse, Left(uuid))
 
         case ref: ActorRef[FlexResponse] =>
-          handleFlexResponse(tick, flexResponse, Right(ref))
+          if tick == INIT_SIM_TICK then {
+            ref ! flexResponse
+            (this, None)
+          } else {
+            handleFlexResponse(tick, flexResponse, Right(ref))
+          }
       }
   }
 

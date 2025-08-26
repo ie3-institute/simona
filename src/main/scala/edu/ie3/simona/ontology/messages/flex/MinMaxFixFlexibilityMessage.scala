@@ -37,7 +37,7 @@ object MinMaxFixFlexibilityMessage {
       min: Power,
       max: Power,
       fix: Power,
-  ) extends FlexOptions
+  )
 
   object MinMaxFixFlexOptions {
 

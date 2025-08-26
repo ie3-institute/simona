@@ -22,7 +22,11 @@ import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, SetHasAsScala}
+import scala.jdk.CollectionConverters.{
+  ListHasAsScala,
+  MapHasAsJava,
+  SetHasAsScala,
+}
 import scala.jdk.OptionConverters.RichOption
 
 final case class EmServiceBaseCore(

@@ -8,7 +8,11 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.model.em.{EmSetPointResult, ExtendedFlexOptionsResult, FlexOptionRequestResult}
+import edu.ie3.simona.api.data.model.em.{
+  EmSetPointResult,
+  ExtendedFlexOptionsResult,
+  FlexOptionRequestResult,
+}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
@@ -27,18 +31,23 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power
-import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsJava, MapHasAsScala, SetHasAsJava}
+import scala.jdk.CollectionConverters.{
+  IterableHasAsScala,
+  MapHasAsJava,
+  MapHasAsScala,
+  SetHasAsJava,
+}
 import scala.jdk.OptionConverters.RichOption
 
 final case class EmCommunicationCore(
     override val lastFinishedTick: Long = PRE_INIT_TICK,
     override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
-    agentToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
-    uuidToFlexResponse: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
-    flexResponseToUuid: Map[ActorRef[FlexResponse], UUID] = Map.empty,
+    agentToUuid: Map[ActorRef[FlexResponse] | ActorRef[FlexRequest], UUID] =
+      Map.empty,
+    uuidToInferior: Map[UUID, Seq[UUID]] = Map.empty,
+    activatedAgents: Set[UUID] = Set.empty,
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
-    flexAdapterToUuid: Map[ActorRef[FlexRequest], UUID] = Map.empty,
     uuidToPRef: Map[UUID, ComparableQuantity[Power]] = Map.empty,
     toSchedule: Map[UUID, ScheduleFlexActivation] = Map.empty,
     flexRequestReceived: DataMap[UUID, Boolean] =
@@ -58,23 +67,24 @@ final case class EmCommunicationCore(
     val parentEm = emServiceRegistration.parentEm
     val parentUuid = emServiceRegistration.parentUuid
 
-    val (updatedResponseToUuid, updatedUuidToResponse) =
-      parentEm.zip(parentUuid) match {
-        case Some((parent, uuid)) =>
-          (
-            flexResponseToUuid + (parent -> uuid),
-            uuidToFlexResponse + (uuid -> parent),
-          )
+    val updatedInferior = emServiceRegistration.parentUuid match {
+      case Some(parent) =>
+        val inferior = uuidToInferior.get(parent) match {
+          case Some(inferiorUuids) =>
+            inferiorUuids.appended(uuid)
+          case None =>
+            Seq(uuid)
+        }
 
-        case None =>
-          (flexResponseToUuid, uuidToFlexResponse)
-      }
+        uuidToInferior.updated(parent, inferior)
+      case None =>
+        uuidToInferior
+    }
 
     copy(
-      uuidToAgent = uuidToAgent + (uuid -> ref),
-      agentToUuid = agentToUuid + (ref -> uuid),
-      uuidToFlexResponse = updatedUuidToResponse,
-      flexResponseToUuid = updatedResponseToUuid,
+      uuidToAgent = uuidToAgent.updated(uuid, ref),
+      agentToUuid = agentToUuid.updated(ref, uuid),
+      uuidToInferior = updatedInferior,
       flexRequestReceived =
         flexRequestReceived.updateStructure(parentUuid, uuid),
       flexOptionResponse = flexOptionResponse.updateStructure(parentUuid, uuid),
@@ -90,7 +100,9 @@ final case class EmCommunicationCore(
       log: Logger
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = extMSg match {
     case requestEmCompletion: RequestEmCompletion =>
-      if (requestEmCompletion.tick != tick) {
+      val extTick = requestEmCompletion.tick
+
+      if (extTick != tick) {
         log.warn(
           s"Received completion request for tick '${requestEmCompletion.tick}' in tick '$tick'."
         )
@@ -99,45 +111,47 @@ final case class EmCommunicationCore(
       } else {
         log.info(s"Receive a request for completion for tick '$tick'.")
 
-        /*
-        uuidToAgent.foreach { case (_, emAgent) =>
-          emAgent ! IssueNoControl(tick)
-        }
+        val nextTick: Option[java.lang.Long] =
+          if activatedAgents.nonEmpty then {
+            Some(extTick + 1)
+          } else getMaybeNextTick
 
-        (this, Some(new EmCompletion(getMaybeNextTick.toJava)))
-         */
-
-        (this, None)
+        (
+          copy(lastFinishedTick = tick),
+          Some(new EmCompletion(nextTick.toJava)),
+        )
       }
 
     case provideFlexRequests: ProvideFlexRequestData =>
+      // TODO: Check tick?
+
       log.warn(s"Received message: $provideFlexRequests")
 
-      // entities for which flex options are requested
-      val emEntities: Set[UUID] = provideFlexRequests
-        .flexRequests()
-        .asScala
-        .map { case (agent, _) => agent }
-        .toSet
-
-      val agents = emEntities.map(uuidToAgent)
-
-      agents.foreach(_ ! FlexActivation(tick, FlexType.PowerLimit))
+      val activated = provideFlexRequests.flexRequests.asScala.flatMap {
+        case (uuid, _) =>
+          uuidToAgent.get(uuid).map { agent =>
+            // TODO: Support more FlexTypes
+            agent ! FlexActivation(tick, FlexType.PowerLimit)
+            uuid
+          }
+      }.toSet
 
       (
         copy(
+          activatedAgents = activatedAgents ++ activated,
           flexRequestReceived =
-            flexRequestReceived.addSubKeysToExpectedKeys(emEntities),
+            flexRequestReceived.addSubKeysToExpectedKeys(activated),
           flexOptionResponse =
-            flexOptionResponse.addSubKeysToExpectedKeys(emEntities),
+            flexOptionResponse.addSubKeysToExpectedKeys(activated),
           setPointResponse =
-            setPointResponse.addSubKeysToExpectedKeys(emEntities),
-          completions = completions.addExpectedKeys(emEntities),
+            setPointResponse.addSubKeysToExpectedKeys(activated),
+          completions = completions.addExpectedKeys(activated),
         ),
         None,
       )
 
     case provideFlexOptions: ProvideEmFlexOptionData =>
+      // TODO: Check tick?
       log.warn(s"Received message: $provideFlexOptions")
 
       provideFlexOptions
@@ -165,9 +179,18 @@ final case class EmCommunicationCore(
       (this, None)
 
     case providedSetPoints: ProvideEmSetPointData =>
+      // TODO: Check tick?
       log.warn(s"Received message: $providedSetPoints")
 
       handleSetPoint(tick, providedSetPoints, log)
+
+      (this, None)
+
+    case _: RequestEmFlexResults =>
+      // should not happen, this should be done by ProvideFlexRequestData
+      log.warn(
+        s"Received request for flex results. This is not supported by ${this.getClass}!"
+      )
 
       (this, None)
   }
@@ -214,7 +237,7 @@ final case class EmCommunicationCore(
 
         val receiverUuid = receiver match {
           case Right(otherRef) =>
-            flexResponseToUuid(otherRef)
+            agentToUuid(otherRef)
           case Left(self: UUID) =>
             self
         }
@@ -222,7 +245,7 @@ final case class EmCommunicationCore(
         val (updated, updatedAdditional) = provideFlexOptions match {
           case ProvideFlexOptions(
                 modelUuid,
-          PowerLimitFlexOptions(ref, min, max),
+                PowerLimitFlexOptions(ref, min, max),
               ) =>
             val result = new ExtendedFlexOptionsResult(
               tick.toDateTime(using startTime),
@@ -238,7 +261,8 @@ final case class EmCommunicationCore(
               additionalFlexOptions.updated(modelUuid, result),
             )
 
-          case _ =>
+          case other =>
+            log.warn(s"Flex option type '$other' is currently not supported!")
             (flexOptionResponse, additionalFlexOptions)
         }
 
@@ -287,9 +311,6 @@ final case class EmCommunicationCore(
         }
       }
 
-    case _: FlexResult =>
-      (this, None)
-
     case completion: FlexCompletion =>
       receiver.map(_ ! completion)
 
@@ -314,6 +335,10 @@ final case class EmCommunicationCore(
         )
 
       } else (copy(completions = updated), None)
+
+    case other =>
+      log.warn(s"Message $other is currently not supported.")
+      (this, None)
 
   }
 

@@ -1,0 +1,415 @@
+/*
+ * © 2025. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
+package edu.ie3.simona.service.em
+
+import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
+import edu.ie3.datamodel.models.value.PValue
+import edu.ie3.simona.agent.em.EmAgent.Message
+import edu.ie3.simona.api.data.model.em.{EmSetPointResult, ExtendedFlexOptionsResult, FlexOptionRequestResult}
+import edu.ie3.simona.api.ontology.em.*
+import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
+import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
+import edu.ie3.simona.util.TickUtil.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
+import org.apache.pekko.actor.typed.ActorRef
+import org.slf4j.Logger
+import squants.Power
+
+import java.time.ZonedDateTime
+import java.util.UUID
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
+import edu.ie3.simona.util.CollectionUtils.asJava
+
+import scala.util.Try
+
+case class EmCommunicationCore2(
+    disaggregated: Boolean = false,
+    override val lastFinishedTick: Long = PRE_INIT_TICK,
+    override val uuidToAgent: Map[UUID, ActorRef[Message]] = Map.empty,
+    refToUuid: Map[ActorRef[FlexResponse] | ActorRef[FlexRequest], UUID] =
+      Map.empty,
+    uuidToInferior: Map[UUID, Seq[UUID]] = Map.empty,
+    uuidToParent: Map[UUID, UUID] = Map.empty,
+    override val completions: ReceiveDataMap[UUID, FlexCompletion] = ReceiveDataMap.empty,
+    requestedFlexType: Map[UUID, FlexType] = Map.empty,
+    allFlexOptions: Map[UUID, FlexOptionsResult] = Map.empty,
+    currentSetPoint: Map[UUID, Power] = Map.empty,
+    activatedAgents: Set[UUID] = Set.empty,
+    expectDataFrom: ReceiveMultiDataMap[UUID, ResultEntity] = ReceiveMultiDataMap.empty,
+) extends EmServiceCore {
+
+  override def handleRegistration(
+      emServiceRegistration: EmServiceRegistration
+  ): EmServiceCore = {
+    val uuid = emServiceRegistration.inputUuid
+    val ref = emServiceRegistration.requestingActor
+
+    val (updatedInferior, updatedUuidToParent) =
+      emServiceRegistration.parentUuid match {
+        case Some(parent) =>
+          val inferior = uuidToInferior.get(parent) match {
+            case Some(inferiorUuids) =>
+              inferiorUuids.appended(uuid)
+            case None =>
+              Seq(uuid)
+          }
+
+          (
+            uuidToInferior.updated(parent, inferior),
+            uuidToParent.updated(uuid, parent),
+          )
+        case None =>
+          (uuidToInferior, uuidToParent)
+      }
+
+    copy(
+      uuidToAgent = uuidToAgent.updated(uuid, ref),
+      refToUuid = refToUuid.updated(ref, uuid),
+      uuidToInferior = updatedInferior,
+      uuidToParent = updatedUuidToParent,
+    )
+  }
+
+  override def handleExtMessage(tick: Long, extMSg: EmDataMessageFromExt)(using
+      log: Logger
+  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = extMSg match {
+    case requestEmCompletion: RequestEmCompletion =>
+      // finish tick and return next tick
+      val extTick = requestEmCompletion.tick
+
+      if extTick != tick then {
+        throw new CriticalFailureException(
+          s"Received completion request for tick '$extTick', while being in tick '$tick'."
+        )
+      } else {
+        log.info(s"Request to finish for tick '$tick' received.")
+
+        // deactivate agents by sending an IssueNoControl message
+        // activatedAgents.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
+
+        val nextTick: Option[java.lang.Long] =
+          if activatedAgents.nonEmpty then {
+            Some(extTick + 1)
+          } else getMaybeNextTick
+
+        (
+          copy(lastFinishedTick = tick),
+          Some(new EmCompletion(nextTick.toJava)),
+        )
+      }
+    case requestFlexOptions: ProvideFlexRequestData =>
+      // request flex option from agents
+      val extTick = requestFlexOptions.tick
+
+      if extTick != tick then {
+        throw new CriticalFailureException(
+          s"Received request for tick '$extTick', while being in tick '$tick'."
+        )
+
+      } else {
+        val activated = requestFlexOptions.flexRequests.asScala.flatMap {
+          case (uuid, _) if !activatedAgents.contains(uuid) =>
+            uuidToAgent.get(uuid).map { agent =>
+              agent ! FlexActivation(
+                tick,
+                requestedFlexType.getOrElse(uuid, FlexType.PowerLimit),
+              )
+              uuid -> Try(uuidToInferior(uuid).size).getOrElse(0)
+            }
+          case _ =>
+            None
+        }.toMap
+
+        val keys = activated.keySet
+
+        // add activated agents
+        (
+          copy(
+            activatedAgents = activatedAgents ++ keys,
+            expectDataFrom = expectDataFrom.addExpectedKeys(activated),
+            completions = completions.addExpectedKeys(keys),
+          ),
+          None,
+        )
+      }
+
+    case provideFlexOptions: ProvideEmFlexOptionData =>
+      // provides flex options for agents
+      val extTick = provideFlexOptions.tick
+
+      if extTick != tick then {
+        throw new CriticalFailureException(
+          s"Received flex option for tick '$extTick', while being in tick '$tick'."
+        )
+
+      } else {
+        val expectMoreData = provideFlexOptions.flexOptions.asScala.map {
+          case (uuid, options) =>
+            val agent = uuidToAgent(uuid)
+
+            // send flex options to agent
+            options.asScala.foreach { option =>
+              agent ! ProvideFlexOptions(
+                option.sender,
+                PowerLimitFlexOptions(
+                  option.pRef.toSquants,
+                  option.pMin.toSquants,
+                  option.pMax.toSquants,
+                ),
+              )
+            }
+
+            uuid -> Try(uuidToInferior(uuid).size).getOrElse(0)
+        }.toMap
+
+        (
+          copy(expectDataFrom = expectDataFrom.addExpectedKeys(expectMoreData)),
+          None,
+        )
+      }
+
+    case provideSetPoints: ProvideEmSetPointData =>
+      // provides set points for agents
+      val extTick = provideSetPoints.tick
+
+      if extTick != tick then {
+        throw new CriticalFailureException(
+          s"Received set points for tick '$extTick', while being in tick '$tick'."
+        )
+
+      } else {
+        val expectMoreData = provideSetPoints.emSetPoints.asScala.map {
+          case (uuid, setPoint) =>
+            val agent = uuidToAgent(uuid)
+
+            setPoint.power.toScala.flatMap(
+              _.getP.toScala.map(_.toSquants)
+            ) match {
+              case Some(power) =>
+                agent ! IssuePowerControl(extTick, power)
+
+              case None =>
+                agent ! IssueNoControl(extTick)
+            }
+
+            uuid -> Try(uuidToInferior(uuid).size).getOrElse(0)
+        }.toMap
+
+        (
+          copy(expectDataFrom = expectDataFrom.addExpectedKeys(expectMoreData)),
+          None,
+        )
+      }
+
+    case _: RequestEmFlexResults =>
+      // should not happen, this should be done by ProvideFlexRequestData
+      log.warn(
+        s"Received request for flex results. This is not supported by ${this.getClass}!"
+      )
+
+      (this, None)
+  }
+
+  override def handleFlexResponse(
+      tick: Long,
+      flexResponse: FlexResponse,
+      receiver: Either[UUID, ActorRef[FlexResponse]],
+  )(using
+      startTime: ZonedDateTime,
+      log: Logger,
+  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
+    val receiverUuid = receiver match {
+      case Left(value) =>
+        value
+      case Right(ref) =>
+        refToUuid(ref)
+    }
+
+    flexResponse match {
+      case scheduleFlexActivation @ ScheduleFlexActivation(
+            modelUuid,
+            _,
+            scheduleKey,
+          ) =>
+        if (tick == INIT_SIM_TICK) {
+          scheduleKey.foreach(_.unlock())
+
+          uuidToAgent(receiverUuid) ! FlexActivation(
+            INIT_SIM_TICK,
+            FlexType.PowerLimit,
+          )
+
+        } else {
+          log.warn(s"$scheduleFlexActivation not handled!")
+        }
+
+        (this, None)
+
+      case provideFlexOptions @ ProvideFlexOptions(sender, flexOptions) =>
+        if tick == INIT_SIM_TICK then {
+          uuidToAgent(receiverUuid) ! provideFlexOptions
+
+          (this, None)
+        } else {
+          // flex option to ext
+          val resultToExt = flexOptions match {
+            case PowerLimitFlexOptions(ref, min, max) =>
+              val flexOptionResult = new ExtendedFlexOptionsResult(
+                tick.toDateTime(using startTime),
+                sender,
+                receiverUuid,
+                ref.toQuantity,
+                min.toQuantity,
+                max.toQuantity,
+              )
+
+              if disaggregated then {
+                uuidToInferior(receiverUuid)
+                  .flatMap(allFlexOptions.get)
+                  .foreach { result =>
+                    flexOptionResult
+                      .addDisaggregated(result.getInputModel, result)
+                  }
+              }
+
+              flexOptionResult
+
+            case other =>
+              throw CriticalFailureException(
+                s"Flex option type '$other' is currently not supported!"
+              )
+          }
+
+          val updated = expectDataFrom.addData(sender, resultToExt)
+
+          if updated.isComplete then {
+            (
+              copy(
+                allFlexOptions = allFlexOptions.updated(sender, resultToExt),
+                expectDataFrom = ReceiveMultiDataMap.empty,
+              ),
+              Some(new EmResults(updated.receivedData.asJava)),
+            )
+          } else {
+            (
+              copy(
+                allFlexOptions = allFlexOptions.updated(sender, resultToExt),
+                expectDataFrom = updated,
+              ),
+              None,
+            )
+          }
+        }
+
+      case completion @ FlexCompletion(
+            sender,
+            requestAtNextActivation,
+            requestAtTick,
+          ) =>
+        if tick == INIT_SIM_TICK then {
+          receiver match {
+            case Left(value) =>
+              (copy(lastFinishedTick = tick), None)
+
+            case Right(ref) =>
+              ref ! completion
+              (this, None)
+          }
+        } else {
+          val updatedData = completions.addData(sender, completion)
+
+          if updatedData.isComplete then {
+            (
+              copy(
+                lastFinishedTick = tick,
+                completions = ReceiveDataMap.empty,
+                requestedFlexType = Map.empty,
+                allFlexOptions = Map.empty,
+                currentSetPoint = Map.empty,
+                activatedAgents = Set.empty,
+                expectDataFrom = ReceiveMultiDataMap.empty,
+              ),
+              Some(new EmCompletion(getMaybeNextTick.toJava)),
+            )
+          } else {
+            (copy(completions = updatedData), None)
+          }
+        }
+
+      // not supported
+      case other =>
+        throw new CriticalFailureException(
+          s"Flex response $other is not supported!"
+        )
+    }
+  }
+
+  override def handleFlexRequest(
+      flexRequest: FlexRequest,
+      receiver: ActorRef[FlexRequest],
+  )(using
+      startTime: ZonedDateTime,
+      log: Logger,
+  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
+    val receiverUuid = refToUuid(receiver)
+    val sender = uuidToParent(receiverUuid)
+
+    val updated = flexRequest match {
+      case FlexActivation(tick, flexType) =>
+        // send request to ext
+        expectDataFrom.addData(
+          sender,
+          new FlexOptionRequestResult(
+            tick.toDateTime(using startTime),
+            sender,
+            Seq(receiverUuid).asJava,
+          ),
+        )
+
+      case control: IssueFlexControl =>
+        // send set point to ext
+
+        val (time, power) = control match {
+          case IssueNoControl(tick) =>
+            (tick.toDateTime, new PValue(null))
+
+          case IssuePowerControl(tick, setPower) =>
+            (tick.toDateTime, new PValue(setPower.toQuantity))
+
+          case other =>
+            throw new CriticalFailureException(
+              s"Flex control $other is not supported!"
+            )
+        }
+
+        expectDataFrom.addData(
+          sender,
+          new EmSetPointResult(
+            time,
+            sender,
+            java.util.Map.of(receiverUuid, power),
+          ),
+        )
+    }
+
+    if updated.isComplete then {
+      (
+        copy(expectDataFrom = ReceiveMultiDataMap.empty),
+        Some(new EmResults(updated.receivedData.asJava)),
+      )
+    } else {
+      (copy(expectDataFrom = updated), None)
+    }
+  }
+
+}

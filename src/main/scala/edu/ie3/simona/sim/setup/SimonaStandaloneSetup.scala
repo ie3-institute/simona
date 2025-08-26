@@ -247,7 +247,7 @@ class SimonaStandaloneSetup(
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Request] = {
     val startDateTime = simonaConfig.simona.time.simStartTime
-    val endDateTime =  simonaConfig.simona.time.simEndTime
+    val endDateTime = simonaConfig.simona.time.simEndTime
 
     context.spawn(
       TimeAdvancer(

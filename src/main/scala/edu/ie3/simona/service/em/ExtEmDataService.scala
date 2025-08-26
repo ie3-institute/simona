@@ -17,7 +17,10 @@ import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceBaseStateData,
+}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -114,7 +117,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         case EmMode.BASE =>
           EmServiceBaseCore.empty
         case EmMode.EM_COMMUNICATION =>
-          EmCommunicationCore.empty
+          EmCommunicationCore2()
       }
 
       val emDataInitializedStateData =
@@ -145,7 +148,10 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
           serviceStateData.serviceCore.handleRegistration(emServiceRegistration)
 
         if (emServiceRegistration.parentEm.isEmpty) {
-          emServiceRegistration.requestingActor ! FlexActivation(INIT_SIM_TICK, PowerLimit)
+          emServiceRegistration.requestingActor ! FlexActivation(
+            INIT_SIM_TICK,
+            PowerLimit,
+          )
         }
 
         Success(serviceStateData.copy(serviceCore = updatedCore))

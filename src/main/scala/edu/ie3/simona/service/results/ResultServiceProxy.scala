@@ -141,7 +141,7 @@ object ResultServiceProxy {
         idle(stateData.waitForResult(expectResult))
 
       case (ctx, resultEvent: ResultEvent) =>
-        ctx.log.warn(s"Received results: $resultEvent")
+        // ctx.log.warn(s"Received results: $resultEvent")
 
         // handles the event and updates the state data
         val updatedStateData =
@@ -154,7 +154,7 @@ object ResultServiceProxy {
         val tick = requestResultMessage.tick
 
         if stateData.isWaiting(requestedResults, tick) then {
-          ctx.log.warn(s"Cannot answer request: $requestedResults")
+          // ctx.log.warn(s"Cannot answer request: $requestedResults")
 
           buffer.stash(requestResultMessage)
         } else {
