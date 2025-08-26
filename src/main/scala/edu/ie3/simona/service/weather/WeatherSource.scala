@@ -45,7 +45,7 @@ import tech.units.indriya.unit.Units
 import java.nio.file.Paths
 import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Length}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -160,11 +160,10 @@ trait WeatherSource {
             .getValue
             .doubleValue()
 
-        if (
-          totalDistanceToSurroundingCoordinates.isGreaterThan(
+        if totalDistanceToSurroundingCoordinates.isGreaterThan(
             Quantities.getQuantity(0d, Units.METRE)
           )
-        ) {
+        then {
           val weightMap = nearestCoordinates
             .map(coordinateDistance => {
               /* Maybe some words on the calculus of the weight here: We intend to have a weight, that linear increases
@@ -180,7 +179,7 @@ trait WeatherSource {
             .toMap
 
           val weightSum = weightMap.values.sum
-          if (weightSum > 0.99 && weightSum < 1.01)
+          if weightSum > 0.99 && weightSum < 1.01 then
             Success(WeightedCoordinates(weightMap))
           else
             Failure(
@@ -264,7 +263,7 @@ object WeatherSource {
       weatherDataSourceCfg.sqlParams,
     ).find(_.isDefined).flatten
 
-    if (definedWeatherSources.isEmpty) {
+    if definedWeatherSources.isEmpty then {
       // should not happen, due to the config fail fast check
       throw new SourceException(
         s"Expected a WeatherSource, but no source where defined in $weatherDataSourceCfg."

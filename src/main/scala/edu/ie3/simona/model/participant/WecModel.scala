@@ -122,7 +122,7 @@ class WecModel private (
         cubedVelocity * 0.5 * betzCoefficient.toEach * airDensity * rotorArea.toSquareMeters
       )
     ).map { power =>
-      if (power > pRated) {
+      if power > pRated then {
         logger.warn(
           "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
             "Did you provide wrong weather input data?",
@@ -130,8 +130,7 @@ class WecModel private (
           pRated,
         )
         pRated
-      } else
-        power
+      } else power
     }.map(_ * -1)
       .get
 

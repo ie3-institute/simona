@@ -15,10 +15,10 @@ sealed trait GridAgentHierarchy
   */
 object GridAgentHierarchy {
 
-  final case object Superior extends GridAgentHierarchy
+  case object Superior extends GridAgentHierarchy
 
-  final case object Centrum extends GridAgentHierarchy
+  case object Centrum extends GridAgentHierarchy
 
-  final case object Inferior extends GridAgentHierarchy
+  case object Inferior extends GridAgentHierarchy
 
 }

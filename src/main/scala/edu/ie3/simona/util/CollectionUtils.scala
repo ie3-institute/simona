@@ -10,7 +10,6 @@ import squants.Quantity
 
 import scala.annotation.tailrec
 import scala.collection.immutable.HashSet
-import scala.math.Ordering.Double
 
 object CollectionUtils {
 
@@ -62,7 +61,8 @@ object CollectionUtils {
     list match {
       case Nil => true
       case headEntry :: tailList =>
-        if (set(headEntry)) false else isUniqueList(tailList, set + headEntry)
+        if set(headEntry) then false
+        else isUniqueList(tailList, set + headEntry)
     }
 
   /** Checks if the provided list is sorted in accordance to the provided
@@ -109,9 +109,7 @@ object CollectionUtils {
       key: A,
   ): Seq[(A, O)] = {
     import scala.collection.immutable.TreeMap
-    implicit val ordering: Double.IeeeOrdering.type =
-      Ordering.Double.IeeeOrdering
-    val treeMap = TreeMap(map.toSeq: _*) // preserves order
+    val treeMap = TreeMap(map.toSeq*) // preserves order
 
     Seq(
       treeMap.rangeTo(key).lastOption,
