@@ -23,7 +23,6 @@ import squants.{Power, Time}
 
 import java.util.UUID
 
-// todo properly catching, tagging and throwing failures in modelshell
 final case class OptimizedFlexStrat(
     stepResolution: Time,
     predictionHorizon: Time,
