@@ -31,7 +31,7 @@ import scala.jdk.OptionConverters.RichOptional
   *   Map: [[LoadProfile]] to [[LoadProfileSource]]
   */
 final case class LoadProfileStore(
-    profileToSource: Map[LoadProfile, LoadProfileSource[_, _]]
+    profileToSource: Map[LoadProfile, LoadProfileSource[?, ?]]
 ) {
 
   /** Converts an option for [[ComparableQuantity]] power to an option for
@@ -85,7 +85,7 @@ final case class LoadProfileStore(
   def getNextActivationTick(
       tick: Long
   )(using startTime: ZonedDateTime): Option[Long] = {
-    if (tick < FIRST_TICK_IN_SIMULATION) {
+    if tick < FIRST_TICK_IN_SIMULATION then {
       Some(FIRST_TICK_IN_SIMULATION)
     } else {
       val currentTime = startTime.plusSeconds(tick)
@@ -158,10 +158,10 @@ object LoadProfileStore {
 
   /** Returns the build in [[LoadProfileSource]]s.
     */
-  private def buildInProfiles: Map[LoadProfile, LoadProfileSource[_, _]] = {
-    val bdew: Map[LoadProfile, LoadProfileSource[_, _]] =
+  private def buildInProfiles: Map[LoadProfile, LoadProfileSource[?, ?]] = {
+    val bdew: Map[LoadProfile, LoadProfileSource[?, ?]] =
       LoadProfileSource.getBdewLoadProfiles.asScala.toMap
-    val random: Map[LoadProfile, LoadProfileSource[_, _]] = Map(
+    val random: Map[LoadProfile, LoadProfileSource[?, ?]] = Map(
       RANDOM_LOAD_PROFILE -> LoadProfileSource.getRandomLoadProfile
     )
     bdew ++ random

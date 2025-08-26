@@ -16,7 +16,7 @@ object RuntimeEvent {
   /** Indicates that all required agents and services are currently being
     * initialized for simulation
     */
-  final case object Initializing extends RuntimeEvent
+  case object Initializing extends RuntimeEvent
 
   /** Indicates that the initialization process of all agents and actors is
     * finished
@@ -70,7 +70,7 @@ object RuntimeEvent {
   /** Indicates that a power flow calculation has failed. This event is not
     * forwarded to sinks, but rather counted in runtime statistics.
     */
-  final case object PowerFlowFailed extends RuntimeEvent
+  case object PowerFlowFailed extends RuntimeEvent
 
   /** Indicates that an error occurred during the simulation, thereby preventing
     * continuation
