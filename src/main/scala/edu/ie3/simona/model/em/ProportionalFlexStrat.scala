@@ -28,8 +28,8 @@ object ProportionalFlexStrat extends EmModelStrat[PowerLimitFlexOptions] {
     *   The flex options per connected agent.
     * @param target
     *   The target power to aim for when utilizing flexibility.
-   * @param currentTick
-   *   The current tick.
+    * @param currentTick
+    *   The current tick.
     * @return
     *   Power set points for devices, if applicable.
     */
