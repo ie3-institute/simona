@@ -168,12 +168,11 @@ object GridModel {
     }
   }
 
-  private val throwNodeNotFoundException: UUID => InvalidGridException = {
+  private val nodeNotFoundException: UUID => InvalidGridException =
     (nodeString: UUID) =>
-      throw new InvalidGridException(
+      new InvalidGridException(
         s"Node $nodeString is not in nodeUuidToIndexMap! Cannot build admittanceMatrix!"
       )
-  }
 
   def composeAdmittanceMatrix(
       nodeUuidToIndexMap: Map[UUID, Int],
@@ -253,14 +252,14 @@ object GridModel {
       (
         nodeUuidToIndexMap.getOrElse(
           line.nodeAUuid,
-          throwNodeNotFoundException(line.nodeAUuid),
+          throw nodeNotFoundException(line.nodeAUuid),
         ),
         nodeUuidToIndexMap
           .getOrElse(
             line.nodeBUuid,
-            throwNodeNotFoundException(line.nodeBUuid),
+            throw nodeNotFoundException(line.nodeBUuid),
           ),
-      ): @unchecked
+      )
 
     // yaa == ybb => we use yaa only
     val (yab, yaa) = (LineModel.yij(line), LineModel.y0(line))
@@ -277,13 +276,13 @@ object GridModel {
       (
         nodeUuidToIndexMap.getOrElse(
           trafo.hvNodeUuid,
-          throwNodeNotFoundException(trafo.hvNodeUuid),
+          throw nodeNotFoundException(trafo.hvNodeUuid),
         ),
         nodeUuidToIndexMap.getOrElse(
           trafo.lvNodeUuid,
-          throwNodeNotFoundException(trafo.lvNodeUuid),
+          throw nodeNotFoundException(trafo.lvNodeUuid),
         ),
-      ): @unchecked
+      )
 
     val (yab, yaa, ybb) = (
       TransformerModel.yij(trafo),
@@ -320,10 +319,10 @@ object GridModel {
     val (i: Int, j: Int) =
       (
         nodeUuidToIndexMap
-          .getOrElse(nodeAUuid, throwNodeNotFoundException(nodeAUuid)),
+          .getOrElse(nodeAUuid, throw nodeNotFoundException(nodeAUuid)),
         nodeUuidToIndexMap
-          .getOrElse(nodeBUuid, throwNodeNotFoundException(nodeBUuid)),
-      ): @unchecked
+          .getOrElse(nodeBUuid, throw nodeNotFoundException(nodeBUuid)),
+      )
 
     // these parameters are the same for all cases
     val yab: Complex = Transformer3wModel.yij(trafo3w)
