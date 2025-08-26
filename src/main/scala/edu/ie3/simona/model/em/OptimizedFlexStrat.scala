@@ -57,7 +57,7 @@ final case class OptimizedFlexStrat(
 
     model.start()
 
-    if (model.getStatus != SolutionStatus.OPTIMAL)
+    if model.getStatus != SolutionStatus.OPTIMAL then
       throw new CriticalFailureException(
         s"Optimization ended with unexpected status ${model.getStatus}, ${SolutionStatus.OPTIMAL} was expected."
       )

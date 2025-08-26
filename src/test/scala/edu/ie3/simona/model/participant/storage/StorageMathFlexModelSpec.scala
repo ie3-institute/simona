@@ -39,8 +39,8 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
 
       val etas = Seq(.6, .65, .7, .75, .8, .85, 0.9, .92, .95, .98, 1)
 
-      forEvery(Table("etaCharging", etas: _*)) { etaCharging =>
-        forEvery(Table("etaDischarging", etas: _*)) { etaDischarging =>
+      forEvery(Table("etaCharging", etas*)) { etaCharging =>
+        forEvery(Table("etaDischarging", etas*)) { etaDischarging =>
 
           val classic = ClassicModel(
             currentEnergy = currentEnergy,
@@ -391,10 +391,8 @@ object StorageMathFlexModelSpec extends OptionValues {
   ) extends BatteryTesting {
     def charge(power: Power, duration: Time): BatteryTesting = {
       val netPower =
-        if (power > zeroKW)
-          power * etaCharging.toEach
-        else
-          power * 1 / etaDischarging.toEach
+        if power > zeroKW then power * etaCharging.toEach
+        else power * 1 / etaDischarging.toEach
 
       copy(currentEnergy = currentEnergy + netPower * duration)
     }
