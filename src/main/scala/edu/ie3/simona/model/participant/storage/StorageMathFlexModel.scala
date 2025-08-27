@@ -15,7 +15,7 @@ import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.{
   SoftConstraint,
 }
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MathFlexOptions}
-import optimus.algebra.{Double2Const, Expression, Long2Const}
+import optimus.algebra.{Const, Double2Const, Expression, Long2Const}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
 import squants.{Dimensionless, Each, Time}
@@ -38,7 +38,7 @@ class StorageMathFlexModel(private val model: StorageModel)
 
 object StorageMathFlexModel {
 
-  final case class StorageStateVars(storedEnergy: MPVar, tick: Long)
+  final case class StorageStateVars(storedEnergy: Expression, tick: Long)
 
   /** @param p
     *   in kW
