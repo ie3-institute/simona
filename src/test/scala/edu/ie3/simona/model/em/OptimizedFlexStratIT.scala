@@ -168,8 +168,8 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
           Kilowatts(0),
           Hours(1),
           LinearizedQuadraticPowerObjectiveFactory(
-            stepCount = 10,
-            lastStep = 10d, // 10 kW
+            segmentCount = 10,
+            lastSegment = 10d, // 10 kW
           ),
         )
 

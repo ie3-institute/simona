@@ -58,7 +58,7 @@ object PowerSeriesMathFlexOptions {
 
     override def getPowerSolution: Option[Power] = Some(Kilowatts(power.value))
 
-    override def getSoftConstraints(duration: Time): Option[SoftConstraint] =
+    override def getSoftConstraint(duration: Time): Option[SoftConstraint] =
       None
 
   }

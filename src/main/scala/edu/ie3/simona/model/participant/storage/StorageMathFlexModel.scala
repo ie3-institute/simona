@@ -59,7 +59,7 @@ object StorageMathFlexModel {
     override def getPowerSolution: Option[Power] =
       p.value.map(Kilowatts.apply)
 
-    override def getSoftConstraints(duration: Time): Option[SoftConstraint] = {
+    override def getSoftConstraint(duration: Time): Option[SoftConstraint] = {
       // putting a penalty on pAbs, so that it comes as close as possible to the absolute power
       Some(new StorageSoftConstraint(duration))
     }

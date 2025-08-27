@@ -136,7 +136,7 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
         }
 
       val softConstraints =
-        container.operationVars.flatMap(_.getSoftConstraints(stepResolution))
+        container.operationVars.flatMap(_.getSoftConstraint(stepResolution))
 
       val objective = mainObjectiveDifferences
         .appendedAll(softConstraints.map(_.getExpression))
@@ -222,7 +222,7 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
         }
 
       val softConstraints =
-        container.operationVars.flatMap(_.getSoftConstraints(stepResolution))
+        container.operationVars.flatMap(_.getSoftConstraint(stepResolution))
 
       val objective = mainObjectiveDifferences
         .appendedAll(softConstraints.map(_.getExpression))
@@ -307,7 +307,7 @@ class StorageMathFlexModelSpec extends UnitSpec with MathFlexTestLike {
         }
 
       val softConstraints =
-        container.operationVars.flatMap(_.getSoftConstraints(stepResolution))
+        container.operationVars.flatMap(_.getSoftConstraint(stepResolution))
 
       val objective = mainObjectiveDifferences
         .appendedAll(softConstraints.map(_.getExpression))
