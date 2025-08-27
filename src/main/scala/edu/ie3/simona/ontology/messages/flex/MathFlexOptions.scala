@@ -95,8 +95,8 @@ object MathFlexOptions {
 
   }
 
-  /** Trait to be extended by classes detailing a soft constraint and possible
-    * error handling.
+  /** Trait to be extended by classes detailing a soft constraint as part of the
+    * optimization objective and possible error handling.
     */
   trait SoftConstraint {
 

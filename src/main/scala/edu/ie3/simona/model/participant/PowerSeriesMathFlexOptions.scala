@@ -20,6 +20,13 @@ import squants.energy.Kilowatts
 
 import scala.collection.SortedMap
 
+/** Flex options for participants that follow a fixed trajectory of power
+  * values.
+  *
+  * @param powers
+  *   The power values as a [[SortedMap]], thus powers in between keys can be
+  *   extract with `maxBefore`.
+  */
 class PowerSeriesMathFlexOptions(powers: SortedMap[Long, Power])
     extends MathFlexOptions[PowerStateVars, PowerOperationVars] {
 
@@ -50,8 +57,18 @@ class PowerSeriesMathFlexOptions(powers: SortedMap[Long, Power])
 
 object PowerSeriesMathFlexOptions {
 
+  /** Only stores the tick, no actual state variables required.
+    *
+    * @param tick
+    *   The tick of the state.
+    */
   final case class PowerStateVars(tick: Long)
 
+  /** Stores the power as a constant.
+    *
+    * @param power
+    *   The power value in kW.
+    */
   final case class PowerOperationVars(power: Const) extends OperationVars {
 
     override def getPowerExpression: Expression = power
