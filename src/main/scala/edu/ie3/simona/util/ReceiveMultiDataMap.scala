@@ -1,19 +1,25 @@
+/*
+ * © 2025. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
 package edu.ie3.simona.util
 
 final case class ReceiveMultiDataMap[K, V](
-                                            private val expectedKeys: Map[K, Int],
-                                            receivedData: Map[K, Seq[V]],
-                                          ) {
+    private val expectedKeys: Map[K, Int],
+    receivedData: Map[K, Seq[V]],
+) {
   def isComplete: Boolean = expectedKeys.isEmpty
 
   def nonComplete: Boolean = expectedKeys.nonEmpty
 
   def expects(key: K): Boolean = expectedKeys.contains(key)
-  
+
   def addData[A](
-               key: K,
-               value: V,
-             ): ReceiveMultiDataMap[K, V] = {
+      key: K,
+      value: V,
+  ): ReceiveMultiDataMap[K, V] = {
     if (!expectedKeys.contains(key)) {
       if !receivedData.contains(key) then {
         throw new RuntimeException(
@@ -21,13 +27,13 @@ final case class ReceiveMultiDataMap[K, V](
         )
       } else {
         val newValue = receivedData(key).appended(value)
-        
+
         copy(receivedData = receivedData.updated(key, newValue))
       }
-      
+
     } else {
       val count = expectedKeys(key) - 1
-      
+
       if count == 0 then {
         copy(
           expectedKeys = expectedKeys.removed(key),
@@ -52,8 +58,8 @@ final case class ReceiveMultiDataMap[K, V](
 object ReceiveMultiDataMap {
 
   def apply[K, V](
-                   expectedKeys: Map[K, Int]
-                 ): ReceiveMultiDataMap[K, V] =
+      expectedKeys: Map[K, Int]
+  ): ReceiveMultiDataMap[K, V] =
     ReceiveMultiDataMap(
       expectedKeys = expectedKeys,
       receivedData = Map.empty,

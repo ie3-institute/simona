@@ -83,6 +83,9 @@ final case class PriorityMultiBiSet[K, V](
     }
   }
 
+  def set(key: K, values: Set[V]): Unit =
+    values.foreach(set(key, _))
+
   /** Removes the given value, if it exists.
     *
     * @param value

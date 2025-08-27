@@ -204,6 +204,13 @@ object EmAgent {
     case (_, msg: FlexActivation) =>
       activate(emData, modelShell, core, msg.tick)
 
+    case (ctx, msg: FlexShiftActivation) =>
+      val tick = msg.tick
+      ctx.log.info(
+        s"EmAgent (${modelShell.uuid}) activated by service for tick $tick"
+      )
+      activate(emData, modelShell, core.gotoTick(tick), msg.tick)
+
     case (ctx, msg: IssueFlexControl) =>
       val flexOptionsCore = core.activate(msg.tick)
 

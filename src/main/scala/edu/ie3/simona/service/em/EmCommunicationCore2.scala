@@ -10,15 +10,24 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent.Message
-import edu.ie3.simona.api.data.model.em.{EmSetPointResult, ExtendedFlexOptionsResult, FlexOptionRequestResult}
+import edu.ie3.simona.api.data.model.em.{
+  EmSetPointResult,
+  ExtendedFlexOptionsResult,
+  FlexOptionRequestResult,
+}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
-import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexType,
+  FlexibilityMessage,
+  PowerLimitFlexOptions,
+}
+import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.*
+import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
@@ -28,8 +37,6 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
-import edu.ie3.simona.util.CollectionUtils.asJava
-
 import scala.util.Try
 
 case class EmCommunicationCore2(
@@ -40,12 +47,14 @@ case class EmCommunicationCore2(
       Map.empty,
     uuidToInferior: Map[UUID, Seq[UUID]] = Map.empty,
     uuidToParent: Map[UUID, UUID] = Map.empty,
-    override val completions: ReceiveDataMap[UUID, FlexCompletion] = ReceiveDataMap.empty,
+    override val completions: ReceiveDataMap[UUID, FlexCompletion] =
+      ReceiveDataMap.empty,
     requestedFlexType: Map[UUID, FlexType] = Map.empty,
     allFlexOptions: Map[UUID, FlexOptionsResult] = Map.empty,
     currentSetPoint: Map[UUID, Power] = Map.empty,
     activatedAgents: Set[UUID] = Set.empty,
-    expectDataFrom: ReceiveMultiDataMap[UUID, ResultEntity] = ReceiveMultiDataMap.empty,
+    expectDataFrom: ReceiveMultiDataMap[UUID, ResultEntity] =
+      ReceiveMultiDataMap.empty,
 ) extends EmServiceCore {
 
   override def handleRegistration(
@@ -120,11 +129,11 @@ case class EmCommunicationCore2(
         val activated = requestFlexOptions.flexRequests.asScala.flatMap {
           case (uuid, _) if !activatedAgents.contains(uuid) =>
             uuidToAgent.get(uuid).map { agent =>
-              agent ! FlexActivation(
+              agent ! FlexShiftActivation(
                 tick,
                 requestedFlexType.getOrElse(uuid, FlexType.PowerLimit),
               )
-              uuid -> Try(uuidToInferior(uuid).size).getOrElse(0)
+              uuid -> Try(uuidToInferior(uuid).size).getOrElse(1)
             }
           case _ =>
             None
@@ -132,11 +141,14 @@ case class EmCommunicationCore2(
 
         val keys = activated.keySet
 
+        val updatedExpectDataFrom = expectDataFrom.addExpectedKeys(activated)
+        log.warn(s"ExpectDataFrom: $updatedExpectDataFrom, Request: $activated")
+
         // add activated agents
         (
           copy(
             activatedAgents = activatedAgents ++ keys,
-            expectDataFrom = expectDataFrom.addExpectedKeys(activated),
+            expectDataFrom = updatedExpectDataFrom,
             completions = completions.addExpectedKeys(keys),
           ),
           None,
@@ -169,11 +181,17 @@ case class EmCommunicationCore2(
               )
             }
 
-            uuid -> Try(uuidToInferior(uuid).size).getOrElse(0)
+            uuid -> 1
         }.toMap
 
+        val updatedExpectDataFrom =
+          expectDataFrom.addExpectedKeys(expectMoreData)
+        log.warn(
+          s"ExpectDataFrom: $updatedExpectDataFrom, FlexOption: $expectMoreData"
+        )
+
         (
-          copy(expectDataFrom = expectDataFrom.addExpectedKeys(expectMoreData)),
+          copy(expectDataFrom = updatedExpectDataFrom),
           None,
         )
       }
@@ -205,8 +223,14 @@ case class EmCommunicationCore2(
             uuid -> Try(uuidToInferior(uuid).size).getOrElse(0)
         }.toMap
 
+        val updatedExpectDataFrom =
+          expectDataFrom.addExpectedKeys(expectMoreData)
+        log.warn(
+          s"ExpectDataFrom: $updatedExpectDataFrom, SetPoint: $expectMoreData"
+        )
+
         (
-          copy(expectDataFrom = expectDataFrom.addExpectedKeys(expectMoreData)),
+          copy(expectDataFrom = updatedExpectDataFrom),
           None,
         )
       }

@@ -406,14 +406,17 @@ object ParticipantAgent {
 
             case FlexActivation(tick, flexType) =>
               val shellWithFlex =
-                if (isCalculationRequired(shell, inputHandler)) {
+                if isCalculationRequired(
+                    shell,
+                    inputHandler,
+                  ) || !modelShell.hasFlexOptions
+                then {
                   val newShell = shell.updateFlexOptions(tick, flexType)
                   resultHandler.maybeSend(
                     newShell.determineFlexOptionsResult(tick, flexType)
                   )
                   newShell
-                } else
-                  shell
+                } else shell
 
               parent.fold(
                 _ =>
@@ -515,13 +518,12 @@ object ParticipantAgent {
   private def isCalculationRequired(
       modelShell: ParticipantModelShell[?, ?],
       inputHandler: ParticipantInputHandler,
-  ): Boolean =
-    inputHandler.hasNewData ||
-      inputHandler.activation.exists(activation =>
-        modelShell
-          .getChangeIndicator(activation.tick - 1, None)
-          .changesAtTick
-          .contains(activation.tick)
-      )
+  ): Boolean = inputHandler.hasNewData ||
+    inputHandler.activation.exists(activation =>
+      modelShell
+        .getChangeIndicator(activation.tick - 1, None)
+        .changesAtTick
+        .contains(activation.tick)
+    )
 
 }

@@ -9,6 +9,7 @@ package edu.ie3.simona.ontology.messages.flex
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.em.{EmServiceCore, ExtEmDataService}
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 
@@ -101,6 +102,12 @@ object FlexibilityMessage {
     )(using flexType: FlexType, dummy: DummyImplicit): FlexActivation =
       FlexActivation(tick, flexType)
   }
+
+  // shifts the activation for controlled asset agent to the given tick
+  final case class FlexShiftActivation(
+      override val tick: Long,
+      flexType: FlexType,
+  ) extends FlexRequest
 
   /** Message that provides [[FlexOptions]] to an
     * [[edu.ie3.simona.agent.em.EmAgent]] after they have been requested via
