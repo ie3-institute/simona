@@ -346,27 +346,16 @@ final case class ThermalGrid(
     */
   private def determineNextThreshold(
       thresholds: Seq[Option[ThermalThreshold]]
-  ): Option[ThermalThreshold] = {
-
-    @annotation.tailrec
-    def findMostRecent(
-        remaining: Seq[ThermalThreshold],
-        currentMin: Option[ThermalThreshold],
-    ): Option[ThermalThreshold] = {
-      remaining match {
-        case Nil => currentMin
-        case head :: tail =>
-          val newMin = currentMin match {
-            case None => Some(head)
-            case Some(minThreshold) =>
-              if head.tick < minThreshold.tick then Some(head) else currentMin
-          }
-          findMostRecent(tail, newMin)
-      }
+  ): Option[ThermalThreshold] =
+    thresholds.flatten.foldLeft[Option[ThermalThreshold]](None) {
+      case (currentMin, threshold) =>
+        currentMin match {
+          case None => Some(threshold)
+          case Some(minThreshold) =>
+            if threshold.tick < minThreshold.tick then Some(threshold)
+            else currentMin
+        }
     }
-
-    findMostRecent(thresholds.flatten, None)
-  }
 
   /** Handle consumption (or no feed in) from thermal grid.
     *
