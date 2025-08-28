@@ -359,7 +359,7 @@ final case class ThermalGrid(
           val newMin = currentMin match {
             case None => Some(head)
             case Some(minThreshold) =>
-              if (head.tick < minThreshold.tick) Some(head) else currentMin
+              if head.tick < minThreshold.tick then Some(head) else currentMin
           }
           findMostRecent(tail, newMin)
       }
