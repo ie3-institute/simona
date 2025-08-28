@@ -315,7 +315,7 @@ class PrioritizedFlexStratSpec
           val flexOptionsOut = PrioritizedFlexStrat(curtailRegenerative)
             .adaptFlexOptions(inputModel, flexOptionsIn)
 
-          if (expectedAdaptation) {
+          if expectedAdaptation then {
             flexOptionsOut shouldBe PowerLimitFlexOptions
               .noFlexOption(Kilowatts(1))
           } else {

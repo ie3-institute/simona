@@ -12,22 +12,16 @@ import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.helper.TableDrivenHelper
-import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power}
-
-import java.time.ZonedDateTime
 
 class EvcsPowerLimitFlexModelSpec
     extends ScalaTestWithActorTestKit
     with UnitSpec
     with TableDrivenHelper
     with EvcsInputTestData {
-
-  private val dateTime: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-02T03:04:05Z")
 
   private def createModel(
       chargingStrategy: String,

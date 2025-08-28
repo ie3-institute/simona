@@ -18,18 +18,14 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   PowerConversionSimona,
   TemperatureConversionSimona,
   VolumeConversionSimona,
   toSquants,
 }
-import edu.ie3.util.scala.quantities.SpecificHeatCapacity
-import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
-import squants.space.Volume
 import squants.time.Seconds
-import squants.{Energy, Power, Temperature}
+import squants.{Energy, Power}
 
 import java.util.UUID
 
@@ -99,12 +95,9 @@ final case class CylindricalThermalStorage(
       )
     val newEnergy = lastHeatStorageState.storedEnergy + energyBalance
     val updatedEnergy =
-      if (isFull(newEnergy))
-        maxEnergyThreshold
-      else if (isEmpty(newEnergy))
-        zeroKWh
-      else
-        newEnergy
+      if isFull(newEnergy) then maxEnergyThreshold
+      else if isEmpty(newEnergy) then zeroKWh
+      else newEnergy
 
     ThermalStorageState(tick, updatedEnergy)
   }
@@ -122,24 +115,19 @@ final case class CylindricalThermalStorage(
       thermalStorageState: ThermalStorageState,
       qDotHeatStorage: Power,
   ): Option[ThermalThreshold] = {
-    if (qDotHeatStorage > zeroKW) {
+    if qDotHeatStorage > zeroKW then {
       val duration =
         (maxEnergyThreshold - thermalStorageState.storedEnergy) / qDotHeatStorage
       val durationInTicks = Math.floor(duration.toSeconds).toLong
-      if (durationInTicks <= 0L)
-        None
-      else
-        Some(StorageFull(thermalStorageState.tick + durationInTicks))
-    } else if (qDotHeatStorage < zeroKW) {
+      if durationInTicks <= 0L then None
+      else Some(StorageFull(thermalStorageState.tick + durationInTicks))
+    } else if qDotHeatStorage < zeroKW then {
       val duration =
         thermalStorageState.storedEnergy / qDotHeatStorage * -1
       val durationInTicks = Math.floor(duration.toSeconds).toLong
-      if (durationInTicks <= 0L)
-        None
-      else
-        Some(StorageEmpty(thermalStorageState.tick + durationInTicks))
-    } else
-      None
+      if durationInTicks <= 0L then None
+      else Some(StorageEmpty(thermalStorageState.tick + durationInTicks))
+    } else None
   }
 
   override def startingState: ThermalStorageState = ThermalStorageState(
