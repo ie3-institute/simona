@@ -21,8 +21,6 @@ import scala.deriving.Mirror
 /** Output configuration for simona.
   * @param base
   *   Output directory.
-  * @param flex
-  *   If flexibility options should be written (default: false).
   * @param grid
   *   Output configuration.
   * @param log
@@ -36,7 +34,6 @@ import scala.deriving.Mirror
   */
 final case class OutputConfig(
     base: Base,
-    flex: Boolean = false,
     grid: GridOutputConfig = GridOutputConfig(),
     log: Log = Log(),
     participant: ParticipantOutputConfigs = ParticipantOutputConfigs(),

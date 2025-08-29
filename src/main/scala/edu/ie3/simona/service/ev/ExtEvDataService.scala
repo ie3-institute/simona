@@ -22,7 +22,7 @@ import edu.ie3.simona.exceptions.{
   ServiceException,
 }
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.SecondaryData.ArrivingEvs
 import edu.ie3.simona.service.ServiceStateData.{
@@ -34,7 +34,6 @@ import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.slf4j.Logger
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
@@ -162,7 +161,6 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       map.asScala.view.mapValues(_.asScala.toSeq).toMap
 
     given context: ActorContext[Message] = ctx
-    given log: Logger = ctx.log
 
     serviceStateData.extEvMessage
       .map {
@@ -222,7 +220,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       }.toSet
 
     // if there are no evcs, we're sending response right away
-    if (freeLots.isEmpty)
+    if freeLots.isEmpty then
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideEvcsFreeLots())
 
     (
@@ -262,7 +260,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
 
     // if there are no departing evs during this tick,
     // we're sending response right away
-    if (departingEvResponses.isEmpty)
+    if departingEvResponses.isEmpty then
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideDepartingEvs())
 
     (
@@ -283,7 +281,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       ctx: ActorContext[Message],
   ): (ExtEvStateData, Option[Long]) = {
 
-    if (tick == INIT_SIM_TICK) {
+    if tick == INIT_SIM_TICK then {
       // During initialization, an empty ProvideArrivingEvs message
       // is sent, which includes the first relevant tick
 
@@ -341,7 +339,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
         val updatedResponses =
           serviceStateData.departingEvResponses.addData(evcs, evModels)
 
-        if (updatedResponses.nonComplete) {
+        if updatedResponses.nonComplete then {
           // responses are still incomplete
           serviceStateData.copy(
             departingEvResponses = updatedResponses
@@ -362,7 +360,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       case FreeLotsResponse(evcs, freeLots) =>
         val updatedFreeLots = serviceStateData.freeLots.addData(evcs, freeLots)
 
-        if (updatedFreeLots.nonComplete) {
+        if updatedFreeLots.nonComplete then {
           // responses are still incomplete
           serviceStateData.copy(
             freeLots = updatedFreeLots

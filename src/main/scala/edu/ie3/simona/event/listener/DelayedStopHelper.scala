@@ -45,7 +45,7 @@ object DelayedStopHelper {
 
     case (ctx, StopTimeout) =>
       // there have been no messages for 5 seconds, let's end this
-      ctx.log.debug(s"${getClass.getSimpleName} is now stopped.")
+      ctx.log.debug(s"${this.getClass.getSimpleName} is now stopped.")
       Behaviors.stopped
   }
 

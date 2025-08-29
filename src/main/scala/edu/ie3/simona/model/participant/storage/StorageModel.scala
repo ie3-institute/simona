@@ -182,17 +182,15 @@ class StorageModel private (
       setPower: Power,
   ): (ActivePowerOperatingPoint, ParticipantModel.OperationChangeIndicator) = {
     val adaptedSetPower =
-      if (
+      if
         // if power is close to zero, set it to zero
         (setPower ~= zeroKW)
         // do not keep charging if we're already full (including safety margin)
         || (setPower > zeroKW && isFull(state.storedEnergy))
         // do not keep discharging if we're already empty (including safety margin)
         || (setPower < zeroKW && isEmpty(state.storedEnergy))
-      )
-        zeroKW
-      else
-        setPower
+      then zeroKW
+      else setPower
 
     // if the storage is at minimum or maximum charged energy AND we are charging
     // or discharging, flex options will be different at the next activation

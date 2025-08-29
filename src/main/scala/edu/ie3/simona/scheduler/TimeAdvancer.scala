@@ -27,7 +27,7 @@ object TimeAdvancer {
 
   /** Starts simulation by activating the first tick.
     */
-  final case object Start extends Request
+  case object Start extends Request
 
   /** @param simulation
     *   The root actor of the simulation.
@@ -114,13 +114,12 @@ object TimeAdvancer {
                 val notifierCompleted =
                   notifier.completing(newTick - 1)
 
-                if (activeTick == INIT_SIM_TICK)
+                if activeTick == INIT_SIM_TICK then
                   notifierCompleted.starting(
                     newTick,
                     data.endTick,
                   )
-                else
-                  notifierCompleted
+                else notifierCompleted
               }
 
               // activate next

@@ -41,19 +41,19 @@ class SimonaSetupSpec
   override def logOutputDir: Path = throw new NotImplementedError()
 
   override def runtimeEventListener(
-      context: ActorContext[_]
+      context: ActorContext[?]
   ): ActorRef[RuntimeEventListener.Request] =
     throw new NotImplementedException(
       "This is a dummy setup"
     )
 
   override def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[?]
   ): Seq[ActorRef[ResultEventListener.Request]] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def primaryServiceProxy(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
   ): ActorRef[ServiceMessage] = throw new NotImplementedException(
@@ -61,21 +61,21 @@ class SimonaSetupSpec
   )
 
   override def weatherService(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[ServiceMessage] = throw new NotImplementedException(
     "This is a dummy setup"
   )
 
   override def loadProfileService(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[ServiceMessage] = throw new NotImplementedException(
     "This is a dummy setup"
   )
 
   override def extSimulations(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimPath: Option[Path],
   ): ExtSimSetupData = throw new NotImplementedException(
@@ -83,7 +83,7 @@ class SimonaSetupSpec
   )
 
   override def timeAdvancer(
-      context: ActorContext[_],
+      context: ActorContext[?],
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Request] = throw new NotImplementedException(
@@ -91,7 +91,7 @@ class SimonaSetupSpec
   )
 
   override def scheduler(
-      context: ActorContext[_],
+      context: ActorContext[?],
       timeAdvancer: ActorRef[SchedulerMessage],
       coreFactory: CoreFactory = RegularSchedulerCore,
   ): ActorRef[SchedulerMessage] = throw new NotImplementedException(
@@ -99,7 +99,7 @@ class SimonaSetupSpec
   )
 
   override def gridAgents(
-      context: ActorContext[_],
+      context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
   ): Iterable[ActorRef[GridAgent.Message]] =
