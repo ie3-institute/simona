@@ -7,20 +7,17 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.ontology.DataMessageFromExt
+import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -167,6 +164,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       serviceStateData: ExtEmDataStateData,
       ctx: ActorContext[Message],
   ): (ExtEmDataStateData, Option[Long]) = {
+    given Logger = ctx.log
     val stateTick = serviceStateData.tick
 
     if (tick != stateTick) {

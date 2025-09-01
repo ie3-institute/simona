@@ -192,6 +192,8 @@ abstract class SimonaService {
           // we need to do an additional activation of this service
           ctx.self ! Activation(tick)
 
+        case Some(nextTick) if nextTick == -1 =>
+          // this indicated that no completion should be sent
         case _ =>
           scheduler ! Completion(
             ctx.self,
