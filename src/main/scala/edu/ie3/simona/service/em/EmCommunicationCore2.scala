@@ -304,7 +304,7 @@ case class EmCommunicationCore2(
                 currentSetPoint = currentSetPoint.updated(sender, pRef),
                 expectDataFrom = ReceiveMultiDataMap.empty,
               ),
-              Some(new EmResults(updated.receivedData.asJava)),
+              Some(new EmResultResponse(updated.receivedData.asJava)),
             )
           } else {
             (
@@ -423,7 +423,7 @@ case class EmCommunicationCore2(
     if updated.isComplete then {
       (
         copy(expectDataFrom = ReceiveMultiDataMap.empty),
-        Some(new EmResults(updated.receivedData.asJava)),
+        Some(new EmResultResponse(updated.receivedData.asJava)),
       )
     } else {
       (copy(expectDataFrom = updated), None)

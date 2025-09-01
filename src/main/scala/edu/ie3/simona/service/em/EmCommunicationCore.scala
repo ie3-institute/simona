@@ -377,7 +377,7 @@ final case class EmCommunicationCore(
 
           (
             copy(flexRequestReceived = updatedFlexRequest),
-            Some(new FlexRequestResponse(map.asJava)),
+            None//Some(new FlexRequestResponse(map.asJava)),
           )
 
         } else {
@@ -423,7 +423,7 @@ final case class EmCommunicationCore(
 
           (
             copy(setPointResponse = updatedSetPointResponse),
-            Some(new EmSetPointDataResponse(setPointResults.asJava)),
+            None//Some(new EmSetPointDataResponse(setPointResults.asJava)),
           )
 
         } else {
