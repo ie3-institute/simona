@@ -287,7 +287,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       }
 
     // check if congestion management is enabled
-    if (gridAgentBaseData.congestionManagementParams.detectionEnabled) {
+    if gridAgentBaseData.congestionManagementParams.detectionEnabled then {
       startCongestionManagement(
         gridAgentBaseData,
         currentTick,

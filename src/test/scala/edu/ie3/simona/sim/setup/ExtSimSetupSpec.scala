@@ -25,7 +25,7 @@ class ExtSimSetupSpec extends UnitSpec {
     val uuid5 = UUID.fromString("ebcefed4-a3e6-4a2a-b4a5-74226d548546")
     val uuid6 = UUID.fromString("4a9c8e14-c0ee-425b-af40-9552b9075414")
 
-    def toMap(uuids: Set[UUID]): Map[UUID, Class[_ <: Value]] = uuids
+    def toMap(uuids: Set[UUID]): Map[UUID, Class[? <: Value]] = uuids
       .map(uuid => uuid -> classOf[PValue])
       .toMap
 

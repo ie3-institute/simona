@@ -68,7 +68,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.nio.file.{Path, Paths}
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.language.implicitConversions
 import scala.util.{Failure, Success}
 
@@ -148,7 +148,7 @@ class PrimaryServiceProxySpec
   private val extEntityId =
     UUID.fromString("07bbe1aa-1f39-4dfb-b41b-339dec816ec4")
 
-  private val valueMap: Map[UUID, Class[_ <: Value]] = Map(
+  private val valueMap: Map[UUID, Class[? <: Value]] = Map(
     extEntityId -> classOf[PValue]
   )
 

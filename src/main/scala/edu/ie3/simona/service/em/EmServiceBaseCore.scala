@@ -86,7 +86,7 @@ final case class EmServiceBaseCore(
       val emEntities = requestEmFlexResults.emEntities.asScala
       val disaggregated = requestEmFlexResults.disaggregated
 
-      if (disaggregated) {
+      if disaggregated then {
         log.warn(s"Disaggregated flex options are currently not supported!")
       }
 
@@ -104,7 +104,7 @@ final case class EmServiceBaseCore(
       )
 
     case provideEmSetPoints: ProvideEmSetPointData =>
-      if (canHandleSetPoints) {
+      if canHandleSetPoints then {
         handleSetPoint(tick, provideEmSetPoints, log)
 
         (this, None)
@@ -157,7 +157,7 @@ final case class EmServiceBaseCore(
               max.toQuantity,
             )
 
-            if (flexOptions.getExpectedKeys.contains(modelUuid)) {
+            if flexOptions.getExpectedKeys.contains(modelUuid) then {
               (
                 flexOptions.addData(modelUuid, result),
                 additionalFlexOptions,
@@ -173,12 +173,12 @@ final case class EmServiceBaseCore(
             (flexOptions, additionalFlexOptions)
         }
 
-        if (updated.isComplete) {
+        if updated.isComplete then {
           // we received all flex options
 
           val data = updated.receivedData
 
-          if (disaggregatedFlex) {
+          if disaggregatedFlex then {
             // we add the disaggregated flex options
 
             data.foreach { case (key, value) =>
@@ -194,7 +194,7 @@ final case class EmServiceBaseCore(
             canHandleSetPoints = true,
           )
 
-          if (sendOptionsToExt) {
+          if sendOptionsToExt then {
             // we have received an option request, that will now be answered
             (updatedCore, Some(new FlexOptionsResponse(data.asJava)))
 
@@ -224,10 +224,10 @@ final case class EmServiceBaseCore(
       case completion: FlexCompletion =>
         val updated = completions.addData(completion.modelUuid, completion)
 
-        if (updated.isComplete) {
+        if updated.isComplete then {
           val allKeys = updated.receivedData.keySet
 
-          val extMsgOption = if (tick != INIT_SIM_TICK) {
+          val extMsgOption = if tick != INIT_SIM_TICK then {
             // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
             Some(new EmCompletion(getMaybeNextTick.toJava))
           } else None

@@ -246,7 +246,7 @@ case class EmCommunicationCore2(
             _,
             scheduleKey,
           ) =>
-        if (tick == INIT_SIM_TICK) {
+        if tick == INIT_SIM_TICK then {
           scheduleKey.foreach(_.unlock())
 
           uuidToAgent(receiverUuid) ! FlexActivation(
@@ -414,6 +414,10 @@ case class EmCommunicationCore2(
             java.util.Map.of(receiverUuid, power),
           ),
         )
+
+      case other =>
+        log.warn(s"$other is not supported!")
+        expectDataFrom
     }
 
     if updated.isComplete then {

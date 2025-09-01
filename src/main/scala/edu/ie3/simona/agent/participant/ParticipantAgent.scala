@@ -473,8 +473,7 @@ object ParticipantAgent {
         .get
 
       (updatedShell, inputHandler.completeActivation(), updatedGridAdapter)
-    } else
-      (modelShell, inputHandler, gridAdapter.clearLastResults)
+    } else (modelShell, inputHandler, gridAdapter.clearLastResults)
   }
 
   /** Checks if all required messages needed for calculation have been received.

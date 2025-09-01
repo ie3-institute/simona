@@ -171,7 +171,7 @@ class SimonaStandaloneSetup(
   }
 
   override def resultServiceProxy(
-      context: ActorContext[_],
+      context: ActorContext[?],
       listeners: Seq[ActorRef[ResultEvent.ResultResponse]],
       simStartTime: ZonedDateTime,
   ): ActorRef[ResultServiceProxy.Message] =
@@ -285,7 +285,7 @@ class SimonaStandaloneSetup(
       )
 
   override def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[?]
   ): Seq[ActorRef[ResultEventListener.Message]] = {
     // append ResultEventListener as well to write raw output files
     Seq(

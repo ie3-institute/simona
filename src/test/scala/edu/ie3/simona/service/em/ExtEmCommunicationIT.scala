@@ -461,7 +461,7 @@ class ExtEmCommunicationIT
         .receiverToFlexOptions()
         .asScala
 
-      if (flexOptionResponseInferior.size != 2) {
+      if flexOptionResponseInferior.size != 2 then {
         flexOptionResponseInferior.addAll(
           connection
             .receiveWithType(classOf[FlexOptionsResponse])
@@ -531,7 +531,7 @@ class ExtEmCommunicationIT
         .asScala
         .flatMap(_._2.getReceiverToSetPoint.asScala)
 
-      if (inferiorSetPoints.size != 2) {
+      if inferiorSetPoints.size != 2 then {
         inferiorSetPoints.addAll(
           connection
             .receiveWithType(classOf[EmSetPointDataResponse])

@@ -61,7 +61,7 @@ final case class ExtResultSchedule(
   ): ExtResultSchedule = {
     val remainingKeys =
       scheduleMap.get(tick).map(_.diff(keys.toSet)).getOrElse(Set.empty)
-    if (remainingKeys.isEmpty) {
+    if remainingKeys.isEmpty then {
       copy(
         scheduleMap = scheduleMap.-(tick)
       )

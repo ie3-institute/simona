@@ -252,7 +252,7 @@ object ResultServiceProxy {
       )
     // add partial result
     partialResult.add(result).map { updatedResult =>
-      if (updatedResult.ready) {
+      if updatedResult.ready then {
         // if result is complete, we can write it out
         updatedResult.consolidate match {
           case Failure(exception) =>

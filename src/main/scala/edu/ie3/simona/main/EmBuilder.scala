@@ -9,7 +9,7 @@ package edu.ie3.simona.main
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.sink.CsvFileSink
 import edu.ie3.datamodel.io.source.csv.CsvDataSource
-import edu.ie3.datamodel.io.source._
+import edu.ie3.datamodel.io.source.*
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 

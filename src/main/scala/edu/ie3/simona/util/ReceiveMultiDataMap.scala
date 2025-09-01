@@ -20,7 +20,7 @@ final case class ReceiveMultiDataMap[K, V](
       key: K,
       value: V,
   ): ReceiveMultiDataMap[K, V] = {
-    if (!expectedKeys.contains(key)) {
+    if !expectedKeys.contains(key) then {
       if !receivedData.contains(key) then {
         throw new RuntimeException(
           s"Received value $value for key $key, but no data has been expected or received for this key."

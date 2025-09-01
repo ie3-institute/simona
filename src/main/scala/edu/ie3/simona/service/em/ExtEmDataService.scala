@@ -147,7 +147,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         val updatedCore =
           serviceStateData.serviceCore.handleRegistration(emServiceRegistration)
 
-        if (emServiceRegistration.parentEm.isEmpty) {
+        if emServiceRegistration.parentEm.isEmpty then {
           emServiceRegistration.requestingActor ! FlexActivation(
             INIT_SIM_TICK,
             PowerLimit,
@@ -170,13 +170,13 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
     given Logger = ctx.log
     val stateTick = serviceStateData.tick
 
-    if (tick != stateTick) {
+    if tick != stateTick then {
       // we received an activation for the next tick
 
       // check the last finished tick of the core
       val lastFinishedTick = serviceStateData.serviceCore.lastFinishedTick
 
-      val updatedStateData = if (lastFinishedTick == stateTick) {
+      val updatedStateData = if lastFinishedTick == stateTick then {
         // we finished the last tick and update the core with the requested tick
         serviceStateData.copy(tick = tick)
 

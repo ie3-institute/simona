@@ -246,7 +246,7 @@ object PrimaryServiceProxy {
               }
             }
             .toMap
-          if (extSimulationData.nonEmpty) {
+          if extSimulationData.nonEmpty then {
             val extSubscribersToService = extSimulationData.flatMap {
               case (connection, ref) =>
                 connection.getPrimaryDataAssets.asScala.map(id => id -> ref)

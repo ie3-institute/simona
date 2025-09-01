@@ -123,7 +123,7 @@ object ExtResultProvider extends SimonaService with ExtDataSupport {
 
     val updatedStateData = extMsg match {
       case request: RequestResultEntities =>
-        if (request.tick != tick) {
+        if request.tick != tick then {
           ctx.log.warn(
             s"Received result request for tick '${request.tick}', but current simulation tick is '$tick'!"
           )
@@ -161,7 +161,7 @@ object ExtResultProvider extends SimonaService with ExtDataSupport {
               dataMap.addData(key, currentStorage(key))
           }
 
-          if (updated.isComplete) {
+          if updated.isComplete then {
 
             serviceStateData.extResultDataConnection.queueExtResponseMsg(
               new ProvideResultEntities(
@@ -219,7 +219,7 @@ object ExtResultProvider extends SimonaService with ExtDataSupport {
             res.getInputModel -> res
         }.toMap
 
-        if (receiveDataMap.getExpectedKeys.isEmpty) {
+        if receiveDataMap.getExpectedKeys.isEmpty then {
 
           // we currently expect no result,
           // save received result in storage
@@ -245,7 +245,7 @@ object ExtResultProvider extends SimonaService with ExtDataSupport {
               dataMap.addData(model, participantResults(model))
           }
 
-          if (updated.isComplete) {
+          if updated.isComplete then {
 
             serviceStateData.extResultDataConnection.queueExtResponseMsg(
               new ProvideResultEntities(

@@ -68,7 +68,7 @@ final case class ReceiveHierarchicalDataMap[K, V](
       value: V,
   ): ReceiveHierarchicalDataMap[K, V] = {
 
-    if (!allKeys.contains(key))
+    if !allKeys.contains(key) then
       throw new RuntimeException(
         s"Received value $value for key $key, but no data has been expected for this key."
       )
@@ -82,7 +82,7 @@ final case class ReceiveHierarchicalDataMap[K, V](
   def getExpectedKeys: Set[K] = expectedKeys
 
   def getFinishedData: (Map[K, V], ReceiveHierarchicalDataMap[K, V]) = {
-    val dataMap = if (expectedKeys.nonEmpty) {
+    val dataMap = if expectedKeys.nonEmpty then {
       structure.keySet
         .filter(isComplete)
         .flatMap(key => structure(key))

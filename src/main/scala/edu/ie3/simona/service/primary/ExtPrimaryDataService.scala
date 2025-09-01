@@ -194,7 +194,7 @@ object ExtPrimaryDataService extends SimonaService with ExtDataSupport {
     val maybeNextTick = primaryDataMessage.maybeNextTick.toScala.map(Long2long)
 
     // Distribute Primary Data
-    if (actorToPrimaryData.nonEmpty) {
+    if actorToPrimaryData.nonEmpty then {
       actorToPrimaryData.foreach { case (actor, value) =>
         value.toPrimaryData match {
           case Success(primaryData) =>

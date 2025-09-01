@@ -8,7 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{ConfigFactory, Config as TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
-import scopt.{OptionParser as scoptOptionParser}
+import scopt.OptionParser as scoptOptionParser
 
 import java.io.File
 import java.nio.file.Paths
@@ -43,7 +43,7 @@ object ArgsParser extends LazyLogging {
       opt[String]("ext-address")
         .action((value, args) => args.copy(extAddress = Option(value)))
         .validate(value =>
-          if (value.trim.isEmpty) failure("ext-address cannot be empty")
+          if value.trim.isEmpty then failure("ext-address cannot be empty")
           else success
         )
         .text(

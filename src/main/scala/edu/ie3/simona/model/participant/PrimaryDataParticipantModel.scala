@@ -129,7 +129,7 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
   ): (PrimaryOperatingPoint[PD], OperationChangeIndicator) = {
     // scale the whole primary data by the same factor that
     // the active power set point was scaled by
-    val factor = if (setPower.value != 0.0) {
+    val factor = if setPower.value != 0.0 then {
       state.data.p / setPower
     } else 1.0
 

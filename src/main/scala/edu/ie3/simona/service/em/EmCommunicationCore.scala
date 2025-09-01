@@ -102,7 +102,7 @@ final case class EmCommunicationCore(
     case requestEmCompletion: RequestEmCompletion =>
       val extTick = requestEmCompletion.tick
 
-      if (extTick != tick) {
+      if extTick != tick then {
         log.warn(
           s"Received completion request for tick '${requestEmCompletion.tick}' in tick '$tick'."
         )
@@ -204,7 +204,7 @@ final case class EmCommunicationCore(
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = flexResponse match {
     case scheduleFlexActivation: ScheduleFlexActivation =>
-      if (scheduleFlexActivation.tick == INIT_SIM_TICK) {
+      if scheduleFlexActivation.tick == INIT_SIM_TICK then {
         receiver match {
           case Right(ref) =>
             log.warn(s"$ref: $scheduleFlexActivation")
@@ -220,7 +220,7 @@ final case class EmCommunicationCore(
       (this, None)
 
     case provideFlexOptions: ProvideFlexOptions =>
-      if (tick == INIT_SIM_TICK) {
+      if tick == INIT_SIM_TICK then {
         receiver match {
           case Right(otherRef) =>
             otherRef ! provideFlexOptions
@@ -266,7 +266,7 @@ final case class EmCommunicationCore(
             (flexOptionResponse, additionalFlexOptions)
         }
 
-        if (updated.hasCompletedKeys) {
+        if updated.hasCompletedKeys then {
           // all responses received, forward them to external simulation in a bundle
 
           val (data, updatedFlexOptionResponse) = updated.getFinishedData
@@ -279,7 +279,7 @@ final case class EmCommunicationCore(
             entity -> value
           }
 
-          if (disaggregatedFlex) {
+          if disaggregatedFlex then {
             processedData.foreach { case (key, value) =>
               updatedFlexOptionResponse.structure(key).foreach { inferior =>
                 value.addDisaggregated(inferior, updatedAdditional(inferior))
@@ -316,10 +316,10 @@ final case class EmCommunicationCore(
 
       val updated = completions.addData(completion.modelUuid, completion)
 
-      if (updated.isComplete) {
+      if updated.isComplete then {
         val allKeys = updated.receivedData.keySet
 
-        val extMsgOption = if (tick != INIT_SIM_TICK) {
+        val extMsgOption = if tick != INIT_SIM_TICK then {
           // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
           Some(new EmCompletion(getMaybeNextTick.toJava))
         } else None
@@ -350,7 +350,7 @@ final case class EmCommunicationCore(
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = flexRequest match {
     case flexActivation @ FlexActivation(tick, _) =>
-      if (tick == INIT_SIM_TICK) {
+      if tick == INIT_SIM_TICK then {
         receiver ! flexActivation
 
         (this, None)
@@ -362,7 +362,7 @@ final case class EmCommunicationCore(
           true,
         )
 
-        if (updated.hasCompletedKeys) {
+        if updated.hasCompletedKeys then {
 
           val (dataMap, _, updatedFlexRequest) =
             updated.getFinishedDataHierarchical
@@ -386,7 +386,7 @@ final case class EmCommunicationCore(
       }
 
     case issueFlexControl: IssueFlexControl =>
-      if (issueFlexControl.tick == INIT_SIM_TICK) {
+      if issueFlexControl.tick == INIT_SIM_TICK then {
 
         receiver ! issueFlexControl
 
@@ -405,7 +405,7 @@ final case class EmCommunicationCore(
 
         val updated = setPointResponse.addData(uuid, power)
 
-        if (updated.hasCompletedKeys) {
+        if updated.hasCompletedKeys then {
 
           val (structureMap, dataMap, updatedSetPointResponse) =
             updated.getFinishedDataHierarchical

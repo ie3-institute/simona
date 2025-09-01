@@ -44,7 +44,7 @@ final case class ParticipantResultHandler(
     *   The [[SystemParticipantResult]].
     */
   def maybeSend(result: ResultEntity): Unit =
-    if (config.simulationResultInfo) {
+    if config.simulationResultInfo then {
       result match {
         case thermalResult: ThermalUnitResult =>
           resultProxy ! ThermalResultEvent(thermalResult)
@@ -63,7 +63,7 @@ final case class ParticipantResultHandler(
     *   The [[FlexOptionsResult]].
     */
   def maybeSend(result: FlexOptionsResult): Unit =
-    if (config.flexResult) {
+    if config.flexResult then {
       resultProxy ! FlexOptionsResultEvent(result)
     }
 
