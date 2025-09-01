@@ -117,7 +117,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         case EmMode.BASE =>
           EmServiceBaseCore.empty
         case EmMode.EM_COMMUNICATION =>
-          EmCommunicationCore2()
+          EmCommunicationCore()
       }
 
       val emDataInitializedStateData =

@@ -8,20 +8,44 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{DataProvision, RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.ParticipantRefs
 import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
-import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptionRequest, FlexOptionRequestResult, FlexOptions}
+import edu.ie3.simona.api.data.model.em.{
+  EmSetPoint,
+  FlexOptionRequest,
+  FlexOptionRequestResult,
+  FlexOptions,
+}
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
-import edu.ie3.simona.api.ontology.em.{EmCompletion, EmResultResponse, FlexOptionsResponse}
+import edu.ie3.simona.api.ontology.em.{
+  EmCompletion,
+  EmResultResponse,
+  FlexOptionsResponse,
+}
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
-import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, PvRuntimeConfig, StorageRuntimeConfig}
+import edu.ie3.simona.config.RuntimeConfig.{
+  LoadRuntimeConfig,
+  PvRuntimeConfig,
+  StorageRuntimeConfig,
+}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
-import edu.ie3.simona.ontology.messages.ServiceMessage.{Create, PrimaryServiceRegistrationMessage, SecondaryServiceRegistrationMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  Create,
+  PrimaryServiceRegistrationMessage,
+  SecondaryServiceRegistrationMessage,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
@@ -37,7 +61,10 @@ import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
-import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.apache.pekko.actor.typed.ActorRef
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -49,7 +76,11 @@ import tech.units.indriya.ComparableQuantity
 import java.util.{Optional, UUID}
 import javax.measure.quantity.Power
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.{
+  MapHasAsJava,
+  MapHasAsScala,
+  SeqHasAsJava,
+}
 import scala.jdk.OptionConverters.RichOptional
 
 class ExtEmCommunicationIT
@@ -79,7 +110,8 @@ class ExtEmCommunicationIT
   private val extSimAdapter =
     TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
   private val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
-  private val resultListener = TestProbe[ResultEvent | ExpectResult]("ResultListener")
+  private val resultListener =
+    TestProbe[ResultEvent | ExpectResult]("ResultListener")
   private val primaryServiceProxy =
     TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
   private val weatherService =
@@ -498,7 +530,7 @@ class ExtEmCommunicationIT
         .receiveWithType(classOf[EmResultResponse])
         .emResults
         .asScala
-        .filter { case (uuid, _) => uuid == emNode3Uuid || uuid == emNode4Uuid}
+        .filter { case (uuid, _) => uuid == emNode3Uuid || uuid == emNode4Uuid }
 
       if inferiorSetPoints.size != 2 then {
         inferiorSetPoints.addAll(
@@ -506,7 +538,9 @@ class ExtEmCommunicationIT
             .receiveWithType(classOf[EmResultResponse])
             .emResults
             .asScala
-            .filter { case (uuid, _) => uuid == emNode3Uuid || uuid == emNode4Uuid}
+            .filter { case (uuid, _) =>
+              uuid == emNode3Uuid || uuid == emNode4Uuid
+            }
         )
       }
 
@@ -517,7 +551,10 @@ class ExtEmCommunicationIT
 
         results.getFirst match {
           case setPoint: EmSetPoint =>
-            setPoint.power.flatMap(_.getP).toScala.value should equalWithTolerance(
+            setPoint.power
+              .flatMap(_.getP)
+              .toScala
+              .value should equalWithTolerance(
               setPoints(receiver)
             )
         }
