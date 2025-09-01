@@ -67,7 +67,7 @@ class SimonaStandaloneSetup(
   override def logOutputDir: Path = resultFileHierarchy.logOutputDir
 
   override def gridAgents(
-      context: ActorContext[_],
+      context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
   ): Iterable[ActorRef[GridAgent.Message]] = {
 
@@ -181,7 +181,7 @@ class SimonaStandaloneSetup(
     )
 
   override def weatherService(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[ServiceMessage] = {
     val weatherService = context.spawn(
@@ -242,7 +242,7 @@ class SimonaStandaloneSetup(
   }
 
   override def timeAdvancer(
-      context: ActorContext[_],
+      context: ActorContext[?],
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Request] = {
@@ -261,7 +261,7 @@ class SimonaStandaloneSetup(
   }
 
   override def scheduler(
-      context: ActorContext[_],
+      context: ActorContext[?],
       parent: ActorRef[SchedulerMessage],
       coreFactory: CoreFactory = RegularSchedulerCore,
   ): ActorRef[SchedulerMessage] =
@@ -272,7 +272,7 @@ class SimonaStandaloneSetup(
       )
 
   override def runtimeEventListener(
-      context: ActorContext[_]
+      context: ActorContext[?]
   ): ActorRef[RuntimeEventListener.Request] =
     context
       .spawn(
@@ -299,7 +299,7 @@ class SimonaStandaloneSetup(
 
   def buildSubGridToActorRefMap(
       subGridTopologyGraph: SubGridTopologyGraph,
-      context: ActorContext[_],
+      context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
   ): Map[Int, ActorRef[GridAgent.Message]] = {
     subGridTopologyGraph
@@ -332,7 +332,7 @@ class SimonaStandaloneSetup(
       thermalGridByBus: Map[ThermalBusInput, ThermalGrid],
   ): Seq[ThermalGrid] = {
     grid.getSystemParticipants.getHeatPumps.asScala
-      .flatten(hpInput => thermalGridByBus.get(hpInput.getThermalBus))
+      .flatten(using hpInput => thermalGridByBus.get(hpInput.getThermalBus))
       .toSeq
   }
 }

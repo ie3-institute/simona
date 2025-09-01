@@ -259,14 +259,14 @@ object EmAgent {
         provideFlex.flexOptions,
       )
 
-      if (updatedCore.isComplete) {
+      if updatedCore.isComplete then {
 
         val allFlexOptions = updatedCore.getFlexOptions
 
         val updatedModelShell =
           modelShell.updateAggregatedFlexOptions(allFlexOptions)
 
-        if (emData.outputConfig.flexResult) {
+        if emData.outputConfig.flexResult then {
           val flexResult = updatedModelShell.determineResults(
             flexOptionsCore.activeTick.toDateTime(using
               emData.simulationStartDate

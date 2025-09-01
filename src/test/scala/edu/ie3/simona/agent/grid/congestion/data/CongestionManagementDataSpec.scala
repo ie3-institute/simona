@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid.congestion.data
 
-import edu.ie3.datamodel.models.result.CongestionResult
 import edu.ie3.datamodel.models.result.CongestionResult.InputModelType
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData
 import edu.ie3.simona.agent.grid.GridEnvironment

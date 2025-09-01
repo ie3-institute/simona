@@ -120,7 +120,7 @@ final case class ParticipantGridAdapter(
       ],
       log: Logger,
   ): ParticipantGridAdapter = {
-    if (currentTick != expectedRequestTick)
+    if currentTick != expectedRequestTick then
       throw new CriticalFailureException(
         s"Power request expected for $expectedRequestTick, but not for current tick $currentTick"
       )
@@ -129,7 +129,7 @@ final case class ParticipantGridAdapter(
       case Some(cache @ AvgPowerResult(windowStart, windowEnd, voltage, _, _))
           if windowEnd == currentTick =>
         // Results have been calculated for the same tick...
-        if (voltage =~ newVoltage) {
+        if voltage =~ newVoltage then {
           // ... and same voltage, return cached result
           Left(cache)
         } else {
@@ -256,7 +256,7 @@ object ParticipantGridAdapter {
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
-      ] = None,
+      ],
       log: Logger,
   ): ComplexPower = {
     val p = QuantityUtil.average[Power, Energy](

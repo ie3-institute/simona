@@ -46,7 +46,7 @@ object Scheduler {
       coreFactory: CoreFactory = RegularSchedulerCore,
   ): Behavior[Request] = Behaviors.setup { ctx =>
     val adapter =
-      ctx.messageAdapter[Activation](WrappedActivation)
+      ctx.messageAdapter[Activation](WrappedActivation.apply)
 
     inactive(
       SchedulerData(parent, adapter),

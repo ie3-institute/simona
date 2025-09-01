@@ -31,11 +31,7 @@ import edu.ie3.simona.model.InputModelContainer.{
   WithHeatInputContainer,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.em.ExtEmDataService
@@ -147,7 +143,7 @@ object GridAgentBuilder {
             }
         }
 
-    if (notProcessedElements.nonEmpty)
+    if notProcessedElements.nonEmpty then
       log.warn(
         s"The following elements have been removed, " +
           s"as the agents are not implemented yet: $notProcessedElements"
@@ -234,8 +230,7 @@ object GridAgentBuilder {
     // Uncontrolled EMs can be built right away.
     val (controlledEmInputs, uncontrolledEms) = emInputs
       .partitionMap { case (uuid, emInput) =>
-        if (emInput.getControllingEm.isPresent)
-          Left(uuid -> emInput)
+        if emInput.getControllingEm.isPresent then Left(uuid -> emInput)
         else {
           val actor = buildEm(
             emInput,
@@ -249,7 +244,7 @@ object GridAgentBuilder {
     val previousLevelAndUncontrolledEms =
       previousLevelEms ++ uncontrolledEms.toMap
 
-    if (controlledEmInputs.nonEmpty) {
+    if controlledEmInputs.nonEmpty then {
       // For controlled EMs at the current level, more EMs
       // might need to be built at the next recursion level.
       val controllingEms = controlledEmInputs.toMap.flatMap {

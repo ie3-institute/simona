@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.simona.api.data.model.ev.EvModel
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.QuantityUtils.asKiloWattHour
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   EnergyToSimona,

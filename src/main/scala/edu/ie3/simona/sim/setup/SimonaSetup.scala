@@ -90,7 +90,7 @@ trait SimonaSetup {
     *   An actor reference to the service
     */
   def primaryServiceProxy(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
   ): ActorRef[ServiceMessage]
@@ -112,7 +112,7 @@ trait SimonaSetup {
     *   the service
     */
   def weatherService(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[ServiceMessage]
 
@@ -127,7 +127,7 @@ trait SimonaSetup {
     *   the service
     */
   def loadProfileService(
-      context: ActorContext[_],
+      context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[ServiceMessage]
 
@@ -163,7 +163,7 @@ trait SimonaSetup {
     *   An actor reference to the time advancer
     */
   def timeAdvancer(
-      context: ActorContext[_],
+      context: ActorContext[?],
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Request]
@@ -181,7 +181,7 @@ trait SimonaSetup {
     *   An actor reference to the scheduler
     */
   def scheduler(
-      context: ActorContext[_],
+      context: ActorContext[?],
       parent: ActorRef[SchedulerMessage],
       coreFactory: CoreFactory = RegularSchedulerCore,
   ): ActorRef[SchedulerMessage]
@@ -197,7 +197,7 @@ trait SimonaSetup {
     *   be used when setting up the agents
     */
   def gridAgents(
-      context: ActorContext[_],
+      context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
   ): Iterable[ActorRef[GridAgent.Message]]
 

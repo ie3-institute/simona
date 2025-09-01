@@ -12,8 +12,9 @@ import edu.ie3.simona.test.matchers.{
   QuantityMatchers,
   SquantsMatchers,
 }
-import edu.ie3.util.scala.quantities.{QuantityUtil => PSQuantityUtil}
-import org.scalatest._
+import edu.ie3.util.scala.quantities.{QuantityUtil as PSQuantityUtil}
+import org.apache.pekko.actor.testkit.typed.scaladsl.LogCapturing
+import org.scalatest.*
 import org.scalatest.matchers.should
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.wordspec.AnyWordSpecLike

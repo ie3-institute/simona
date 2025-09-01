@@ -59,7 +59,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Some(timeAdvancer.ref),
             ) {
               override def extSimulations(
-                  context: ActorContext[_],
+                  context: ActorContext[?],
                   scheduler: ActorRef[SchedulerMessage],
                   extSimPath: Option[Path],
               ): ExtSimSetupData = {
@@ -130,7 +130,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ) {
 
               override def primaryServiceProxy(
-                  context: ActorContext[_],
+                  context: ActorContext[?],
                   scheduler: ActorRef[SchedulerMessage],
                   extSimSetupData: ExtSimSetupData,
               ): ActorRef[ServiceMessage] = {
@@ -196,7 +196,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ) {
 
               override def primaryServiceProxy(
-                  context: ActorContext[_],
+                  context: ActorContext[?],
                   scheduler: ActorRef[SchedulerMessage],
                   extSimSetupData: ExtSimSetupData,
               ): ActorRef[ServiceMessage] = {
@@ -261,7 +261,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ) {
 
               override def runtimeEventListener(
-                  context: ActorContext[_]
+                  context: ActorContext[?]
               ): ActorRef[RuntimeEventListener.Request] = {
                 val throwingActor = context
                   .spawn[RuntimeEventListener.Request](
@@ -310,7 +310,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
             new MockSetup() {
 
               override def resultEventListener(
-                  context: ActorContext[_]
+                  context: ActorContext[?]
               ): Seq[ActorRef[ResultEventListener.Request]] =
                 throwTestException()
             }
@@ -411,14 +411,14 @@ object SimonaSimSpec {
     override def logOutputDir: Path = throw new NotImplementedError()
 
     override def runtimeEventListener(
-        context: ActorContext[_]
+        context: ActorContext[?]
     ): ActorRef[RuntimeEventListener.Request] = context.spawn(
       stoppableForwardMessage(runtimeEventProbe),
       uniqueName("runtimeEventForwarder"),
     )
 
     override def resultEventListener(
-        context: ActorContext[_]
+        context: ActorContext[?]
     ): Seq[ActorRef[ResultEventListener.Request]] = Seq(
       context.spawn(
         stoppableForwardMessage(resultEventProbe),
@@ -427,26 +427,26 @@ object SimonaSimSpec {
     )
 
     override def primaryServiceProxy(
-        context: ActorContext[_],
+        context: ActorContext[?],
         scheduler: ActorRef[SchedulerMessage],
         extSimSetupData: ExtSimSetupData,
     ): ActorRef[ServiceMessage] =
       context.spawn(empty, uniqueName("primaryService"))
 
     override def weatherService(
-        context: ActorContext[_],
+        context: ActorContext[?],
         scheduler: ActorRef[SchedulerMessage],
     ): ActorRef[ServiceMessage] =
       context.spawn(empty, uniqueName("weatherService"))
 
     override def loadProfileService(
-        context: ActorContext[_],
+        context: ActorContext[?],
         scheduler: ActorRef[SchedulerMessage],
     ): ActorRef[ServiceMessage] =
       context.spawn(empty, uniqueName("loadProfileService"))
 
     override def timeAdvancer(
-        context: ActorContext[_],
+        context: ActorContext[?],
         simulation: ActorRef[SimonaSim.SimulationEnded.type],
         runtimeEventListener: ActorRef[RuntimeEvent],
     ): ActorRef[TimeAdvancer.Request] =
@@ -456,20 +456,20 @@ object SimonaSimSpec {
       )
 
     override def scheduler(
-        context: ActorContext[_],
+        context: ActorContext[?],
         timeAdvancer: ActorRef[SchedulerMessage],
         coreFactory: CoreFactory = RegularSchedulerCore,
     ): ActorRef[SchedulerMessage] =
       context.spawn(empty, uniqueName("scheduler"))
 
     override def gridAgents(
-        context: ActorContext[_],
+        context: ActorContext[?],
         environmentRefs: EnvironmentRefs,
         resultEventListeners: Seq[ActorRef[ResultEvent]],
     ): Iterable[ActorRef[GridAgent.Message]] = Iterable.empty
 
     override def extSimulations(
-        context: ActorContext[_],
+        context: ActorContext[?],
         scheduler: ActorRef[SchedulerMessage],
         extSimPath: Option[Path],
     ): ExtSimSetupData =

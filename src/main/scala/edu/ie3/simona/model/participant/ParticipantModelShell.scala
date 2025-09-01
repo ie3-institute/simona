@@ -184,7 +184,7 @@ final case class ParticipantModelShell[
       val (modelOp, modelNextTick) =
         model.determineOperatingPoint(currentState)
       // Sanity check
-      if (modelNextTick.exists(_ <= tick))
+      if modelNextTick.exists(_ <= tick) then
         throw new CriticalFailureException(
           s"$identifier: Next tick ($modelNextTick) is same as or earlier than the current tick ($tick)."
         )
@@ -281,7 +281,7 @@ final case class ParticipantModelShell[
 
     val updatedFlexOptions = flexType match {
       case FlexType.PowerLimit =>
-        if (operationInterval.includes(tick)) {
+        if operationInterval.includes(tick) then {
           flexModel.determineFlexOptions(currentState)
         } else {
           // Out of operation, there's no way to operate besides 0 kW
@@ -337,7 +337,7 @@ final case class ParticipantModelShell[
       determineOperatingPoint(modelOperatingPoint, currentTick)
 
     // Sanity check
-    if (newChangeIndicator.changesAtTick.exists(_ <= currentTick))
+    if newChangeIndicator.changesAtTick.exists(_ <= currentTick) then
       throw new CriticalFailureException(
         s"$identifier: Next tick (${newChangeIndicator.changesAtTick}) is same as or earlier than the current tick ($currentTick)."
       )
@@ -365,7 +365,7 @@ final case class ParticipantModelShell[
       modelOperatingPoint: () => (OP, OperationChangeIndicator),
       currentTick: Long,
   ): (OP, OperationChangeIndicator) = {
-    if (operationInterval.includes(currentTick)) {
+    if operationInterval.includes(currentTick) then {
       modelOperatingPoint()
     } else {
       // Current tick is outside of operation interval.
@@ -388,7 +388,7 @@ final case class ParticipantModelShell[
       currentTick: Long,
       nextDataTick: Option[Long],
   ): OperationChangeIndicator = {
-    if (operationInterval.includes(currentTick)) {
+    if operationInterval.includes(currentTick) then {
       // The next activation tick should be the earliest of
       // the next tick request by the model, the next data tick and
       // the end of the operation interval
@@ -443,7 +443,7 @@ final case class ParticipantModelShell[
   private def determineCurrentState(tick: Long): S = {
     // new state is only calculated if there's an old state and an operating point
     val newState =
-      if (state.tick < tick) {
+      if state.tick < tick then {
         // If the state is old, an operating point needs
         // to be present to determine the curren state
         model.determineState(
@@ -457,7 +457,7 @@ final case class ParticipantModelShell[
         state
       }
 
-    if (newState.tick != tick)
+    if newState.tick != tick then
       throw new CriticalFailureException(
         s"$identifier: The current state $newState is not set to current tick $tick"
       )

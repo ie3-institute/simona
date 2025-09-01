@@ -22,11 +22,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   WorkerRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.Data.PrimaryData

@@ -7,11 +7,8 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import EmModelStrat.tolerance
-import edu.ie3.simona.ontology.messages.flex.{
-  FlexOptionsExtra,
-  PowerLimitFlexOptions,
-}
+import edu.ie3.simona.model.em.EmModelStrat.tolerance
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions.flexSum
 import squants.Power
 
@@ -52,9 +49,9 @@ object ProportionalFlexStrat extends EmModelStrat[PowerLimitFlexOptions] {
       flexOptions
     }.flexSum
 
-    if (target.~=(totalOptions.ref)(using tolerance)) {
+    if target.~=(totalOptions.ref)(using tolerance) then {
       Seq.empty
-    } else if (target < totalOptions.ref) {
+    } else if target < totalOptions.ref then {
       val reducedOptions = flexOptions.map {
         case (uuid, PowerLimitFlexOptions(refPower, minPower, _)) =>
           (uuid, refPower, minPower)
@@ -103,13 +100,12 @@ object ProportionalFlexStrat extends EmModelStrat[PowerLimitFlexOptions] {
   ): Iterable[(UUID, Power)] = {
     // filter out options with ref == limit because they're useless here
     val filteredOptions = options.filterNot { case (_, refPower, limitPower) =>
-      refPower.~=(limitPower)(tolerance)
+      refPower.~=(limitPower)(using tolerance)
     }
 
-    if (
-      (target < totalRef && target <= totalLimit) ||
+    if (target < totalRef && target <= totalLimit) ||
       (target > totalRef && target >= totalLimit)
-    ) {
+    then {
       // target is beyond limit, thus use limit powers for all applicable devices
       filteredOptions.map { case (uuid, _, limitPower) =>
         uuid -> limitPower

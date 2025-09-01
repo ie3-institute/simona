@@ -276,7 +276,7 @@ object ParticipantAgent {
           )
         )
         replyTo !
-          (if (result.newResult) {
+          (if result.newResult then {
              AssetPowerChangedMessage(
                result.avgPower.p,
                result.avgPower.q,
@@ -353,7 +353,7 @@ object ParticipantAgent {
       ParticipantInputHandler,
       ParticipantGridAdapter,
   ) = {
-    if (expectedMessagesReceived(inputHandler, gridAdapter)) {
+    if expectedMessagesReceived(inputHandler, gridAdapter) then {
 
       val activation = inputHandler.activation.getOrElse(
         throw new CriticalFailureException(
@@ -373,7 +373,7 @@ object ParticipantAgent {
           activation match {
             case Activation(tick) =>
               val (shellWithOP, gridAdapterWithResult) =
-                if (isCalculationRequired(shell, inputHandler)) {
+                if isCalculationRequired(shell, inputHandler) then {
                   val newShell = shell.updateOperatingPoint(tick)
 
                   val results =
@@ -384,8 +384,7 @@ object ParticipantAgent {
                   val newGridAdapter = gridAdapter.storeResults(results, tick)
 
                   (newShell, newGridAdapter)
-                } else
-                  (shell, gridAdapter)
+                } else (shell, gridAdapter)
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 tick,

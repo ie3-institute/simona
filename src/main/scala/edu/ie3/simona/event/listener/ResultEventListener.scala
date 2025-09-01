@@ -32,7 +32,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   type Message = Request | ResultEvent.Response
 
   private final case class SinkResponse(
-      response: Map[Class[_], ResultEntitySink]
+      response: Map[Class[?], ResultEntitySink]
   ) extends Request
 
   private final case class InitFailed(ex: Exception) extends Request
@@ -59,7 +59,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def initializeSinks(
       resultFileHierarchy: ResultFileHierarchy
-  ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
+  ): Iterable[Future[(Class[?], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
       case csv: ResultSinkType.Csv =>
         val enableCompression = csv.compressOutputs
@@ -120,7 +120,7 @@ object ResultEventListener extends Transformer3wResultSupport {
             schemaRegistryUrl,
             linger,
           ) =>
-        val classes: Iterable[Class[_ <: ResultEntity]] = Set(
+        val classes: Iterable[Class[? <: ResultEntity]] = Set(
           classOf[NodeResult] // currently, only NodeResults are sent out
         )
         classes.map(clz =>
@@ -164,7 +164,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def handOverToSink(
       resultEntity: ResultEntity,
-      classToSink: Map[Class[_], ResultEntitySink],
+      classToSink: Map[Class[?], ResultEntitySink],
       log: Logger,
   ): Unit =
     Try {

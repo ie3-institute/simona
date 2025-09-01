@@ -308,7 +308,7 @@ object ExtSimSetup {
         .groupBy(identity)
         .collect { case (uuid, values) if values.size > 1 => uuid }
 
-    if (duplicateAssets.nonEmpty) {
+    if duplicateAssets.nonEmpty then {
       throw ServiceException(
         s"Multiple data connections provide primary data for assets: ${duplicateAssets.mkString(",")}"
       )

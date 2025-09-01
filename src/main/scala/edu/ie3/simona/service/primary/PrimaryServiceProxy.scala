@@ -207,7 +207,7 @@ object PrimaryServiceProxy {
       primaryConfig.couchbaseParams,
     ).filter(_.isDefined).flatten.headOption
 
-    if (sourceOption.isEmpty) {
+    if sourceOption.isEmpty then {
       log.warn("No primary data source configured!")
 
       Success(

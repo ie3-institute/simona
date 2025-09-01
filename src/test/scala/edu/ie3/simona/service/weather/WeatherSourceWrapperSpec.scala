@@ -9,7 +9,7 @@ package edu.ie3.simona.service.weather
 import edu.ie3.datamodel.io.factory.timeseries.IconTimeBasedWeatherValueFactory
 import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
-  WeatherSource => PsdmWeatherSource,
+  WeatherSource as PsdmWeatherSource,
 }
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.timeseries.individual.{
@@ -24,7 +24,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 }
 import edu.ie3.simona.service.weather.WeatherSourceSpec.DummyIdCoordinateSource
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
-import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec._
+import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval

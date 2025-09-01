@@ -26,14 +26,14 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class SetupHelperSpec
     extends ScalaTestWithActorTestKit
     with UnitSpec
     with GridInputTestData {
 
-  private final object SetupHelperInstance extends SetupHelper
+  private object SetupHelperInstance extends SetupHelper
 
   "A setup helper" should {
     val actorRef: ActorRef[GridAgent.Message] =
