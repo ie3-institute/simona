@@ -159,7 +159,7 @@ class PrimaryServiceWorkerSpec
 
       PrimaryServiceWorker.init(initData) match {
         case Success((_, maybeNextTick)) =>
-          maybeNextTick shouldBe Some(600L)
+          maybeNextTick shouldBe Some(0L)
 
         case Failure(_) =>
           fail("Initialisation with init data is meant to succeed.")

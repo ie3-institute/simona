@@ -278,21 +278,23 @@ object PrimaryServiceWorker extends SimonaService {
               s"No data at the start of the simulation. Use last know data for tick: ${value.toTick}"
             )
 
+            val startTick = Some(0L)
+
             /* Set up the state data. */
             val initializedStateData =
               PrimaryServiceInitializedStateData(
-                maybeNextTick,
+                startTick,
                 furtherActivationTicks,
                 simulationStart,
                 valueClass,
                 source,
               )
 
-            Success(initializedStateData, maybeNextTick)
+            Success(initializedStateData, startTick)
 
           case (_, Some(value)) =>
             /* We have data before, but not after the start of the simulation */
-            log.debug(
+            log.warn(
               s"Only found data before the start of the simulation. Tick: ${value.toTick}"
             )
 
