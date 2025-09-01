@@ -166,8 +166,8 @@ case class EmCommunicationCore2(
         // handle set points
         val expectedSetPoints = provideEmData.setPoints.asScala.flatMap {
           case (uuid, setPoint)
-            if waitingForSetPoint.contains(uuid) | waitingForFlexOptions
-              .contains(uuid) =>
+              if waitingForSetPoint.contains(uuid) | waitingForFlexOptions
+                .contains(uuid) =>
             val agent = uuidToAgent(uuid)
 
             setPoint.power.toScala.flatMap(
@@ -188,17 +188,22 @@ case class EmCommunicationCore2(
         val flexOptionKeys = expectFlexOptions.keys
         val setPointKeys = expectedSetPoints.keys
 
-
-        val updatedExpectDataFrom = expectDataFrom.addExpectedKeys(activated).addExpectedKeys(expectFlexOptions).addExpectedKeys(expectedSetPoints)
-        log.warn(s"ExpectDataFrom: $updatedExpectDataFrom, Request: $activated, FlexOption: $expectFlexOptions, SetPoint: $expectedSetPoints")
-
+        val updatedExpectDataFrom = expectDataFrom
+          .addExpectedKeys(activated)
+          .addExpectedKeys(expectFlexOptions)
+          .addExpectedKeys(expectedSetPoints)
+        log.warn(
+          s"ExpectDataFrom: $updatedExpectDataFrom, Request: $activated, FlexOption: $expectFlexOptions, SetPoint: $expectedSetPoints"
+        )
 
         // add activated agents
         (
           copy(
             activatedAgents = activatedAgents ++ activatedKeys,
-            waitingForFlexOptions = waitingForFlexOptions ++ activatedKeys -- flexOptionKeys -- setPointKeys,
-            waitingForSetPoint = waitingForSetPoint ++ flexOptionKeys -- setPointKeys,
+            waitingForFlexOptions =
+              waitingForFlexOptions ++ activatedKeys -- flexOptionKeys -- setPointKeys,
+            waitingForSetPoint =
+              waitingForSetPoint ++ flexOptionKeys -- setPointKeys,
             expectDataFrom = updatedExpectDataFrom,
             completions = completions.addExpectedKeys(activatedKeys),
           ),
