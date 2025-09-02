@@ -17,7 +17,7 @@ import edu.ie3.datamodel.models.value.{
   WeatherValue,
   WindValue
 }
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.ValueWithWeight
+import edu.ie3.simona.service.weather.WeatherValueInterpolation.ValueWithWeight
 import edu.ie3.simona.service.weather.WeatherValueInterpolationSpec._
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.GeoUtils

@@ -9,7 +9,6 @@ package edu.ie3.simona.service.weather
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
 import edu.ie3.datamodel.models.value.WeatherValue
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.ValueWithWeight
 import edu.ie3.util.scala.quantities.QuantitySquantsConversions._
 import squants.Quantity
 
@@ -200,4 +199,19 @@ object WeatherValueInterpolation extends LazyLogging {
         None
     }
   }
+
+  /** Container class for a weather value with a weight. It is primarily used
+    * for interpolation.
+    *
+    * @param value
+    *   weather value
+    * @param weight
+    *   of the value
+    * @tparam V
+    *   type of value
+    */
+  final case class ValueWithWeight[V](
+      value: V,
+      weight: Long
+  )
 }
