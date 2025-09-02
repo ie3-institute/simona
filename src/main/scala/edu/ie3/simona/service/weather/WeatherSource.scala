@@ -349,7 +349,7 @@ object WeatherSource {
   /** Represents an empty weather data object
     *
     * For temperature to represent an "empty" quantity, we need to explicitly
-    * set temperature to absolute zero, so 0°K. When temperature measures the
+    * set temperature to absolute zero, so 0 K. When temperature measures the
     * movement of atoms, absolute zero means no movement, which represents the
     * "empty" concept best.
     */
