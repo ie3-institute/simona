@@ -6,9 +6,11 @@
 
 package edu.ie3.util.scala.quantities
 
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.{
   EnergyPrice,
+  Irradiance,
   SpecificConductance,
   SpecificHeatCapacity,
   SpecificResistance,
@@ -16,10 +18,12 @@ import edu.ie3.util.quantities.interfaces.{
 import edu.ie3.util.scala.quantities
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.{KilowattHours, Kilowatts}
+import squants.motion.MetersPerSecond
 import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
-import squants.{Amperes, Each, Radians}
+import squants.{Amperes, Each, Radians, Velocity}
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.unit.Units
 import tech.units.indriya.unit.Units.*
 
 import javax.measure.quantity.*
@@ -295,5 +299,39 @@ object QuantityConversionUtils {
           .getValue
           .doubleValue
       )
+  }
+
+  /** Implicit class that contains a method to convert a given
+    * [[ComparableQuantity]] with unit [[WATT_PER_SQUAREMETRE]] into
+    * [[WattsPerSquareMeter]].
+    *
+    * @param quantity
+    *   To convert.
+    */
+  implicit class IrradianceConversion(
+      quantity: ComparableQuantity[Irradiance]
+  ) {
+    def toSquants: quantities.Irradiance = WattsPerSquareMeter(
+      quantity
+        .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
+        .getValue
+        .doubleValue()
+    )
+  }
+
+  /** Implicit class that contains a method to convert a given
+    * [[ComparableQuantity]] with unit [[METRE_PER_SECOND]] into
+    * [[MetersPerSecond]].
+    *
+    * @param quantity
+    *   To convert.
+    */
+  implicit class VelocityConversion(quantity: ComparableQuantity[Speed]) {
+    def toSquants: Velocity = MetersPerSecond(
+      quantity
+        .to(Units.METRE_PER_SECOND)
+        .getValue
+        .doubleValue()
+    )
   }
 }

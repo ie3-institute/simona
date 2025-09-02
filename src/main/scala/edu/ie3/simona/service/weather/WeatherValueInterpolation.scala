@@ -9,7 +9,7 @@ package edu.ie3.simona.service.weather
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
 import edu.ie3.datamodel.models.value.WeatherValue
-import edu.ie3.util.scala.quantities.QuantitySquantsConversions.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.Quantity
 
 import java.time.ZonedDateTime

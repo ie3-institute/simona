@@ -37,7 +37,7 @@ import edu.ie3.simona.service.weather.WeatherValueInterpolation.interpolate
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.QuantitySquantsConversions.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.locationtech.jts.geom.{Coordinate, Point}
 import squants.motion.MetersPerSecond
