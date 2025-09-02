@@ -34,9 +34,9 @@ case object SweepValueStore {
     * @param nodeUuid
     *   node uuid of the sweep data
     */
-  final case class SweepValueStoreData private (
+  final case class SweepValueStoreData(
       nodeUuid: UUID,
-      stateData: StateData
+      stateData: StateData,
   )
 
   /** Creates an empty [[SweepValueStore]] from on a valid power flow result
@@ -55,7 +55,7 @@ case object SweepValueStore {
   def apply(
       validResult: ValidNewtonRaphsonPFResult,
       nodes: Seq[NodeModel],
-      nodeUuidToIndexMap: Map[UUID, Int]
+      nodeUuidToIndexMap: Map[UUID, Int],
   ): SweepValueStore = {
     val sweepDataValues = nodes.foldLeft(Vector.empty[SweepValueStoreData])(
       (valueStoreDataElements, node) => {

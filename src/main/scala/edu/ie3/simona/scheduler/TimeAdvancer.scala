@@ -6,169 +6,120 @@
 
 package edu.ie3.simona.scheduler
 
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.actor.ActorUtil.stopOnError
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
-import edu.ie3.simona.sim.SimMessage.{SimulationFailure, SimulationSuccessful}
+import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 /** Unit that is in control of time advancement within the simulation.
   * Represents the root entity of any scheduler hierarchy.
   */
 object TimeAdvancer {
 
-  trait Incoming
+  trait Request
 
-  /** Starts simulation by activating the next (or first) tick
-    *
-    * @param pauseTick
-    *   Last tick that can be activated or completed before the simulation is
-    *   paused
+  /** Starts simulation by activating the first tick.
     */
-  final case class StartSimMessage(
-      pauseTick: Option[Long] = None
-  ) extends Incoming
-
-  /** Notifies TimeAdvancer that the simulation should stop because of some
-    * error
-    *
-    * @param errorMsg
-    *   The error message
-    */
-  final case class Stop(errorMsg: String) extends Incoming
+  case object Start extends Request
 
   /** @param simulation
-    *   The root actor of the simulation
+    *   The root actor of the simulation.
     * @param eventListener
-    *   listener that receives runtime events
+    *   The listener that receives runtime events.
     * @param checkWindow
-    *   interval in which check window messages are sent
+    *   The interval in which check window messages are sent.
     * @param endTick
-    *   last tick of the simulation
+    *   The last tick of the simulation.
     */
   def apply(
-      simulation: org.apache.pekko.actor.ActorRef,
+      simulation: ActorRef[SimonaSim.SimulationEnded.type],
       eventListener: Option[ActorRef[RuntimeEvent]],
       checkWindow: Option[Int],
-      endTick: Long
-  ): Behavior[Incoming] = Behaviors.receivePartial {
+      endTick: Long,
+  ): Behavior[Request] = Behaviors.receivePartial {
     case (_, ScheduleActivation(actor, tick, _)) =>
       inactive(
         TimeAdvancerData(simulation, actor, endTick),
         eventListener.map(RuntimeNotifier(_, checkWindow)),
         tick,
-        tick
       )
-
-    case (ctx, Stop(errorMsg: String)) =>
-      endWithFailure(ctx, simulation, None, INIT_SIM_TICK, errorMsg)
   }
 
-  /** TimeAdvancer is inactive and waiting for a StartScheduleMessage to start
-    * or continue
+  /** [[TimeAdvancer]] is inactive and waiting for the Start message to start
+    * simulation.
+    *
     * @param data
-    *   constant time advancer data
+    *   The constant time advancer data.
     * @param notifier
-    *   notifier for runtime events
-    * @param startingTick
-    *   tick that the simulation continues with at the beginning/after the last
-    *   pause
-    * @param nextActiveTick
-    *   tick that the schedulee wants to be activated for next
+    *   The notifier for runtime events.
+    * @param firstTick
+    *   The tick that the simulation starts with.
     */
   private def inactive(
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier],
-      startingTick: Long,
-      nextActiveTick: Long
-  ): Behavior[Incoming] = Behaviors.receivePartial {
-    case (_, StartSimMessage(pauseTick)) =>
-      val updatedNotifier = notifier.map {
-        _.starting(
-          startingTick,
-          pauseTick,
-          data.endTick
-        )
-      }
-
-      data.schedulee ! Activation(nextActiveTick)
-
-      active(
-        data,
-        updatedNotifier,
-        nextActiveTick,
-        pauseTick
+      firstTick: Long,
+  ): Behavior[Request] = Behaviors.receivePartial { case (_, Start) =>
+    val updatedNotifier = notifier.map {
+      _.starting(
+        firstTick,
+        data.endTick,
       )
+    }
 
-    case (ctx, Stop(errorMsg: String)) =>
-      endWithFailure(ctx, data.simulation, notifier, startingTick, errorMsg)
+    data.schedulee ! Activation(firstTick)
+
+    active(
+      data,
+      updatedNotifier,
+      firstTick,
+    )
   }
 
-  /** TimeAdvancer is active and waiting for the current activation of the
-    * schedulee to complete
+  /** [[TimeAdvancer]] is active and waiting for the current activation of the
+    * schedulee to complete.
     *
     * @param data
-    *   constant time advancer data
+    *   The constant time advancer data.
     * @param notifier
-    *   notifier for runtime events
+    *   The notifier for runtime events.
     * @param activeTick
-    *   tick that is currently active
-    * @param pauseTick
-    *   the tick that we should pause at (if applicable)
+    *   The tick that is currently active.
     */
   private def active(
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier],
       activeTick: Long,
-      pauseTick: Option[Long]
-  ): Behavior[Incoming] = Behaviors.receivePartial {
+  ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, Completion(_, maybeNewTick)) =>
       checkCompletion(activeTick, maybeNewTick)
-        .map(endWithFailure(ctx, data.simulation, notifier, activeTick, _))
+        .map(endWithFailure(ctx, notifier, activeTick, _))
         .getOrElse {
 
-          (maybeNewTick, pauseTick) match {
-            case (Some(newTick), _) if newTick > data.endTick =>
+          maybeNewTick match {
+            case Some(newTick) if newTick > data.endTick =>
               // next tick is after endTick, finish simulation
               endSuccessfully(data, notifier)
 
-            case (Some(newTick), Some(pauseTick)) if newTick > pauseTick =>
-              // next tick is after pause tick, pause sim
-              val updatedNotifier = notifier.map {
-                _.completing(
-                  math.min(newTick - 1, pauseTick)
-                )
-                  .pausing(pauseTick)
-              }
-
-              // pause, inactivate
-              inactive(
-                data,
-                updatedNotifier,
-                pauseTick + 1,
-                newTick
-              )
-
-            case (Some(newTick), _) =>
+            case Some(newTick) =>
               // next tick is ok, continue
               val updatedNotifier = notifier.map { notifier =>
                 val notifierCompleted =
                   notifier.completing(newTick - 1)
 
-                if (activeTick == INIT_SIM_TICK)
+                if activeTick == INIT_SIM_TICK then
                   notifierCompleted.starting(
                     newTick,
-                    pauseTick,
-                    data.endTick
+                    data.endTick,
                   )
-                else
-                  notifierCompleted
+                else notifierCompleted
               }
 
               // activate next
@@ -177,10 +128,9 @@ object TimeAdvancer {
                 data,
                 updatedNotifier,
                 newTick,
-                pauseTick
               )
 
-            case (None, _) =>
+            case None =>
               // there is no next tick, finish
               ctx.log.info("No next tick supplied, stopping simulation.")
               endSuccessfully(data, notifier)
@@ -188,16 +138,13 @@ object TimeAdvancer {
           }
         }
 
-    case (ctx, Stop(errorMsg: String)) =>
-      endWithFailure(ctx, data.simulation, notifier, activeTick, errorMsg)
-
   }
 
   private def endSuccessfully(
       data: TimeAdvancerData,
-      notifier: Option[RuntimeNotifier]
-  ): Behavior[Incoming] = {
-    data.simulation ! SimulationSuccessful
+      notifier: Option[RuntimeNotifier],
+  ): Behavior[Request] = {
+    data.simulation ! SimonaSim.SimulationEnded
 
     notifier.foreach {
       // we do not want a check window message for the endTick
@@ -210,13 +157,11 @@ object TimeAdvancer {
   }
 
   private def endWithFailure(
-      ctx: ActorContext[Incoming],
-      simulation: org.apache.pekko.actor.ActorRef,
+      ctx: ActorContext[Request],
       notifier: Option[RuntimeNotifier],
       tick: Long,
-      errorMsg: String
-  ): Behavior[Incoming] = {
-    simulation ! SimulationFailure
+      errorMsg: String,
+  ): Behavior[Request] = {
     notifier.foreach(_.error(tick, errorMsg))
 
     stopOnError(ctx, errorMsg)
@@ -224,7 +169,7 @@ object TimeAdvancer {
 
   private def checkCompletion(
       activeTick: Long,
-      maybeNewTick: Option[Long]
+      maybeNewTick: Option[Long],
   ): Option[String] =
     maybeNewTick.filter(_ <= activeTick).map { newTick =>
       s"The next trigger has tick $newTick, although current active tick was $activeTick."
@@ -241,8 +186,8 @@ object TimeAdvancer {
     *   the last tick of the simulation
     */
   private final case class TimeAdvancerData(
-      simulation: org.apache.pekko.actor.ActorRef,
+      simulation: ActorRef[SimonaSim.SimulationEnded.type],
       schedulee: ActorRef[Activation],
-      endTick: Long
+      endTick: Long,
   )
 }

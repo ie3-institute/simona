@@ -15,7 +15,7 @@ package edu.ie3.simona.exceptions
   */
 abstract class WeatherServiceException(
     private val msg: String = "",
-    private val cause: Throwable = None.orNull
+    private val cause: Throwable = None.orNull,
 ) extends Exception(msg, cause)
 
 object WeatherServiceException {
@@ -30,7 +30,7 @@ object WeatherServiceException {
     */
   final case class WeatherServiceInitializationException(
       private val msg: String = "",
-      private val cause: Throwable = None.orNull
+      private val cause: Throwable = None.orNull,
   ) extends WeatherServiceException(msg, cause)
 
   /** Exception to be thrown, if looking up of weather fails
@@ -42,10 +42,10 @@ object WeatherServiceException {
     */
   final case class WeatherLookupException(
       private val msg: String = "",
-      private val cause: Throwable = None.orNull
+      private val cause: Throwable = None.orNull,
   ) extends WeatherServiceException(msg, cause)
 
-  /** Exception to be thrown if the registration of the an agent fails
+  /** Exception to be thrown if the registration of an agent fails
     * @param msg
     *   Message to prompt to the end user
     * @param cause
@@ -53,7 +53,7 @@ object WeatherServiceException {
     */
   final case class InvalidRegistrationRequestException(
       private val msg: String = "",
-      private val cause: Throwable = None.orNull
+      private val cause: Throwable = None.orNull,
   ) extends WeatherServiceException(msg, cause)
 
 }

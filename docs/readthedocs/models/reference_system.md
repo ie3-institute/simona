@@ -4,14 +4,45 @@
 
 The reference system is built up by specifying the included voltage levels. The following table describes typical network levels and the corresponding parameterization.
 
-## Typical voltage levels 
+## Default reference system
 
-| voltage level (id) | nominal voltage (vNom) | apparent power (sNom) |
-|--------------------|------------------------|-----------------------|
-| NS                 | 0.4 kV                 | 100 kVA               |                           
-| MS                 | 20 kV                  | 60 MVA                |
-| HS                 | 110 kV                 | 600 MVA               |
-| HoeS               | 380 kV                 | 1000 MVA              |
+```{list-table}
+:widths: auto
+:header-rows: 1
+
+* - Voltage level (id)
+  - Nominal voltage (vNom)
+  - Apparent power (sNom)
+
+* - LV
+  - 0.4 kV
+  - 100 kVA
+
+* - MV
+  - 10 kV
+  - 40 MVA
+  
+* - MV
+  - 20 kV
+  - 60 MVA
+  
+* - MV
+  - 30 kV
+  - 150 MVA
+  
+* - HV
+  - 110 kV
+  - 600 MVA
+  
+* - EHV
+  - 220 kV
+  - 800 MVA
+  
+* - EHV
+  - 380 kV
+  - 1000 MVA
+```
+
 
 ## Configuration of the reference system 
 
@@ -19,9 +50,9 @@ To configure the reference system, the voltage levels listed in the table above 
 
 ```
 simona.gridConfig.refSystems = [
-    {sNom = "100 kVA", vNom = "0.4 kV", voltLvls = [{id = "NS", vNom = "0.4 kV"}]},
-    {sNom = "60 MVA", vNom = "20 kV", voltLvls = [{id = "MS", vNom = "20 kV"}]},
-    {sNom = "600 MVA", vNom = "110 kV", voltLvls = [{id = "HS", vNom = "110 kV"}]},
-    {sNom = "1000 MVA", vNom = "380 kV", voltLvls = [{id = "HoeS", vNom = "380 kV"}]}
+    {sNom = "100 kVA", vNom = "0.4 kV", voltLvls = [{id = "LV", vNom = "0.4 kV"}]},
+    {sNom = "60 MVA", vNom = "20 kV", voltLvls = [{id = "MV", vNom = "20 kV"}]},
+    {sNom = "600 MVA", vNom = "110 kV", voltLvls = [{id = "HV", vNom = "110 kV"}]},
+    {sNom = "1000 MVA", vNom = "380 kV", voltLvls = [{id = "EHV", vNom = "380 kV"}]}
 ]
 ```

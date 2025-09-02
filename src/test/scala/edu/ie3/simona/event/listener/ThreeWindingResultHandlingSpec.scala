@@ -24,23 +24,23 @@ class ThreeWindingResultHandlingSpec
   "Handling three winding results" when {
     "assembling joint values" should {
       val mockAResult = PartialTransformer3wResult.PortA(
-        TimeUtil.withDefaults.toZonedDateTime("2021-06-23 20:51:00"),
+        TimeUtil.withDefaults.toZonedDateTime("2021-06-23T20:51:00Z"),
         UUID.randomUUID(),
         Amperes(1d),
         Degrees(2d),
-        -5
+        -5,
       )
       val mockBResult = PartialTransformer3wResult.PortB(
-        TimeUtil.withDefaults.toZonedDateTime("2021-06-23 20:51:00"),
+        TimeUtil.withDefaults.toZonedDateTime("2021-06-23T20:51:00Z"),
         UUID.randomUUID(),
         Amperes(3d),
-        Degrees(4d)
+        Degrees(4d),
       )
       val mockCResult = PartialTransformer3wResult.PortC(
-        TimeUtil.withDefaults.toZonedDateTime("2021-06-23 20:51:00"),
+        TimeUtil.withDefaults.toZonedDateTime("2021-06-23T20:51:00Z"),
         UUID.randomUUID(),
         Amperes(5d),
-        Degrees(6d)
+        Degrees(6d),
       )
 
       "correctly indicate readiness" in {
@@ -53,7 +53,7 @@ class ThreeWindingResultHandlingSpec
           (Some(mockAResult), Some(mockBResult), None, false),
           (None, Some(mockBResult), Some(mockCResult), false),
           (Some(mockAResult), None, Some(mockCResult), false),
-          (Some(mockAResult), Some(mockBResult), Some(mockCResult), true)
+          (Some(mockAResult), Some(mockBResult), Some(mockCResult), true),
         )
 
         forAll(cases) {
@@ -61,7 +61,7 @@ class ThreeWindingResultHandlingSpec
               a: Option[PartialTransformer3wResult.PortA],
               b: Option[PartialTransformer3wResult.PortB],
               c: Option[PartialTransformer3wResult.PortC],
-              expected: Boolean
+              expected: Boolean,
           ) =>
             val dut = AggregatedTransformer3wResult(a, b, c)
 
@@ -78,14 +78,14 @@ class ThreeWindingResultHandlingSpec
           (None, None, Some(mockCResult)),
           (Some(mockAResult), Some(mockBResult), None),
           (None, Some(mockBResult), Some(mockCResult)),
-          (Some(mockAResult), None, Some(mockCResult))
+          (Some(mockAResult), None, Some(mockCResult)),
         )
 
         forAll(cases) {
           (
               a: Option[PartialTransformer3wResult.PortA],
               b: Option[PartialTransformer3wResult.PortB],
-              c: Option[PartialTransformer3wResult.PortC]
+              c: Option[PartialTransformer3wResult.PortC],
           ) =>
             val dut = AggregatedTransformer3wResult(a, b, c)
 
@@ -106,7 +106,7 @@ class ThreeWindingResultHandlingSpec
         AggregatedTransformer3wResult(
           Some(resultA),
           Some(resultB),
-          Some(resultC)
+          Some(resultC),
         ).consolidate match {
           case Success(consolidated) =>
             consolidated.getTime shouldBe expected.getTime

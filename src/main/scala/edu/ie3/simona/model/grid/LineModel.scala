@@ -12,23 +12,27 @@ import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.LineInput
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  CurrentToSimona,
+  OhmPerLengthToSimona,
+  SiemensPerLengthToSimona,
+}
 import squants.Each
-import squants.electro.{Amperes, Ohms, Siemens}
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import javax.measure.quantity.Length
 
 /** This model represents an electric wire or overhead line
   *
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param nodeAUuid
@@ -63,11 +67,11 @@ final case class LineModel(
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
-    protected val b: squants.Dimensionless
+    protected val b: squants.Dimensionless,
 ) extends SystemComponent(
       uuid,
       id,
-      operationInterval
+      operationInterval,
     )
     with PiEquivalentCircuit {
 
@@ -77,7 +81,7 @@ final case class LineModel(
     *   branch conductance g_ij between node A and B of the element in p.u.
     */
   override def gij(): squants.Dimensionless =
-    super.gij() * (amount)
+    super.gij() * amount
 
   /** see [[PiEquivalentCircuit.g0()]]
     *
@@ -111,7 +115,7 @@ case object LineModel extends LazyLogging {
       lineInput: LineInput,
       refSystem: RefSystem,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): LineModel = {
     // validate the input model first
     validateInputModel(lineInput)
@@ -121,7 +125,7 @@ case object LineModel extends LazyLogging {
       lineInput,
       refSystem,
       simulationStartDate,
-      simulationEndDate
+      simulationEndDate,
     )
   }
 
@@ -143,54 +147,24 @@ case object LineModel extends LazyLogging {
       lineInput: LineInput,
       refSystem: RefSystem,
       startDate: ZonedDateTime,
-      endDate: ZonedDateTime
+      endDate: ZonedDateTime,
   ): LineModel = {
+
+    implicit val length: ComparableQuantity[Length] = lineInput.getLength
 
     val lineType = lineInput.getType
     val (r, x, g, b) = (
-      refSystem.rInPu(
-        Ohms(
-          lineType.getR
-            .to(OHM_PER_KILOMETRE)
-            .multiply(lineInput.getLength.to(KILOMETRE))
-            .getValue
-            .doubleValue()
-        )
-      ),
-      refSystem.xInPu(
-        Ohms(
-          lineType.getX
-            .to(OHM_PER_KILOMETRE)
-            .multiply(lineInput.getLength.to(KILOMETRE))
-            .getValue
-            .doubleValue()
-        )
-      ),
-      refSystem.gInPu(
-        Siemens(
-          lineType.getG
-            .to(SIEMENS_PER_KILOMETRE)
-            .multiply(lineInput.getLength.to(KILOMETRE))
-            .getValue
-            .doubleValue()
-        )
-      ),
-      refSystem.bInPu(
-        Siemens(
-          lineType.getB
-            .to(SIEMENS_PER_KILOMETRE)
-            .multiply(lineInput.getLength.to(KILOMETRE))
-            .getValue
-            .doubleValue()
-        )
-      )
+      refSystem.rInPu(lineType.getR.toSquants),
+      refSystem.xInPu(lineType.getX.toSquants),
+      refSystem.gInPu(lineType.getG.toSquants),
+      refSystem.bInPu(lineType.getB.toSquants),
     )
 
     val operationInterval =
       SystemComponent.determineOperationInterval(
         startDate,
         endDate,
-        lineInput.getOperationTime
+        lineInput.getOperationTime,
       )
 
     val lineModel = new LineModel(
@@ -200,17 +174,15 @@ case object LineModel extends LazyLogging {
       lineInput.getNodeA.getUuid,
       lineInput.getNodeB.getUuid,
       lineInput.getParallelDevices,
-      Amperes(
-        lineType.getiMax().to(AMPERE).getValue.doubleValue()
-      ),
+      lineType.getiMax().toSquants,
       r,
       x,
       g,
-      b
+      b,
     )
 
     // if the line input model is in operation, enable the model
-    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
+    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
       lineModel.enable()
 
     // sanity check after creation for piEquivalent parameters r,x,g,b
@@ -230,7 +202,7 @@ case object LineModel extends LazyLogging {
     */
   def validateInputModel(lineInput: LineInput): Unit = {
 
-    if (lineInput.getNodeA == null || lineInput.getNodeB == null)
+    if lineInput.getNodeA == null || lineInput.getNodeB == null then
       throw new InvalidGridException(
         s"Nodes of line ${lineInput.getUuid} are missing." +
           s"NodeA: ${lineInput.getNodeA}, NodeB: ${lineInput.getNodeB}."
@@ -241,69 +213,65 @@ case object LineModel extends LazyLogging {
     val vRatedNodeA = lineInput.getNodeA.getVoltLvl.getNominalVoltage
     val vRatedNodeB = lineInput.getNodeB.getVoltLvl.getNominalVoltage
 
-    if (
-      lineType
+    if lineType
         .getvRated()
         .isLessThan(vRatedNodeA.subtract(ratedVoltageTolerance))
-    )
+    then
       throw new InvalidGridException(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node A (${lineInput.getNodeA.getUuid} / ${lineInput.getNodeA.getId}), which has a rated voltage of $vRatedNodeA."
       )
-    else if (
-      lineType
+    else if lineType
         .getvRated()
         .isLessThan(vRatedNodeB.subtract(ratedVoltageTolerance))
-    )
+    then
       throw new InvalidGridException(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node B (${lineInput.getNodeB.getUuid} / ${lineInput.getNodeB.getId}), which has a rated voltage of $vRatedNodeB."
       )
-    else if (
-      lineType
+    else if lineType
         .getvRated()
         .isGreaterThan(vRatedNodeA.add(ratedVoltageTolerance))
-    )
+    then
       logger.warn(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node A (${lineInput.getNodeA.getUuid} / ${lineInput.getNodeA.getId}), which has a lower rated voltage of $vRatedNodeA."
       )
-    else if (
-      lineType
+    else if lineType
         .getvRated()
         .isGreaterThan(vRatedNodeB.add(ratedVoltageTolerance))
-    )
+    then
       logger.warn(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node B (${lineInput.getNodeB.getUuid} / ${lineInput.getNodeB.getId}), which has a lower rated voltage of $vRatedNodeB."
       )
 
     // length
-    if (lineInput.getLength.getValue.doubleValue() <= 0)
+    if lineInput.getLength.getValue.doubleValue() <= 0 then
       throw new InvalidGridException(
         s"Line ${lineInput.getUuid} has an invalid length of ${lineInput.getLength}"
       )
 
     // electric params
-    if (lineType.getR.getValue.doubleValue() <= 0)
+    if lineType.getR.getValue.doubleValue() <= 0 then
       throw new InvalidGridException(
         s"Resistance r of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is 0 or smaller, " +
           s"which is not allowed! Please correct parameters!"
       )
 
-    if (lineType.getX.getValue.doubleValue() <= 0)
+    if lineType.getX.getValue.doubleValue() <= 0 then
       throw new InvalidGridException(
         s"Reactance x of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is 0 or smaller," +
           s" which is not allowed! Please correct parameters!"
       )
 
-    if (lineType.getB.getValue.doubleValue() < 0)
+    if lineType.getB.getValue.doubleValue() < 0 then
       throw new InvalidGridException(
         s"Susceptance b of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is smaller " +
           s"than 0, which is not allowed! Please correct parameters!"
       )
 
-    if (lineType.getG.getValue.doubleValue() < 0)
+    if lineType.getG.getValue.doubleValue() < 0 then
       throw new InvalidGridException(
         s"Conductance g of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is smaller " +
           s"than 0, which is not allowed! Please correct parameters!"
@@ -321,7 +289,7 @@ case object LineModel extends LazyLogging {
   def y0(lineModel: LineModel): Complex = {
     new Complex(
       lineModel.g0().value.doubleValue(),
-      lineModel.b0().value.doubleValue()
+      lineModel.b0().value.doubleValue(),
     )
   }
 
@@ -335,7 +303,7 @@ case object LineModel extends LazyLogging {
     */
   def yij(lineModel: LineModel): Complex = new Complex(
     lineModel.gij().value.doubleValue(),
-    lineModel.bij().value.doubleValue()
+    lineModel.bij().value.doubleValue(),
   )
 
   /** Calculates the utilisation of a given line model
@@ -352,12 +320,12 @@ case object LineModel extends LazyLogging {
   def utilisation(
       lineModel: LineModel,
       iNodeA: squants.electro.ElectricCurrent,
-      iNodeB: squants.electro.ElectricCurrent
+      iNodeB: squants.electro.ElectricCurrent,
   ): squants.Dimensionless = {
     Each(
       Math.max(
         iNodeA.toAmperes,
-        iNodeB.toAmperes
+        iNodeB.toAmperes,
       ) / lineModel.iNom.toAmperes * 100 / lineModel.amount
     )
   }

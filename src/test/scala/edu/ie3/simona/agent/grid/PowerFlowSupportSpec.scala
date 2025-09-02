@@ -6,22 +6,50 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.ActorRef
-import org.apache.pekko.event.{LoggingAdapter, NoLogging}
+import edu.ie3.datamodel.models.input.MeasurementUnitInput
+import edu.ie3.datamodel.models.input.connector.{
+  SwitchInput,
+  Transformer2WInput,
+  Transformer3WInput,
+}
+import edu.ie3.datamodel.models.input.container.{
+  RawGridElements,
+  SubGridContainer,
+}
+import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
-import edu.ie3.simona.model.grid.GridModel
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.model.grid.BasicGridWithSwitches
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
+  ExchangePower,
+  ExchangeVoltage,
+}
+import edu.ie3.simona.config.SimonaConfig.Simona
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
+import edu.ie3.simona.test.common.model.grid.{
+  BasicGridWithSwitches,
+  DbfsTestGrid,
+}
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.util.TestGridFactory
+import edu.ie3.util.TimeUtil
+import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.Megavars
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
+import org.apache.pekko.actor.typed.ActorRef
+import org.slf4j.{Logger, LoggerFactory}
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
+import squants.{Dimensionless, Each}
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
+import java.util.UUID
 import javax.measure.quantity.Angle
+import scala.concurrent.duration.DurationInt
+import scala.jdk.CollectionConverters.SetHasAsJava
+import scala.language.implicitConversions
 
 /** Tests power flow on a grid with switches on two branches, where depending on
   * whether switches are opened or closed, current flows through one or both of
@@ -31,12 +59,15 @@ import javax.measure.quantity.Angle
   * order to comprehend the expected test results.
   */
 class PowerFlowSupportSpec
-    extends UnitSpec
+    extends ScalaTestWithActorTestKit
+    with UnitSpec
     with BasicGridWithSwitches
     with PowerFlowSupport
     with GridResultsSupport {
 
-  override val log: LoggingAdapter = NoLogging
+  given log: Logger = LoggerFactory.getLogger(this.getClass)
+  val actorRef: ActorRef[GridAgent.Message] =
+    TestProbe[GridAgent.Message]("mock_grid_agent").ref
 
   /** Setting voltage at slack node to 110 kV and introducing a load of 1 MW at
     * node 1
@@ -49,25 +80,24 @@ class PowerFlowSupportSpec
           ExchangeVoltage(
             node6.uuid,
             Kilovolts(110d),
-            Kilovolts(0d)
+            Kilovolts(0d),
           )
         )
       ),
       nodeToReceivedPower = Map(
         node1.uuid -> Map(
-          ActorRef.noSender -> Some(
+          actorRef -> Some(
             ExchangePower(
               node1.uuid,
               Megawatts(1d),
-              Megavars(0d)
+              Megavars(0d),
             )
           )
         )
-      )
+      ),
     )
 
-  val currentTolerance = 1e-3 // 1 mA
-  val angleTolerance = 1e-3 // 0.001 deg
+  given currentAnAngleTolerance: Double = 1e-3 // 1 mA, 0.001 deg
 
   /** We test for angle regardless of direction of the lines here, thus
     * normalize to [0, 180] degrees
@@ -75,12 +105,10 @@ class PowerFlowSupportSpec
   private def normalizeAngle(
       angle: ComparableQuantity[Angle]
   ): ComparableQuantity[Angle] = {
-    if (angle.isLessThan(0d.asDegreeGeom))
-      angle.add(180.asDegreeGeom)
-    else if (angle.isGreaterThan(180d.asDegreeGeom))
+    if angle.isLessThan(0d.asDegreeGeom) then angle.add(180.asDegreeGeom)
+    else if angle.isGreaterThan(180d.asDegreeGeom) then
       angle.subtract(180.asDegreeGeom)
-    else
-      angle
+    else angle
   }
 
   "PowerFlowSupport" when {
@@ -97,7 +125,7 @@ class PowerFlowSupportSpec
             gridModel.gridComponents.transformers3w,
             gridModel.nodeUuidToIndexMap,
             receivedValuesStore,
-            gridModel.mainRefSystem
+            gridModel.mainRefSystem,
           )
 
         operatingPoint.length shouldBe 10 withClue "safety check: 13 nodes minus 3 closed switches"
@@ -106,7 +134,7 @@ class PowerFlowSupportSpec
           gridModel,
           3,
           operatingPoint,
-          slackNodeVoltages
+          slackNodeVoltages,
         )(Vector(1e-12)) match {
           case successResult: ValidNewtonRaphsonPFResult => successResult
           case failure => fail(s"Newton-Raphson failed: $failure")
@@ -115,11 +143,14 @@ class PowerFlowSupportSpec
         val sweepValueStore = SweepValueStore(
           result,
           gridModel.gridComponents.nodes,
-          gridModel.nodeUuidToIndexMap
+          gridModel.nodeUuidToIndexMap,
         )
 
         val pfResult =
-          createResultModels(gridModel, sweepValueStore)(ZonedDateTime.now())
+          createResultModels(gridModel, sweepValueStore)(using
+            ZonedDateTime.now(),
+            log,
+          )
 
         // left/top side segments should have similar currents
         val loadLinesLeft =
@@ -127,26 +158,18 @@ class PowerFlowSupportSpec
             line18To1,
             line0To17,
             line0To15,
-            line16To3
+            line16To3,
           ).map(_.uuid).toSet
         pfResult.lineResults
           .filter(lineRes => loadLinesLeft.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              30.4954d.asAmpere,
-              currentTolerance
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              30.4954d.asAmpere,
-              currentTolerance
-            )
+            lineRes.getiAMag() should equalWithTolerance(30.4954d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(30.4954d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance
+              179.7095d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance
+              179.7095d.asDegreeGeom
             )
           }
 
@@ -155,26 +178,18 @@ class PowerFlowSupportSpec
           Iterable(
             line1To13,
             line14To2,
-            line2To3
+            line2To3,
           ).map(_.uuid).toSet
         pfResult.lineResults
           .filter(lineRes => loadLinesRight.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              27.723d.asAmpere,
-              currentTolerance
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              27.723d.asAmpere,
-              currentTolerance
-            )
+            lineRes.getiAMag() should equalWithTolerance(27.723d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(27.723d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance
+              179.7095d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.7095d.asDegreeGeom,
-              angleTolerance
+              179.7095d.asDegreeGeom
             )
           }
 
@@ -198,7 +213,7 @@ class PowerFlowSupportSpec
             gridModel.gridComponents.transformers3w,
             gridModel.nodeUuidToIndexMap,
             receivedValuesStore,
-            gridModel.mainRefSystem
+            gridModel.mainRefSystem,
           )
 
         operatingPoint.length shouldBe 11 withClue "safety check: 13 nodes minus 2 closed switches"
@@ -207,7 +222,7 @@ class PowerFlowSupportSpec
           gridModel,
           50,
           operatingPoint,
-          slackNodeVoltages
+          slackNodeVoltages,
         )(Vector(1e-12)) match {
           case successResult: ValidNewtonRaphsonPFResult => successResult
           case failure => fail(s"Newton-Raphson failed: $failure")
@@ -218,9 +233,9 @@ class PowerFlowSupportSpec
           SweepValueStore(
             result,
             gridModel.gridComponents.nodes,
-            gridModel.nodeUuidToIndexMap
-          )
-        )(ZonedDateTime.now())
+            gridModel.nodeUuidToIndexMap,
+          ),
+        )(using ZonedDateTime.now(), log)
 
         // left/top side segments (lines that are adjacent to the open switch) should have no load
         val loadLinesLeft =
@@ -228,15 +243,9 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => loadLinesLeft.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance
-            )
-          // angles are not reliable enough with such small magnitudes
+            lineRes.getiAMag() should equalWithTolerance(0.0001d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(0.0001d.asAmpere)
+            // angles are not reliable enough with such small magnitudes
           }
 
         // right/bottom side segments (lines that are adjacent to the closed switch) should have load
@@ -245,21 +254,13 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => loadLinesRight.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              58.6017d.asAmpere,
-              currentTolerance
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              58.6017d.asAmpere,
-              currentTolerance
-            )
+            lineRes.getiAMag() should equalWithTolerance(58.6017d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(58.6017d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.4090d.asDegreeGeom,
-              angleTolerance
+              179.4090d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.4090d.asDegreeGeom,
-              angleTolerance
+              179.4090d.asDegreeGeom
             )
           }
 
@@ -283,7 +284,7 @@ class PowerFlowSupportSpec
             gridModel.gridComponents.transformers3w,
             gridModel.nodeUuidToIndexMap,
             receivedValuesStore,
-            gridModel.mainRefSystem
+            gridModel.mainRefSystem,
           )
 
         operatingPoint.length shouldBe 11 withClue "safety check: 13 nodes minus 2 closed switches"
@@ -292,7 +293,7 @@ class PowerFlowSupportSpec
           gridModel,
           50,
           operatingPoint,
-          slackNodeVoltages
+          slackNodeVoltages,
         )(Vector(1e-12)) match {
           case successResult: ValidNewtonRaphsonPFResult => successResult
           case failure => fail(s"Newton-Raphson failed: $failure")
@@ -303,9 +304,9 @@ class PowerFlowSupportSpec
           SweepValueStore(
             result,
             gridModel.gridComponents.nodes,
-            gridModel.nodeUuidToIndexMap
-          )
-        )(ZonedDateTime.now())
+            gridModel.nodeUuidToIndexMap,
+          ),
+        )(using ZonedDateTime.now(), log)
 
         // left/top side segments (lines that are adjacent to the open switch) should have load
         val expectedLoadLines =
@@ -313,21 +314,13 @@ class PowerFlowSupportSpec
         pfResult.lineResults
           .filter(lineRes => expectedLoadLines.contains(lineRes.getInputModel))
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              58.5343d.asAmpere,
-              currentTolerance
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              58.5343d.asAmpere,
-              currentTolerance
-            )
+            lineRes.getiAMag() should equalWithTolerance(58.5343d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(58.5343d.asAmpere)
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
-              179.461d.asDegreeGeom,
-              angleTolerance
+              179.461d.asDegreeGeom
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
-              179.461d.asDegreeGeom,
-              angleTolerance
+              179.461d.asDegreeGeom
             )
           }
 
@@ -339,19 +332,155 @@ class PowerFlowSupportSpec
             expectedNoLoadLines.contains(lineRes.getInputModel)
           )
           .foreach { lineRes =>
-            lineRes.getiAMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance
-            )
-            lineRes.getiBMag() should equalWithTolerance(
-              0.0001d.asAmpere,
-              currentTolerance
-            )
-          // angles are not reliable enough with such small magnitudes
+            lineRes.getiAMag() should equalWithTolerance(0.0001d.asAmpere)
+            lineRes.getiBMag() should equalWithTolerance(0.0001d.asAmpere)
+            // angles are not reliable enough with such small magnitudes
           }
 
       }
     }
   }
 
+  "PowerFlowSupport" should {
+    implicit val tolerance: Dimensionless = Each(1e-12)
+
+    val powerFlowParams = PowerFlowParams(
+      1e-5,
+      Vector(1e-12),
+      50,
+      30.minutes,
+      stopOnFailure = true,
+    )
+
+    "perform the power flow for the slack grid correctly" in {
+      val withEhvPowerFlowResults: Map[UUID, Dimensionless] = {
+        val (gridModel, receivedValueStore) = TestData.withEHV
+
+        val (operationPoint, slackNodeVoltages) = composeOperatingPoint(
+          gridModel.gridComponents.nodes,
+          gridModel.gridComponents.transformers,
+          gridModel.gridComponents.transformers3w,
+          gridModel.nodeUuidToIndexMap,
+          receivedValueStore,
+          gridModel.mainRefSystem,
+          targetVoltageFromReceivedData = false,
+        )
+
+        val pf = newtonRaphsonPF(
+          gridModel,
+          50,
+          operationPoint,
+          slackNodeVoltages,
+        )(Vector(1e-12)) match {
+          case result: PowerFlowResult.SuccessFullPowerFlowResult =>
+            result
+          case _: PowerFlowResult.FailedPowerFlowResult =>
+            fail()
+        }
+
+        val indexMap = gridModel.nodeUuidToIndexMap.map { case (uuid, i) =>
+          (i, uuid)
+        }
+        pf.nodeData.map(n => indexMap(n.index) -> Each(n.voltage.abs)).toMap
+      }
+
+      val onlyHvPowerFlowResults: Map[UUID, Dimensionless] = {
+        val (gridModel, receivedValueStore) = TestData.onlyHV
+
+        val pf = slackGridPF(
+          gridModel,
+          receivedValueStore,
+          powerFlowParams,
+        ) match {
+          case result: PowerFlowResult.SuccessFullPowerFlowResult =>
+            result
+          case _: PowerFlowResult.FailedPowerFlowResult =>
+            fail()
+        }
+
+        val indexMap = gridModel.nodeUuidToIndexMap.map { case (uuid, i) =>
+          (i, uuid)
+        }
+        pf.nodeData.map(n => indexMap(n.index) -> Each(n.voltage.abs)).toMap
+
+      }
+
+      onlyHvPowerFlowResults.foreach { case (uuid, result) =>
+        withEhvPowerFlowResults(uuid) should approximate(result)(using
+          tolerance
+        )
+      }
+    }
+  }
+
+  object TestData extends DbfsTestGrid with ConfigTestData {
+    val time: Simona.Time = simonaConfig.simona.time
+
+    implicit def toZoneDateTime(timeString: String): ZonedDateTime =
+      TimeUtil.withDefaults.toZonedDateTime(timeString)
+
+    implicit def toGridModel(
+        subGridContainer: SubGridContainer
+    ): GridModel =
+      GridModel(
+        subGridContainer,
+        RefSystem("2000 MVA", "110 kV"),
+        VoltageLimits(0.9, 1.1),
+        time.startDateTime,
+        time.endDateTime,
+        simonaConfig,
+      )
+
+    val withEHV: (GridModel, ReceivedValuesStore) = {
+      val gridModel = TestGridFactory.createSubGrid(
+        gridName = "centerGrid",
+        subgrid = 1,
+        rawGridElements = new RawGridElements(
+          Set(supNodeA, node1, node2, node3, node4).asJava,
+          Set(line1To2, line2To3, line1To4).asJava,
+          Set(transformer1).asJava,
+          Set.empty[Transformer3WInput].asJava,
+          Set.empty[SwitchInput].asJava,
+          Set.empty[MeasurementUnitInput].asJava,
+        ),
+      )
+
+      val receivedValueStore = ReceivedValuesStore.empty(
+        Map.empty,
+        Map.empty,
+        Vector(supNodeA.getUuid),
+      )
+
+      (gridModel, receivedValueStore)
+    }
+
+    val onlyHV: (GridModel, ReceivedValuesStore) = {
+      val updatedNode1 =
+        node1.copy().slack(true).vTarget(0.9999984268502677.asPu).build()
+      val gridModel = TestGridFactory.createSubGrid(
+        gridName = "centerGrid",
+        subgrid = 1,
+        rawGridElements = new RawGridElements(
+          Set(updatedNode1, node2, node3, node4).asJava,
+          Set(
+            line1To2.copy().nodeA(updatedNode1).build(),
+            line2To3,
+            line1To4.copy().nodeB(updatedNode1).build(),
+          ).asJava,
+          Set.empty[Transformer2WInput].asJava,
+          Set.empty[Transformer3WInput].asJava,
+          Set.empty[SwitchInput].asJava,
+          Set.empty[MeasurementUnitInput].asJava,
+        ),
+      )
+
+      val receivedValueStore = ReceivedValuesStore.empty(
+        Map.empty,
+        Map.empty,
+        Vector.empty,
+      )
+
+      (gridModel, receivedValueStore)
+    }
+  }
 }

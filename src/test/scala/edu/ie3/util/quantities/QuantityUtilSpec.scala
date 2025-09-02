@@ -6,7 +6,6 @@
 
 package edu.ie3.util.quantities
 
-import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -24,61 +23,10 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
     2L -> unit(5d),
     4L -> unit(15d),
     6L -> unit(-5d),
-    8L -> unit(-10d)
+    8L -> unit(-10d),
   )
 
   "Integrating over quantities" when {
-    "determining the start value" should {
-      val startingValue =
-        PrivateMethod[Power](Symbol("startingValue"))
-
-      "throw an exception, if values are empty and unit of \"empty\" quantity cannot be determined" in {
-        intercept[QuantityException] {
-          QuantityUtil invokePrivate startingValue(
-            Map.empty[Long, Power],
-            1L
-          )
-        }.getMessage shouldBe "Unable to determine unit for dummy starting value."
-      }
-
-      "bring default value, if there is nothing before window starts" in {
-        QuantityUtil invokePrivate startingValue(
-          values,
-          1L
-        ) should be
-        unit(0d)
-
-      }
-
-      "bring correct value, if there is something before window starts" in {
-        QuantityUtil invokePrivate startingValue(
-          values,
-          2L
-        ) should be
-        unit(5d)
-
-      }
-    }
-
-    "determining the end value" should {
-      val endingValue =
-        PrivateMethod[(Long, Power)](Symbol("endingValue"))
-
-      "throw and exception, if there is no value before the window ends" in {
-        intercept[QuantityException] {
-          QuantityUtil invokePrivate endingValue(values, 1L)
-        }.getMessage shouldBe "Cannot integrate over an empty set of values."
-      }
-
-      "bring correct value, if there is something before window ends" in {
-        QuantityUtil invokePrivate endingValue(values, 2L) match {
-          case (tick, value) =>
-            tick shouldBe 2L
-            (value =~ unit(5d)) shouldBe true
-        }
-      }
-    }
-
     "actually integrating" should {
       "lead to correct values" in {
         val cases = Table(
@@ -86,15 +34,15 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
           (1L, 3L, integrationUnit(5d)),
           (2L, 4L, integrationUnit(10d)),
           (2L, 8L, integrationUnit(30d)),
-          (0L, 12L, integrationUnit(-10d))
+          (0L, 12L, integrationUnit(-10d)),
         )
 
         forAll(cases) { (windowStart, windowEnd, expectedResult) =>
           QuantityUtil.integrate[Power, Energy](
             values,
             windowStart,
-            windowEnd
-          ) =~ expectedResult
+            windowEnd,
+          ) should approximate(expectedResult)
         }
       }
     }
@@ -106,14 +54,14 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         QuantityUtil.average[Power, Energy](
           values,
           0L,
-          0L
+          0L,
         ) match {
           case Failure(exception: IllegalArgumentException) =>
             exception.getMessage shouldBe "Cannot average over trivial time window."
           case Failure(exception) =>
             fail(
               "Averaging over values failed with wrong exception.",
-              exception
+              exception,
             )
           case Success(_) =>
             fail("Averaging with trivial window length should fail")
@@ -124,14 +72,14 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         QuantityUtil.average[Power, Energy](
           values,
           3L,
-          0L
+          0L,
         ) match {
           case Failure(exception: IllegalArgumentException) =>
             exception.getMessage shouldBe "Window end is before window start."
           case Failure(exception) =>
             fail(
               "Averaging over values failed with wrong exception.",
-              exception
+              exception,
             )
           case Success(_) =>
             fail("Averaging with flipped window start / end should fail")
@@ -146,21 +94,21 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
           (1L, 3L, unit(2.5d)),
           (2L, 4L, unit(5d)),
           (2L, 8L, unit(5d)),
-          (0L, 12L, unit(-0.8333333))
+          (0L, 12L, unit(-0.8333333)),
         )
 
         forAll(cases) { (windowStart, windowEnd, expectedResult) =>
           QuantityUtil.average[Power, Energy](
             values,
             windowStart,
-            windowEnd
+            windowEnd,
           ) match {
             case Success(result) =>
-              result =~ expectedResult
+              result should approximate(expectedResult)
             case Failure(exception) =>
               fail(
                 "Averaging with fine input should pass, but failed.",
-                exception
+                exception,
               )
           }
         }

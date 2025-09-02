@@ -6,70 +6,62 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
+import edu.ie3.simona.model.participant.ParticipantModel.FixedState
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
-import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
-import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAVOLTAMPERE
-import org.scalatest.PrivateMethodTester
-import squants.energy.{Kilowatts, Megawatts, Watts}
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Kilovoltamperes,
+  Megavoltamperes,
+}
+import squants.Power
+import squants.energy.Kilowatts
 
-class FixedFeedInModelSpec
-    extends UnitSpec
-    with FixedFeedInputTestData
-    with DefaultTestData
-    with PrivateMethodTester {
+class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
 
-  private implicit val powerTolerance: squants.Power = Watts(
-    1.0
-  ) // Equals to 1 W power
+  protected given powerTolerance: Power = Kilowatts(1e-9)
+  protected given apparentPowerTolerance: ApparentPower = Megavoltamperes(1e-9)
+  protected given doubleTolerance: Double = 1e-9
 
-  "The fixed feed in model object" should {
+  "The fixed feed in model" should {
 
-    val foreSeenScalingFactor: Double = 1.0
+    "build a correct FixedFeedModel from valid input" in {
 
-    "build a correct FixedFeedModel from correct input" in {
-      val simonaConfig: SimonaConfig =
-        createSimonaConfig(
-          LoadModelBehaviour.FIX,
-          LoadReference.ActivePower(Kilowatts(0.0))
+      val model = FixedFeedInModel.Factory(fixedFeedInput).create()
+
+      model.uuid shouldBe fixedFeedInput.getUuid
+      model.sRated should approximate(
+        Megavoltamperes(
+          fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
         )
-      val modelConfig = ConfigUtil
-        .ParticipantConfigUtil(
-          simonaConfig.simona.runtime.participant
-        )
-        .getOrDefault[FixedFeedInRuntimeConfig](fixedFeedInput.getUuid)
-
-      val actualModel = FixedFeedInModel.apply(
-        fixedFeedInput,
-        modelConfig,
-        defaultSimulationStart,
-        defaultSimulationEnd
       )
+      model.cosPhiRated should approximate(fixedFeedInput.getCosPhiRated)
+      model.qControl shouldBe QControl(fixedFeedInput.getqCharacteristics)
 
-      inside(actualModel) {
-        case FixedFeedInModel(
-              uuid,
-              id,
-              operationInterval,
-              scalingFactor,
-              qControl,
-              sRated,
-              cosPhiRated
-            ) =>
-          uuid shouldBe fixedFeedInput.getUuid
-          id shouldBe fixedFeedInput.getId
-          operationInterval shouldBe defaultOperationInterval
-          scalingFactor shouldBe foreSeenScalingFactor
-          qControl shouldBe QControl(fixedFeedInput.getqCharacteristics)
-          (sRated ~= Megawatts(
-            fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
-          )) shouldBe true
-          cosPhiRated shouldBe fixedFeedInput.getCosPhiRated
-      }
     }
+
+    "return approximately correct power calculations" in {
+
+      val model = FixedFeedInModel.Factory(fixedFeedInput).create()
+
+      val expectedPower = Kilovoltamperes(
+        fixedFeedInput
+          .getsRated()
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue * -1
+      ).toActivePower(fixedFeedInput.getCosPhiRated)
+
+      val (operatingPoint, nextTick) =
+        model.determineOperatingPoint(FixedState(0))
+      operatingPoint.activePower should approximate(expectedPower)
+      nextTick shouldBe None
+
+    }
+
   }
+
 }

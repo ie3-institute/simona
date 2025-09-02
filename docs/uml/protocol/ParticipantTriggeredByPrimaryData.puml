@@ -1,7 +1,7 @@
 @startuml
-SimScheduler -> PrimaryServiceWorker: <font color=red>!</font> TriggerWithIdMessage(\n\tActivityStartTrigger(tick),\n\t_,\n\t_)
+Scheduler -> PrimaryServiceWorker: <font color=red>!</font> Activation(\n\tInit_SIM_TICK)
 PrimaryServiceWorker -> ParticipantAgents: <font color=red>!</font> <i>ProvisionMessage</i>
-PrimaryServiceWorker --> SimScheduler: <font color=red>!</font> CompletionMessage(triggerId, None)
-SimScheduler -> ParticipantAgents: <font color=red>!</font> TriggerWithIdMessage(\n\tActivityStartTrigger(tick),\n\t_,\n\t_)
-ParticipantAgents --> SimScheduler: <font color=red>!</font> CompletionMessage(triggerId, None)
+PrimaryServiceWorker --> Scheduler: <font color=red>!</font> Completion(\n\tactor,None)
+Scheduler -> ParticipantAgents: <font color=red>!</font> Activation(\n\ttick)
+ParticipantAgents --> Scheduler: <font color=red>!</font> Completion(\n\tactor, newTick)
 @enduml

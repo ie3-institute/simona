@@ -7,24 +7,35 @@
 package edu.ie3.util.scala.quantities
 
 import edu.ie3.simona.exceptions.QuantityException
-import edu.ie3.util.quantities.{QuantityUtil => PSQuantityUtil}
 import squants.time.{Hours, TimeDerivative, TimeIntegral}
 import squants.{Quantity, Seconds, UnitOfMeasure}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.function.Calculus
 import tech.units.indriya.quantity.Quantities
 
-import scala.collection.mutable
+import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Try}
 
 object QuantityUtil {
 
+  extension (d: Double) {
+
+    /** Method to enable multiplying a [[Double]] with a [[Quantity]].
+      * @param quantity
+      *   The second factor.
+      * @tparam Q
+      *   Type of the quantity.
+      * @return
+      *   The resulting [[Quantity]].
+      */
+    def *[Q <: Quantity[Q]](quantity: Quantity[Q]): Q = quantity * d
+  }
+
   /** The [[tech.units.indriya.function.DefaultNumberSystem]] is only covering
     * java [[Number]] children. As [[BigDecimal]] is not related to
     * [[java.math.BigDecimal]], this causes issues, why the
-    * [[tech.units.indriya.spi.NumberSystem]] has to be to be used has to be
-    * specified to something, that actually is able to handle the scala number
-    * system.
+    * [[tech.units.indriya.spi.NumberSystem]] has to be used has to be specified
+    * to something, that actually is able to handle the scala number system.
     */
   def adjustNumberSystem(): Unit =
     Calculus.setCurrentNumberSystem(
@@ -56,18 +67,18 @@ object QuantityUtil {
     * @return
     *   Averaged quantity
     */
-  def average[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+  def average[Q <: Quantity[Q] & TimeDerivative[QI], QI <: Quantity[
     QI
-  ] with TimeIntegral[Q]](
+  ] & TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
-      windowEnd: Long
+      windowEnd: Long,
   ): Try[Q] = {
-    if (windowStart == windowEnd)
+    if windowStart == windowEnd then
       Failure(
         new IllegalArgumentException("Cannot average over trivial time window.")
       )
-    else if (windowStart > windowEnd)
+    else if windowStart > windowEnd then
       Failure(
         new IllegalArgumentException("Window end is before window start.")
       )
@@ -76,7 +87,7 @@ object QuantityUtil {
         integrate[Q, QI](
           values,
           windowStart,
-          windowEnd
+          windowEnd,
         ) / Seconds(windowEnd - windowStart)
       }
   }
@@ -97,12 +108,12 @@ object QuantityUtil {
     * @return
     *   Integration over given values from window start to window end
     */
-  def integrate[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+  def integrate[Q <: Quantity[Q] & TimeDerivative[QI], QI <: Quantity[
     QI
-  ] with TimeIntegral[Q]](
+  ] & TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
-      windowEnd: Long
+      windowEnd: Long,
   ): QI = {
 
     /** Case class to hold current state of integration
@@ -117,37 +128,49 @@ object QuantityUtil {
     final case class IntegrationState(
         currentIntegral: QI,
         lastTick: Long,
-        lastValue: Q
+        lastValue: Q,
     )
 
-    /* Determine the starting and ending value for the integral */
-    val startValue = startingValue(values, windowStart)
-    val (lastTick, lastValue) = endingValue(values, windowEnd)
-    val valuesWithinWindow = mutable.LinkedHashMap.newBuilder
-      .addAll(
-        (values filter { case (tick, _) =>
-          tick >= windowStart && tick <= windowEnd
-        }).toSeq
-          .sortBy(_._1)
-      )
-      .result()
+    val sortedValues = SortedMap.from(values)
 
-    /* We need a value at the window end, so if the last value is not exactly there, replicate it at that point */
-    if (windowEnd > lastTick)
-      valuesWithinWindow.addOne(windowEnd -> lastValue)
+    /* Determine the unit from the first best value */
+    val unit = sortedValues.values.headOption
+      .map(_.unit)
+      .getOrElse(
+        throw new QuantityException(
+          "Unable to determine unit for dummy starting value."
+        )
+      )
+    val zeroValue = unit(0d)
+
+    /* the first relevant value for integration is placed before or at windowStart */
+    val startValue = sortedValues
+      .rangeUntil(windowStart + 1)
+      .lastOption
+      .map { case (_, value) =>
+        value
+      }
+      .getOrElse(zeroValue)
+
+    /* Filtering out values outside the specified time window.
+       Excluding the value at first tick because the fold below starts with it.
+       At the end, we add a dummy value (we only care about the ending tick).
+     */
+    val valuesWithinWindow = sortedValues.range(windowStart + 1, windowEnd) +
+      (windowEnd -> zeroValue)
 
     /* Actually determining the integral, but sweeping over values and summing up everything */
     valuesWithinWindow
       .foldLeft(
         IntegrationState(
-          startValue * Hours(0),
+          zeroValue * Hours(0),
           windowStart,
-          startValue
+          startValue,
         )
       ) {
         case (
               IntegrationState(currentIntegral, lastTick, lastValue),
-              (tick, value)
+              (tick, value),
             ) =>
           /* Calculate the partial integral over the last know value since it's occurrence and the instance when the newest value comes in */
           val duration = Seconds(tick - lastTick)
@@ -156,69 +179,6 @@ object QuantityUtil {
           IntegrationState(updatedIntegral, tick, value)
       }
       .currentIntegral
-  }
-
-  /** Determine the starting value for the integration
-    *
-    * @param values
-    *   Mapping of ticks to values
-    * @param windowStart
-    *   Tick, where the integration window starts
-    * @tparam Q
-    *   Type of quantity to account for
-    * @return
-    *   Either the first value <b>before</b> the window starts or 0, if not
-    *   apparent
-    */
-  private def startingValue[Q <: squants.Quantity[Q]](
-      values: Map[Long, Q],
-      windowStart: Long
-  ): Q = {
-    values
-      .filter { case (tick, _) =>
-        tick <= windowStart
-      }
-      .maxOption[(Long, Q)](Ordering.by(_._1)) match {
-      case Some((_, value)) => value
-      case None =>
-        val unit = values.headOption
-          .map(_._2.unit)
-          .getOrElse(
-            throw new QuantityException(
-              "Unable to determine unit for dummy starting value."
-            )
-          )
-        unit(0d)
-    }
-  }
-
-  /** Determine the last value for the integration
-    *
-    * @param values
-    *   Mapping of ticks to values
-    * @param windowEnd
-    *   Tick, where the integration window ends
-    * @tparam Q
-    *   Type of quantity to account for
-    * @return
-    *   Last entry before the integration window ends and it's corresponding
-    *   tick
-    */
-  private def endingValue[Q <: Quantity[Q]](
-      values: Map[Long, Q],
-      windowEnd: Long
-  ): (Long, Q) = {
-    values
-      .filter { case (tick, _) =>
-        tick <= windowEnd
-      }
-      .maxOption[(Long, Q)](Ordering.by(_._1)) match {
-      case Some(tickToValue) => tickToValue
-      case None =>
-        throw new QuantityException(
-          "Cannot integrate over an empty set of values."
-        )
-    }
   }
 
 }

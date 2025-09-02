@@ -8,13 +8,13 @@ package edu.ie3.simona.model.system
 
 import edu.ie3.simona.exceptions.CharacteristicsException
 import edu.ie3.simona.model.system.Characteristic.XYPair
-import edu.ie3.simona.util.CollectionUtils._
+import edu.ie3.simona.util.CollectionUtils.*
 import squants.Quantity
 
 import scala.collection.SortedSet
 import scala.reflect.ClassTag
 
-/** Describes a mapping of a x-y-pairs with possibility to interpolate the y
+/** Describes a mapping of an x-y-pairs with possibility to interpolate the y
   * values based on the provided x value
   */
 trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
@@ -38,7 +38,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
         xyCoordinates.toSeq
           .map(xyPair => xyPair.x -> xyPair.y)
           .toMap,
-        requestedAbscissaQuantity
+        requestedAbscissaQuantity,
       )
 
     xyCoords.foldLeft(
@@ -55,8 +55,8 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
         (
           Some(requestedAbscissaQuantity),
           Some(
-            b.map(_ + (m * deltaX).value)
-          )
+            b.map(_ + (deltaX * m).value)
+          ),
         )
       case _ =>
         throw new CharacteristicsException(
@@ -75,7 +75,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
 object Characteristic {
   final case class XYPair[A <: Quantity[A], O <: Quantity[O]](
       x: A,
-      y: O
+      y: O,
   ) extends Ordered[XYPair[A, O]] {
 
     /** The pairs are ordered by their x value first. If two pairs have the same
@@ -87,10 +87,8 @@ object Characteristic {
       */
     override def compare(that: XYPair[A, O]): Int = {
       val xCompare = x.compare(that.x)
-      if (xCompare != 0)
-        xCompare
-      else
-        y.compare(that.y)
+      if xCompare != 0 then xCompare
+      else y.compare(that.y)
     }
   }
 

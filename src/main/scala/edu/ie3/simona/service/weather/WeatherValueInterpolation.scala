@@ -9,7 +9,7 @@ package edu.ie3.simona.service.weather
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
 import edu.ie3.datamodel.models.value.WeatherValue
-import edu.ie3.util.scala.quantities.QuantitySquantsConversions._
+import edu.ie3.util.scala.quantities.QuantitySquantsConversions.*
 import squants.Quantity
 
 import java.time.ZonedDateTime
@@ -38,7 +38,7 @@ object WeatherValueInterpolation extends LazyLogging {
       timeSeries: IndividualTimeSeries[WeatherValue],
       dateTime: ZonedDateTime,
       typeString: String,
-      empty: V
+      empty: V,
   ): V = {
     getValueOptions[V](timeSeries, dateTime, typeString) match {
       case Some((preVal, preWeight, nextVal, nextWeight)) =>
@@ -72,9 +72,9 @@ object WeatherValueInterpolation extends LazyLogging {
   private def getValueOptions[V](
       timeSeries: IndividualTimeSeries[WeatherValue],
       dateTime: ZonedDateTime,
-      typeString: String
+      typeString: String,
   ): Option[(V, Long, V, Long)] = {
-    if (timeSeries.getEntries.size() < 3) {
+    if timeSeries.getEntries.size() < 3 then {
       logger.info(
         s"Not enough entries in time series $timeSeries to interpolate weather data. At least three values are needed, found ${timeSeries.getEntries.size()}."
       )
@@ -88,7 +88,7 @@ object WeatherValueInterpolation extends LazyLogging {
         dateTime,
         intervalStart,
         dateTime,
-        typeString
+        typeString,
       )
       val next: Option[ValueWithWeight[V]] =
         getValue(timeSeries, dateTime, dateTime, intervalEnd, typeString)
@@ -126,21 +126,21 @@ object WeatherValueInterpolation extends LazyLogging {
       timestamp: ZonedDateTime,
       intervalStart: ZonedDateTime,
       intervalEnd: ZonedDateTime,
-      typeString: String
+      typeString: String,
   ): Option[ValueWithWeight[V]] = {
     val values: List[ValueWithWeight[V]] =
       timeSeries.getEntries.asScala.flatMap { weatherValue =>
         val time: ZonedDateTime = weatherValue.getTime
 
         // calculates the time difference to the given timestamp
-        val weight = if (time.isBefore(timestamp)) {
+        val weight = if time.isBefore(timestamp) then {
           ChronoUnit.SECONDS.between(time, timestamp)
         } else {
           ChronoUnit.SECONDS.between(timestamp, time)
         }
 
         // check is the found timestamp is in the defined interval
-        if (time.isAfter(intervalStart) && time.isBefore(intervalEnd)) {
+        if time.isAfter(intervalStart) && time.isBefore(intervalEnd) then {
           getValue[V](weatherValue.getValue, typeString).map { value =>
             ValueWithWeight(value, weight)
           }
@@ -150,7 +150,7 @@ object WeatherValueInterpolation extends LazyLogging {
         }
       }.toList
 
-    if (values.isEmpty) {
+    if values.isEmpty then {
       None
     } else {
       // sorting the list to return the value with the least time difference
@@ -173,7 +173,7 @@ object WeatherValueInterpolation extends LazyLogging {
     */
   private def getValue[V](
       weatherValue: WeatherValue,
-      typeString: String
+      typeString: String,
   ): Option[V] = {
     typeString match {
       case "diffIrr" =>
@@ -212,6 +212,6 @@ object WeatherValueInterpolation extends LazyLogging {
     */
   final case class ValueWithWeight[V](
       value: V,
-      weight: Long
+      weight: Long,
   )
 }

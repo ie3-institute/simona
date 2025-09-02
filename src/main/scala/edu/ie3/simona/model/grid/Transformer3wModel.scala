@@ -7,36 +7,38 @@
 package edu.ie3.simona.model.grid
 
 import breeze.linalg.max
-import breeze.math.Complex
+import breeze.math.*
 import breeze.numerics.pow
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
 import edu.ie3.simona.exceptions.{
   InvalidActionRequestException,
-  InvalidParameterException
+  InvalidParameterException,
 }
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
   PowerFlowCaseB,
-  PowerFlowCaseC
+  PowerFlowCaseC,
 }
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
-import squants.electro.{Kilovolts, Ohms, Siemens}
-import squants.energy.Megawatts
-import tech.units.indriya.AbstractUnit
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{OHM, SIEMENS}
+import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  OhmToSimona,
+  PowerConversionSimona,
+  SiemensToSimona,
+  VoltageToSimona,
+}
+import squants.electro.Siemens
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, ElectricPotential}
+import javax.measure.quantity.ElectricPotential
 import scala.math.BigDecimal.RoundingMode
 
 /** This model represents a three winding transformer incorporating a virtual
@@ -49,7 +51,7 @@ import scala.math.BigDecimal.RoundingMode
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param hvNodeUuid
@@ -66,6 +68,9 @@ import scala.math.BigDecimal.RoundingMode
   *   number of parallel transformers
   * @param powerFlowCase
   *   the [[Transformer3wPowerFlowCase]]
+  * @param sRated
+  *   the rated power at the port that is defined by the
+  *   [[Transformer3wPowerFlowCase]]
   * @param r
   *   resistance r, real part of the transformer impedance z (referenced to the
   *   nominal impedance of the grid) in p.u.
@@ -91,14 +96,15 @@ final case class Transformer3wModel(
     override protected val transformerTappingModel: TransformerTappingModel,
     amount: Int,
     powerFlowCase: Transformer3wPowerFlowCase,
+    sRated: ApparentPower,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
-    protected val b: squants.Dimensionless
+    protected val b: squants.Dimensionless,
 ) extends SystemComponent(
       uuid,
       id,
-      operationInterval
+      operationInterval,
     )
     with PiEquivalentCircuit
     with TransformerTapping {
@@ -115,8 +121,7 @@ final case class Transformer3wModel(
   override def updateTapPos(newTapPos: Int): Unit = {
     powerFlowCase match {
       case PowerFlowCaseA =>
-        if (newTapPos != currentTapPos)
-          super.updateTapPos(newTapPos)
+        if newTapPos != currentTapPos then super.updateTapPos(newTapPos)
       case _ =>
         throw new InvalidActionRequestException(
           s"Updating tap position for transformer3w $uuid is not allowed in power flow case B and C."
@@ -171,7 +176,7 @@ case object Transformer3wModel extends LazyLogging {
       refSystem: RefSystem,
       subnetNo: Int,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): Transformer3wModel = {
     // validate the input model first
     validateInputModel(transformer3wInput)
@@ -182,7 +187,7 @@ case object Transformer3wModel extends LazyLogging {
       refSystem,
       subnetNo,
       simulationStartDate,
-      simulationEndDate
+      simulationEndDate,
     )
   }
 
@@ -213,7 +218,7 @@ case object Transformer3wModel extends LazyLogging {
       gridRefSystem: RefSystem,
       subnetNo: Int,
       startDate: ZonedDateTime,
-      endDate: ZonedDateTime
+      endDate: ZonedDateTime,
   ): Transformer3wModel = {
     // build the model
     val trafo3wType = transformer3wInput.getType
@@ -238,7 +243,7 @@ case object Transformer3wModel extends LazyLogging {
       trafo3wType.getTapMax,
       trafo3wType.getTapMin,
       trafo3wType.getTapNeutr,
-      transformer3wInput.isAutoTap
+      transformer3wInput.isAutoTap,
     )
 
     val voltRatioNominal = powerFlowCase match {
@@ -246,23 +251,32 @@ case object Transformer3wModel extends LazyLogging {
         BigDecimal.apply("1").setScale(5, RoundingMode.HALF_UP)
       case PowerFlowCaseB =>
         BigDecimal
-          .apply(trafo3wType.getvRatedA.to(KILOVOLT).getValue.doubleValue)
+          .apply(trafo3wType.getvRatedA.to(KILOVOLT).getValue.toString)
           .setScale(5, RoundingMode.HALF_UP) / BigDecimal
-          .apply(trafo3wType.getvRatedB.to(KILOVOLT).getValue.doubleValue)
+          .apply(trafo3wType.getvRatedB.to(KILOVOLT).getValue.toString)
           .setScale(5, RoundingMode.HALF_UP)
       case PowerFlowCaseC =>
         BigDecimal
-          .apply(trafo3wType.getvRatedA.to(KILOVOLT).getValue.doubleValue)
+          .apply(trafo3wType.getvRatedA.to(KILOVOLT).getValue.toString)
           .setScale(5, RoundingMode.HALF_UP) / BigDecimal
-          .apply(trafo3wType.getvRatedC.to(KILOVOLT).getValue.doubleValue)
+          .apply(trafo3wType.getvRatedC.to(KILOVOLT).getValue.toString)
           .setScale(5, RoundingMode.HALF_UP)
+    }
+
+    val sRated = powerFlowCase match {
+      case PowerFlowCaseA =>
+        trafo3wType.getsRatedA.toApparent
+      case PowerFlowCaseB =>
+        trafo3wType.getsRatedB.toApparent
+      case PowerFlowCaseC =>
+        trafo3wType.getsRatedC.toApparent
     }
 
     val operationInterval =
       SystemComponent.determineOperationInterval(
         startDate,
         endDate,
-        transformer3wInput.getOperationTime
+        transformer3wInput.getOperationTime,
       )
 
     val transformer3wModel = new Transformer3wModel(
@@ -277,14 +291,15 @@ case object Transformer3wModel extends LazyLogging {
       transformerTappingModel,
       transformer3wInput.getParallelDevices,
       powerFlowCase,
+      sRated,
       r,
       x,
       g,
-      b
+      b,
     )
 
     // if the transformer3w input model is in operation, enable the model
-    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
+    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
       transformer3wModel.enable()
 
     // init the transformer tapping
@@ -314,73 +329,56 @@ case object Transformer3wModel extends LazyLogging {
   private def rxgbInPu(
       transformerType: Transformer3WTypeInput,
       refSystem: RefSystem,
-      powerFlowCase: Transformer3wPowerFlowCase
+      powerFlowCase: Transformer3wPowerFlowCase,
   ): (
       squants.Dimensionless,
       squants.Dimensionless,
       squants.Dimensionless,
-      squants.Dimensionless
+      squants.Dimensionless,
   ) = {
-    val transformerRefSystem =
-      RefSystem(
-        Megawatts(
-          transformerType.getsRatedA.to(MEGAVOLTAMPERE).getValue.doubleValue()
-        ),
-        Kilovolts(
-          transformerType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
-        )
-      )
-
     /* Get the physical equivalent circuit diagram parameters from type. They come with reference to the highest
      * voltage side, therefore, in power flow case B and C, they need to be adapted. */
     val (rTrafo, xTrafo, gTrafo, bTrafo) = powerFlowCase match {
       case PowerFlowCaseA =>
         (
-          transformerType.getrScA,
-          transformerType.getxScA,
-          transformerType.getgM,
-          transformerType.getbM
+          transformerType.getrScA.toSquants,
+          transformerType.getxScA.toSquants,
+          transformerType.getgM.toSquants,
+          transformerType.getbM.toSquants,
         )
       case PowerFlowCaseB =>
         val nominalRatio = transformerType
           .getvRatedA()
-          .divide(transformerType.getvRatedB())
-          .asType(classOf[Dimensionless])
-          .to(AbstractUnit.ONE)
-          .getValue
-          .doubleValue()
+          .toSquants / transformerType.getvRatedB().toSquants
+
         (
-          transformerType.getrScB.divide(pow(nominalRatio, 2)),
-          transformerType.getxScB.divide(pow(nominalRatio, 2)),
-          Quantities.getQuantity(0d, StandardUnits.CONDUCTANCE),
-          Quantities.getQuantity(0d, StandardUnits.SUSCEPTANCE)
+          transformerType.getrScB.toSquants / pow(nominalRatio, 2),
+          transformerType.getxScB.toSquants / pow(nominalRatio, 2),
+          Siemens(0),
+          Siemens(0),
         )
       case PowerFlowCaseC =>
         val nominalRatio = transformerType
           .getvRatedA()
-          .divide(transformerType.getvRatedC())
-          .asType(classOf[Dimensionless])
-          .to(AbstractUnit.ONE)
-          .getValue
-          .doubleValue()
+          .toSquants / transformerType.getvRatedC().toSquants
         (
-          transformerType.getrScC.divide(pow(nominalRatio, 2)),
-          transformerType.getxScC.divide(pow(nominalRatio, 2)),
-          Quantities.getQuantity(0d, StandardUnits.CONDUCTANCE),
-          Quantities.getQuantity(0d, StandardUnits.SUSCEPTANCE)
+          transformerType.getrScC.toSquants / pow(nominalRatio, 2),
+          transformerType.getxScC.toSquants / pow(nominalRatio, 2),
+          Siemens(0),
+          Siemens(0),
         )
     }
 
     /* Translate the single parameters to dimensionless units based on the grid's reference system */
     (
       /* r */
-      refSystem.rInPu(Ohms(rTrafo.to(OHM).getValue.doubleValue())),
+      refSystem.rInPu(rTrafo),
       /* x */
-      refSystem.xInPu(Ohms(xTrafo.to(OHM).getValue.doubleValue())),
+      refSystem.xInPu(xTrafo),
       /* g */
-      refSystem.gInPu(Siemens(gTrafo.to(SIEMENS).getValue.doubleValue())),
+      refSystem.gInPu(gTrafo),
       /* b */
-      refSystem.bInPu(Siemens(bTrafo.to(SIEMENS).getValue.doubleValue()))
+      refSystem.bInPu(bTrafo),
     )
   }
 
@@ -400,17 +398,17 @@ case object Transformer3wModel extends LazyLogging {
     val (vNodeAVal, vTypeAVal) =
       (
         transformer3wInput.getNodeA.getVoltLvl.getNominalVoltage.getValue.doubleValue,
-        trafo3wType.getvRatedA.getValue.doubleValue
+        trafo3wType.getvRatedA.getValue.doubleValue,
       )
     val (vNodeBVal, vTypeBVal) =
       (
         transformer3wInput.getNodeB.getVoltLvl.getNominalVoltage.getValue.doubleValue,
-        trafo3wType.getvRatedB.getValue.doubleValue
+        trafo3wType.getvRatedB.getValue.doubleValue,
       )
     val (vNodeCVal, vTypeCVal) =
       (
         transformer3wInput.getNodeC.getVoltLvl.getNominalVoltage.getValue.doubleValue,
-        trafo3wType.getvRatedC.getValue.doubleValue
+        trafo3wType.getvRatedC.getValue.doubleValue,
       )
 
     val nomVoltDevA = vNodeAVal - vTypeAVal
@@ -419,15 +417,15 @@ case object Transformer3wModel extends LazyLogging {
 
     val maxAllowedDeviation = 0.05
 
-    if (nomVoltDevA > maxAllowedDeviation)
+    if nomVoltDevA > maxAllowedDeviation then
       throw new InvalidGridException(
         s"The rated voltage of node A is ${transformer3wInput.getNodeA.getVoltLvl.getNominalVoltage}, but the winding A is only rated for ${trafo3wType.getvRatedA}."
       )
-    if (nomVoltDevB > maxAllowedDeviation)
+    if nomVoltDevB > maxAllowedDeviation then
       throw new InvalidGridException(
         s"The rated voltage of node B is ${transformer3wInput.getNodeB.getVoltLvl.getNominalVoltage}, but the winding B is only rated for ${trafo3wType.getvRatedB}."
       )
-    if (nomVoltDevC > maxAllowedDeviation)
+    if nomVoltDevC > maxAllowedDeviation then
       throw new InvalidGridException(
         s"The rated voltage of node C is ${transformer3wInput.getNodeC.getVoltLvl.getNominalVoltage}, but the winding C is only rated for ${trafo3wType.getvRatedC}."
       )
@@ -435,30 +433,30 @@ case object Transformer3wModel extends LazyLogging {
     // check for wrong positioning by comparing node{A,B,C} voltage and transformer type v{A,B,C}
     val transformerWrongPositionExceptionString: (
         Quantity[ElectricPotential],
-        Quantity[ElectricPotential]
+        Quantity[ElectricPotential],
     ) => String = { (vRatedNodeX, typeVNodeX) =>
       s"The rated voltage of node A is $vRatedNodeX, " +
         s"but the winding A is only rated for $typeVNodeX. Is the transformer connected correctly?"
     }
-    if (vNodeAVal < vTypeAVal)
+    if vNodeAVal < vTypeAVal then
       throw new InvalidGridException(
         transformerWrongPositionExceptionString(
           transformer3wInput.getNodeA.getVoltLvl.getNominalVoltage,
-          trafo3wType.getvRatedA
+          trafo3wType.getvRatedA,
         )
       )
-    if (vNodeBVal < vTypeBVal)
+    if vNodeBVal < vTypeBVal then
       throw new InvalidGridException(
         transformerWrongPositionExceptionString(
           transformer3wInput.getNodeB.getVoltLvl.getNominalVoltage,
-          trafo3wType.getvRatedB
+          trafo3wType.getvRatedB,
         )
       )
-    if (vNodeCVal < vTypeCVal)
+    if vNodeCVal < vTypeCVal then
       throw new InvalidGridException(
         transformerWrongPositionExceptionString(
           transformer3wInput.getNodeC.getVoltLvl.getNominalVoltage,
-          trafo3wType.getvRatedC
+          trafo3wType.getvRatedC,
         )
       )
 
@@ -467,9 +465,9 @@ case object Transformer3wModel extends LazyLogging {
     val sNomB = trafo3wType.getsRatedB.getValue.doubleValue
     val sNomC = trafo3wType.getsRatedC.getValue.doubleValue
 
-    if (sNomA < (sNomB + sNomC)) {
+    if sNomA < (sNomB + sNomC) then {
       val maxSNomUnderlying = max(sNomB, sNomC)
-      if (sNomA < maxSNomUnderlying)
+      if sNomA < maxSNomUnderlying then
         throw new InvalidParameterException(
           s"The winding A of transformer type has a lower rating ($sNomA) as winding B ($sNomB) or C ($sNomC)!"
         )
@@ -481,7 +479,7 @@ case object Transformer3wModel extends LazyLogging {
           trafo3wType.getsRatedA(),
           trafo3wType.getsRatedB(),
           trafo3wType.getsRatedC(),
-          trafo3wType.getsRatedB().add(trafo3wType.getsRatedC())
+          trafo3wType.getsRatedB().add(trafo3wType.getsRatedC()),
         )
     }
   }
@@ -503,7 +501,7 @@ case object Transformer3wModel extends LazyLogging {
     transformerModel.powerFlowCase match {
       case Transformer3wPowerFlowCase.PowerFlowCaseA =>
         BigDecimal
-          .apply(transformerModel.tapRatio)
+          .apply(transformerModel.getTapRation.toString)
           .setScale(5, RoundingMode.HALF_UP)
       case Transformer3wPowerFlowCase.PowerFlowCaseB |
           Transformer3wPowerFlowCase.PowerFlowCaseC =>
@@ -526,7 +524,7 @@ case object Transformer3wModel extends LazyLogging {
     */
   def y0(
       transformer3wModel: Transformer3wModel,
-      port: Transformer3wPort.Value
+      port: Transformer3wPort.Value,
   ): Complex = {
     val amount = transformer3wModel.amount
     transformer3wModel.powerFlowCase match {
@@ -535,12 +533,12 @@ case object Transformer3wModel extends LazyLogging {
         val bij = transformer3wModel.bij().value.doubleValue()
         val gii = transformer3wModel.g0().value.doubleValue()
         val bii = transformer3wModel.b0().value.doubleValue()
-        amount * ((1 - 1 / transformer3wModel.tapRatio) * Complex(
+        amount * ((1 - 1 / transformer3wModel.getTapRation) * Complex(
           gij,
-          bij
+          bij,
         ) + Complex(
           gii,
-          bii
+          bii,
         ))
       case _ => Complex.zero
     }
@@ -564,7 +562,7 @@ case object Transformer3wModel extends LazyLogging {
     val bij = transformer3wModel.bij().value.doubleValue()
     transformer3wModel.powerFlowCase match {
       case PowerFlowCaseA =>
-        amount * Complex(gij, bij) / transformer3wModel.tapRatio
+        amount * Complex(gij, bij) / transformer3wModel.getTapRation
       case _ => amount * Complex(gij, bij)
     }
   }

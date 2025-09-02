@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants._
+import squants.*
 import squants.energy.{KilowattHours, WattHours}
 import squants.space.CubicMeters
 
@@ -20,7 +20,7 @@ import scala.util.Try
   */
 final class EnergyDensity private (
     val value: Double,
-    val unit: EnergyDensityUnit
+    val unit: EnergyDensityUnit,
 ) extends Quantity[EnergyDensity] {
 
   def dimension: EnergyDensity.type = EnergyDensity

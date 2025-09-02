@@ -10,11 +10,11 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.connectors.{
   CouchbaseConnector,
   InfluxDbConnector,
-  SqlConnector
+  SqlConnector,
 }
 import edu.ie3.datamodel.io.factory.timeseries.{
   CosmoTimeBasedWeatherValueFactory,
-  IconTimeBasedWeatherValueFactory
+  IconTimeBasedWeatherValueFactory,
 }
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.couchbase.CouchbaseWeatherSource
@@ -23,33 +23,38 @@ import edu.ie3.datamodel.io.source.influxdb.InfluxDbWeatherSource
 import edu.ie3.datamodel.io.source.sql.SqlWeatherSource
 import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
-  WeatherSource => PsdmWeatherSource
+  WeatherSource as PsdmWeatherSource,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
+import edu.ie3.simona.config.InputConfig
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  BaseInfluxDb1xParams,
   CouchbaseParams,
-  InfluxDb1xParams,
-  SqlParams
+  SqlParams,
 }
 import edu.ie3.simona.exceptions.InitializationException
-import edu.ie3.simona.ontology.messages.services.WeatherMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   EMPTY_WEATHER_DATA,
   WeatherScheme,
-  getWeatherData
+  getWeatherData,
 }
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
-import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
-import edu.ie3.simona.util.TickUtil
-import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.DoubleUtils.ImplicitDouble
+import edu.ie3.simona.service.weather.WeatherSource as SimonaWeatherSource
+import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
+import edu.ie3.util.DoubleUtils.!~=
 import edu.ie3.util.interval.ClosedInterval
 import tech.units.indriya.ComparableQuantity
 
-import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.{
+  CollectionHasAsScala,
+  IterableHasAsJava,
+  MapHasAsScala,
+}
 import scala.util.{Failure, Success, Try}
 
 /** This class provides an implementation of the SIMONA trait
@@ -70,7 +75,7 @@ private[weather] final case class WeatherSourceWrapper private (
     source: PsdmWeatherSource,
     override val idCoordinateSource: IdCoordinateSource,
     resolution: Long,
-    maxCoordinateDistance: ComparableQuantity[Length]
+    maxCoordinateDistance: ComparableQuantity[Length],
 )(
     private implicit val simulationStart: ZonedDateTime
 ) extends SimonaWeatherSource
@@ -88,15 +93,15 @@ private[weather] final case class WeatherSourceWrapper private (
     */
   override def getWeather(
       tick: Long,
-      weightedCoordinates: WeatherSource.WeightedCoordinates
-  ): WeatherMessage.WeatherData = {
+      weightedCoordinates: WeatherSource.WeightedCoordinates,
+  ): WeatherData = {
     val dateTime = tick.toDateTime
     val interval = new ClosedInterval(dateTime, dateTime)
     val coordinates = weightedCoordinates.weighting.keys.toList.asJavaCollection
     val results = source
       .getWeather(
         interval,
-        coordinates
+        coordinates,
       )
       .asScala
       .toMap
@@ -120,7 +125,7 @@ private[weather] final case class WeatherSourceWrapper private (
           point, {
             logger.warn(s"Received an unexpected point: $point")
             0d
-          }
+          },
         )
         /* Sum up weight and contributions */
 
@@ -165,8 +170,8 @@ private[weather] final case class WeatherSourceWrapper private (
             diffIrrWeight,
             dirIrrWeight,
             tempWeight,
-            windVelWeight
-          )
+            windVelWeight,
+          ),
         )
     } match {
       case (weatherData: WeatherData, weightSum: WeightSum) =>
@@ -186,133 +191,122 @@ private[weather] final case class WeatherSourceWrapper private (
     */
   override def getDataTicks(
       requestFrameStart: Long,
-      requestFrameEnd: Long
-  ): Array[Long] =
-    TickUtil.getTicksInBetween(requestFrameStart, requestFrameEnd, resolution)
+      requestFrameEnd: Long,
+  ): Array[Long] = {
+    // Note: because we want data for the start tick as well, we need to use any tick before the start tick
+    val intervalStart = requestFrameStart.toDateTime.minusSeconds(1)
+
+    source
+      .getTimeKeysAfter(intervalStart)
+      .asScala
+      .flatMap { case (_, timeKeys) =>
+        timeKeys.asScala
+      }
+      .map(_.toTick)
+      .filter(_ <= requestFrameEnd)
+      .toArray
+  }
 }
 
 private[weather] object WeatherSourceWrapper extends LazyLogging {
-  private val DEFAULT_RESOLUTION = 3600L
 
   def apply(
-      csvSep: String,
-      directoryPath: Path,
-      idCoordinateSourceFunction: () => IdCoordinateSource,
-      timestampPattern: Option[String],
-      scheme: String,
-      resolution: Option[Long],
-      maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
-    val idCoordinateSource = idCoordinateSourceFunction()
-    val source = new CsvWeatherSource(
-      csvSep,
-      directoryPath,
-      new FileNamingStrategy(),
-      idCoordinateSource,
-      buildFactory(scheme, timestampPattern)
-    )
-    logger.info(
-      "Successfully initiated CsvWeatherSource as source for WeatherSourceWrapper."
-    )
+      source: PsdmWeatherSource
+  )(implicit
+      simulationStart: ZonedDateTime,
+      idCoordinateSource: IdCoordinateSource,
+      resolution: Long,
+      distance: ComparableQuantity[Length],
+  ): WeatherSourceWrapper = {
     WeatherSourceWrapper(
       source,
       idCoordinateSource,
-      resolution.getOrElse(DEFAULT_RESOLUTION),
-      maxCoordinateDistance
+      resolution,
+      distance,
     )
   }
 
-  def apply(
-      couchbaseParams: CouchbaseParams,
-      idCoordinateSourceFunction: () => IdCoordinateSource,
-      timestampPattern: Option[String],
-      scheme: String,
-      resolution: Option[Long],
-      maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
-    val couchbaseConnector = new CouchbaseConnector(
-      couchbaseParams.url,
-      couchbaseParams.bucketName,
-      couchbaseParams.userName,
-      couchbaseParams.password
-    )
-    val idCoordinateSource = idCoordinateSourceFunction()
-    val source = new CouchbaseWeatherSource(
-      couchbaseConnector,
-      idCoordinateSourceFunction(),
-      couchbaseParams.coordinateColumnName,
-      couchbaseParams.keyPrefix,
-      buildFactory(scheme, timestampPattern),
-      "yyyy-MM-dd'T'HH:mm:ssxxx"
-    )
-    logger.info(
-      "Successfully initiated CouchbaseWeatherSource as source for WeatherSourceWrapper."
-    )
-    WeatherSourceWrapper(
-      source,
-      idCoordinateSource,
-      resolution.getOrElse(DEFAULT_RESOLUTION),
-      maxCoordinateDistance
-    )
-  }
+  private[weather] def buildPSDMSource(
+      cfgParams: InputConfig.WeatherDatasource,
+      definedWeatherSources: Option[Serializable],
+  )(implicit
+      idCoordinateSource: IdCoordinateSource
+  ): Option[PsdmWeatherSource] = {
+    implicit val timestampPattern: Option[String] =
+      cfgParams.timestampPattern
+    implicit val scheme: String = cfgParams.scheme
 
-  def apply(
-      influxDbParams: InfluxDb1xParams,
-      idCoordinateSourceFunction: () => IdCoordinateSource,
-      timestampPattern: Option[String],
-      scheme: String,
-      resolution: Option[Long],
-      maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
-    val influxDb1xConnector =
-      new InfluxDbConnector(influxDbParams.url, influxDbParams.database)
-    val idCoordinateSource = idCoordinateSourceFunction()
-    val source = new InfluxDbWeatherSource(
-      influxDb1xConnector,
-      idCoordinateSource,
-      buildFactory(scheme, timestampPattern)
-    )
-    logger.info(
-      "Successfully initiated InfluxDbWeatherSource as source for WeatherSourceWrapper."
-    )
-    WeatherSourceWrapper(
-      source,
-      idCoordinateSource,
-      resolution.getOrElse(DEFAULT_RESOLUTION),
-      maxCoordinateDistance
-    )
-  }
+    val factory = buildFactory(scheme, timestampPattern)
 
-  def apply(
-      sqlParams: SqlParams,
-      idCoordinateSourceFunction: () => IdCoordinateSource,
-      timestampPattern: Option[String],
-      scheme: String,
-      resolution: Option[Long],
-      maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
-    val sqlConnector = new SqlConnector(
-      sqlParams.jdbcUrl,
-      sqlParams.userName,
-      sqlParams.password
-    )
-    val idCoordinateSource = idCoordinateSourceFunction()
-    val source = new SqlWeatherSource(
-      sqlConnector,
-      idCoordinateSource,
-      sqlParams.schemaName,
-      sqlParams.tableName,
-      buildFactory(scheme, timestampPattern)
-    )
-    logger.info(
-      "Successfully initiated SqlWeatherSource as source for WeatherSourceWrapper."
-    )
-    WeatherSourceWrapper(
-      source,
-      idCoordinateSource,
-      resolution.getOrElse(DEFAULT_RESOLUTION),
-      maxCoordinateDistance
-    )
+    val source = definedWeatherSources.flatMap {
+      case BaseCsvParams(csvSep, directoryPath, _) =>
+        // initializing a csv weather source
+        Some(
+          new CsvWeatherSource(
+            csvSep,
+            Paths.get(directoryPath),
+            new FileNamingStrategy(),
+            idCoordinateSource,
+            factory,
+          )
+        )
+      case couchbaseParams: CouchbaseParams =>
+        // initializing a couchbase weather source
+        val couchbaseConnector = new CouchbaseConnector(
+          couchbaseParams.url,
+          couchbaseParams.bucketName,
+          couchbaseParams.userName,
+          couchbaseParams.password,
+        )
+        Some(
+          new CouchbaseWeatherSource(
+            couchbaseConnector,
+            idCoordinateSource,
+            couchbaseParams.coordinateColumnName,
+            couchbaseParams.keyPrefix,
+            factory,
+            "yyyy-MM-dd'T'HH:mm:ssxxx",
+          )
+        )
+      case BaseInfluxDb1xParams(database, _, url) =>
+        // initializing an influxDb weather source
+        val influxDb1xConnector =
+          new InfluxDbConnector(url, database)
+        Some(
+          new InfluxDbWeatherSource(
+            influxDb1xConnector,
+            idCoordinateSource,
+            factory,
+          )
+        )
+      case sqlParams: SqlParams =>
+        // initializing a sql weather source
+        val sqlConnector = new SqlConnector(
+          sqlParams.jdbcUrl,
+          sqlParams.userName,
+          sqlParams.password,
+        )
+        Some(
+          new SqlWeatherSource(
+            sqlConnector,
+            idCoordinateSource,
+            sqlParams.schemaName,
+            sqlParams.tableName,
+            factory,
+          )
+        )
+      case _ =>
+        // no weather source is initialized
+        None
+    }
+
+    source.foreach { src =>
+      logger.info(
+        s"Successfully initialized ${src.getClass.getSimpleName} as source for WeatherSourceWrapper."
+      )
+    }
+
+    source
   }
 
   private def buildFactory(scheme: String, timestampPattern: Option[String]) =
@@ -321,15 +315,23 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         throw new InitializationException(
           s"Error while initializing WeatherFactory for weather source wrapper: '$scheme' is not a weather scheme. Supported schemes:\n\t${WeatherScheme.values
               .mkString("\n\t")}'",
-          exception
+          exception,
         )
       case Success(WeatherScheme.ICON) =>
         timestampPattern
-          .map(new IconTimeBasedWeatherValueFactory(_))
+          .map(pattern =>
+            new IconTimeBasedWeatherValueFactory(
+              DateTimeFormatter.ofPattern(pattern)
+            )
+          )
           .getOrElse(new IconTimeBasedWeatherValueFactory())
       case Success(WeatherScheme.COSMO) =>
         timestampPattern
-          .map(new CosmoTimeBasedWeatherValueFactory(_))
+          .map(pattern =>
+            new CosmoTimeBasedWeatherValueFactory(
+              DateTimeFormatter.ofPattern(pattern)
+            )
+          )
           .getOrElse(new CosmoTimeBasedWeatherValueFactory())
       case Success(unknownScheme) =>
         throw new InitializationException(
@@ -354,19 +356,19 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       diffIrr: Double,
       dirIrr: Double,
       temp: Double,
-      windVel: Double
+      windVel: Double,
   ) {
     def add(
-        diffIrr: Double,
-        dirIrr: Double,
-        temp: Double,
-        windVel: Double
+        addedDiffIrr: Double,
+        addedDirIrr: Double,
+        addedTemp: Double,
+        addedWindVel: Double,
     ): WeightSum =
       WeightSum(
-        this.diffIrr + diffIrr,
-        this.dirIrr + dirIrr,
-        this.temp + temp,
-        this.windVel + windVel
+        this.diffIrr + addedDiffIrr,
+        this.dirIrr + addedDirIrr,
+        this.temp + addedTemp,
+        this.windVel + addedWindVel,
       )
 
     /** Scale the given [[WeatherData]] by dividing by the sum of weights per
@@ -383,14 +385,14 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       case WeatherData(diffIrr, dirIrr, temp, windVel) =>
         implicit val precision: Double = 1e-3
         WeatherData(
-          if (this.diffIrr !~= 0d) diffIrr.divide(this.diffIrr)
+          if this.diffIrr !~= 0d then diffIrr.divide(this.diffIrr)
           else EMPTY_WEATHER_DATA.diffIrr,
-          if (this.dirIrr !~= 0d) dirIrr.divide(this.dirIrr)
+          if this.dirIrr !~= 0d then dirIrr.divide(this.dirIrr)
           else EMPTY_WEATHER_DATA.dirIrr,
-          if (this.temp !~= 0d) temp.divide(this.temp)
+          if this.temp !~= 0d then temp.divide(this.temp)
           else EMPTY_WEATHER_DATA.temp,
-          if (this.windVel !~= 0d) windVel.divide(this.windVel)
-          else EMPTY_WEATHER_DATA.windVel
+          if this.windVel !~= 0d then windVel.divide(this.windVel)
+          else EMPTY_WEATHER_DATA.windVel,
         )
     }
   }

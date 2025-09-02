@@ -9,16 +9,16 @@ package edu.ie3.simona.service.weather
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.timeseries.individual.{
   IndividualTimeSeries,
-  TimeBasedValue
+  TimeBasedValue,
 }
 import edu.ie3.datamodel.models.value.{
   SolarIrradianceValue,
   TemperatureValue,
   WeatherValue,
-  WindValue
+  WindValue,
 }
 import edu.ie3.simona.service.weather.WeatherValueInterpolation.ValueWithWeight
-import edu.ie3.simona.service.weather.WeatherValueInterpolationSpec._
+import edu.ie3.simona.service.weather.WeatherValueInterpolationSpec.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
@@ -31,13 +31,13 @@ import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class WeatherValueInterpolationSpec
     extends UnitSpec
     with TableDrivenPropertyChecks {
   "The WeatherValueInterpolation" should {
-    val getValue = PrivateMethod[Option[ValueWithWeight[_]]](Symbol("getValue"))
+    val getValue = PrivateMethod[Option[ValueWithWeight[?]]](Symbol("getValue"))
 
     "find correct previous values" in {
       val cases = Table(
@@ -46,7 +46,7 @@ class WeatherValueInterpolationSpec
           "expectedDiffIrr",
           "expectedDirIrr",
           "expectedTemp",
-          "expectedWindVel"
+          "expectedWindVel",
         ),
         (
           Set(
@@ -54,14 +54,14 @@ class WeatherValueInterpolationSpec
             timeBasedValue1,
             timeBasedValue2,
             timeBasedValue3,
-            timeBasedValue4
+            timeBasedValue4,
           ),
           Some(ValueWithWeight(WattsPerSquareMeter(50d), 1800)),
           Some(ValueWithWeight(WattsPerSquareMeter(50d), 1800)),
           Some(ValueWithWeight(Temperature(238.15d, Kelvin), 6000)),
-          Some(ValueWithWeight(MetersPerSecond(10d), 6000))
+          Some(ValueWithWeight(MetersPerSecond(10d), 6000)),
         ),
-        (Set(timeBasedValue0), None, None, None, None)
+        (Set(timeBasedValue0), None, None, None, None),
       )
 
       forAll(cases) {
@@ -70,7 +70,7 @@ class WeatherValueInterpolationSpec
             expectedDiffIrr,
             expectedDirIrr,
             expectedTemp,
-            expectedWindVel
+            expectedWindVel,
         ) =>
           val timeSeries: IndividualTimeSeries[WeatherValue] =
             buildTimeSeries(timeBasedValues)
@@ -81,7 +81,7 @@ class WeatherValueInterpolationSpec
             time,
             intervalStart,
             time,
-            "diffIrr"
+            "diffIrr",
           ) shouldBe expectedDiffIrr
 
           WeatherValueInterpolation invokePrivate getValue(
@@ -89,7 +89,7 @@ class WeatherValueInterpolationSpec
             time,
             intervalStart,
             time,
-            "diffIrr"
+            "diffIrr",
           ) shouldBe expectedDirIrr
 
           WeatherValueInterpolation invokePrivate getValue(
@@ -97,7 +97,7 @@ class WeatherValueInterpolationSpec
             time,
             intervalStart,
             time,
-            "temp"
+            "temp",
           ) shouldBe expectedTemp
 
           WeatherValueInterpolation invokePrivate getValue(
@@ -105,7 +105,7 @@ class WeatherValueInterpolationSpec
             time,
             intervalStart,
             time,
-            "windVel"
+            "windVel",
           ) shouldBe expectedWindVel
       }
     }
@@ -117,7 +117,7 @@ class WeatherValueInterpolationSpec
           "expectedDiffIrr",
           "expectedDirIrr",
           "expectedTemp",
-          "expectedWindVel"
+          "expectedWindVel",
         ),
         (
           Set(
@@ -126,20 +126,20 @@ class WeatherValueInterpolationSpec
             timeBasedValue2,
             timeBasedValue3,
             timeBasedValue4,
-            timeBasedValue5
+            timeBasedValue5,
           ),
           Some(ValueWithWeight(WattsPerSquareMeter(60d), 1800)),
           Some(ValueWithWeight(WattsPerSquareMeter(60d), 1800)),
           Some(ValueWithWeight(Temperature(15d, Celsius), 1800)),
-          Some(ValueWithWeight(MetersPerSecond(20d), 1800))
+          Some(ValueWithWeight(MetersPerSecond(20d), 1800)),
         ),
         (
           Set(timeBasedValue0, timeBasedValue4, timeBasedValue5),
           Some(ValueWithWeight(WattsPerSquareMeter(40d), 6000)),
           Some(ValueWithWeight(WattsPerSquareMeter(40d), 6000)),
           None,
-          None
-        )
+          None,
+        ),
       )
 
       forAll(cases) {
@@ -148,7 +148,7 @@ class WeatherValueInterpolationSpec
             expectedDiffIrr,
             expectedDirIrr,
             expectedTemp,
-            expectedWindVel
+            expectedWindVel,
         ) =>
           val timeSeries: IndividualTimeSeries[WeatherValue] =
             buildTimeSeries(timeBasedValues)
@@ -159,7 +159,7 @@ class WeatherValueInterpolationSpec
             time,
             time,
             intervalEnd,
-            "diffIrr"
+            "diffIrr",
           ) shouldBe expectedDiffIrr
 
           WeatherValueInterpolation invokePrivate getValue(
@@ -167,7 +167,7 @@ class WeatherValueInterpolationSpec
             time,
             time,
             intervalEnd,
-            "diffIrr"
+            "diffIrr",
           ) shouldBe expectedDirIrr
 
           WeatherValueInterpolation invokePrivate getValue(
@@ -175,7 +175,7 @@ class WeatherValueInterpolationSpec
             time,
             time,
             intervalEnd,
-            "temp"
+            "temp",
           ) shouldBe expectedTemp
 
           WeatherValueInterpolation invokePrivate getValue(
@@ -183,25 +183,25 @@ class WeatherValueInterpolationSpec
             time,
             time,
             intervalEnd,
-            "windVel"
+            "windVel",
           ) shouldBe expectedWindVel
       }
     }
 
     "get a value correctly" in {
-      val getValue = PrivateMethod[Option[_]](Symbol("getValue"))
+      val getValue = PrivateMethod[Option[?]](Symbol("getValue"))
 
       val weatherValue = new WeatherValue(
         coordinate67775,
         new SolarIrradianceValue(
           Quantities.getQuantity(50d, StandardUnits.SOLAR_IRRADIANCE),
-          Quantities.getQuantity(50d, StandardUnits.SOLAR_IRRADIANCE)
+          Quantities.getQuantity(50d, StandardUnits.SOLAR_IRRADIANCE),
         ),
         new TemperatureValue(Quantities.getQuantity(238.15d, Units.KELVIN)),
         new WindValue(
           missingValue,
-          Quantities.getQuantity(10d, Units.METRE_PER_SECOND)
-        )
+          Quantities.getQuantity(10d, Units.METRE_PER_SECOND),
+        ),
       )
 
       val cases = Table(
@@ -210,13 +210,13 @@ class WeatherValueInterpolationSpec
         ("dirIrr", Some(WattsPerSquareMeter(50d))),
         ("temp", Some(Temperature(238.15d, Kelvin))),
         ("windVel", Some(MetersPerSecond(10d))),
-        ("other", None)
+        ("other", None),
       )
 
       forAll(cases) { (typeString, expectedValue) =>
         WeatherValueInterpolation invokePrivate getValue(
           weatherValue,
-          typeString
+          typeString,
         ) shouldBe expectedValue
       }
     }
@@ -237,8 +237,8 @@ case object WeatherValueInterpolationSpec {
         new TemperatureValue(
           missingValue
         ),
-        new WindValue(missingValue, missingValue)
-      )
+        new WindValue(missingValue, missingValue),
+      ),
     )
 
   private val timeBasedValue1: TimeBasedValue[WeatherValue] =
@@ -248,14 +248,14 @@ case object WeatherValueInterpolationSpec {
         coordinate67775,
         new SolarIrradianceValue(
           missingValue,
-          Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE)
+          Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
         ),
         new TemperatureValue(Quantities.getQuantity(238.15d, Units.KELVIN)),
         new WindValue(
           missingValue,
-          Quantities.getQuantity(10, Units.METRE_PER_SECOND)
-        )
-      )
+          Quantities.getQuantity(10, Units.METRE_PER_SECOND),
+        ),
+      ),
     )
 
   private val timeBasedValue2: TimeBasedValue[WeatherValue] =
@@ -265,11 +265,11 @@ case object WeatherValueInterpolationSpec {
         coordinate67775,
         new SolarIrradianceValue(
           Quantities.getQuantity(50d, StandardUnits.SOLAR_IRRADIANCE),
-          Quantities.getQuantity(50d, StandardUnits.SOLAR_IRRADIANCE)
+          Quantities.getQuantity(50d, StandardUnits.SOLAR_IRRADIANCE),
         ),
         new TemperatureValue(missingValue),
-        new WindValue(missingValue, missingValue)
-      )
+        new WindValue(missingValue, missingValue),
+      ),
     )
 
   private val timeBasedValue3: TimeBasedValue[WeatherValue] =
@@ -279,14 +279,14 @@ case object WeatherValueInterpolationSpec {
         coordinate67775,
         new SolarIrradianceValue(
           missingValue,
-          Quantities.getQuantity(60d, StandardUnits.SOLAR_IRRADIANCE)
+          Quantities.getQuantity(60d, StandardUnits.SOLAR_IRRADIANCE),
         ),
         new TemperatureValue(Quantities.getQuantity(288.15d, Units.KELVIN)),
         new WindValue(
           missingValue,
-          Quantities.getQuantity(20, Units.METRE_PER_SECOND)
-        )
-      )
+          Quantities.getQuantity(20, Units.METRE_PER_SECOND),
+        ),
+      ),
     )
 
   private val timeBasedValue4: TimeBasedValue[WeatherValue] =
@@ -296,11 +296,11 @@ case object WeatherValueInterpolationSpec {
         coordinate67775,
         new SolarIrradianceValue(
           Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
-          Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE)
+          Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
         ),
         new TemperatureValue(missingValue),
-        new WindValue(missingValue, missingValue)
-      )
+        new WindValue(missingValue, missingValue),
+      ),
     )
 
   private val timeBasedValue5: TimeBasedValue[WeatherValue] =
@@ -310,18 +310,18 @@ case object WeatherValueInterpolationSpec {
         coordinate67775,
         new SolarIrradianceValue(
           missingValue,
-          Quantities.getQuantity(50d, StandardUnits.SOLAR_IRRADIANCE)
+          Quantities.getQuantity(50d, StandardUnits.SOLAR_IRRADIANCE),
         ),
         new TemperatureValue(Quantities.getQuantity(288.15d, Units.KELVIN)),
-        new WindValue(missingValue, missingValue)
-      )
+        new WindValue(missingValue, missingValue),
+      ),
     )
 
   def buildTimeBasedValue(
       time: ZonedDateTime,
-      value: WeatherValue
+      value: WeatherValue,
   ): TimeBasedValue[WeatherValue] = {
-    new TimeBasedValue[WeatherValue](UUID.randomUUID(), time, value)
+    new TimeBasedValue[WeatherValue](time, value)
   }
 
   def buildTimeSeries(

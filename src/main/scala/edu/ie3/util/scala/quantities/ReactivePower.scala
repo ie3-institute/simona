@@ -6,15 +6,15 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.energy._
-import squants.time.{Hours, Time, TimeDerivative, TimeIntegral}
-import squants._
+import squants.energy.*
+import squants.time.{Hours, Time, TimeIntegral}
+import squants.*
 
 import scala.util.Try
 
 final class ReactivePower private (
     val value: Double,
-    val unit: ReactivePowerUnit
+    val unit: ReactivePowerUnit,
 ) extends Quantity[ReactivePower]
     with TimeIntegral[PowerRamp] {
 

@@ -9,23 +9,23 @@ package edu.ie3.simona.model.assets.control
 import edu.ie3.datamodel.models.input.system.characteristic
 import edu.ie3.datamodel.models.input.system.characteristic.{
   CharacteristicPoint,
-  CosPhiP => CosPhiPInput,
-  QV => QVInput
+  CosPhiP as CosPhiPInput,
+  QV as QVInput,
 }
 import edu.ie3.simona.exceptions.QControlException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.control.QControl.{
   CosPhiFixed,
   CosPhiP,
-  QV
+  QV,
 }
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 import squants.Each
-import tech.units.indriya.quantity.Quantities._
+import tech.units.indriya.quantity.Quantities.*
 
 import java.util
 import javax.measure.quantity.Dimensionless
@@ -33,9 +33,8 @@ import scala.collection.immutable.TreeSet
 
 class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
 
-  private val defaultTolerance = 1e-12
-  private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-12)
-  private implicit val tolerance: squants.Dimensionless = Each(1e-12)
+  private given ReactivePower = Megavars(1e-12)
+  private given squants.Dimensionless = Each(1e-12)
 
   val validCosPhiPInput: characteristic.CosPhiP = new CosPhiPInput(
     "cosPhiP:{(0.0,-1.0),(0.5,-0.8),(1.0,-0.2)}"
@@ -47,7 +46,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
 
   def createXYPair(
       d1: Double,
-      d2: Double
+      d2: Double,
   ): XYPair[squants.Dimensionless, squants.Dimensionless] = {
     XYPair(Each(d1), Each(d2))
   }
@@ -59,12 +58,12 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
           util.Arrays.asList(
             new CharacteristicPoint[Dimensionless, Dimensionless](
               getQuantity(1d, PU),
-              getQuantity(2d, PU)
+              getQuantity(2d, PU),
             ),
             new CharacteristicPoint[Dimensionless, Dimensionless](
               getQuantity(3d, PU),
-              getQuantity(4d, PU)
-            )
+              getQuantity(4d, PU),
+            ),
           )
         )
       val invalidInput =
@@ -90,7 +89,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
           Vector(
             createXYPair(0.0, -1.0),
             createXYPair(0.5, -0.8),
-            createXYPair(1.0, -0.2)
+            createXYPair(1.0, -0.2),
           )
         )
       )
@@ -103,7 +102,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
             createXYPair(0.9, -1.0),
             createXYPair(0.95, 0.0),
             createXYPair(1.05, 0.0),
-            createXYPair(1.1, 1.0)
+            createXYPair(1.1, 1.0),
           )
         )
       )
@@ -118,20 +117,19 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
 
     "provide correct values when the requested value is part of the containing xy coordinates" in {
       val requestedValue = Each(0.5)
-      (validCosPhiP.cosPhi(requestedValue) ~= Each(-0.8)) shouldBe true
+
+      validCosPhiP.cosPhi(requestedValue) should approximate(Each(-0.8))
     }
 
     "provide an interpolated value when the requested value is not part of the containing xy coordinates" in {
       val requestedValue = Each(0.75)
 
-      (validCosPhiP.cosPhi(requestedValue) ~= Each(-0.5)) shouldBe true
+      validCosPhiP.cosPhi(requestedValue) should approximate(Each(-0.5))
     }
 
     "provide the last known value when the requested value is outside of the containing xy coordinates" in {
-
-      (validCosPhiP.cosPhi(Each(2.0)) ~= Each(-0.2)) shouldBe true
-
-      (validCosPhiP.cosPhi(Each(-1.0)) ~= Each(-1.0)) shouldBe true
+      validCosPhiP.cosPhi(Each(2.0)) should approximate(Each(-0.2))
+      validCosPhiP.cosPhi(Each(-1.0)) should approximate(Each(-1.0))
     }
   }
 
@@ -159,11 +157,11 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
         (1.03, 0.375),
         (1.04, 0.5),
         (1.05, 0.625),
-        (1.10, 0.625)
+        (1.10, 0.625),
       )
 
       forAll(testingPoints) { (v: Double, scaleExpected: Double) =>
-        (validQV.q(Each(v), qMax) ~= qMax * scaleExpected) shouldBe true
+        validQV.q(Each(v), qMax) should approximate(qMax * scaleExpected)
       }
     }
 
@@ -176,7 +174,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
       val testingPoints: TableFor2[Double, Double] = Table(
         ("v", "scaleExpected"),
         (0.88, -1.0),
-        (0.9, -1),
+        (0.9, -1.0),
         (0.91, -0.8),
         (0.92, -0.6),
         (0.93, -0.4),
@@ -197,11 +195,11 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
         (1.08, 0.6),
         (1.09, 0.8),
         (1.1, 1.0),
-        (1.12, 1.0)
+        (1.12, 1.0),
       )
 
       forAll(testingPoints) { (v: Double, scaleExpected: Double) =>
-        (validQV.q(Each(v), qMax) ~= qMax * scaleExpected) shouldBe true
+        validQV.q(Each(v), qMax) should approximate(qMax * scaleExpected)
       }
     }
   }

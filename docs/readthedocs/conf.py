@@ -2,8 +2,8 @@
 
 project = u'simona'
 copyright = u'2023. TU Dortmund University, Institute of Energy Systems, Energy Efficiency and Energy Economics, Research group Distribution grid planning and operation '
-version = '1.0'
-release = '1.0.0'
+version = '4.0'
+release = '4.0.0'
 
 # General options
 needs_sphinx = '1.0'
@@ -29,7 +29,7 @@ myst_enable_extensions = ["dollarmath", "amsmath"]
 
 templates_path = ['_templates']
 exclude_trees = ['.build']
-source_suffix = ['.rst', '.md']
+source_suffix = ['.md']
 source_encoding = 'utf-8-sig'
 
 
@@ -37,7 +37,7 @@ source_encoding = 'utf-8-sig'
 html_theme = 'sphinx_rtd_theme'
 html_short_title = "simona"
 htmlhelp_basename = 'simona-doc'
-html_use_index = True
+html_use_index = False
 html_show_sourcelink = False
 html_static_path = ['_static']
 

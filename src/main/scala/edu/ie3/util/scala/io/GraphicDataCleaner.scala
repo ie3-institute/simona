@@ -38,13 +38,13 @@ object GraphicDataCleaner {
 
     val csvRawGridSource: RawGridSource = new RawGridSource(
       csvTypeSource,
-      dataSource
+      dataSource,
     )
 
     val csvGraphicSource: GraphicSource = new GraphicSource(
       csvTypeSource,
       csvRawGridSource,
-      dataSource
+      dataSource,
     )
 
     /* read - by default, the csvGraphicSource only returns valid, that means elements with all

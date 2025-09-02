@@ -15,7 +15,6 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.GivenWhenThen
 import tech.units.indriya.quantity.Quantities
 
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
@@ -25,32 +24,26 @@ class PlainWriterSpec extends UnitSpec with GivenWhenThen {
     val simRunId = UUID.randomUUID()
     val plainWriter = NodeResultWriter(simRunId)
 
-    val timeFormatter =
-      DateTimeFormatter
-        .ofPattern("yyyy-MM-dd HH:mm:ss")
-        .withZone(ZoneId.of("UTC"))
+    val timeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
 
     "should write a plain result correctly" in {
       Given("a full NodeResult")
-      val eventId = UUID.randomUUID()
-      val time = TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+      val time = TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
       val inputModelId = UUID.randomUUID()
       val vMag = Quantities.getQuantity(0.85d, PowerSystemUnits.PU)
       val vAng = Quantities.getQuantity(90d, PowerSystemUnits.DEGREE_GEOM)
 
       val nodeResultFull = new NodeResult(
-        eventId,
         time,
         inputModelId,
         vMag,
-        vAng
+        vAng,
       )
 
       When("converting to a plain result")
       val plainResult = plainWriter.writePlain(nodeResultFull)
 
       Then("plain result is correct")
-      plainResult.uuid shouldBe eventId
       plainResult.time shouldBe time.format(timeFormatter)
       plainResult.inputModel shouldBe inputModelId
       plainResult.vMag shouldBe vMag
@@ -65,8 +58,7 @@ class PlainWriterSpec extends UnitSpec with GivenWhenThen {
 
     "should write a full result correctly" in {
       Given("a plain NodeResult")
-      val eventId = UUID.randomUUID()
-      val time = "2020-01-01 00:00:00"
+      val time = "2020-01-01T00:00:00Z"
       val inputModelId = UUID.randomUUID()
       val vMag = 0.85d
       val vAng = 90d
@@ -74,24 +66,22 @@ class PlainWriterSpec extends UnitSpec with GivenWhenThen {
       val nodeResultPlain = PlainNodeResult(
         simRunId,
         time,
-        eventId,
         inputModelId,
         vMag,
-        vAng
+        vAng,
       )
 
       When("converting to a full NodeResult")
       val plainResult = plainWriter.createFull(nodeResultPlain)
 
       Then("plain result is correct")
-      plainResult.getUuid shouldBe eventId
       plainResult.getTime shouldBe TimeUtil.withDefaults.toZonedDateTime(time)
       plainResult.getInputModel shouldBe inputModelId
       plainResult
         .getvMag() shouldBe Quantities.getQuantity(vMag, PowerSystemUnits.PU)
       plainResult.getvAng() shouldBe Quantities.getQuantity(
         vAng,
-        PowerSystemUnits.DEGREE_GEOM
+        PowerSystemUnits.DEGREE_GEOM,
       )
     }
   }

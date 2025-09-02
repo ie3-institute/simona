@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.io.result
 
-import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.simona.io.result.plain.PlainWriter.NodeResultWriter
@@ -16,21 +15,21 @@ import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGI
 import org.apache.kafka.clients.producer.{
   KafkaProducer,
   ProducerConfig,
-  ProducerRecord
+  ProducerRecord,
 }
 import org.apache.kafka.common.serialization.{Serdes, Serializer}
 
 import java.util.{Properties, UUID}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.reflect.ClassTag
 
 final case class ResultEntityKafkaSink[
     V <: ResultEntity,
-    P <: PlainResult
+    P <: PlainResult,
 ] private (
     producer: KafkaProducer[String, P],
     plainWriter: PlainWriter[V, P],
-    topic: String
+    topic: String,
 ) extends ResultEntitySink {
 
   override def handleResultEntity(resultEntity: ResultEntity): Unit = {
@@ -53,50 +52,49 @@ object ResultEntityKafkaSink {
       simRunId: UUID,
       bootstrapServers: String,
       schemaRegistryUrl: String,
-      linger: Int
+      linger: Int,
   )(implicit
       tag: ClassTag[R]
-  ): ResultEntityKafkaSink[_ <: ResultEntity, _ <: PlainResult] = {
+  ): ResultEntityKafkaSink[? <: ResultEntity, ? <: PlainResult] = {
     val props = new Properties()
     props.put(ProducerConfig.LINGER_MS_CONFIG, linger)
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
     props.put(
       ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,
-      true
+      true,
     ) // exactly once delivery
 
     val NodeResClass = classOf[NodeResult]
 
     tag.runtimeClass match {
       case NodeResClass =>
-        implicit val recordFormat: RecordFormat[PlainNodeResult] =
-          RecordFormat[PlainNodeResult]
+        implicit val valueSerializer: Serializer[PlainNodeResult] =
+          reflectionSerializer4S[PlainNodeResult]
         createSink(schemaRegistryUrl, props, topic, NodeResultWriter(simRunId))
     }
   }
 
-  private def createSink[F <: ResultEntity, P <: PlainResult: RecordFormat](
+  private def createSink[F <: ResultEntity, P <: PlainResult](
       schemaRegistryUrl: String,
       props: Properties,
       topic: String,
-      writer: PlainWriter[F, P]
-  ): ResultEntityKafkaSink[F, P] = {
+      writer: PlainWriter[F, P],
+  )(implicit valueSerializer: Serializer[P]): ResultEntityKafkaSink[F, P] = {
     val keySerializer = Serdes.String().serializer()
-    val valueSerializer: Serializer[P] = reflectionSerializer4S[P]
 
     valueSerializer.configure(
       Map(SCHEMA_REGISTRY_URL_CONFIG -> schemaRegistryUrl).asJava,
-      false
+      false,
     )
 
     ResultEntityKafkaSink(
       new KafkaProducer[String, P](
         props,
         keySerializer,
-        valueSerializer
+        valueSerializer,
       ),
       writer,
-      topic
+      topic,
     )
   }
 }

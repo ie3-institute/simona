@@ -26,7 +26,7 @@
     + getAndCheckNodalVoltage(...): ComparableQuantity[Dimensionless]
     + initializeParticipant(...): FSM.State[AgentState, ParticipantStateData]
     + {abstract} determineBaseStateData(...): BaseStateData[ApparentPower]
-    + determineTriggersThroughoutSimulation(...): Option[List[ScheduleTriggerMessage]]
+    + determineTriggersThroughoutSimulation(...): Option[List[ScheduleActivation]]
     + baseStateDataForExternalDataProvision(...): FromOutsideBaseStateData
     + queryPrimaryDataAndChangeState(...): FSM.State[AgentState, ParticipantStateData]
     + querySecondaryDataAndChangeState(...): FSM.State[AgentState, ParticipantStateData]

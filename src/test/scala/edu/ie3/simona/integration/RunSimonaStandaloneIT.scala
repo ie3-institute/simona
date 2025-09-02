@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.simona.config.{ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent._
+import edu.ie3.simona.event.RuntimeEvent.*
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.main.RunSimonaStandalone
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
@@ -23,7 +23,7 @@ import edu.ie3.util.io.FileIOUtils
 import org.scalatest.BeforeAndAfterAll
 
 import scala.io.{BufferedSource, Source}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class RunSimonaStandaloneIT
     extends IntegrationSpecCommon
@@ -45,15 +45,21 @@ class RunSimonaStandaloneIT
           .empty()
           .withValue(
             "simona.output.base.dir",
-            ConfigValueFactory.fromAnyRef(testTmpDir)
+            ConfigValueFactory.fromAnyRef(testTmpDir),
           )
           .withValue(
             "simona.time.startDateTime",
-            ConfigValueFactory.fromAnyRef("2011-01-01 00:00:00")
+            ConfigValueFactory.fromAnyRef("2011-01-01T00:00:00Z"),
           )
           .withValue(
             "simona.time.endDateTime",
-            ConfigValueFactory.fromAnyRef("2011-01-01 02:00:00")
+            ConfigValueFactory.fromAnyRef("2011-01-01T02:00:00Z"),
+          )
+          .withFallback(
+            ConfigFactory.parseString("""
+                |simona.output.log.level = "INFO"
+                |simona.output.log.consoleLevel = "ERROR"
+                |""".stripMargin)
           )
           .withFallback(
             ConfigFactory
@@ -71,24 +77,30 @@ class RunSimonaStandaloneIT
       ConfigFailFast.check(simonaConfig)
 
       val resultFileHierarchy =
-        SimonaStandaloneSetup.buildResultFileHierarchy(parsedConfig)
+        SimonaStandaloneSetup.buildResultFileHierarchy(
+          parsedConfig,
+          simonaConfig,
+        )
 
       val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
 
       val simonaStandaloneSetup = SimonaStandaloneSetup(
         parsedConfig,
+        simonaConfig,
         resultFileHierarchy,
-        Some(runtimeEventQueue)
+        Some(runtimeEventQueue),
       )
 
       /* run simulation */
-      RunSimonaStandalone.run(
+      val successful = RunSimonaStandalone.run(
         simonaStandaloneSetup
       )
 
+      successful shouldBe true
+
       /* check the results */
       // check configs
-      val configOutputDir = new File(resultFileHierarchy.configOutputDir)
+      val configOutputDir = resultFileHierarchy.configOutputDir.toFile
 
       configOutputDir.isDirectory shouldBe true
       configOutputDir.listFiles.toVector.size shouldBe 1
@@ -97,10 +109,10 @@ class RunSimonaStandaloneIT
       checkRuntimeEvents(runtimeEventQueue.asScala)
 
       // check result data
-      // todo implement if valid result handling is implemented
+      // todo implement if valid result handling is implemented (see issue #1491)
       val pvResultFileContent = getFileSource(
         resultFileHierarchy,
-        classOf[PvResult]
+        classOf[PvResult],
       ).getLines().toVector
       pvResultFileContent.size shouldBe 190
       pvResultFileContent.headOption.map(
@@ -109,45 +121,127 @@ class RunSimonaStandaloneIT
 
     }
 
+    "run und produce results based on a valid minimal config correctly" in {
+
+      /* setup config */
+      val parsedConfig =
+        ConfigFactory
+          .empty()
+          .withValue(
+            "simona.output.base.dir",
+            ConfigValueFactory.fromAnyRef(testTmpDir),
+          )
+          .withValue(
+            "simona.time.startDateTime",
+            ConfigValueFactory.fromAnyRef("2011-01-01T00:00:00Z"),
+          )
+          .withValue(
+            "simona.time.endDateTime",
+            ConfigValueFactory.fromAnyRef("2011-01-01T02:00:00Z"),
+          )
+          .withFallback(
+            ConfigFactory.parseString("""
+                |simona.output.log.level = "INFO"
+                |simona.output.log.consoleLevel = "ERROR"
+                |""".stripMargin)
+          )
+          .withFallback(
+            ConfigFactory
+              .parseString("""
+                  |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+                  |pekko.loglevel="OFF"
+                  |""".stripMargin)
+          )
+          .withFallback(ConfigFactory.parseFile(new File(minimalConfigFile)))
+          .withFallback(ConfigFactory.parseString(s"config=$minimalConfigFile"))
+          .resolve()
+
+      /* validate config */
+      val simonaConfig = SimonaConfig(parsedConfig)
+      ConfigFailFast.check(simonaConfig)
+
+      val resultFileHierarchy =
+        SimonaStandaloneSetup.buildResultFileHierarchy(
+          parsedConfig,
+          simonaConfig,
+        )
+
+      val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
+
+      val simonaStandaloneSetup = SimonaStandaloneSetup(
+        parsedConfig,
+        simonaConfig,
+        resultFileHierarchy,
+        Some(runtimeEventQueue),
+      )
+
+      /* run simulation */
+      val successful = RunSimonaStandalone.run(
+        simonaStandaloneSetup
+      )
+
+      successful shouldBe true
+
+      /* check the results */
+      // check configs
+      val configOutputDir = resultFileHierarchy.configOutputDir.toFile
+
+      configOutputDir.isDirectory shouldBe true
+      configOutputDir.listFiles.toVector.size shouldBe 1
+
+      // check runtime event queue for the expected runtime events
+      checkRuntimeEvents(runtimeEventQueue.asScala)
+
+      // check result data
+      // todo implement if valid result handling is implemented (see issue #1491)
+      val pvResultFileContent = getFileSource(
+        resultFileHierarchy,
+        classOf[PvResult],
+      ).getLines().toVector
+      pvResultFileContent.size shouldBe 190
+      pvResultFileContent.headOption.map(
+        _.equals("uuid,inputModel,p,q,timestamp")
+      )
+
+    }
   }
 
   private def getFileSource(
       resultFileHierarchy: ResultFileHierarchy,
-      entityClass: Class[_ <: ResultEntity]
+      entityClass: Class[? <: ResultEntity],
   ): BufferedSource = {
     Source.fromFile(
-      resultFileHierarchy.rawOutputDataFilePaths.getOrElse(
-        entityClass,
-        fail(s"Unable to get output path for result entity: $entityClass")
-      )
+      resultFileHierarchy.rawOutputDataFilePaths
+        .getOrElse(
+          entityClass,
+          fail(s"Unable to get output path for result entity: $entityClass"),
+        )
+        .toFile
     )
   }
 
   private def checkRuntimeEvents(
       runtimeEvents: Iterable[RuntimeEvent]
   ): Unit = {
-    runtimeEvents.toVector.size shouldBe 11
-    val groupedRuntimeEvents = runtimeEvents.toVector.groupBy {
-      case Initializing            => Initializing
-      case InitComplete(_)         => InitComplete
-      case Simulating(_, _)        => Simulating
-      case CheckWindowPassed(_, _) => CheckWindowPassed
-      case Done(_, _, _)           => Done
-      case other                   => fail(s"Unexpected runtime event: $other")
-    }
+    val groupedRuntimeEvents = runtimeEvents.groupBy(event => event.getClass)
 
-    groupedRuntimeEvents.size shouldBe 5
-    groupedRuntimeEvents.keySet should contain allOf (Simulating, CheckWindowPassed, InitComplete, Initializing, Done)
+    groupedRuntimeEvents.keySet should contain only (
+      classOf[Simulating],
+      classOf[CheckWindowPassed],
+      classOf[InitComplete],
+      classOf[Initializing.type],
+      classOf[Done]
+    )
 
     groupedRuntimeEvents
-      .get(Simulating)
+      .get(classOf[Simulating])
       .foreach(simulatingEvents => {
         simulatingEvents.size shouldBe 1
         simulatingEvents.headOption.foreach(_ shouldBe Simulating(0, 7200))
       })
 
     groupedRuntimeEvents
-      .get(CheckWindowPassed)
+      .get(classOf[CheckWindowPassed])
       .foreach(checkWindowsPassed => {
         checkWindowsPassed.size shouldBe 7
         checkWindowsPassed.foreach {
@@ -161,19 +255,19 @@ class RunSimonaStandaloneIT
       })
 
     groupedRuntimeEvents
-      .get(InitComplete)
+      .get(classOf[InitComplete])
       .foreach(initComplets => {
         initComplets.size shouldBe 1
       })
 
     groupedRuntimeEvents
-      .get(Initializing)
+      .get(classOf[Initializing.type])
       .foreach(initializings => {
         initializings.size shouldBe 1
       })
 
     groupedRuntimeEvents
-      .get(Done)
+      .get(classOf[Done])
       .foreach(dones => {
         dones.size shouldBe 1
         dones.headOption.foreach {

@@ -11,45 +11,54 @@ import edu.ie3.simona.api.ExtLinkInterface
 
 import java.io.{File, IOException}
 import java.net.URLClassLoader
+import java.nio.file.Path
 import java.util.ServiceLoader
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Finds and loads jars containing external simulations.
   */
 object ExtSimLoader extends LazyLogging {
 
-  private val extSimPath = "input" + java.io.File.separator + "ext_sim"
+  private def buildDir(path: Path): File = {
+    if path.isAbsolute then {
+      return path.toFile
+    }
 
-  def getStandardDirectory: File = {
     val workingDir = new File(System.getProperty("user.dir"))
-    if (!workingDir.isDirectory)
+    if !workingDir.isDirectory then
       throw new IOException("Error when accessing working directory.")
 
-    new File(workingDir, extSimPath)
+    new File(workingDir, path.toString)
   }
 
   def scanInputFolder(
-      extSimDir: File = getStandardDirectory
-  ): Iterable[File] = {
-    if (!extSimDir.isDirectory) {
-      logger.warn(
-        s"External simulation directory ${extSimDir.getPath} does not exist or is not a directory, no external simulation loaded."
-      )
-      return Iterable.empty
-    }
-
-    val allowedExtensions = Seq("jar")
-
-    extSimDir
-      .listFiles()
-      .filter { file =>
-        val name = file.getName
-        file.canRead &&
-        name.contains('.') &&
-        allowedExtensions.contains(
-          name.substring(name.lastIndexOf('.') + 1).toLowerCase
+      extSimDirOption: Option[Path] = None
+  ): Iterable[File] = extSimDirOption.map(buildDir) match {
+    case Some(extSimDir) =>
+      if !extSimDir.isDirectory then {
+        logger.warn(
+          s"External simulation directory ${extSimDir.getPath} does not exist or is not a directory, no external simulation loaded."
         )
+        return Iterable.empty
       }
+
+      val allowedExtensions = Seq("jar")
+
+      extSimDir
+        .listFiles()
+        .filter { file =>
+          val name = file.getName
+          file.canRead &&
+          name.contains('.') &&
+          allowedExtensions.contains(
+            name.substring(name.lastIndexOf('.') + 1).toLowerCase
+          )
+        }
+    case None =>
+      logger.info(
+        "No external simulation directory given. No external simulation loaded."
+      )
+      Iterable.empty
   }
 
   def loadExtLink(myJar: File): Option[ExtLinkInterface] = {

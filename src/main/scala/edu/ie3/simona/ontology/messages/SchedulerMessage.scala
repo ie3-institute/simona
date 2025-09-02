@@ -10,18 +10,18 @@ import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.scheduler.{Scheduler, TimeAdvancer}
 
-trait SchedulerMessage extends Scheduler.Incoming with TimeAdvancer.Incoming
+trait SchedulerMessage extends Scheduler.Request with TimeAdvancer.Request
 
 object SchedulerMessage {
   final case class Completion(
       actor: ActorRef[Activation],
-      newTick: Option[Long] = None
+      newTick: Option[Long] = None,
   ) extends SchedulerMessage
 
   final case class ScheduleActivation(
       actor: ActorRef[Activation],
       tick: Long,
-      unlockKey: Option[ScheduleKey] = None
+      unlockKey: Option[ScheduleKey] = None,
   ) extends SchedulerMessage
 
 }

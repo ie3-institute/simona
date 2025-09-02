@@ -7,12 +7,12 @@
 package edu.ie3.simona.io.result
 
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.listener.ResultEventListener
 import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.simona.io.result.plain.PlainWriter
+import edu.ie3.simona.logging.LogbackConfiguration
 import edu.ie3.simona.test.KafkaSpecLike
 import edu.ie3.simona.test.KafkaSpecLike.Topic
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -30,9 +30,9 @@ import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
-import scala.jdk.DurationConverters._
+import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
+import scala.jdk.DurationConverters.*
 import scala.language.postfixOps
 
 /** Adapted from
@@ -45,10 +45,9 @@ class ResultEntityKafkaSpec
     with GivenWhenThen
     with Eventually {
 
-  private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
+  private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] =
+    scala.compiletime.uninitialized
 
-  private implicit lazy val resultFormat: RecordFormat[PlainNodeResult] =
-    RecordFormat[PlainNodeResult]
   private val deserializer: Deserializer[PlainNodeResult] =
     ScalaReflectionSerde.reflectionDeserializer4S[PlainNodeResult]
 
@@ -65,19 +64,19 @@ class ResultEntityKafkaSpec
 
   deserializer.configure(
     Map(SCHEMA_REGISTRY_URL_CONFIG -> mockSchemaRegistryUrl).asJava,
-    false
+    false,
   )
 
   override def beforeAll(): Unit = {
     super.beforeAll()
     val config = Map[String, AnyRef](
       "group.id" -> "test",
-      "bootstrap.servers" -> kafka.bootstrapServers
+      "bootstrap.servers" -> kafka.bootstrapServers,
     )
     testConsumer = new KafkaConsumer[Bytes, PlainNodeResult](
       config.asJava,
       Serdes.Bytes().deserializer(),
-      deserializer
+      deserializer,
     )
 
     testConsumer.assign(topicPartitions.asJava)
@@ -103,9 +102,11 @@ class ResultEntityKafkaSpec
                 runId,
                 kafka.bootstrapServers,
                 mockSchemaRegistryUrl,
-                20
-              )
-            )
+                20,
+              ),
+            ),
+            configureLogger =
+              LogbackConfiguration.default("INFO", Some("ERROR"))(_),
           )
         )
       )
@@ -115,19 +116,19 @@ class ResultEntityKafkaSpec
         ZonedDateTime.parse("2021-01-01T00:00:00+01:00[Europe/Berlin]"),
         UUID.randomUUID(),
         Quantities.getQuantity(1d, PowerSystemUnits.PU),
-        Quantities.getQuantity(0d, PowerSystemUnits.DEGREE_GEOM)
+        Quantities.getQuantity(0d, PowerSystemUnits.DEGREE_GEOM),
       )
       val nodeRes2 = new NodeResult(
         ZonedDateTime.parse("2021-01-01T00:00:00+01:00[Europe/Berlin]"),
         UUID.randomUUID(),
         Quantities.getQuantity(0.8d, PowerSystemUnits.PU),
-        Quantities.getQuantity(15d, PowerSystemUnits.DEGREE_GEOM)
+        Quantities.getQuantity(15d, PowerSystemUnits.DEGREE_GEOM),
       )
       val nodeRes3 = new NodeResult(
         ZonedDateTime.parse("2021-01-10T00:00:00+01:00[Europe/Berlin]"),
         UUID.randomUUID(),
         Quantities.getQuantity(0.75d, PowerSystemUnits.PU),
-        Quantities.getQuantity(90d, PowerSystemUnits.DEGREE_GEOM)
+        Quantities.getQuantity(90d, PowerSystemUnits.DEGREE_GEOM),
       )
 
       When("receiving the NodeResults")
@@ -136,46 +137,43 @@ class ResultEntityKafkaSpec
         Iterable.empty,
         Iterable.empty,
         Iterable.empty,
-        Iterable.empty
+        Iterable.empty,
       )
 
       Then("records can be fetched from Kafka")
       testConsumer.seekToBeginning(topicPartitions.asJava)
 
       // kafka messages might take some time if machine is loaded
-      eventually(timeout(2 minutes), interval(1 second)) {
+      eventually(timeout(2.minutes), interval(1.second)) {
         val records: List[PlainNodeResult] =
-          testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+          testConsumer.poll(1.second.toJava).asScala.map(_.value()).toList
 
         records should have length 3
         records should contain(
           PlainNodeResult(
             runId,
             PlainWriter.createSimpleTimeStamp(nodeRes1.getTime),
-            nodeRes1.getUuid,
             nodeRes1.getInputModel,
             nodeRes1.getvMag().getValue.doubleValue(),
-            nodeRes1.getvAng().getValue.doubleValue()
+            nodeRes1.getvAng().getValue.doubleValue(),
           )
         )
         records should contain(
           PlainNodeResult(
             runId,
             PlainWriter.createSimpleTimeStamp(nodeRes2.getTime),
-            nodeRes2.getUuid,
             nodeRes2.getInputModel,
             nodeRes2.getvMag().getValue.doubleValue(),
-            nodeRes2.getvAng().getValue.doubleValue()
+            nodeRes2.getvAng().getValue.doubleValue(),
           )
         )
         records should contain(
           PlainNodeResult(
             runId,
             PlainWriter.createSimpleTimeStamp(nodeRes3.getTime),
-            nodeRes3.getUuid,
             nodeRes3.getInputModel,
             nodeRes3.getvMag().getValue.doubleValue(),
-            nodeRes3.getvAng().getValue.doubleValue()
+            nodeRes3.getvAng().getValue.doubleValue(),
           )
         )
       }

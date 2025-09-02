@@ -19,8 +19,7 @@ import java.time.temporal.ChronoUnit
 object TickUtil {
 
   /** Provides conversions from ZonedDateTime into ticks (actually seconds) */
-  implicit class RichZonedDateTime(private val zdt: ZonedDateTime)
-      extends AnyVal {
+  implicit class RichZonedDateTime(private val zdt: ZonedDateTime) {
 
     /** Calculates the difference between this date time and the provided date
       * time in ticks (= actual seconds)
@@ -33,7 +32,7 @@ object TickUtil {
   /** Provides conversions from ticks (seconds) into instances of
     * [[ZonedDateTime]]
     */
-  implicit class TickLong(private val tick: Long) extends AnyVal {
+  implicit class TickLong(private val tick: Long) {
 
     /** Calculates the current [[ZonedDateTime]] based on this tick */
     def toDateTime(implicit startDateTime: ZonedDateTime): ZonedDateTime =
@@ -46,7 +45,7 @@ object TickUtil {
     /** Calculate the length for the time interval */
     def durationUntil(
         otherTick: Long,
-        tickDuration: Time = Seconds(1d)
+        tickDuration: Time = Seconds(1d),
     ): Time =
       tickDuration * (otherTick - tick).toDouble
 
@@ -76,4 +75,36 @@ object TickUtil {
     (firstFullHourTick to lastAvailableTick by resolution.intValue).toArray
   }
 
+  /** Rounds given tick and datetime with regard to their (implicit) minutes and
+    * seconds.
+    *
+    * @param tick
+    *   The given tick to round
+    * @param dateTime
+    *   The given date and time to round
+    * @param resolution
+    *   Resolution in seconds. Should divide 3600 without remainder, i.e.
+    *   {{{3600 % resolution == 0}}}
+    */
+  def roundToResolution(
+      tick: Long,
+      dateTime: ZonedDateTime,
+      resolution: Int,
+  ): (Long, ZonedDateTime) = {
+
+    val givenHourSeconds = dateTime.getMinute * 60 + dateTime.getSecond
+
+    val adaptedHourSeconds = givenHourSeconds / resolution * resolution
+    val adaptedMinute = adaptedHourSeconds / 60
+    val adaptedSecond = adaptedHourSeconds % 60
+
+    val adaptedDateTime =
+      dateTime.withMinute(adaptedMinute).withSecond(adaptedSecond).withNano(0)
+
+    val tickDifference = givenHourSeconds - adaptedHourSeconds
+
+    val adaptedTick = tick - tickDifference
+
+    (adaptedTick, adaptedDateTime)
+  }
 }

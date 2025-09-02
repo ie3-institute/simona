@@ -6,71 +6,103 @@
 
 package edu.ie3.simona.sim.setup
 
-import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import edu.ie3.datamodel.exceptions.NotImplementedException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
-  Transformer3WInput
+  Transformer3WInput,
 }
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.TimeAdvancer
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.scheduler.core.Core.CoreFactory
+import edu.ie3.simona.scheduler.core.RegularSchedulerCore
+import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
+import java.nio.file.Path
 import java.util.UUID
 
-class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
+class SimonaSetupSpec
+    extends UnitSpec
+    with SimonaSetup
+    with SubGridGateMokka
+    with ConfigTestData {
 
   override val args: Array[String] = Array.empty[String]
+  override val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
 
-  override val buildActorSystem: () => ActorSystem = () =>
-    throw new NotImplementedException("This is a dummy setup")
+  override def logOutputDir: Path = throw new NotImplementedError()
 
   override def runtimeEventListener(
-      context: ActorContext
-  ): org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
-    throw new NotImplementedException("This is a dummy setup")
+      context: ActorContext[?]
+  ): ActorRef[RuntimeEventListener.Request] =
+    throw new NotImplementedException(
+      "This is a dummy setup"
+    )
 
-  override def systemParticipantsListener(
-      context: ActorContext
-  ): Seq[ActorRef] = throw new NotImplementedException("This is a dummy setup")
+  override def resultEventListener(
+      context: ActorContext[?]
+  ): Seq[ActorRef[ResultEventListener.Request]] =
+    throw new NotImplementedException("This is a dummy setup")
 
   override def primaryServiceProxy(
-      context: ActorContext,
-      scheduler: ActorRef
-  ): ActorRef =
-    throw new NotImplementedException("This is a dummy setup")
+      context: ActorContext[?],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimSetupData: ExtSimSetupData,
+  ): ActorRef[ServiceMessage] = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
 
   override def weatherService(
-      context: ActorContext,
-      scheduler: ActorRef
-  ): ActorRef =
-    throw new NotImplementedException("This is a dummy setup")
+      context: ActorContext[?],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ActorRef[ServiceMessage] = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
+
+  override def loadProfileService(
+      context: ActorContext[?],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ActorRef[ServiceMessage] = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
 
   override def extSimulations(
-      context: ActorContext,
-      scheduler: ActorRef
-  ): ExtSimSetupData =
-    throw new NotImplementedException("This is a dummy setup")
+      context: ActorContext[?],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimPath: Option[Path],
+  ): ExtSimSetupData = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
 
   override def timeAdvancer(
-      context: ActorContext,
-      simulation: ActorRef,
-      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
-  ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] =
-    throw new NotImplementedException("This is a dummy setup")
+      context: ActorContext[?],
+      simulation: ActorRef[SimonaSim.SimulationEnded.type],
+      runtimeEventListener: ActorRef[RuntimeEvent],
+  ): ActorRef[TimeAdvancer.Request] = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
 
   override def scheduler(
-      context: ActorContext,
-      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
-  ): ActorRef = throw new NotImplementedException("This is a dummy setup")
+      context: ActorContext[?],
+      timeAdvancer: ActorRef[SchedulerMessage],
+      coreFactory: CoreFactory = RegularSchedulerCore,
+  ): ActorRef[SchedulerMessage] = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
 
   override def gridAgents(
-      context: ActorContext,
+      context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Iterable[ActorRef] =
+      resultEventListeners: Seq[ActorRef[ResultEvent]],
+  ): Iterable[ActorRef[GridAgent.Message]] =
     throw new NotImplementedException("This is a dummy setup")
 
   "Attempting to modify a sub grid gate" should {
@@ -94,7 +126,7 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
         2,
         nodeCUuid,
         3,
-        ConnectorPort.C
+        ConnectorPort.C,
       )
       val internalNode = subGridGate.link match {
         case input: Transformer3WInput => input.getNodeInternal

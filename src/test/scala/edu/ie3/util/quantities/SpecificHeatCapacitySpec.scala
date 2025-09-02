@@ -39,7 +39,7 @@ class SpecificHeatCapacitySpec extends AnyFlatSpec with Matchers {
     KilowattHoursPerKelvinCubicMeters(1000).calcEnergy(
       Kelvin(10),
       Kelvin(20),
-      CubicMeters(5)
+      CubicMeters(5),
     ) should be(KilowattHours(50000.0))
   }
 
@@ -47,7 +47,7 @@ class SpecificHeatCapacitySpec extends AnyFlatSpec with Matchers {
     KilowattHoursPerKelvinCubicMeters(1000).calcEnergy(
       Celsius(100),
       Celsius(101),
-      CubicMeters(5)
+      CubicMeters(5),
     ) should be(KilowattHours(5000))
   }
 }

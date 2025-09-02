@@ -18,7 +18,7 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
   KILOMETRE,
   KILOVOLT,
   OHM_PER_KILOMETRE,
-  SIEMENS_PER_KILOMETRE
+  SIEMENS_PER_KILOMETRE,
 }
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.AMPERE
@@ -40,7 +40,7 @@ trait LineInputTestData extends DefaultTestData with NodeInputTestData {
     Quantities.getQuantity(0.437, OHM_PER_KILOMETRE),
     Quantities.getQuantity(0.356, OHM_PER_KILOMETRE),
     Quantities.getQuantity(300d, AMPERE),
-    Quantities.getQuantity(10, KILOVOLT)
+    Quantities.getQuantity(10, KILOVOLT),
   )
 
   // / 10 kV line models
@@ -56,9 +56,9 @@ trait LineInputTestData extends DefaultTestData with NodeInputTestData {
     Quantities.getQuantity(0.75, KILOMETRE),
     GridAndGeoUtils.buildSafeLineStringBetweenNodes(
       nodeInputNoSlackMs10Kv,
-      nodeInputNoSlackMs10Kv
+      nodeInputNoSlackMs10Kv,
     ),
-    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
+    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC,
   )
 
   // 20 kV line input models
@@ -71,7 +71,7 @@ trait LineInputTestData extends DefaultTestData with NodeInputTestData {
     Quantities.getQuantity(0.207000002264977, OHM_PER_KILOMETRE),
     Quantities.getQuantity(0.0691149979829788, OHM_PER_KILOMETRE),
     Quantities.getQuantity(300, AMPERE),
-    Quantities.getQuantity(20, KILOVOLT)
+    Quantities.getQuantity(20, KILOVOLT),
   )
 
   // / 20 kV line models
@@ -87,9 +87,9 @@ trait LineInputTestData extends DefaultTestData with NodeInputTestData {
     Quantities.getQuantity(20, KILOMETRE),
     GridAndGeoUtils.buildSafeLineStringBetweenNodes(
       nodeInputNoSlackMs20Kv,
-      nodeInputNoSlackMs20Kv
+      nodeInputNoSlackMs20Kv,
     ),
-    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
+    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC,
   )
   protected val lineInputWithTooHighVoltLvlA = new LineInput(
     UUID.fromString("da55ed58-e3b1-4cc3-b9e7-997082a2a624"),
@@ -103,9 +103,9 @@ trait LineInputTestData extends DefaultTestData with NodeInputTestData {
     Quantities.getQuantity(20, KILOMETRE),
     GridAndGeoUtils.buildSafeLineStringBetweenNodes(
       nodeInputNoSlackNs04KvA,
-      nodeInputNoSlackMs20Kv
+      nodeInputNoSlackMs20Kv,
     ),
-    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
+    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC,
   )
   protected val lineInputWithTooLowVoltLvlA = new LineInput(
     UUID.fromString("8c712c17-2f6f-4ae3-beb9-eb66563ffd32"),
@@ -119,9 +119,9 @@ trait LineInputTestData extends DefaultTestData with NodeInputTestData {
     Quantities.getQuantity(20, KILOMETRE),
     GridAndGeoUtils.buildSafeLineStringBetweenNodes(
       nodeInputNoSlackNs04KvA,
-      nodeInputNoSlackMs20Kv
+      nodeInputNoSlackMs20Kv,
     ),
-    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
+    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC,
   )
   protected val lineInputWithTooHighVoltLvlB = new LineInput(
     UUID.fromString("cc9d9547-42ab-4613-93c0-17e6ac11cd9c"),
@@ -135,9 +135,9 @@ trait LineInputTestData extends DefaultTestData with NodeInputTestData {
     Quantities.getQuantity(20, KILOMETRE),
     GridAndGeoUtils.buildSafeLineStringBetweenNodes(
       nodeInputNoSlackMs20Kv,
-      nodeInputNoSlackNs04KvA
+      nodeInputNoSlackNs04KvA,
     ),
-    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
+    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC,
   )
   protected val lineInputWithTooLowVoltLvlB = new LineInput(
     UUID.fromString("cb910fee-b7cb-4b14-8609-f85e83c6973b"),
@@ -151,8 +151,8 @@ trait LineInputTestData extends DefaultTestData with NodeInputTestData {
     Quantities.getQuantity(20, KILOMETRE),
     GridAndGeoUtils.buildSafeLineStringBetweenNodes(
       nodeInputNoSlackMs20Kv,
-      nodeInputNoSlackNs04KvA
+      nodeInputNoSlackNs04KvA,
     ),
-    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
+    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC,
   )
 }

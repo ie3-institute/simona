@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.io.result
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.stream.scaladsl.FileIO
-import org.apache.pekko.util.ByteString
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
@@ -18,14 +15,14 @@ import edu.ie3.simona.exceptions.ProcessResultEventException
 import edu.ie3.simona.test.common.{IOTestCommons, TestKitWithShutdown, UnitSpec}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.io.FileIOUtils
+import org.apache.pekko.actor.ActorSystem
 import tech.units.indriya.quantity.Quantities
 
 import java.io.File
-import java.nio.file.Paths
+import java.nio.charset.StandardCharsets
 import java.nio.file.StandardOpenOption.{CREATE, TRUNCATE_EXISTING, WRITE}
+import java.nio.file.{Files, Paths}
 import java.util.UUID
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
 import scala.io.Source
 import scala.language.postfixOps
 
@@ -40,7 +37,7 @@ class ResultEntityCsvSinkSpec
             |pekko.loglevel="DEBUG"
             |pekko.coordinated-shutdown.phases.actor-system-terminate.timeout = 500s
           """.stripMargin
-          )
+          ),
       )
     )
     with UnitSpec
@@ -58,7 +55,8 @@ class ResultEntityCsvSinkSpec
         ResultEntityCsvSink(
           outFileName,
           resultEntityProcessor,
-          outFileName.endsWith(".gz")
+          outFileName.endsWith(".gz"),
+          delimiter = ",",
         )
 
       resultEntitySink.outfileName shouldBe outFileName
@@ -80,7 +78,7 @@ class ResultEntityCsvSinkSpec
         fail(
           "Cannot get line that should have been written out by sink!"
         )
-      ) shouldBe "uuid,input_model,p,q,time"
+      ) shouldBe "input_model,p,q,time"
 
       // close sink to ensure that everything is written out
       resultFileSource.close()
@@ -98,12 +96,12 @@ class ResultEntityCsvSinkSpec
 
       val path = Paths.get(outFileName)
       // create output file (should not exist yet at this point)
-      Await.ready(
-        org.apache.pekko.stream.scaladsl.Source
-          .single(testText)
-          .map(t => ByteString(t))
-          .runWith(FileIO.toPath(path, Set(WRITE, TRUNCATE_EXISTING, CREATE))),
-        5.seconds
+      Files.write(
+        path,
+        testText.getBytes(StandardCharsets.UTF_8),
+        WRITE,
+        TRUNCATE_EXISTING,
+        CREATE,
       )
 
       val resultEntityProcessor = new ResultEntityProcessor(classOf[PvResult])
@@ -111,7 +109,8 @@ class ResultEntityCsvSinkSpec
       val resultEntitySink = ResultEntityCsvSink(
         outFileName,
         resultEntityProcessor,
-        outFileName.endsWith(".gz")
+        outFileName.endsWith(".gz"),
+        delimiter = ",",
       )
 
       // close sink to ensure that everything is written out
@@ -148,18 +147,18 @@ class ResultEntityCsvSinkSpec
       val resultEntityProcessor = new ResultEntityProcessor(classOf[PvResult])
 
       val dummyPvResult = new PvResult(
-        UUID.fromString("7f404c4c-fc12-40de-95c9-b5827a40f18b"),
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-30 17:26:44"),
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-30T17:26:44Z"),
         UUID.fromString("e5ac84d3-c7a5-4870-a42d-837920aec9bb"),
         Quantities.getQuantity(10, StandardUnits.ACTIVE_POWER_IN),
-        Quantities.getQuantity(10, StandardUnits.REACTIVE_POWER_IN)
+        Quantities.getQuantity(10, StandardUnits.REACTIVE_POWER_IN),
       )
 
       val resultEntitySink =
         ResultEntityCsvSink(
           outFileName,
           resultEntityProcessor,
-          outFileName.endsWith(".gz")
+          outFileName.endsWith(".gz"),
+          delimiter = ",",
         )
 
       resultEntitySink.handleResultEntity(dummyPvResult)
@@ -177,7 +176,7 @@ class ResultEntityCsvSinkSpec
         fail(
           "Cannot get line that should have been written out by the listener!"
         )
-      ) shouldBe "7f404c4c-fc12-40de-95c9-b5827a40f18b,e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z[UTC]"
+      ) shouldBe "e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z"
 
       resultFileSource.close()
 
@@ -193,18 +192,18 @@ class ResultEntityCsvSinkSpec
       val resultEntityProcessor = new ResultEntityProcessor(classOf[PvResult])
 
       val dummyWecResult = new WecResult(
-        UUID.fromString("7f404c4c-fc12-40de-95c9-b5827a40f18b"),
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-30 17:26:44"),
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-30T17:26:44Z"),
         UUID.fromString("e5ac84d3-c7a5-4870-a42d-837920aec9bb"),
         Quantities.getQuantity(10, StandardUnits.ACTIVE_POWER_IN),
-        Quantities.getQuantity(10, StandardUnits.REACTIVE_POWER_IN)
+        Quantities.getQuantity(10, StandardUnits.REACTIVE_POWER_IN),
       )
 
       val resultEntitySink =
         ResultEntityCsvSink(
           outFileName,
           resultEntityProcessor,
-          outFileName.endsWith(".gz")
+          outFileName.endsWith(".gz"),
+          delimiter = ",",
         )
 
       val exception = intercept[ProcessResultEventException] {

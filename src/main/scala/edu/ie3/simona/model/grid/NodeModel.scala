@@ -11,9 +11,8 @@ import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.voltagelevels.VoltageLevel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import squants.Each
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.DimensionlessToSimona
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -23,7 +22,7 @@ import java.util.UUID
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param isSlack
@@ -39,18 +38,19 @@ final case class NodeModel(
     operationInterval: OperationInterval,
     isSlack: Boolean,
     vTarget: squants.Dimensionless,
-    voltLvl: VoltageLevel
+    voltLvl: VoltageLevel,
+    subnet: Int,
 ) extends SystemComponent(
       uuid,
       id,
-      operationInterval
+      operationInterval,
     )
 
 case object NodeModel {
   def apply(
       nodeInput: NodeInput,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): NodeModel = {
 
     // validate the input model
@@ -60,7 +60,7 @@ case object NodeModel {
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        nodeInput.getOperationTime
+        nodeInput.getOperationTime,
       )
 
     val nodeModel = new NodeModel(
@@ -68,12 +68,13 @@ case object NodeModel {
       nodeInput.getId,
       operationInterval,
       nodeInput.isSlack,
-      Each(nodeInput.getvTarget.to(PowerSystemUnits.PU).getValue.doubleValue()),
-      nodeInput.getVoltLvl
+      nodeInput.getvTarget.toSquants,
+      nodeInput.getVoltLvl,
+      nodeInput.getSubnet,
     )
 
     /* Checks, if the participant is in operation right from the start */
-    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
+    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
       nodeModel.enable()
 
     nodeModel
@@ -89,15 +90,14 @@ case object NodeModel {
     *   instance of [[NodeInput]] that should be validated
     */
   def validateInputModel(nodeInput: NodeInput): Unit = {
-    if (
-      nodeInput.getvTarget() == null || nodeInput
+    if nodeInput.getvTarget() == null || nodeInput
         .getvTarget()
         .getValue
         .doubleValue <= 0 || nodeInput
         .getvTarget()
         .getValue
         .doubleValue > 2
-    )
+    then
       throw new InvalidGridException(
         s"Invalid vTarget parameter in node ${nodeInput.getUuid}: ${nodeInput.getvTarget()}"
       )

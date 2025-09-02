@@ -1,0 +1,133 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+' set fixed order
+participant Scheduler
+participant EmAgent1
+participant EmAgent2
+participant PvAgent
+participant StorageAgent
+participant WeatherService
+
+autonumber
+
+==Init==
+
+PvAgent -> WeatherService: RegisterForWeatherMessage
+activate PvAgent
+activate WeatherService
+PvAgent -> EmAgent2: RegisterParticipant
+deactivate PvAgent
+
+WeatherService -> PvAgent: RegistrationSuccessfulMessage
+deactivate WeatherService
+activate PvAgent
+PvAgent -> EmAgent2: ScheduleFlexRequest(tick=0)
+deactivate PvAgent
+activate EmAgent2
+
+EmAgent2 -> EmAgent1: ScheduleFlexRequest(tick=0)
+deactivate EmAgent2
+activate EmAgent1
+EmAgent1 -> Scheduler: ScheduleActivation(tick=0)
+deactivate EmAgent1
+
+StorageAgent -> EmAgent2: RegisterParticipant
+StorageAgent -> EmAgent2: ScheduleFlexRequest(tick=0)
+
+note left
+EmAgent2 has already been
+scheduled for tick 0, thus
+we don't do it again here
+end note
+
+==Tick 0==
+
+Scheduler -> WeatherService: Activation(tick=0)
+activate WeatherService
+
+WeatherService -> PvAgent: ProvideWeatherMessage
+
+WeatherService -> Scheduler: Completion(nextTick=0)
+deactivate WeatherService
+
+Scheduler -> EmAgent1: Activation(tick=0)
+activate EmAgent1
+
+EmAgent1 -> EmAgent2: FlexActivation(tick=0)
+activate EmAgent2
+
+EmAgent2 -> StorageAgent: FlexActivation(tick=0)
+activate StorageAgent
+
+EmAgent2 -> PvAgent: FlexActivation(tick=0)
+activate PvAgent
+
+PvAgent -> EmAgent2: ProvideFlexOptions
+deactivate PvAgent
+
+StorageAgent -> EmAgent2: ProvideFlexOptions
+deactivate StorageAgent
+
+EmAgent2 -> EmAgent1: ProvideFlexOptions
+deactivate EmAgent2
+
+EmAgent1 -> EmAgent2: IssuePowerControl(tick=0)
+activate EmAgent2
+
+EmAgent2 -> PvAgent: IssueNoControl(tick=0)
+activate PvAgent
+
+EmAgent2 -> StorageAgent: IssuePowerControl(tick=0)
+activate StorageAgent
+
+PvAgent -> EmAgent2: FlexResult
+PvAgent -> EmAgent2: FlexCompletion(nextTick=3600)
+deactivate PvAgent
+
+StorageAgent -> EmAgent2: FlexResult
+StorageAgent -> EmAgent2: FlexCompletion(nextTick=1805)
+deactivate StorageAgent
+
+EmAgent2 -> EmAgent1: FlexResult
+EmAgent2 -> EmAgent1: FlexCompletion(nextTick=1805)
+deactivate EmAgent2
+
+EmAgent1 -> Scheduler: Completion(nextTick=1805)
+deactivate EmAgent1
+
+==Tick 1805==
+
+Scheduler -> EmAgent1: Activation(tick=1805)
+activate EmAgent1
+
+EmAgent1 -> EmAgent2: FlexActivation(tick=1805)
+activate EmAgent2
+
+EmAgent2 -> StorageAgent: FlexActivation(tick=1805)
+activate StorageAgent
+
+StorageAgent -> EmAgent2: ProvideFlexOptions
+deactivate StorageAgent
+
+EmAgent2 -> EmAgent1: ProvideFlexOptions
+deactivate EmAgent2
+
+EmAgent1 -> EmAgent2: IssuePowerControl(tick=1805)
+activate EmAgent2
+
+EmAgent2 -> StorageAgent: IssuePowerControl(tick=1805)
+activate StorageAgent
+
+StorageAgent -> EmAgent2: FlexResult
+StorageAgent -> EmAgent2: FlexCompletion(nextTick=10800)
+deactivate StorageAgent
+
+EmAgent2 -> EmAgent1: FlexResult
+EmAgent2 -> EmAgent1: FlexCompletion(nextTick=3600)
+deactivate EmAgent2
+
+EmAgent1 -> Scheduler: Completion(nextTick=3600)
+deactivate EmAgent1
+
+@enduml

@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.io.result
 
-import org.apache.pekko.stream.IOResult
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
@@ -17,10 +16,11 @@ import edu.ie3.util.io.FileIOUtils
 
 import java.io.{BufferedWriter, File, FileWriter, Writer}
 import java.lang
+import java.nio.file.Path
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.FutureConverters.CompletionStageOps
 import scala.util.{Failure, Success}
 
@@ -40,7 +40,7 @@ final case class ResultEntityCsvSink private (
     fileWriter: Writer,
     resultEntityProcessor: ResultEntityProcessor,
     compressOutputFiles: Boolean,
-    delimiter: String
+    delimiter: String,
 ) extends ResultEntitySink
     with LazyLogging {
 
@@ -65,7 +65,7 @@ final case class ResultEntityCsvSink private (
         .view
 
       val columns = resultEntityProcessor.getHeaderElements
-      val text = if (attributeToValue.nonEmpty) {
+      val text = if attributeToValue.nonEmpty then {
         val resString: String =
           columns
             .map { column =>
@@ -85,7 +85,7 @@ final case class ResultEntityCsvSink private (
     }
   }
 
-  /** Creat the initial the .csv-file and write the header in the first row
+  /** Create the initial the .csv-file and write the header in the first row
     *
     * @return
     *   a future with information on the I/O operation
@@ -109,17 +109,18 @@ final case class ResultEntityCsvSink private (
       )
     )
 
-    FileIOUtils.gzip(outfileName).asScala.andThen {
-      case Success(_) =>
-        logger.debug(logPrefix(s"Compressed $outfileName."))
-        FileIOUtils.deleteFileIfExists(outFileName).asScala
-      case Failure(_) =>
-        Future.failed[IOResult](
-          new ProcessResultEventException(
+    FileIOUtils
+      .compressFile(Path.of(outFileName), Path.of(outFileName + ".gz"))
+      .asScala
+      .andThen {
+        case Success(_) =>
+          logger.debug(logPrefix(s"Compressed $outfileName."))
+          FileIOUtils.deleteFileIfExists(outFileName).asScala
+        case Failure(_) =>
+          throw new ProcessResultEventException(
             s"Failed to zip file $outFileName!"
           )
-        )
-    }
+      }
   }
 
   /** Contains all cleanup operations before closing this sink
@@ -130,8 +131,7 @@ final case class ResultEntityCsvSink private (
     fileWriter.close()
 
     // compress files if necessary
-    if (compressOutputFiles)
-      Await.ready(zipAndDel(outfileName), 100.minutes)
+    if compressOutputFiles then Await.ready(zipAndDel(outfileName), 100.minutes)
   }
 
 }
@@ -155,7 +155,7 @@ object ResultEntityCsvSink {
       outfileName: String,
       resultEntityProcessor: ResultEntityProcessor,
       compressOutputFiles: Boolean,
-      delimiter: String = ","
+      delimiter: String,
   ): ResultEntityCsvSink = {
 
     val file = new File(outfileName)
@@ -168,11 +168,10 @@ object ResultEntityCsvSink {
       writer,
       resultEntityProcessor,
       compressOutputFiles,
-      delimiter
+      delimiter,
     )
 
-    if (!existedBefore)
-      resultEntityCsvSink.writeHeader()
+    if !existedBefore then resultEntityCsvSink.writeHeader()
     resultEntityCsvSink
   }
 }

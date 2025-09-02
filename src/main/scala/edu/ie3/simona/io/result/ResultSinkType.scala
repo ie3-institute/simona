@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.io.result
 
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.ConfigParams.*
+import edu.ie3.simona.config.OutputConfig
 
 import java.util.UUID
 
@@ -20,7 +21,9 @@ object ResultSinkType {
   final case class Csv(
       fileFormat: String = ".csv",
       filePrefix: String = "",
-      fileSuffix: String = ""
+      fileSuffix: String = "",
+      compressOutputs: Boolean = false,
+      delimiter: String,
   ) extends ResultSinkType
 
   final case class InfluxDb1x(url: String, database: String, scenario: String)
@@ -31,33 +34,39 @@ object ResultSinkType {
       runId: UUID,
       bootstrapServers: String,
       schemaRegistryUrl: String,
-      linger: Int
+      linger: Int,
   ) extends ResultSinkType
 
   def apply(
-      sinkConfig: SimonaConfig.Simona.Output.Sink,
-      runName: String
+      sinkConfig: OutputConfig.Sink,
+      runName: String,
   ): ResultSinkType = {
     val sink: Seq[Any] =
       Seq(sinkConfig.csv, sinkConfig.influxDb1x, sinkConfig.kafka).flatten
 
-    if (sink.size > 1)
+    if sink.size > 1 then
       throw new IllegalArgumentException(
         s"Multiple sinks are not supported! Provided sinks: '$sinkConfig'"
       )
 
     sink.headOption match {
-      case Some(params: SimonaConfig.Simona.Output.Sink.Csv) =>
-        Csv(params.fileFormat, params.filePrefix, params.fileSuffix)
-      case Some(params: SimonaConfig.Simona.Output.Sink.InfluxDb1x) =>
+      case Some(params: PsdmSinkCsvParams) =>
+        Csv(
+          params.fileFormat,
+          params.filePrefix,
+          params.fileSuffix,
+          params.compressOutputs,
+          params.csvSep,
+        )
+      case Some(params: InfluxDb1xParams) =>
         InfluxDb1x(buildInfluxDb1xUrl(params), params.database, runName)
-      case Some(params: SimonaConfig.ResultKafkaParams) =>
+      case Some(params: ResultKafkaParams) =>
         Kafka(
           params.topicNodeRes,
           UUID.fromString(params.runId),
           params.bootstrapServers,
           params.schemaRegistryUrl,
-          params.linger
+          params.linger,
         )
       case None =>
         throw new IllegalArgumentException(
@@ -71,9 +80,9 @@ object ResultSinkType {
   }
 
   def buildInfluxDb1xUrl(
-      sinkConfig: SimonaConfig.Simona.Output.Sink.InfluxDb1x
+      sinkConfig: InfluxDb1xParams
   ): String = {
-    if (sinkConfig.url.endsWith("/")) sinkConfig.url.replaceAll("/", "")
+    if sinkConfig.url.endsWith("/") then sinkConfig.url.replaceAll("/", "")
     else sinkConfig.url
   }.trim.concat(s":${sinkConfig.port}")
 

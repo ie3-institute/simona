@@ -13,12 +13,12 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.exceptions.{
   InvalidActionRequestException,
-  InvalidParameterException
+  InvalidParameterException,
 }
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.scala.OperationInterval
 
-import scala.jdk.OptionConverters._
+import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success, Try}
 
 /** Interface that is implemented by all grid elements (e.g. lines,
@@ -28,20 +28,20 @@ import scala.util.{Failure, Success, Try}
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   */
 abstract class SystemComponent(
     uuid: UUID,
     id: String,
-    operationInterval: OperationInterval
+    operationInterval: OperationInterval,
 ) extends LazyLogging {
 
   private val elementType: String = this.getClass.getSimpleName
 
   // check if a uuid is provided
-  if (Option.apply(uuid).isEmpty)
+  if Option.apply(uuid).isEmpty then
     throw new InvalidParameterException(
       s"Uuid of $elementType $id cannot be null!"
     )
@@ -51,7 +51,7 @@ abstract class SystemComponent(
   /** Enable the corresponding element.
     */
   def enable(): Try[String] = {
-    if (_inOperation) {
+    if _inOperation then {
       Failure(
         new InvalidActionRequestException(
           s"$elementType $id is already in operation!"
@@ -66,7 +66,7 @@ abstract class SystemComponent(
   /** Disable the corresponding element.
     */
   def disable(): Try[String] = {
-    if (_inOperation) {
+    if _inOperation then {
       _inOperation = false
       Success(s"$elementType $id disabled!")
     } else {
@@ -107,7 +107,7 @@ case object SystemComponent {
   def determineOperationInterval(
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-      operationTime: OperationTime
+      operationTime: OperationTime,
   ): OperationInterval = {
     val operationStartOpt = operationTime.getStartDate.toScala
     val operationEndOpt = operationTime.getEndDate.toScala
@@ -123,13 +123,13 @@ case object SystemComponent {
 
     val startTick = operationStartOpt match {
       case Some(operationStart) =>
-        operationStart.toTick(startDate)
+        operationStart.toTick(using startDate)
       case None => 0
     }
 
     val endTick = operationEndOpt match {
-      case Some(operationEnd) => operationEnd.toTick(startDate)
-      case None               => endDate.toTick(startDate)
+      case Some(operationEnd) => operationEnd.toTick(using startDate)
+      case None               => endDate.toTick(using startDate)
     }
 
     OperationInterval(startTick, endTick)

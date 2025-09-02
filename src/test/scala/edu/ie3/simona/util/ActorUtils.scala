@@ -10,7 +10,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
 import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.matchers.should.Matchers.shouldBe
 
 object ActorUtils {
   implicit class RichActivatedActor(
@@ -20,7 +20,7 @@ object ActorUtils {
     def expectActivationAndComplete(
         scheduler: ActorRef[SchedulerMessage],
         expectedTick: Long,
-        newTick: Option[Long] = None
+        newTick: Option[Long] = None,
     ): Unit = {
       val receivedTrigger =
         triggeredActor.expectMessageType[Activation]
@@ -29,7 +29,7 @@ object ActorUtils {
 
       scheduler ! Completion(
         triggeredActor.ref,
-        newTick
+        newTick,
       )
     }
 

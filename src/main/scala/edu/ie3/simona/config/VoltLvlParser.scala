@@ -10,9 +10,8 @@ import edu.ie3.datamodel.exceptions.VoltageLevelException
 import edu.ie3.datamodel.models.voltagelevels.{
   CommonVoltageLevel,
   GermanVoltageLevelUtils,
-  VoltageLevel
+  VoltageLevel,
 }
-import edu.ie3.simona.config.SimonaConfig.VoltLvlConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.util.quantities.QuantityUtil
 import javax.measure.quantity.ElectricPotential
@@ -46,7 +45,7 @@ object VoltLvlParser {
     */
   private def parse(
       id: String,
-      vNominal: ComparableQuantity[ElectricPotential]
+      vNominal: ComparableQuantity[ElectricPotential],
   ): CommonVoltageLevel =
     try {
       GermanVoltageLevelUtils.parse(id, vNominal)
@@ -54,7 +53,7 @@ object VoltLvlParser {
       case vle: VoltageLevelException =>
         throw new InvalidConfigParameterException(
           s"Cannot find a common voltage level with id $id and nominal voltage $vNominal",
-          vle
+          vle,
         )
     }
 
@@ -76,12 +75,12 @@ object VoltLvlParser {
       case iae: IllegalArgumentException =>
         throw new InvalidConfigParameterException(
           s"Cannot parse the nominal voltage $quantString",
-          iae
+          iae,
         )
       case cce: ClassCastException =>
         throw new InvalidConfigParameterException(
           s"Cannot parse $quantString to nominal voltage, as it is no voltage.",
-          cce
+          cce,
         )
     }
   }
