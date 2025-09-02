@@ -13,11 +13,7 @@ import edu.ie3.datamodel.models.input.connector.LineInput
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  CurrentToSimona,
-  OhmPerLengthToSimona,
-  SiemensPerLengthToSimona,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import squants.Each
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities

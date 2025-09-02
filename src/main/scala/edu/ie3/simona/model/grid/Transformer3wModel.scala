@@ -28,10 +28,8 @@ import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  OhmToSimona,
-  PowerConversionSimona,
-  SiemensToSimona,
-  VoltageToSimona,
+  toApparent,
+  toSquants,
 }
 import squants.electro.Siemens
 

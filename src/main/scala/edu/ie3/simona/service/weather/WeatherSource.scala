@@ -34,7 +34,7 @@ import edu.ie3.simona.service.weather.WeatherSourceWrapper.buildPSDMSource
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.{Coordinate, Point}
 import squants.motion.MetersPerSecond

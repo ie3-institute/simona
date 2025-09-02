@@ -17,8 +17,8 @@ import edu.ie3.simona.test.matchers.DoubleMatchers
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  EnergyToSimona,
-  PowerConversionSimona,
+  toApparent,
+  toSquants,
 }
 import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
 import squants.Percent
