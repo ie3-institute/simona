@@ -44,6 +44,7 @@ import edu.ie3.simona.service.weather.WeatherSource as SimonaWeatherSource
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.DoubleUtils.!~=
 import edu.ie3.util.interval.ClosedInterval
+import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
 
 import java.nio.file.Paths
@@ -153,7 +154,9 @@ private[weather] final case class WeatherSourceWrapper private (
             logger.warn(s"Temperature not available at $point.")
             (averagedWeather.temp, 0d)
           case nonEmptyTemp =>
-            (averagedWeather.temp + nonEmptyTemp * weight, weight)
+            // Important: squants temperature addition is bugged.
+            // Conversion to Kelvin necessary.
+            (averagedWeather.temp + nonEmptyTemp.in(Kelvin) * weight, weight)
         }
 
         val (windVelocity, windVelWeight) = currentWeather.windVel match {
