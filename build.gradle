@@ -71,8 +71,6 @@ repositories {
 }
 
 dependencies {
-  // workaround: Replace the old netlib version in powerflow
-  implementation 'com.github.fommil.netlib:all:1.1.4'
 
   // ie³ internal repository
   implementation('com.github.ie3-institute:PowerSystemUtils:3.1.0') {
