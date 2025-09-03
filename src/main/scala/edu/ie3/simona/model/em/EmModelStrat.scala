@@ -7,7 +7,11 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  PowerLimitFlexOptions,
+}
 import squants.Power
 import squants.energy.Kilowatts
 
@@ -17,7 +21,7 @@ import java.util.UUID
   * flexibility control, i.e. given a target power, determining flex control for
   * connected agents
   */
-trait EmModelStrat {
+trait EmModelStrat[FO <: FlexOptions] {
 
   /** Determine the target power (set points) of connected agents that provided
     * flex options before. Connected agents that have no result assigned in
@@ -32,7 +36,7 @@ trait EmModelStrat {
     */
   def determineFlexControl(
       flexOptions: Iterable[
-        (_ <: AssetInput, ProvideMinMaxFlexOptions)
+        (? <: AssetInput, FO)
       ],
       target: Power,
   ): Iterable[(UUID, Power)]
@@ -51,10 +55,18 @@ trait EmModelStrat {
     */
   def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: ProvideMinMaxFlexOptions,
-  ): ProvideMinMaxFlexOptions
+      flexOptions: FO,
+  ): FO
 }
 
 object EmModelStrat {
   val tolerance: Power = Kilowatts(1e-6d)
+
+  def parsePowerLimitModel(
+      modelConfig: EmRuntimeConfig
+  ): PartialFunction[String, EmModelStrat[PowerLimitFlexOptions]] = {
+    case "PROPORTIONAL" => ProportionalFlexStrat
+    case "PRIORITIZED" =>
+      PrioritizedFlexStrat(modelConfig.curtailRegenerative)
+  }
 }

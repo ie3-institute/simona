@@ -9,7 +9,7 @@ package edu.ie3.simona.model.grid
 import breeze.math.Complex
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ReactivePower, Vars}
-import squants.electro._
+import squants.electro.*
 import squants.energy.{Megawatts, Watts}
 import squants.{Dimensionless, Each, Power}
 import tech.units.indriya.quantity.Quantities
@@ -153,7 +153,7 @@ final case class RefSystem private (
   /** Converts a provided voltage value from physical SI value into p.u. value
     *
     * @param vInSi
-    *   real or imaginary part of a unreferenced physical SI value
+    *   real or imaginary part of an unreferenced physical SI value
     * @return
     *   referenced voltage value in p.u.
     */

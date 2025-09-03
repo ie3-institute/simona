@@ -3,9 +3,9 @@
 </p>
 
 # SIMONA
-[![Build Status](https://simona.ie3.e-technik.tu-dortmund.de/ci/buildStatus/icon?job=ie3-institute%2Fsimona%2Fdev)](https://simona.ie3.e-technik.tu-dortmund.de/ci/job/ie3-institute/job/simona/job/dev/)
+[![CI](https://github.com/ie3-institute/simona/actions/workflows/ci.yml/badge.svg)](https://github.com/ie3-institute/simona/actions/workflows/ci.yml)
 [![Quality Gate Status](https://simona.ie3.e-technik.tu-dortmund.de/sonar/api/project_badges/measure?project=edu.ie3%3Asimona&metric=alert_status)](https://simona.ie3.e-technik.tu-dortmund.de/sonar/dashboard?id=edu.ie3%3Asimona)
-[![codecov](https://codecov.io/gh/ie3-institute/simona/branch/main/graph/badge.svg?token=pDg4Pbbp9L)](https://codecov.io/gh/ie3-institute/simona)
+[![Coverage](https://simona.ie3.e-technik.tu-dortmund.de/sonar/api/project_badges/measure?project=edu.ie3%3Asimona&metric=coverage&token=sqb_3acbb80f3cb95a03582e52f2ef1c443e8b434bfc)](https://simona.ie3.e-technik.tu-dortmund.de/sonar/dashboard?id=edu.ie3%3Asimona)
 [![Documentation Status](https://readthedocs.org/projects/simona/badge/?version=latest)](https://simona.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/github/license/ie3-institute/simona)](https://github.com/ie3-institute/simona/blob/main/LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.ie3-institute/simona.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.github.ie3-institute%22%20AND%20a:%22simona%22)

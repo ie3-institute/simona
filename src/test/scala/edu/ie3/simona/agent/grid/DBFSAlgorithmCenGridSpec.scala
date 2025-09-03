@@ -9,20 +9,23 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.load.LoadProfileService
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -31,7 +34,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
@@ -41,8 +43,8 @@ import scala.language.postfixOps
   * be able to do if the DBFSAlgorithm is used. The scheduler, the weather
   * service as well as the inferior and superior [[GridAgent]] s are simulated
   * by the TestKit. By now this test does NOT cover interactions with generation
-  * or load asset agents due to unavailability during test development. Hence it
-  * would make sense to extend this test in the future to include asset agent
+  * or load asset agents due to unavailability during test development. Hence,
+  * it would make sense to extend this test in the future to include asset agent
   * interaction or cover this behaviour by another (integration) test!
   */
 class DBFSAlgorithmCenGridSpec
@@ -53,10 +55,15 @@ class DBFSAlgorithmCenGridSpec
     with TestSpawnerTyped {
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
-  private val runtimeEvents: TestProbe[RuntimeEvent] =
-    TestProbe("runtimeEvents")
-  private val primaryService = TestProbe("primaryService")
-  private val weatherService = TestProbe("weatherService")
+  private val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
+    "runtimeEvents"
+  )
+  private val primaryService =
+    TestProbe[PrimaryServiceProxy.Message]("primaryService")
+  private val weatherService =
+    TestProbe[WeatherService.Message]("weatherService")
+  private val loadProfileService =
+    TestProbe[LoadProfileService.Message]("loadProfileService")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
@@ -77,8 +84,9 @@ class DBFSAlgorithmCenGridSpec
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
-    primaryServiceProxy = primaryService.ref.toClassic,
-    weather = weatherService.ref.toClassic,
+    primaryServiceProxy = primaryService.ref,
+    weather = weatherService.ref,
+    loadProfiles = loadProfileService.ref,
     evDataService = None,
   )
 
@@ -116,6 +124,7 @@ class DBFSAlgorithmCenGridSpec
           Seq.empty[ThermalGrid],
           subGridGateToActorRef,
           RefSystem("2000 MVA", "110 kV"),
+          VoltageLimits(0.9, 1.1),
         )
 
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -129,17 +138,13 @@ class DBFSAlgorithmCenGridSpec
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
-      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.tick shouldBe 3600
       scheduleActivationMsg.unlockKey shouldBe Some(key)
-      val gridAgentActivation = scheduleActivationMsg.actor
-
-      centerGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
 
-      centerGridAgent ! WrappedActivation(Activation(3600))
+      centerGridAgent ! Activation(3600)
 
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
     }
@@ -149,7 +154,7 @@ class DBFSAlgorithmCenGridSpec
       val firstSweepNo = 0
 
       // send the start grid simulation trigger
-      centerGridAgent ! WrappedActivation(Activation(3600))
+      centerGridAgent ! Activation(3600)
 
       /* We expect one grid power request message per inferior grid */
 
@@ -164,7 +169,7 @@ class DBFSAlgorithmCenGridSpec
       val firstSlackVoltageRequestSender =
         superiorGridAgent.expectSlackVoltageRequest(firstSweepNo)
 
-      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
+      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculations
       // we simulate this behaviour now by doing the same for our three inferior grid agents
       inferiorGrid11.requestSlackVoltage(centerGridAgent, firstSweepNo)
 
@@ -300,7 +305,7 @@ class DBFSAlgorithmCenGridSpec
             Kilovolts(374.22694614463d), // 380 kV @ 10°
             Kilovolts(65.9863075134335d), // 380 kV @ 10°
           ),
-          ExchangeVoltage( // this one should currently be ignored anyways
+          ExchangeVoltage( // this one should currently be ignored anyway
             supNodeA.getUuid,
             Kilovolts(380d),
             Kilovolts(0d),
@@ -320,7 +325,7 @@ class DBFSAlgorithmCenGridSpec
       val secondPowerRequestSender13 =
         inferiorGrid13.expectGridPowerRequest()
 
-      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
+      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculations
       // we simulate this behaviour now by doing the same for our three inferior grid agents
 
       inferiorGrid11.requestSlackVoltage(centerGridAgent, secondSweepNo)
@@ -424,8 +429,8 @@ class DBFSAlgorithmCenGridSpec
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       centerGridAgent ! FinishGridSimulationTrigger(3600)
 
-      // after a FinishGridSimulationTrigger is send the inferior grids, they themselves will send the
-      // Trigger forward the trigger to their connected inferior grids. Therefore the inferior grid
+      // after a FinishGridSimulationTrigger is sent the inferior grids, they themselves will send the
+      // Trigger forward the trigger to their connected inferior grids. Therefore, the inferior grid
       // agent should receive a FinishGridSimulationTrigger
       inferiorGrid11.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 

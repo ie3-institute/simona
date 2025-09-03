@@ -10,11 +10,9 @@ import edu.ie3.simona.agent.em.FlexCorrespondenceStore.{
   FlexCorrespondence,
   WithTime,
 }
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  IssueFlexControl,
-  ProvideFlexOptions,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexOptions
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
+import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -25,44 +23,47 @@ import java.util.UUID
   * message of each type per flex provider.
   *
   * @param store
-  *   Map that stores a flex correspondence per flex provider model UUID
+  *   Map that stores a flex correspondence per flex provider model UUID.
   * @param startDate
-  *   The start date of the simulation used for calculations involving ticks
+  *   The start date of the simulation used for calculations involving ticks.
   */
 final case class FlexCorrespondenceStore(
     store: Map[UUID, FlexCorrespondence] = Map.empty
 )(implicit val startDate: ZonedDateTime) {
 
   /** Updates the latest flex options for the flex provider, overwriting the
-    * former flex options, if applicable
+    * former flex options, if applicable.
     *
+    * @param modelUuid
+    *   The UUID of the flex provider model.
     * @param flexOptions
-    *   The new flex options
+    *   The new flex options.
     * @param tick
-    *   The tick that the flex options were received at
+    *   The tick that the flex options were received at.
     * @return
-    *   The updated flex options store
+    *   The updated flex options store.
     */
   def updateFlexOptions(
-      flexOptions: ProvideFlexOptions,
+      modelUuid: UUID,
+      flexOptions: FlexOptions,
       tick: Long,
   ): FlexCorrespondenceStore =
     updateCorrespondence(
-      flexOptions.modelUuid,
+      modelUuid,
       _.copy(receivedFlexOptions = Some(WithTime(flexOptions, tick))),
     )
 
   /** Updates the latest flex control for the flex provider, overwriting the
-    * former flex control, if applicable
+    * former flex control, if applicable.
     *
     * @param modelUuid
-    *   The UUID of the flex provider model
+    *   The UUID of the flex provider model.
     * @param flexControl
-    *   The new flex control message sent
+    *   The new flex control message sent.
     * @param tick
-    *   The tick that the flex control message was sent at
+    *   The tick that the flex control message was sent at.
     * @return
-    *   The updated flex options store
+    *   The updated flex options store.
     */
   def updateFlexControl(
       modelUuid: UUID,
@@ -75,20 +76,20 @@ final case class FlexCorrespondenceStore(
     )
 
   /** Updates the latest result for the flex provider, overwriting the former
-    * result, if applicable
+    * result, if applicable.
     *
     * @param modelUuid
-    *   The UUID of the flex provider model
+    *   The UUID of the flex provider model.
     * @param result
-    *   The new result
+    *   The new result.
     * @param tick
-    *   The tick that the result was received at
+    *   The tick that the result was received at.
     * @return
-    *   The updated flex options store
+    *   The updated flex options store.
     */
   def updateResult(
       modelUuid: UUID,
-      result: ApparentPower,
+      result: ComplexPower,
       tick: Long,
   ): FlexCorrespondenceStore =
     updateCorrespondence(
@@ -115,26 +116,26 @@ object FlexCorrespondenceStore {
     * messages of a type are stored with the tick that they were received.
     *
     * @param receivedFlexOptions
-    *   The latest flex options that have been received by the EmAgent
+    *   The latest flex options that have been received by the EmAgent.
     * @param issuedCtrlMsg
-    *   The latest flex control message that has been sent to the flex provider
+    *   The latest flex control message that has been sent to the flex provider.
     * @param receivedResult
-    *   The latest result that has been received by the EmAgent
+    *   The latest result that has been received by the EmAgent.
     */
   final case class FlexCorrespondence(
-      receivedFlexOptions: Option[WithTime[ProvideFlexOptions]] = None,
+      receivedFlexOptions: Option[WithTime[FlexOptions]] = None,
       issuedCtrlMsg: Option[WithTime[IssueFlexControl]] = None,
-      receivedResult: Option[WithTime[ApparentPower]] = None,
+      receivedResult: Option[WithTime[ComplexPower]] = None,
   )
 
-  /** Wrapper that allows storing a tick with an object
+  /** Wrapper that allows storing a tick with an object.
     *
     * @param obj
-    *   The object
+    *   The object.
     * @param tick
-    *   The tick
+    *   The tick.
     * @tparam T
-    *   The type of the object
+    *   The type of the object.
     */
   final case class WithTime[T](private val obj: T, tick: Long) {
     def get: T = obj

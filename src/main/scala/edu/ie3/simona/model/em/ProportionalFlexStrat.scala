@@ -7,8 +7,9 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import EmModelStrat.tolerance
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.model.em.EmModelStrat.tolerance
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions.flexSum
 import squants.Power
 
 import java.util.UUID
@@ -16,7 +17,7 @@ import java.util.UUID
 /** Proportionally distributes flex control among connected agents, i.e. all
   * agents contribute the same share of their offered flex options
   */
-object ProportionalFlexStrat extends EmModelStrat {
+object ProportionalFlexStrat extends EmModelStrat[PowerLimitFlexOptions] {
 
   /** Determine the power of controllable devices by proportionally distributing
     * flexibility usage to connected devices. This means that all devices are
@@ -32,36 +33,48 @@ object ProportionalFlexStrat extends EmModelStrat {
     */
   override def determineFlexControl(
       modelFlexOptions: Iterable[
-        (_ <: AssetInput, ProvideMinMaxFlexOptions)
+        (? <: AssetInput, PowerLimitFlexOptions)
       ],
       target: Power,
   ): Iterable[(UUID, Power)] = {
 
     // Input models are not needed here
     val flexOptions = modelFlexOptions
-      .map { case (_, flexOptions) =>
-        flexOptions
+      .map { case (asset: AssetInput, flexOptions) =>
+        asset.getUuid -> flexOptions
       }
 
     // sum up reference, minimum and maximum power of all connected devices
-    val (totalRef, totalMin, totalMax) = flexOptions.flexSum
+    val totalOptions = flexOptions.map { case (_, flexOptions) =>
+      flexOptions
+    }.flexSum
 
-    if (target.~=(totalRef)(tolerance)) {
+    if target.~=(totalOptions.ref)(using tolerance) then {
       Seq.empty
-    } else if (target < totalRef) {
+    } else if target < totalOptions.ref then {
       val reducedOptions = flexOptions.map {
-        case ProvideMinMaxFlexOptions(uuid, refPower, minPower, _) =>
+        case (uuid, PowerLimitFlexOptions(refPower, minPower, _)) =>
           (uuid, refPower, minPower)
       }
 
-      distributeFlexibility(target, totalRef, totalMin, reducedOptions)
+      distributeFlexibility(
+        target,
+        totalOptions.ref,
+        totalOptions.min,
+        reducedOptions,
+      )
     } else {
       val reducedOptions = flexOptions.map {
-        case ProvideMinMaxFlexOptions(uuid, refPower, _, maxPower) =>
+        case (uuid, PowerLimitFlexOptions(refPower, _, maxPower)) =>
           (uuid, refPower, maxPower)
       }
 
-      distributeFlexibility(target, totalRef, totalMax, reducedOptions)
+      distributeFlexibility(
+        target,
+        totalOptions.ref,
+        totalOptions.max,
+        reducedOptions,
+      )
     }
   }
 
@@ -87,13 +100,12 @@ object ProportionalFlexStrat extends EmModelStrat {
   ): Iterable[(UUID, Power)] = {
     // filter out options with ref == limit because they're useless here
     val filteredOptions = options.filterNot { case (_, refPower, limitPower) =>
-      refPower.~=(limitPower)(tolerance)
+      refPower.~=(limitPower)(using tolerance)
     }
 
-    if (
-      (target < totalRef && target <= totalLimit) ||
+    if (target < totalRef && target <= totalLimit) ||
       (target > totalRef && target >= totalLimit)
-    ) {
+    then {
       // target is beyond limit, thus use limit powers for all applicable devices
       filteredOptions.map { case (uuid, _, limitPower) =>
         uuid -> limitPower
@@ -118,7 +130,7 @@ object ProportionalFlexStrat extends EmModelStrat {
 
   override def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: ProvideMinMaxFlexOptions,
-  ): ProvideMinMaxFlexOptions =
+      flexOptions: PowerLimitFlexOptions,
+  ): PowerLimitFlexOptions =
     flexOptions
 }

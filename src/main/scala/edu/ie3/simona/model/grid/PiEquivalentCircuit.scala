@@ -57,10 +57,10 @@ trait PiEquivalentCircuit extends LazyLogging {
     * @return
     *   branch conductance g_ij between node i and j of the element in p.u.
     */
-  protected def gij(): squants.Dimensionless = {
+  def gij(): squants.Dimensionless = {
     val gijVal: Double = {
-      if (rVal == 0) 0
-      else if (xVal == 0) 1 / rVal
+      if rVal == 0 then 0
+      else if xVal == 0 then 1 / rVal
       else rVal / (pow(rVal, 2) + pow(xVal, 2))
     }
     Each(gijVal)
@@ -79,10 +79,10 @@ trait PiEquivalentCircuit extends LazyLogging {
     * @return
     *   branch susceptance b_ij between node i and j of the element in p.u.
     */
-  protected def bij(): squants.Dimensionless = {
+  def bij(): squants.Dimensionless = {
     val bijVal = {
-      if (xVal == 0) 0
-      else if (rVal == 0) -1 / xVal
+      if xVal == 0 then 0
+      else if rVal == 0 then -1 / xVal
       else -xVal / (pow(rVal, 2) + pow(xVal, 2))
     }
     Each(bijVal)
@@ -93,16 +93,14 @@ trait PiEquivalentCircuit extends LazyLogging {
     * @return
     *   phase-to-ground conductance g_0 in p.u.
     */
-  protected def g0(): squants.Dimensionless = {
-    Each(gVal)
-  }
+  def g0(): squants.Dimensionless = g
 
   /** "Computes" the TOTAL phase-to-ground susceptance of the grid element.
     *
     * @return
     *   phase-to-ground susceptance b_0 in p.u.
     */
-  protected def b0(): squants.Dimensionless = {
+  def b0(): squants.Dimensionless = {
     Each(bVal)
   }
 
@@ -115,10 +113,10 @@ trait PiEquivalentCircuit extends LazyLogging {
     * @param modelType
     *   optional model type to improve warning output
     */
-  protected final def piEquivalentSanityCheck(
+  final def piEquivalentSanityCheck(
       modelType: String = "model"
   ): Unit = {
-    if (rVal > 10 | xVal > 10 | bVal > 10 | gVal > 10)
+    if rVal > 10 | xVal > 10 | bVal > 10 | gVal > 10 then
       logger.warn(
         s"PiEquivalent parameters for $modelType with uuid " +
           s"$uuid seem to be unreasonable. Values are r: {}, x: {}, g: {}, b: {}",

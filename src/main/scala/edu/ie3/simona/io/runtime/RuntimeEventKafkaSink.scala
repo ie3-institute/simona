@@ -6,8 +6,7 @@
 
 package edu.ie3.simona.io.runtime
 
-import com.sksamuel.avro4s.RecordFormat
-import edu.ie3.simona.config.SimonaConfig.RuntimeKafkaParams
+import edu.ie3.simona.config.ConfigParams.RuntimeKafkaParams
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.{Done, Error}
 import edu.ie3.simona.io.runtime.RuntimeEventKafkaSink.SimonaEndMessage
@@ -23,7 +22,7 @@ import org.apache.kafka.common.serialization.{Serdes, Serializer}
 import org.slf4j.Logger
 
 import java.util.{Properties, UUID}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Runtime event sink that sends events related to the simulation ending to a
   * kafka topic.
@@ -90,9 +89,6 @@ object RuntimeEventKafkaSink {
       ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,
       true,
     ) // exactly once delivery
-
-    implicit val recordFormat: RecordFormat[SimonaEndMessage] =
-      RecordFormat[SimonaEndMessage]
 
     val keySerializer = Serdes.String().serializer()
     val valueSerializer: Serializer[SimonaEndMessage] =

@@ -8,7 +8,7 @@ package edu.ie3.util.scala.quantities
 
 import tech.units.indriya.function.DefaultNumberSystem
 
-/** This number system simply delegates the method calls to it's parent class.
+/** This number system simply delegates the method calls to its parent class.
   * The only difference is, that [[BigDecimal]] is transferred to
   * [[java.math.BigDecimal]] and back upon necessity. Due to its functionality
   * as an extension of the [[DefaultNumberSystem]] it CANNOT be an object!
@@ -36,9 +36,9 @@ final class ScalaNumberSystem extends DefaultNumberSystem {
 
     val sign = signX * signY
     // handle corner cases when x or y are zero
-    if (sign == 0) {
-      if (signY == 0) throw new ArithmeticException("division by zero")
-      if (signX == 0) Array[Number](0, 0)
+    if sign == 0 then {
+      if signY == 0 then throw new ArithmeticException("division by zero")
+      if signX == 0 then Array[Number](0, 0)
     }
 
     val div = x.doubleValue / y.intValue()

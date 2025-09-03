@@ -7,19 +7,23 @@
 package edu.ie3.util.scala.quantities
 
 import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
-import squants.{Dimensionless, Each, Energy, Power}
+import squants.thermal.Celsius
+import squants.{Dimensionless, Each, Energy, Power, Temperature}
 
 object DefaultQuantities {
 
   val zeroKW: Power = Kilowatts(0d)
   val zeroMW: Power = Megawatts(0d)
 
+  val zeroWPerSM: Irradiance = WattsPerSquareMeter(0d)
+
   val zeroKVAr: ReactivePower = Kilovars(0d)
   val zeroMVAr: ReactivePower = Megavars(0d)
 
-  val zeroKWH: Energy = KilowattHours(0d)
-  val zeroMWH: Energy = MegawattHours(0d)
+  val zeroKWh: Energy = KilowattHours(0d)
+  val zeroMWh: Energy = MegawattHours(0d)
 
   val zeroPU: Dimensionless = Each(0d)
+  val zeroCelsius: Temperature = Celsius(0)
 
 }

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event
 
-import edu.ie3.datamodel.models.result.NodeResult
+import edu.ie3.datamodel.models.result.{CongestionResult, NodeResult}
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
@@ -16,9 +16,19 @@ import edu.ie3.datamodel.models.result.system.{
   FlexOptionsResult,
   SystemParticipantResult,
 }
-import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
+import edu.ie3.datamodel.models.result.thermal.{
+  CylindricalStorageResult,
+  ThermalHouseResult,
+  ThermalUnitResult,
+}
+import edu.ie3.datamodel.models.result.system.{EmResult, HpResult}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.listener.ResultEventListener
+import tech.units.indriya.ComparableQuantity
+
+import java.time.ZonedDateTime
+import java.util.UUID
+import javax.measure.quantity.{Energy, Power, Temperature}
 
 sealed trait ResultEvent extends Event with ResultEventListener.Request
 
@@ -36,6 +46,44 @@ object ResultEvent {
       systemParticipantResult: SystemParticipantResult
   ) extends ResultEvent
 
+  object HpResult {
+    def unapply(hpResult: HpResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Power],
+      )
+    ] =
+      Option(hpResult).map { result =>
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getP,
+          result.getQ,
+        )
+      }
+  }
+
+  object EmResult {
+    def unapply(emResult: EmResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Power],
+      )
+    ] =
+      Option(emResult).map { result =>
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getP,
+          result.getQ,
+        )
+      }
+  }
+
   /** Event, that is triggered every time a thermal model has a new result
     * @param thermalResult
     *   Result of the thermal calculation
@@ -43,6 +91,45 @@ object ResultEvent {
   final case class ThermalResultEvent(
       thermalResult: ThermalUnitResult
   ) extends ResultEvent
+
+  object ThermalHouseResult {
+    def unapply(thermalHouseResult: ThermalHouseResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Temperature],
+      )
+    ] =
+      Option(thermalHouseResult).map { result =>
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getqDot,
+          result.getIndoorTemperature,
+        )
+      }
+  }
+
+  object CylindricalThermalStorageResult {
+    def unapply(cylindricalStorageResult: CylindricalStorageResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Energy],
+      )
+    ] = {
+      Option(cylindricalStorageResult).map { result =>
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getqDot,
+          result.getEnergy,
+        )
+      }
+    }
+  }
 
   /** Event that holds all grid calculation results of a power flow calculation.
     * The usage of a type is necessary here, to avoid passing in other instances
@@ -59,6 +146,8 @@ object ResultEvent {
     *   the power flow results for two winding transformers
     * @param transformer3wResults
     *   the <b>partial</b> power flow results for three winding transformers
+    * @param congestionResults
+    *   the congestion found by the congestion managements (default: empty)
     */
   final case class PowerFlowResultEvent(
       nodeResults: Iterable[NodeResult],
@@ -66,7 +155,15 @@ object ResultEvent {
       lineResults: Iterable[LineResult],
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult],
-  ) extends ResultEvent
+      congestionResults: Iterable[CongestionResult] = Iterable.empty,
+  ) extends ResultEvent {
+
+    def +(congestionResult: Iterable[CongestionResult]): PowerFlowResultEvent =
+      copy(
+        congestionResults = congestionResult
+      )
+
+  }
 
   /** Event that holds the flexibility options result of a
     * [[edu.ie3.simona.model.participant.SystemParticipant]]

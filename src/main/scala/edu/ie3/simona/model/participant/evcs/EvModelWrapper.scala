@@ -7,9 +7,11 @@
 package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import squants.energy.{KilowattHours, Kilowatts}
+import edu.ie3.util.quantities.PowerSystemUnits.*
+import edu.ie3.util.quantities.QuantityUtils.asKiloWattHour
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import squants.Power
+import squants.energy.{Energy, KilowattHours}
 
 import java.util.UUID
 
@@ -26,19 +28,17 @@ import java.util.UUID
   *   The wrapped [[EvModel]]
   */
 final case class EvModelWrapper(
-    storedEnergy: squants.Energy,
+    storedEnergy: Energy,
     private val original: EvModel,
 ) {
 
   def uuid: UUID = original.getUuid
   def id: String = original.getId
-  lazy val sRatedAc: squants.Power =
-    Kilowatts(original.getSRatedAC.to(KILOWATT).getValue.doubleValue)
-  lazy val sRatedDc: squants.Power =
-    Kilowatts(original.getSRatedDC.to(KILOWATT).getValue.doubleValue)
-  lazy val eStorage: squants.Energy = KilowattHours(
-    original.getEStorage.to(KILOWATTHOUR).getValue.doubleValue
-  )
+
+  lazy val pRatedAc: Power = original.getPRatedAC.toSquants
+  lazy val pRatedDc: Power = original.getPRatedDC.toSquants
+  lazy val eStorage: Energy = original.getEStorage.toSquants
+
   def departureTick: Long = original.getDepartureTick
 
   /** Unwrapping the original [[EvModel]] while also updating the

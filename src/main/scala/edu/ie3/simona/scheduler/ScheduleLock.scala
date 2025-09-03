@@ -6,14 +6,13 @@
 
 package edu.ie3.simona.scheduler
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorContextOps
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.util.UUID
 
@@ -23,59 +22,58 @@ import java.util.UUID
   * some actors, we need to prevent simulation time from advancing until
   * scheduling all of them has finished. Locks with one or multiple keys can be
   * created, for which all created keys are required for unlocking the lock.
+  *
+  * In order to demonstrate this functionality, let's take an example of a
+  * scheduler and actors A and B. A has been activated for a tick t and sends
+  * out two messages. The first of the two messages goes to B, which in turn now
+  * wants to schedule itself for tick t+1. The second message by A is a
+  * Completion message and goes back to the scheduler, completing the current
+  * activation of A. Here, we get into a race condition: If the scheduling
+  * message by B is received first by the scheduler, all is fine. If the
+  * completion message by A is received first though, simulation time might
+  * advance to a tick beyond t+1, which means that the scheduling message by B
+  * is received too late and causes the simulation to fail.
+  *
+  * {{{
+  *       A         B     Scheduler
+  *  1.   | ------> | ------> |
+  *  2.   | ----------------> |
+  * }}}
+  *
+  * This is where the [[ScheduleLock]] comes into play: If A is including a
+  * schedule lock with the message sent to B, which can then be forwarded within
+  * the scheduling message sent to the scheduler, the race condition is solved.
   */
 object ScheduleLock {
-  sealed trait LockMsg
 
-  private final case class Init(adapter: ActorRef[Activation]) extends LockMsg
+  type Message = Request | Activation
 
-  private final case object LockActivation extends LockMsg
+  sealed trait Request
 
   /** @param key
-    *   the key that unlocks (part of) the lock
+    *   The key that unlocks (part of) the lock.
     */
-  final case class Unlock(key: UUID) extends LockMsg
-
-  private def lockAdapter(
-      lock: ActorRef[LockMsg],
-      expectedTick: Long,
-  ): Behavior[Activation] =
-    Behaviors.receive { case (ctx, Activation(tick)) =>
-      if (tick == expectedTick)
-        lock ! LockActivation
-      else
-        ctx.log.error(
-          s"Received lock activation for tick $tick, but expected $expectedTick"
-        )
-      // We can stop after forwarding the activation (there will be only one)
-      Behaviors.stopped
-    }
+  final case class Unlock(key: UUID) extends Request
 
   /** Key that can unlock (a part of) a [[ScheduleLock]].
+    *
     * @param lock
-    *   The corresponding lock
+    *   The corresponding lock.
     * @param key
-    *   A key (can be one of multiple) that unlocks (part of) the lock
+    *   A key (can be one of multiple) that unlocks (part of) the lock.
     */
-  final case class ScheduleKey(lock: ActorRef[LockMsg], key: UUID) {
+  final case class ScheduleKey(lock: ActorRef[Request], key: UUID) {
     def unlock(): Unit =
       lock ! Unlock(key)
   }
 
-  /** Defines a method of spawning actors from behaviors
+  /** Defines a method of spawning actors from behaviors.
     */
   trait Spawner {
     def spawn[T](behavior: Behavior[T]): ActorRef[T]
   }
 
-  private final case class TypedSpawner(ctx: ActorContext[_]) extends Spawner {
-    override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
-      ctx.spawnAnonymous(behavior)
-  }
-
-  private final case class ClassicSpawner(
-      ctx: org.apache.pekko.actor.ActorContext
-  ) extends Spawner {
+  private final case class TypedSpawner(ctx: ActorContext[?]) extends Spawner {
     override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
       ctx.spawnAnonymous(behavior)
   }
@@ -83,17 +81,17 @@ object ScheduleLock {
   /** Creates a lock with a single key.
     *
     * @param ctx
-    *   The typed ActorContext that is used to spawn actors
+    *   The typed ActorContext that is used to spawn actors.
     * @param scheduler
-    *   The scheduler to lock
+    *   The scheduler to lock.
     * @param tick
     *   The tick that the scheduler will be locked at (usually the current
     *   tick).
     * @return
-    *   A single key that unlocks the lock
+    *   A single key that unlocks the lock.
     */
   def singleKey(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
   ): ScheduleKey =
@@ -101,34 +99,15 @@ object ScheduleLock {
 
   /** Creates a lock with a single key.
     *
-    * @param ctx
-    *   The classic ActorContext that is used to spawn actors
-    * @param scheduler
-    *   The scheduler to lock
-    * @param tick
-    *   The tick that the scheduler will be locked at (usually the current
-    *   tick).
-    * @return
-    *   A single key that unlocks the lock
-    */
-  def singleKey(
-      ctx: org.apache.pekko.actor.ActorContext,
-      scheduler: ActorRef[SchedulerMessage],
-      tick: Long,
-  ): ScheduleKey =
-    singleKey(ClassicSpawner(ctx), scheduler, tick)
-
-  /** Creates a lock with a single key.
-    *
     * @param spawner
-    *   Trait that defines a way to spawn actors
+    *   Trait that defines a way to spawn actors.
     * @param scheduler
-    *   The scheduler to lock
+    *   The scheduler to lock.
     * @param tick
     *   The tick that the scheduler will be locked at (usually the current
     *   tick).
     * @return
-    *   A single key that unlocks the lock
+    *   A single key that unlocks the lock.
     */
   def singleKey(
       spawner: Spawner,
@@ -142,19 +121,19 @@ object ScheduleLock {
   /** Creates a lock with a multiple keys.
     *
     * @param ctx
-    *   The typed ActorContext that is used to spawn actors
+    *   The typed ActorContext that is used to spawn actors.
     * @param scheduler
-    *   The scheduler to lock
+    *   The scheduler to lock.
     * @param tick
     *   The tick that the scheduler will be locked at (usually the current
     *   tick).
     * @param count
-    *   The number of keys needed to unlock the lock
+    *   The number of keys needed to unlock the lock.
     * @return
-    *   A collection of keys that are needed to unlock the lock
+    *   A collection of keys that are needed to unlock the lock.
     */
   def multiKey(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
       count: Int,
@@ -163,39 +142,17 @@ object ScheduleLock {
 
   /** Creates a lock with a multiple keys.
     *
-    * @param ctx
-    *   The classic ActorContext that is used to spawn actors
-    * @param scheduler
-    *   The scheduler to lock
-    * @param tick
-    *   The tick that the scheduler will be locked at (usually the current
-    *   tick).
-    * @param count
-    *   The number of keys needed to unlock the lock
-    * @return
-    *   A collection of keys that are needed to unlock the lock
-    */
-  def multiKey(
-      ctx: org.apache.pekko.actor.ActorContext,
-      scheduler: ActorRef[SchedulerMessage],
-      tick: Long,
-      count: Int,
-  ): Iterable[ScheduleKey] =
-    multiKey(ClassicSpawner(ctx), scheduler, tick, count)
-
-  /** Creates a lock with a multiple keys.
-    *
     * @param spawner
-    *   Trait that defines a way to spawn actors
+    *   Trait that defines a way to spawn actors.
     * @param scheduler
-    *   The scheduler to lock
+    *   The scheduler to lock.
     * @param tick
     *   The tick that the scheduler will be locked at (usually the current
     *   tick).
     * @param count
-    *   The number of keys needed to unlock the lock
+    *   The number of keys needed to unlock the lock.
     * @return
-    *   A collection of keys that are needed to unlock the lock
+    *   A collection of keys that are needed to unlock the lock.
     */
   def multiKey(
       spawner: Spawner,
@@ -205,15 +162,12 @@ object ScheduleLock {
   ): Iterable[ScheduleKey] = {
     val keys = (1 to count).map(_ => UUID.randomUUID())
 
-    val lock = spawner.spawn(ScheduleLock(scheduler, keys.toSet))
-
-    val adapter = spawner.spawn(lockAdapter(lock, tick))
-    lock ! Init(adapter)
+    val lock = spawner.spawn(ScheduleLock(scheduler, keys.toSet, tick))
 
     // We have to schedule the activation right away. If there is any
     // possibility for delay via a third actor, the lock could be
     // placed too late.
-    scheduler ! ScheduleActivation(adapter, tick)
+    scheduler ! ScheduleActivation(lock, tick)
 
     keys.map(ScheduleKey(lock, _))
   }
@@ -221,37 +175,30 @@ object ScheduleLock {
   /** Default internal method to create a lock.
     *
     * @param scheduler
-    *   The scheduler to lock
+    *   The scheduler to lock.
     * @param awaitedKeys
-    *   The keys that have to be supplied in order to unlock this lock
+    *   The keys that have to be supplied in order to unlock this lock.
+    * @param expectedTick
+    *   The tick that an activation is expected for.
     */
   private def apply(
       scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
-  ): Behavior[LockMsg] =
+      expectedTick: Long,
+  ): Behavior[Message] =
     Behaviors.withStash(100) { buffer =>
-      Behaviors.receiveMessage {
-        case Init(adapter) =>
-          buffer.unstashAll(uninitialized(scheduler, awaitedKeys, adapter))
+      Behaviors.receivePartial {
+        case (ctx, Activation(tick)) =>
+          if tick == expectedTick then
+            buffer.unstashAll(active(scheduler, awaitedKeys))
+          else {
+            ctx.log.error(
+              s"Received lock activation for tick $tick, but expected $expectedTick"
+            )
+            Behaviors.stopped
+          }
 
-        case msg =>
-          // stash all messages until we are initialized
-          buffer.stash(msg)
-          Behaviors.same
-      }
-    }
-
-  private def uninitialized(
-      scheduler: ActorRef[SchedulerMessage],
-      awaitedKeys: Set[UUID],
-      adapter: ActorRef[Activation],
-  ): Behavior[LockMsg] =
-    Behaviors.withStash(100) { buffer =>
-      Behaviors.receiveMessage {
-        case LockActivation =>
-          buffer.unstashAll(active(scheduler, awaitedKeys, adapter))
-
-        case unlock: Unlock =>
+        case (_, unlock: Unlock) =>
           // stash unlock messages until we are initialized
           buffer.stash(unlock)
           Behaviors.same
@@ -261,15 +208,14 @@ object ScheduleLock {
   private def active(
       scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
-      adapter: ActorRef[Activation],
-  ): Behavior[LockMsg] = Behaviors.receiveMessage { case Unlock(key) =>
+  ): Behavior[Message] = Behaviors.receivePartial { case (ctx, Unlock(key)) =>
     val updatedKeys = awaitedKeys - key
 
-    if (updatedKeys.nonEmpty)
-      active(scheduler, updatedKeys, adapter)
+    if updatedKeys.nonEmpty then active(scheduler, updatedKeys)
     else {
-      scheduler ! Completion(adapter)
+      scheduler ! Completion(ctx.self)
       Behaviors.stopped
     }
+
   }
 }

@@ -21,7 +21,7 @@ import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   ProcessResultEventException,
 }
-import edu.ie3.simona.io.result._
+import edu.ie3.simona.io.result.*
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.slf4j.Logger
 
@@ -35,7 +35,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   trait Request
 
   private final case class SinkResponse(
-      response: Map[Class[_], ResultEntitySink]
+      response: Map[Class[?], ResultEntitySink]
   ) extends Request
 
   private final case class InitFailed(ex: Exception) extends Request
@@ -48,7 +48,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     *   listener
     */
   private final case class BaseData(
-      classToSink: Map[Class[_], ResultEntitySink],
+      classToSink: Map[Class[?], ResultEntitySink],
       threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult,
@@ -66,43 +66,51 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def initializeSinks(
       resultFileHierarchy: ResultFileHierarchy
-  ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
+  ): Iterable[Future[(Class[?], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
-      case _: ResultSinkType.Csv =>
-        resultFileHierarchy.resultEntitiesToConsider
-          .map(resultClass => {
-            resultFileHierarchy.rawOutputDataFilePaths
-              .get(resultClass)
-              .map(Future.successful)
-              .getOrElse(
-                Future.failed(
-                  new FileHierarchyException(
-                    s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
-                      s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
-                  )
+      case csv: ResultSinkType.Csv =>
+        val enableCompression = csv.compressOutputs
+
+        resultFileHierarchy.resultEntitiesToConsider.map { resultClass =>
+          val filePathOpt =
+            resultFileHierarchy.rawOutputDataFilePaths.get(resultClass)
+
+          val filePathFuture = filePathOpt match {
+            case Some(fileName) => Future.successful(fileName)
+            case None =>
+              Future.failed(
+                new FileHierarchyException(
+                  s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
+                    s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
                 )
               )
-              .flatMap { fileName =>
-                if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-                  Future {
-                    (
-                      resultClass,
-                      ResultEntityCsvSink(
-                        fileName.replace(".gz", ""),
-                        new ResultEntityProcessor(resultClass),
-                        fileName.endsWith(".gz"),
-                      ),
-                    )
-                  }
-                } else {
-                  Future.failed(
-                    new ProcessResultEventException(
-                      s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
-                    )
+          }
+
+          filePathFuture.map { fileName =>
+            val finalFileName =
+              fileName.toString match {
+                case name if name.endsWith(".csv.gz") && enableCompression =>
+                  name.replace(".gz", "")
+                case name if name.endsWith(".csv") => name
+                case fileName =>
+                  throw new ProcessResultEventException(
+                    s"Invalid output file format for file $fileName provided or compression is not activated but filename indicates compression. Currently only '.csv' or '.csv.gz' is supported!"
                   )
-                }
               }
-          })
+
+            (
+              resultClass,
+              ResultEntityCsvSink(
+                finalFileName,
+                new ResultEntityProcessor(resultClass),
+                enableCompression,
+                csv.delimiter,
+              ),
+            )
+
+          }
+        }
+
       case ResultSinkType.InfluxDb1x(url, database, scenario) =>
         // creates one connection per result entity that should be processed
         resultFileHierarchy.resultEntitiesToConsider
@@ -119,7 +127,7 @@ object ResultEventListener extends Transformer3wResultSupport {
             schemaRegistryUrl,
             linger,
           ) =>
-        val classes: Iterable[Class[_ <: ResultEntity]] = Set(
+        val classes: Iterable[Class[? <: ResultEntity]] = Set(
           classOf[NodeResult] // currently, only NodeResults are sent out
         )
         classes.map(clz =>
@@ -182,7 +190,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       )
     // add partial result
     val updatedResults = partialResult.add(result).map { updatedResult =>
-      if (updatedResult.ready) {
+      if updatedResult.ready then {
         // if result is complete, we can write it out
         updatedResult.consolidate.foreach {
           handOverToSink(_, baseData.classToSink, log)
@@ -217,7 +225,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def handOverToSink(
       resultEntity: ResultEntity,
-      classToSink: Map[Class[_], ResultEntitySink],
+      classToSink: Map[Class[?], ResultEntitySink],
       log: Logger,
   ): Unit =
     Try {
@@ -291,10 +299,11 @@ object ResultEventListener extends Transformer3wResultSupport {
               lineResults,
               transformer2wResults,
               transformer3wResults,
+              congestionResults,
             ),
           ) =>
         val updatedBaseData =
-          (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
+          (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults ++ congestionResults)
             .foldLeft(baseData) {
               case (currentBaseData, resultEntity: ResultEntity) =>
                 handleResult(resultEntity, currentBaseData, ctx.log)

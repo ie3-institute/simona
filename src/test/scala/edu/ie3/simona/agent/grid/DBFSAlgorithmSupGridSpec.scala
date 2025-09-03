@@ -11,17 +11,19 @@ import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangePower
-import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.load.LoadProfileService
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -31,7 +33,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.energy.Megawatts
 
 import java.util.UUID
@@ -50,26 +51,29 @@ class DBFSAlgorithmSupGridSpec
     with DbfsTestGrid
     with TestSpawnerTyped {
 
-  private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
-  private val runtimeEvents: TestProbe[RuntimeEvent] =
-    TestProbe("runtimeEvents")
-  private val primaryService: TestProbe[ServiceMessage] =
-    TestProbe("primaryService")
-  private val weatherService = TestProbe("weatherService")
-  private val hvGrid: TestProbe[GridAgent.Request] = TestProbe("hvGrid")
+  private val scheduler = TestProbe[SchedulerMessage]("scheduler")
+  private val runtimeEvents = TestProbe[RuntimeEvent]("runtimeEvents")
+  private val primaryService =
+    TestProbe[PrimaryServiceProxy.Message]("primaryService")
+  private val weatherService =
+    TestProbe[WeatherService.Message]("weatherService")
+  private val loadProfileService =
+    TestProbe[LoadProfileService.Message]("loadProfileService")
+  private val hvGrid: TestProbe[GridAgent.Message] = TestProbe("hvGrid")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
-    primaryServiceProxy = primaryService.ref.toClassic,
-    weather = weatherService.ref.toClassic,
+    primaryServiceProxy = primaryService.ref,
+    weather = weatherService.ref,
+    loadProfiles = loadProfileService.ref,
     evDataService = None,
   )
 
   val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
 
   "A GridAgent actor in superior position with async test" should {
-    val superiorGridAgentFSM: ActorRef[GridAgent.Request] = testKit.spawn(
+    val superiorGridAgentFSM: ActorRef[GridAgent.Message] = testKit.spawn(
       GridAgent(
         environmentRefs,
         simonaConfig,
@@ -78,7 +82,7 @@ class DBFSAlgorithmSupGridSpec
     )
 
     s"initialize itself when it receives an init activation" in {
-      val subnetGatesToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]] =
+      val subnetGatesToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]] =
         ehvSubGridGates.map(gate => gate -> hvGrid.ref).toMap
 
       val gridAgentInitData =
@@ -87,6 +91,7 @@ class DBFSAlgorithmSupGridSpec
           Seq.empty[ThermalGrid],
           subnetGatesToActorRef,
           RefSystem("5000 MVA", "380 kV"),
+          VoltageLimits(0.9, 1.1),
         )
 
       val key =
@@ -98,17 +103,13 @@ class DBFSAlgorithmSupGridSpec
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
-      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.tick shouldBe 3600
       scheduleActivationMsg.unlockKey shouldBe Some(key)
-      val gridAgentActivation = scheduleActivationMsg.actor
-
-      superiorGridAgentFSM ! WrappedActivation(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
       // send init data to agent
-      superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+      superiorGridAgentFSM ! Activation(3600)
 
       // we expect a completion message
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
@@ -117,13 +118,13 @@ class DBFSAlgorithmSupGridSpec
     s"start the simulation, do 2 sweeps and should end afterwards when no deviation on nodal " +
       s"power is recognized in the superior when an activation is sent is send" in {
 
-        for (sweepNo <- 0 to 1) {
+        for sweepNo <- 0 to 1 do {
 
           val requestedConnectionNodeUuids =
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
-          superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+          superiorGridAgentFSM ! Activation(3600)
 
           // we expect a request for grid power values here for sweepNo $sweepNo
           val message = hvGrid.expectMessageType[RequestGridPower]
@@ -154,7 +155,7 @@ class DBFSAlgorithmSupGridSpec
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
-          // and waits until the newly scheduled StartGridSimulationTrigger is send
+          // and waits until the newly scheduled StartGridSimulationTrigger is sent
           // wait 30 seconds max for power flow to finish
           scheduler.expectMessageType[Completion](130 seconds) match {
             case Completion(_, Some(3600)) =>
@@ -228,22 +229,22 @@ class DBFSAlgorithmSupGridSpec
           )
 
         // bring agent in simulate grid state
-        superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+        superiorGridAgentFSM ! Activation(3600)
 
         // we expect a completion message
         scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
 
         // go on with testing the sweep behaviour
-        for (sweepNo <- 0 to maxNumberOfTestSweeps) {
+        for sweepNo <- 0 to maxNumberOfTestSweeps do {
 
           val requestedConnectionNodeUuids =
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
-          superiorGridAgentFSM ! WrappedActivation(Activation(3600))
+          superiorGridAgentFSM ! Activation(3600)
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          val message = hvGrid.expectMessageType[GridAgent.Request]
+          val message = hvGrid.expectMessageType[GridAgent.Message]
 
           val lastSender = message match {
             case requestGridPowerMessage: RequestGridPower =>
@@ -271,7 +272,7 @@ class DBFSAlgorithmSupGridSpec
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
-          // and waits until the newly scheduled StartGridSimulationTrigger is send
+          // and waits until the newly scheduled StartGridSimulationTrigger is sent
 
           // Simulate Grid
           // wait 30 seconds max for power flow to finish

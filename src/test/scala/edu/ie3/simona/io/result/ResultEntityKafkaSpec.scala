@@ -7,12 +7,12 @@
 package edu.ie3.simona.io.result
 
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.listener.ResultEventListener
 import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.simona.io.result.plain.PlainWriter
+import edu.ie3.simona.logging.LogbackConfiguration
 import edu.ie3.simona.test.KafkaSpecLike
 import edu.ie3.simona.test.KafkaSpecLike.Topic
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -30,9 +30,9 @@ import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
-import scala.jdk.DurationConverters._
+import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
+import scala.jdk.DurationConverters.*
 import scala.language.postfixOps
 
 /** Adapted from
@@ -45,10 +45,9 @@ class ResultEntityKafkaSpec
     with GivenWhenThen
     with Eventually {
 
-  private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
+  private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] =
+    scala.compiletime.uninitialized
 
-  private implicit lazy val resultFormat: RecordFormat[PlainNodeResult] =
-    RecordFormat[PlainNodeResult]
   private val deserializer: Deserializer[PlainNodeResult] =
     ScalaReflectionSerde.reflectionDeserializer4S[PlainNodeResult]
 
@@ -106,6 +105,8 @@ class ResultEntityKafkaSpec
                 20,
               ),
             ),
+            configureLogger =
+              LogbackConfiguration.default("INFO", Some("ERROR"))(_),
           )
         )
       )
@@ -143,9 +144,9 @@ class ResultEntityKafkaSpec
       testConsumer.seekToBeginning(topicPartitions.asJava)
 
       // kafka messages might take some time if machine is loaded
-      eventually(timeout(2 minutes), interval(1 second)) {
+      eventually(timeout(2.minutes), interval(1.second)) {
         val records: List[PlainNodeResult] =
-          testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+          testConsumer.poll(1.second.toJava).asScala.map(_.value()).toList
 
         records should have length 3
         records should contain(

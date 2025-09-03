@@ -1,129 +1,119 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2024. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
 
 package edu.ie3.simona.model.participant
 
-import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
-import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.datamodel.models.result.system.{
+  FixedFeedInResult,
+  SystemParticipantResult,
+}
+import edu.ie3.simona.model.participant.ParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.OperationInterval
+import edu.ie3.simona.ontology.messages.flex.FlexType
+import edu.ie3.simona.service.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithComplexPower,
+}
+import edu.ie3.simona.service.ServiceType
+import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
+import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toApparent
 import squants.Power
-import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
 
-/** Fixed feed generation model delivering constant power
-  *
-  * @param uuid
-  *   the element's uuid
-  * @param id
-  *   the element's human readable id
-  * @param operationInterval
-  *   Interval, in which the system is in operation
-  * @param qControl
-  *   Type of reactive power control
-  * @param sRated
-  *   Rated apparent power
-  * @param cosPhiRated
-  *   Rated power factor
-  */
-final case class FixedFeedInModel(
-    uuid: UUID,
-    id: String,
-    operationInterval: OperationInterval,
-    qControl: QControl,
-    sRated: Power,
-    cosPhiRated: Double,
-) extends SystemParticipant[
-      FixedRelevantData.type,
-      ApparentPower,
-      ConstantState.type,
-    ](
-      uuid,
-      id,
-      operationInterval,
-      qControl,
-      sRated,
-      cosPhiRated,
-    )
-    with ApparentPowerParticipant[FixedRelevantData.type, ConstantState.type] {
+class FixedFeedInModel(
+    override val uuid: UUID,
+    override val id: String,
+    override val sRated: ApparentPower,
+    override val cosPhiRated: Double,
+    override val qControl: QControl,
+) extends ParticipantModel[
+      ActivePowerOperatingPoint,
+      FixedState,
+    ]
+    with ParticipantFixedState[ActivePowerOperatingPoint] {
 
-  /** Calculate the active power behaviour of the model
-    *
-    * @param data
-    *   Further needed, secondary data. Due to the nature of a fixed feed model,
-    *   no further data is required.
-    * @return
-    *   Active power
-    */
-  override def calculateActivePower(
-      modelState: ConstantState.type,
-      data: FixedRelevantData.type = FixedRelevantData,
-  ): Power =
-    sRated * (-1) * cosPhiRated
-
-  override def determineFlexOptions(
-      data: FixedRelevantData.type,
-      lastState: ConstantState.type,
-  ): ProvideFlexOptions =
-    ProvideMinMaxFlexOptions.noFlexOption(
-      uuid,
-      calculateActivePower(lastState, data),
+  override val flexModels
+      : Map[FlexType, ParticipantFlexModel[ParticipantModel.FixedState]] =
+    Map(
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
     )
 
-  override def handleControlledPowerChange(
-      data: FixedRelevantData.type,
-      lastState: ConstantState.type,
+  override def determineOperatingPoint(
+      state: ParticipantModel.FixedState
+  ): (ActivePowerOperatingPoint, Option[Long]) = {
+    val power = pRated * -1
+
+    (ActivePowerOperatingPoint(power), None)
+  }
+
+  override def determineOperatingPoint(
+      state: ParticipantModel.FixedState,
       setPower: Power,
-  ): (ConstantState.type, FlexChangeIndicator) =
-    (lastState, FlexChangeIndicator())
+  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
+    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
+
+  override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
+    ActivePowerOperatingPoint.zero
+
+  override def createResults(
+      state: ParticipantModel.FixedState,
+      lastOperatingPoint: Option[ActivePowerOperatingPoint],
+      currentOperatingPoint: ActivePowerOperatingPoint,
+      complexPower: ComplexPower,
+      dateTime: ZonedDateTime,
+  ): Iterable[SystemParticipantResult] =
+    Iterable(
+      new FixedFeedInResult(
+        dateTime,
+        uuid,
+        complexPower.p.toMegawatts.asMegaWatt,
+        complexPower.q.toMegavars.asMegaVar,
+      )
+    )
+
+  override def createPrimaryDataResult(
+      data: PrimaryDataWithComplexPower[?],
+      dateTime: ZonedDateTime,
+  ): SystemParticipantResult =
+    new FixedFeedInResult(
+      dateTime,
+      uuid,
+      data.p.toMegawatts.asMegaWatt,
+      data.q.toMegavars.asMegaVar,
+    )
+
 }
 
-object FixedFeedInModel extends LazyLogging {
-  def apply(
-      inputModel: FixedFeedInInput,
-      modelConfiguration: SimonaConfig.FixedFeedInRuntimeConfig,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-  ): FixedFeedInModel = {
-    val scaledInput =
-      inputModel.copy().scale(modelConfiguration.scaling).build()
+object FixedFeedInModel {
 
-    /* Determine the operation interval */
-    val operationInterval: OperationInterval =
-      SystemComponent.determineOperationInterval(
-        simulationStartDate,
-        simulationEndDate,
-        scaledInput.getOperationTime,
+  final case class Factory(
+      input: FixedFeedInInput
+  ) extends ParticipantModelFactory[FixedState] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def getInitialState(
+        tick: Long,
+        simulationTime: ZonedDateTime,
+    ): FixedState = FixedState(tick)
+
+    override def create(): FixedFeedInModel =
+      new FixedFeedInModel(
+        input.getUuid,
+        input.getId,
+        input.getsRated.toApparent,
+        input.getCosPhiRated,
+        QControl.apply(input.getqCharacteristics),
       )
 
-    // build the fixed feed in model
-    val model = FixedFeedInModel(
-      scaledInput.getUuid,
-      scaledInput.getId,
-      operationInterval,
-      QControl.apply(scaledInput.getqCharacteristics),
-      Kilowatts(
-        scaledInput.getsRated
-          .to(PowerSystemUnits.KILOWATT)
-          .getValue
-          .doubleValue
-      ),
-      scaledInput.getCosPhiRated,
-    )
-    model.enable()
-    model
   }
+
 }

@@ -10,8 +10,7 @@ sonarqube {
       'src/main/scala'] // src dirs
     property "sonar.tests", [
       'src/test/resources',
-      'src/test/scala',
-      'src/test/groovy'] // test src dirs
+      'src/test/scala'] // test src dirs
     // reports stuff (for all languages)
     property 'sonar.junit.reportPaths', [
       'build/test-results/test'] // Comma-delimited list of paths to Surefire XML-format reports.
@@ -22,20 +21,12 @@ sonarqube {
       "build/reports/scapegoat/testsrc/scapegoat-scalastyle.xml"] // Comma-delimited list of paths to Scapegoat reports in the Scalastyle format
     // scala specific stuff
     property 'sonar.scala.coverage.reportPaths', 'build/reports/scoverageTest/scoverage.xml'
-
-    // groovy specific stuff
-    property 'sonar.groovy.binaries', 'build/classes/groovy' // groovy binaries
-
-    // remove auto generated SimonaConfig file from analysis
-    property 'sonar.exclusions', [
-      "src/main/scala/edu/ie3/simona/config/SimonaConfig.scala"
-    ]
   }
 }
 
 // sonarqube task dependencies
-project.tasks["sonarqube"].dependsOn "pmdMain"
-project.tasks["sonarqube"].dependsOn "pmdTest"
-project.tasks["sonarqube"].dependsOn "test"
-project.tasks["sonarqube"].dependsOn "reportScoverage"
-project.tasks["sonarqube"].dependsOn "checkScoverage"
+tasks.named("sonarqube") {
+  dependsOn(tasks.named("test"))
+  dependsOn(tasks.named("reportScoverage"))
+  dependsOn(tasks.named("checkScoverage"))
+}

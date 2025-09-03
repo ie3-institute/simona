@@ -15,7 +15,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey, Unlock}
+import edu.ie3.simona.scheduler.ScheduleLock.{ScheduleKey, Unlock}
 import edu.ie3.simona.util.ActorUtils.RichActivatedActor
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.scalatest.matchers.should
@@ -271,7 +271,7 @@ class SchedulerSpec
       sa1.tick shouldBe INIT_SIM_TICK
       val schedulerActivation = sa1.actor
 
-      for (tick <- -1 to 8) {
+      for tick <- -1 to 8 do {
         schedulerActivation ! Activation(tick)
 
         activatedAgents.foreach {
@@ -294,7 +294,7 @@ class SchedulerSpec
 
       val agent1 = TestProbe[Activation]("agent_1")
       val agent2 = TestProbe[Activation]("agent_2")
-      val lock = TestProbe[LockMsg]("lock")
+      val lock = TestProbe[ScheduleLock.Message]("lock")
 
       scheduler ! ScheduleActivation(agent1.ref, 60)
 
@@ -327,7 +327,7 @@ class SchedulerSpec
       )
 
       val agent1 = TestProbe[Activation]("agent_1")
-      val lock = TestProbe[LockMsg]("lock")
+      val lock = TestProbe[ScheduleLock.Message]("lock")
 
       scheduler ! ScheduleActivation(agent1.ref, 60)
 
@@ -355,7 +355,7 @@ class SchedulerSpec
       )
 
       val agent1 = TestProbe[Activation]("agent_1")
-      val lock = TestProbe[LockMsg]("lock")
+      val lock = TestProbe[ScheduleLock.Message]("lock")
 
       scheduler ! ScheduleActivation(agent1.ref, 60)
 

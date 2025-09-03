@@ -15,12 +15,14 @@ import edu.ie3.datamodel.models.input.connector.{
 }
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toApparent,
+  toSquants,
+}
 import squants.Each
-import squants.electro.{Kilovolts, Ohms, Siemens}
-import squants.energy.Watts
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -33,7 +35,7 @@ import scala.math.BigDecimal.RoundingMode
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param hvNodeUuid
@@ -50,6 +52,8 @@ import scala.math.BigDecimal.RoundingMode
   *   nominal current on the high voltage side of the transformer
   * @param iNomLv
   *   nominal current on the low voltage side of the transformer
+  * @param sRated
+  *   the rated power of the transformer
   * @param r
   *   resistance r, real part of the transformer impedance z (referenced to the
   *   nominal impedance of the grid) in p.u.
@@ -74,6 +78,7 @@ final case class TransformerModel(
     voltRatioNominal: BigDecimal,
     iNomHv: squants.electro.ElectricCurrent,
     iNomLv: squants.electro.ElectricCurrent,
+    sRated: ApparentPower,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
@@ -140,34 +145,10 @@ case object TransformerModel {
     /* Determine the physical pi equivalent circuit diagram parameters from the perspective
      * of the transformer's low voltage side */
     val (rTrafo, xTrafo, gTrafo, bTrafo) = (
-      Ohms(
-        trafoType.getrSc
-          .to(OHM)
-          .divide(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
-      Ohms(
-        trafoType.getxSc
-          .to(OHM)
-          .divide(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
-      Siemens(
-        trafoType.getgM
-          .to(SIEMENS)
-          .multiply(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
-      Siemens(
-        trafoType.getbM
-          .to(SIEMENS)
-          .multiply(squaredNominalVoltRatio)
-          .getValue
-          .doubleValue()
-      ),
+      trafoType.getrSc.toSquants / squaredNominalVoltRatio.doubleValue,
+      trafoType.getxSc.toSquants / squaredNominalVoltRatio.doubleValue,
+      trafoType.getgM.toSquants * squaredNominalVoltRatio.doubleValue,
+      trafoType.getbM().toSquants * squaredNominalVoltRatio.doubleValue,
     )
 
     /* Transfer the dimensionless parameters into the grid reference system */
@@ -181,32 +162,19 @@ case object TransformerModel {
     // iNomHv, iNomLv
     val calcINom
         : squants.electro.ElectricPotential => squants.electro.ElectricCurrent = {
-      portVoltage: squants.electro.ElectricPotential =>
-        Watts(
-          trafoType.getsRated
-            .to(VOLTAMPERE)
-            .getValue
-            .doubleValue()
-        ) / Math.sqrt(3) / portVoltage
-
+      (portVoltage: squants.electro.ElectricPotential) =>
+        trafoType.getsRated.toApparent / Math.sqrt(3) / portVoltage
     }
     val (iNomHv, iNomLv) =
       (
-        calcINom(
-          Kilovolts(
-            trafoType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
-          )
-        ),
-        calcINom(
-          Kilovolts(
-            trafoType.getvRatedB.to(KILOVOLT).getValue.doubleValue()
-          )
-        ),
+        calcINom(trafoType.getvRatedA.toSquants),
+        calcINom(trafoType.getvRatedB.toSquants),
       )
 
     // get the element port, where the transformer tap is located
     // if trafoType.isTapSide == true, tapper is on the low voltage side (== ConnectorPort.B)
-    val tapSide = if (trafoType.isTapSide) ConnectorPort.B else ConnectorPort.A
+    val tapSide =
+      if trafoType.isTapSide then ConnectorPort.B else ConnectorPort.A
 
     // / transformer tapping
     val transformerTappingModel = TransformerTappingModel(
@@ -237,6 +205,7 @@ case object TransformerModel {
       voltRatioNominal,
       iNomHv,
       iNomLv,
+      trafoType.getsRated.toApparent,
       r,
       x,
       g,
@@ -244,7 +213,7 @@ case object TransformerModel {
     )
 
     // if the transformer input model is in operation, enable the model
-    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
+    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
       transformerModel.enable()
 
     // initialize tapping
@@ -274,14 +243,13 @@ case object TransformerModel {
 
     // check if transformer params are given for the low voltage side
     val vRef = refSystem.nominalVoltage.toKilovolts
-    if (
-      Math.abs(
+    if Math.abs(
         vRef - trafoType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
       )
         < Math.abs(
           vRef - trafoType.getvRatedB.to(KILOVOLT).getValue.doubleValue()
         )
-    )
+    then
       throw new InvalidGridException(
         s"The rated voltage of the high voltage side (${transformerInput.getType.getvRatedA()}) of transformer " +
           s"${transformerInput.getUuid} is closer to the reference voltage ($vRef), as the rated voltage of the " +
@@ -292,12 +260,11 @@ case object TransformerModel {
     // valid r,x,g,b values?
     val (r, x, g, b) =
       (trafoType.getrSc, trafoType.getxSc, trafoType.getgM, trafoType.getbM)
-    if (
-      r.getValue.doubleValue.isNaN ||
+    if r.getValue.doubleValue.isNaN ||
       x.getValue.doubleValue.isNaN ||
       g.getValue.doubleValue.isNaN ||
       b.getValue.doubleValue.isNaN
-    )
+    then
       throw new InvalidGridException(
         s"Attempted to create a transformer with invalid values.\ntrafo: ${transformerInput.getUuid}, type: ${trafoType.getUuid}, r: $r, x: $x, g: $g, b: $b"
       )
@@ -316,7 +283,7 @@ case object TransformerModel {
   def y0(transformerModel: TransformerModel, port: ConnectorPort): Complex = {
     val amount = transformerModel.amount
     val tapSide = transformerModel.tapSide
-    val tapRatio = transformerModel.tapRatio
+    val tapRatio = transformerModel.getTapRation
     val g0 = transformerModel.g0().value.doubleValue()
     val b0 = transformerModel.b0().value.doubleValue()
     val gij = transformerModel.gij().value.doubleValue()
@@ -365,7 +332,7 @@ case object TransformerModel {
     */
   def yij(transformerModel: TransformerModel): Complex = {
     val amount = transformerModel.amount
-    val tapRatio = transformerModel.tapRatio
+    val tapRatio = transformerModel.getTapRation
 
     new Complex(
       transformerModel.gij().value.doubleValue(),

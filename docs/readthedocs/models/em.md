@@ -16,7 +16,7 @@ If an EmAgent is itself controlled by another EmAgent, it also behaves like a sy
 Every EmAgent aggregates flex options and power of its connected assets and disaggregates flex control among the connected assets. 
 It also functions as a scheduler for all connected assets by processing information on the ticks of the next desired activations and conveying such information to the controlling EmAgent or a central scheduler respectively.
 
-Uncontrolled EmAgents answer to a scheduler with regards to their activation.
+Uncontrolled EmAgents answer to a scheduler with regard to their activation.
 
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/uml/protocol/em/UncontrolledEm.puml)
 

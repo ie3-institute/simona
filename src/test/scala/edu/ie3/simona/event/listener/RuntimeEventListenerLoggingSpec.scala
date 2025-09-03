@@ -7,7 +7,7 @@
 package edu.ie3.simona.event.listener
 
 import com.typesafe.config.ConfigValueFactory
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.event.RuntimeEvent.{
   CheckWindowPassed,
   Done,
@@ -15,11 +15,10 @@ import edu.ie3.simona.event.RuntimeEvent.{
   InitComplete,
   Initializing,
   PowerFlowFailed,
-  Ready,
   Simulating,
 }
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKit,
@@ -29,7 +28,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.slf4j.event.Level
 
 /** Logging must be tested in a separate test, since LoggingTestKit can still
-  * receives logs from test that it was not enabled for
+  * receive logs from test that it was not enabled for
   */
 class RuntimeEventListenerLoggingSpec
     extends ScalaTestWithActorTestKit(
@@ -48,7 +47,7 @@ class RuntimeEventListenerLoggingSpec
 
       val listenerRef = spawn(
         RuntimeEventListener(
-          SimonaConfig.Simona.Runtime.Listener(
+          RuntimeConfig.Listener(
             None,
             None,
           ),
@@ -59,7 +58,7 @@ class RuntimeEventListenerLoggingSpec
 
       def calcTime(curTick: Long): String = {
         TimeUtil.withDefaults.toString(
-          curTick.toDateTime(
+          curTick.toDateTime(using
             TimeUtil.withDefaults.toZonedDateTime(startDateTimeString)
           )
         )
@@ -79,11 +78,6 @@ class RuntimeEventListenerLoggingSpec
           InitComplete(0L),
           Level.INFO,
           s"Initialization complete. (duration: 0h : 0m : 0s : 0ms )",
-        ),
-        (
-          Ready(currentTick, 0L),
-          Level.INFO,
-          s"Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(currentTick)}.",
         ),
         (
           Simulating(currentTick, endTick),

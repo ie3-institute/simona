@@ -15,20 +15,23 @@ import edu.ie3.datamodel.models.input.system.characteristic.{
 }
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.model.participant.WecModel.WecRelevantData
+import edu.ie3.simona.model.participant.WecModel.WecState
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
-import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
-import squants.energy.Watts
+import squants.energy.{Power, Watts}
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
-import squants.Each
+import squants.{Dimensionless, Each}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 
 import java.util.UUID
 
 class WecModelSpec extends UnitSpec with DefaultTestData {
+
+  protected given powerTolerance: Power = Watts(1e-6)
+  protected given dimensionlessTolerance: Dimensionless = Each(1e-12)
+  protected given doubleTolerance: Double = 1e-9
 
   val nodeInput = new NodeInput(
     UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
@@ -77,33 +80,18 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
     false,
   )
 
-  def buildWecModel(): WecModel = {
-    WecModel.apply(
-      inputModel,
-      1,
-      TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
-      TimeUtil.withDefaults.toZonedDateTime("2020-01-01T01:00:00Z"),
-    )
-  }
-
   "WecModel" should {
 
     "check build method of companion object" in {
-      val wecModel = buildWecModel()
+      val wecModel = WecModel.Factory(inputModel).create()
       wecModel.uuid shouldBe inputModel.getUuid
-      wecModel.id shouldBe inputModel.getId
-      wecModel.rotorArea.toSquareMeters shouldBe (typeInput.getRotorArea.toSystemUnit.getValue
+      wecModel.cosPhiRated should approximate(typeInput.getCosPhiRated)
+      wecModel.sRated.toVoltamperes shouldBe (typeInput.getsRated.toSystemUnit.getValue
         .doubleValue() +- 1e-5)
-      wecModel.cosPhiRated shouldBe typeInput.getCosPhiRated
-      wecModel.sRated.toWatts shouldBe (typeInput.getsRated.toSystemUnit.getValue
-        .doubleValue() +- 1e-5)
-      wecModel.betzCurve shouldBe WecModel.WecCharacteristic.apply(
-        inputModel.getType.getCpCharacteristic
-      )
     }
 
     "determine Betz coefficient correctly" in {
-      val wecModel = buildWecModel()
+      val wecModel = WecModel.Factory(inputModel).create()
 
       val testCases = Table(
         ("velocity", "expectedBetzResult"),
@@ -119,44 +107,45 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         val windVel = MetersPerSecond(velocity)
         val betzFactor = wecModel.determineBetzCoefficient(windVel)
 
-        betzFactor shouldEqual Each(expectedBetzResult)
+        betzFactor should approximate(Each(expectedBetzResult))
       }
     }
 
     "calculate active power output depending on velocity" in {
-      val wecModel = buildWecModel()
+      val wecModel = WecModel.Factory(inputModel).create()
       val testCases = Table(
         ("velocity", "expectedPower"),
         (1.0, 0.0),
-        (2.0, -2948.8095851378266),
-        (3.0, -24573.41320418286),
-        (7.0, -522922.2325710509),
+        (2.0, -2948.809585),
+        (3.0, -24573.413204),
+        (7.0, -522922.232571),
         (9.0, -1140000.0),
         (13.0, -1140000.0),
         (15.0, -1140000.0),
         (19.0, -1140000.0),
         (23.0, -1140000.0),
         (27.0, -1140000.0),
-        (34.0, -24573.39638823692),
+        (34.0, -24573.396388),
         (40.0, 0.0),
       )
 
       forAll(testCases) { (velocity: Double, expectedPower: Double) =>
-        val wecData = WecRelevantData(
+        val state = WecState(
+          0L,
           MetersPerSecond(velocity),
           Celsius(20),
           Some(Pascals(101325d)),
         )
-        val result =
-          wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        val expectedPowerInWatts = Watts(expectedPower)
+        val (operatingPoint, nextTick) =
+          wecModel.determineOperatingPoint(state)
 
-        result should be(expectedPowerInWatts)
+        operatingPoint.activePower should approximate(Watts(expectedPower))
+        nextTick shouldBe None
       }
     }
 
     "calculate air density correctly" in {
-      val wecModel = buildWecModel()
+      val wecModel = WecModel.Factory(inputModel).create()
       val testCases = Seq(
         (-15.0, 100129.44, 1.3512151548083537),
         (-5.0, 99535.96, 1.2931147269065832),
@@ -174,35 +163,37 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       testCases.foreach { case (temperature, pressure, densityResult) =>
         val temperatureV = Celsius(temperature)
         val pressureV =
-          if (pressure > 0) Some(Pascals(pressure)) else Option.empty
+          if pressure > 0 then Some(Pascals(pressure)) else Option.empty
 
         val airDensity = wecModel
           .calculateAirDensity(temperatureV, pressureV)
           .toKilogramsPerCubicMeter
 
-        airDensity should be(densityResult)
+        airDensity should approximate(densityResult)
       }
     }
 
     "calculate active power output depending on temperature" in {
-      val wecModel = buildWecModel()
+      val wecModel = WecModel.Factory(inputModel).create()
       val testCases = Table(
         ("temperature", "expectedPower"),
-        (35.0, -23377.23862017266),
-        (20.0, -24573.41320418286),
-        (-25.0, -29029.60338829823),
+        (35.0, -23377.238620),
+        (20.0, -24573.413204),
+        (-25.0, -29029.603388),
       )
 
       forAll(testCases) { (temperature: Double, expectedPower: Double) =>
-        val wecData = WecRelevantData(
+        val state = WecState(
+          0L,
           MetersPerSecond(3.0),
           Celsius(temperature),
           Some(Pascals(101325d)),
         )
-        val result =
-          wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        val expectedPowerInWatts = Watts(expectedPower)
-        result shouldBe expectedPowerInWatts
+        val (operatingPoint, nextTick) =
+          wecModel.determineOperatingPoint(state)
+
+        operatingPoint.activePower should approximate(Watts(expectedPower))
+        nextTick shouldBe None
       }
     }
   }

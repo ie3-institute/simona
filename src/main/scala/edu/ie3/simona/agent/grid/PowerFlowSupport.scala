@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.powerflow.NewtonRaphsonPF
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
@@ -19,8 +20,8 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   ReceivedSlackVoltageValues,
 }
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
-import edu.ie3.simona.model.grid._
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.simona.model.grid.*
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import org.slf4j.Logger
 import squants.electro.ElectricPotential
 
@@ -75,7 +76,7 @@ trait PowerFlowSupport {
     val (operatingPoints, stateData) = nodes.map { nodeModel =>
       // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
       // when slack emulators or pv-node assets are added this needs to be considered here
-      val nodeType = if (nodeModel.isSlack) NodeType.SL else NodeType.PQ
+      val nodeType = if nodeModel.isSlack then NodeType.SL else NodeType.PQ
 
       /* Determine the operating point for this given node */
       val nodeIdx = nodeUuidToIndexMap.getOrElse(
@@ -123,7 +124,7 @@ trait PowerFlowSupport {
         }
 
       val targetVoltage =
-        if (targetVoltageFromReceivedData && nodeModel.isSlack) {
+        if targetVoltageFromReceivedData && nodeModel.isSlack then {
           /* If the preset voltage is meant to be determined by means of received data and the node is a slack node
            * (only then there is received data), look it up and transform it */
           val receivedSlackVoltage =
@@ -146,8 +147,7 @@ trait PowerFlowSupport {
         } else {
           // Either the received data shall not be considered or the node is not a slack node
           Complex.one *
-            (if (!ignoreTargetVoltage)
-               nodeModel.vTarget.toEach
+            (if !ignoreTargetVoltage then nodeModel.vTarget.toEach
              else 1.0)
         }
 
@@ -183,13 +183,12 @@ trait PowerFlowSupport {
     /*  In case a model has more than one, set all others to PQ nodes.
     ATTENTION: This does not cover the power flow situation correctly! */
     val adaptedOperatingPoint = operatingPoints.map { nodePreset =>
-      if (nodePreset.nodeType == NodeType.SL) {
+      if nodePreset.nodeType == NodeType.SL then {
         // If this is the slack node we picked, leave it as a slack node.
-        if (nodePreset.index == slackNodeData.index) nodePreset
+        if nodePreset.index == slackNodeData.index then nodePreset
         // If it is not the one, make it a PQ node.
         else nodePreset.copy(nodeType = NodeType.PQ)
-      } else
-        nodePreset
+      } else nodePreset
     }
 
     (
@@ -203,7 +202,7 @@ trait PowerFlowSupport {
     * p/q values from the provided sweepDataValues and combines them with
     * updated receivedSlackValues. Normally used in a forward sweep phase of
     * [[DBFSAlgorithm]] as in this state only voltages are updated and a power
-    * flow with new voltages but old p/q values is executed afterwards
+    * flow with new voltages but old p/q values is executed afterward.
     *
     * @param receivedSlackValues
     *   new slack voltages provided by the superior grid
@@ -229,7 +228,7 @@ trait PowerFlowSupport {
   ): (Array[PresetData], WithForcedStartVoltages) =
     sweepDataValues.map { sweepValueStoreData =>
       val nodeStateData = sweepValueStoreData.stateData
-      val targetVoltage = if (nodeStateData.nodeType == NodeType.SL) {
+      val targetVoltage = if nodeStateData.nodeType == NodeType.SL then {
         val receivedSlackVoltage = receivedSlackValues.values
           .map { case (_, slackVoltageMsg) => slackVoltageMsg }
           .flatMap(_.nodalSlackVoltages)
@@ -248,8 +247,7 @@ trait PowerFlowSupport {
           transformers3w,
           gridMainRefSystem,
         )
-      } else
-        Complex.one
+      } else Complex.one
 
       // note: target voltage will be ignored for slack node if provided
       (
@@ -334,14 +332,14 @@ trait PowerFlowSupport {
     val targetVoltage = a.targetVoltage
 
     def combineOptionals(
-        a: Option[Double],
-        b: Option[Double],
+        pA: Option[Double],
+        pB: Option[Double],
         f: (Double, Double) => Double,
-    ): Option[Double] = (a, b) match {
-      case (Some(a), Some(b)) => Some(f(a, b))
-      case (Some(a), None)    => Some(a)
-      case (None, Some(b))    => Some(b)
-      case (None, None)       => None
+    ): Option[Double] = (pA, pB) match {
+      case (Some(vA), Some(vB)) => Some(f(vA, vB))
+      case (Some(vA), None)     => Some(vA)
+      case (None, Some(vB))     => Some(vB)
+      case (None, None)         => None
     }
 
     val activePowerMin =
@@ -369,7 +367,7 @@ trait PowerFlowSupport {
     * from a [[ValidNewtonRaphsonPFResult]]
     *
     * @param validResult
-    *   the result that should be converted to a human readable debug string
+    *   the result that should be converted to a human-readable debug string
     * @param gridModel
     *   the grid model this result comes from
     * @return
@@ -560,7 +558,7 @@ trait PowerFlowSupport {
       maxIterations: Int,
       operatingPoint: Array[PresetData],
       slackVoltages: WithForcedStartVoltages,
-  )(epsilons: Vector[Double])(implicit log: Logger): PowerFlowResult = {
+  )(epsilons: Vector[Double])(using log: Logger): PowerFlowResult = {
     epsilons.headOption match {
       case Some(epsilon) =>
         val admittanceMatrix =
@@ -609,6 +607,78 @@ trait PowerFlowSupport {
         throw new DBFSAlgorithmException(
           "ɛ is mandatory for a newton raphson power flow!"
         )
+    }
+  }
+
+  /** Calculates the power flow for the grid that contains the slack node.
+    * @param gridModel
+    *   model of the slack grid
+    * @param receivedValueStore
+    *   received values
+    * @param powerFlowParams
+    *   parameters for the power flow calculation
+    * @param log
+    *   for logging
+    * @return
+    *   power flow results
+    */
+  protected final def slackGridPF(
+      gridModel: GridModel,
+      receivedValueStore: ReceivedValuesStore,
+      powerFlowParams: PowerFlowParams,
+  )(using log: Logger): PowerFlowResult = {
+    /* This is the highest grid agent, therefore no data is received for the slack node. Suppress, that it is looked
+     * up in the empty store. */
+    val (operationPoint, slackNodeVoltages) = composeOperatingPoint(
+      gridModel.gridComponents.nodes,
+      gridModel.gridComponents.transformers,
+      gridModel.gridComponents.transformers3w,
+      gridModel.nodeUuidToIndexMap,
+      receivedValueStore,
+      gridModel.mainRefSystem,
+      targetVoltageFromReceivedData = false,
+    )
+
+    def superiorPowerFlow: PowerFlowResult =
+      newtonRaphsonPF(
+        gridModel,
+        powerFlowParams.maxIterations,
+        operationPoint,
+        slackNodeVoltages,
+      )(powerFlowParams.epsilon) match {
+        case validPowerFlowResult: ValidNewtonRaphsonPFResult =>
+          log.debug(
+            "{}",
+            composeValidNewtonRaphsonPFResultVoltagesDebugString(
+              validPowerFlowResult,
+              gridModel,
+            ),
+          )
+          validPowerFlowResult
+        case result: PowerFlowResult.FailedPowerFlowResult =>
+          result
+      }
+
+    /* Regarding the power flow result of this grid, there are two cases. If this is the "highest" grid in a
+     * simulation without a three winding transformer, the grid consists of only one node, and we can mock the power
+     * flow results. If there is a three winding transformer apparent, we actually have to perform power flow
+     * calculations, as the high voltage branch of the transformer is modeled here. */
+    gridModel.gridComponents.transformers3w.isEmpty match {
+      case true if gridModel.gridComponents.nodes.size == 1 =>
+        val nodeData = operationPoint.map(StateData(_))
+        ValidNewtonRaphsonPFResult(-1, nodeData, DenseMatrix(0d, 0d))
+
+      case true =>
+        log.warn(
+          "This grid contains a more than just a slack node. Perform power flow calculations before assessing the power deviations."
+        )
+        superiorPowerFlow
+
+      case false =>
+        log.debug(
+          "This grid contains a three winding transformer. Perform power flow calculations before assessing the power deviations."
+        )
+        superiorPowerFlow
     }
   }
 }

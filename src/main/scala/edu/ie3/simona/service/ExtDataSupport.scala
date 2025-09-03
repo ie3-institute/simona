@@ -7,23 +7,49 @@
 package edu.ie3.simona.service
 
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.ontology.messages.services.EvMessage.EvResponseMessage
-import edu.ie3.simona.service.ServiceStateData.ServiceBaseStateData
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  ScheduleServiceActivation,
+  ServiceResponseMessage,
+}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
-trait ExtDataSupport[
-    S <: ServiceBaseStateData
-] {
-  this: SimonaService[S] =>
+/** Trait that enables handling of external data.
+  */
+trait ExtDataSupport {
+  this: SimonaService =>
 
-  override def idleExternal(implicit stateData: S): Receive = {
-    case extMsg: DataMessageFromExt =>
-      val updatedStateData = handleDataMessage(extMsg)(stateData)
-      context become idle(updatedStateData)
+  override type Message = ServiceMessage | Activation | ServiceResponseMessage |
+    DataMessageFromExt
 
-    case extResponseMsg: EvResponseMessage =>
-      val updatedStateData =
-        handleDataResponseMessage(extResponseMsg)(stateData)
-      context become idle(updatedStateData)
+  override protected def idleExternal(using
+      stateData: S,
+      scheduler: ActorRef[SchedulerMessage],
+  ): PartialFunction[(ActorContext[Message], Message), Behavior[Message]] = {
+    case (ctx, ScheduleServiceActivation(tick, unlockKey)) =>
+      scheduler ! ScheduleActivation(
+        ctx.self,
+        tick,
+        Some(unlockKey),
+      )
+
+      idle
+
+    case (_, extMsg: DataMessageFromExt) =>
+      val updatedStateData = handleDataMessage(extMsg)
+
+      idle(using updatedStateData, scheduler)
+
+    case (_, extResponseMsg: ServiceResponseMessage) =>
+      val updatedStateData = handleDataResponseMessage(extResponseMsg)
+
+      idle(using updatedStateData, scheduler)
   }
 
   /** Handle a message from outside the simulation
@@ -37,7 +63,7 @@ trait ExtDataSupport[
     */
   protected def handleDataMessage(
       extMsg: DataMessageFromExt
-  )(implicit serviceStateData: S): S
+  )(using serviceStateData: S): S
 
   /** Handle a message from inside SIMONA sent to external
     *
@@ -49,6 +75,6 @@ trait ExtDataSupport[
     *   the updated state data
     */
   protected def handleDataResponseMessage(
-      extResponseMsg: EvResponseMessage
-  )(implicit serviceStateData: S): S
+      extResponseMsg: ServiceResponseMessage
+  )(using serviceStateData: S): S
 }

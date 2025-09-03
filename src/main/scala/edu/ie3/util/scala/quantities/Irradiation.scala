@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants._
+import squants.*
 import squants.energy.WattHours
 import squants.space.SquareMeters
 
@@ -22,7 +22,7 @@ final class Irradiation private (val value: Double, val unit: IrradiationUnit)
   def *(that: Area): Energy = WattHours(
     this.toWattHoursPerSquareMeter * that.toSquareMeters
   )
-  // the Hours(1).toSeconds is to convert watt hours to watt seconds which
+  // the Hours(1).toSeconds is to convert watt-hours to watt-seconds which
   // isn't a normal supported type in Squants
 
   def /(that: Time): Irradiance = WattsPerSquareMeter(

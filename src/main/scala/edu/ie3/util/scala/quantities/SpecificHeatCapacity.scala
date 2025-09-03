@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants._
+import squants.*
 import squants.energy.KilowattHours
 
 import scala.util.Try
@@ -45,7 +45,7 @@ final class SpecificHeatCapacity private (
     )
 
   /** Calculates the Energy of a medium with a given specific heat capacity
-    * based on the temperature delta and it's volume.
+    * based on the temperature delta, and it's volume.
     * @param temperatureA
     *   First temperature of the medium (e.g. inlet temperature)
     * @param temperatureB

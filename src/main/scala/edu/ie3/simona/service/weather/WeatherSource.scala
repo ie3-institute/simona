@@ -18,11 +18,14 @@ import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.{CsvDataSource, CsvIdCoordinateSource}
 import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.value.WeatherValue
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
+import edu.ie3.simona.config.InputConfig
+import edu.ie3.simona.config.ConfigParams.{
+  BaseCsvParams,
+  BaseSqlParams,
+  SampleParams,
+}
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates,
@@ -31,6 +34,7 @@ import edu.ie3.simona.service.weather.WeatherSourceWrapper.buildPSDMSource
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.{Coordinate, Point}
 import squants.motion.MetersPerSecond
@@ -42,7 +46,7 @@ import tech.units.indriya.unit.Units
 import java.nio.file.Paths
 import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Length}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -157,15 +161,14 @@ trait WeatherSource {
             .getValue
             .doubleValue()
 
-        if (
-          totalDistanceToSurroundingCoordinates.isGreaterThan(
+        if totalDistanceToSurroundingCoordinates.isGreaterThan(
             Quantities.getQuantity(0d, Units.METRE)
           )
-        ) {
+        then {
           val weightMap = nearestCoordinates
             .map(coordinateDistance => {
               /* Maybe some words on the calculus of the weight here: We intend to have a weight, that linear increases
-               * from zero to one, the closer the coordinate is to the coordinate in question. Therefore we calculate the
+               * from zero to one, the closer the coordinate is to the coordinate in question. Therefore, we calculate the
                * proximity of each node as a linear function between 1 at 0m distance to the questioned coordinate to zero
                * at the sum of all coordinates' distances (1 - d / d_sum). However, summing up this proximity over all
                * n coordinates brings n*1 from the left part of the sum and -1 as the sum of all distances shares.
@@ -177,7 +180,7 @@ trait WeatherSource {
             .toMap
 
           val weightSum = weightMap.values.sum
-          if (weightSum > 0.99 && weightSum < 1.01)
+          if weightSum > 0.99 && weightSum < 1.01 then
             Success(WeightedCoordinates(weightMap))
           else
             Failure(
@@ -247,7 +250,7 @@ trait WeatherSource {
 object WeatherSource {
 
   def apply(
-      weatherDataSourceCfg: SimonaConfig.Simona.Input.Weather.Datasource
+      weatherDataSourceCfg: InputConfig.WeatherDatasource
   )(implicit simulationStart: ZonedDateTime): WeatherSource = {
     // get coordinate source
     implicit val coordinateSourceFunction: IdCoordinateSource =
@@ -261,14 +264,14 @@ object WeatherSource {
       weatherDataSourceCfg.sqlParams,
     ).find(_.isDefined).flatten
 
-    if (definedWeatherSources.isEmpty) {
+    if definedWeatherSources.isEmpty then {
       // should not happen, due to the config fail fast check
       throw new SourceException(
         s"Expected a WeatherSource, but no source where defined in $weatherDataSourceCfg."
       )
     }
 
-    implicit val resolution: Option[Long] = weatherDataSourceCfg.resolution
+    implicit val resolution: Long = weatherDataSourceCfg.resolution
     implicit val distance: ComparableQuantity[Length] =
       Quantities.getQuantity(
         weatherDataSourceCfg.maxCoordinateDistance,
@@ -292,7 +295,7 @@ object WeatherSource {
     *   id data source
     */
   private def buildCoordinateSource(
-      coordinateSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+      coordinateSourceConfig: InputConfig.CoordinateSource
   ): IdCoordinateSource = {
     val definedCoordSources = Vector(
       coordinateSourceConfig.sampleParams,
@@ -319,12 +322,12 @@ object WeatherSource {
           ),
         )
       case Some(
-            SqlParams(
+            BaseSqlParams(
               jdbcUrl,
-              userName,
               password,
               schemaName,
               tableName,
+              userName,
             )
           ) =>
         new SqlIdCoordinateSource(
@@ -333,9 +336,7 @@ object WeatherSource {
           tableName,
           new SqlIdCoordinateFactory(),
         )
-      case Some(
-            _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
-          ) =>
+      case Some(_: SampleParams) =>
         // sample coordinates, no check required
         SampleWeatherSource.SampleIdCoordinateSource
       case None =>
@@ -348,7 +349,7 @@ object WeatherSource {
   /** Represents an empty weather data object
     *
     * For temperature to represent an "empty" quantity, we need to explicitly
-    * set temperature to absolute zero, so 0°K. When temperature measures the
+    * set temperature to absolute zero, so 0 K. When temperature measures the
     * movement of atoms, absolute zero means no movement, which represents the
     * "empty" concept best.
     */
@@ -364,44 +365,20 @@ object WeatherSource {
   ): WeatherData = {
     WeatherData(
       weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala match {
-        case Some(irradiance) =>
-          WattsPerSquareMeter(
-            irradiance
-              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.diffIrr
+        case Some(irradiance) => irradiance.toSquants
+        case None             => EMPTY_WEATHER_DATA.diffIrr
       },
       weatherValue.getSolarIrradiance.getDirectIrradiance.toScala match {
-        case Some(irradiance) =>
-          WattsPerSquareMeter(
-            irradiance
-              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.dirIrr
+        case Some(irradiance) => irradiance.toSquants
+        case None             => EMPTY_WEATHER_DATA.dirIrr
       },
       weatherValue.getTemperature.getTemperature.toScala match {
-        case Some(temperature) =>
-          Kelvin(
-            temperature
-              .to(Units.KELVIN)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.temp
+        case Some(temperature) => temperature.toSquants
+        case None              => EMPTY_WEATHER_DATA.temp
       },
       weatherValue.getWind.getVelocity.toScala match {
-        case Some(windVel) =>
-          MetersPerSecond(
-            windVel
-              .to(Units.METRE_PER_SECOND)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.windVel
+        case Some(windVel) => windVel.toSquants
+        case None          => EMPTY_WEATHER_DATA.windVel
       },
     )
 
@@ -424,7 +401,7 @@ object WeatherSource {
     * coordinates
     *
     * @param weighting
-    *   Mapping from weather coordinate to it's weight in averaging
+    *   Mapping from weather coordinate to its weight in averaging
     */
   private[weather] final case class WeightedCoordinates(
       weighting: Map[Point, Double]

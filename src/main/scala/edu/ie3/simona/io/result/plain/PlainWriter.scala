@@ -11,8 +11,8 @@ import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.quantity.Quantities
 
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.time.{ZoneId, ZonedDateTime}
 import java.util.UUID
 
 /** Converts a [[ResultEntity]] into a [[PlainResult]] and vice versa.

@@ -13,7 +13,6 @@ import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
   Transformer2WResult,
-  Transformer3WResult,
 }
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
@@ -25,7 +24,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseB,
   PowerFlowCaseC,
 }
-import edu.ie3.simona.model.grid._
+import edu.ie3.simona.model.grid.*
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.slf4j.Logger
@@ -36,7 +35,7 @@ import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.math._
+import scala.math.*
 
 /** Trait that holds methods to convert the results of a power flow calculation
   * to their corresponding [[edu.ie3.datamodel.models.result.ResultEntity]]
@@ -96,7 +95,7 @@ private[grid] trait GridResultsSupport {
     * and the corresponding sweep value data
     *
     * @param lines
-    *   the set of lines which the result should be build for
+    *   the set of lines which the result should be built for
     * @param sweepValueStoreData
     *   the value store with all power flow result values of the provided lines
     * @param iNominal
@@ -142,7 +141,7 @@ private[grid] trait GridResultsSupport {
     * [[TransformerModel]] and the corresponding sweep value data
     *
     * @param transformers
-    *   the set of transformers which the result should be build for
+    *   the set of transformers which the result should be built for
     * @param sweepValueStoreData
     *   the value store with all power flow result values of the provided
     *   transformers
@@ -190,7 +189,7 @@ private[grid] trait GridResultsSupport {
     * [[Transformer3wModel]] and the corresponding sweep value data
     *
     * @param transformers3w
-    *   the set of 3 winding transformers which the result should be build for
+    *   the set of 3 winding transformers which the result should be built for
     * @param sweepValueStoreData
     *   the value store with all power flow result values of the provided 3
     *   winding transformers
@@ -201,8 +200,9 @@ private[grid] trait GridResultsSupport {
     * @return
     *   a set of [[PartialTransformer3wResult]] s
     */
-  def buildTransformer3wResults(transformers3w: Set[Transformer3wModel])(
-      implicit
+  private def buildTransformer3wResults(
+      transformers3w: Set[Transformer3wModel]
+  )(implicit
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime,
@@ -319,7 +319,7 @@ private[grid] trait GridResultsSupport {
       timestamp: ZonedDateTime,
   ): LineResult = {
 
-    if (line.isInOperation) {
+    if line.isInOperation then {
       val yij = new Complex(
         line.gij().value.doubleValue,
         line.bij().value.doubleValue,
@@ -380,7 +380,7 @@ private[grid] trait GridResultsSupport {
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime,
   ): Transformer2WResult = {
-    if (trafo2w.isInOperation) {
+    if trafo2w.isInOperation then {
       val (yab, yaa, ybb) = (
         TransformerModel.yij(trafo2w),
         TransformerModel.y0(trafo2w, ConnectorPort.A),
@@ -495,7 +495,7 @@ private[grid] trait GridResultsSupport {
   /** Calculate the current magnitude and the current angle in physical units
     * based on a provided electric current in p.u. and the nominal referenced
     * electric current. The arctangent "only" calculates the angle between the
-    * complex current and it's real part. This means, that i = (i_real, i_imag)
+    * complex current, and it's real part. This means, that i = (i_real, i_imag)
     * and i' = (-i_real, -i_imag) will lead to the same angle. However, for
     * power system simulation, the absolute orientation in the complex plane
     * with regard to the positive real axis is of interest. Therefore,
@@ -559,10 +559,8 @@ private[grid] trait GridResultsSupport {
       angle: Angle,
       dir: Double,
   ): Angle =
-    if (dir < 0)
-      angle + Degrees(180d)
-    else
-      angle
+    if dir < 0 then angle + Degrees(180d)
+    else angle
 
   /** Calculates the electric current of a two-port element @ port i (=A) and j
     * (=B) based on the provided voltages @ each port and the corresponding
@@ -607,7 +605,7 @@ object GridResultsSupport {
   sealed trait PartialTransformer3wResult {
     val time: ZonedDateTime
     val input: UUID
-    protected val currentMagnitude: ElectricCurrent
+    val currentMagnitude: ElectricCurrent
     protected val currentAngle: Angle
   }
 
@@ -616,7 +614,7 @@ object GridResultsSupport {
     /** Partial result for the port at the high voltage side
       *
       * @param time
-      *   Wall clock time, the result does belong to
+      *   Simulation time of the result
       * @param input
       *   Unique identifier of the input model
       * @param currentMagnitude
@@ -637,7 +635,7 @@ object GridResultsSupport {
     /** Partial result for the port at the medium voltage side
       *
       * @param time
-      *   Wall clock time, the result does belong to
+      *   Simulation time of the result
       * @param input
       *   Unique identifier of the input model
       * @param currentMagnitude
@@ -655,7 +653,7 @@ object GridResultsSupport {
     /** Partial result for the port at the low voltage side
       *
       * @param time
-      *   Wall clock time, the result does belong to
+      *   Simulation time of the result
       * @param input
       *   Unique identifier of the input model
       * @param currentMagnitude

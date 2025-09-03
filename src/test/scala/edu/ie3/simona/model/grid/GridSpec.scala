@@ -37,17 +37,16 @@ class GridSpec
   private val _printAdmittanceMatrixOnMismatch
       : (DenseMatrix[Complex], DenseMatrix[Complex]) => Unit = {
     (actualMatrix, expectedMatrix) =>
-      if (!actualMatrix.equals(expectedMatrix)) {
-        for (
+      if !actualMatrix.equals(expectedMatrix) then {
+        for
           rowIdx <- 0 until expectedMatrix.rows;
           colIdx <- 0 until expectedMatrix.rows
-        ) {
-          if (
-            abs(
+        do {
+          if abs(
               actualMatrix.valueAt(rowIdx, colIdx) - expectedMatrix
                 .valueAt(rowIdx, colIdx)
             ) > 1e-12
-          )
+          then
             logger.debug(
               s"Mismatch in ($rowIdx, $colIdx): Actual = ${actualMatrix
                   .valueAt(rowIdx, colIdx)}, expected = ${expectedMatrix.valueAt(rowIdx, colIdx)}"
@@ -215,6 +214,7 @@ class GridSpec
           Set.empty[Transformer3wModel],
           switches,
         ),
+        defaultVoltageLimits,
         GridControls.empty,
       )
       // get the private method for validation
@@ -231,7 +231,7 @@ class GridSpec
       nodes.foreach(_.enable())
 
       // remove a line from the grid
-      val adaptedLines = lines - line3To4
+      val adaptedLines: Set[LineModel] = lines - line3To4
       adaptedLines.foreach(_.enable())
 
       // enable transformer
@@ -251,6 +251,7 @@ class GridSpec
           Set.empty[Transformer3wModel],
           switches,
         ),
+        defaultVoltageLimits,
         GridControls.empty,
       )
 
@@ -355,6 +356,7 @@ class GridSpec
             Set.empty[Transformer3wModel],
             switches,
           ),
+          defaultVoltageLimits,
           GridControls.empty,
         )
 
@@ -407,6 +409,7 @@ class GridSpec
             Set.empty[Transformer3wModel],
             Set.empty[SwitchModel],
           ),
+          defaultVoltageLimits,
           GridControls.empty,
         )
 
@@ -460,13 +463,14 @@ class GridSpec
             Set.empty[Transformer3wModel],
             switches,
           ),
+          defaultVoltageLimits,
           GridControls.empty,
         )
 
         updateUuidToIndexMap(gridModel)
 
         // nodes 1, 13 and 14 should map to the same node
-        val node1Index = gridModel.nodeUuidToIndexMap
+        val node1Index: Int = gridModel.nodeUuidToIndexMap
           .get(node1.uuid)
           .value
         gridModel.nodeUuidToIndexMap.get(node13.uuid).value shouldBe node1Index
@@ -540,6 +544,7 @@ class GridSpec
             Set.empty,
             switches,
           ),
+          defaultVoltageLimits,
           GridControls.empty,
         )
 
@@ -643,6 +648,7 @@ class GridSpec
       GridModel(
         validTestGridInputModel,
         gridInputModelTestDataRefSystem,
+        defaultVoltageLimits,
         defaultSimulationStart,
         defaultSimulationEnd,
         simonaConfig,

@@ -14,21 +14,21 @@ import edu.ie3.datamodel.models.input.connector.{
   Transformer2WInput,
   Transformer3WInput,
 }
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatestplus.mockito.MockitoSugar
 
 /** Hold my cup of coffee and let me mock you some models.
   */
 trait SubGridGateMokka extends MockitoSugar {
 
-  /** Mocks a node with it's basic needed information
+  /** Mocks a node with its basic needed information
     *
     * @param uuid
     *   Unique identifier of the node
     * @param subnet
     *   Sub net number
     * @return
-    *   [[NodeInput]] with these information
+    *   [[NodeInput]] with this information
     */
   protected def mockNode(uuid: UUID, subnet: Int): NodeInput = {
     val node = mock[NodeInput]

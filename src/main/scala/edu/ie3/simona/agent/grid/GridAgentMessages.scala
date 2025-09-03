@@ -11,7 +11,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.ActorRef
@@ -34,6 +34,7 @@ object GridAgentMessages {
   final case class CreateGridAgent(
       gridAgentInitData: GridAgentInitData,
       unlockKey: ScheduleKey,
+      onlyOneSubGrid: Boolean = false,
   ) extends GridAgent.InternalRequest
 
   /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
@@ -75,26 +76,18 @@ object GridAgentMessages {
   final case class FinishGridSimulationTrigger(tick: Long)
       extends GridAgent.InternalRequest
 
-  /** Wrapper for activation values
-    *
-    * @param activation
-    *   the tick
-    */
-  final case class WrappedActivation(activation: Activation)
-      extends GridAgent.InternalRequest
-
   /** Trait for values that can be received as a response to a
-    * [[GridAgent.Request]].
+    * [[GridAgent.Message]].
     */
   sealed trait ReceivedValues extends GridAgent.InternalReply
 
   private type PowerRequestResponse[T] = (ActorRef[T], PowerResponse)
 
   private type SlackVoltageRequestResponse =
-    (ActorRef[GridAgent.Request], SlackVoltageResponse)
+    (ActorRef[GridAgent.Message], SlackVoltageResponse)
 
   sealed trait ReceivedPowerValues extends ReceivedValues {
-    def values: Vector[PowerRequestResponse[_]]
+    def values: Vector[(ActorRef[?], PowerResponse)]
   }
 
   /** Wrapper for received asset power values (p, q)
@@ -103,7 +96,7 @@ object GridAgentMessages {
     *   the asset power values and their senders
     */
   final case class ReceivedAssetPowerValues(
-      values: Vector[PowerRequestResponse[_]]
+      values: Vector[PowerRequestResponse[ParticipantAgent.Request]]
   ) extends ReceivedPowerValues
 
   /** Wrapper for received grid power values (p, q)
@@ -112,7 +105,7 @@ object GridAgentMessages {
     *   the grid power values and their senders
     */
   final case class ReceivedGridPowerValues(
-      values: Vector[PowerRequestResponse[GridAgent.Request]]
+      values: Vector[PowerRequestResponse[GridAgent.Message]]
   ) extends ReceivedPowerValues
 
   /** Wrapper for received slack voltage values (v)
@@ -144,7 +137,7 @@ object GridAgentMessages {
   final case class RequestGridPower(
       currentSweepNo: Int,
       nodeUuids: Seq[UUID],
-      sender: ActorRef[GridAgent.Request],
+      sender: ActorRef[GridAgent.Message],
   ) extends GridAgent.InternalRequest
 
   sealed trait PowerResponse extends GridAgent.InternalReply
@@ -168,7 +161,7 @@ object GridAgentMessages {
   /** Indicate that the power flow calculation failed, as a reply to a
     * [[RequestGridPower]].
     */
-  final case object FailedPowerFlow extends PowerResponse
+  case object FailedPowerFlow extends PowerResponse
 
   /** Provide power values as a reply to a
     * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
@@ -186,7 +179,7 @@ object GridAgentMessages {
   /** Provide values as a reply to a
     * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]].
     * In contrast to [[AssetPowerChangedMessage]], this message indicates that
-    * the same values for [[p]] and [[q]] has been send again as in the previous
+    * the same values for [[p]] and [[q]] has been sent again as in the previous
     * request
     *
     * @param p
@@ -210,7 +203,7 @@ object GridAgentMessages {
   final case class SlackVoltageRequest(
       currentSweepNo: Int,
       nodeUuids: Seq[UUID],
-      sender: ActorRef[GridAgent.Request],
+      sender: ActorRef[GridAgent.Message],
   ) extends GridAgent.InternalRequest
 
   /** Provide complex voltage at the nodes that the sender's sub grid shares

@@ -8,12 +8,12 @@ package edu.ie3.simona.service.weather
 
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.services.WeatherMessage
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates,
 }
-import edu.ie3.simona.service.weather.WeatherSourceSpec._
+import edu.ie3.simona.service.weather.WeatherSourceSpec.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.QuantityUtil
@@ -25,8 +25,8 @@ import tech.units.indriya.unit.Units
 import java.util
 import java.util.Optional
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success}
 
 class WeatherSourceSpec extends UnitSpec {
@@ -311,7 +311,7 @@ case object WeatherSourceSpec {
     override def getWeather(
         tick: Long,
         weightedCoordinates: WeightedCoordinates,
-    ): WeatherMessage.WeatherData =
+    ): WeatherData =
       throw new UnsupportedOperationException(
         "This is not supported by the dummy source."
       )
@@ -379,7 +379,7 @@ case object WeatherSourceSpec {
         GeoUtils.calculateBoundingBox(coordinate, distance)
 
       val reducedPoints: Set[Point] = points.flatMap { point =>
-        if (envelope.contains(point.getCoordinate)) {
+        if envelope.contains(point.getCoordinate) then {
           Some(point)
         } else {
           None

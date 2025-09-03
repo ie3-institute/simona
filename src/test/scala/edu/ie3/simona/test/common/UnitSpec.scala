@@ -7,10 +7,14 @@
 package edu.ie3.simona.test.common
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.test.matchers.{QuantityMatchers, SquantsMatchers}
-import edu.ie3.util.scala.quantities.{QuantityUtil => PSQuantityUtil}
+import edu.ie3.simona.test.matchers.{
+  DoubleMatchers,
+  QuantityMatchers,
+  SquantsMatchers,
+}
+import edu.ie3.util.scala.quantities.{QuantityUtil as PSQuantityUtil}
 import org.apache.pekko.actor.testkit.typed.scaladsl.LogCapturing
-import org.scalatest._
+import org.scalatest.*
 import org.scalatest.matchers.should
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -29,6 +33,7 @@ trait UnitSpec
     extends should.Matchers
     with QuantityMatchers
     with SquantsMatchers
+    with DoubleMatchers
     with AnyWordSpecLike
     with LogCapturing
     with OptionValues

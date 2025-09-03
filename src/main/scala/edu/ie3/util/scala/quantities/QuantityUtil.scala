@@ -18,12 +18,24 @@ import scala.util.{Failure, Try}
 
 object QuantityUtil {
 
+  extension (d: Double) {
+
+    /** Method to enable multiplying a [[Double]] with a [[Quantity]].
+      * @param quantity
+      *   The second factor.
+      * @tparam Q
+      *   Type of the quantity.
+      * @return
+      *   The resulting [[Quantity]].
+      */
+    def *[Q <: Quantity[Q]](quantity: Quantity[Q]): Q = quantity * d
+  }
+
   /** The [[tech.units.indriya.function.DefaultNumberSystem]] is only covering
     * java [[Number]] children. As [[BigDecimal]] is not related to
     * [[java.math.BigDecimal]], this causes issues, why the
-    * [[tech.units.indriya.spi.NumberSystem]] has to be to be used has to be
-    * specified to something, that actually is able to handle the scala number
-    * system.
+    * [[tech.units.indriya.spi.NumberSystem]] has to be used has to be specified
+    * to something, that actually is able to handle the scala number system.
     */
   def adjustNumberSystem(): Unit =
     Calculus.setCurrentNumberSystem(
@@ -55,18 +67,18 @@ object QuantityUtil {
     * @return
     *   Averaged quantity
     */
-  def average[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+  def average[Q <: Quantity[Q] & TimeDerivative[QI], QI <: Quantity[
     QI
-  ] with TimeIntegral[Q]](
+  ] & TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
       windowEnd: Long,
   ): Try[Q] = {
-    if (windowStart == windowEnd)
+    if windowStart == windowEnd then
       Failure(
         new IllegalArgumentException("Cannot average over trivial time window.")
       )
-    else if (windowStart > windowEnd)
+    else if windowStart > windowEnd then
       Failure(
         new IllegalArgumentException("Window end is before window start.")
       )
@@ -96,9 +108,9 @@ object QuantityUtil {
     * @return
     *   Integration over given values from window start to window end
     */
-  def integrate[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+  def integrate[Q <: Quantity[Q] & TimeDerivative[QI], QI <: Quantity[
     QI
-  ] with TimeIntegral[Q]](
+  ] & TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
       windowEnd: Long,

@@ -26,18 +26,18 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class SetupHelperSpec
     extends ScalaTestWithActorTestKit
     with UnitSpec
     with GridInputTestData {
 
-  private final object SetupHelperInstance extends SetupHelper
+  private object SetupHelperInstance extends SetupHelper
 
   "A setup helper" should {
-    val actorRef: ActorRef[GridAgent.Request] =
-      TestProbe[GridAgent.Request]("mock_grid_agent").ref
+    val actorRef: ActorRef[GridAgent.Message] =
+      TestProbe[GridAgent.Message]("mock_grid_agent").ref
 
     "reduce multiple SubGridGates between the same superior and inferior nodes to one unique SubGridGate" in {
 
