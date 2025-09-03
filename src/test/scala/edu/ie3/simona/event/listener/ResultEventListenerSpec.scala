@@ -36,11 +36,10 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.apache.pekko.testkit.TestKit.awaitCond
 
 import java.io.{File, FileInputStream}
-import java.nio.file.Path
 import java.util.UUID
 import java.util.zip.GZIPInputStream
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 import scala.io.Source
 import scala.language.postfixOps
@@ -58,7 +57,7 @@ class ResultEventListenerSpec
     with ThreeWindingResultTestData
     with Transformer3wResultSupport {
   val simulationName = "testSim"
-  val resultEntitiesToBeWritten: Set[Class[_ <: ResultEntity]] = Set(
+  val resultEntitiesToBeWritten: Set[Class[? <: ResultEntity]] = Set(
     classOf[PvResult],
     classOf[NodeResult],
     classOf[Transformer2WResult],
@@ -73,11 +72,11 @@ class ResultEventListenerSpec
   private def resultFileHierarchy(
       runId: Int,
       fileFormat: String,
-      classes: Set[Class[_ <: ResultEntity]] = resultEntitiesToBeWritten,
+      classes: Set[Class[? <: ResultEntity]] = resultEntitiesToBeWritten,
       compressResults: Boolean = false,
   ): ResultFileHierarchy = {
     val resultSinkType: ResultSinkType =
-      Csv(fileFormat, "", "", compressResults)
+      Csv(fileFormat, "", "", compressResults, ",")
 
     ResultFileHierarchy(
       outputDir = testTmpDir + File.separator + runId,
@@ -381,7 +380,7 @@ class ResultEventListenerSpec
             specificOutputFileHierarchy
           )
         )
-        ResultSinkType.Csv(fileFormat = ".csv.gz")
+        ResultSinkType.Csv(fileFormat = ".csv.gz", delimiter = ",")
 
         listenerRef ! ParticipantResultEvent(dummyPvResult)
 

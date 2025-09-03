@@ -67,7 +67,7 @@ object RuntimeEventListener {
 
   private def apply(
       listeners: Iterable[RuntimeEventSink],
-      eventsToProcess: Option[List[String]] = None,
+      eventsToProcess: Option[List[String]],
       runtimeStats: RuntimeStats = RuntimeStats(),
   ): Behavior[Request] = Behaviors
     .receive[Request] {
@@ -79,8 +79,7 @@ object RuntimeEventListener {
       case (ctx, event: RuntimeEvent) =>
         val process = eventsToProcess.forall(_.contains(event.id))
 
-        if (process)
-          processEvent(listeners, event, runtimeStats)
+        if process then processEvent(listeners, event, runtimeStats)
         else
           ctx.log.debug(
             "Skipping event {} as it is not in the list of events to process.",

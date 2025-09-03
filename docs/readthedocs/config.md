@@ -2,7 +2,12 @@
 
 # Configuration 
 
-To configure a SIMONA simulation, several parameters must be specified. Each simulation is performed within a reference system for a given runtime and is based on a power flow calculation using the Newton-Raphson algorithm. Individual steps for configuring the simulation are performed below.
+To configure a SIMONA simulation, several parameters must be specified. Each simulation is performed within a reference
+system for a given runtime and is based on a power flow calculation using the Newton-Raphson algorithm. Individual steps
+for configuring the simulation are performed below.
+
+An overview of all default values can be found below. These values are used when no other value is set in the configuration
+file.
 
 ## Configuration Parameters 
 
@@ -125,6 +130,7 @@ simona.output.participant.defaultConfig = {
   notifier = "default"
   powerRequestReply = false
   simulationResult = true
+  flexResult = false
 }
 ```
 
@@ -137,16 +143,19 @@ simona.output.participant.individualConfigs = [
     notifier = "pv"
     powerRequestReply = false
     simulationResult = true
+    flexResult = false
   },
   {
     notifier = "wec"
     powerRequestReply = false
     simulationResult = true
+    flexResult = false
   },
   {
     notifier = "evcs"
     powerRequestReply = false
     simulationResult = true
+    flexResult = false
   }
 ]
 ```
@@ -159,6 +168,7 @@ To use the default configuration the default notifier has to be used. By setting
 simona.output.thermal.defaultConfig = {
   notifier = "default",
   simulationResult = true
+  flexResult = false
 }
 ```
 
@@ -170,16 +180,31 @@ simona.output.thermal.individualConfigs = [
   {
     notifier = "house",
     simulationResult = true
+    flexResult = false
   },
   {
     notifier = "cylindricalstorage",
     simulationResult = true
+    flexResult = false
   }
 ]
 ```
 
 Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
+
+#### Output configuration for flexibility options
+
+The output of flexibility options either globally or for system participant groups or individual participants can also be applied. By setting "flexResult" to true, the participant is enabled to return the flexibility options results.
+
+```
+simona.output.participant.defaultConfig = {
+  notifier = "default"
+  powerRequestReply = false
+  simulationResult = true
+  flexResult = true
+}
+```
 
 ## Logging level configuration
 
@@ -310,6 +335,9 @@ are described in the documentation of [voltage limits](models/voltage_limits).
 
 ## Power flow configuration 
 
+The powerflow configuration in SIMONA is an optional configuration. If no configuration is present, SIMONA will skip all
+powerflow calculations. This can be useful, if you only want to simulate system participants and/or energy management systems.
+
 Maximum allowed deviation in power between two sweeps, before overall convergence is assumed:
 
   `simona.powerflow.maxSweepPowerDeviation = 1E-5 `
@@ -364,3 +392,223 @@ Minimum Voltage Limit in p.u.:
 Maximum Voltage Limit in p.u.:
 
 `vMax = 1.02`
+
+
+## Default configuration values
+
+### Time
+```
+simona.time.schedulerReadyCheckWindow = None
+```
+
+### Input
+
+```
+simona.input = {
+    extSimDir = None
+    
+    loadProfile = {
+        csvParams = None
+        sqlParams = None
+    }
+    
+    primary = {
+      couchbaseParams = None
+      csvParams = None
+      influxDb1xParams = None
+      sqlParams = None
+    }
+    
+    weather.datasource = {
+        coordinateSource = {
+          csvParams = None
+          gridModel = "icon"
+          sampleParams = None
+          sqlParams = None
+        }
+        couchbaseParams = None
+        csvParams: = None
+        influxDb1xParams = None
+        maxCoordinateDistance = 50000
+        resolution = 3600
+        sampleParams = None
+        scheme = "icon"
+        sqlParams = None
+        timestampPattern = None
+    }
+}
+```
+
+### Output
+
+```
+simona.output = {
+    base.addTimestampToOutputDir = true
+
+    grid = {
+      congestions = false
+      lines = false
+      nodes = false
+      switches = false
+      transformers2w = false
+      transformers3w = false
+    }
+    
+    sink = {
+      csv = None
+      influxDb1x = None
+      kafka = None
+    }    
+    
+    log = {
+        level = "INFO"
+        consoleLevel = None
+    }
+    
+    participant = {
+        defaultConfig = {
+            notifier = "default"
+            simulationResult = false
+            flexResult = false
+            powerRequestReply = false
+        }
+        indvidualConfigs = [] 
+    }
+    
+    thermal = {
+        defaultConfig = {
+            notifier = "default"
+            simulationResult = false
+        }
+        indvidualConfigs = []
+    }
+}
+```
+
+### Runtime
+
+```
+simona.runtime = {
+    selectedSubgrids = []
+    selectedVoltLvls = []
+
+    listener = {
+      eventsToProcess = None
+      kafka = None
+    }
+    
+    em = {
+        defaultConfig = {
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
+            uuids = []
+            aggregateFlex = "SELF_OPT_EXCL_REG"
+            curtailRegenerative = false
+        }
+        individualConfigs = []
+    }
+    
+    participant = {
+        requestVoltageDeviationThreshold = 1e-14
+        bm = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+            }
+            individualConfigs = []
+        }
+        evcs = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+                chargingStrategy = "maxPower"
+                lowestEvSoc = 0.2
+            }
+            individualConfigs = []
+        }
+        fixedFeedIn = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+            }
+            individualConfigs = []
+        }
+        hp = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+            }
+            individualConfigs = []
+        }
+        load = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+                modelBehaviour = "fix"
+                reference = "power"
+            }
+            individualConfigs = []
+        }
+        pv = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+            }
+            individualConfigs = []
+        }
+        storage = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+                initialSoc = 0.0
+                targetSoc = None                
+            }
+            individualConfigs = []
+        }
+        wec = {
+            defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                scaling = 1.0
+                uuids = []
+            }
+            individualConfigs = []
+        }
+    }
+}
+```
+
+### PowerFlow
+
+```
+simona.powerflow = {
+    maxSweepPowerDeviation = 1e-5
+    newtonraphson.iterations = 50
+    resolution = 3600s
+    stopOnFailure = false
+    sweepTimeout = 30s
+}
+```
+
+### Congestion management
+
+```
+simona.congestionManagement = {
+    enableDetection = false
+    timeout = 30s
+}
+```
+
+### Control
+
+```
+simona.control = {
+    transformer = []
+}
+```

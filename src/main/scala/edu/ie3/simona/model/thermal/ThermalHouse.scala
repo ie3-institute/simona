@@ -23,14 +23,14 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   temperatureTolerance,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
 import squants.thermal.{Kelvin, ThermalCapacity}
 import squants.time.Seconds
 import squants.{Energy, Power, Temperature, Time}
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
@@ -47,15 +47,15 @@ import java.util.UUID
   * @param bus
   *   Thermal bus input
   * @param ethLosses
-  *   transmission coefficient of heat storage, usually in [kW/K]
+  *   transmission coefficient of heat storage
   * @param ethCapa
-  *   heat energy storage capability of thermal house, usually in [kWh/K]
+  *   heat energy storage capability of thermal house
   * @param targetTemperature
-  *   Target room temperature [K]
+  *   Target room temperature
   * @param lowerBoundaryTemperature
-  *   Lower temperature boundary [K]
+  *   Lower temperature boundary
   * @param upperBoundaryTemperature
-  *   Upper boundary temperature [K]
+  *   Upper boundary temperature
   */
 final case class ThermalHouse(
     uuid: UUID,
@@ -101,13 +101,12 @@ final case class ThermalHouse(
     val currentInnerTemp = thermalHouseState.innerTemperature
 
     val requiredEnergy =
-      if (isInnerTemperatureTooLow(currentInnerTemp)) {
+      if isInnerTemperatureTooLow(currentInnerTemp) then {
         energyToReachTargetTemperature(currentInnerTemp)
-      } else
-        zeroKWh
+      } else zeroKWh
 
     val possibleEnergy =
-      if (!isInnerTemperatureTooHigh(currentInnerTemp)) {
+      if !isInnerTemperatureTooHigh(currentInnerTemp) then {
         energyToReachTargetTemperature(currentInnerTemp)
       } else zeroKWh
 
@@ -247,29 +246,28 @@ final case class ThermalHouse(
       qDot.toWatts / ethLosses.toWattsPerKelvin
     ) + Kelvin(thermalHouseState.ambientTemperature.toKelvinScale)
 
-    if (isInnerTemperatureTooLow(limitTemperature + temperatureTolerance))
-      /* Losses and gain of house are not in balance, thus temperature will reach some limit sooner or later */
-      /* House has more losses than gain */
-      {
-        nextActivation(
-          thermalHouseState.tick,
-          lowerBoundaryTemperature,
-          thermalHouseState.innerTemperature,
-          thermalHouseState.ambientTemperature,
-          qDot,
-        ).map(HouseTemperatureLowerBoundaryReached)
-      } else if (
-      isInnerTemperatureTooHigh(
+    if isInnerTemperatureTooLow(limitTemperature + temperatureTolerance) then
+    /* Losses and gain of house are not in balance, thus temperature will reach some limit sooner or later */
+    /* House has more losses than gain */
+    {
+      nextActivation(
+        thermalHouseState.tick,
+        lowerBoundaryTemperature,
+        thermalHouseState.innerTemperature,
+        thermalHouseState.ambientTemperature,
+        qDot,
+      ).map(HouseTemperatureLowerBoundaryReached.apply)
+    } else if isInnerTemperatureTooHigh(
         limitTemperature - temperatureTolerance
       ) && qDot > zeroKW
-    ) { /* House has more gain than losses AND gain is not caused external (through ambient temperature) */
+    then { /* House has more gain than losses AND gain is not caused external (through ambient temperature) */
       nextActivation(
         thermalHouseState.tick,
         targetTemperature,
         thermalHouseState.innerTemperature,
         thermalHouseState.ambientTemperature,
         qDot,
-      ).map(HouseTargetTemperatureReached)
+      ).map(HouseTargetTemperatureReached.apply)
     } else {
       /* House is in perfect balance */
       None
@@ -290,7 +288,7 @@ final case class ThermalHouse(
     )
 
     val durationValue = Math.log(
-      (nextInnerTemperatureToReach - longTermTemperature) / (currentInnerTemperature - longTermTemperature)
+      (nextInnerTemperatureToReach.toKelvinScale - longTermTemperature.toKelvinScale) / (currentInnerTemperature.toKelvinScale - longTermTemperature.toKelvinScale)
     ) / (k2 * -1)
 
     val duration = Math.floor(durationValue).toLong
@@ -334,15 +332,9 @@ object ThermalHouse {
         .getValue
         .doubleValue
     ) / Kelvin(1d),
-    Kelvin(
-      input.getTargetTemperature.to(Units.KELVIN).getValue.doubleValue
-    ),
-    Kelvin(
-      input.getLowerTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
-    ),
-    Kelvin(
-      input.getUpperTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
-    ),
+    input.getTargetTemperature.toSquants,
+    input.getLowerTemperatureLimit.toSquants,
+    input.getUpperTemperatureLimit.toSquants,
   )
 
   /** State of a thermal house.

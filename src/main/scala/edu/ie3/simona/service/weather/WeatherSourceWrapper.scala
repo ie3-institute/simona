@@ -23,7 +23,7 @@ import edu.ie3.datamodel.io.source.influxdb.InfluxDbWeatherSource
 import edu.ie3.datamodel.io.source.sql.SqlWeatherSource
 import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
-  WeatherSource => PsdmWeatherSource,
+  WeatherSource as PsdmWeatherSource,
 }
 import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.config.ConfigParams.{
@@ -40,10 +40,11 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   toWeatherData,
 }
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
-import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
+import edu.ie3.simona.service.weather.WeatherSource as SimonaWeatherSource
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.DoubleUtils.!~=
 import edu.ie3.util.interval.ClosedInterval
+import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
 
 import java.nio.file.Paths
@@ -156,7 +157,9 @@ private[weather] final case class WeatherSourceWrapper private (
             logger.warn(s"Temperature not available at $point.")
             (averagedWeather.temp, 0d)
           case nonEmptyTemp =>
-            (averagedWeather.temp + nonEmptyTemp * weight, weight)
+            // Important: squants temperature addition is bugged.
+            // Conversion to Kelvin necessary.
+            (averagedWeather.temp + nonEmptyTemp.in(Kelvin) * weight, weight)
         }
 
         val (windVelocity, windVelWeight) = currentWeather.windVel match {
@@ -388,13 +391,13 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       case WeatherData(diffIrr, dirIrr, temp, windVel) =>
         implicit val precision: Double = 1e-3
         WeatherData(
-          if (this.diffIrr !~= 0d) diffIrr.divide(this.diffIrr)
+          if this.diffIrr !~= 0d then diffIrr.divide(this.diffIrr)
           else EMPTY_WEATHER_DATA.diffIrr,
-          if (this.dirIrr !~= 0d) dirIrr.divide(this.dirIrr)
+          if this.dirIrr !~= 0d then dirIrr.divide(this.dirIrr)
           else EMPTY_WEATHER_DATA.dirIrr,
-          if (this.temp !~= 0d) temp.divide(this.temp)
+          if this.temp !~= 0d then temp.divide(this.temp)
           else EMPTY_WEATHER_DATA.temp,
-          if (this.windVel !~= 0d) windVel.divide(this.windVel)
+          if this.windVel !~= 0d then windVel.divide(this.windVel)
           else EMPTY_WEATHER_DATA.windVel,
         )
     }

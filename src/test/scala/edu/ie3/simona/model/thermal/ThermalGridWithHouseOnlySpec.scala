@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.participant.HpModel.{
+import edu.ie3.simona.model.participant.hp.HpModel.{
   HpOperatingPoint,
   HpState,
   ThermalGridOperatingPoint,
@@ -20,11 +20,11 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
-import squants.energy._
+import squants.energy.*
 import squants.thermal.Celsius
 import squants.{Energy, Power, Temperature}
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 

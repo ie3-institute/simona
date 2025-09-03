@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.grid
 
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.QuantityUtils.asPu
 import tech.units.indriya.ComparableQuantity
 
@@ -28,7 +28,7 @@ trait TransformerTapping {
 
   protected val transformerTappingModel: TransformerTappingModel
 
-  protected var tapRatio: Double = _
+  protected var tapRatio: Double = scala.compiletime.uninitialized
 
   def getTapRation: Double = tapRatio
 

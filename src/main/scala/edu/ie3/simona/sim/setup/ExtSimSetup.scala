@@ -14,24 +14,17 @@ import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceResponseMessage
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.ExtDataSupport
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
-import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
 import scala.util.{Failure, Success, Try}
 
@@ -49,8 +42,6 @@ object ExtSimSetup {
     *   The actor context of this actor system.
     * @param scheduler
     *   The scheduler of simona.
-    * @param resolution
-    *   The resolution of the power flow.
     * @return
     *   An [[ExtSimSetupData]] that holds information regarding the external
     *   data connections as well as the actor references of the created
@@ -62,7 +53,6 @@ object ExtSimSetup {
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      resolution: FiniteDuration,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
       // external simulation always needs at least an ExtSimAdapter
@@ -118,8 +108,6 @@ object ExtSimSetup {
     *   The scheduler of simona.
     * @param extSimAdapterData
     *   The adapter data for the external simulation.
-    * @param resolution
-    *   The resolution of the power flow.
     * @return
     *   An updated [[ExtSimSetupData]].
     */
@@ -130,7 +118,6 @@ object ExtSimSetup {
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
-      resolution: FiniteDuration,
   ): ExtSimSetupData = {
     given extSimAdapter: ActorRef[ControlResponseMessageFromExt] =
       extSimAdapterData.getAdapter
@@ -146,7 +133,7 @@ object ExtSimSetup {
       case (setupData, connection) =>
         connection match {
           case extEvDataConnection: ExtEvDataConnection =>
-            if (setupData.evDataConnection.nonEmpty) {
+            if setupData.evDataConnection.nonEmpty then {
               throw ServiceException(
                 s"Trying to connect another EvDataConnection. Currently only one is allowed."
               )
@@ -239,7 +226,7 @@ object ExtSimSetup {
         .groupBy(identity)
         .collect { case (uuid, values) if values.size > 1 => uuid }
 
-    if (duplicateAssets.nonEmpty) {
+    if duplicateAssets.nonEmpty then {
       throw ServiceException(
         s"Multiple data connections provide primary data for assets: ${duplicateAssets.mkString(",")}"
       )

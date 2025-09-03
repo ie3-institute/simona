@@ -33,7 +33,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
@@ -46,7 +45,7 @@ import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{implicitConversions, postfixOps}
 import scala.util.{Failure, Success}
@@ -71,11 +70,15 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       simonaConfig: SimonaConfig,
       listener: Iterable[ActorRef[ResultEvent]],
   ): Behavior[Message] = Behaviors.withStash(100) { buffer =>
-    // this determines the agents regular time bin it wants to be triggered e.g. one hour
-    val resolution: Long = simonaConfig.simona.powerflow.resolution.toSeconds
+    val cfg = simonaConfig.simona
 
-    val simStartTime: ZonedDateTime = TimeUtil.withDefaults
-      .toZonedDateTime(simonaConfig.simona.time.startDateTime)
+    given simStartTime: ZonedDateTime = cfg.time.simStartTime
+    val simEndTime = cfg.time.simEndTime
+
+    // this determines the agents regular time bin it wants to be triggered e.g. one hour
+    // if no resolution is given, we use the maximal long value as a placeholder, as no future activation should take place
+    val resolution =
+      cfg.powerflow.map(_.resolution.toSeconds).getOrElse(Long.MaxValue)
 
     val agentValues = GridAgentConstantData(
       environmentRefs,
@@ -83,8 +86,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       listener,
       resolution,
       simStartTime,
-      TimeUtil.withDefaults
-        .toZonedDateTime(simonaConfig.simona.time.endDateTime),
+      simEndTime,
     )
 
     uninitialized(using agentValues, buffer, simonaConfig)
@@ -133,12 +135,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         subGridContainer,
         refSystem,
         gridAgentInitData.voltageLimits,
-        TimeUtil.withDefaults.toZonedDateTime(
-          cfg.time.startDateTime
-        ),
-        TimeUtil.withDefaults.toZonedDateTime(
-          cfg.time.endDateTime
-        ),
+        constantData.simStartTime,
+        constantData.simEndTime,
         simonaConfig,
       )
 
@@ -163,6 +161,21 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
             nodeUuid -> actorSet
           }
 
+      // create powerflow parameters
+      val pfParams = cfg.powerflow match {
+        case Some(value) =>
+          PowerFlowParams(
+            value.maxSweepPowerDeviation,
+            value.newtonraphson.epsilon.toVector.sorted,
+            value.newtonraphson.iterations,
+            value.sweepTimeout,
+            value.stopOnFailure,
+          )
+        case None =>
+          // empty powerflow params, since we need an object
+          PowerFlowParams(0, Vector.empty, 0, 0.seconds, false)
+      }
+
       // create the GridAgentBaseData
       val gridAgentBaseData = GridAgentBaseData(
         gridModel,
@@ -171,13 +184,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         gridAgentInitData.superiorGridNodeUuids,
         gridAgentInitData.inferiorGridGates,
         gridAgentInitData.superiorGridGates,
-        PowerFlowParams(
-          cfg.powerflow.maxSweepPowerDeviation,
-          cfg.powerflow.newtonraphson.epsilon.toVector.sorted,
-          cfg.powerflow.newtonraphson.iterations,
-          cfg.powerflow.sweepTimeout,
-          cfg.powerflow.stopOnFailure,
-        ),
+        pfParams,
         CongestionManagementParams(
           cfg.congestionManagement.enableDetection,
           cfg.congestionManagement.enableTransformerTapChange,
@@ -186,11 +193,17 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         SimonaActorNaming.actorName(ctx.self),
       )
 
-      constantData.environmentRefs.scheduler ! ScheduleActivation(
-        ctx.self,
-        constantData.resolution,
-        Some(unlockKey),
-      )
+      val resolution = constantData.resolution
+
+      if resolution == Long.MaxValue then {
+        unlockKey.unlock()
+      } else {
+        constantData.environmentRefs.scheduler ! ScheduleActivation(
+          ctx.self,
+          resolution,
+          Some(unlockKey),
+        )
+      }
 
       idle(gridAgentBaseData)
   }
@@ -266,7 +279,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       }
 
     // check if congestion management is enabled
-    if (gridAgentBaseData.congestionManagementParams.detectionEnabled) {
+    if gridAgentBaseData.congestionManagementParams.detectionEnabled then {
       startCongestionManagement(gridAgentBaseData, currentTick, results, ctx)
     } else {
       // clean up agent and go back to idle
@@ -345,7 +358,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       resMsgBuilder: Vector[(ActorRef[GridAgent.Message], T)] => InternalReply,
       ctx: ActorContext[GridAgent.Message],
   )(using timeout: FiniteDuration): Unit = {
-    if (inferiorGridRefs.nonEmpty) {
+    if inferiorGridRefs.nonEmpty then {
       // creating implicit vals
       given ec: ExecutionContext = ctx.executionContext
       given scheduler: Scheduler = ctx.system.scheduler
@@ -391,9 +404,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       actorName: String,
       onlyOneSubGrid: Boolean,
   ): Unit = {
-    if (
-      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty && !onlyOneSubGrid
-    )
+    if gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty && !onlyOneSubGrid
+    then
       throw new GridAgentInitializationException(
         s"$actorName has neither superior nor inferior grids! This can either " +
           s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"

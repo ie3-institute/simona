@@ -14,9 +14,13 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   OperationChangeIndicator,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.PrimaryDataParticipantModel._
+import edu.ie3.simona.model.participant.PrimaryDataParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.flex.{FlexOptions, MinMaxFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexOptions,
+  FlexType,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   EnrichableData,
@@ -57,6 +61,11 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
       PrimaryDataState[PD],
     ] {
 
+  override val flexModels
+      : Map[FlexType, ParticipantFlexModel[PrimaryDataState[PD]]] = Map(
+    FlexType.PowerLimit -> PrimaryDataPowerLimitFlexModel(this)
+  )
+
   override def determineState(
       lastState: PrimaryDataState[PD],
       operatingPoint: PrimaryOperatingPoint[PD],
@@ -92,9 +101,9 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] = {
     val primaryDataWithApparentPower = currentOperatingPoint.data match {
-      case primaryDataWithApparentPower: PrimaryDataWithComplexPower[_] =>
+      case primaryDataWithApparentPower: PrimaryDataWithComplexPower[?] =>
         primaryDataWithApparentPower
-      case enrichableData: EnrichableData[_] =>
+      case enrichableData: EnrichableData[?] =>
         enrichableData.add(complexPower.q)
     }
     Iterable(
@@ -108,14 +117,6 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
   ): SystemParticipantResult = throw new CriticalFailureException(
     "Method not implemented by this model."
   )
-
-  override def determineFlexOptions(
-      state: PrimaryDataState[PD]
-  ): FlexOptions = {
-    val (operatingPoint, _) = determineOperatingPoint(state)
-
-    MinMaxFlexOptions.noFlexOption(operatingPoint.activePower)
-  }
 
   override def determineOperatingPoint(
       state: PrimaryDataState[PD],
@@ -162,9 +163,9 @@ object PrimaryDataParticipantModel {
         data: PD
     ): PrimaryOperatingPoint[PD] =
       data match {
-        case apparentPowerData: PD with PrimaryDataWithComplexPower[_] =>
+        case apparentPowerData: (PD & PrimaryDataWithComplexPower[?]) =>
           PrimaryApparentPowerOperatingPoint(apparentPowerData)
-        case other: PD with EnrichableData[_] =>
+        case other: (PD & EnrichableData[?]) =>
           PrimaryActivePowerOperatingPoint(other)
       }
   }
@@ -177,11 +178,32 @@ object PrimaryDataParticipantModel {
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
-      PE <: PrimaryData with EnrichableData[? <: PrimaryData]
+      PE <: PrimaryData & EnrichableData[? <: PrimaryData]
   ](
       override val data: PE
   ) extends PrimaryOperatingPoint[PE] {
     override val reactivePower: Option[ReactivePower] = None
+  }
+
+  /** Flex model for primary data. Does not allow for any flexibility.
+    *
+    * @param model
+    *   The model.
+    * @tparam PD
+    *   The type of primary data.
+    */
+  private final case class PrimaryDataPowerLimitFlexModel[PD <: PrimaryData](
+      model: PrimaryDataParticipantModel[PD]
+  ) extends ParticipantFlexModel[PrimaryDataState[PD]] {
+
+    override def determineFlexOptions(
+        state: PrimaryDataState[PD]
+    ): FlexOptions = {
+      val (operatingPoint, _) = model.determineOperatingPoint(state)
+
+      PowerLimitFlexOptions.noFlexOption(operatingPoint.activePower)
+    }
+
   }
 
   /** Constructs a [[PrimaryDataParticipantModel]] for the given physical

@@ -24,11 +24,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   SecondaryServiceRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.LoadData
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
@@ -79,9 +75,6 @@ class LoadProfileServiceSpec
           sourceDefinition,
           TimeUtil.withDefaults.toZonedDateTime(
             simonaConfig.simona.time.startDateTime
-          ),
-          TimeUtil.withDefaults.toZonedDateTime(
-            simonaConfig.simona.time.endDateTime
           ),
         ),
         key,

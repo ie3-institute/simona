@@ -12,14 +12,13 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.buildSuperiorGridRefs
-import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil.{
   EmConfigUtil,
@@ -43,15 +42,20 @@ object GridAgentData {
     * across simulation time.
     *
     * @param environmentRefs
-    *   environment actor refs
+    *   Containing actor references, that are relevant for the environment of
+    *   the grid agent.
     * @param simonaConfig
-    *   config
+    *   Configuration of SIMONA, that is used for.
     * @param listener
-    *   listeners
+    *   A sequence of listeners, that will receive the results from the grid
+    *   agent.
     * @param resolution
-    *   of the simulation
+    *   That is used for the power flow. If no power flow should be carried out,
+    *   this value is set to [[Long.MaxValue]].
     * @param simStartTime
-    *   start time of the simulation
+    *   Start time of the simulation.
+    * @param simEndTime
+    *   Send time of the simulation.
     */
   final case class GridAgentConstantData(
       environmentRefs: EnvironmentRefs,
@@ -429,7 +433,7 @@ object GridAgentData {
     private def updateNodalReceivedPower(
         powerResponse: PowerResponse,
         nodeToReceived: NodeToReceivedPower,
-        senderRef: ActorRef[_],
+        senderRef: ActorRef[?],
         replace: Boolean,
     ): NodeToReceivedPower = {
       // extract the nodeUuid that corresponds to the sender's actorRef and check if we expect a message from the sender
@@ -487,17 +491,15 @@ object GridAgentData {
       */
     private def getNodeUuidForSender(
         nodeToReceivedPower: NodeToReceivedPower,
-        senderRef: ActorRef[_],
+        senderRef: ActorRef[?],
         replace: Boolean,
     ): Option[UUID] =
       nodeToReceivedPower
         .find { case (_, receivedPowerMessages) =>
           receivedPowerMessages.exists { case (ref, maybePowerResponse) =>
             ref == senderRef &&
-            (if (!replace)
-               maybePowerResponse.isEmpty
-             else
-               maybePowerResponse.isDefined)
+            (if !replace then maybePowerResponse.isEmpty
+             else maybePowerResponse.isDefined)
           }
         }
         .map { case (uuid, _) => uuid }

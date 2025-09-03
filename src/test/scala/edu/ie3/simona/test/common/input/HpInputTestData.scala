@@ -17,9 +17,9 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.datamodel.models.input.{OperatorInput, container}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.model.InputModelContainer.WithHeatInputContainer
+import edu.ie3.simona.model.thermal.*
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal._
 import edu.ie3.util.quantities.PowerSystemUnits
 import squants.Temperature
 import squants.energy.{KilowattHours, Kilowatts}
@@ -27,7 +27,7 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
 
@@ -88,7 +88,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     2.0,
   )
 
-  protected val typicalThermalStorage: CylindricalStorageInput =
+  protected val typicalHeatStorage: CylindricalStorageInput =
     new CylindricalStorageInput(
       UUID.fromString("4b8933dc-aeb6-4573-b8aa-59d577214150"),
       "thermal storage",
@@ -103,7 +103,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
   protected val typicalThermalGrid = new container.ThermalGrid(
     thermalBusInput,
     Seq(typicalThermalHouse).asJava,
-    Set[ThermalStorageInput](typicalThermalStorage).asJava,
+    Set[ThermalStorageInput](typicalHeatStorage).asJava,
     Set.empty[ThermalStorageInput].asJava,
   )
 

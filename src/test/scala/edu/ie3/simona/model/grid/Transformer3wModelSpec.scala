@@ -14,8 +14,8 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseC,
 }
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.input.Transformer3wTestData
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.simona.test.common.input.Transformer3wInputTestData
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
   Megavoltamperes,
@@ -30,7 +30,7 @@ import scala.math.BigDecimal.RoundingMode
 class Transformer3wModelSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
-    with Transformer3wTestData {
+    with Transformer3wInputTestData {
   val testingTolerance = 1e-5
   implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-8)
   implicit val powerTolerance: ApparentPower = Voltamperes(1e-3)
@@ -40,7 +40,7 @@ class Transformer3wModelSpec
       Transformer3wModel.validateInputModel(transformer3wInput)
     }
 
-    "result in a valid three winding transformer model - hv side" in new Transformer3wTestData {
+    "result in a valid three winding transformer model - hv side" in new Transformer3wInputTestData {
       val expectedTappingModel: TransformerTappingModel =
         TransformerTappingModel(
           transformer3wInput.getType.getdV(),
@@ -117,7 +117,7 @@ class Transformer3wModelSpec
       yij.imag shouldBe -6.011422522227 +- doubleTolerance
     }
 
-    "result in a valid three winding transformer model - mv side" in new Transformer3wTestData {
+    "result in a valid three winding transformer model - mv side" in new Transformer3wInputTestData {
       val expectedTappingModel: TransformerTappingModel =
         TransformerTappingModel(
           transformer3wInput.getType.getdV(),
@@ -194,7 +194,7 @@ class Transformer3wModelSpec
       yij.imag shouldBe -40.007364 +- doubleTolerance
     }
 
-    "result in a valid three winding transformer model - lv side" in new Transformer3wTestData {
+    "result in a valid three winding transformer model - lv side" in new Transformer3wInputTestData {
       val expectedTappingModel: TransformerTappingModel =
         TransformerTappingModel(
           transformer3wInput.getType.getdV(),
@@ -270,7 +270,7 @@ class Transformer3wModelSpec
       yij.imag shouldBe -1798.197528 +- doubleTolerance
     }
 
-    "result in an enabled three winding transformer model, if the input model is enabled at simulation start" in new Transformer3wTestData {
+    "result in an enabled three winding transformer model, if the input model is enabled at simulation start" in new Transformer3wInputTestData {
       val transformerModelEhvTemp: Transformer3wModel =
         Transformer3wModel(
           transformer3wInput,
@@ -301,7 +301,7 @@ class Transformer3wModelSpec
       transformerModelLvTemp.isInOperation shouldBe true
     }
 
-    "result in an disabled three winding transformer model, if the input model is disabled at simulation start" in new Transformer3wTestData {
+    "result in an disabled three winding transformer model, if the input model is disabled at simulation start" in new Transformer3wInputTestData {
       val transformerModelEhvTemp: Transformer3wModel =
         Transformer3wModel(
           transformer3wInputPostponed,
@@ -332,7 +332,7 @@ class Transformer3wModelSpec
       transformerModelLvTemp.isInOperation shouldBe false
     }
 
-    "initialize its tapping capabilities automatically" in new Transformer3wTestData {
+    "initialize its tapping capabilities automatically" in new Transformer3wInputTestData {
       val tapRatio: PrivateMethod[Double] =
         PrivateMethod[Double](Symbol("tapRatio"))
 
@@ -368,7 +368,7 @@ class Transformer3wModelSpec
   }
 
   "A valid transformer model" should {
-    "be able to be enabled and disabled on request" in new Transformer3wTestData {
+    "be able to be enabled and disabled on request" in new Transformer3wInputTestData {
       val transformerModel: Transformer3wModel =
         Transformer3wModel(
           transformer3wInput,
@@ -391,7 +391,7 @@ class Transformer3wModelSpec
       transformerModel.isInOperation shouldBe true
     }
 
-    "change its tap position on request and return a valid tap ratio afterwards" in new Transformer3wTestData {
+    "change its tap position on request and return a valid tap ratio afterwards" in new Transformer3wInputTestData {
       val transformerModel: Transformer3wModel = transformerModelEhv
       val tapRatio: PrivateMethod[Double] =
         PrivateMethod[Double](Symbol("tapRatio"))
@@ -425,7 +425,7 @@ class Transformer3wModelSpec
       transformerModel invokePrivate tapRatio() shouldBe 1.03
     }
 
-    "dislike altering the tap position in power flow case B" in new Transformer3wTestData {
+    "dislike altering the tap position in power flow case B" in new Transformer3wInputTestData {
       val transformerModel: Transformer3wModel = transformerModelHv
       val tapRatio: PrivateMethod[Double] =
         PrivateMethod[Double](Symbol("tapRatio"))
@@ -458,7 +458,7 @@ class Transformer3wModelSpec
       transformerModel invokePrivate tapRatio() shouldBe 1.0
     }
 
-    "should compute valid delta tap positions" in new Transformer3wTestData {
+    "should compute valid delta tap positions" in new Transformer3wInputTestData {
       val cases: TableFor4[Int, Double, Double, Int] =
         Table(
           ("currentTapPos", "vChange", "deadBand", "expected"),
@@ -499,7 +499,7 @@ class Transformer3wModelSpec
       }
     }
 
-    "should calculate the correct tap dependent equivalent circuit diagram parameters - EHV side" in new Transformer3wTestData {
+    "should calculate the correct tap dependent equivalent circuit diagram parameters - EHV side" in new Transformer3wInputTestData {
       val transformer: Transformer3wModel = transformerModelEhv
       forAll(tapDependentEquivalentCircuitParametersEhv) {
         (
@@ -536,7 +536,7 @@ class Transformer3wModelSpec
       }
     }
 
-    "should calculate the correct tap dependent voltage ratio - EHV side" in new Transformer3wTestData {
+    "should calculate the correct tap dependent voltage ratio - EHV side" in new Transformer3wInputTestData {
       val transformer: Transformer3wModel = transformerModelEhv
       forAll(tapDependentVoltRatioEhv) { (tapPos, expectedVoltRatioStr) =>
         val expectedVoltRatio = BigDecimal
@@ -549,7 +549,7 @@ class Transformer3wModelSpec
       }
     }
 
-    "should calculate the correct tap dependent voltage ratio - HV side" in new Transformer3wTestData {
+    "should calculate the correct tap dependent voltage ratio - HV side" in new Transformer3wInputTestData {
       val transformer: Transformer3wModel = transformerModelHv
       val expectedVoltRatio: BigDecimal =
         BigDecimal.apply("3.45455").setScale(5, RoundingMode.HALF_UP)
@@ -559,7 +559,7 @@ class Transformer3wModelSpec
       actualVoltRatio shouldBe expectedVoltRatio
     }
 
-    "should calculate the correct tap dependent voltage ratio - LV side" in new Transformer3wTestData {
+    "should calculate the correct tap dependent voltage ratio - LV side" in new Transformer3wInputTestData {
       val transformer: Transformer3wModel = transformerModelLv
       val expectedVoltRatio: BigDecimal =
         BigDecimal.apply("19.0").setScale(5, RoundingMode.HALF_UP)
