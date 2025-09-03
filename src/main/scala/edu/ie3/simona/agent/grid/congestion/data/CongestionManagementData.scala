@@ -7,15 +7,19 @@
 package edu.ie3.simona.agent.grid.congestion.data
 
 import edu.ie3.datamodel.models.result.CongestionResult
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.datamodel.models.result.CongestionResult.InputModelType
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentDataInternal,
 }
-import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationProgress
-import edu.ie3.simona.agent.grid.congestion.{CongestedComponents, Congestions}
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams.MitigationProgress
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps
+import edu.ie3.simona.agent.grid.congestion.{
+  CongestedComponents,
+  CongestionManagementParams,
+  Congestions,
+}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.util.quantities.QuantityUtils.asPercent
 import org.apache.pekko.actor.typed.ActorRef
@@ -40,8 +44,6 @@ import scala.concurrent.duration.FiniteDuration
   *   The found congestions.
   * @param congestedComponents
   *   The components that have congestion.
-  * @param mitigationProgress
-  *   The progress of the congestion mitigation.
   */
 final case class CongestionManagementData(
     gridAgentBaseData: GridAgentBaseData,
@@ -50,8 +52,32 @@ final case class CongestionManagementData(
     powerFlowResults: PowerFlowResultEvent,
     congestions: Congestions,
     congestedComponents: CongestedComponents,
-    mitigationProgress: MitigationProgress,
 ) extends GridAgentDataInternal {
+
+  def getNextMitigationMeasure
+      : (MitigationSteps.Value, CongestionManagementData) = {
+    val params = gridAgentBaseData.congestionManagementParams
+
+    val (nextStep, updatedProgress) = params.progress.getNextStepsAndUpdate
+
+    (
+      nextStep,
+      copy(gridAgentBaseData =
+        gridAgentBaseData.copy(congestionManagementParams =
+          params.copy(progress = updatedProgress)
+        )
+      ),
+    )
+  }
+
+  def resetProgress: CongestionManagementData = {
+    val params = gridAgentBaseData.congestionManagementParams
+    val updatedParams = params.copy(progress = params.progress.reset)
+
+    copy(gridAgentBaseData =
+      gridAgentBaseData.copy(congestionManagementParams = updatedParams)
+    )
+  }
 
   /** Builds a [[CongestionResult]] from the power flow results.
     * @param startTime
@@ -164,7 +190,6 @@ object CongestionManagementData {
       powerFlowResults,
       Congestions(congestedComponents),
       congestedComponents,
-      MitigationProgress(),
     )
   }
 

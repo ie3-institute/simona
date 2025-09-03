@@ -9,5 +9,6 @@ package edu.ie3.simona.agent.grid.congestion.mitigations
 /** Enumeration with all congestion management steps.
   */
 object MitigationSteps extends Enumeration {
-  val TransformerTapChange, TopologyChange, FlexibilityDeployment = Value
+  val TransformerTapChange, TopologyChange, FlexibilityDeployment, NoMeasure =
+    Value
 }

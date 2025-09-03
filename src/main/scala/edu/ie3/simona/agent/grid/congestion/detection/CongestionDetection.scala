@@ -19,7 +19,15 @@ import edu.ie3.simona.agent.grid.congestion.data.{
   AwaitingData,
   CongestionManagementData,
 }
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.*
+import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.*
+import edu.ie3.simona.agent.grid.congestion.data.{
+  AwaitingData,
+  CongestionManagementData,
+}
 import edu.ie3.simona.agent.grid.congestion.Congestions
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps.*
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
@@ -73,6 +81,25 @@ trait CongestionDetection {
         congestions,
         ctx,
       )
+
+    case (ctx, nextStep @ NextStep(step)) =>
+      stateData.inferiorGridRefs.keys.foreach(_ ! nextStep)
+
+      step match {
+        case TransformerTapChange =>
+          // use transformer tap change
+          ctx.self ! StartStep
+
+          GridAgent.updateTransformerTapping(
+            stateData,
+            AwaitingData(stateData.inferiorGridRefs.keySet),
+          )
+
+        case _ =>
+          // no mitigation measure found
+          ctx.self ! FinishStep
+          Behaviors.same
+      }
 
     case (ctx, FinishStep) =>
       // inform my inferior grids about the end of the congestion management
@@ -155,19 +182,16 @@ trait CongestionDetection {
           s"Congestion overall: $updatedCongestions"
         )
 
-        val updatedStateData = stateData.copy(congestions = updatedCongestions)
+        // first we find an option for the next mitigation step
+        val (step, updatedProgress) = stateData.getNextMitigationMeasure
 
-        if stateData.congestionManagementParams.anyMitigationEnabled then {
-          // the mitigation is enabled
-          // goto mitigation behavior
-          GridAgent.doCongestionMitigation(updatedStateData, ctx)
+        ctx.self ! NextStep(step)
 
-        } else {
-          // no mitigation enabled
-          // just finish the step
-          ctx.self ! FinishStep
-          checkForCongestion(updatedStateData, updatedData)
-        }
+        val updatedStateData = updatedProgress.copy(
+          congestions = updatedCongestions
+        )
+
+        checkForCongestion(updatedStateData, awaitingData)
       }
 
     } else {

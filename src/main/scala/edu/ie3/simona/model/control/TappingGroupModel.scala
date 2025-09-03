@@ -120,7 +120,10 @@ final case class TappingGroupModel(
           // mapping the data
           val taps = deltas.map { case (tapping, (tap, _)) => tapping -> tap }
           val actualDelta =
-            deltas.map { case (_, (_, delta)) => delta }.toSeq(0)
+            deltas
+              .map { case (_, (_, delta)) => delta }
+              .headOption
+              .getOrElse(0.asPu)
 
           (taps, actualDelta)
         case None =>

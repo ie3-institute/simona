@@ -20,7 +20,7 @@ import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.{
   CongestionResponse,
   ReceivedCongestions,
 }
-import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationProgress
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams.MitigationProgress
 import edu.ie3.simona.agent.grid.congestion.{
   CongestedComponents,
   CongestionTestBaseData,
@@ -82,7 +82,6 @@ class CongestionDetectionSpec
           transformerCongestions = false,
         ),
         CongestedComponents.empty,
-        MitigationProgress(),
       )
 
       val cases = Table(
@@ -160,7 +159,6 @@ class CongestionDetectionSpec
           transformerCongestions = false,
         ),
         CongestedComponents.empty,
-        MitigationProgress(),
       )
 
       val awaitingData: AwaitingData[Congestions] =
@@ -211,7 +209,6 @@ class CongestionDetectionSpec
           transformerCongestions = false,
         ),
         CongestedComponents.empty,
-        MitigationProgress(),
       )
 
       val awaitingData: AwaitingData[Congestions] =
@@ -275,7 +272,6 @@ class CongestionDetectionSpec
           transformerCongestions = false,
         ),
         CongestedComponents.empty,
-        MitigationProgress(),
       )
 
       val awaitingData: AwaitingData[Congestions] =

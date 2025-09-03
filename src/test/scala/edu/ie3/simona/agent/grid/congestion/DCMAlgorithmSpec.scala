@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.grid.congestion
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.congestion.data.CongestionManagementData
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.CongestionCheckRequest
-import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationProgress
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams.MitigationProgress
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.test.common.UnitSpec
@@ -79,7 +79,6 @@ class DCMAlgorithmSpec
           transformerCongestions = false,
         ),
         CongestedComponents.empty,
-        MitigationProgress(currentIteration = 1),
       )
 
       // this will return the idle behavior of the grid agent

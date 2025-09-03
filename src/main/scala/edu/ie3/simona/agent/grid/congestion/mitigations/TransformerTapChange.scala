@@ -87,7 +87,7 @@ trait TransformerTapChange {
       )
 
       // directly finish congestion management, since we don't have any steps
-      finishCongestionManagement(stateData, ctx)
+      GridAgent.doPowerFlow(stateData, ctx)
 
     case (ctx, msg) =>
       unsupported(msg, ctx.log)
@@ -124,7 +124,7 @@ trait TransformerTapChange {
       val nodesInSuperiorGrid =
         gridComponents.nodes.filter(_.subnet == subgrid).map(_.uuid)
       val transformers = gridComponents.transformers.filter(t =>
-        nodesInSuperiorGrid.contains(t.lvNodeUuid)
+        nodesInSuperiorGrid.contains(t.hvNodeUuid)
       )
       val transformers3w = gridComponents.transformers3w.filter { t =>
         t.powerFlowCase match {
@@ -197,7 +197,7 @@ trait TransformerTapChange {
   ): Behavior[GridAgent.Message] = {
     // if we are the superior grid to another grid, we check for transformer tapping option
     // and send the new delta to the inferior grid
-    ctx.log.debug(
+    ctx.log.warn(
       s"Grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, received delta: $delta"
     )
 

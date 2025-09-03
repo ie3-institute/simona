@@ -11,7 +11,7 @@ import edu.ie3.simona.agent.grid.congestion.data.{
   AwaitingData,
   CongestionManagementData,
 }
-import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationProgress
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams.MitigationProgress
 import edu.ie3.simona.agent.grid.congestion.mitigations.TappingMessages.{
   ReceivedVoltageRange,
   RequestVoltageOptions,
@@ -103,7 +103,6 @@ class TransformerTagChangeSpec
           transformerCongestions = false,
         ),
         CongestedComponents.empty,
-        MitigationProgress(),
       )
 
       // the map is empty, since the inferior grid itself has no inferior grids
@@ -148,7 +147,6 @@ class TransformerTagChangeSpec
           transformerCongestions = false,
         ),
         CongestedComponents.empty,
-        MitigationProgress(),
       )
 
       // the grid, that receives the request, is a center grid, which has to wait for its inferior data

@@ -18,10 +18,7 @@ import edu.ie3.simona.model.grid.{
   VoltageLimits,
 }
 import edu.ie3.util.quantities.QuantityUtils.asPu
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  CurrentToSimona,
-  DimensionlessToSimona,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import org.apache.pekko.actor.typed.ActorRef
 import tech.units.indriya.ComparableQuantity
 

@@ -7,10 +7,14 @@
 package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps
 
 /** Messages for the congestion management.
   */
 object CongestionManagementMessages {
+
+  final case class NextStep(step: MitigationSteps.Value)
+      extends GridAgent.InternalRequest
 
   /** Message that informs all actors that the current step is started.
     */

@@ -18,11 +18,10 @@ import edu.ie3.simona.agent.grid.congestion.data.{
   CongestionManagementData,
 }
 import edu.ie3.simona.agent.grid.congestion.detection.CongestionDetection
-import edu.ie3.simona.agent.grid.congestion.mitigations.{
-  MitigationSteps,
-  TransformerTapChange,
-}
+import edu.ie3.simona.agent.grid.congestion.mitigations.TransformerTapChange
+import edu.ie3.simona.agent.participant.ParticipantAgent.GridSimulationFinished
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
+import edu.ie3.simona.ontology.messages.Activation
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}
 
@@ -73,33 +72,37 @@ trait DCMAlgorithm extends CongestionDetection with TransformerTapChange {
     )
   }
 
-  private[grid] def doCongestionMitigation(
+  private[grid] def doPowerFlow(
       stateData: CongestionManagementData,
       ctx: ActorContext[Message],
   )(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Message],
   ): Behavior[Message] = {
-    // first we find an option for the next mitigation step
-    val (stepOption, updatedProgress) =
-      stateData.mitigationProgress.getNextStepsAndUpdate
+    val gridAgentBaseData = stateData.gridAgentBaseData
+    val tick = stateData.currentTick
 
-    // we update the state data with the updated progress
-    val updatedStateData = stateData.copy(mitigationProgress = updatedProgress)
-
-    stepOption match {
-      case Some(MitigationSteps.TransformerTapChange) =>
-        GridAgent.updateTransformerTapping(
-          updatedStateData,
-          AwaitingData(stateData.inferiorGridRefs.keySet),
-        )
-
-      case _ =>
-        // we have no more mitigation steps
-        // we finish the mitigation
-        finishCongestionManagement(updatedStateData, ctx)
+    // inform every system participant about a new simulation for the same tick
+    gridAgentBaseData.gridEnv.nodeToAssetAgents.values.foreach { actors =>
+      actors.foreach { actor =>
+        actor ! GridSimulationFinished(tick, tick)
+      }
     }
 
+    // / clean copy of the gridAgentBaseData
+    val cleanedGridAgentBaseData = GridAgentBaseData.clean(
+      gridAgentBaseData,
+      gridAgentBaseData.superiorGridNodeUuids,
+      gridAgentBaseData.inferiorGridGates,
+    )
+
+    ctx.self ! Activation(tick)
+
+    // do another power flow calculation
+    GridAgent.simulateGrid(
+      cleanedGridAgentBaseData,
+      tick,
+    )
   }
 
   /** Method for finishing the congestion management. This method will return to
@@ -134,7 +137,7 @@ trait DCMAlgorithm extends CongestionDetection with TransformerTapChange {
 
     // return to idle
     GridAgent.gotoIdle(
-      stateData.gridAgentBaseData,
+      stateData.resetProgress.gridAgentBaseData,
       stateData.currentTick + constantData.resolution,
       Some(powerFlowResults),
       ctx,

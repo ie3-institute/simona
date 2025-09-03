@@ -466,6 +466,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )
           buffer.stash(requestGridPower)
           Behaviors.same
+
+        case (msg, _) =>
+          ctx.log.warn("Msg '{}' received", msg)
+          Behaviors.same
       }
   }
 

@@ -9,7 +9,6 @@ package edu.ie3.simona.agent.grid.congestion.data
 import edu.ie3.datamodel.models.result.CongestionResult.InputModelType
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData
 import edu.ie3.simona.agent.grid.GridEnvironment
-import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationProgress
 import edu.ie3.simona.agent.grid.congestion.{CongestedComponents, Congestions}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.test.common.UnitSpec
@@ -64,7 +63,6 @@ class CongestionManagementDataSpec
           ),
           Iterable.empty,
         ),
-        MitigationProgress(currentIteration = 1),
       )
 
       val results = stateData

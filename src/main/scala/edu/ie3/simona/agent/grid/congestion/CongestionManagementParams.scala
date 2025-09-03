@@ -6,6 +6,10 @@
 
 package edu.ie3.simona.agent.grid.congestion
 
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams.MitigationProgress
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps.*
+
 import scala.concurrent.duration.FiniteDuration
 
 /** Holds all congestion management configuration parameters used in
@@ -25,8 +29,38 @@ final case class CongestionManagementParams(
     detectionEnabled: Boolean,
     enableTransformerTapChange: Boolean,
     timeout: FiniteDuration,
+    progress: MitigationProgress = MitigationProgress(),
 ) {
 
   def anyMitigationEnabled: Boolean = enableTransformerTapChange
 
+}
+
+object CongestionManagementParams {
+
+  case class MitigationProgress(
+      hasUsedTransformerTapChange: Boolean = false,
+      currentIteration: Int = 0,
+      maxNrOfOptimizationIterations: Int = 1,
+  ) {
+
+    def getNextStepsAndUpdate: (MitigationSteps.Value, MitigationProgress) = {
+
+      if hasUsedTransformerTapChange then {
+        // we reset the progress and return no next step
+        (NoMeasure, reset)
+      } else {
+        (
+          TransformerTapChange,
+          copy(hasUsedTransformerTapChange = true),
+        )
+      }
+    }
+
+    def reset: MitigationProgress = copy(
+      hasUsedTransformerTapChange = false,
+      currentIteration = 0,
+    )
+
+  }
 }
