@@ -41,7 +41,8 @@ import java.time.{ZoneId, ZonedDateTime}
 import java.util
 import java.util.{Optional, UUID}
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava, SetHasAsJava}
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 
 class WeatherSourceWrapperSpec extends UnitSpec {
 
@@ -356,53 +357,46 @@ object WeatherSourceWrapperSpec {
 
     override def getWeather(
         timeInterval: ClosedInterval[ZonedDateTime]
+    ): util.Map[Point, IndividualTimeSeries[WeatherValue]] =
+      getWeatherImpl(timeInterval, dummyValues)
+
+    override def getWeather(
+        timeInterval: ClosedInterval[ZonedDateTime],
+        coordinates: util.Collection[Point],
+    ): util.Map[Point, IndividualTimeSeries[WeatherValue]] =
+      getWeatherImpl(
+        timeInterval,
+        dummyValues
+          .filter { case (point, _) => coordinates.contains(point) },
+      )
+
+    private def getWeatherImpl(
+        timeInterval: ClosedInterval[ZonedDateTime],
+        weatherValues: Map[Point, WeatherValue],
     ): util.Map[Point, IndividualTimeSeries[WeatherValue]] = {
-      val ticks = LazyList
+      val dateTimes = LazyList
         .iterate(timeInterval.getLower)(_.plusHours(1))
         .takeWhile(_.isBefore(timeInterval.getUpper.plusHours(1)))
         .toList
-      dummyValues.map { case (point, data) =>
+      weatherValues.map { case (point, data) =>
         (
           point,
           new IndividualTimeSeries[WeatherValue](
             UUID.randomUUID(),
-            ticks.map(tick => new TimeBasedValue(tick, data)).toSet.asJava,
+            dateTimes.map(tick => new TimeBasedValue(tick, data)).toSet.asJava,
           ),
         )
       }.asJava
     }
 
     override def getWeather(
-        timeInterval: ClosedInterval[ZonedDateTime],
-        coordinates: util.Collection[Point],
-    ): util.Map[Point, IndividualTimeSeries[WeatherValue]] = {
-      val ticks = LazyList
-        .iterate(timeInterval.getLower)(_.plusHours(1))
-        .takeWhile(_.isBefore(timeInterval.getUpper.plusHours(1)))
-        .toList
-      dummyValues
-        .filter { case (point, _) => coordinates.contains(point) }
-        .map { case (point, data) =>
-          (
-            point,
-            new IndividualTimeSeries[WeatherValue](
-              UUID.randomUUID(),
-              ticks.map(tick => new TimeBasedValue(tick, data)).toSet.asJava,
-            ),
-          )
-        }
-        .asJava
-    }
-
-    override def getWeather(
         date: ZonedDateTime,
         coordinate: Point,
-    ): Optional[TimeBasedValue[WeatherValue]] = {
-      dummyValues.get(coordinate) match {
-        case Some(value) => Optional.of(new TimeBasedValue(date, value))
-        case None        => Optional.empty()
-      }
-    }
+    ): Optional[TimeBasedValue[WeatherValue]] =
+      dummyValues
+        .get(coordinate)
+        .map(value => new TimeBasedValue(date, value))
+        .toJava
   }
 
   /** Prepare test data for WeightSum-related tests
