@@ -32,9 +32,8 @@ import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroWPerSM
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  DimensionlessToSimona,
-  PowerConversionSimona,
-  RadiansConversionSimona,
+  toApparent,
+  toSquants,
 }
 import squants.*
 import squants.space.{Degrees, SquareMeters}

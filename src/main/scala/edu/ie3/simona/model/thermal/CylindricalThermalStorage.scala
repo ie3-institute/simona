@@ -18,12 +18,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  PowerConversionSimona,
-  TemperatureConversionSimona,
-  VolumeConversionSimona,
-  toSquants,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import squants.time.Seconds
 import squants.{Energy, Power}
 

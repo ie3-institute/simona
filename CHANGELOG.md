@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhance `Developer’s Guide` with information on steps for releasing a new version [#1450](https://github.com/ie3-institute/simona/issues/1450)
 - Enhancing config with more default value [#1413](https://github.com/ie3-institute/simona/issues/1413)
 - Updated Authors.md file [#1503](https://github.com/ie3-institute/simona/issues/1503)
+- Quantity to squants conversion in WeatherService [#1506](https://github.com/ie3-institute/simona/issues/1506)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
