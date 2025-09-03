@@ -46,8 +46,6 @@ object ExtResultEvent {
       resultProxy: ActorRef[RequestResult],
       connection: ExtResultDataConnection,
       extMessage: Option[ResultDataMessageFromExt] = None,
-      gridAssets: Seq[UUID],
-      flexAssets: Seq[UUID],
   )
 
   def listener(connection: ExtResultListener): Behavior[Message] =
@@ -68,14 +66,7 @@ object ExtResultEvent {
       scheduler: ActorRef[SchedulerMessage],
       resultProxy: ActorRef[RequestResult],
   ): Behavior[Message | DataMessageFromExt | Activation] = {
-    val stateData =
-      ProviderState(
-        scheduler,
-        resultProxy,
-        connection,
-        gridAssets = connection.getGridResultDataAssets.asScala.toSeq,
-        flexAssets = connection.getFlexOptionAssets.asScala.toSeq,
-      )
+    val stateData = ProviderState(scheduler, resultProxy, connection)
 
     provider(stateData)
   }
@@ -121,16 +112,7 @@ object ExtResultEvent {
 
         extMsg match {
           case requestResultEntities: RequestResultEntities =>
-            val requestedResults =
-              new util.ArrayList(requestResultEntities.requestedResults)
-
-            // TODO: flex result are currently not supported by the result provider
-            requestedResults.removeAll(stateData.flexAssets.asJava)
-
-            if requestResultEntities.tick == 0 then {
-              // removing the grid assets for tick 0, since SIMONA will produce no output
-              requestedResults.removeAll(stateData.gridAssets.asJava)
-            }
+            val requestedResults = new util.ArrayList(requestResultEntities.requestedResults)
 
             // request results from result proxy
             stateData.resultProxy ! RequestResult(
