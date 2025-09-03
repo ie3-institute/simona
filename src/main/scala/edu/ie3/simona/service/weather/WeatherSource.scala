@@ -46,6 +46,7 @@ import tech.units.indriya.unit.Units
 import java.nio.file.Paths
 import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Length}
+import scala.collection.SortedMap
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -200,8 +201,24 @@ trait WeatherSource {
   /** Get the weather data for the given tick as a weighted average taking into
     * account the given weighting of weather coordinates.
     *
+    * @param startTick
+    * @param endTick
+    * @param weightedCoordinates
+    *   The coordinate in question
+    * @return
+    *   Matching weather data
+    */
+  def getWeather(
+      startTick: Long,
+      endTick: Long,
+      weightedCoordinates: WeightedCoordinates,
+  ): SortedMap[ZonedDateTime, WeatherData]
+
+  /** Get the weather data for the given tick as a weighted average taking into
+    * account the given weighting of weather coordinates.
+    *
     * @param tick
-    *   Simulation date in question
+    *   Simulation tick in question
     * @param weightedCoordinates
     *   The coordinate in question
     * @return
@@ -210,7 +227,13 @@ trait WeatherSource {
   def getWeather(
       tick: Long,
       weightedCoordinates: WeightedCoordinates,
-  ): WeatherData
+  ): WeatherData = {
+    getWeather(tick, tick, weightedCoordinates).values.headOption.getOrElse(
+      throw new SourceException(
+        s"No weather data received for tick $tick."
+      )
+    )
+  }
 
   /** Get the weather data for the given tick and agent coordinates having a
     * weighted average of weather values.

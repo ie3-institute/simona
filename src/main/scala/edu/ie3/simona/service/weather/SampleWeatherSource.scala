@@ -9,6 +9,7 @@ package edu.ie3.simona.service.weather
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.geo.CoordinateDistance
@@ -26,6 +27,7 @@ import java.time.temporal.ChronoField.{HOUR_OF_DAY, MONTH_OF_YEAR, YEAR}
 import java.util
 import java.util.{Collections, Optional}
 import javax.measure.quantity.Length
+import scala.collection.SortedMap
 import scala.jdk.CollectionConverters.*
 
 final class SampleWeatherSource(
@@ -49,9 +51,16 @@ final class SampleWeatherSource(
     *   Matching weather data
     */
   override def getWeather(
-      tick: Long,
-      weightedCoordinates: WeatherSource.WeightedCoordinates,
-  ): WeatherData = getWeather(tick)
+      startTick: Long,
+      endTick: Long,
+      weightedCoordinates: WeightedCoordinates,
+  ): SortedMap[ZonedDateTime, WeatherData] =
+    Range.Long
+      .inclusive(startTick, endTick, resolution)
+      .map { tick =>
+        tick.toDateTime -> getWeather(tick)
+      }
+      .to(SortedMap)
 
   /** Get the weather data for the given tick and coordinate. Here, the weather
     * data is taken repeatedly from a store The coordinate is not considered at

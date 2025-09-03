@@ -22,9 +22,11 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.time.ZonedDateTime
 import java.util
 import java.util.Optional
 import javax.measure.quantity.Length
+import scala.collection.SortedMap
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success}
@@ -309,9 +311,10 @@ case object WeatherSourceSpec {
       *   Matching weather data
       */
     override def getWeather(
-        tick: Long,
+        startTick: Long,
+        endTick: Long,
         weightedCoordinates: WeightedCoordinates,
-    ): WeatherData =
+    ): SortedMap[ZonedDateTime, WeatherData] =
       throw new UnsupportedOperationException(
         "This is not supported by the dummy source."
       )
