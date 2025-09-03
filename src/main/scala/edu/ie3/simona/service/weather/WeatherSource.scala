@@ -34,6 +34,7 @@ import edu.ie3.simona.service.weather.WeatherSourceWrapper.buildPSDMSource
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.{Coordinate, Point}
 import squants.motion.MetersPerSecond
@@ -348,7 +349,7 @@ object WeatherSource {
   /** Represents an empty weather data object
     *
     * For temperature to represent an "empty" quantity, we need to explicitly
-    * set temperature to absolute zero, so 0°K. When temperature measures the
+    * set temperature to absolute zero, so 0 K. When temperature measures the
     * movement of atoms, absolute zero means no movement, which represents the
     * "empty" concept best.
     */
@@ -364,44 +365,20 @@ object WeatherSource {
   ): WeatherData = {
     WeatherData(
       weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala match {
-        case Some(irradiance) =>
-          WattsPerSquareMeter(
-            irradiance
-              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.diffIrr
+        case Some(irradiance) => irradiance.toSquants
+        case None             => EMPTY_WEATHER_DATA.diffIrr
       },
       weatherValue.getSolarIrradiance.getDirectIrradiance.toScala match {
-        case Some(irradiance) =>
-          WattsPerSquareMeter(
-            irradiance
-              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.dirIrr
+        case Some(irradiance) => irradiance.toSquants
+        case None             => EMPTY_WEATHER_DATA.dirIrr
       },
       weatherValue.getTemperature.getTemperature.toScala match {
-        case Some(temperature) =>
-          Kelvin(
-            temperature
-              .to(Units.KELVIN)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.temp
+        case Some(temperature) => temperature.toSquants
+        case None              => EMPTY_WEATHER_DATA.temp
       },
       weatherValue.getWind.getVelocity.toScala match {
-        case Some(windVel) =>
-          MetersPerSecond(
-            windVel
-              .to(Units.METRE_PER_SECOND)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.windVel
+        case Some(windVel) => windVel.toSquants
+        case None          => EMPTY_WEATHER_DATA.windVel
       },
     )
 
