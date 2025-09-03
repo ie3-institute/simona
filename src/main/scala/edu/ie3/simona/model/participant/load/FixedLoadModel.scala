@@ -18,8 +18,8 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  EnergyToSimona,
-  PowerConversionSimona,
+  toApparent,
+  toSquants,
 }
 import squants.Power
 import squants.time.Days
