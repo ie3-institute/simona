@@ -39,7 +39,7 @@ final case class TappingGroupModel(
       delta: ComparableQuantity[Dimensionless],
       refMap: Map[ActorRef[GridAgent.Message], VoltageRange],
       log: Logger,
-  ): ComparableQuantity[Dimensionless] = if (hasAutoTap) {
+  ): ComparableQuantity[Dimensionless] = if hasAutoTap then {
     // get all possible voltage ranges of the inferior grids
     val inferiorRanges = refs.map(refMap)
 
@@ -84,12 +84,12 @@ final case class TappingGroupModel(
     val noTapping = (tappings.map(t => t -> 0).toMap, 0.asPu)
     val suggestion = range.suggestion
 
-    if (suggestion.isEquivalentTo(0.asPu)) {
+    if suggestion.isEquivalentTo(0.asPu) then {
       return noTapping
     }
 
     // calculate a tap option for each transformer
-    if (tappings.forall(_.hasAutoTap)) {
+    if tappings.forall(_.hasAutoTap) then {
 
       // get all possible deltas
       val possibleDeltas = tappings
@@ -102,7 +102,7 @@ final case class TappingGroupModel(
         )
 
       // calculates a voltage change option
-      val deltaOption = if (possibleDeltas.exists(_.isEmpty)) {
+      val deltaOption = if possibleDeltas.exists(_.isEmpty) then {
         // there is a transformer that cannot be tapped
         None
       } else {
@@ -171,7 +171,7 @@ final case class TappingGroupModel(
               Math.abs(suggestion.subtract(max).getValue.doubleValue())
 
             // find the difference that is smaller
-            if (minDiff < maxDiff) {
+            if minDiff < maxDiff then {
               min
             } else max
 
@@ -195,7 +195,7 @@ final case class TappingGroupModel(
       possibleDeltas: Set[List[ComparableQuantity[Dimensionless]]],
   ): Seq[ComparableQuantity[Dimensionless]] = possibleDeltas.toSeq.flatMap {
     deltas =>
-      if (deltas.exists(_.isEquivalentTo(suggestion))) {
+      if deltas.exists(_.isEquivalentTo(suggestion)) then {
         List(suggestion)
       } else {
         val minOption =

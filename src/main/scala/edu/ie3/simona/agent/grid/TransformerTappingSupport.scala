@@ -26,7 +26,7 @@ object TransformerTappingSupport {
       ComparableQuantity[Dimensionless],
   ) = {
     // allow tapping only if all transformers support tapping
-    if (tappings.forall(_.hasAutoTap)) {
+    if tappings.forall(_.hasAutoTap) then {
 
       val tappingRanges = tappings.map { tapping =>
         val currentPos = tapping.currentTapPos
@@ -37,7 +37,7 @@ object TransformerTappingSupport {
         (increase, decrease)
       }.toSeq
 
-      if (tappings.size == 1) {
+      if tappings.size == 1 then {
         tappingRanges(0)
       } else {
         // check for possible increase and decrease that can be applied to all transformers

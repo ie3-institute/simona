@@ -106,7 +106,7 @@ trait TransformerTapping {
       tapSide: ConnectorPort = ConnectorPort.A,
       deadBand: Quantity[Dimensionless] = Quantities.getQuantity(0.75, PU),
   ): Int = {
-    if (isSameSide(tapSide)) {
+    if isSameSide(tapSide) then {
       transformerTappingModel.computeDeltaTap(vChangeRequest, deadBand)
     } else {
       transformerTappingModel.computeDeltaTap(
@@ -139,7 +139,7 @@ trait TransformerTapping {
     val range =
       Range.inclusive(minus, plus).map(deltaV.multiply(_).divide(100)).toList
 
-    val values = if (isSameSide(tapSide)) {
+    val values = if isSameSide(tapSide) then {
       range
     } else {
       range.map(_.multiply(-1)).sortBy(_.getValue.doubleValue())
@@ -194,7 +194,7 @@ trait TransformerTapping {
     val deltaV =
       transformerTappingModel.deltaV.to(PU).getValue.doubleValue() * taps
 
-    if (isSameSide(tapSide)) {
+    if isSameSide(tapSide) then {
       (taps, deltaV.asPu)
     } else {
       (taps, deltaV.asPu.multiply(-1))

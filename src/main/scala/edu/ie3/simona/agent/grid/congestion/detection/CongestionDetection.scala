@@ -157,7 +157,7 @@ trait CongestionDetection {
 
         val updatedStateData = stateData.copy(congestions = updatedCongestions)
 
-        if (stateData.congestionManagementParams.anyMitigationEnabled) {
+        if stateData.congestionManagementParams.anyMitigationEnabled then {
           // the mitigation is enabled
           // goto mitigation behavior
           GridAgent.doCongestionMitigation(updatedStateData, ctx)

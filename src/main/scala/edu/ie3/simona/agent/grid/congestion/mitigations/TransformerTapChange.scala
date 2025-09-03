@@ -107,7 +107,7 @@ trait TransformerTapChange {
     val subgrid = request.subgrid
 
     // check if waiting for inferior data is needed
-    if (awaitingData.notDone) {
+    if awaitingData.notDone then {
       ctx.log.debug(
         s"Received request for voltage range before all data from inferior grids were received. Stashing away."
       )
@@ -174,7 +174,7 @@ trait TransformerTapChange {
     // updating the state data with received data from inferior grids
     val updatedData = awaitingData.handleReceivingData(voltageRange)
 
-    if (stateData.gridAgentBaseData.isSuperior) {
+    if stateData.gridAgentBaseData.isSuperior then {
       // there should be no voltage change in the superior grid,
       // because the slack grid should always have 1 pu
 
@@ -201,7 +201,7 @@ trait TransformerTapChange {
       s"Grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, received delta: $delta"
     )
 
-    if (stateData.inferiorGridRefs.nonEmpty) {
+    if stateData.inferiorGridRefs.nonEmpty then {
       // we calculate a voltage delta for all inferior grids
       val receivedData = awaitingData.mappedValues
 

@@ -127,7 +127,7 @@ object VoltageRange {
     val plus = deltaPlus.getValue.doubleValue()
     val minus = deltaMinus.getValue.doubleValue()
 
-    val value = if (plus > minus) {
+    val value = if plus > minus then {
       // we could have a voltage violation of one limit
       (plus + minus) / 2
     } else {
@@ -148,14 +148,14 @@ object VoltageRange {
 
     val factor = 1e3
 
-    val suggestion = if (value < 0) {
+    val suggestion = if value < 0 then {
       (value * factor).floor / factor
     } else {
       (value * factor).ceil / factor
     }
 
     // check if tapping is required
-    if (plus < 0 || minus > 0) {
+    if plus < 0 || minus > 0 then {
       VoltageRange(
         deltaPlus,
         deltaMinus,
@@ -223,7 +223,7 @@ object VoltageRange {
     )
     val updatedRange = range.updateWithLineDelta(deltaV)
 
-    if (inferiorData.isEmpty) {
+    if inferiorData.isEmpty then {
       // if there are no inferior grids, return the voltage range
       updatedRange
     } else {
@@ -261,7 +261,7 @@ object VoltageRange {
 
         // calculate the voltage and the current change at the end of the line that sees the highest current
         val (voltage, deltaI) =
-          if (res.getiAMag().isGreaterThan(res.getiBMag())) {
+          if res.getiAMag().isGreaterThan(res.getiBMag()) then {
             (
               nodeResults(line.nodeAUuid).toSquants,
               line.iNom - res.getiAMag().toSquants,
