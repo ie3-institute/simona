@@ -88,6 +88,28 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
     }
 
+    "calculate the correct weighted value for 4 coordinates and three ticks with 0.25 weight each" in {
+      val weightedCoordinates = WeightedCoordinates(
+        Map(
+          coordinate1a -> 0.25,
+          coordinate1b -> 0.25,
+          coordinate1c -> 0.25,
+          coordinate13 -> 0.25,
+        )
+      )
+      val results = source.getWeather(0L, 7200L, weightedCoordinates)
+      val sumOfAll = 1 + 1 + 1 + 13
+      results.keys should contain allOf (
+        date, date.plusHours(1), date.plusHours(2)
+      )
+      results.foreach { case (_, result) =>
+        result.dirIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
+        result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
+        result.temp should approximate(Celsius(sumOfAll / 4))
+        result.windVel should approximate(MetersPerSecond(sumOfAll / 4))
+      }
+    }
+
     "Calculate the correct weighted value for 4 coordinates with 0.25 weight each, where a singular parameter value is missing" in {
       val weightedCoordinates = WeightedCoordinates(
         Map(
@@ -97,7 +119,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
           coordinate13NoTemp -> 0.25,
         )
       )
-      val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
+      val result = source.getWeather(0L, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1 + 13
       result.dirIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
       result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
@@ -114,7 +136,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
           coordinateEmpty -> 0.25,
         )
       )
-      val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
+      val result = source.getWeather(0L, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1
       result.dirIrr should approximate(WattsPerSquareMeter(sumOfAll / 3))
       result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 3))
@@ -125,7 +147,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
     "calculate the correct weighted value for 1 coordinate with a weight of 1" in {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate13 -> 1d))
-      val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
+      val result = source.getWeather(0L, weightedCoordinates)
       result.dirIrr should approximate(WattsPerSquareMeter(13d))
       result.diffIrr should approximate(WattsPerSquareMeter(13d))
       result.temp should approximate(Celsius(13d))
@@ -134,7 +156,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
     "return temperature quantity on absolute scale" in {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate1a -> 1))
-      val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
+      val result = source.getWeather(0L, weightedCoordinates)
       result.temp.unit shouldBe Kelvin
     }
 
