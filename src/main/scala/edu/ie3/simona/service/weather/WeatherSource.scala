@@ -198,11 +198,13 @@ trait WeatherSource {
     }
   }
 
-  /** Get the weather data for the given tick as a weighted average taking into
-    * account the given weighting of weather coordinates.
+  /** Get the weather data between (and including) given ticks as a weighted
+    * average taking into account the given weighting of weather coordinates.
     *
     * @param startTick
+    *   The first tick to retrieve weather for
     * @param endTick
+    *   The last tick to retrieve weather for
     * @param weightedCoordinates
     *   The coordinate in question
     * @return

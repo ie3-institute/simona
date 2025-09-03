@@ -185,16 +185,6 @@ private[weather] final case class WeatherSourceWrapper private (
         weightSum.scale(weatherData)
     }
 
-  /** Determine an Array with all ticks between the request frame's start and
-    * end on which new data is available
-    *
-    * @param requestFrameStart
-    *   Beginning of the announced request frame
-    * @param requestFrameEnd
-    *   End of the announced request frame
-    * @return
-    *   Array with data ticks
-    */
   override def getDataTicks(
       requestFrameStart: Long,
       requestFrameEnd: Long,

@@ -40,16 +40,6 @@ final class SampleWeatherSource(
   override val maxCoordinateDistance: ComparableQuantity[Length] =
     Quantities.getQuantity(50000d, Units.METRE)
 
-  /** Get the weather data for the given tick as a weighted average taking into
-    * account the given weighting of weather coordinates.
-    *
-    * @param tick
-    *   Simulation date in question
-    * @param weightedCoordinates
-    *   The coordinate in question
-    * @return
-    *   Matching weather data
-    */
   override def getWeather(
       startTick: Long,
       endTick: Long,
