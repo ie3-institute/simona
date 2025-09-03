@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated Authors.md file [#1503](https://github.com/ie3-institute/simona/issues/1503)
 - Quantity to squants conversion in WeatherService [#1506](https://github.com/ie3-institute/simona/issues/1506)
 - Considering primary data that start before simulation [#1034](https://github.com/ie3-institute/simona/issues/1034)
+- Implement time series retrieval for WeatherSource [#1511](https://github.com/ie3-institute/simona/issues/1511)
 - Introduce optimizing EM strategy [#1500](https://github.com/ie3-institute/simona/issues/1500)
 
 ### Changed

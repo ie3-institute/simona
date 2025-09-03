@@ -22,9 +22,11 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.time.ZonedDateTime
 import java.util
 import java.util.Optional
 import javax.measure.quantity.Length
+import scala.collection.SortedMap
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success}
@@ -298,35 +300,15 @@ case object WeatherSourceSpec {
     override protected val maxCoordinateDistance: ComparableQuantity[Length] =
       Quantities.getQuantity(400000, Units.METRE)
 
-    /** Get the weather data for the given tick as a weighted average taking
-      * into account the given weighting of weather coordinates.
-      *
-      * @param tick
-      *   Simulation date in question
-      * @param weightedCoordinates
-      *   The coordinate in question
-      * @return
-      *   Matching weather data
-      */
     override def getWeather(
-        tick: Long,
+        startTick: Long,
+        endTick: Long,
         weightedCoordinates: WeightedCoordinates,
-    ): WeatherData =
+    ): SortedMap[ZonedDateTime, WeatherData] =
       throw new UnsupportedOperationException(
         "This is not supported by the dummy source."
       )
 
-    /** Determine an Array with all ticks between the request frame's start and
-      * end on which new data is available. Bot the request frame's start and
-      * end are INCLUDED.
-      *
-      * @param requestFrameStart
-      *   Beginning of the announced request frame
-      * @param requestFrameEnd
-      *   End of the announced request frame
-      * @return
-      *   Array with data ticks
-      */
     override def getDataTicks(
         requestFrameStart: Long,
         requestFrameEnd: Long,
