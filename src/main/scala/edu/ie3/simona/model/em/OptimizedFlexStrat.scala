@@ -52,7 +52,7 @@ final case class OptimizedFlexStrat(
       currentTick: Long,
   ): Iterable[(UUID, Power)] = {
 
-    implicit val model: MPModel = MPModel(SolverLib.oJSolver)
+    given model: MPModel = MPModel(SolverLib.oJSolver)
 
     val sampleTicks = sampleTime.toSeconds.toLong
     val lastPredictedTick = currentTick + predictionHorizon.toSeconds.toLong
