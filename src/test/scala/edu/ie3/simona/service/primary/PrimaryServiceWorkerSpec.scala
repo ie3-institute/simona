@@ -407,24 +407,7 @@ class PrimaryServiceWorkerSpec
       )
     }
 
-    "should announce last data, if time step is not covered in source but previous data is available" in {
-
-      serviceRef ! Activation(200)
-
-      val completionMsg = scheduler.expectMessageType[Completion]
-      completionMsg.newTick shouldBe Some(900)
-
-      systemParticipant.expectMessage(
-        DataProvision(
-          200L,
-          serviceRef,
-          ActivePower(Kilowatts(1000)),
-          Some(900L),
-        )
-      )
-    }
-
-    "should announce something, if the time step is covered in source" in {
+    "should announce something" in {
       serviceRef ! Activation(900)
       val completionMsg = scheduler.expectMessageType[Completion]
       completionMsg.newTick shouldBe Some(1800)

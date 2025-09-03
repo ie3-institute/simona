@@ -375,7 +375,7 @@ object PrimaryServiceWorker extends SimonaService {
           tick,
           simulationTime,
         )
-        updateStateDataAndBuildTriggerMessages(serviceBaseStateData, tick)
+        updateStateDataAndBuildTriggerMessages(serviceBaseStateData)
     }
   }
 
@@ -384,35 +384,25 @@ object PrimaryServiceWorker extends SimonaService {
     *
     * @param baseStateData
     *   The base state data to update
-    * @param currentTick
-    *   The current tick for which data was provided.
     * @return
     *   Updated base state data and an option on a sequence of schedule trigger
     *   messages
     */
   private def updateStateDataAndBuildTriggerMessages[V <: Value](
-      baseStateData: PrimaryServiceInitializedStateData[V],
-      currentTick: Long,
+      baseStateData: PrimaryServiceInitializedStateData[V]
   ): (
       PrimaryServiceInitializedStateData[V],
       Option[Long],
   ) = {
-    val ticks = baseStateData.activationTicks
-
-    baseStateData.maybeNextActivationTick match {
-      case Some(nextTick) if nextTick > currentTick =>
-        (baseStateData, Some(nextTick))
-
-      case _ =>
-        val (maybeNextActivationTick, remainderActivationTicks) = ticks.pop
-        (
-          baseStateData.copy(
-            maybeNextActivationTick = maybeNextActivationTick,
-            activationTicks = remainderActivationTicks,
-          ),
-          maybeNextActivationTick,
-        )
-    }
+    val (maybeNextActivationTick, remainderActivationTicks) =
+      baseStateData.activationTicks.pop
+    (
+      baseStateData.copy(
+        maybeNextActivationTick = maybeNextActivationTick,
+        activationTicks = remainderActivationTicks,
+      ),
+      maybeNextActivationTick,
+    )
   }
 
   /** Process the information from source and announce it to subscribers
@@ -447,7 +437,7 @@ object PrimaryServiceWorker extends SimonaService {
           "\nException: {}",
         exception,
       )
-      updateStateDataAndBuildTriggerMessages(serviceBaseStateData, tick)
+      updateStateDataAndBuildTriggerMessages(serviceBaseStateData)
   }
 
   /** Announce the given primary data to all subscribers
@@ -471,7 +461,7 @@ object PrimaryServiceWorker extends SimonaService {
       Option[Long],
   ) = {
     val (updatedStateData, maybeNextTick) =
-      updateStateDataAndBuildTriggerMessages(serviceBaseStateData, tick)
+      updateStateDataAndBuildTriggerMessages(serviceBaseStateData)
 
     val provisionMessage = DataProvision(tick, self, primaryData, maybeNextTick)
     serviceBaseStateData.subscribers.foreach(_ ! provisionMessage)
