@@ -18,25 +18,22 @@ import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.{CsvDataSource, CsvIdCoordinateSource}
 import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.value.WeatherValue
-import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.config.ConfigParams.{
   BaseCsvParams,
   BaseSqlParams,
   SampleParams,
 }
+import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  AgentCoordinates,
-  WeightedCoordinates,
-}
+import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.buildPSDMSource
-import edu.ie3.simona.util.ParsableEnumeration
-import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
+import edu.ie3.simona.util.{Coordinate, ParsableEnumeration}
+import edu.ie3.util.geo.CoordinateDistance
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
-import org.locationtech.jts.geom.{Coordinate, Point}
+import org.locationtech.jts.geom.Point
 import squants.motion.MetersPerSecond
 import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
@@ -68,7 +65,7 @@ trait WeatherSource {
     *   their weighting
     */
   def getWeightedCoordinates(
-      coordinate: WeatherSource.AgentCoordinates,
+      coordinate: Coordinate,
       amountOfInterpolationCoords: Int,
   ): Try[WeatherSource.WeightedCoordinates] = {
     getNearestCoordinatesWithDistances(
@@ -100,7 +97,7 @@ trait WeatherSource {
     * @return
     */
   def getNearestCoordinatesWithDistances(
-      coordinate: WeatherSource.AgentCoordinates,
+      coordinate: Coordinate,
       amountOfInterpolationCoords: Int,
   ): Try[Iterable[CoordinateDistance]] = {
     val queryPoint = coordinate.toPoint
@@ -249,8 +246,8 @@ trait WeatherSource {
     */
   def getWeather(
       tick: Long,
-      agentToWeightedCoordinates: Map[AgentCoordinates, WeightedCoordinates],
-  ): Map[AgentCoordinates, WeatherData] = agentToWeightedCoordinates.map {
+      agentToWeightedCoordinates: Map[Coordinate, WeightedCoordinates],
+  ): Map[Coordinate, WeatherData] = agentToWeightedCoordinates.map {
     case (agentCoordinates, weightedCoordinates) =>
       agentCoordinates -> getWeather(tick, weightedCoordinates)
   }
@@ -407,19 +404,6 @@ object WeatherSource {
       },
     )
 
-  }
-
-  /** Weather package private case class to combine the provided agent
-    * coordinates into one single entity
-    */
-  private[weather] final case class AgentCoordinates(
-      latitude: Double,
-      longitude: Double,
-  ) {
-    def toPoint: Point =
-      GeoUtils.DEFAULT_GEOMETRY_FACTORY.createPoint(
-        new Coordinate(longitude, latitude)
-      )
   }
 
   /** Package private class to aid the averaging of weather values at

@@ -24,11 +24,8 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   SecondaryServiceRegistrationMessage,
   ServiceRegistrationMessage,
 }
-import edu.ie3.simona.service.weather.WeatherSource.{
-  AgentCoordinates,
-  WeightedCoordinates,
-}
-import edu.ie3.simona.util.SimonaConstants
+import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
+import edu.ie3.simona.util.{Coordinate, SimonaConstants}
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
@@ -48,11 +45,6 @@ object WeatherService extends SimonaService {
 
   override type S = WeatherInitializedStateData
 
-  final case class Coordinate(
-      latitude: Double,
-      longitude: Double,
-  )
-
   /** @param weatherSource
     *   weather source to receive information from
     * @param coordsToActorRefMap
@@ -68,11 +60,11 @@ object WeatherService extends SimonaService {
     */
   final case class WeatherInitializedStateData(
       weatherSource: WeatherSource,
-      coordsToActorRefMap: Map[AgentCoordinates, Vector[
+      coordsToActorRefMap: Map[Coordinate, Vector[
         ActorRef[ParticipantAgent.Request]
       ]] = Map.empty,
-      weightedWeatherCoordinates: Map[AgentCoordinates, WeightedCoordinates] =
-        Map.empty[AgentCoordinates, WeightedCoordinates],
+      weightedWeatherCoordinates: Map[Coordinate, WeightedCoordinates] =
+        Map.empty,
       maybeNextActivationTick: Option[Long],
       activationTicks: SortedDistinctSeq[Long] = SortedDistinctSeq.empty,
       amountOfInterpolationCoords: Int = 4,
@@ -150,13 +142,12 @@ object WeatherService extends SimonaService {
     registrationMessage match {
       case SecondaryServiceRegistrationMessage(
             agentToBeRegistered,
-            Coordinate(latitude, longitude),
+            coordinate: Coordinate,
           ) =>
         Success(
           handleRegistrationRequest(
             agentToBeRegistered,
-            latitude,
-            longitude,
+            coordinate,
           )
         )
       case invalidMessage =>
@@ -169,24 +160,21 @@ object WeatherService extends SimonaService {
     }
 
   /** Try to register the sending agent with its latitude and longitude values
-    * for weather provision
+    * for weather provision.
     *
     * @param agentToBeRegistered
-    *   the agent that wants to be registered
-    * @param latitude
-    *   the latitude of this agent
-    * @param longitude
-    *   the longitude of this agent
+    *   The agent that wants to be registered.
+    * @param coordinate
+    *   The coordinate of the agent to be registered.
     * @param serviceStateData
-    *   the current service state data of this service
+    *   The current service state data of this service.
     * @return
-    *   an updated state data of this service that contains registration
-    *   information if the registration has been carried out successfully
+    *   An updated state data of this service that contains registration
+    *   information if the registration has been carried out successfully.
     */
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ParticipantAgent.Request],
-      latitude: Double,
-      longitude: Double,
+      coordinate: Coordinate,
   )(using
       serviceStateData: WeatherInitializedStateData,
       ctx: ActorContext[Message],
@@ -194,25 +182,20 @@ object WeatherService extends SimonaService {
     ctx.log.debug(
       "Received weather registration from {} for [Lat:{}, Long:{}]",
       agentToBeRegistered.path.name,
-      latitude,
-      longitude,
+      coordinate.latitude,
+      coordinate.longitude,
     )
 
     // collate the provided coordinates into a single entity
-    val agentCoord = AgentCoordinates(
-      latitude,
-      longitude,
-    )
-
     val registrationResponse = serviceStateData.maybeNextActivationTick
       .map(RegistrationSuccessfulMessage(ctx.self, _))
       .getOrElse(RegistrationFailedMessage(ctx.self))
 
-    serviceStateData.coordsToActorRefMap.get(agentCoord) match {
+    serviceStateData.coordsToActorRefMap.get(coordinate) match {
       case None =>
         /* The coordinate itself is not known yet. Try to figure out, which weather coordinates are relevant */
         serviceStateData.weatherSource.getWeightedCoordinates(
-          agentCoord,
+          coordinate,
           serviceStateData.amountOfInterpolationCoords,
         ) match {
           case Success(weightedCoordinates) =>
@@ -222,15 +205,15 @@ object WeatherService extends SimonaService {
              * weather coordinates for later averaging. */
             serviceStateData.copy(
               coordsToActorRefMap =
-                serviceStateData.coordsToActorRefMap + (agentCoord -> Vector(
+                serviceStateData.coordsToActorRefMap + (coordinate -> Vector(
                   agentToBeRegistered
                 )),
               weightedWeatherCoordinates =
-                serviceStateData.weightedWeatherCoordinates + (agentCoord -> weightedCoordinates),
+                serviceStateData.weightedWeatherCoordinates + (coordinate -> weightedCoordinates),
             )
           case Failure(exception) =>
             ctx.log.error(
-              s"Unable to obtain necessary information to register for coordinate $agentCoord.",
+              s"Unable to obtain necessary information to register for coordinate $coordinate.",
               exception,
             )
             agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
@@ -243,7 +226,7 @@ object WeatherService extends SimonaService {
 
         serviceStateData.copy(
           coordsToActorRefMap =
-            serviceStateData.coordsToActorRefMap + (agentCoord -> (actorRefs :+ agentToBeRegistered))
+            serviceStateData.coordsToActorRefMap + (coordinate -> (actorRefs :+ agentToBeRegistered))
         )
 
       case Some(actorRefs) if actorRefs.contains(agentToBeRegistered) =>
