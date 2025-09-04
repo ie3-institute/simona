@@ -40,22 +40,24 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   toWeatherData,
 }
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
-import edu.ie3.simona.service.weather.{WeatherSource as SimonaWeatherSource}
+import edu.ie3.simona.service.weather.WeatherSource as SimonaWeatherSource
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.DoubleUtils.!~=
 import edu.ie3.util.interval.ClosedInterval
+import org.locationtech.jts.geom.Point
+import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
 
 import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import javax.measure.quantity.Length
+import scala.collection.SortedMap
 import scala.jdk.CollectionConverters.{
   CollectionHasAsScala,
   IterableHasAsJava,
   MapHasAsScala,
 }
-import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 /** This class provides an implementation of the SIMONA trait
@@ -82,58 +84,58 @@ private[weather] final case class WeatherSourceWrapper private (
 ) extends SimonaWeatherSource
     with LazyLogging {
 
-  /** Get the weather data for the given tick as a weighted average taking into
-    * account the given weighting of weather coordinates.
-    *
-    * @param tick
-    *   Simulation date in question
-    * @param weightedCoordinates
-    *   The coordinate in question
-    * @return
-    *   Matching weather data
-    */
   override def getWeather(
-      tick: Long,
+      startTick: Long,
+      endTick: Long,
       weightedCoordinates: WeatherSource.WeightedCoordinates,
-  ): WeatherData = {
-    val dateTime = tick.toDateTime
-    val interval = new ClosedInterval(dateTime, dateTime)
+  ): SortedMap[ZonedDateTime, WeatherData] = {
+    val interval = new ClosedInterval(startTick.toDateTime, endTick.toDateTime)
     val coordinates = weightedCoordinates.weighting.keys.toList.asJavaCollection
-    val results = source
+
+    source
       .getWeather(
         interval,
         coordinates,
       )
       .asScala
-      .toMap
-    val weatherDataMap = results.flatMap { case (point, timeSeries) =>
-      // change temperature scale for the upcoming calculations
-      timeSeries
-        .getValue(dateTime)
-        .toScala
-        .map(weatherValue => point -> toWeatherData(weatherValue))
-    }
-
-    weatherDataMap.foldLeft((EMPTY_WEATHER_DATA, WeightSum.EMPTY_WEIGHT_SUM)) {
-      case ((averagedWeather, currentWeightSum), (point, currentWeather)) =>
-        /** Calculate the contribution of a single coordinate value to the
-          * averaged weather information. If we got an empty quantity (which can
-          * be the case, as this particular value might be missing in the
-          * weather data), we do let it out and also return the "effective"
-          * weight of 0d.
-          */
-
-        /* Get pre-calculated weight for this coordinate */
+      .map { case (coordinate, timeSeries) =>
+        timeSeries.getEntries.asScala.map { weatherValue =>
+          (weatherValue.getTime, coordinate) -> weatherValue.getValue
+        }.toMap
+      }
+      .flatten
+      .groupMap { case ((time, _), _) =>
+        time
+      } { case ((_, location), weatherValue) =>
         val weight = weightedCoordinates.weighting.getOrElse(
-          point, {
-            logger.warn(s"Received an unexpected point: $point")
+          location, {
+            logger.warn(s"Received an unexpected point: $location")
             0d
           },
         )
-        /* Sum up weight and contributions */
+        val weatherData = toWeatherData(weatherValue)
+        (location, weatherData, weight)
+      }
+      .map { case (time, weather) =>
+        time -> spatialDataInterpolation(weather)
+      }
+      .to(SortedMap)
+  }
+
+  private def spatialDataInterpolation(
+      weatherData: Iterable[(Point, WeatherData, Double)]
+  ): WeatherData =
+    weatherData.foldLeft((EMPTY_WEATHER_DATA, WeightSum.EMPTY_WEIGHT_SUM)) {
+      case ((averagedWeather, weightSum), (point, weather, weight)) =>
+        /* Calculate the contribution of a single coordinate value to the
+         * averaged weather information. If we got an empty quantity (which can
+         * be the case, as this particular value might be missing in the
+         * weather data), we do let it out and also return the "effective"
+         * weight of 0d.
+         */
 
         /* Determine actual weights and contributions */
-        val (diffIrradiance, diffIrrWeight) = currentWeather.diffIrr match {
+        val (diffIrradiance, diffIrrWeight) = weather.diffIrr match {
           case EMPTY_WEATHER_DATA.diffIrr =>
             // Some data sets do not provide diffuse irradiance, so we do not
             // warn here
@@ -143,7 +145,7 @@ private[weather] final case class WeatherSourceWrapper private (
             (averagedWeather.diffIrr + nonEmptyDiffIrr * weight, weight)
         }
 
-        val (dirIrradience, dirIrrWeight) = currentWeather.dirIrr match {
+        val (dirIrradiance, dirIrrWeight) = weather.dirIrr match {
           case EMPTY_WEATHER_DATA.`dirIrr` =>
             logger.warn(s"Direct solar irradiance not available at $point.")
             (averagedWeather.dirIrr, 0d)
@@ -151,15 +153,17 @@ private[weather] final case class WeatherSourceWrapper private (
             (averagedWeather.dirIrr + nonEmptyDirIrr * weight, weight)
         }
 
-        val (temperature, tempWeight) = currentWeather.temp match {
+        val (temperature, tempWeight) = weather.temp match {
           case EMPTY_WEATHER_DATA.temp =>
             logger.warn(s"Temperature not available at $point.")
             (averagedWeather.temp, 0d)
           case nonEmptyTemp =>
-            (averagedWeather.temp + nonEmptyTemp * weight, weight)
+            // Important: squants temperature addition is bugged.
+            // Conversion to Kelvin necessary.
+            (averagedWeather.temp + nonEmptyTemp.in(Kelvin) * weight, weight)
         }
 
-        val (windVelocity, windVelWeight) = currentWeather.windVel match {
+        val (windVelocity, windVelWeight) = weather.windVel match {
           case EMPTY_WEATHER_DATA.windVel =>
             logger.warn(s"Wind velocity not available at $point.")
             (averagedWeather.windVel, 0d)
@@ -168,8 +172,8 @@ private[weather] final case class WeatherSourceWrapper private (
         }
 
         (
-          WeatherData(diffIrradiance, dirIrradience, temperature, windVelocity),
-          currentWeightSum.add(
+          WeatherData(diffIrradiance, dirIrradiance, temperature, windVelocity),
+          weightSum.add(
             diffIrrWeight,
             dirIrrWeight,
             tempWeight,
@@ -180,18 +184,7 @@ private[weather] final case class WeatherSourceWrapper private (
       case (weatherData: WeatherData, weightSum: WeightSum) =>
         weightSum.scale(weatherData)
     }
-  }
 
-  /** Determine an Array with all ticks between the request frame's start and
-    * end on which new data is available
-    *
-    * @param requestFrameStart
-    *   Beginning of the announced request frame
-    * @param requestFrameEnd
-    *   End of the announced request frame
-    * @return
-    *   Array with data ticks
-    */
   override def getDataTicks(
       requestFrameStart: Long,
       requestFrameEnd: Long,

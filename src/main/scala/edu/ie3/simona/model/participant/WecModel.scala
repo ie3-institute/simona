@@ -40,8 +40,8 @@ import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.Scope
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  AreaToSimona,
-  PowerConversionSimona,
+  toApparent,
+  toSquants,
 }
 import squants.*
 import squants.energy.Watts
