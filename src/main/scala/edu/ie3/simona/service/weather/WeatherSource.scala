@@ -239,15 +239,15 @@ trait WeatherSource {
     *
     * @param tick
     *   Simulation date in question
-    * @param agentToWeightedCoordinates
-    *   The coordinates in question
+    * @param coordinateWeights
+    *   The coordinates and respective weights in question
     * @return
     *   Matching weather data
     */
   def getWeather(
       tick: Long,
-      agentToWeightedCoordinates: Map[Coordinate, WeightedCoordinates],
-  ): Map[Coordinate, WeatherData] = agentToWeightedCoordinates.map {
+      coordinateWeights: Map[Coordinate, WeightedCoordinates],
+  ): Map[Coordinate, WeatherData] = coordinateWeights.map {
     case (agentCoordinates, weightedCoordinates) =>
       agentCoordinates -> getWeather(tick, weightedCoordinates)
   }
