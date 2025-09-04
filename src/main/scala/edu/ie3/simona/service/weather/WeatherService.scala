@@ -45,13 +45,22 @@ object WeatherService extends SimonaService {
 
   override type S = WeatherInitializedStateData
 
+  final case class WeatherRegistrationData(
+      coordinate: Coordinate,
+      dataType: WeatherDataType,
+  )
+
+  final case class CoordinateData(
+      registeredActors: Map[ActorRef[
+        ParticipantAgent.Request
+      ], WeatherDataType],
+      coordinateWeights: WeightedCoordinates,
+  )
+
   /** @param weatherSource
     *   weather source to receive information from
-    * @param coordsToActorRefMap
+    * @param coordinateDataMap
     *   mapping of the requested coords to their receiving actor references
-    * @param weightedWeatherCoordinates
-    *   Maps the requested agent coordinates onto the surrounding weather
-    *   coordinates, including their weighting
     * @param maybeNextActivationTick
     *   the next tick, when this actor is triggered by scheduler
     * @param activationTicks
@@ -60,11 +69,7 @@ object WeatherService extends SimonaService {
     */
   final case class WeatherInitializedStateData(
       weatherSource: WeatherSource,
-      coordsToActorRefMap: Map[Coordinate, Vector[
-        ActorRef[ParticipantAgent.Request]
-      ]] = Map.empty,
-      weightedWeatherCoordinates: Map[Coordinate, WeightedCoordinates] =
-        Map.empty,
+      coordinateDataMap: Map[Coordinate, CoordinateData] = Map.empty,
       maybeNextActivationTick: Option[Long],
       activationTicks: SortedDistinctSeq[Long] = SortedDistinctSeq.empty,
       amountOfInterpolationCoords: Int = 4,
@@ -142,12 +147,13 @@ object WeatherService extends SimonaService {
     registrationMessage match {
       case SecondaryServiceRegistrationMessage(
             agentToBeRegistered,
-            coordinate: Coordinate,
+            WeatherRegistrationData(coordinate, dataType),
           ) =>
         Success(
           handleRegistrationRequest(
             agentToBeRegistered,
             coordinate,
+            dataType,
           )
         )
       case invalidMessage =>
@@ -175,6 +181,7 @@ object WeatherService extends SimonaService {
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ParticipantAgent.Request],
       coordinate: Coordinate,
+      dataType: WeatherDataType,
   )(using
       serviceStateData: WeatherInitializedStateData,
       ctx: ActorContext[Message],
@@ -191,7 +198,7 @@ object WeatherService extends SimonaService {
       .map(RegistrationSuccessfulMessage(ctx.self, _))
       .getOrElse(RegistrationFailedMessage(ctx.self))
 
-    serviceStateData.coordsToActorRefMap.get(coordinate) match {
+    serviceStateData.coordinateDataMap.get(coordinate) match {
       case None =>
         /* The coordinate itself is not known yet. Try to figure out, which weather coordinates are relevant */
         serviceStateData.weatherSource.getWeightedCoordinates(
@@ -201,15 +208,16 @@ object WeatherService extends SimonaService {
           case Success(weightedCoordinates) =>
             agentToBeRegistered ! registrationResponse
 
+            val coordinateData = CoordinateData(
+              registeredActors = Map(agentToBeRegistered -> dataType),
+              coordinateWeights = weightedCoordinates,
+            )
+
             /* Enhance the mapping from agent coordinate to requesting actor's ActorRef as well as the necessary
              * weather coordinates for later averaging. */
             serviceStateData.copy(
-              coordsToActorRefMap =
-                serviceStateData.coordsToActorRefMap + (coordinate -> Vector(
-                  agentToBeRegistered
-                )),
-              weightedWeatherCoordinates =
-                serviceStateData.weightedWeatherCoordinates + (coordinate -> weightedCoordinates),
+              coordinateDataMap =
+                serviceStateData.coordinateDataMap + (coordinate -> coordinateData)
             )
           case Failure(exception) =>
             ctx.log.error(
@@ -220,27 +228,26 @@ object WeatherService extends SimonaService {
             serviceStateData
         }
 
-      case Some(actorRefs) if !actorRefs.contains(agentToBeRegistered) =>
+      case Some(coordinateData)
+          if !coordinateData.registeredActors.contains(agentToBeRegistered) =>
         // coordinate is already known (= we have data for it), but this actor is not registered yet
         agentToBeRegistered ! registrationResponse
 
-        serviceStateData.copy(
-          coordsToActorRefMap =
-            serviceStateData.coordsToActorRefMap + (coordinate -> (actorRefs :+ agentToBeRegistered))
+        val adaptedCoordinateData = coordinateData.copy(registeredActors =
+          coordinateData.registeredActors + (agentToBeRegistered -> dataType)
         )
 
-      case Some(actorRefs) if actorRefs.contains(agentToBeRegistered) =>
+        serviceStateData.copy(
+          coordinateDataMap =
+            serviceStateData.coordinateDataMap + (coordinate -> adaptedCoordinateData)
+        )
+
+      case Some(_) =>
         // actor is already registered, do nothing
         ctx.log.warn(
           "Sending actor {} is already registered",
           agentToBeRegistered,
         )
-        serviceStateData
-
-      case _ =>
-        // actor is not registered, and we don't have data for it
-        // inform the agentToBeRegistered that the registration failed as we don't have data for it
-        agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
         serviceStateData
     }
   }
@@ -270,24 +277,29 @@ object WeatherService extends SimonaService {
       (nextTick, serviceStateData.copy(activationTicks = remainderTicks))
     }
 
+    val coordinateWeights = updatedStateData.coordinateDataMap.map {
+      case (coordinate, CoordinateData(_, weights)) =>
+        coordinate -> weights
+    }
+
     // get the weather and send it to the subscribed agents
     // no sanity check needed here as we can assume that we always have weather available
     // when we announce it. Otherwise, the registration would have failed already!
     updatedStateData.weatherSource
-      .getWeather(tick, updatedStateData.weightedWeatherCoordinates)
+      .getWeather(tick, coordinateWeights)
       .foreach { case coordinate -> weatherResult =>
-        updatedStateData.coordsToActorRefMap
+        updatedStateData.coordinateDataMap
           .get(coordinate)
-          .foreach(recipients =>
-            recipients.foreach(
+          .foreach { case CoordinateData(actors, _) =>
+            actors.keys.foreach {
               _ ! DataProvision(
                 tick,
                 ctx.self,
                 weatherResult,
                 maybeNextTick,
               )
-            )
-          )
+            }
+          }
       }
 
     (

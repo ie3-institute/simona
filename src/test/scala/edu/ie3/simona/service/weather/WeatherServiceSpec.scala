@@ -26,7 +26,10 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
+import edu.ie3.simona.service.weather.WeatherService.{
+  InitWeatherServiceStateData,
+  WeatherRegistrationData,
+}
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -117,7 +120,10 @@ class WeatherServiceSpec
     "announce failed weather registration on invalid coordinate" in {
       weatherService ! SecondaryServiceRegistrationMessage(
         agent.ref,
-        Coordinate(invalidCoordinate.latitude, invalidCoordinate.longitude),
+        WeatherRegistrationData(
+          Coordinate(invalidCoordinate.latitude, invalidCoordinate.longitude),
+          WeatherDataType.Current,
+        ),
       )
 
       agent.expectMessage(RegistrationFailedMessage(weatherService))
@@ -127,7 +133,10 @@ class WeatherServiceSpec
       /* The successful registration stems from the test above */
       weatherService ! SecondaryServiceRegistrationMessage(
         agent.ref,
-        Coordinate(validCoordinate.latitude, validCoordinate.longitude),
+        WeatherRegistrationData(
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
+          WeatherDataType.Current,
+        ),
       )
 
       agent.expectMessage(
@@ -135,11 +144,14 @@ class WeatherServiceSpec
       )
     }
 
-    "recognize, that a valid coordinate yet is registered" in {
+    "recognize, that a valid coordinate is already registered" in {
       /* The successful registration stems from the test above */
       weatherService ! SecondaryServiceRegistrationMessage(
         agent.ref,
-        Coordinate(validCoordinate.latitude, validCoordinate.longitude),
+        WeatherRegistrationData(
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
+          WeatherDataType.Current,
+        ),
       )
 
       agent.expectNoMessage()
