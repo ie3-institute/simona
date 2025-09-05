@@ -13,7 +13,7 @@ trait WeatherDataType
 
 object WeatherDataType {
 
-  /** Weather data at the current point in simulation time
+  /** Weather data at the current point in simulation time.
     */
   case object Current extends WeatherDataType
 
@@ -22,13 +22,13 @@ object WeatherDataType {
     *
     * @param forecastLength
     *   The length of the forecast, i.e. the amount of time into future to
-    *   forecast. Should be a multiple of [[forecastInterval]].
-    * @param forecastInterval
-    *   The interval of forecasts.
+    *   forecast. Should be a multiple of [[forecastResolution]].
+    * @param forecastResolution
+    *   The resolution of forecast time steps.
     */
   final case class CurrentAndForecast(
       forecastLength: Time,
-      forecastInterval: Time = Hours(1),
+      forecastResolution: Time = Hours(1),
   ) extends WeatherDataType
 
 }
