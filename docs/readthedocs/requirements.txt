@@ -1,6 +1,6 @@
 Sphinx==8.2.3
 sphinx-rtd-theme==3.0.2
-sphinxcontrib-plantuml==0.30
+sphinxcontrib-plantuml==0.31
 myst-parser==4.0.1
 markdown-it-py==3.0.0
 sphinx-hoverxref==1.4.2
