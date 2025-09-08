@@ -7,11 +7,7 @@
 package edu.ie3.simona.sim.setup
 
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ExtInputDataConnection
-import edu.ie3.simona.api.data.em.ExtEmDataConnection
-import edu.ie3.simona.api.data.ev.ExtEvDataConnection
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
-import edu.ie3.simona.api.data.results.ExtResultDataConnection
+import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import org.apache.pekko.actor.typed.ActorRef
 
@@ -33,7 +29,7 @@ final case class ExtSimSetupData(
       (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
     ],
     extDataServices: Seq[
-      (? <: ExtInputDataConnection, ActorRef[ServiceMessage])
+      (? <: ExtInputDataConnection[?], ActorRef[ServiceMessage])
     ],
     extResultListeners: Seq[(ExtResultDataConnection, ActorRef[ServiceMessage])],
 ) {
@@ -47,7 +43,7 @@ final case class ExtSimSetupData(
     )
 
   private[setup] def update(
-      connection: ExtInputDataConnection,
+      connection: ExtInputDataConnection[?],
       ref: ActorRef[ServiceMessage],
   ): ExtSimSetupData = connection match {
     case primaryConnection: ExtPrimaryDataConnection =>

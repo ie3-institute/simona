@@ -6,11 +6,13 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.simona.api.data.ExtInputDataConnection
-import edu.ie3.simona.api.data.ev.ExtEvDataConnection
-import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
-import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
+import edu.ie3.simona.api.data.connection.{
+  ExtEvDataConnection,
+  ExtInputDataConnection,
+  ExtPrimaryDataConnection,
+}
+import edu.ie3.simona.api.ontology.DataMessageFromExt
+import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.exceptions.ServiceException
@@ -185,10 +187,7 @@ object ExtSimSetup {
     * @return
     *   The reference to the service.
     */
-  private[setup] def setupService[
-      C <: ExtInputDataConnection,
-      M,
-  ](
+  private[setup] def setupService[C <: ExtInputDataConnection[?]](
       extInputDataConnection: C,
       serviceRef: ActorRef[ServiceMessage | DataMessageFromExt],
       initData: C => InitializeServiceStateData,

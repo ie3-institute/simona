@@ -19,7 +19,7 @@ plugins {
 
 ext {
   // version (changing these should be considered thoroughly!)
-  javaVersion = JavaVersion.VERSION_17
+  javaVersion = JavaVersion.VERSION_21
 
   scalaVersion = '3'
   scalaBinaryVersion = '3.7.0'
@@ -94,7 +94,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.9.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.10-SNAPSHOT') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
