@@ -30,6 +30,7 @@ import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import scala.util.{Failure, Success, Try}
@@ -78,7 +79,7 @@ object LoadProfileService extends SimonaService {
 
   override def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(LoadProfileInitializedStateData, Option[Long])] =
+  )(using log: Logger): Try[(LoadProfileInitializedStateData, Option[Long])] =
     initServiceData match {
       case InitLoadProfileServiceStateData(
             dataSource,
@@ -157,7 +158,7 @@ object LoadProfileService extends SimonaService {
       case None =>
         /* The load profile itself is not known yet. Try to figure out, which load profile is relevant */
 
-        if (serviceStateData.loadProfileStore.contains(loadProfile)) {
+        if serviceStateData.loadProfileStore.contains(loadProfile) then {
           // we can provide data for the agent
           agentToBeRegistered ! RegistrationSuccessfulMessage(
             ctx.self,

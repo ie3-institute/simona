@@ -8,6 +8,7 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.DoubleUtils.~=
+
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.{
@@ -22,6 +23,7 @@ import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.{Amperes, Each, Radians, Temperature}
 import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.*
 import javax.measure.quantity.*

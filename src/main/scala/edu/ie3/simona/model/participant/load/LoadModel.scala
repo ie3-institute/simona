@@ -30,8 +30,8 @@ import edu.ie3.simona.service.Data.PrimaryData.{
 }
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  EnergyToSimona,
-  PowerConversionSimona,
+  toApparent,
+  toSquants,
 }
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.{Energy, Power}

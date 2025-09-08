@@ -27,7 +27,7 @@ import edu.ie3.simona.util.TestGridFactory
 import testutils.TestObjectFactory
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Contains a valid GridInputModel with the following structure
   *

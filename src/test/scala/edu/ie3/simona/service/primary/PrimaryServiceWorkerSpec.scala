@@ -21,11 +21,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
@@ -114,14 +110,16 @@ class PrimaryServiceWorkerSpec
       }
     }
 
-    "fail to init, if time series ends with delay before simulation start" in {
+    "fail to init, if time series has no data" in {
       val initData = validInitData.copy(
-        simulationStart = validInitData.simulationStart.plusHours(1)
+        timeSeriesUuid = uuidEmpty,
+        filePath = Paths.get("its_p_" + uuidEmpty),
+        simulationStart = validInitData.simulationStart.plusHours(1),
       )
 
       PrimaryServiceWorker.init(initData) match {
         case Failure(exception) =>
-          exception.getMessage shouldBe "No appropriate data found within simulation time range in timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5'!"
+          exception.getMessage shouldBe "No appropriate data found within simulation time range in timeseries 'b73a7e3f-9045-40cd-b518-c11a9a6a1025'!"
         case Success(_) =>
           fail("Initialisation with unsupported init data is meant to fail.")
       }
@@ -137,6 +135,34 @@ class PrimaryServiceWorkerSpec
           exception.getMessage shouldBe "The data for the timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5' starts after the start of this simulation (tick: 3600)! This is not allowed!"
         case Success(_) =>
           fail("Initialisation with unsupported init data is meant to fail.")
+      }
+    }
+
+    "init, if there is a value before the simulation start" in {
+      val initData = validInitData.copy(
+        simulationStart = validInitData.simulationStart.plusHours(1)
+      )
+
+      PrimaryServiceWorker.init(initData) match {
+        case Success((_, maybeNextTick)) =>
+          maybeNextTick shouldBe Some(0L)
+
+        case Failure(_) =>
+          fail("Initialisation with init data is meant to succeed.")
+      }
+    }
+
+    "init, if there are values before and after the simulation start" in {
+      val initData = validInitData.copy(
+        simulationStart = validInitData.simulationStart.plusMinutes(5)
+      )
+
+      PrimaryServiceWorker.init(initData) match {
+        case Success((_, maybeNextTick)) =>
+          maybeNextTick shouldBe Some(0L)
+
+        case Failure(_) =>
+          fail("Initialisation with init data is meant to succeed.")
       }
     }
 
@@ -381,20 +407,10 @@ class PrimaryServiceWorkerSpec
       )
     }
 
-    "should not announce anything, if time step is not covered in source" in {
-
-      serviceRef ! Activation(200)
-
-      val completionMsg = scheduler.expectMessageType[Completion]
-      completionMsg.newTick shouldBe Some(1800)
-
-      systemParticipant.expectNoMessage()
-    }
-
-    "should announce something, if the time step is covered in source" in {
+    "should announce something" in {
       serviceRef ! Activation(900)
       val completionMsg = scheduler.expectMessageType[Completion]
-      completionMsg.newTick shouldBe None
+      completionMsg.newTick shouldBe Some(1800)
 
       inside(
         systemParticipant.expectMessageType[DataProvision[PrimaryData]]
@@ -412,7 +428,7 @@ class PrimaryServiceWorkerSpec
               p should approximate(Kilowatts(1250.0))
             case _ => fail("Expected to get active power only.")
           }
-          nextDataTick shouldBe None
+          nextDataTick shouldBe Some(1800)
       }
     }
   }

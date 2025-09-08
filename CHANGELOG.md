@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `LoadProfileService` to `ParticipantRefs` in `LoadProfileService` [#1418](https://github.com/ie3-institute/simona/issues/1418)
 - Enhance `Developer’s Guide` with information on steps for releasing a new version [#1450](https://github.com/ie3-institute/simona/issues/1450)
 - Enhancing config with more default value [#1413](https://github.com/ie3-institute/simona/issues/1413)
+- Updated Authors.md file [#1503](https://github.com/ie3-institute/simona/issues/1503)
+- Quantity to squants conversion in WeatherService [#1506](https://github.com/ie3-institute/simona/issues/1506)
+- Considering primary data that start before simulation [#1034](https://github.com/ie3-institute/simona/issues/1034)
+- Implement time series retrieval for WeatherSource [#1511](https://github.com/ie3-institute/simona/issues/1511)
 - Enhancing `QuantityConversionUtilsSpec` with more tests [#1400](https://github.com/ie3-institute/simona/issues/1400)
 
 ### Changed
@@ -36,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename 'thermalStorage' to 'heatStorage' [#1475](https://github.com/ie3-institute/simona/issues/1475)
 - Simplify flex option result configuration [#1111](https://github.com/ie3-institute/simona/issues/1111)
 - Harmonisation of `TestInputData` for `Transformer` [#163](https://github.com/ie3-institute/simona/issues/163)
+- Refactored method to determine next Threshold within `ThermalGrid` [#1477](https://github.com/ie3-institute/simona/issues/1477)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -48,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed crash when using load model with `profile` behaviour and primary data [#1436](https://github.com/ie3-institute/simona/issues/1436)
 - Fixed CFF-Version [#1464](https://github.com/ie3-institute/simona/issues/1464)
 - Fixed handleInput of `ProfileLoadModel` [#1441](https://github.com/ie3-institute/simona/issues/1441)
+- Fixed compiler warnings related to import and scala3 syntax [#1383](https://github.com/ie3-institute/simona/issues/1383)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
