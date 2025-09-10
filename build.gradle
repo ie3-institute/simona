@@ -6,6 +6,7 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'com.diffplug.spotless' version '7.2.1' // code format
+  id 'io.github.cosmicsilence.scalafix' version '0.2.4'
   id "com.github.ben-manes.versions" version '0.52.0'
   id "de.undercouch.download" version "5.6.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
@@ -146,8 +147,7 @@ dependencies {
   implementation "org.locationtech.jts.io:jts-io-common:${jtsVersion}"
 
   /* Scala compiler plugin for static code analysis */
-  implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
-  scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
+  scalafix "io.github.dedis:scapegoat-scalafix_${scalaVersion}:1.1.4"
 
   /* Kafka */
   implementation "org.apache.kafka:kafka-clients:${confluentKafkaVersion}-ccs"
@@ -202,11 +202,7 @@ shadowJar {
 // using compileScala instead of tasks.withType(ScalaCompile) prevents applying scapegoat to scala test classes
 // see https://docs.gradle.org/current/userguide/scala_plugin.html#sec:configure_scala_classpath for details
 tasks.withType(ScalaCompile).configureEach {
-  scalaCompileOptions.additionalParameters = scala3compilerOptions + [
-    "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-    "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/src/",
-    "-P:scapegoat:disabledInspections:TryGet"
-  ]
+  scalaCompileOptions.additionalParameters = scala3compilerOptions
   scalaCompileOptions.forkOptions.jvmArgs = [
     '-Xss2m',
     '-XX:-UseGCOverheadLimit'
@@ -215,11 +211,7 @@ tasks.withType(ScalaCompile).configureEach {
 
 // separate scapegoat report for test classes
 compileTestScala {
-  scalaCompileOptions.additionalParameters = scala3compilerOptions + [
-    "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-    "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/",
-    "-P:scapegoat:disabledInspections:TryGet"
-  ]
+  scalaCompileOptions.additionalParameters = scala3compilerOptions
 }
 
 tasks.register("printVersion") {

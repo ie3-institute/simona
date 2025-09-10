@@ -1,0 +1,6 @@
+scalafix {
+  configFile = file(".scalafix.conf")
+  includes = ["/edu/**/*.scala"]
+  excludes = ["**/generated/**"]
+  ignoreSourceSets = ["scoverage"]
+}

@@ -67,7 +67,7 @@ jobs:
         run: bash scripts/run-version-check.sh
 
       - name: Build Project
-        run: ./gradlew --refresh-dependencies clean assemble spotlessCheck
+        run: ./gradlew --refresh-dependencies clean assemble spotlessCheck scalafix
 
       - name: Run Tests
         run: ./gradlew test reportScoverage checkScoverage

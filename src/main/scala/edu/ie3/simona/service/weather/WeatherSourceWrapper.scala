@@ -139,7 +139,7 @@ private[weather] final case class WeatherSourceWrapper private (
           case EMPTY_WEATHER_DATA.diffIrr =>
             // Some data sets do not provide diffuse irradiance, so we do not
             // warn here
-            logger.debug("Diffuse solar irradiance not available at $point.")
+            logger.debug(s"Diffuse solar irradiance not available at $point.")
             (averagedWeather.diffIrr, 0d)
           case nonEmptyDiffIrr =>
             (averagedWeather.diffIrr + nonEmptyDiffIrr * weight, weight)
