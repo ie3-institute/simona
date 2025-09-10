@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quantity to squants conversion in WeatherService [#1506](https://github.com/ie3-institute/simona/issues/1506)
 - Considering primary data that start before simulation [#1034](https://github.com/ie3-institute/simona/issues/1034)
 - Implement time series retrieval for WeatherSource [#1511](https://github.com/ie3-institute/simona/issues/1511)
+- Implement weather forecast provision by WeatherService [#1512](https://github.com/ie3-institute/simona/issues/1512)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
@@ -40,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplify flex option result configuration [#1111](https://github.com/ie3-institute/simona/issues/1111)
 - Harmonisation of `TestInputData` for `Transformer` [#163](https://github.com/ie3-institute/simona/issues/163)
 - Refactored method to determine next Threshold within `ThermalGrid` [#1477](https://github.com/ie3-institute/simona/issues/1477)
+- Unify coordinate class [#1516](https://github.com/ie3-institute/simona/issues/1516)
+- Remove type parameters from data and message classes [#1524](https://github.com/ie3-institute/simona/issues/1524)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

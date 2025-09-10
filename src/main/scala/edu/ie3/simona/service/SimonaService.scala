@@ -45,7 +45,7 @@ abstract class SimonaService {
     */
   type Message >: ServiceMessage | Activation
 
-  /** The service specific type of the [[ServiceStateData]]
+  /** The service specific type of the [[ServiceStateData]].
     */
   type S <: ServiceBaseStateData
 
@@ -61,7 +61,7 @@ abstract class SimonaService {
     * the state "Uninitialized".
     *
     * @return
-    *   IdleInternal methods for the uninitialized state
+    *   IdleInternal methods for the uninitialized state.
     */
   def uninitialized(using
       scheduler: ActorRef[SchedulerMessage],
@@ -140,9 +140,9 @@ abstract class SimonaService {
     * actual state data of this service to be ready to be used.
     *
     * @param stateData
-    *   The state data of this service
+    *   The state data of this service.
     * @return
-    *   Default idleInternal method when the service is initialized
+    *   Default idleInternal method when the service is initialized.
     */
   final protected def idle(using
       stateData: S,
@@ -220,29 +220,29 @@ abstract class SimonaService {
     * the initialized service and b) optional triggers that should be sent to
     * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
     * message that is sent in response to the trigger that is sent to start the
-    * initialization process
+    * initialization process.
     *
     * @param initServiceData
-    *   The data that should be used for initialization
+    *   The data that should be used for initialization.
     * @param log
     *   The logger for logging.
     * @return
     *   The state data of this service and optional tick that should be included
-    *   in the completion message
+    *   in the completion message.
     */
   def init(
       initServiceData: InitializeServiceStateData
   )(using log: Logger): Try[(S, Option[Long])]
 
-  /** Handle a request to register for information from this service
+  /** Handle a request to register for information from this service.
     *
     * @param registrationMessage
-    *   Registration message to handle
+    *   Registration message to handle.
     * @param serviceStateData
-    *   Current state data of the actor
+    *   Current state data of the actor.
     * @return
     *   The service stata data that should be used in the next state (normally
-    *   with updated values)
+    *   with updated values).
     */
   protected def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
@@ -251,16 +251,17 @@ abstract class SimonaService {
       ctx: ActorContext[Message],
   ): Try[S]
 
-  /** Send out the information to all registered recipients
+  /** Send out the information to all registered recipients.
     *
     * @param tick
-    *   Current tick data should be announced for
+    *   The current tick.
     * @param serviceStateData
-    *   The current state data of this service
+    *   The current state data of this service.
     * @return
     *   The service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is sent
-    *   in response to the trigger that was sent to start this announcement
+    *   with updated values) together with an optional next activation tick that
+    *   is used in response to the trigger that was sent to start this
+    *   announcement.
     */
   protected def announceInformation(tick: Long)(using
       serviceStateData: S,
