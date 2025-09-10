@@ -31,10 +31,10 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   PrimaryServiceInitializedStateData,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
-import edu.ie3.simona.service.weather.WeatherService.Coordinate
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.matchers.SquantsMatchers
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
