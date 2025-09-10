@@ -239,7 +239,7 @@ trait WeatherSource {
     * @param tick
     *   Simulation date in question.
     * @param coordinateWeights
-    *   The coordinates and respective weights in question
+    *   The coordinates and respective weights in question.
     * @return
     *   Matching weather data.
     */
