@@ -23,7 +23,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
@@ -273,7 +272,7 @@ class PrimaryServiceWorkerSpec
        * provide data to all subscribed actors and check, if the subscribed probe gets one */
       serviceRef ! Activation(0)
       scheduler.expectMessageType[Completion]
-      systemParticipant.expectMessageType[DataProvision[PrimaryData]]
+      systemParticipant.expectMessageType[DataProvision]
     }
 
     /* At this point, the test (self) is registered with the service */
@@ -323,7 +322,7 @@ class PrimaryServiceWorkerSpec
           maybeNextTick shouldBe Some(900L)
       }
       /* Check, if correct message is sent */
-      systemParticipant.expectMessageType[DataProvision[PrimaryData]] match {
+      systemParticipant.expectMessageType[DataProvision] match {
         case DataProvision(
               actualTick,
               actualServiceRef,
@@ -413,7 +412,7 @@ class PrimaryServiceWorkerSpec
       completionMsg.newTick shouldBe Some(1800)
 
       inside(
-        systemParticipant.expectMessageType[DataProvision[PrimaryData]]
+        systemParticipant.expectMessageType[DataProvision]
       ) {
         case DataProvision(
               tick,

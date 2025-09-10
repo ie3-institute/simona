@@ -635,15 +635,13 @@ class ExtEvDataServiceSpec
       // we trigger ev service
       evService ! Activation(0L)
 
-      val evsMessage1 =
-        evcs1.expectMessageType[DataProvision[ArrivingEvs]]
+      val evsMessage1 = evcs1.expectMessageType[DataProvision]
       evsMessage1.tick shouldBe 0L
       evsMessage1.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evA))
       )
 
-      val evsMessage2 =
-        evcs2.expectMessageType[DataProvision[ArrivingEvs]]
+      val evsMessage2 = evcs2.expectMessageType[DataProvision]
       evsMessage2.tick shouldBe 0L
       evsMessage2.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evB))
@@ -714,8 +712,7 @@ class ExtEvDataServiceSpec
       // we trigger ev service
       evService ! Activation(0L)
 
-      val evsMessage1 =
-        evcs1.expectMessageType[DataProvision[ArrivingEvs]]
+      val evsMessage1 = evcs1.expectMessageType[DataProvision]
       evsMessage1.tick shouldBe 0L
       evsMessage1.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evA))
