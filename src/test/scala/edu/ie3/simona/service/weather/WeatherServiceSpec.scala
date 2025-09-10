@@ -26,12 +26,9 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.weather.WeatherService.{
-  Coordinate,
-  InitWeatherServiceStateData,
-}
-import edu.ie3.simona.service.weather.WeatherSource.AgentCoordinates
+import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
@@ -77,10 +74,8 @@ class WeatherServiceSpec
   override protected val simonaConfig: SimonaConfig = SimonaConfig(config)
 
   // setup values
-  private val invalidCoordinate: AgentCoordinates =
-    AgentCoordinates(180.5, 90.5)
-  private val validCoordinate: AgentCoordinates =
-    AgentCoordinates(52.02083574, 7.40110716)
+  private val invalidCoordinate: Coordinate = Coordinate(180.5, 90.5)
+  private val validCoordinate: Coordinate = Coordinate(52.02083574, 7.40110716)
 
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
 
