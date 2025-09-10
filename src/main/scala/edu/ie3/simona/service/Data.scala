@@ -23,8 +23,8 @@ import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 /** Trait to describe data structures, that are provided from the outside of a
-  * [[edu.ie3.simona.model.participant.SystemParticipant]] model but not
-  * necessarily from the outside of the simulation (but could be).
+  * [[edu.ie3.simona.model.participant.ParticipantModel]] but not necessarily
+  * from the outside of the simulation (but could be).
   */
 sealed trait Data
 
