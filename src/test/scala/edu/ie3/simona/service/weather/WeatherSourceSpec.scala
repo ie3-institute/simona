@@ -24,7 +24,7 @@ import java.time.ZonedDateTime
 import java.util
 import java.util.Optional
 import javax.measure.quantity.Length
-import scala.collection.SortedMap
+import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success}

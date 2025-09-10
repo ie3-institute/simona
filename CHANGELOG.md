@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quantity to squants conversion in WeatherService [#1506](https://github.com/ie3-institute/simona/issues/1506)
 - Considering primary data that start before simulation [#1034](https://github.com/ie3-institute/simona/issues/1034)
 - Implement time series retrieval for WeatherSource [#1511](https://github.com/ie3-institute/simona/issues/1511)
+- Implement weather forecast provision by WeatherService [#1512](https://github.com/ie3-institute/simona/issues/1512)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)

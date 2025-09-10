@@ -43,7 +43,7 @@ import tech.units.indriya.unit.Units
 import java.nio.file.Paths
 import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Length}
-import scala.collection.SortedMap
+import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -239,7 +239,7 @@ trait WeatherSource {
     * @param tick
     *   Simulation date in question.
     * @param coordinateWeights
-    *   The coordinates and respective weights in question
+    *   The coordinates and respective weights in question.
     * @return
     *   Matching weather data.
     */
