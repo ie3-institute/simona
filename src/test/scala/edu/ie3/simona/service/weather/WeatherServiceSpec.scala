@@ -48,6 +48,8 @@ import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 import squants.time.Hours
 
+import java.time.ZonedDateTime
+import scala.collection.immutable.SortedMap
 import scala.language.implicitConversions
 
 class WeatherServiceSpec
@@ -238,6 +240,55 @@ class WeatherServiceSpec
           None,
         )
       )
+    }
+
+    "reduce time series resolution according to a given interval" when {
+
+      val startTime = ZonedDateTime.parse("2011-01-01T00:00:00Z")
+
+      val timeSeries = SortedMap(
+        startTime -> 1,
+        startTime.plusHours(1) -> 2,
+        startTime.plusHours(2) -> 3,
+        startTime.plusHours(3) -> 4,
+      )
+
+      "interval is finer than data resolution" in {
+        WeatherService.reduceTimeSeriesResolution(
+          timeSeries = timeSeries,
+          resolution = Hours(0.5),
+        ) should equal(timeSeries)
+
+        WeatherService.reduceTimeSeriesResolution(
+          timeSeries = timeSeries,
+          resolution = Hours(0.75),
+        ) should equal(timeSeries)
+      }
+
+      "interval matches data resolution" in {
+        WeatherService.reduceTimeSeriesResolution(
+          timeSeries = timeSeries,
+          resolution = Hours(1),
+        ) should equal(timeSeries)
+      }
+
+      "interval is more coarse than data resolution" in {
+        val expectedResult = SortedMap(
+          startTime -> 1,
+          startTime.plusHours(2) -> 3,
+        )
+
+        WeatherService.reduceTimeSeriesResolution(
+          timeSeries = timeSeries,
+          resolution = Hours(1.5),
+        ) should equal(expectedResult)
+
+        WeatherService.reduceTimeSeriesResolution(
+          timeSeries = timeSeries,
+          resolution = Hours(2),
+        ) should equal(expectedResult)
+      }
+
     }
   }
 }

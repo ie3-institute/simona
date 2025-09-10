@@ -52,7 +52,7 @@ import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import javax.measure.quantity.Length
-import scala.collection.SortedMap
+import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters.{
   CollectionHasAsScala,
   IterableHasAsJava,

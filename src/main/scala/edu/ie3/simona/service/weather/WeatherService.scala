@@ -15,25 +15,27 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
 import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
-import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   SecondaryServiceRegistrationMessage,
   ServiceRegistrationMessage,
 }
 import edu.ie3.simona.service.Data.SecondaryData.WeatherSeriesData
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceBaseStateData,
+}
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
-import edu.ie3.simona.util.{Coordinate, SimonaConstants}
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
+import edu.ie3.simona.util.{Coordinate, SimonaConstants}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
+import squants.Time
 
 import java.time.ZonedDateTime
+import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success, Try}
 
 /** Weather Service is responsible to register other actors that require weather
@@ -83,6 +85,8 @@ object WeatherService extends SimonaService {
     * @param activationTicks
     *   A sorted set of ticks, that yet have been sent to the scheduler (w\o
     *   next tick).
+    * @param amountOfInterpolationCoords
+    *   The amount of coordinates to be interpolated for any agent coordinate.
     */
   final case class WeatherBaseStateData(
       weatherSource: WeatherSource,
@@ -293,7 +297,7 @@ object WeatherService extends SimonaService {
               endTick,
               coordinateWeights,
             )
-            WeatherSeriesData(series)
+            WeatherSeriesData(reduceTimeSeriesResolution(series, interval))
         }
 
         actors.foreach {
@@ -311,6 +315,38 @@ object WeatherService extends SimonaService {
       updatedStateData,
       maybeNextTick,
     )
+  }
+
+  /** Reduces the resolution of given time series to at least given resolution
+    * by removing elements from the time series.
+    *
+    * @param timeSeries
+    *   The time series to adapt.
+    * @param resolution
+    *   The time resolution to aim for.
+    * @tparam T
+    *   The type of time series data.
+    * @return
+    *   The adapted time series.
+    */
+  def reduceTimeSeriesResolution[T](
+      timeSeries: SortedMap[ZonedDateTime, T],
+      resolution: Time,
+  ): SortedMap[ZonedDateTime, T] = {
+    val resolutionSeconds = resolution.toSeconds.toLong
+
+    timeSeries.foldLeft(timeSeries) { case (result, (it, _)) =>
+      result.maxBefore(it) match {
+        case Some((last, _)) =>
+          if last.plusSeconds(resolutionSeconds).isAfter(it) then
+            // interval from last to current key is too short
+            result.removed(it)
+          else result
+        case None =>
+          // no data before the current key, keep it
+          result
+      }
+    }
   }
 
 }
