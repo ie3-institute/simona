@@ -8,17 +8,16 @@ package edu.ie3.simona.sim.setup
 
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
+import edu.ie3.datamodel.models.input.container.{JointGridContainer, ThermalGrid}
+import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent.ResultResponse
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.ontology.messages.{
-  RequestResult,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.io.grid.GridProvider
+import edu.ie3.simona.ontology.messages.{RequestResult, SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
@@ -49,6 +48,19 @@ trait SimonaSetup {
     */
   val args: Array[String]
 
+  /**
+   * The electrical grid.
+   */
+  lazy val grid: JointGridContainer = GridProvider.gridFromConfig(
+    simonaConfig.simona.simulationName,
+    simonaConfig.simona.input.grid.datasource,
+  )
+
+  /**
+   * Map: thermal bus to thermal grid.
+   */
+  lazy val thermalGridsByThermalBus: Map[ThermalBusInput, ThermalGrid] = GridProvider.getThermalGridsFromConfig(simonaConfig.simona.input.grid.datasource)
+  
   /** Directory of the log output.
     */
   def logOutputDir: Path
