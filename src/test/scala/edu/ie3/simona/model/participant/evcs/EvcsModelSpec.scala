@@ -287,7 +287,7 @@ class EvcsModelSpec
           )
 
           val expectedResults = Iterable(ev1Res, ev2Res, evcsRes).map {
-            if (_) 1 else 0
+            if _ then 1 else 0
           }.sum
 
           results should have size expectedResults

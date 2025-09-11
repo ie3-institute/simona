@@ -22,7 +22,7 @@ import edu.ie3.datamodel.utils.validation.ValidationUtils
 import edu.ie3.simona.config.InputConfig
 
 import java.nio.file.Path
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Takes [[InputConfig.GridDatasource]] as input and provides a
   * [[JointGridContainer]] based on the configuration incl. necessary sanity

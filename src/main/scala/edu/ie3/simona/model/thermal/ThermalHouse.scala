@@ -8,7 +8,6 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.TemperatureConversionSimona
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
@@ -24,14 +23,14 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   temperatureTolerance,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
-import squants.thermal.{Celsius, Kelvin, ThermalCapacity}
+import squants.thermal.{Kelvin, ThermalCapacity}
 import squants.time.Seconds
 import squants.{Energy, Power, Temperature, Time}
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
@@ -48,15 +47,15 @@ import java.util.UUID
   * @param bus
   *   Thermal bus input
   * @param ethLosses
-  *   transmission coefficient of heat storage, usually in [kW/K]
+  *   transmission coefficient of heat storage
   * @param ethCapa
-  *   heat energy storage capability of thermal house, usually in [kWh/K]
+  *   heat energy storage capability of thermal house
   * @param targetTemperature
-  *   Target room temperature [°C]
+  *   Target room temperature
   * @param lowerBoundaryTemperature
-  *   Lower temperature boundary [°C]
+  *   Lower temperature boundary
   * @param upperBoundaryTemperature
-  *   Upper boundary temperature [°C]
+  *   Upper boundary temperature
   */
 final case class ThermalHouse(
     uuid: UUID,
@@ -102,13 +101,12 @@ final case class ThermalHouse(
     val currentInnerTemp = thermalHouseState.innerTemperature
 
     val requiredEnergy =
-      if (isInnerTemperatureTooLow(currentInnerTemp)) {
+      if isInnerTemperatureTooLow(currentInnerTemp) then {
         energyToReachTargetTemperature(currentInnerTemp)
-      } else
-        zeroKWh
+      } else zeroKWh
 
     val possibleEnergy =
-      if (!isInnerTemperatureTooHigh(currentInnerTemp)) {
+      if !isInnerTemperatureTooHigh(currentInnerTemp) then {
         energyToReachTargetTemperature(currentInnerTemp)
       } else zeroKWh
 
@@ -248,29 +246,28 @@ final case class ThermalHouse(
       qDot.toWatts / ethLosses.toWattsPerKelvin
     ) + Kelvin(thermalHouseState.ambientTemperature.toKelvinScale)
 
-    if (isInnerTemperatureTooLow(limitTemperature + temperatureTolerance))
-      /* Losses and gain of house are not in balance, thus temperature will reach some limit sooner or later */
-      /* House has more losses than gain */
-      {
-        nextActivation(
-          thermalHouseState.tick,
-          lowerBoundaryTemperature,
-          thermalHouseState.innerTemperature,
-          thermalHouseState.ambientTemperature,
-          qDot,
-        ).map(HouseTemperatureLowerBoundaryReached)
-      } else if (
-      isInnerTemperatureTooHigh(
+    if isInnerTemperatureTooLow(limitTemperature + temperatureTolerance) then
+    /* Losses and gain of house are not in balance, thus temperature will reach some limit sooner or later */
+    /* House has more losses than gain */
+    {
+      nextActivation(
+        thermalHouseState.tick,
+        lowerBoundaryTemperature,
+        thermalHouseState.innerTemperature,
+        thermalHouseState.ambientTemperature,
+        qDot,
+      ).map(HouseTemperatureLowerBoundaryReached.apply)
+    } else if isInnerTemperatureTooHigh(
         limitTemperature - temperatureTolerance
       ) && qDot > zeroKW
-    ) { /* House has more gain than losses AND gain is not caused external (through ambient temperature) */
+    then { /* House has more gain than losses AND gain is not caused external (through ambient temperature) */
       nextActivation(
         thermalHouseState.tick,
         targetTemperature,
         thermalHouseState.innerTemperature,
         thermalHouseState.ambientTemperature,
         qDot,
-      ).map(HouseTargetTemperatureReached)
+      ).map(HouseTargetTemperatureReached.apply)
     } else {
       /* House is in perfect balance */
       None

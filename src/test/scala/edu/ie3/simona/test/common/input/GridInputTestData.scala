@@ -27,7 +27,7 @@ import edu.ie3.simona.util.TestGridFactory
 import testutils.TestObjectFactory
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Contains a valid GridInputModel with the following structure
   *
@@ -43,8 +43,8 @@ import scala.jdk.CollectionConverters._
   */
 trait GridInputTestData
     extends LineInputTestData
-    with TransformerInputTestData
-    with Transformer3wTestData
+    with Transformer2wInputTestData
+    with Transformer3wInputTestData
     with DefaultTestData {
 
   // create the nodes

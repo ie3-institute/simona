@@ -35,7 +35,9 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.service.weather.WeatherService.Coordinate
+import edu.ie3.simona.service.weather.WeatherDataType
+import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -214,7 +216,7 @@ object ParticipantAgentInit {
       )
       val requiredServiceTypes = modelFactory.getRequiredSecondaryServices
 
-      if (requiredServiceTypes.isEmpty) {
+      if requiredServiceTypes.isEmpty then {
         // not requiring any secondary services, thus we're ready to go
         completeInitialization(
           modelFactory,
@@ -267,7 +269,10 @@ object ParticipantAgentInit {
           case Some((lat, lon)) =>
             serviceRef ! SecondaryServiceRegistrationMessage(
               participantRef,
-              Coordinate(lat, lon),
+              WeatherRegistrationData(
+                Coordinate(lat, lon),
+                WeatherDataType.Current,
+              ),
             )
           case _ =>
             throw new CriticalFailureException(
@@ -328,7 +333,7 @@ object ParticipantAgentInit {
             ),
           ) =>
         // received registration success message from secondary service
-        if (!expectedRegistrations.contains(serviceRef))
+        if !expectedRegistrations.contains(serviceRef) then
           throw new CriticalFailureException(
             s"${participantInput.identifier}: Registration response from $serviceRef was not expected!"
           )
@@ -342,7 +347,7 @@ object ParticipantAgentInit {
           case None                              => modelFactory
         }
 
-        if (newExpectedRegistrations.isEmpty)
+        if newExpectedRegistrations.isEmpty then
           // all secondary services set up, ready to go
           completeInitialization(
             updatedFactory,
@@ -388,7 +393,7 @@ object ParticipantAgentInit {
     val dataCompletedTick = inputHandler.getDataCompletedTick
 
     dataCompletedTick.foreach { dataCompleted =>
-      if (dataCompleted > firstTick)
+      if dataCompleted > firstTick then
         throw new CriticalFailureException(
           s"${modelShell.identifier}: Input data will only be fully received at tick $dataCompleted. " +
             s"It needs to be available with operation start $firstTick though."

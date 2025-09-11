@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.config.RuntimeConfig.PvRuntimeConfig
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.util.TimeUtil

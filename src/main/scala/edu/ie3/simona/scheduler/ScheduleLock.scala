@@ -189,7 +189,7 @@ object ScheduleLock {
     Behaviors.withStash(100) { buffer =>
       Behaviors.receivePartial {
         case (ctx, Activation(tick)) =>
-          if (tick == expectedTick)
+          if tick == expectedTick then
             buffer.unstashAll(active(scheduler, awaitedKeys))
           else {
             ctx.log.error(
@@ -211,7 +211,7 @@ object ScheduleLock {
   ): Behavior[Message] = Behaviors.receivePartial { case (ctx, Unlock(key)) =>
     val updatedKeys = awaitedKeys - key
 
-    if (updatedKeys.nonEmpty) active(scheduler, updatedKeys)
+    if updatedKeys.nonEmpty then active(scheduler, updatedKeys)
     else {
       scheduler ! Completion(ctx.self)
       Behaviors.stopped

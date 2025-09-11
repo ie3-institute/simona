@@ -26,8 +26,8 @@ class StoragePowerLimitFlexModel(private val model: StorageModel)
 
     val refPower = model.refTargetSoc
       .map { targetParams =>
-        if (state.storedEnergy <= targetParams.targetWithPosMargin) {
-          if (state.storedEnergy >= targetParams.targetWithNegMargin) {
+        if state.storedEnergy <= targetParams.targetWithPosMargin then {
+          if state.storedEnergy >= targetParams.targetWithNegMargin then {
             // is within target +/- margin, no charging needed
             zeroKW
           } else {
@@ -46,8 +46,8 @@ class StoragePowerLimitFlexModel(private val model: StorageModel)
 
     PowerLimitFlexOptions(
       refPower,
-      if (dischargingPossible) model.pMax * -1 else zeroKW,
-      if (chargingPossible) model.pMax else zeroKW,
+      if dischargingPossible then model.pMax * -1 else zeroKW,
+      if chargingPossible then model.pMax else zeroKW,
     )
   }
 }
