@@ -118,7 +118,7 @@ private[listener] trait Transformer3wResultSupport {
     }
   }
 
-  final object AggregatedTransformer3wResult {
+  object AggregatedTransformer3wResult {
     val EMPTY: AggregatedTransformer3wResult =
       AggregatedTransformer3wResult(None, None, None)
   }

@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `LoadProfileService` to `ParticipantRefs` in `LoadProfileService` [#1418](https://github.com/ie3-institute/simona/issues/1418)
 - Enhance `Developer’s Guide` with information on steps for releasing a new version [#1450](https://github.com/ie3-institute/simona/issues/1450)
 - Enhancing config with more default value [#1413](https://github.com/ie3-institute/simona/issues/1413)
+- Updated Authors.md file [#1503](https://github.com/ie3-institute/simona/issues/1503)
+- Quantity to squants conversion in WeatherService [#1506](https://github.com/ie3-institute/simona/issues/1506)
+- Considering primary data that start before simulation [#1034](https://github.com/ie3-institute/simona/issues/1034)
+- Implement time series retrieval for WeatherSource [#1511](https://github.com/ie3-institute/simona/issues/1511)
+- Implement weather forecast provision by WeatherService [#1512](https://github.com/ie3-institute/simona/issues/1512)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
@@ -35,6 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename 'thermalStorage' to 'heatStorage' [#1475](https://github.com/ie3-institute/simona/issues/1475)
 - Simplify flex option result configuration [#1111](https://github.com/ie3-institute/simona/issues/1111)
 - Harmonisation of `TestInputData` for `Transformer` [#163](https://github.com/ie3-institute/simona/issues/163)
+- Refactored method to determine next Threshold within `ThermalGrid` [#1477](https://github.com/ie3-institute/simona/issues/1477)
+- Unify coordinate class [#1516](https://github.com/ie3-institute/simona/issues/1516)
+- Remove type parameters from data and message classes [#1524](https://github.com/ie3-institute/simona/issues/1524)
 - Adapt ThermalHouse and HP flexibility behaviour [#1391](https://github.com/ie3-institute/simona/issues/1391)
 
 ### Fixed
@@ -48,10 +56,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed crash when using load model with `profile` behaviour and primary data [#1436](https://github.com/ie3-institute/simona/issues/1436)
 - Fixed CFF-Version [#1464](https://github.com/ie3-institute/simona/issues/1464)
 - Fixed handleInput of `ProfileLoadModel` [#1441](https://github.com/ie3-institute/simona/issues/1441)
+- Fixed compiler warnings related to import and scala3 syntax [#1383](https://github.com/ie3-institute/simona/issues/1383)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
 - Removed dedicated `random` load model behaviour [#1436](https://github.com/ie3-institute/simona/issues/1436)
+- Removed some units from scalaDoc within `ThermalHouse` [#1495](https://github.com/ie3-institute/simona/issues/1495)
+
+### Updates
+- Updated gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)
 
 ## [4.0.0] - 2025-05-09
 

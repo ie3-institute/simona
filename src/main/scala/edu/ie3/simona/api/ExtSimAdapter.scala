@@ -13,7 +13,7 @@ import edu.ie3.simona.api.simulation.ontology.{
   ControlResponseMessageFromExt,
   TerminationCompleted,
   TerminationMessage,
-  CompletionMessage => ExtCompletionMessage,
+  CompletionMessage as ExtCompletionMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -27,7 +27,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
-import scala.jdk.OptionConverters._
+import scala.jdk.OptionConverters.*
 
 object ExtSimAdapter {
 

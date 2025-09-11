@@ -35,11 +35,12 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.weather.WeatherService.Coordinate
-import edu.ie3.simona.service.weather.{WeatherService, WeatherServiceSpec}
+import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
+import edu.ie3.simona.service.weather.{WeatherDataType, WeatherService}
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.QuantityMatchers
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
@@ -205,9 +206,12 @@ class EmAgentIT
         weatherService.expectMessage(
           SecondaryServiceRegistrationMessage(
             pvAgent,
-            Coordinate(
-              pvInput.getNode.getGeoPosition.getY,
-              pvInput.getNode.getGeoPosition.getX,
+            WeatherRegistrationData(
+              Coordinate(
+                pvInput.getNode.getGeoPosition.getY,
+                pvInput.getNode.getGeoPosition.getX,
+              ),
+              WeatherDataType.Current,
             ),
           )
         )
@@ -440,9 +444,12 @@ class EmAgentIT
         weatherService.expectMessage(
           SecondaryServiceRegistrationMessage(
             pvAgent,
-            Coordinate(
-              pvInput.getNode.getGeoPosition.getY,
-              pvInput.getNode.getGeoPosition.getX,
+            WeatherRegistrationData(
+              Coordinate(
+                pvInput.getNode.getGeoPosition.getY,
+                pvInput.getNode.getGeoPosition.getX,
+              ),
+              WeatherDataType.Current,
             ),
           )
         )
@@ -456,9 +463,12 @@ class EmAgentIT
         weatherService.expectMessage(
           SecondaryServiceRegistrationMessage(
             hpAgent,
-            Coordinate(
-              adaptedHpInputModel.getNode.getGeoPosition.getY,
-              adaptedHpInputModel.getNode.getGeoPosition.getX,
+            WeatherRegistrationData(
+              Coordinate(
+                adaptedHpInputModel.getNode.getGeoPosition.getY,
+                adaptedHpInputModel.getNode.getGeoPosition.getX,
+              ),
+              WeatherDataType.Current,
             ),
           )
         )
@@ -736,9 +746,12 @@ class EmAgentIT
         weatherService.expectMessage(
           SecondaryServiceRegistrationMessage(
             pvAgent,
-            Coordinate(
-              pvInputLimitedOperationTime.getNode.getGeoPosition.getY,
-              pvInputLimitedOperationTime.getNode.getGeoPosition.getX,
+            WeatherRegistrationData(
+              Coordinate(
+                pvInputLimitedOperationTime.getNode.getGeoPosition.getY,
+                pvInputLimitedOperationTime.getNode.getGeoPosition.getX,
+              ),
+              WeatherDataType.Current,
             ),
           )
         )

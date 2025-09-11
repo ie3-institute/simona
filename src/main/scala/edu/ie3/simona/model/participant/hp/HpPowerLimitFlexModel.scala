@@ -69,6 +69,3 @@ class HpPowerLimitFlexModel(private val model: HpModel)
       if (canOperate) model.sRated.toActivePower(model.cosPhiRated) else zeroKW
 
     PowerLimitFlexOptions(refPower, minPower, maxPower)
-  }
-
-}

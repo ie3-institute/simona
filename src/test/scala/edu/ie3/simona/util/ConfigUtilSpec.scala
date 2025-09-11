@@ -637,14 +637,14 @@ class ConfigUtilSpec
 
   "The grid output config util" should {
     "return the correct result entity classes to consider" in {
-      val ddt: TableFor2[GridOutputConfig, Set[Class[_ <: ResultEntity]]] =
+      val ddt: TableFor2[GridOutputConfig, Set[Class[? <: ResultEntity]]] =
         Table(
           ("config", "expected"),
           (
             new GridOutputConfig(
               false, false, false, false, false, false,
             ),
-            Set.empty[Class[_ <: ResultEntity]],
+            Set.empty[Class[? <: ResultEntity]],
           ),
           (
             new GridOutputConfig(
@@ -696,7 +696,7 @@ class ConfigUtilSpec
         )
 
       forAll(ddt) {
-        (config: GridOutputConfig, expected: Set[Class[_ <: ResultEntity]]) =>
+        (config: GridOutputConfig, expected: Set[Class[? <: ResultEntity]]) =>
           val actual =
             GridOutputConfigUtil(config).simulationResultEntitiesToConsider
           actual shouldBe expected
@@ -832,7 +832,7 @@ class ConfigUtilSpec
         ),
       )
       val currentConfigUtil = OutputConfigUtil.participants(inputConfig)
-      val expectedResult = Set[Class[_ <: ResultEntity]](classOf[LoadResult])
+      val expectedResult = Set[Class[? <: ResultEntity]](classOf[LoadResult])
 
       currentConfigUtil.simulationResultEntitiesToConsider(
         false

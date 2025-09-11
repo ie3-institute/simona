@@ -8,12 +8,10 @@ package edu.ie3.simona.service.weather
 
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  AgentCoordinates,
-  WeightedCoordinates,
-}
+import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.Coordinate
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -38,7 +36,7 @@ class SampleWeatherSourceSpec
 
   "The sample weather source" should {
     "always return the queried coordinate itself as nearest coordinate" in {
-      val queryCoordinate = AgentCoordinates(
+      val queryCoordinate = Coordinate(
         NodeInput.DEFAULT_GEO_POSITION.getY,
         NodeInput.DEFAULT_GEO_POSITION.getX,
       )

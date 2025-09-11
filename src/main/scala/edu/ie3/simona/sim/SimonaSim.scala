@@ -116,7 +116,7 @@ object SimonaSim {
           resultEventListeners,
         )
 
-        val otherActors = Iterable[ActorRef[_]](
+        val otherActors = Iterable[ActorRef[?]](
           timeAdvancer,
           scheduler,
           primaryServiceProxy,
@@ -205,7 +205,7 @@ object SimonaSim {
     * with delayed stops to stop
     */
   private def stopChildren(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       actorData: ActorData,
       simulationSuccessful: Boolean,
   ): Behavior[Request] = {
@@ -237,7 +237,7 @@ object SimonaSim {
     */
   private def waitingForListener(
       starter: ActorRef[SimonaEnded],
-      remainingListeners: Seq[ActorRef[_]],
+      remainingListeners: Seq[ActorRef[?]],
       simulationSuccessful: Boolean,
   ): Behavior[Request] = Behaviors.receiveSignal[Request] {
     case (ctx, Terminated(actor)) if remainingListeners.contains(actor) =>
@@ -250,12 +250,12 @@ object SimonaSim {
     * have stopped
     */
   private def maybeStop(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       starter: ActorRef[SimonaEnded],
-      remainingListeners: Seq[ActorRef[_]],
+      remainingListeners: Seq[ActorRef[?]],
       simulationSuccessful: Boolean,
   ): Behavior[Request] = {
-    if (remainingListeners.isEmpty) {
+    if remainingListeners.isEmpty then {
       ctx.log.debug(
         "All actors with delayed stops have terminated. Ending simulation."
       )
@@ -292,6 +292,6 @@ object SimonaSim {
       extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
       runtimeEventListener: ActorRef[RuntimeEventListener.Request],
       delayedStoppingActors: Seq[ActorRef[DelayedStopHelper.StoppingMsg]],
-      otherActors: Iterable[ActorRef[_]],
+      otherActors: Iterable[ActorRef[?]],
   )
 }

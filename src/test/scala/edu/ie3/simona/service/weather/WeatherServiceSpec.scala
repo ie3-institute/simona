@@ -23,19 +23,18 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   SecondaryServiceRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.weather.WeatherService.{
-  Coordinate,
-  InitWeatherServiceStateData,
+import edu.ie3.simona.service.Data.SecondaryData.{
+  WeatherData,
+  WeatherSeriesData,
 }
-import edu.ie3.simona.service.weather.WeatherSource.AgentCoordinates
+import edu.ie3.simona.service.weather.WeatherService.{
+  InitWeatherServiceStateData,
+  WeatherRegistrationData,
+}
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
@@ -47,7 +46,10 @@ import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
+import squants.time.Hours
 
+import java.time.ZonedDateTime
+import scala.collection.immutable.SortedMap
 import scala.language.implicitConversions
 
 class WeatherServiceSpec
@@ -81,14 +83,13 @@ class WeatherServiceSpec
   override protected val simonaConfig: SimonaConfig = SimonaConfig(config)
 
   // setup values
-  private val invalidCoordinate: AgentCoordinates =
-    AgentCoordinates(180.5, 90.5)
-  private val validCoordinate: AgentCoordinates =
-    AgentCoordinates(52.02083574, 7.40110716)
+  private val invalidCoordinate: Coordinate = Coordinate(180.5, 90.5)
+  private val validCoordinate: Coordinate = Coordinate(52.02083574, 7.40110716)
 
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
 
-  private val agent = TestProbe[ParticipantAgent.Request]("agent")
+  private val agent1 = TestProbe[ParticipantAgent.Request]("agent1")
+  private val agent2 = TestProbe[ParticipantAgent.Request]("agent2")
 
   // build the weather service
   private val weatherService = testKit.spawn(
@@ -125,33 +126,62 @@ class WeatherServiceSpec
 
     "announce failed weather registration on invalid coordinate" in {
       weatherService ! SecondaryServiceRegistrationMessage(
-        agent.ref,
-        Coordinate(invalidCoordinate.latitude, invalidCoordinate.longitude),
+        agent1.ref,
+        WeatherRegistrationData(
+          Coordinate(invalidCoordinate.latitude, invalidCoordinate.longitude),
+          WeatherDataType.Current,
+        ),
       )
 
-      agent.expectMessage(RegistrationFailedMessage(weatherService))
+      agent1.expectMessage(RegistrationFailedMessage(weatherService))
     }
 
-    "announce, that a valid coordinate is registered" in {
+    "announce, that a valid coordinate is registered for current weather data" in {
       /* The successful registration stems from the test above */
       weatherService ! SecondaryServiceRegistrationMessage(
-        agent.ref,
-        Coordinate(validCoordinate.latitude, validCoordinate.longitude),
+        agent1.ref,
+        WeatherRegistrationData(
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
+          WeatherDataType.Current,
+        ),
       )
 
-      agent.expectMessage(
+      agent1.expectMessage(
         RegistrationSuccessfulMessage(weatherService, 0L)
       )
     }
 
-    "recognize, that a valid coordinate yet is registered" in {
+    "announce, that a valid coordinate is registered for forecast data" in {
       /* The successful registration stems from the test above */
       weatherService ! SecondaryServiceRegistrationMessage(
-        agent.ref,
-        Coordinate(validCoordinate.latitude, validCoordinate.longitude),
+        agent2.ref,
+        WeatherRegistrationData(
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
+          WeatherDataType.CurrentAndForecast(
+            forecastLength = Hours(6),
+            forecastResolution = Hours(1),
+          ),
+        ),
       )
 
-      agent.expectNoMessage()
+      agent2.expectMessage(
+        RegistrationSuccessfulMessage(weatherService, 0L)
+      )
+
+      agent1.expectNoMessage()
+    }
+
+    "recognize, that a valid coordinate is already registered" in {
+      /* The successful registration stems from the test above */
+      weatherService ! SecondaryServiceRegistrationMessage(
+        agent1.ref,
+        WeatherRegistrationData(
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
+          WeatherDataType.Current,
+        ),
+      )
+
+      agent1.expectNoMessage()
     }
 
     "send out correct weather information upon activity start trigger and request the triggering for the next tick" in {
@@ -161,7 +191,7 @@ class WeatherServiceSpec
       val activationMsg = scheduler.expectMessageType[Completion]
       activationMsg.newTick shouldBe Some(3600)
 
-      agent.expectMessage(
+      agent1.expectMessage(
         DataProvision(
           0,
           weatherService,
@@ -175,6 +205,19 @@ class WeatherServiceSpec
         )
       )
 
+      agent2.expectMessageType[DataProvision] match {
+        case DataProvision(tick, serviceRef, data, nextTick) =>
+          tick shouldBe 0
+          serviceRef shouldBe weatherService
+          data match {
+            case WeatherSeriesData(series) =>
+              series.size shouldBe 7
+            case unexpected =>
+              fail(s"Received unexpected data $unexpected")
+          }
+          nextTick shouldBe Some(3600L)
+      }
+
     }
 
     "sends out correct weather information when triggered again and does not as for triggering, if the end is reached" in {
@@ -184,7 +227,7 @@ class WeatherServiceSpec
       val activationMsg = scheduler.expectMessageType[Completion]
       activationMsg.newTick shouldBe None
 
-      agent.expectMessage(
+      agent1.expectMessage(
         DataProvision(
           3600,
           weatherService,
@@ -197,6 +240,55 @@ class WeatherServiceSpec
           None,
         )
       )
+    }
+
+    "reduce time series resolution according to a given interval" when {
+
+      val startTime = ZonedDateTime.parse("2011-01-01T00:00:00Z")
+
+      val timeSeries = SortedMap(
+        startTime -> 1,
+        startTime.plusHours(1) -> 2,
+        startTime.plusHours(2) -> 3,
+        startTime.plusHours(3) -> 4,
+      )
+
+      "interval is finer than data resolution" in {
+        WeatherService.reduceTimeSeriesResolution(
+          timeSeries = timeSeries,
+          resolution = Hours(0.5),
+        ) should equal(timeSeries)
+
+        WeatherService.reduceTimeSeriesResolution(
+          timeSeries = timeSeries,
+          resolution = Hours(0.75),
+        ) should equal(timeSeries)
+      }
+
+      "interval matches data resolution" in {
+        WeatherService.reduceTimeSeriesResolution(
+          timeSeries = timeSeries,
+          resolution = Hours(1),
+        ) should equal(timeSeries)
+      }
+
+      "interval is more coarse than data resolution" in {
+        val expectedResult = SortedMap(
+          startTime -> 1,
+          startTime.plusHours(2) -> 3,
+        )
+
+        WeatherService.reduceTimeSeriesResolution(
+          timeSeries = timeSeries,
+          resolution = Hours(1.5),
+        ) should equal(expectedResult)
+
+        WeatherService.reduceTimeSeriesResolution(
+          timeSeries = timeSeries,
+          resolution = Hours(2),
+        ) should equal(expectedResult)
+      }
+
     }
   }
 }
