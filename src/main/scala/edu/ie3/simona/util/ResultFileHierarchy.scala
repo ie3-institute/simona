@@ -51,8 +51,9 @@ object ResultFileHierarchy extends LazyLogging {
       addTimeStampToOutputDir: Boolean = true,
   ): ResultFileHierarchy = {
 
-    val runStartTimeUTC =
-      Option.when(addTimeStampToOutputDir)("yyyy-MM-dd_HH-mm-ss")
+    val runStartTimeUTC = Option.when(addTimeStampToOutputDir)(
+      new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new java.util.Date())
+    )
 
     val baseOutputDir = buildBaseOutputDir(outputDir)
 

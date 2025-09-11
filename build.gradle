@@ -40,8 +40,7 @@ ext {
     "-language:implicitConversions",
     "-language:existentials",
     "-Wunused:all",
-    "-Xmax-inlines:128",
-    "-Ywarn-unused"
+    "-Xmax-inlines:128"
   ]
 }
 
