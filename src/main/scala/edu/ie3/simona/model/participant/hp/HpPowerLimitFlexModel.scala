@@ -28,21 +28,24 @@ class HpPowerLimitFlexModel(private val model: HpModel)
         state.thermalDemands,
         wasRunningLastOp,
       )
-
     val refOn = model.sRated.toActivePower(model.cosPhiRated)
+
+    val shouldRunHeatPump = {
+      state.lastHpOperatingPoint.activePower > zeroKW &&
+      state.thermalDemands.houseDemand.hasPossibleDemand &&
+      state.thermalGridState.heatStorageState
+        .map(_.storedEnergy)
+        .getOrElse(zeroKWh) == zeroKWh
+    }
+
     val (refPower, minPower) = (turnOn, canBeOutOfOperation) match {
       case (true, true) =>
-        if state.lastHpOperatingPoint.activePower > zeroKW &&
-          state.thermalDemands.houseDemand.hasPossibleDemand &&
-          state.thermalGridState.heatStorageState
-            .map(_.storedEnergy)
-            .getOrElse(zeroKWh) == zeroKWh
-        then
+        if shouldRunHeatPump then {
           // if Hp was running last state AND there is demand from the house AND the storage is empty,
           // we would like to keep that behaviour even in strict interpretation of flexibility we could
           // be out of operation for flex reasons. Thus, we force Hp to run.
           (refOn, refOn)
-        else {
+        } else {
           (refOn, zeroKW)
         }
       case (true, false) =>
@@ -50,7 +53,7 @@ class HpPowerLimitFlexModel(private val model: HpModel)
       case (false, true) =>
         (zeroKW, zeroKW)
       case _ =>
-        throw IllegalStateException(
+        throw new IllegalStateException(
           "An unsupported FlexOption for a heat pump has been determined."
         )
       // should not be possible to reach
