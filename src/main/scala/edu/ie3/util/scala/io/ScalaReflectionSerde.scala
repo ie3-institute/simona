@@ -26,7 +26,7 @@ import org.apache.kafka.common.serialization.{Deserializer, Serializer}
   */
 object ScalaReflectionSerde {
 
-  def reflectionSerializer4S[T >: Null: {SchemaFor, Encoder}]: Serializer[T] =
+  def reflectionSerializer4S[T >: Null: SchemaFor: Encoder]: Serializer[T] =
     new Serializer[T] {
       val inner = new GenericAvroSerializer()
       val schema: Schema = AvroSchema[T]
@@ -45,7 +45,7 @@ object ScalaReflectionSerde {
       override def close(): Unit = inner.close()
     }
 
-  def reflectionDeserializer4S[T >: Null: {SchemaFor, Decoder}]: Deserializer[T] =
+  def reflectionDeserializer4S[T >: Null: SchemaFor: Decoder]: Deserializer[T] =
     new Deserializer[T] {
       val inner = new GenericAvroDeserializer()
       val schema: Schema = AvroSchema[T]
