@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
+import com.typesafe.config.Config
 import edu.ie3.datamodel.models.input.container.JointGridContainer
 import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.ontology.DataMessageFromExt
@@ -43,6 +44,8 @@ object ExtSimSetup {
     *   Interfaces that hold information regarding external simulations.
     * @param args
     *   The main args the simulation is started with.
+   * @param config
+   * The simona config.
    * @param grid
    * The electrical grid.
     * @param context
@@ -57,6 +60,7 @@ object ExtSimSetup {
   def setupExtSim(
       extLinks: List[ExtLinkInterface],
       args: Array[String],
+      config: Config,         
       grid: JointGridContainer,
   )(using
       context: ActorContext[?],
@@ -73,7 +77,7 @@ object ExtSimSetup {
 
       // creating the adapter data
       given extSimAdapterData: ExtSimAdapterData =
-        new ExtSimAdapterData(extSimAdapter, args, grid)
+        new ExtSimAdapterData(extSimAdapter, args, config, grid)
 
       Try {
         // sets up the external simulation

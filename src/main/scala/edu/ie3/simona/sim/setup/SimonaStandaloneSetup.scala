@@ -223,7 +223,7 @@ class SimonaStandaloneSetup(
     val jars = ExtSimLoader.scanInputFolder(extSimPath)
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
 
-    setupExtSim(extLinks, args, grid)(using
+    setupExtSim(extLinks, args, typeSafeConfig, grid)(using
       context,
       scheduler,
       resultProxy,
