@@ -31,7 +31,6 @@ import edu.ie3.datamodel.io.source.{
   TimeSeriesMetaInformationSource,
 }
 import edu.ie3.datamodel.models.profile.LoadProfile
-import edu.ie3.datamodel.models.timeseries.repetitive.LoadProfileTimeSeries
 import edu.ie3.datamodel.models.value.load.{
   BdewLoadValues,
   LoadValues,
@@ -62,7 +61,7 @@ object LoadProfileSources {
     */
   def buildSources(
       sourceDefinition: InputConfig.LoadProfile.Datasource
-  ): Map[LoadProfile, LoadProfileSource[_, _]] = {
+  ): Map[LoadProfile, LoadProfileSource[?, ?]] = {
     val definedSources = Vector(
       sourceDefinition.csvParams,
       sourceDefinition.sqlParams,
@@ -165,7 +164,7 @@ object LoadProfileSources {
       profiles: Set[LoadProfile],
       expectedProfiles: Set[String],
   ): Unit = {
-    if (profiles.size != expectedProfiles.size) {
+    if profiles.size != expectedProfiles.size then {
       expectedProfiles
         .diff(profiles.map(_.getKey))
         .foreach { profile =>
@@ -199,8 +198,8 @@ object LoadProfileSources {
       allMetaInformation: Map[String, LoadProfileMetaInformation],
       factory: LoadProfileFactory[P, V],
       entryClass: Class[V],
-  ): Map[LoadProfile, LoadProfileSource[_, _]] = {
-    val emptyMap = Map.empty[LoadProfile, LoadProfileSource[_, _]]
+  ): Map[LoadProfile, LoadProfileSource[?, ?]] = {
+    val emptyMap = Map.empty[LoadProfile, LoadProfileSource[?, ?]]
 
     // filter out all profile, that cannot be built by the given factory
     allMetaInformation

@@ -36,7 +36,10 @@ import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.PowerConversionSimona
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toApparent,
+  toSquants,
+}
 import squants.*
 
 import java.time.ZonedDateTime
@@ -165,13 +168,12 @@ class HpModel private (
 
     /* Determine how qDot is used in thermalGrid and get threshold */
     val (thermalGridOperatingPoint, maybeThreshold) =
-      if (qDotIntoGrid > zeroKW) {
+      if qDotIntoGrid > zeroKW then {
         thermalGrid.handleFeedIn(
           state,
           qDotIntoGrid,
         )
-      } else
-        thermalGrid.handleConsumption(state)
+      } else thermalGrid.handleConsumption(state)
 
     val operatingPoint =
       HpOperatingPoint(
@@ -215,7 +217,7 @@ class HpModel private (
         )._1
     }
 
-    if (turnOn) (pRated, pThermal)
+    if turnOn then (pRated, pThermal)
     else (zeroKW, zeroKW)
   }
 

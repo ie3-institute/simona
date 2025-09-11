@@ -8,7 +8,6 @@ package edu.ie3.simona.model.participant.hp
 
 import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.hp.HpModel.HpState
-import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   PowerLimitFlexOptions,
@@ -31,9 +30,9 @@ class HpPowerLimitFlexModel(private val model: HpModel)
       )
 
     PowerLimitFlexOptions(
-      if (turnOn) model.sRated.toActivePower(model.cosPhiRated) else zeroKW,
-      if (canBeOutOfOperation) zeroKW else model.pRated,
-      if (canOperate) model.pRated else zeroKW,
+      if turnOn then model.sRated.toActivePower(model.cosPhiRated) else zeroKW,
+      if canBeOutOfOperation then zeroKW else model.pRated,
+      if canOperate then model.pRated else zeroKW,
     )
   }
 

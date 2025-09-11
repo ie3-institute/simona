@@ -41,22 +41,17 @@ class EvcsPowerLimitFlexModel(private val model: EvcsModel)
           val preferredPower = preferredPowers.get(ev.uuid)
 
           val maxCharging =
-            if (!model.isFull(ev))
-              maxPower
-            else
-              zeroKW
+            if !model.isFull(ev) then maxPower
+            else zeroKW
 
           val forced =
-            if (model.isEmpty(ev) && !model.isInLowerMargin(ev))
+            if model.isEmpty(ev) && !model.isInLowerMargin(ev) then
               preferredPower.getOrElse(maxPower)
-            else
-              zeroKW
+            else zeroKW
 
           val maxDischarging =
-            if (!model.isEmpty(ev) && model.vehicle2grid)
-              maxPower * -1
-            else
-              zeroKW
+            if !model.isEmpty(ev) && model.vehicle2grid then maxPower * -1
+            else zeroKW
 
           (
             chargingSum + maxCharging,
@@ -68,10 +63,9 @@ class EvcsPowerLimitFlexModel(private val model: EvcsModel)
 
     // if we need to charge at least one EV, we cannot discharge any other
     val (adaptedPreferred, adaptedMinCharging) =
-      if (forcedCharging > zeroKW)
+      if forcedCharging > zeroKW then
         (preferredPower.max(forcedCharging), forcedCharging)
-      else
-        (preferredPower, minCharging)
+      else (preferredPower, minCharging)
 
     PowerLimitFlexOptions(
       adaptedPreferred,

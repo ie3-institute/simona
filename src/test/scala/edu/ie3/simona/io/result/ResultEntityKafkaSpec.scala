@@ -30,9 +30,9 @@ import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
-import scala.jdk.DurationConverters._
+import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
+import scala.jdk.DurationConverters.*
 import scala.language.postfixOps
 
 /** Adapted from
@@ -45,7 +45,8 @@ class ResultEntityKafkaSpec
     with GivenWhenThen
     with Eventually {
 
-  private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
+  private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] =
+    scala.compiletime.uninitialized
 
   private val deserializer: Deserializer[PlainNodeResult] =
     ScalaReflectionSerde.reflectionDeserializer4S[PlainNodeResult]

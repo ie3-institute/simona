@@ -126,7 +126,6 @@ class SimonaConfigSpec extends UnitSpec {
       simonaConfig.output shouldBe OutputConfig(
         base = OutputConfig
           .Base(addTimestampToOutputDir = true, dir = "testOutput/"),
-        flex = false,
         grid = OutputConfig.GridOutputConfig(
           congestions = false,
           lines = false,

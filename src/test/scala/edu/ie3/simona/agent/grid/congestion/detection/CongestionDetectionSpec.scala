@@ -117,7 +117,7 @@ class CongestionDetectionSpec
           GridAgent.checkForCongestion(
             stateData,
             awaitingData,
-          )(constantData, _)
+          )(using constantData, _)
         )
 
         behavior ! CongestionCheckRequest(superiorAgent.ref)
@@ -155,7 +155,7 @@ class CongestionDetectionSpec
         GridAgent.checkForCongestion(
           stateData,
           awaitingData,
-        )(constantData, _)
+        )(using constantData, _)
       )
 
       behavior ! CongestionCheckRequest(superiorAgent.ref)
@@ -211,7 +211,7 @@ class CongestionDetectionSpec
         GridAgent.checkForCongestion(
           stateData,
           awaitingData,
-        )(constantData, _)
+        )(using constantData, _)
       )
 
       // we will send the center grid agent a StartStep message to start the detection
@@ -279,7 +279,7 @@ class CongestionDetectionSpec
         GridAgent.checkForCongestion(
           stateData,
           awaitingData,
-        )(constantData, _)
+        )(using constantData, _)
       )
 
       // we will send the center grid agent a StartStep message to start the detection

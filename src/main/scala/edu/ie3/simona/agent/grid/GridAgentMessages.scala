@@ -87,7 +87,7 @@ object GridAgentMessages {
     (ActorRef[GridAgent.Message], SlackVoltageResponse)
 
   sealed trait ReceivedPowerValues extends ReceivedValues {
-    def values: Vector[(ActorRef[_], PowerResponse)]
+    def values: Vector[(ActorRef[?], PowerResponse)]
   }
 
   /** Wrapper for received asset power values (p, q)

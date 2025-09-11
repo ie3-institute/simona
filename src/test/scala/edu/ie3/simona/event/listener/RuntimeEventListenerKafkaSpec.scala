@@ -7,7 +7,6 @@
 package edu.ie3.simona.event.listener
 
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.simona.config.{ConfigParams, RuntimeConfig}
 import edu.ie3.simona.event.RuntimeEvent.{Done, Error, PowerFlowFailed}
 import edu.ie3.simona.io.runtime.RuntimeEventKafkaSink.SimonaEndMessage
@@ -24,9 +23,9 @@ import org.scalatest.GivenWhenThen
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 import java.util.UUID
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
-import scala.jdk.DurationConverters._
+import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
+import scala.jdk.DurationConverters.*
 import scala.language.postfixOps
 
 class RuntimeEventListenerKafkaSpec
@@ -36,7 +35,8 @@ class RuntimeEventListenerKafkaSpec
     with GivenWhenThen
     with TableDrivenPropertyChecks
     with RuntimeTestData {
-  private var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] = _
+  private var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] =
+    scala.compiletime.uninitialized
 
   private val deserializer: Deserializer[SimonaEndMessage] =
     ScalaReflectionSerde.reflectionDeserializer4S[SimonaEndMessage]
