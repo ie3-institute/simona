@@ -3,4 +3,7 @@ scalafix {
   includes = ["/edu/**/*.scala"]
   excludes = ["**/generated/**"]
   ignoreSourceSets = ["scoverage"]
+  semanticdb {
+    autoConfigure = false
+  }
 }

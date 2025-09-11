@@ -40,7 +40,8 @@ ext {
     "-language:implicitConversions",
     "-language:existentials",
     "-Wunused:all",
-    "-Xmax-inlines:128"
+    "-Xmax-inlines:128",
+    "-Ywarn-unused"
   ]
 }
 
@@ -146,7 +147,7 @@ dependencies {
   }
   implementation "org.locationtech.jts.io:jts-io-common:${jtsVersion}"
 
-  /* Scala compiler plugin for static code analysis */
+  /* Scalafix plugin for static code analysis */
   scalafix "io.github.dedis:scapegoat-scalafix_${scalaVersion}:1.1.4"
 
   /* Kafka */
