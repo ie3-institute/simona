@@ -32,6 +32,7 @@ final class ThermalConductance private (
     * @param time
     *   Time duration
     * @return
+    *   Resulting energy change
     */
   def calcThermalEnergyChange(
       temperatureInner: Temperature,
@@ -41,12 +42,15 @@ final class ThermalConductance private (
     this.toWattsPerKelvin * (temperatureInner.toKelvinScale - temperatureOuter.toKelvinScale) * time.toHours
   )
 
-  /** Calculates the thermal power (qDot) caused by a temperature delta.
+  /** Calculates the thermal power (qDot) caused by the absolute temperature
+    * delta.
     * @param temperatureInner
     *   Inner temperature of a medium
     * @param temperatureOuter
     *   Temperature outside the medium
     * @return
+    *   the resulting (positive) thermal heat flow (power) caused from the
+    *   temperature difference
     */
   def calcQDot(
       temperatureInner: Temperature,
