@@ -36,6 +36,7 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherDataType
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
@@ -94,13 +95,13 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[PrimaryServiceProxy.Message]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -143,13 +144,13 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -201,13 +202,13 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -264,13 +265,13 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -351,14 +352,14 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -419,14 +420,14 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -482,14 +483,14 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -563,14 +564,14 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)

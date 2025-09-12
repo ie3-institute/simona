@@ -25,6 +25,8 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
@@ -37,6 +39,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
+import java.util.UUID
 import scala.language.postfixOps
 
 /** Test to ensure the functions that a [[GridAgent]] in center position should
@@ -60,6 +63,7 @@ class DBFSAlgorithmCenGridSpec
   )
   private val primaryService =
     TestProbe[PrimaryServiceProxy.Message]("primaryService")
+  private val resultProxy = TestProbe[ResultServiceProxy.Message]("resultProxy")
   private val weatherService =
     TestProbe[WeatherService.Message]("weatherService")
   private val loadProfileService =
@@ -85,23 +89,16 @@ class DBFSAlgorithmCenGridSpec
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
+    resultProxy = resultProxy.ref,
     weather = weatherService.ref,
     loadProfiles = loadProfileService.ref,
     evDataService = None,
   )
 
-  val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
-
   "A GridAgent actor in center position with async test" should {
 
     val centerGridAgent =
-      testKit.spawn(
-        GridAgent(
-          environmentRefs,
-          simonaConfig,
-          listener = Iterable(resultListener.ref),
-        )
-      )
+      testKit.spawn(GridAgent(environmentRefs, simonaConfig))
 
     s"initialize itself when it receives an init activation" in {
 
@@ -155,6 +152,17 @@ class DBFSAlgorithmCenGridSpec
 
       // send the start grid simulation trigger
       centerGridAgent ! Activation(3600)
+
+      resultProxy.expectMessageType[ExpectResult] match {
+        case ExpectResult(assets, tick) =>
+          assets match {
+            case uuids: Seq[UUID] =>
+              uuids.toSet shouldBe assetsHv.toSet
+            case uuid: UUID =>
+              fail(s"Received uuid $uuid, but expected grid asset uuids.")
+          }
+          tick shouldBe 3600
+      }
 
       /* We expect one grid power request message per inferior grid */
 
@@ -441,7 +449,7 @@ class DBFSAlgorithmCenGridSpec
       // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a Completion
       scheduler.expectMessageType[Completion].newTick shouldBe Some(7200)
 
-      val resultMessage = resultListener.expectMessageType[ResultEvent]
+      val resultMessage = resultProxy.expectMessageType[ResultEvent]
       resultMessage match {
         case powerFlowResultEvent: PowerFlowResultEvent =>
           // we expect results for 4 nodes, 5 lines and 2 transformer2ws

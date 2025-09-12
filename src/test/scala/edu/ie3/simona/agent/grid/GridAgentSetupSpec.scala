@@ -39,7 +39,6 @@ class GridAgentSetupSpec
           gridContainer.getSubGridTopologyGraph,
           ctx,
           mock[EnvironmentRefs],
-          Seq.empty,
         )
 
         Behaviors.stopped
@@ -66,7 +65,6 @@ class GridAgentSetupSpec
           threeWindingTestGrid.getSubGridTopologyGraph,
           ctx,
           mock[EnvironmentRefs],
-          Seq.empty,
         )
 
         Behaviors.stopped

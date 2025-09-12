@@ -7,9 +7,8 @@
 package edu.ie3.simona.test.common.result
 
 import java.util.UUID
-
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.result.NodeResult
+import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
@@ -27,6 +26,12 @@ trait PowerFlowResultData {
     TimeUtil.withDefaults.toZonedDateTime("2020-01-30T17:26:44Z")
   private val dummyInputModel =
     UUID.fromString("e5ac84d3-c7a5-4870-a42d-837920aec9bb")
+
+  given Conversion[ResultEntity, Map[UUID, Iterable[ResultEntity]]] =
+    (res: ResultEntity) => Map(res.getInputModel -> Iterable(res))
+
+  given Conversion[Iterable[ResultEntity], Map[UUID, Iterable[ResultEntity]]] =
+    (res: Iterable[ResultEntity]) => res.groupBy(_.getInputModel)
 
   val dummyPvResult = new PvResult(
     dummyTime,

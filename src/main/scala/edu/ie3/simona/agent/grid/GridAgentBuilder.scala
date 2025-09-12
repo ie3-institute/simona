@@ -291,9 +291,9 @@ object GridAgentBuilder {
 
     given ParticipantRefs = ParticipantRefs(
       gridAgentContext.self,
-      constantData.environmentRefs.primaryServiceProxy,
+      environmentRefs.primaryServiceProxy,
+      environmentRefs.resultProxy,
       serviceMap,
-      constantData.listener,
     )
 
     given SimulationParameters = SimulationParameters(
@@ -316,7 +316,7 @@ object GridAgentBuilder {
           constantData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.FixedFeedIn
           ),
-          constantData.environmentRefs.scheduler,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: LoadInput =>
@@ -326,7 +326,7 @@ object GridAgentBuilder {
             input.getUuid
           ),
           constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
-          constantData.environmentRefs.scheduler,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: PvInput =>
@@ -338,7 +338,7 @@ object GridAgentBuilder {
           constantData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.PvPlant
           ),
-          constantData.environmentRefs.scheduler,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: BmInput =>
@@ -350,7 +350,7 @@ object GridAgentBuilder {
           constantData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.BioMassPlant
           ),
-          constantData.environmentRefs.scheduler,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: WecInput =>
@@ -360,7 +360,7 @@ object GridAgentBuilder {
             input.getUuid
           ),
           constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
-          constantData.environmentRefs.scheduler,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: EvcsInput =>
@@ -370,7 +370,7 @@ object GridAgentBuilder {
             input.getUuid
           ),
           constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
-          constantData.environmentRefs.scheduler,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: HpInput =>
@@ -382,7 +382,7 @@ object GridAgentBuilder {
                 input.getUuid
               ),
               constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
-              constantData.environmentRefs.scheduler,
+              environmentRefs.scheduler,
               maybeControllingEm,
             )
           case None =>
@@ -399,7 +399,7 @@ object GridAgentBuilder {
           constantData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.Storage
           ),
-          constantData.environmentRefs.scheduler,
+          environmentRefs.scheduler,
           maybeControllingEm,
         )
       case input: SystemParticipantInput =>
@@ -468,7 +468,7 @@ object GridAgentBuilder {
         maybeControllingEm.toRight(
           constantData.environmentRefs.scheduler
         ),
-        constantData.listener,
+        constantData.environmentRefs.resultProxy,
       ),
       actorName(classOf[EmAgent.type], emInput.getId),
     )
