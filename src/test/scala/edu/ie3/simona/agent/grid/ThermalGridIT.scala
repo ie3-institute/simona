@@ -30,23 +30,20 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   SecondaryServiceRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.weather.WeatherService.Coordinate
-import edu.ie3.simona.service.weather.WeatherService
+import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
+import edu.ie3.simona.service.weather.{WeatherDataType, WeatherService}
 import edu.ie3.simona.test.common.input.{
   EmInputTestData,
   ThermalGridITInputTestData,
 }
 import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
 import edu.ie3.simona.test.matchers.QuantityMatchers
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
@@ -169,9 +166,12 @@ class ThermalGridIT
       weatherService.expectMessage(
         SecondaryServiceRegistrationMessage(
           hpAgent,
-          Coordinate(
-            typicalHpInputModel.getNode.getGeoPosition.getY,
-            typicalHpInputModel.getNode.getGeoPosition.getX,
+          WeatherRegistrationData(
+            Coordinate(
+              typicalHpInputModel.getNode.getGeoPosition.getY,
+              typicalHpInputModel.getNode.getGeoPosition.getX,
+            ),
+            WeatherDataType.Current,
           ),
         )
       )
@@ -1391,9 +1391,12 @@ class ThermalGridIT
       weatherService.expectMessage(
         SecondaryServiceRegistrationMessage(
           pvAgent,
-          Coordinate(
-            pvInput.getNode.getGeoPosition.getY,
-            pvInput.getNode.getGeoPosition.getX,
+          WeatherRegistrationData(
+            Coordinate(
+              pvInput.getNode.getGeoPosition.getY,
+              pvInput.getNode.getGeoPosition.getX,
+            ),
+            WeatherDataType.Current,
           ),
         )
       )
@@ -1410,9 +1413,12 @@ class ThermalGridIT
       weatherService.expectMessage(
         SecondaryServiceRegistrationMessage(
           hpAgent,
-          Coordinate(
-            typicalHpInputModel.getNode.getGeoPosition.getY,
-            typicalHpInputModel.getNode.getGeoPosition.getX,
+          WeatherRegistrationData(
+            Coordinate(
+              typicalHpInputModel.getNode.getGeoPosition.getY,
+              typicalHpInputModel.getNode.getGeoPosition.getX,
+            ),
+            WeatherDataType.Current,
           ),
         )
       )

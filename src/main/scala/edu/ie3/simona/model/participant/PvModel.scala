@@ -32,9 +32,8 @@ import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroWPerSM
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  DimensionlessToSimona,
-  PowerConversionSimona,
-  RadiansConversionSimona,
+  toApparent,
+  toSquants,
 }
 import squants.*
 import squants.space.{Degrees, SquareMeters}
@@ -203,7 +202,7 @@ class PvModel private (
       sRated.toActivePower(cosPhiRated) * -1 * (actYield / irradianceSTC)
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
-    if (proposal < pMax)
+    if proposal < pMax then
       logger.warn(
         "The fed in active power is higher than the estimated maximum active power of this plant ({} < {}). " +
           "Did you provide wrong weather input data?",
@@ -212,8 +211,7 @@ class PvModel private (
       )
 
     /* If the output is marginally small, suppress the output, as we are likely to be in night and then only produce incorrect output */
-    if (proposal.compareTo(activationThreshold) > 0)
-      DefaultQuantities.zeroMW
+    if proposal.compareTo(activationThreshold) > 0 then DefaultQuantities.zeroMW
     else proposal
   }
 

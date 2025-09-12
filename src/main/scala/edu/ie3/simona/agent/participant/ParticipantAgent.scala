@@ -104,13 +104,11 @@ object ParticipantAgent {
     *
     * @param data
     *   The data.
-    * @tparam D
-    *   The type of the provided data.
     */
-  final case class DataProvision[D <: Data](
+  final case class DataProvision(
       override val tick: Long,
       override val serviceRef: ActorRef[ServiceMessage],
-      data: D,
+      data: Data,
       override val nextDataTick: Option[Long],
   ) extends DataInputMessage
 
@@ -261,7 +259,7 @@ object ParticipantAgent {
           )
         )
         replyTo !
-          (if (result.newResult) {
+          (if result.newResult then {
              AssetPowerChangedMessage(
                result.avgPower.p,
                result.avgPower.q,
@@ -338,7 +336,7 @@ object ParticipantAgent {
       ParticipantInputHandler,
       ParticipantGridAdapter,
   ) = {
-    if (expectedMessagesReceived(inputHandler, gridAdapter)) {
+    if expectedMessagesReceived(inputHandler, gridAdapter) then {
 
       val activation = inputHandler.activation.getOrElse(
         throw new CriticalFailureException(
@@ -358,7 +356,7 @@ object ParticipantAgent {
           activation match {
             case Activation(tick) =>
               val (shellWithOP, gridAdapterWithResult) =
-                if (isCalculationRequired(shell, inputHandler)) {
+                if isCalculationRequired(shell, inputHandler) then {
                   val newShell = shell.updateOperatingPoint(tick)
 
                   val results =
@@ -370,8 +368,7 @@ object ParticipantAgent {
                     gridAdapter.storePowerValue(results.totalPower, tick)
 
                   (newShell, newGridAdapter)
-                } else
-                  (shell, gridAdapter)
+                } else (shell, gridAdapter)
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 tick,
@@ -392,14 +389,13 @@ object ParticipantAgent {
 
             case FlexActivation(tick, flexType) =>
               val shellWithFlex =
-                if (isCalculationRequired(shell, inputHandler)) {
+                if isCalculationRequired(shell, inputHandler) then {
                   val newShell = shell.updateFlexOptions(tick, flexType)
                   resultHandler.maybeSend(
                     newShell.determineFlexOptionsResult(tick, flexType)
                   )
                   newShell
-                } else
-                  shell
+                } else shell
 
               parent.fold(
                 _ =>
@@ -460,8 +456,7 @@ object ParticipantAgent {
         .get
 
       (updatedShell, inputHandler.completeActivation(), updatedGridAdapter)
-    } else
-      (modelShell, inputHandler, gridAdapter)
+    } else (modelShell, inputHandler, gridAdapter)
   }
 
   /** Checks if all required messages needed for calculation have been received.

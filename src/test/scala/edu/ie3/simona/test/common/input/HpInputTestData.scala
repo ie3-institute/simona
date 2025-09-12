@@ -18,10 +18,9 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.datamodel.models.input.{OperatorInput, container}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.model.InputModelContainer.WithHeatInputContainer
+import edu.ie3.simona.model.thermal.*
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal._
 import edu.ie3.util.quantities.PowerSystemUnits
 import squants.Temperature
 import squants.energy.{KilowattHours, Kilowatts}
@@ -29,7 +28,7 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
 

@@ -14,13 +14,13 @@ object CongestionManagementMessages {
 
   /** Message that informs all actors that the current step is started.
     */
-  final case object StartStep extends GridAgent.InternalRequest
+  case object StartStep extends GridAgent.InternalRequest
 
   /** Message that informs all actors that the current step is finished.
     */
-  final case object FinishStep extends GridAgent.InternalRequest
+  case object FinishStep extends GridAgent.InternalRequest
 
   /** Message that informs all actors that the next state is the idle state.
     */
-  final case object GotoIdle extends GridAgent.InternalRequest
+  case object GotoIdle extends GridAgent.InternalRequest
 }

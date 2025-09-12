@@ -28,8 +28,8 @@ import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  EnergyPriceToSimona,
-  PowerConversionSimona,
+  toApparent,
+  toSquants,
 }
 import edu.ie3.util.scala.quantities.{ApparentPower, EnergyPrice}
 import squants.energy.Megawatts
@@ -128,10 +128,8 @@ final case class BmModel(
     val currOpex = opex / eff
     val avgOpex = (currOpex + opex) / 2
 
-    if (isCostControlled && avgOpex < feedInTariff)
-      pRated * -1
-    else
-      pRated * usage * eff * -1
+    if isCostControlled && avgOpex < feedInTariff then pRated * -1
+    else pRated * usage * eff * -1
   }
 
   /** Applies the load gradient to the electrical output.
@@ -319,7 +317,7 @@ object BmModel {
     val maxHeat = Megawatts(43.14)
     val usageUnchecked = pTh / maxHeat
 
-    if (usageUnchecked < 1) usageUnchecked else 1
+    if usageUnchecked < 1 then usageUnchecked else 1
   }
 
   /** Calculates efficiency from usage. Efficiency is based on a regression

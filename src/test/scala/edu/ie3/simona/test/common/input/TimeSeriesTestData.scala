@@ -15,6 +15,8 @@ import java.util.UUID
 trait TimeSeriesTestData {
   protected val uuidP: UUID =
     UUID.fromString("9185b8c1-86ba-4a16-8dea-5ac898e8caa5")
+  protected val uuidEmpty: UUID =
+    UUID.fromString("b73a7e3f-9045-40cd-b518-c11a9a6a1025")
   protected val uuidPq: UUID =
     UUID.fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c26")
   protected val uuidPqh: UUID =

@@ -114,17 +114,10 @@ class ThermalHouseSpec
               Kilowatts(lastOperatingPoint),
             )
 
-          thermalHouseState match {
-            case ThermalHouseState(
-                  tick,
-                  _,
-                  temperature,
-                ) =>
-              tick shouldBe 3600L
-              temperature should approximate(Kelvin(expectedTemperature))
-            case unexpected =>
-              fail(s"Expected a thermalHouseState but got none $unexpected.")
-          }
+          thermalHouseState.tick shouldBe 3600L
+          thermalHouseState.innerTemperature should approximate(
+            Kelvin(expectedTemperature)
+          )
       }
     }
 
@@ -175,19 +168,10 @@ class ThermalHouseSpec
             Kilowatts(qDotFirstPeriod),
           )
 
-          thermalHouseState match {
-            case ThermalHouseState(
-                  tick,
-                  _,
-                  temperature,
-                ) =>
-              tick shouldBe firstTick
-              temperature should approximate(
-                Celsius(expectedTemperatureFirstPeriod)
-              )
-            case unexpected =>
-              fail(s"Expected a thermalHouseState but got none $unexpected.")
-          }
+          thermalHouseState.tick shouldBe firstTick
+          thermalHouseState.innerTemperature should approximate(
+            Celsius(expectedTemperatureFirstPeriod)
+          )
 
           val finalThermalHouseState = house.determineState(
             secondTick,
@@ -195,19 +179,10 @@ class ThermalHouseSpec
             Kilowatts(qDotSecondPeriod),
           )
 
-          finalThermalHouseState match {
-            case ThermalHouseState(
-                  tick,
-                  _,
-                  temperature,
-                ) =>
-              tick shouldBe secondTick
-              temperature should approximate(
-                Celsius(expectedTemperatureSecondPeriod)
-              )
-            case unexpected =>
-              fail(s"Expected a thermalHouseState but got none $unexpected.")
-          }
+          finalThermalHouseState.tick shouldBe secondTick
+          finalThermalHouseState.innerTemperature should approximate(
+            Celsius(expectedTemperatureSecondPeriod)
+          )
       }
     }
 
@@ -280,15 +255,15 @@ class ThermalHouseSpec
         qDot,
       )
 
-      val tolerance = 1d
+      given tolerance: Double = 1d
       (finalThresholdCaseA, finalThresholdCaseB, finalThresholdCaseC) match {
         case (Some(thresholdA), Some(thresholdB), Some(thresholdC)) =>
           thresholdA.tick.doubleValue should approximate(
             thresholdB.tick.doubleValue
-          )(tolerance)
+          )
           thresholdB.tick.doubleValue should approximate(
             thresholdC.tick.doubleValue
-          )(tolerance)
+          )
           thresholdC shouldBe HouseTargetTemperatureReached(23732)
         case _ => fail("Could not match thresholds.")
       }
@@ -342,13 +317,7 @@ class ThermalHouseSpec
             newOperatingPoint,
           )
 
-          thresholdOption match {
-            case threshold => threshold shouldBe expectedThreshold
-            case unexpected =>
-              fail(
-                s"Expected a thermalHouseThreshold but got none $unexpected."
-              )
-          }
+          thresholdOption shouldBe expectedThreshold
       }
     }
 

@@ -59,11 +59,11 @@ object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
       flexOptions: PowerLimitFlexOptions,
       setPower: Power,
   ): Unit = {
-    if (setPower < flexOptions.min)
+    if setPower < flexOptions.min then
       throw new FlexException(
         s"The set power $setPower must not be lower than the minimum power ${flexOptions.min}!"
       )
-    else if (setPower > flexOptions.max)
+    else if setPower > flexOptions.max then
       throw new FlexException(
         s"The set power $setPower must not be greater than the maximum power ${flexOptions.max}!"
       )
@@ -127,12 +127,12 @@ object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
       min: Power,
       max: Power,
   ): PowerLimitFlexOptions = {
-    if (min > ref)
+    if min > ref then
       throw new CriticalFailureException(
         s"Minimum power $min is greater than reference power $ref"
       )
 
-    if (ref > max)
+    if ref > max then
       throw new CriticalFailureException(
         s"Reference power $ref is greater than maximum power $max"
       )
