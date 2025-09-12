@@ -30,7 +30,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
   "An ExtSimSetupData" should {
 
-    val emptyMapInput = Map.empty[UUID, Class[Value]].asJava
+    val emptyMapInput = Map.empty[UUID, Class[? <: Value]].asJava
     val emptyUuidList = List.empty[UUID].asJava
 
     "be updated with an ExtPrimaryDataConnection correctly" in {
@@ -122,8 +122,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     "be updated with an ExtResultDataConnection correctly" in {
       val extSimSetupData = ExtSimSetupData.apply
 
-      val resultConnection =
-        new ExtResultDataConnection(emptyUuidList, emptyUuidList, emptyUuidList)
+      val resultConnection = new ExtResultDataConnection(emptyUuidList)
       val resultRef = TestProbe[ServiceMessage]("result_service").ref
 
       val updated = extSimSetupData.update(resultConnection, resultRef)
@@ -147,8 +146,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val emConnection = new ExtEmDataConnection(emptyUuidList, EmMode.BASE)
       val emRef = TestProbe[ServiceMessage]("em_service").ref
 
-      val resultConnection =
-        new ExtResultDataConnection(emptyUuidList, emptyUuidList, emptyUuidList)
+      val resultConnection = new ExtResultDataConnection(emptyUuidList)
       val resultRef = TestProbe[ServiceMessage]("result_service").ref
 
       val updated = extSimSetupData
