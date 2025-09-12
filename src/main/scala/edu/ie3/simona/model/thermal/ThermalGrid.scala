@@ -33,10 +33,10 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.quantities.QuantityUtils.{
-  asMegaWattHour,
   asKelvin,
-  asPu,
   asMegaWatt,
+  asMegaWattHour,
+  asPu,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import squants.energy.KilowattHours
@@ -63,6 +63,7 @@ final case class ThermalGrid(
 ) extends LazyLogging {
 
   /** Determines the state of the ThermalGrid by using the HpOperatingPoint.
+    *
     * @param tick
     *   The current tick of simulation.
     * @param lastState
@@ -133,6 +134,7 @@ final case class ThermalGrid(
   }
 
   /** Determine the energy demand of the thermalGrid.
+    *
     * @param thermalGridState
     *   Last state of the thermal grid.
     * @param hoursWaterDemandToDetermine
@@ -157,7 +159,8 @@ final case class ThermalGrid(
             )
           // Calculate heating demand of house
           val heatingDemand = {
-            if houseState.innerTemperature < thermalHouse.targetTemperature then {
+            if houseState.innerTemperature < thermalHouse.targetTemperature
+            then {
               thermalHouse.energyDemandHeating(houseState)
             } else {
               ThermalEnergyDemand.noDemand
@@ -193,10 +196,8 @@ final case class ThermalGrid(
         case Some((storage, storageState)) =>
           val storedEnergy = storageState.storedEnergy
           val storageRequired = {
-            if (storedEnergy == zeroKWh)
-              storage.getMaxEnergyThreshold
-            else
-              zeroMWh
+            if storedEnergy == zeroKWh then storage.getMaxEnergyThreshold
+            else zeroMWh
           }
 
           val storagePossible = storage.getMaxEnergyThreshold - storedEnergy
@@ -287,18 +288,15 @@ final case class ThermalGrid(
       qDot: Power,
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
 
-    if (
-      state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand && (state.thermalDemands.houseDemand.hasRequiredDemand ||
+    if state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand && (state.thermalDemands.houseDemand.hasRequiredDemand ||
         (state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW && state.lastHpOperatingPoint.thermalOps.qDotHp > zeroKW))
-    )
+    then
       // if the DomesticHotWaterStorage has reqDemand AND house has reqDemand or was heated in lastState by Hp, we would like to split the qDot between house and waterStorage
       handleCase(state, qDot / 2, zeroKW, qDot / 2)
     else if state.thermalDemands.houseDemand.hasRequiredDemand then
       handleCase(state, qDot, zeroKW, zeroKW)
-    else if (
-      state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand
-    )
-      handleCase(state, zeroKW, zeroKW, qDot)
+    else if state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand
+    then handleCase(state, zeroKW, zeroKW, qDot)
     else if state.thermalDemands.heatStorageDemand.hasRequiredDemand || state.thermalDemands.heatStorageDemand.hasPossibleDemand
     then handleCase(state, zeroKW, qDot, zeroKW)
     else if state.thermalDemands.houseDemand.hasPossibleDemand then
@@ -336,7 +334,7 @@ final case class ThermalGrid(
     // Handle domestic hot water demand
     val (resultingQDotHotWaterStorage, thresholdHotWaterStorage) =
       // There only can be consumption, if there isn't feed in into the storage.
-      if (qDotDomesticHotWaterStorage == zeroKW)
+      if qDotDomesticHotWaterStorage == zeroKW then
         handleHotWaterConsumption(state)
       else {
         val threshold = handleFeedInStorage(
@@ -349,7 +347,7 @@ final case class ThermalGrid(
 
     val nextThreshold = determineNextThreshold(
       Seq(
-        thermalHouseThreshold,
+        thresholdThermalHouse,
         thresholdHeatStorage,
         thresholdHotWaterStorage,
       )
@@ -406,6 +404,7 @@ final case class ThermalGrid(
 
   /** Handles the case, when the storage has heat demand and will be filled up
     * here (positive qDot).
+    *
     * @param state
     *   State of the heat pump.
     * @param qDotStorage
@@ -466,9 +465,6 @@ final case class ThermalGrid(
         }
     }
 
-    findMostRecent(thresholds.flatten, None)
-  }
-
   /** Handle consumption (or no feed in) from thermal grid.
     *
     * @param state
@@ -496,7 +492,7 @@ final case class ThermalGrid(
 
     val operatingPoint =
       revisedOp.copy(qDotDomesticHotWaterStorage = qDotHotWaterStorage)
-    val nextThreshold = determineMostRecentThreshold(
+    val nextThreshold = determineNextThreshold(
       Seq(revisedThreshold, thresholdWaterStorage)
     )
 
@@ -514,7 +510,7 @@ final case class ThermalGrid(
     ) match {
       case Some((_, storageState)) =>
         // Check if storage can handle the demand
-        if (storageState.storedEnergy < domesticHotWaterDemand.required) {
+        if storageState.storedEnergy < domesticHotWaterDemand.required then {
           // if it can't, take max qDot that empties the storage asap, return the according threshold
           {
             identifyApplicableQDot(
@@ -538,7 +534,7 @@ final case class ThermalGrid(
       state: HpState,
       domesticHotWaterDemand: ThermalEnergyDemand,
   ): (Power, Option[ThermalThreshold]) = {
-    if (domesticHotWaterDemand.required > zeroKWh) {
+    if domesticHotWaterDemand.required > zeroKWh then {
       val chargingPower = domesticHotWaterStorage
         .map(_.getpThermalMax)
         .getOrElse(
@@ -550,7 +546,7 @@ final case class ThermalGrid(
       val approxDurationAtFullPower =
         domesticHotWaterDemand.required / chargingPower
 
-      if (approxDurationAtFullPower > Seconds(1)) {
+      if approxDurationAtFullPower > Seconds(1) then {
         val preciseChargingPower =
           -1 * domesticHotWaterDemand.required / Seconds(
             approxDurationAtFullPower.toSeconds.toLong + 1
@@ -626,7 +622,6 @@ final case class ThermalGrid(
 
       val nextThreshold = determineNextThreshold(
         Seq(
-          Seq(
           revisedHouseThreshold,
           revisedStorageThreshold,
         )
@@ -809,6 +804,7 @@ object ThermalGrid {
   }
 
   /** Current state of a grid.
+    *
     * @param houseState
     *   State of the thermal house.
     * @param heatStorageState
@@ -873,6 +869,7 @@ object ThermalGrid {
     * energy, that can be handled. The possible energy always has to be greater
     * than or equal to the absolutely required energy. Thus, this class can only
     * be instantiated via factory.
+    *
     * @param required
     *   The absolutely required energy to reach target state. For
     *   [[ThermalHouse]] this would be the energy demand to reach the boundary
@@ -886,19 +883,22 @@ object ThermalGrid {
       required: Energy,
       possible: Energy,
   ) {
-    def +(rhs: ThermalEnergyDemand): ThermalEnergyDemand = ThermalEnergyDemand(
-      required + rhs.required,
-      possible + rhs.possible,
-    )
+    def +(rhs: ThermalEnergyDemand): ThermalEnergyDemand =
+      ThermalEnergyDemand(
+        required + rhs.required,
+        possible + rhs.possible,
+      )
 
     def hasRequiredDemand: Boolean = required > zeroKWh
 
     def hasPossibleDemand: Boolean = possible > zeroKWh
   }
+
   object ThermalEnergyDemand {
 
     /** Builds a new instance of [[ThermalEnergyDemand]]. If the possible energy
       * is less than the required energy, this is considered to be a bad state.
+      *
       * @param required
       *   The absolutely required energy to reach target state.
       * @param possible
@@ -910,7 +910,9 @@ object ThermalGrid {
         required: Energy,
         possible: Energy,
     ): ThermalEnergyDemand = {
-      if math.abs(possible.toKilowattHours) < math.abs(required.toKilowattHours)
+      if math.abs(possible.toKilowattHours) < math.abs(
+          required.toKilowattHours
+        )
       then
         throw new InvalidParameterException(
           s"The possible amount of energy $possible is smaller than the required amount of energy $required. This is not supported."

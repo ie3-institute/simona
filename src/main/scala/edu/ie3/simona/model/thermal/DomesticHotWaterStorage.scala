@@ -19,11 +19,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  TemperatureConversionSimona,
-  VolumeConversionSimona,
-  toSquants,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import squants.energy.Kilowatts
 import squants.time.Seconds
 import squants.{Energy, Power}
@@ -96,12 +92,9 @@ final case class DomesticHotWaterStorage(
       )
     val newEnergy = heatStorageState.storedEnergy + energyBalance
     val updatedEnergy =
-      if (isFull(newEnergy))
-        maxEnergyThreshold
-      else if (isEmpty(newEnergy))
-        zeroKWh
-      else
-        newEnergy
+      if isFull(newEnergy) then maxEnergyThreshold
+      else if isEmpty(newEnergy) then zeroKWh
+      else newEnergy
 
     ThermalStorageState(tick, updatedEnergy)
   }
@@ -120,24 +113,19 @@ final case class DomesticHotWaterStorage(
       domesticWaterStorageState: ThermalStorageState,
       qDotWaterStorage: Power,
   ): Option[ThermalThreshold] = {
-    if (qDotWaterStorage > zeroKW) {
+    if qDotWaterStorage > zeroKW then {
       val duration =
         (maxEnergyThreshold - domesticWaterStorageState.storedEnergy) / qDotWaterStorage
       val durationInTicks = Math.floor(duration.toSeconds).toLong
-      if (durationInTicks <= 0L)
-        None
-      else
-        Some(StorageFull(domesticWaterStorageState.tick + durationInTicks))
-    } else if (qDotWaterStorage < zeroKW) {
+      if durationInTicks <= 0L then None
+      else Some(StorageFull(domesticWaterStorageState.tick + durationInTicks))
+    } else if qDotWaterStorage < zeroKW then {
       val duration =
         domesticWaterStorageState.storedEnergy / qDotWaterStorage * -1
       val durationInTicks = Math.floor(duration.toSeconds).toLong
-      if (durationInTicks <= 0L)
-        None
-      else
-        Some(StorageEmpty(domesticWaterStorageState.tick + durationInTicks))
-    } else
-      None
+      if durationInTicks <= 0L then None
+      else Some(StorageEmpty(domesticWaterStorageState.tick + durationInTicks))
+    } else None
   }
 
   override def startingState: ThermalStorageState = ThermalStorageState(

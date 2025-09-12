@@ -24,7 +24,10 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.model.thermal.ThermalGrid
-import edu.ie3.simona.model.thermal.ThermalGrid.*
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
+  ThermalGridState,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,

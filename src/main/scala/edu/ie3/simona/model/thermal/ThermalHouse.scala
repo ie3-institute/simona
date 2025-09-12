@@ -145,19 +145,19 @@ final case class ThermalHouse(
       simulationTime: ZonedDateTime,
       state: HpState,
   ): Option[Seq[Int]] = {
-    if (tick == 0) {
+    if tick == 0 then {
       Some(Seq(simulationTime.getHour))
     } else {
       val timeDiffSeconds = tick - state.tick
       val lastStateTime = simulationTime.minusSeconds(timeDiffSeconds)
-      if (timeDiffSeconds > 3600) {
+      if timeDiffSeconds > 3600 then {
         val hoursDiff = (timeDiffSeconds / 3600).toInt
 
         Some(
           (1 to hoursDiff + 1).map(hour => (lastStateTime.getHour + hour) % 24)
         )
 
-      } else if (simulationTime.getHour != lastStateTime.getHour) {
+      } else if simulationTime.getHour != lastStateTime.getHour then {
         Some(Seq(simulationTime.getHour))
       } else {
         None
@@ -223,7 +223,7 @@ final case class ThermalHouse(
       startTemperature: Temperature,
       endTemperature: Temperature,
   ): Energy = {
-    if (endTemperature < startTemperature)
+    if endTemperature < startTemperature then
       throw new RuntimeException(
         s"End temperature of $endTemperature is lower than the start temperature $startTemperature for the water heating system."
       )
@@ -322,7 +322,7 @@ final case class ThermalHouse(
       }
 
     val waterVolumeRelative: Map[Int, Double] =
-      if (isHouse) waterVolumeRelativeHouse else waterVolumeRelativeFlat
+      if isHouse then waterVolumeRelativeHouse else waterVolumeRelativeFlat
 
     waterVolumeRelative.getOrElse(
       hour,
