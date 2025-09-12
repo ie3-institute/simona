@@ -18,7 +18,7 @@ import optimus.optimization.MPModel
 import squants.{Power, Time}
 import squants.energy.Kilowatts
 
-import scala.collection.SortedMap
+import scala.collection.immutable.SortedMap
 
 /** Flex options for participants that follow a fixed trajectory of power
   * values.

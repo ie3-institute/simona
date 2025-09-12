@@ -15,8 +15,8 @@ import edu.ie3.datamodel.models.input.system.characteristic.{
 }
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.model.participant.WecModel.WecState
-import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
+import edu.ie3.simona.model.participant.WecModel.{AirWeatherData, WecState}
+import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits
 import squants.energy.{Power, Watts}
 import squants.motion.{MetersPerSecond, Pascals}
@@ -26,8 +26,9 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 
-class WecModelSpec extends UnitSpec with DefaultTestData {
+class WecModelSpec extends UnitSpec with WeatherTestData {
 
   protected given powerTolerance: Power = Watts(1e-6)
   protected given dimensionlessTolerance: Dimensionless = Each(1e-12)
@@ -82,12 +83,42 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
 
   "WecModel" should {
 
-    "check build method of companion object" in {
+    "be build properly by using factory" in {
       val wecModel = WecModel.Factory(inputModel).create()
       wecModel.uuid shouldBe inputModel.getUuid
       wecModel.cosPhiRated should approximate(typeInput.getCosPhiRated)
       wecModel.sRated.toVoltamperes shouldBe (typeInput.getsRated.toSystemUnit.getValue
         .doubleValue() +- 1e-5)
+    }
+
+    "handle singular weather data by storing it into state" in {
+      val wecModel = WecModel.Factory(inputModel).create()
+      val oldState = WecState(0L)
+
+      val actualState =
+        wecModel.handleInput(oldState, Seq(weatherData), Each(1))
+
+      actualState.tick shouldEqual oldState.tick
+      actualState.weatherData shouldEqual SortedMap(
+        0L -> AirWeatherData(
+          windVelocity = weatherData.windVel,
+          temperature = weatherData.temp,
+        )
+      )
+    }
+
+    "handle weather series data by storing it into state" in {
+      val wecModel = WecModel.Factory(inputModel).create()
+      val oldState = WecState(0L)
+
+      val actualState =
+        wecModel.handleInput(oldState, Seq(weatherSeriesData), Each(1))
+
+      actualState.tick shouldEqual oldState.tick
+      actualState.weatherData shouldEqual weatherSeriesData.series.map {
+        case (tick, data) =>
+          tick -> AirWeatherData(data)
+      }
     }
 
     "determine Betz coefficient correctly" in {
@@ -131,10 +162,10 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
 
       forAll(testCases) { (velocity: Double, expectedPower: Double) =>
         val state = WecState(
-          0L,
-          MetersPerSecond(velocity),
-          Celsius(20),
-          Some(Pascals(101325d)),
+          tick = 0L,
+          windVelocity = MetersPerSecond(velocity),
+          temperature = Celsius(20),
+          airPressure = Some(Pascals(101325d)),
         )
         val (operatingPoint, nextTick) =
           wecModel.determineOperatingPoint(state)
@@ -184,10 +215,10 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
 
       forAll(testCases) { (temperature: Double, expectedPower: Double) =>
         val state = WecState(
-          0L,
-          MetersPerSecond(3.0),
-          Celsius(temperature),
-          Some(Pascals(101325d)),
+          tick = 0L,
+          windVelocity = MetersPerSecond(3.0),
+          temperature = Celsius(temperature),
+          airPressure = Some(Pascals(101325d)),
         )
         val (operatingPoint, nextTick) =
           wecModel.determineOperatingPoint(state)

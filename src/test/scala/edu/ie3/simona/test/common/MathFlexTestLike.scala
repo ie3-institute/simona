@@ -17,7 +17,7 @@ import org.scalatest.OptionValues.convertOptionToValuable
 import squants.{Dimensionless, Power}
 import squants.energy.Kilowatts
 
-import scala.collection.SortedMap
+import scala.collection.immutable.SortedMap
 
 trait MathFlexTestLike {
 
