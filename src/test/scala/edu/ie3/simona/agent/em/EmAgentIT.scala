@@ -96,7 +96,7 @@ class EmAgentIT
     flexResult = false,
   )
 
-  override protected val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
+  private val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
     uuids = List("default"),
     aggregateFlex = "SELF_OPT",
   )

@@ -17,7 +17,11 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
 }
-import edu.ie3.simona.config.RuntimeConfig.{HpRuntimeConfig, PvRuntimeConfig}
+import edu.ie3.simona.config.RuntimeConfig.{
+  EmRuntimeConfig,
+  HpRuntimeConfig,
+  PvRuntimeConfig,
+}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.*
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -79,7 +83,6 @@ class ThermalGridIT
     with QuantityMatchers
     with EmInputTestData
     with MockitoSugar
-    with DefaultTestData
     with TestSpawnerTyped {
   protected given temperatureTolerance: ComparableQuantity[Temperature] =
     Quantities.getQuantity(0.01, Units.CELSIUS)
@@ -762,7 +765,7 @@ class ThermalGridIT
       val emAgent = spawn(
         EmAgent(
           emInput,
-          modelConfig,
+          EmRuntimeConfig(),
           outputConfigOn,
           "PRIORITIZED",
           simulationStartWithPv,
