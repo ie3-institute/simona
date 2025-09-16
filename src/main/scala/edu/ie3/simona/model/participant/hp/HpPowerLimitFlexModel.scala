@@ -59,9 +59,7 @@ class HpPowerLimitFlexModel(private val model: HpModel)
       // should not be possible to reach
     }
 
-    val maxPower =
-      if canOperate then model.sRated.toActivePower(model.cosPhiRated)
-      else zeroKW
+    val maxPower = if canOperate then refOn else zeroKW
 
     PowerLimitFlexOptions(refPower, minPower, maxPower)
   }
