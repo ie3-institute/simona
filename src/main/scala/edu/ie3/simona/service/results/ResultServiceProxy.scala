@@ -21,7 +21,6 @@ import edu.ie3.simona.service.results.Transformer3wResultSupport.{
   AggregatedTransformer3wResult,
   Transformer3wKey,
 }
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
@@ -41,7 +40,6 @@ object ResultServiceProxy {
   private final case class ResultServiceStateData(
       listeners: Seq[ActorRef[ResultResponse]],
       simStartTime: ZonedDateTime,
-      currentTick: Long = INIT_SIM_TICK,
       threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult,
@@ -51,7 +49,7 @@ object ResultServiceProxy {
       waitingForResults: Map[UUID, Long] = Map.empty,
   ) extends ServiceBaseStateData {
     def notifyListener(results: Map[UUID, Iterable[ResultEntity]]): Unit =
-      listeners.foreach(_ ! ResultResponse(results))
+      if results.nonEmpty then listeners.foreach(_ ! ResultResponse(results))
 
     def notifyListener(result: ResultEntity): Unit =
       listeners.foreach(
@@ -66,9 +64,6 @@ object ResultServiceProxy {
         }
       }
     }
-
-    def updateTick(tick: Long): ResultServiceStateData =
-      copy(currentTick = tick)
 
     def waitForResult(expectResult: ExpectResult): ResultServiceStateData =
       expectResult.assets match {
@@ -152,7 +147,7 @@ object ResultServiceProxy {
 
         // un-stash received requests
         buffer.unstashAll(idle(updatedStateData))
-      case (ctx, requestResultMessage: RequestResult) =>
+      case (_, requestResultMessage: RequestResult) =>
         val requestedResults = requestResultMessage.requestedResults
         val tick = requestResultMessage.tick
 

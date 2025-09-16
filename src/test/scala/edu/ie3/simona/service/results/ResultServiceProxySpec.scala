@@ -1,0 +1,270 @@
+/*
+ * © 2025. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
+package edu.ie3.simona.service.results
+
+import edu.ie3.simona.event.ResultEvent.{
+  ParticipantResultEvent,
+  PowerFlowResultEvent,
+}
+import edu.ie3.simona.ontology.messages.ResultMessage
+import edu.ie3.simona.ontology.messages.ResultMessage.{
+  RequestResult,
+  ResultResponse,
+}
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.test.common.result.PowerFlowResultData
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
+
+class ResultServiceProxySpec
+    extends ScalaTestWithActorTestKit
+    with UnitSpec
+    with ConfigTestData
+    with PowerFlowResultData
+    with ThreeWindingResultTestData {
+
+  "The ResultServiceProxy" should {
+
+    "answer request for results correctly without waiting for results" in {
+      val resultProvider = TestProbe[ResultMessage.Response]("listener")
+
+      val resultProxy = spawn(ResultServiceProxy(Seq.empty, startTime, 10))
+
+      resultProxy ! RequestResult(
+        Seq(dummyInputModel, inputModel),
+        3600L,
+        resultProvider.ref,
+      )
+
+      // no results, since the result proxy received not waiting for result information
+      resultProvider
+        .expectMessageType[ResultResponse]
+        .results shouldBe Map.empty
+    }
+
+    "answer request for results correctly with waiting for some results" in {
+      val resultProvider = TestProbe[ResultMessage.Response]("listener")
+
+      val resultProxy = spawn(ResultServiceProxy(Seq.empty, startTime, 10))
+
+      // tells the proxy to wait for the results of dummyInputModel for tick 3600L
+      resultProxy ! ExpectResult(Seq(dummyInputModel), 3600L)
+
+      resultProxy ! RequestResult(
+        Seq(dummyInputModel, inputModel),
+        3600L,
+        resultProvider.ref,
+      )
+
+      // still waiting for results
+      resultProvider.expectNoMessage()
+
+      resultProxy ! PowerFlowResultEvent(
+        Seq(dummyNodeResult),
+        Seq(dummySwitchResult),
+        Seq(dummyLineResult),
+        Seq(dummyTrafo2wResult),
+        Seq(resultA),
+      )
+
+      // no results for three winding transformers, because the proxy is not told to wait and the results was not received beforehand
+      resultProvider.expectMessageType[ResultResponse].results shouldBe Map(
+        dummyInputModel -> List(
+          dummyNodeResult,
+          dummySwitchResult,
+          dummyLineResult,
+          dummyTrafo2wResult,
+        )
+      )
+    }
+
+    "answer request for results correctly with waiting for some results with different receive order" in {
+      val resultProvider = TestProbe[ResultMessage.Response]("listener")
+
+      val resultProxy = spawn(ResultServiceProxy(Seq.empty, startTime, 10))
+
+      // tells the proxy to wait for the results with dumyInputModel for tick 3600L
+      resultProxy ! ExpectResult(Seq(dummyInputModel), 3600L)
+
+      resultProxy ! RequestResult(
+        Seq(dummyInputModel, inputModel),
+        3600L,
+        resultProvider.ref,
+      )
+
+      // receiving three winding results for port B and C beforehand
+      resultProxy ! PowerFlowResultEvent(
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq(resultB, resultC),
+      )
+
+      // still waiting for results
+      resultProvider.expectNoMessage()
+
+      resultProxy ! PowerFlowResultEvent(
+        Seq(dummyNodeResult),
+        Seq(dummySwitchResult),
+        Seq(dummyLineResult),
+        Seq(dummyTrafo2wResult),
+        Seq(resultA),
+      )
+
+      // receives three winding result, because all partial results are present
+      resultProvider.expectMessageType[ResultResponse].results shouldBe Map(
+        dummyInputModel -> List(
+          dummyNodeResult,
+          dummySwitchResult,
+          dummyLineResult,
+          dummyTrafo2wResult,
+        ),
+        inputModel -> List(expected),
+      )
+    }
+
+    "answer request for results correctly with waiting for all results" in {
+      val resultProvider = TestProbe[ResultMessage.Response]("listener")
+
+      val resultProxy = spawn(ResultServiceProxy(Seq.empty, startTime, 10))
+
+      // tells the proxy to wait for the results of dumyInputModel for tick 3600L
+      resultProxy ! ExpectResult(Seq(dummyInputModel), 3600L)
+
+      // tells the proxy to also wait for the results of inputModel for tick 3600L
+      resultProxy ! ExpectResult(Seq(inputModel), 3600L)
+
+      resultProxy ! RequestResult(
+        Seq(dummyInputModel, inputModel),
+        3600L,
+        resultProvider.ref,
+      )
+
+      // still waiting for results
+      resultProvider.expectNoMessage()
+
+      resultProxy ! PowerFlowResultEvent(
+        Seq(dummyNodeResult),
+        Seq(dummySwitchResult),
+        Seq(dummyLineResult),
+        Seq(dummyTrafo2wResult),
+        Seq(resultA),
+      )
+
+      // still waiting for results
+      resultProvider.expectNoMessage()
+
+      // receiving three winding results for port B and C
+      resultProxy ! PowerFlowResultEvent(
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq(resultB, resultC),
+      )
+
+      // no results for three winding transformers, because the proxy is not told to wait and the results was not received beforehand
+      resultProvider.expectMessageType[ResultResponse].results shouldBe Map(
+        dummyInputModel -> List(
+          dummyNodeResult,
+          dummySwitchResult,
+          dummyLineResult,
+          dummyTrafo2wResult,
+        ),
+        inputModel -> List(expected),
+      )
+    }
+
+    "correctly handle grid result events" in {
+      val listener = TestProbe[ResultResponse]("listener")
+
+      val resultProxy =
+        spawn(ResultServiceProxy(Seq(listener.ref), startTime, 10))
+
+      resultProxy ! PowerFlowResultEvent(
+        Seq(dummyNodeResult),
+        Seq(dummySwitchResult),
+        Seq(dummyLineResult),
+        Seq(dummyTrafo2wResult),
+        Seq.empty,
+      )
+
+      // all results have the same uuid, therefore, all result a grouped to this uuid
+      listener.expectMessageType[ResultResponse].results shouldBe Map(
+        dummyInputModel -> List(
+          dummyNodeResult,
+          dummySwitchResult,
+          dummyLineResult,
+          dummyTrafo2wResult,
+        )
+      )
+    }
+
+    "correctly handle three winding transformer result events" in {
+      val listener = TestProbe[ResultResponse]("listener")
+
+      val resultProxy =
+        spawn(ResultServiceProxy(Seq(listener.ref), startTime, 10))
+
+      // sending result for port A
+      resultProxy ! PowerFlowResultEvent(
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq(resultA),
+      )
+
+      // no message, because the three winding result is not complete
+      listener.expectNoMessage()
+
+      // sending result for port C
+      resultProxy ! PowerFlowResultEvent(
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq(resultC),
+      )
+
+      // no message, because the three winding result is not complete
+      listener.expectNoMessage()
+
+      // sending result for port B
+      resultProxy ! PowerFlowResultEvent(
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq(resultB),
+      )
+
+      listener.expectMessageType[ResultResponse].results shouldBe Map(
+        inputModel -> List(expected)
+      )
+    }
+
+    "correctly handle participant result events" in {
+      val listener = TestProbe[ResultResponse]("listener")
+
+      val resultProxy =
+        spawn(ResultServiceProxy(Seq(listener.ref), startTime, 10))
+
+      resultProxy ! ParticipantResultEvent(dummyPvResult)
+
+      listener.expectMessageType[ResultResponse].results shouldBe Map(
+        dummyPvResult.getInputModel -> List(dummyPvResult)
+      )
+    }
+
+  }
+
+}

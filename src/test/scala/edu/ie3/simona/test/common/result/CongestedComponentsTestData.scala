@@ -20,7 +20,6 @@ import edu.ie3.simona.model.grid.*
 import edu.ie3.simona.test.common.ConfigTestData
 import edu.ie3.simona.test.common.input.NodeInputTestData
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
@@ -33,10 +32,6 @@ trait CongestedComponentsTestData
     extends ConfigTestData
     with NodeInputTestData
     with DbfsTestGrid {
-
-  val startTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime(
-    simonaConfig.simona.time.startDateTime
-  )
 
   val endTime: ZonedDateTime = startTime.plusHours(2)
 

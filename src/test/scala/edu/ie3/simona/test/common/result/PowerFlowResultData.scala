@@ -24,7 +24,7 @@ trait PowerFlowResultData {
 
   private val dummyTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-30T17:26:44Z")
-  private val dummyInputModel =
+  protected val dummyInputModel: UUID =
     UUID.fromString("e5ac84d3-c7a5-4870-a42d-837920aec9bb")
 
   given Conversion[ResultEntity, Map[UUID, Iterable[ResultEntity]]] =
