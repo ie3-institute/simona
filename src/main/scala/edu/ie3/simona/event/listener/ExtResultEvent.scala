@@ -112,7 +112,8 @@ object ExtResultEvent {
 
         extMsg match {
           case requestResultEntities: RequestResultEntities =>
-            val requestedResults = new util.ArrayList(requestResultEntities.requestedResults)
+            val requestedResults =
+              new util.ArrayList(requestResultEntities.requestedResults)
 
             // request results from result proxy
             stateData.resultProxy ! RequestResult(

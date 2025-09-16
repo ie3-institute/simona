@@ -111,30 +111,31 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
 
   override def init(
       initServiceData: InitializeServiceStateData
-  )(using log: Logger): Try[(ExtEmDataStateData, Option[Long])] = initServiceData match {
-    case InitExtEmData(extEmDataConnection, startTime) =>
-      val serviceCore = extEmDataConnection.mode match {
-        case EmMode.BASE =>
-          EmServiceBaseCore.empty
-        case EmMode.EM_COMMUNICATION =>
-          EmCommunicationCore()
-      }
+  )(using log: Logger): Try[(ExtEmDataStateData, Option[Long])] =
+    initServiceData match {
+      case InitExtEmData(extEmDataConnection, startTime) =>
+        val serviceCore = extEmDataConnection.mode match {
+          case EmMode.BASE =>
+            EmServiceBaseCore.empty
+          case EmMode.EM_COMMUNICATION =>
+            EmCommunicationCore()
+        }
 
-      val emDataInitializedStateData =
-        ExtEmDataStateData(extEmDataConnection, startTime, serviceCore)
+        val emDataInitializedStateData =
+          ExtEmDataStateData(extEmDataConnection, startTime, serviceCore)
 
-      Success(
-        emDataInitializedStateData,
-        None,
-      )
-
-    case invalidData =>
-      Failure(
-        new InitializationException(
-          s"Provided init data '${invalidData.getClass.getSimpleName}' for ExtEmDataService are invalid!"
+        Success(
+          emDataInitializedStateData,
+          None,
         )
-      )
-  }
+
+      case invalidData =>
+        Failure(
+          new InitializationException(
+            s"Provided init data '${invalidData.getClass.getSimpleName}' for ExtEmDataService are invalid!"
+          )
+        )
+    }
 
   override protected def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage

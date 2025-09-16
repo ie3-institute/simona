@@ -75,7 +75,6 @@ object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
   ): Power =
     flexCtrl match {
       case IssuePowerControl(_, setPower) =>
-
         if setPower < flexOptions.min then {
           flexOptions.min
         } else if setPower > flexOptions.max then {

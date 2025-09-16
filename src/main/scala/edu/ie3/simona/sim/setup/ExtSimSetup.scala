@@ -6,18 +6,20 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.simona.api.data.connection.{
-  ExtEvDataConnection,
-  ExtInputDataConnection,
-  ExtPrimaryDataConnection,
-}
+import com.typesafe.config.Config
+import edu.ie3.datamodel.models.input.container.JointGridContainer
+import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.event.listener.ExtResultEvent
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.{RequestResult, SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.{
+  RequestResult,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.em.ExtEmDataService
@@ -46,10 +48,10 @@ object ExtSimSetup {
     *   Interfaces that hold information regarding external simulations.
     * @param args
     *   The main args the simulation is started with.
-   * @param config
-   * The simona config.
-   * @param grid
-   * The electrical grid.
+    * @param config
+    *   The simona config.
+    * @param grid
+    *   The electrical grid.
     * @param context
     *   The actor context of this actor system.
     * @param scheduler

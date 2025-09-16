@@ -9,12 +9,21 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent.Message
-import edu.ie3.simona.api.data.model.em.{EmData, EmSetPoint, ExtendedFlexOptionsResult, FlexOptionRequest}
+import edu.ie3.simona.api.data.model.em.{
+  EmData,
+  EmSetPoint,
+  ExtendedFlexOptionsResult,
+  FlexOptionRequest,
+}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexType,
+  FlexibilityMessage,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.*
@@ -403,7 +412,10 @@ case class EmCommunicationCore(
             )
         }
 
-        expectDataFrom.addData(sender, new EmSetPoint(receiverUuid, sender, power))
+        expectDataFrom.addData(
+          sender,
+          new EmSetPoint(receiverUuid, sender, power),
+        )
 
       case other =>
         log.warn(s"$other is not supported!")
