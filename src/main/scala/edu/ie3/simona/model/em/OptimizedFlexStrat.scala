@@ -30,7 +30,7 @@ import java.util.UUID
   * @param sampleTime
   *   The amount of time in between steps.
   * @param predictionHorizon
-  *   The amount of time that is considered in the future, i.e. the last step is
+  *   The amount of time that is predicted into the future, i.e. the last step is
   *   this amount of time away from now.
   * @param powerObjectiveFactory
   *   The objective to optimize for.
