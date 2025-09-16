@@ -45,7 +45,7 @@ trait MathFlexTestLike {
         regularChargingEta: Dimensionless,
         adaptedEta: Dimensionless,
     ): EnergyConversionFactor =
-      new EnergyConversionFactor(regularChargingEta.toEach / adaptedEta.toEach)
+      new EnergyConversionFactor(regularChargingEta / adaptedEta)
   }
 
   def buildDebugString(
