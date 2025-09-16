@@ -53,9 +53,9 @@ object ServiceMessage {
     * @param data
     *   The data, that is used during the registration.
     */
-  final case class SecondaryServiceRegistrationMessage[D](
+  final case class SecondaryServiceRegistrationMessage(
       requestingActor: ActorRef[ParticipantAgent.Request],
-      data: D,
+      data: Any,
   ) extends ServiceRegistrationMessage
 
   final case class EmServiceRegistration(

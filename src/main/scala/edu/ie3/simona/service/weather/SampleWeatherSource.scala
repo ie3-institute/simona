@@ -27,7 +27,7 @@ import java.time.temporal.ChronoField.{HOUR_OF_DAY, MONTH_OF_YEAR, YEAR}
 import java.util
 import java.util.{Collections, Optional}
 import javax.measure.quantity.Length
-import scala.collection.SortedMap
+import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters.*
 
 final class SampleWeatherSource(

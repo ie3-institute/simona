@@ -6,9 +6,11 @@
 
 package edu.ie3.simona.sim.setup
 
-import com.typesafe.config.Config
-import edu.ie3.datamodel.models.input.container.JointGridContainer
-import edu.ie3.simona.api.data.connection.*
+import edu.ie3.simona.api.data.connection.{
+  ExtEvDataConnection,
+  ExtInputDataConnection,
+  ExtPrimaryDataConnection,
+}
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
@@ -60,7 +62,7 @@ object ExtSimSetup {
   def setupExtSim(
       extLinks: List[ExtLinkInterface],
       args: Array[String],
-      config: Config,         
+      config: Config,
       grid: JointGridContainer,
   )(using
       context: ActorContext[?],
@@ -271,10 +273,7 @@ object ExtSimSetup {
     * @return
     *   The reference to the service.
     */
-  private[setup] def setupService[
-      C <: ExtInputDataConnection[?],
-      M,
-  ](
+  private[setup] def setupService[C <: ExtInputDataConnection[?]](
       extInputDataConnection: C,
       serviceRef: ActorRef[ServiceMessage | DataMessageFromExt],
       initData: C => InitializeServiceStateData,
