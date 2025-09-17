@@ -9,22 +9,22 @@ package edu.ie3.simona.model.em
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.scalatestplus.mockito.MockitoSugar
 import squants.energy.Kilowatts
 
 import java.util.UUID
 
-class EmModelShellSpec extends UnitSpec with MockitoSugar with EmInputTestData {
+class EmModelShellSpec extends UnitSpec with MockitoSugar {
 
   "EmModelShell" should {
     "apply PROPORTIONAL strategy correctly" in {
+      val config = EmRuntimeConfig()
       val result = EmModelShell.apply(
         UUID.randomUUID(),
         "TestID1",
         "PROPORTIONAL",
-        modelConfig,
+        config,
       )
 
       result.modelStrategy shouldBe ProportionalFlexStrat
@@ -35,12 +35,12 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar with EmInputTestData {
     }
 
     "apply PRIORITIZED strategy with curtailRegenerative correctly" in {
-      val model = EmRuntimeConfig.apply(false, 1.0, null, "SELF_OPT", true)
+      val config = EmRuntimeConfig.apply(false, 1.0, null, "SELF_OPT", true)
       val result = EmModelShell.apply(
         UUID.randomUUID(),
         "TestID2",
         "PRIORITIZED",
-        model,
+        config,
       )
 
       result.modelStrategy shouldBe PrioritizedFlexStrat(true)
@@ -51,12 +51,13 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar with EmInputTestData {
     }
 
     "throw CriticalFailureException for unknown model strategy" in {
+      val config = EmRuntimeConfig()
       val exception = intercept[CriticalFailureException] {
         EmModelShell.apply(
           UUID.randomUUID(),
           "TestID3",
           "UNKNOWN_STRATEGY",
-          modelConfig,
+          config,
         )
       }
 
@@ -66,58 +67,57 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar with EmInputTestData {
     }
 
     "apply SIMPLE_SUM strategy correctly" in {
-      val model = EmRuntimeConfig.apply(false, 1.0, null, "SIMPLE_SUM", true)
+      val config = EmRuntimeConfig.apply(false, 1.0, null, "SIMPLE_SUM", true)
       val result = EmModelShell.apply(
         UUID.randomUUID(),
         "TestID4",
         "PROPORTIONAL",
-        model,
+        config,
       )
 
       result.aggregateFlex shouldBe EmAggregateSimpleSum
     }
 
     "apply SELF_POWER_* strategy with correct power limit" in {
-      val model =
+      val config =
         EmRuntimeConfig.apply(false, 1.0, null, "SELF_POWER_100.5", true)
       val result = EmModelShell.apply(
         UUID.randomUUID(),
         "TestID5",
         "PROPORTIONAL",
-        model,
+        config,
       )
 
       result.aggregateFlex shouldBe EmAggregatePowerOpt(Kilowatts(100.5), true)
     }
 
     "apply SELF_POWER_*_EXCL_REG strategy correctly" in {
-      val model = EmRuntimeConfig.apply(
+      val config = EmRuntimeConfig.apply(
         false,
         1.0,
         null,
         "SELF_POWER_200_EXCL_REG",
-        false,
       )
       val result = EmModelShell.apply(
         UUID.randomUUID(),
         "TestID6",
         "PROPORTIONAL",
-        model,
+        config,
       )
 
       result.aggregateFlex shouldBe EmAggregatePowerOpt(Kilowatts(200), false)
     }
 
     "throw CriticalFailureException for invalid power limit format" in {
-      val model =
-        EmRuntimeConfig.apply(false, 1.0, null, "SELF_POWER_100.100.100", false)
+      val config =
+        EmRuntimeConfig.apply(false, 1.0, null, "SELF_POWER_100.100.100")
 
       val exception = intercept[CriticalFailureException] {
         EmModelShell.apply(
           UUID.randomUUID(),
           "TestID7",
           "PROPORTIONAL",
-          model,
+          config,
         )
       }
 
@@ -127,15 +127,15 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar with EmInputTestData {
     }
 
     "throw CriticalFailureException for non numeric power limit format" in {
-      val model =
-        EmRuntimeConfig.apply(false, 1.0, null, "SELF_POWER_abc", false)
+      val config =
+        EmRuntimeConfig.apply(false, 1.0, null, "SELF_POWER_abc")
 
       val exception = intercept[CriticalFailureException] {
         EmModelShell.apply(
           UUID.randomUUID(),
           "TestID7",
           "PROPORTIONAL",
-          model,
+          config,
         )
       }
 
@@ -145,14 +145,14 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar with EmInputTestData {
     }
 
     "throw CriticalFailureException for invalid format in SELF_POWER strategy" in {
-      val model = EmRuntimeConfig.apply(false, 1.0, null, "SELF_POWER_", false)
+      val config = EmRuntimeConfig.apply(false, 1.0, null, "SELF_POWER_")
 
       val exception = intercept[CriticalFailureException] {
         EmModelShell.apply(
           UUID.randomUUID(),
           "TestID10",
           "PROPORTIONAL",
-          model,
+          config,
         )
       }
 
@@ -162,14 +162,14 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar with EmInputTestData {
     }
 
     "throw CriticalFailureException for unknown aggregate flex strategy" in {
-      val model = EmRuntimeConfig.apply(false, 1.0, null, "UNKNOWN_FLEX", false)
+      val config = EmRuntimeConfig.apply(false, 1.0, null, "UNKNOWN_FLEX")
 
       val exception = intercept[CriticalFailureException] {
         EmModelShell.apply(
           UUID.randomUUID(),
           "TestID11",
           "PROPORTIONAL",
-          model,
+          config,
         )
       }
 

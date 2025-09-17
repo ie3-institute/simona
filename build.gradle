@@ -20,7 +20,7 @@ plugins {
 
 ext {
   // version (changing these should be considered thoroughly!)
-  javaVersion = JavaVersion.VERSION_17
+  javaVersion = JavaVersion.VERSION_21
 
   scalaVersion = '3'
   scalaBinaryVersion = '3.7.0'
@@ -95,7 +95,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.9.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.10.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -103,7 +103,7 @@ dependencies {
   }
 
   /* logging */
-  implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging
+  implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
   implementation "ch.qos.logback:logback-classic:1.5.18"
 
   /* testing */
@@ -135,7 +135,7 @@ dependencies {
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
 
   /* config */
-  implementation 'com.typesafe:config:1.4.4'
+  implementation 'com.typesafe:config:1.4.5'
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
   implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.9"
   implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.9"
