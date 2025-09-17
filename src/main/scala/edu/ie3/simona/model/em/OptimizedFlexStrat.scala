@@ -28,7 +28,7 @@ import java.util.UUID
   * present and future behavior of a participant.
   *
   * @param sampleTime
-  *   The amount of time in between steps.
+  *   The amount of time between the steps.
   * @param predictionHorizon
   *   The amount of time that is predicted into the future, i.e. the last step
   *   is this amount of time away from now.
