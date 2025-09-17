@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored method to determine next Threshold within `ThermalGrid` [#1477](https://github.com/ie3-institute/simona/issues/1477)
 - Unify coordinate class [#1516](https://github.com/ie3-institute/simona/issues/1516)
 - Remove type parameters from data and message classes [#1524](https://github.com/ie3-institute/simona/issues/1524)
+- Adapt ThermalHouse and HP flexibility behaviour [#1391](https://github.com/ie3-institute/simona/issues/1391)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -62,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
 - Removed dedicated `random` load model behaviour [#1436](https://github.com/ie3-institute/simona/issues/1436)
 - Removed some units from scalaDoc within `ThermalHouse` [#1495](https://github.com/ie3-institute/simona/issues/1495)
+- Removed unused code in test directory [#1533](https://github.com/ie3-institute/simona/issues/1533)
 
 ### Updates
 - Updated gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)
