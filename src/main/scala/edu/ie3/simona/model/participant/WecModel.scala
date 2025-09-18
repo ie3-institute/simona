@@ -242,13 +242,25 @@ object WecModel {
     */
   private val molarMassAir = Kilograms(0.0289647d)
 
-  /** Holds all relevant data for wec model calculation
+  /** Holds all relevant data for WEC model calculation.
+    *
+    * @param tick
+    *   The current tick.
+    * @param weatherData
+    *   A map of tick to corresponding weather data. For regular calculations of
+    *   the operating point, only the weather data for the current tick is used.
+    *   For forecasts, the map needs to contain further data for future ticks.
     */
   final case class WecState(
       override val tick: Long,
       weatherData: SortedMap[Long, AirWeatherData] = SortedMap.empty,
   ) extends ModelState {
 
+    /** Creates states for forecast calculation given the current state.
+      *
+      * @return
+      *   States for forecast calculation.
+      */
     def toStateSeries: SortedMap[Long, WecState] = {
       weatherData.map { case (dataTick, _) =>
         val tickState = WecState(
@@ -263,6 +275,20 @@ object WecModel {
 
   object WecState {
 
+    /** Convenience constructor for creating a state for regular operating point
+      * calculation at the current point in simulation time.
+      *
+      * @param tick
+      *   The current tick.
+      * @param windVelocity
+      *   The current wind velocity.
+      * @param temperature
+      *   The current temperature.
+      * @param airPressure
+      *   Optionally, the current air pressure.
+      * @return
+      *   A state for calculation at the current point in simulation time.
+      */
     def apply(
         tick: Long,
         windVelocity: Velocity,
@@ -281,12 +307,14 @@ object WecModel {
 
   }
 
-  /** @param windVelocity
-    *   current wind velocity
+  /** Relevant weather data for a specific point in simulation time.
+    *
+    * @param windVelocity
+    *   The current wind velocity.
     * @param temperature
-    *   current temperature
+    *   The current temperature.
     * @param airPressure
-    *   current air pressure
+    *   Optionally, the current air pressure.
     */
   final case class AirWeatherData(
       windVelocity: Velocity,
@@ -295,11 +323,13 @@ object WecModel {
   )
 
   object AirWeatherData {
+
     def apply(weatherData: WeatherData): AirWeatherData =
       AirWeatherData(
         windVelocity = weatherData.windVel,
         temperature = weatherData.temp,
       )
+
   }
 
   /** This class is initialized with a [[WecCharacteristicInput]], which

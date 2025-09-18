@@ -19,6 +19,17 @@ import edu.ie3.simona.ontology.messages.flex.FlexOptions
 
 import scala.collection.immutable.SortedMap
 
+/** Flex model implementation for [[ParticipantModel]]s producing
+  * [[PowerSeriesMathFlexOptions]] based on a forecast of power values.
+  *
+  * @param model
+  *   The participant model to create forecast series for.
+  * @param determineStates
+  *   A function creating the necessary states for the forecast, given the
+  *   current state.
+  * @tparam S
+  *   The type of state of the participant model.
+  */
 class PowerSeriesMathFlexModel[S <: ModelState](
     model: ParticipantModel[?, S],
     determineStates: S => SortedMap[Long, S],

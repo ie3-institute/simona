@@ -263,14 +263,17 @@ class PvModel private (
 
 object PvModel {
 
-  /** Holds all relevant data for a pv model calculation.
+  /** Holds all relevant data for PV model calculation.
     *
     * @param tick
     *   The current tick.
     * @param dateTime
-    *   The date and time of the <b>ending</b> of time frame to calculate.
+    *   The date and time corresponding to the current tick.
     * @param radiationData
-    *   A map of tick to radiation data. todo
+    *   A map of tick to corresponding radiation data. For regular calculations
+    *   of the operating point, only the radiation data for the current tick is
+    *   used. For forecasts, the map needs to contain further data for future
+    *   ticks.
     */
   final case class PvState(
       override val tick: Long,
@@ -278,6 +281,11 @@ object PvModel {
       radiationData: SortedMap[Long, RadiationData] = SortedMap.empty,
   ) extends ModelState {
 
+    /** Creates states for forecast calculation given the current state.
+      *
+      * @return
+      *   States for forecast calculation.
+      */
     def toStateSeries: SortedMap[Long, PvState] = {
       radiationData.map { case (dataTick, _) =>
         val tickDiff = dataTick - tick
@@ -294,6 +302,20 @@ object PvModel {
 
   object PvState {
 
+    /** Convenience constructor for creating a state for regular operating point
+      * calculation at the current point in simulation time.
+      *
+      * @param tick
+      *   The current tick.
+      * @param dateTime
+      *   The current date and time.
+      * @param dirIrradiance
+      *   The current direct solar irradiance on a horizontal surface.
+      * @param diffIrradiance
+      *   The current diffuse solar irradiance on a horizontal surface.
+      * @return
+      *   A state for calculation at the current point in simulation time.
+      */
     def apply(
         tick: Long,
         dateTime: ZonedDateTime,
@@ -325,11 +347,13 @@ object PvModel {
   )
 
   object RadiationData {
+
     def apply(weatherData: WeatherData): RadiationData =
       RadiationData(
         dirIrradiance = weatherData.dirIrr,
         diffIrradiance = weatherData.diffIrr,
       )
+
   }
 
   final case class Factory(
