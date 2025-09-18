@@ -7,33 +7,16 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
+import edu.ie3.simona.agent.participant.ParticipantAgent.{DataProvision, RegistrationFailedMessage, RegistrationSuccessfulMessage}
 import edu.ie3.simona.agent.participant.ParticipantAgentInit
-import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
-  ParticipantRefs,
-  SimulationParameters,
-}
-import edu.ie3.simona.config.RuntimeConfig.{
-  EmRuntimeConfig,
-  HpRuntimeConfig,
-  PvRuntimeConfig,
-}
+import edu.ie3.simona.agent.participant.ParticipantAgentInit.{ParticipantRefs, SimulationParameters}
+import edu.ie3.simona.config.RuntimeConfig.{EmRuntimeConfig, HpRuntimeConfig, PvRuntimeConfig}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.*
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  SecondaryServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{PrimaryServiceRegistrationMessage, SecondaryServiceRegistrationMessage}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
@@ -41,11 +24,8 @@ import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.service.weather.{WeatherDataType, WeatherService}
-import edu.ie3.simona.test.common.input.{
-  EmInputTestData,
-  ThermalGridITInputTestData,
-}
-import edu.ie3.simona.test.common.{DefaultTestData, TestSpawnerTyped}
+import edu.ie3.simona.test.common.TestSpawnerTyped
+import edu.ie3.simona.test.common.input.{EmInputTestData, ThermalGridITInputTestData}
 import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -53,10 +33,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.matchers.should
@@ -235,7 +212,7 @@ class ThermalGridIT
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -285,7 +262,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.68.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -450,7 +427,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.00.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -537,7 +514,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.415.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -622,7 +599,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -672,7 +649,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.81.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -925,7 +902,7 @@ class ThermalGridIT
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -988,7 +965,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1045,7 +1022,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.52.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1115,7 +1092,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.58.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1171,7 +1148,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1235,7 +1212,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1294,7 +1271,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.65.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1548,7 +1525,7 @@ class ThermalGridIT
                 time shouldBe 24413.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1622,7 +1599,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.18.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1731,7 +1708,7 @@ class ThermalGridIT
                 qDot should equalWithTolerance(0.asMegaWatt)
                 indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
 
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1795,7 +1772,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1851,7 +1828,7 @@ class ThermalGridIT
                 time shouldBe 40964.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
                 indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1914,7 +1891,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.548.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
