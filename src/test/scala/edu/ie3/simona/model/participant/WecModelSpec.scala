@@ -16,6 +16,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.{
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.participant.WecModel.{AirWeatherData, WecState}
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits
 import squants.energy.{Power, Watts}
@@ -142,22 +143,26 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
       }
     }
 
+    val speedToResult = SortedMap(
+      (1.0, 0.0),
+      (2.0, -2948.809585),
+      (3.0, -24573.413204),
+      (7.0, -522922.232571),
+      (9.0, -1140000.0),
+      (13.0, -1140000.0),
+      (15.0, -1140000.0),
+      (19.0, -1140000.0),
+      (23.0, -1140000.0),
+      (27.0, -1140000.0),
+      (34.0, -24573.396388),
+      (40.0, 0.0),
+    )
+
     "calculate active power output depending on velocity" in {
       val wecModel = WecModel.Factory(inputModel).create()
       val testCases = Table(
         ("velocity", "expectedPower"),
-        (1.0, 0.0),
-        (2.0, -2948.809585),
-        (3.0, -24573.413204),
-        (7.0, -522922.232571),
-        (9.0, -1140000.0),
-        (13.0, -1140000.0),
-        (15.0, -1140000.0),
-        (19.0, -1140000.0),
-        (23.0, -1140000.0),
-        (27.0, -1140000.0),
-        (34.0, -24573.396388),
-        (40.0, 0.0),
+        speedToResult.toSeq*
       )
 
       forAll(testCases) { (velocity: Double, expectedPower: Double) =>
@@ -173,6 +178,43 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
         operatingPoint.activePower should approximate(Watts(expectedPower))
         nextTick shouldBe None
       }
+    }
+
+    "calculate forecast flex options correctly" in {
+      val wecModel = WecModel.Factory(inputModel).create()
+
+      val (weatherData, expectedResults) = speedToResult.zipWithIndex.map {
+        case ((velocity, expectedPower), i) =>
+          val tick = i * 3600L
+          val data = AirWeatherData(
+            windVelocity = MetersPerSecond(velocity),
+            temperature = Celsius(20),
+            airPressure = Some(Pascals(101325d)),
+          )
+          val expectedResult = Watts(expectedPower)
+
+          (tick -> data, tick -> expectedResult)
+      }.unzip
+
+      val state = WecState(
+        tick = 0L,
+        weatherData = weatherData.to(SortedMap),
+      )
+
+      val flexOptions =
+        wecModel
+          .flexModels(FlexType.MathProgramming)
+          .determineFlexOptions(state)
+
+      flexOptions match {
+        case PowerSeriesMathFlexOptions(powerMap) =>
+          powerMap should have size expectedResults.size
+          expectedResults.foreach { case (tick, expectedResult) =>
+            powerMap(tick) should approximate(expectedResult)
+          }
+        case unexpected => fail(s"Received unexpected flex options $unexpected")
+      }
+
     }
 
     "calculate air density correctly" in {
