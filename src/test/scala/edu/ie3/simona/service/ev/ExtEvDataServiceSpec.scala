@@ -11,11 +11,11 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   RegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.api.data.ev.ExtEvDataConnection
-import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology.*
-import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
-import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
+import edu.ie3.simona.api.data.connection.ExtEvDataConnection
+import edu.ie3.simona.api.data.model.ev.EvModel
+import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
+import edu.ie3.simona.api.ontology.ev.*
+import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -635,15 +635,13 @@ class ExtEvDataServiceSpec
       // we trigger ev service
       evService ! Activation(0L)
 
-      val evsMessage1 =
-        evcs1.expectMessageType[DataProvision[ArrivingEvs]]
+      val evsMessage1 = evcs1.expectMessageType[DataProvision]
       evsMessage1.tick shouldBe 0L
       evsMessage1.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evA))
       )
 
-      val evsMessage2 =
-        evcs2.expectMessageType[DataProvision[ArrivingEvs]]
+      val evsMessage2 = evcs2.expectMessageType[DataProvision]
       evsMessage2.tick shouldBe 0L
       evsMessage2.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evB))
@@ -714,8 +712,7 @@ class ExtEvDataServiceSpec
       // we trigger ev service
       evService ! Activation(0L)
 
-      val evsMessage1 =
-        evcs1.expectMessageType[DataProvision[ArrivingEvs]]
+      val evsMessage1 = evcs1.expectMessageType[DataProvision]
       evsMessage1.tick shouldBe 0L
       evsMessage1.data shouldBe ArrivingEvs(
         Seq(EvModelWrapper(evA))

@@ -181,8 +181,7 @@ class PrimaryServiceWorkerSqlIT
             Completion(scheduleActivationMsg.actor, maybeNextTick)
           )
 
-          val dataMsg =
-            participant.expectMessageType[DataProvision[PrimaryData]]
+          val dataMsg = participant.expectMessageType[DataProvision]
           dataMsg.tick shouldBe firstTick
           dataMsg.data shouldBe firstData
           dataMsg.nextDataTick shouldBe maybeNextTick
