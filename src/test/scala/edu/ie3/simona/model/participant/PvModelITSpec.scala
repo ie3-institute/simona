@@ -6,17 +6,13 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.model.participant.PvModel.RadiationData
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import squants.energy.{Megawatts, Power}
 
-import scala.collection.immutable.SortedMap
-
 /** A simple integration test that uses pre-calculated data to check if the pv
   * model works as expected. It uses 8 pv models located in GER.
   */
-
 class PvModelITSpec extends UnitSpec with PvModelITHelper {
 
   private implicit val tolerance: Power = Megawatts(1e-14)
@@ -34,13 +30,13 @@ class PvModelITSpec extends UnitSpec with PvModelITHelper {
         val modelToWeatherMap = weatherMap(dateTime)
 
         modelIds.map { modelId =>
-          val tick = dateTime.toTick
           val model = pvModels(modelId)
           val weather = modelToWeatherMap(modelId)
           val pvState = PvModel.PvState(
-            tick,
-            dateTime,
-            SortedMap(tick -> RadiationData(weather.diffIrr, weather.dirIrr)),
+            tick = dateTime.toTick,
+            dateTime = dateTime,
+            dirIrradiance = weather.dirIrr,
+            diffIrradiance = weather.diffIrr,
           )
 
           val calc = model.determineOperatingPoint(pvState) match {
