@@ -77,7 +77,8 @@ object DomesticHotWaterStorage extends ThermalStorageCalculations {
       input: DomesticHotWaterStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
   ): DomesticHotWaterStorage = {
-    val maxEnergyThreshold = AbstractThermalStorage.calculateMaxEnergyThreshold(input)
+    val maxEnergyThreshold =
+      AbstractThermalStorage.calculateMaxEnergyThreshold(input)
     val pThermalMax = input.getpThermalMax().toSquants
 
     new DomesticHotWaterStorage(

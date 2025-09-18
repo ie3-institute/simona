@@ -77,7 +77,8 @@ object CylindricalThermalStorage extends ThermalStorageCalculations {
       input: CylindricalStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
   ): CylindricalThermalStorage = {
-    val maxEnergyThreshold = AbstractThermalStorage.calculateMaxEnergyThreshold(input)
+    val maxEnergyThreshold =
+      AbstractThermalStorage.calculateMaxEnergyThreshold(input)
     val pThermalMax = input.getpThermalMax().toSquants
 
     new CylindricalThermalStorage(
