@@ -6,9 +6,22 @@
 
 package edu.ie3.simona.event
 
-import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult}
-import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult, HpResult, SystemParticipantResult}
-import edu.ie3.datamodel.models.result.thermal.{AbstractThermalStorageResult, ThermalHouseResult, ThermalUnitResult}
+import edu.ie3.datamodel.models.result.connector.{
+  LineResult,
+  SwitchResult,
+  Transformer2WResult,
+}
+import edu.ie3.datamodel.models.result.system.{
+  EmResult,
+  FlexOptionsResult,
+  HpResult,
+  SystemParticipantResult,
+}
+import edu.ie3.datamodel.models.result.thermal.{
+  AbstractThermalStorageResult,
+  ThermalHouseResult,
+  ThermalUnitResult,
+}
 import edu.ie3.datamodel.models.result.{CongestionResult, NodeResult}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.listener.ResultEventListener
