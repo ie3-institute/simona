@@ -143,7 +143,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
       }
     }
 
-    val speedToResult = SortedMap(
+    val speedToResult = Seq(
       (1.0, 0.0),
       (2.0, -2948.809585),
       (3.0, -24573.413204),
@@ -162,7 +162,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
       val wecModel = WecModel.Factory(inputModel).create()
       val testCases = Table(
         ("velocity", "expectedPower"),
-        speedToResult.toSeq*
+        speedToResult*
       )
 
       forAll(testCases) { (velocity: Double, expectedPower: Double) =>
@@ -180,7 +180,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
       }
     }
 
-    "calculate forecast flex options correctly" in {
+    "calculate forecast flex power series correctly" in {
       val wecModel = WecModel.Factory(inputModel).create()
 
       val (weatherData, expectedResults) = speedToResult.zipWithIndex.map {

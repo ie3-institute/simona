@@ -292,23 +292,43 @@ object PvModel {
     }
   }
 
+  object PvState {
+
+    def apply(
+        tick: Long,
+        dateTime: ZonedDateTime,
+        dirIrradiance: Irradiance,
+        diffIrradiance: Irradiance,
+    ): PvState = PvState(
+      tick,
+      dateTime,
+      SortedMap(
+        tick -> RadiationData(
+          dirIrradiance = dirIrradiance,
+          diffIrradiance = diffIrradiance,
+        )
+      ),
+    )
+
+  }
+
   /** Radiation data for a specific point in simulation time.
     *
-    * @param diffIrradiance
-    *   The diffuse solar irradiance on a horizontal surface.
     * @param dirIrradiance
     *   The direct solar irradiance on a horizontal surface.
+    * @param diffIrradiance
+    *   The diffuse solar irradiance on a horizontal surface.
     */
   final case class RadiationData(
-      diffIrradiance: Irradiance,
       dirIrradiance: Irradiance,
+      diffIrradiance: Irradiance,
   )
 
   object RadiationData {
     def apply(weatherData: WeatherData): RadiationData =
       RadiationData(
-        diffIrradiance = weatherData.diffIrr,
         dirIrradiance = weatherData.dirIrr,
+        diffIrradiance = weatherData.diffIrr,
       )
   }
 

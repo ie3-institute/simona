@@ -9,7 +9,6 @@ package edu.ie3.simona.model.participant
 import edu.ie3.simona.model.participant.PvModel.RadiationData
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import org.scalatest.matchers.should.Matchers
 import squants.energy.{Megawatts, Power}
 
 import scala.collection.immutable.SortedMap
@@ -18,7 +17,7 @@ import scala.collection.immutable.SortedMap
   * model works as expected. It uses 8 pv models located in GER.
   */
 
-class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
+class PvModelITSpec extends UnitSpec with PvModelITHelper {
 
   private implicit val tolerance: Power = Megawatts(1e-14)
 
