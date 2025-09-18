@@ -141,13 +141,13 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
           }
 
           // we should've charged 20 kWh plus 5 kWh losses
-          val totalCharged = batVars.operationVars.slice(0, 6).map(_.pVal).sum
-          totalCharged should approximate(25)
+          val inputCharged = batVars.operationVars.slice(0, 6).map(_.pVal).sum
+          inputCharged should approximate(25)
 
           // we should've discharged 20 kWh minus 4 kWh losses
-          val totalDischarged =
+          val outputDischarged =
             batVars.operationVars.slice(6, 12).map(_.pVal).sum
-          totalDischarged should approximate(-16d)
+          outputDischarged should approximate(-16d)
 
         } withClue buildDebugString(batVars)
 
@@ -247,13 +247,13 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
           batVars.states(12).energyVal should approximate(0d)
 
           // we should've charged 20 kWh plus 5 kWh losses
-          val totalCharged = batVars.operationVars.slice(0, 6).map(_.pVal).sum
-          totalCharged should approximate(25)
+          val inputCharged = batVars.operationVars.slice(0, 6).map(_.pVal).sum
+          inputCharged should approximate(25)
 
           // we should've discharged 20 kWh minus 4 kWh losses
-          val totalDischarged =
+          val outputDischarged =
             batVars.operationVars.slice(6, 12).map(_.pVal).sum
-          totalDischarged should approximate(-16d)
+          outputDischarged should approximate(-16d)
 
         } withClue buildDebugString(batVars)
 
