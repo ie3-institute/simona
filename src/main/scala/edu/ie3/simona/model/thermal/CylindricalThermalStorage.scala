@@ -24,9 +24,7 @@ import squants.{Energy, Power}
 
 import java.util.UUID
 
-/** A cylindrical thermal storage used for implementations, which require a
-  * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a
-  * variable.
+/** A cylindrical thermal storage.
   *
   * @param uuid
   *   the element's uuid

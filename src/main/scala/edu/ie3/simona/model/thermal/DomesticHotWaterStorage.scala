@@ -26,9 +26,7 @@ import squants.{Energy, Power}
 
 import java.util.UUID
 
-/** A domestic hot water storage used for implementations, which require a
-  * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a
-  * variable.
+/** A domestic hot water storage.
   *
   * @param uuid
   *   the element's uuid
