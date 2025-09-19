@@ -12,13 +12,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   DomesticHotWaterStorageInput,
   ThermalBusInput,
 }
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull,
-}
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import squants.energy.Kilowatts
 import squants.time.Seconds
@@ -26,9 +20,7 @@ import squants.{Energy, Power}
 
 import java.util.UUID
 
-/** A domestic hot water storage used for implementations, which require a
-  * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a
-  * variable.
+/** A domestic hot water storage.
   *
   * @param uuid
   *   the element's uuid
@@ -56,7 +48,7 @@ final case class DomesticHotWaterStorage(
     maxEnergyThreshold: Energy,
     pThermalMax: Power,
     storedEnergy: Energy,
-) extends ThermalStorage(
+) extends AbstractThermalStorage(
       uuid,
       id,
       operatorInput,
@@ -64,74 +56,10 @@ final case class DomesticHotWaterStorage(
       bus,
       maxEnergyThreshold,
       pThermalMax,
-    )
-    with ThermalStorageCalculations {
+    ) {
 
-  /** Updates the given last state. Based on the then set thermal influx, the
-    * current state is calculated. Positive values of influx are consider to
-    * flow into the storage.
-    *
-    * @param tick
-    *   Tick, where this change happens.
-    * @param heatStorageState
-    *   Last state of the heat storage.
-    * @param qDotHeatStorage
-    *   Influx of the heat storage.
-    * @return
-    *   The state of the instance.
-    */
-  override def determineState(
-      tick: Long,
-      heatStorageState: ThermalStorageState,
-      qDotWaterStorage: Power,
-  ): ThermalStorageState = {
-    /* Determine new state based on time difference and given state */
-    val energyBalance =
-      qDotWaterStorage * Seconds(
-        tick - heatStorageState.tick
-      )
-    val newEnergy = heatStorageState.storedEnergy + energyBalance
-    val updatedEnergy =
-      if isFull(newEnergy) then maxEnergyThreshold
-      else if isEmpty(newEnergy) then zeroKWh
-      else newEnergy
-
-    ThermalStorageState(tick, updatedEnergy)
-  }
-
-  /** Calculates the tick, when the next threshold of the instance is reached.
-    *
-    * @param domesticWaterStorageState
-    *   State of the heat storage.
-    * @param qDotWaterStorage
-    *   Operating point of the domestic hot water storage.
-    * @return
-    *   The next threshold if there is one.
-    */
-
-  override def determineNextThreshold(
-      domesticWaterStorageState: ThermalStorageState,
-      qDotWaterStorage: Power,
-  ): Option[ThermalThreshold] = {
-    if qDotWaterStorage > zeroKW then {
-      val duration =
-        (maxEnergyThreshold - domesticWaterStorageState.storedEnergy) / qDotWaterStorage
-      val durationInTicks = Math.floor(duration.toSeconds).toLong
-      if durationInTicks <= 0L then None
-      else Some(StorageFull(domesticWaterStorageState.tick + durationInTicks))
-    } else if qDotWaterStorage < zeroKW then {
-      val duration =
-        domesticWaterStorageState.storedEnergy / qDotWaterStorage * -1
-      val durationInTicks = Math.floor(duration.toSeconds).toLong
-      if durationInTicks <= 0L then None
-      else Some(StorageEmpty(domesticWaterStorageState.tick + durationInTicks))
-    } else None
-  }
-
-  override def startingState: ThermalStorageState = ThermalStorageState(
-    0L,
-    maxEnergyThreshold,
-  )
+  /** DHW storage starts full */
+  override protected def initialEnergyLevel: Energy = maxEnergyThreshold
 }
 
 object DomesticHotWaterStorage extends ThermalStorageCalculations {
@@ -145,27 +73,15 @@ object DomesticHotWaterStorage extends ThermalStorageCalculations {
     * @param initialStoredEnergy
     *   initial stored energy
     * @return
-    *   a ready-to-use [[DomesticHotWaterStorageStorage]] with referenced
-    *   electric parameters
+    *   a ready-to-use [[DomesticHotWaterStorage]] with referenced parameters
     */
   def apply(
       input: DomesticHotWaterStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
   ): DomesticHotWaterStorage = {
-    val maxEnergyThreshold = volumeToEnergy(
-      input.getStorageVolumeLvl.toSquants,
-      input.getC.toSquants,
-      input.getInletTemp.toSquants,
-      input.getReturnTemp.toSquants,
-    )
-
-    val pThermalMax = Kilowatts(
-      input
-        .getpThermalMax()
-        .to(PowerSystemUnits.KILOWATT)
-        .getValue
-        .doubleValue()
-    )
+    val maxEnergyThreshold =
+      AbstractThermalStorage.calculateMaxEnergyThreshold(input)
+    val pThermalMax = input.getpThermalMax().toSquants
 
     new DomesticHotWaterStorage(
       input.getUuid,

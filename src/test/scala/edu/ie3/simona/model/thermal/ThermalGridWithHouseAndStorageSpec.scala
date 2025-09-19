@@ -42,9 +42,9 @@ class ThermalGridWithHouseAndStorageSpec
     with ThermalStorageTestData
     with DefaultTestData {
 
-  implicit val tempTolerance: Temperature = Kelvin(1e-3)
-  implicit val powerTolerance: Power = Watts(1e-3)
-  implicit val energyTolerance: Energy = WattHours(1e-3)
+  protected given tempTolerance: Temperature = Kelvin(1e-3)
+  protected given powerTolerance: Power = Watts(1e-3)
+  protected given energyTolerance: Energy = WattHours(1e-3)
 
   val thermalGrid: ThermalGrid = ThermalGrid(
     new edu.ie3.datamodel.models.input.container.ThermalGrid(
