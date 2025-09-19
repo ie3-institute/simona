@@ -47,15 +47,6 @@ class ThermalStorageSpec extends UnitSpec with Matchers with BeforeAndAfterAll {
     CylindricalThermalStorage(storageInput, storedEnergy)
   }
 
-  def vol2Energy(volume: Volume): Energy = {
-    DomesticHotWaterStorage.volumeToEnergy(
-      volume,
-      storageInput.getC.toSquants,
-      storageInput.getInletTemp.toSquants,
-      storageInput.getReturnTemp.toSquants,
-    )
-  }
-
   "ThermalStorage Model" should {
 
     "Apply, validation, and build method work correctly" in {
