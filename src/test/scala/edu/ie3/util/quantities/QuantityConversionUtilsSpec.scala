@@ -8,24 +8,18 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.DoubleUtils.~=
-
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import edu.ie3.util.scala.quantities.{
-  ApparentPower,
-  EuroPerKilowatthour,
-  Kilovoltamperes,
-  KilowattHoursPerKelvinCubicMeters,
-}
+import edu.ie3.util.scala.quantities.{ApparentPower, EuroPerKilowatthour, Kilovoltamperes, KilowattHoursPerKelvinCubicMeters}
 import squants.electro.*
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.{Amperes, Each, Radians, Temperature}
 import tech.units.indriya.ComparableQuantity
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{toApparent, toSquants}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.*
+
 import javax.measure.quantity.*
 
 class QuantityConversionUtilsSpec extends UnitSpec {
@@ -58,9 +52,12 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       dimensionless.toSquants shouldBe Each(0.95)
     }
 
-    "properly convert voltage quantities" in {
+    "properly convert voltage quantities from different units" in {
       val voltage = Quantities.getQuantity(110.0, KILOVOLT)
       voltage.toSquants shouldBe Kilovolts(110.0)
+
+      val voltageV = Quantities.getQuantity(10000, VOLT)
+      voltageV.toSquants shouldBe Kilovolts(10.0)
     }
 
     "properly convert current quantities" in {
@@ -68,17 +65,26 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       current.toSquants shouldBe Amperes(42.5)
     }
 
-    "properly convert power quantities" in {
+    "properly convert power quantities from different units" in {
       val activePower = Quantities.getQuantity(50.0, KILOWATT)
       activePower.toSquants shouldBe Kilowatts(50.0)
 
       val apparentPower = Quantities.getQuantity(60.0, KILOVOLTAMPERE)
       apparentPower.toApparent shouldBe Kilovoltamperes(60.0)
+
+      val activePowerMW = Quantities.getQuantity(1.0, MEGAWATT)
+      activePowerMW.toSquants shouldBe Kilowatts(1000.0)
+
+      val apparentPowerVA = Quantities.getQuantity(15500, VOLTAMPERE)
+      apparentPowerVA.toSquants shouldBe Kilovoltamperes(15.5)
     }
 
-    "properly convert energy quantities" in {
-      val energy = Quantities.getQuantity(123.45, KILOVARHOUR)
+    "properly convert energy quantities from different units" in {
+      val energy = Quantities.getQuantity(123.45, KILOWATTHOUR)
       energy.toSquants shouldBe KilowattHours(123.45)
+
+      val energyMwh = Quantities.getQuantity(1.5, MEGAVARHOUR)
+      energyMwh.toSquants shouldBe KilowattHours(1500)
     }
 
     "properly convert energy price quantities" in {
@@ -86,9 +92,12 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       price.toSquants shouldBe EuroPerKilowatthour(0.25)
     }
 
-    "properly convert electrical resistance quantities" in {
+    "properly convert electrical resistance quantities from different units" in {
       val resistance = Quantities.getQuantity(15.0, OHM)
       resistance.toSquants shouldBe Ohms(15.0)
+
+      val resistanceMilliOhm = Quantities.getQuantity(1000, MILLIOHM)
+      resistanceMilliOhm.toSquants shouldBe Ohms(1)
     }
 
     "properly convert specific resistance quantities" in {
@@ -111,14 +120,20 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       specConductance.toSquants shouldBe Siemens(0.5)
     }
 
-    "properly convert area quantities" in {
+    "properly convert area quantities from different units" in {
       val area = Quantities.getQuantity(500.0, SQUARE_METRE)
       area.toSquants shouldBe SquareMeters(500.0)
+
+      val areaKm2 = Quantities.getQuantity(0.01, SQUARE_METRE)
+      areaKm2.toSquants shouldBe SquareMeters(10000.0)
     }
 
-    "properly convert angle quantities" in {
+    "properly convert angle quantities from different units" in {
       val angle = Quantities.getQuantity(Math.PI / 2, RADIAN)
       angle.toSquants shouldBe Radians(Math.PI / 2)
+
+      val angleDeg = Quantities.getQuantity(90.0, DEGREE_GEOM)
+      angleDeg.toSquants shouldBe (Radians(Math.PI / 2)
     }
 
     "properly convert volume quantities" in {
