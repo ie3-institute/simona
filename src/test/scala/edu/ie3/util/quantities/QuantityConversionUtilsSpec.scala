@@ -9,14 +9,22 @@ package edu.ie3.util.quantities
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.DoubleUtils.~=
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.scala.quantities.{ApparentPower, EuroPerKilowatthour, Kilovoltamperes, KilowattHoursPerKelvinCubicMeters}
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  EuroPerKilowatthour,
+  Kilovoltamperes,
+  KilowattHoursPerKelvinCubicMeters,
+}
 import squants.electro.*
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.{Amperes, Each, Radians, Temperature}
 import tech.units.indriya.ComparableQuantity
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{toApparent, toSquants}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toApparent,
+  toSquants,
+}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.*
 
@@ -133,7 +141,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       angle.toSquants shouldBe Radians(Math.PI / 2)
 
       val angleDeg = Quantities.getQuantity(90.0, DEGREE_GEOM)
-      angleDeg.toSquants shouldBe (Radians(Math.PI / 2)
+      angleDeg.toSquants shouldBe (Radians(Math.PI / 2))
     }
 
     "properly convert volume quantities" in {
