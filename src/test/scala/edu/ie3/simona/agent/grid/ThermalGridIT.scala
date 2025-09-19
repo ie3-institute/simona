@@ -247,7 +247,7 @@ class ThermalGridIT
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -284,7 +284,7 @@ class ThermalGridIT
             hpResult.getQ should equalWithTolerance(qRunningHp)
           case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -391,7 +391,7 @@ class ThermalGridIT
             )
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -432,7 +432,7 @@ class ThermalGridIT
             )
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -515,7 +515,7 @@ class ThermalGridIT
               }
             case ThermalResultEvent(thermalUnitResult) =>
               thermalUnitResult match {
-                case DomesticHotWaterStorageResult(_) =>
+                case AbstractThermalStorageResult(_) =>
                 case _ => fail("unexpected result")
               }
           }
@@ -560,7 +560,7 @@ class ThermalGridIT
             hpResult.getQ should equalWithTolerance(0.asMegaVar)
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -597,7 +597,7 @@ class ThermalGridIT
             hpResult.getQ should equalWithTolerance(0.asMegaVar)
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -724,7 +724,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -764,7 +764,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -893,7 +893,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -945,7 +945,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.87.asDegreeCelsius
                 )
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -997,7 +997,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.92.asDegreeCelsius
                 )
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1089,7 +1089,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1129,7 +1129,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1221,7 +1221,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1273,7 +1273,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
                 )
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1500,7 +1500,7 @@ class ThermalGridIT
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1549,7 +1549,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1666,7 +1666,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1715,7 +1715,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1785,7 +1785,7 @@ class ThermalGridIT
                 time shouldBe 5216.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -1960,7 +1960,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -2004,7 +2004,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -2173,7 +2173,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -2223,7 +2223,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -2472,7 +2472,7 @@ class ThermalGridIT
               }
             case ThermalResultEvent(thermalUnitResult) =>
               thermalUnitResult match {
-                case DomesticHotWaterStorageResult(_) =>
+                case AbstractThermalStorageResult(_) =>
                 case _ => fail("unexpected result")
               }
           }
@@ -2602,7 +2602,7 @@ class ThermalGridIT
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.0081577.asMegaWattHour)
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -2663,7 +2663,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.19.asDegreeCelsius
                 )
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -2720,7 +2720,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   18.30.asDegreeCelsius
                 )
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -2812,7 +2812,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -2857,7 +2857,7 @@ class ThermalGridIT
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -2988,7 +2988,7 @@ class ThermalGridIT
                 indoorTemperature should equalWithTolerance(
                   19.99.asDegreeCelsius
                 )
-              case CylindricalThermalStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -3031,7 +3031,7 @@ class ThermalGridIT
               }
             case ThermalResultEvent(thermalUnitResult) =>
               thermalUnitResult match {
-                case DomesticHotWaterStorageResult(_) =>
+                case AbstractThermalStorageResult(_) =>
                 case _ => fail("unexpected result")
               }
           }
@@ -3122,7 +3122,7 @@ The results are checked implicitly through the state of stored energy at the nex
               }
             case ThermalResultEvent(thermalUnitResult) =>
               thermalUnitResult match {
-                case DomesticHotWaterStorageResult(_) =>
+                case AbstractThermalStorageResult(_) =>
                 case _ => fail("unexpected result")
               }
           }
@@ -3160,7 +3160,7 @@ The results are checked implicitly through the state of stored energy at the nex
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -3326,7 +3326,7 @@ The results are checked implicitly through the state of stored energy at the nex
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
-              case DomesticHotWaterStorageResult(
+              case AbstractThermalStorageResult(
                     time,
                     inputModel,
                     qDot,
@@ -3368,7 +3368,7 @@ The results are checked implicitly through the state of stored energy at the nex
               }
             case ThermalResultEvent(thermalUnitResult) =>
               thermalUnitResult match {
-                case DomesticHotWaterStorageResult(_) =>
+                case AbstractThermalStorageResult(_) =>
                 case _ => fail("unexpected result")
               }
           }
