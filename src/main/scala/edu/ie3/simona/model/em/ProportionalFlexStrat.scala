@@ -25,17 +25,20 @@ object ProportionalFlexStrat extends EmModelStrat[PowerLimitFlexOptions] {
     * power.
     *
     * @param modelFlexOptions
-    *   The flex options per connected agent
+    *   The flex options per connected agent.
     * @param target
-    *   The target power to aim for when utilizing flexibility
+    *   The target power to aim for when utilizing flexibility.
+    * @param currentTick
+    *   The current tick.
     * @return
-    *   Power set points for devices, if applicable
+    *   Power set points for devices, if applicable.
     */
   override def determineFlexControl(
       modelFlexOptions: Iterable[
         (? <: AssetInput, PowerLimitFlexOptions)
       ],
       target: Power,
+      currentTick: Long,
   ): Iterable[(UUID, Power)] = {
 
     // Input models are not needed here

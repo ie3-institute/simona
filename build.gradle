@@ -165,6 +165,10 @@ dependencies {
 
   // needed, because scala won't compile otherwise
   implementation 'org.influxdb:influxdb-java:2.25'
+
+  // optimization
+  implementation "com.github.vagmcs:optimus_${scalaVersion}:3.4.5"
+  implementation "com.github.vagmcs:optimus-solver-oj_${scalaVersion}:3.4.5"
 }
 
 tasks.withType(JavaCompile).configureEach {
