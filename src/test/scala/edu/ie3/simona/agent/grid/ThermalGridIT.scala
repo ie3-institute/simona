@@ -231,12 +231,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
+                indoorTemp should equalWithTolerance(20.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -330,14 +330,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 3416.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.68.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.68.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -478,14 +476,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 4412.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.99.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.99.asDegreeCelsius)
             }
         }
       resultListener.expectNoMessage()
@@ -648,14 +644,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 23288.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.00.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(18.00.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -815,14 +809,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 26887.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.415.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(18.415.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -945,14 +937,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 28858.toDateTime
                 qDot should equalWithTolerance(0.0055.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.87.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(18.87.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -998,14 +988,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 29199.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.92.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(18.92.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -1051,14 +1039,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 32239.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.99.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.99.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -1185,14 +1171,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 35655.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.81.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.81.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -1278,14 +1262,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 36165.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.99.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.99.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -1498,12 +1480,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
+                indoorTemp should equalWithTolerance(20.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -1783,14 +1765,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 5216.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.52.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.52.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -1864,14 +1844,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 5400.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.58.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.58.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -1922,14 +1900,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 6824.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.99.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.99.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -2133,14 +2109,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 10551.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.65.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.65.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -2293,14 +2267,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 11638.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.99.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.99.asDegreeCelsius)
             }
         }
       resultListener.expectNoMessage()
@@ -2355,14 +2327,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 12000.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.96.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.96.asDegreeCelsius)
             }
         }
       resultListener.expectNoMessage()
@@ -2402,12 +2372,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 12139.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
+                indoorTemp should equalWithTolerance(20.asDegreeCelsius)
             }
         }
       resultListener.expectNoMessage()
@@ -2535,12 +2505,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 24413.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
-                indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
+                indoorTemp should equalWithTolerance(18.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -2604,14 +2574,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.18.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(18.18.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -2674,14 +2642,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 25235.toDateTime
                 qDot should equalWithTolerance(0.0055.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.19.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(18.19.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -2732,14 +2698,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 26215.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.30.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(18.30.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -2944,14 +2908,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 31000.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.83.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.83.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -3003,14 +2965,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 31937.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  19.99.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(19.99.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -3098,12 +3058,12 @@ class ThermalGridIT
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 41937.toDateTime
                 qDot should equalWithTolerance(0.01044.asMegaWatt)
-                indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
+                indoorTemp should equalWithTolerance(18.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -3238,14 +3198,12 @@ The results are checked implicitly through the state of stored energy at the nex
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 43812.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(
-                  18.35.asDegreeCelsius
-                )
+                indoorTemp should equalWithTolerance(18.35.asDegreeCelsius)
               case AbstractThermalStorageResult(
                     time,
                     inputModel,
@@ -3296,12 +3254,12 @@ The results are checked implicitly through the state of stored energy at the nex
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 45618.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                indoorTemperature should equalWithTolerance(18.asDegreeCelsius)
+                indoorTemp should equalWithTolerance(18.asDegreeCelsius)
             }
         }
       resultListener.expectNoMessage()
@@ -3439,12 +3397,12 @@ The results are checked implicitly through the state of stored energy at the nex
                     time,
                     inputModel,
                     qDot,
-                    indoorTemperature,
+                    indoorTemp,
                   ) =>
                 inputModel shouldBe typicalThermalHouse.getUuid
                 time shouldBe 55261.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                indoorTemperature should equalWithTolerance(20.asDegreeCelsius)
+                indoorTemp should equalWithTolerance(20.asDegreeCelsius)
             }
         }
       resultListener.expectNoMessage()
