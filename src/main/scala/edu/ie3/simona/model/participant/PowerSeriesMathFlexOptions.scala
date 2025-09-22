@@ -18,7 +18,7 @@ import optimus.optimization.MPModel
 import squants.{Power, Time}
 import squants.energy.Kilowatts
 
-import scala.collection.SortedMap
+import scala.collection.immutable.SortedMap
 
 /** Flex options for participants that follow a fixed trajectory of power
   * values.
@@ -27,7 +27,7 @@ import scala.collection.SortedMap
   *   The power values as a [[SortedMap]], thus powers in between keys can be
   *   extract with `maxBefore`.
   */
-class PowerSeriesMathFlexOptions(powers: SortedMap[Long, Power])
+final case class PowerSeriesMathFlexOptions(powers: SortedMap[Long, Power])
     extends MathFlexOptions[PowerStateVars, PowerOperationVars] {
 
   override def addInitialState(tick: Long)(using
