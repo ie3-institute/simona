@@ -8,7 +8,7 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.DoubleUtils.~=
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.TemperatureConversionSimona
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import squants.thermal.{Celsius, Temperature}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{CELSIUS, KELVIN}

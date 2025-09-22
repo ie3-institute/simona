@@ -11,10 +11,10 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
   DataProvision,
   RegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.api.data.ev.ExtEvDataConnection
-import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology.*
-import edu.ie3.simona.api.data.ontology.DataMessageFromExt
+import edu.ie3.simona.api.data.connection.ExtEvDataConnection
+import edu.ie3.simona.api.data.model.ev.EvModel
+import edu.ie3.simona.api.ontology.ev.*
+import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{
   CriticalFailureException,
@@ -34,6 +34,7 @@ import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.slf4j.Logger
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
@@ -59,7 +60,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
 
   override def init(
       initServiceData: ServiceStateData.InitializeServiceStateData
-  ): Try[
+  )(using log: Logger): Try[
     (
         ExtEvStateData,
         Option[Long],

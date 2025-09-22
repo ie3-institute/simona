@@ -35,11 +35,12 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.weather.WeatherService
-import edu.ie3.simona.service.weather.WeatherService.Coordinate
+import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
+import edu.ie3.simona.service.weather.{WeatherDataType, WeatherService}
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.QuantityMatchers
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
@@ -93,7 +94,7 @@ class EmAgentIT
     flexResult = false,
   )
 
-  override protected val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
+  private val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
     uuids = List("default"),
     aggregateFlex = "SELF_OPT",
   )
@@ -205,9 +206,12 @@ class EmAgentIT
         weatherService.expectMessage(
           SecondaryServiceRegistrationMessage(
             pvAgent,
-            Coordinate(
-              pvInput.getNode.getGeoPosition.getY,
-              pvInput.getNode.getGeoPosition.getX,
+            WeatherRegistrationData(
+              Coordinate(
+                pvInput.getNode.getGeoPosition.getY,
+                pvInput.getNode.getGeoPosition.getX,
+              ),
+              WeatherDataType.Current,
             ),
           )
         )
@@ -440,9 +444,12 @@ class EmAgentIT
         weatherService.expectMessage(
           SecondaryServiceRegistrationMessage(
             pvAgent,
-            Coordinate(
-              pvInput.getNode.getGeoPosition.getY,
-              pvInput.getNode.getGeoPosition.getX,
+            WeatherRegistrationData(
+              Coordinate(
+                pvInput.getNode.getGeoPosition.getY,
+                pvInput.getNode.getGeoPosition.getX,
+              ),
+              WeatherDataType.Current,
             ),
           )
         )
@@ -456,9 +463,12 @@ class EmAgentIT
         weatherService.expectMessage(
           SecondaryServiceRegistrationMessage(
             hpAgent,
-            Coordinate(
-              adaptedHpInputModel.getNode.getGeoPosition.getY,
-              adaptedHpInputModel.getNode.getGeoPosition.getX,
+            WeatherRegistrationData(
+              Coordinate(
+                adaptedHpInputModel.getNode.getGeoPosition.getY,
+                adaptedHpInputModel.getNode.getGeoPosition.getX,
+              ),
+              WeatherDataType.Current,
             ),
           )
         )
@@ -542,7 +552,6 @@ class EmAgentIT
        -> set point ~3.7 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
        -> remaining 1.111 kW
          */
-
         emAgentActivation ! Activation(10800)
 
         weatherDependentAgents.foreach {
@@ -572,9 +581,10 @@ class EmAgentIT
         /* TICK 11000
          LOAD: 0.269 kW (unchanged)
          PV:  -0.06 kW
-         Heat pump: Is still running, can still be turned off
-         -> flex signal is 0 MW: Heat pump is turned off
-         -> remaining ~0.21 kW
+         Heat pump: Is still running, can't be turned off
+         (was running in last state, house has some demand, no storage available -> we would like to force running Hp,
+         even in theory it could be turned off for flex purposes)
+         -> flex signal is 4.85 kW: Heat pump stays on
          */
         emAgentActivation ! Activation(11000)
 
@@ -597,8 +607,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 11000.toDateTime
-            emResult.getP should equalWithTolerance(0.00021037894.asMegaWatt)
-            emResult.getQ should equalWithTolerance(0.0000691482.asMegaVar)
+            emResult.getP should equalWithTolerance(0.0050603789402.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.0010539827178.asMegaVar)
         }
         resultListener.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11500)))
@@ -606,9 +616,10 @@ class EmAgentIT
         /* TICK 11500
          LOAD: 0.269 kW (unchanged)
          PV:  -0.133 kW
-         Heat pump: Is not running, can run or stay off
-         -> flex signal is 0 MW: Heat pump stays off
-         -> remaining 0.135 kW
+         Heat pump: Is still running, can't be turned off
+         (was running in last state, house has some demand, no storage available -> we would like to force running Hp,
+         even in theory it could be turned off for flex purposes)
+         -> flex signal is 4.85 kW: Heat pump stays on
          */
         emAgentActivation ! Activation(11500)
 
@@ -735,9 +746,12 @@ class EmAgentIT
         weatherService.expectMessage(
           SecondaryServiceRegistrationMessage(
             pvAgent,
-            Coordinate(
-              pvInputLimitedOperationTime.getNode.getGeoPosition.getY,
-              pvInputLimitedOperationTime.getNode.getGeoPosition.getX,
+            WeatherRegistrationData(
+              Coordinate(
+                pvInputLimitedOperationTime.getNode.getGeoPosition.getY,
+                pvInputLimitedOperationTime.getNode.getGeoPosition.getX,
+              ),
+              WeatherDataType.Current,
             ),
           )
         )

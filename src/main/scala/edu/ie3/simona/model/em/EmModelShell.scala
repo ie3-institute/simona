@@ -141,6 +141,8 @@ final case class EmModelShell[FO <: FlexOptions](
     *   The current flex options of controlled assets.
     * @param target
     *   The target power value.
+    * @param currentTick
+    *   The current tick.
     * @return
     *   The flexibility control for controlled assets as a map from asset uuid
     *   to its target power.
@@ -148,6 +150,7 @@ final case class EmModelShell[FO <: FlexOptions](
   def determineFlexControl(
       allFlexOptions: Iterable[(UUID, FlexOptions)],
       target: Power,
+      currentTick: Long,
   ): Iterable[(UUID, Power)] = {
 
     val typedFlexOptions =
@@ -166,7 +169,7 @@ final case class EmModelShell[FO <: FlexOptions](
     }
 
     val setPoints =
-      modelStrategy.determineFlexControl(uuidToFlexOptions, target)
+      modelStrategy.determineFlexControl(uuidToFlexOptions, target, currentTick)
 
     setPoints.map { case (model, power) =>
       val fo = typedFlexOptions.getOrElse(

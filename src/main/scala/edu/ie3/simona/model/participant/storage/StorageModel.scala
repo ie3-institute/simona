@@ -38,9 +38,8 @@ import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt, asPu}
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  DimensionlessToSimona,
-  EnergyToSimona,
-  PowerConversionSimona,
+  toApparent,
+  toSquants,
 }
 import squants.{Dimensionless, Energy, Power, Seconds}
 
@@ -55,7 +54,7 @@ class StorageModel private (
     override val qControl: QControl,
     val eStorage: Energy,
     val pMax: Power,
-    eta: Dimensionless,
+    val eta: Dimensionless,
     targetSoc: Option[Double],
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,

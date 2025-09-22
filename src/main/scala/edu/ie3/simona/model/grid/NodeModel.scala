@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.voltagelevels.VoltageLevel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.DimensionlessToSimona
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 
 import java.time.ZonedDateTime
 import java.util.UUID
