@@ -18,25 +18,22 @@ import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.{CsvDataSource, CsvIdCoordinateSource}
 import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.value.WeatherValue
-import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.config.ConfigParams.{
   BaseCsvParams,
   BaseSqlParams,
   SampleParams,
 }
+import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  AgentCoordinates,
-  WeightedCoordinates,
-}
+import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.buildPSDMSource
-import edu.ie3.simona.util.ParsableEnumeration
-import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
+import edu.ie3.simona.util.{Coordinate, ParsableEnumeration}
+import edu.ie3.util.geo.CoordinateDistance
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
-import org.locationtech.jts.geom.{Coordinate, Point}
+import org.locationtech.jts.geom.Point
 import squants.motion.MetersPerSecond
 import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
@@ -46,6 +43,7 @@ import tech.units.indriya.unit.Units
 import java.nio.file.Paths
 import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Length}
+import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -55,19 +53,19 @@ trait WeatherSource {
   protected val maxCoordinateDistance: ComparableQuantity[Length]
 
   /** Determine the relevant coordinates around the queried one together with
-    * their weighting factors in averaging
+    * their weighting factors in averaging.
     *
     * @param coordinate
-    *   Coordinates of requesting Agent
+    *   Coordinates of requesting Agent.
     * @param amountOfInterpolationCoords
     *   The minimum required amount of coordinates with weather data surrounding
-    *   the given coordinate that will be used for interpolation
+    *   the given coordinate that will be used for interpolation.
     * @return
     *   The result of the attempt to determine the closest coordinates with
-    *   their weighting
+    *   their weighting.
     */
   def getWeightedCoordinates(
-      coordinate: WeatherSource.AgentCoordinates,
+      coordinate: Coordinate,
       amountOfInterpolationCoords: Int,
   ): Try[WeatherSource.WeightedCoordinates] = {
     getNearestCoordinatesWithDistances(
@@ -92,14 +90,13 @@ trait WeatherSource {
     * all four quadrants.
     *
     * @param coordinate
-    *   Coordinates of requesting Agent
+    *   Coordinates of requesting Agent.
     * @param amountOfInterpolationCoords
     *   The minimum required amount of coordinates with weather data surrounding
-    *   the given coordinate that will be used for interpolation
-    * @return
+    *   the given coordinate that will be used for interpolation.
     */
   def getNearestCoordinatesWithDistances(
-      coordinate: WeatherSource.AgentCoordinates,
+      coordinate: Coordinate,
       amountOfInterpolationCoords: Int,
   ): Try[Iterable[CoordinateDistance]] = {
     val queryPoint = coordinate.toPoint
@@ -128,12 +125,12 @@ trait WeatherSource {
   }
 
   /** Determine the weights of each coordinate. It is ensured, that the entirety
-    * of weights sum up to 1.0
+    * of weights sum up to 1.
     *
     * @param nearestCoordinates
-    *   Collection of nearest coordinates with their distances
+    *   Collection of nearest coordinates with their distances.
     * @return
-    *   An attempt to calculate the average
+    *   An attempt to calculate the average.
     */
   def determineWeights(
       nearestCoordinates: Iterable[CoordinateDistance]
@@ -197,35 +194,59 @@ trait WeatherSource {
     }
   }
 
+  /** Get the weather data between (and including) given ticks as a weighted
+    * average taking into account the given weighting of weather coordinates.
+    *
+    * @param startTick
+    *   The first tick to retrieve weather for.
+    * @param endTick
+    *   The last tick to retrieve weather for.
+    * @param weightedCoordinates
+    *   The coordinate in question.
+    * @return
+    *   Matching weather data.
+    */
+  def getWeather(
+      startTick: Long,
+      endTick: Long,
+      weightedCoordinates: WeightedCoordinates,
+  ): SortedMap[ZonedDateTime, WeatherData]
+
   /** Get the weather data for the given tick as a weighted average taking into
     * account the given weighting of weather coordinates.
     *
     * @param tick
-    *   Simulation date in question
+    *   Simulation tick in question.
     * @param weightedCoordinates
-    *   The coordinate in question
+    *   The coordinate in question.
     * @return
-    *   Matching weather data
+    *   Matching weather data.
     */
   def getWeather(
       tick: Long,
       weightedCoordinates: WeightedCoordinates,
-  ): WeatherData
+  ): WeatherData = {
+    getWeather(tick, tick, weightedCoordinates).values.headOption.getOrElse(
+      throw new SourceException(
+        s"No weather data received for tick $tick."
+      )
+    )
+  }
 
   /** Get the weather data for the given tick and agent coordinates having a
     * weighted average of weather values.
     *
     * @param tick
-    *   Simulation date in question
-    * @param agentToWeightedCoordinates
-    *   The coordinates in question
+    *   Simulation date in question.
+    * @param coordinateWeights
+    *   The coordinates and respective weights in question.
     * @return
-    *   Matching weather data
+    *   Matching weather data.
     */
   def getWeather(
       tick: Long,
-      agentToWeightedCoordinates: Map[AgentCoordinates, WeightedCoordinates],
-  ): Map[AgentCoordinates, WeatherData] = agentToWeightedCoordinates.map {
+      coordinateWeights: Map[Coordinate, WeightedCoordinates],
+  ): Map[Coordinate, WeatherData] = coordinateWeights.map {
     case (agentCoordinates, weightedCoordinates) =>
       agentCoordinates -> getWeather(tick, weightedCoordinates)
   }
@@ -235,11 +256,11 @@ trait WeatherSource {
     * are INCLUDED.
     *
     * @param requestFrameStart
-    *   Beginning of the announced request frame
+    *   Beginning of the announced request frame.
     * @param requestFrameEnd
-    *   End of the announced request frame
+    *   End of the announced request frame.
     * @return
-    *   Array with data ticks
+    *   Array with data ticks.
     */
   def getDataTicks(
       requestFrameStart: Long,
@@ -289,10 +310,10 @@ object WeatherSource {
     * configuration parameters exceptions are thrown.
     *
     * @param coordinateSourceConfig
-    *   the config to be checked
+    *   The config to be checked.
     * @return
-    *   a function that can be used to actually build the configured coordinate
-    *   id data source
+    *   A function that can be used to actually build the configured coordinate
+    *   id data source.
     */
   private def buildCoordinateSource(
       coordinateSourceConfig: InputConfig.CoordinateSource
@@ -346,7 +367,7 @@ object WeatherSource {
     }
   }
 
-  /** Represents an empty weather data object
+  /** Represents an empty weather data object.
     *
     * For temperature to represent an "empty" quantity, we need to explicitly
     * set temperature to absolute zero, so 0 K. When temperature measures the
@@ -384,31 +405,18 @@ object WeatherSource {
 
   }
 
-  /** Weather package private case class to combine the provided agent
-    * coordinates into one single entity
-    */
-  private[weather] final case class AgentCoordinates(
-      latitude: Double,
-      longitude: Double,
-  ) {
-    def toPoint: Point =
-      GeoUtils.DEFAULT_GEOMETRY_FACTORY.createPoint(
-        new Coordinate(longitude, latitude)
-      )
-  }
-
   /** Package private class to aid the averaging of weather values at
-    * coordinates
+    * coordinates.
     *
     * @param weighting
-    *   Mapping from weather coordinate to its weight in averaging
+    *   Mapping from weather coordinate to its weight in averaging.
     */
   private[weather] final case class WeightedCoordinates(
       weighting: Map[Point, Double]
   )
 
   /** Enumeration of all supported weather "column" schemes including
-    * permissible config values
+    * permissible config values.
     */
   object WeatherScheme extends ParsableEnumeration {
     val ICON: Value = Value("icon")

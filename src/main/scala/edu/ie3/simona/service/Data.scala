@@ -18,13 +18,14 @@ import squants.{Temperature, Velocity}
 import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
 
+import scala.collection.immutable.SortedMap
 import scala.jdk.OptionConverters.RichOptional
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 /** Trait to describe data structures, that are provided from the outside of a
-  * [[edu.ie3.simona.model.participant.SystemParticipant]] model but not
-  * necessarily from the outside of the simulation (but could be).
+  * [[edu.ie3.simona.model.participant.ParticipantModel]] but not necessarily
+  * from the outside of the simulation (but could be).
   */
 sealed trait Data
 
@@ -379,6 +380,16 @@ object Data {
         dirIrr: Irradiance,
         temp: Temperature,
         windVel: Velocity,
+    ) extends SecondaryData
+
+    /** Container class for weather data series over some time interval for
+      * certain coordinate.
+      *
+      * @param series
+      *   The weather time series consisting of [[WeatherData]].
+      */
+    final case class WeatherSeriesData(
+        series: SortedMap[Long, WeatherData]
     ) extends SecondaryData
 
     final case class WholesalePrice(price: ComparableQuantity[EnergyPrice])

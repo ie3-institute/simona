@@ -104,13 +104,11 @@ object ParticipantAgent {
     *
     * @param data
     *   The data.
-    * @tparam D
-    *   The type of the provided data.
     */
-  final case class DataProvision[D <: Data](
+  final case class DataProvision(
       override val tick: Long,
       override val serviceRef: ActorRef[ServiceMessage],
-      data: D,
+      data: Data,
       override val nextDataTick: Option[Long],
   ) extends DataInputMessage
 
@@ -348,7 +346,7 @@ object ParticipantAgent {
 
       val (updatedShell, updatedGridAdapter) = Scope(modelShell)
         .map(
-          _.handleInputData(
+          _.updateInputData(
             inputHandler.getData,
             gridAdapter.nodalVoltage,
             activation.tick,

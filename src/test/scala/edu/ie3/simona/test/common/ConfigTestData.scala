@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.test.common
 
-import org.apache.pekko.actor.ActorRef
 import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.util.TimeUtil
@@ -162,6 +161,4 @@ trait ConfigTestData {
 
   protected val endTime: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime(simonaConfig.simona.time.endDateTime)
-
-  protected val listener: Iterable[ActorRef] = Iterable.empty[ActorRef]
 }
