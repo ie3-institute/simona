@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Considering primary data that start before simulation [#1034](https://github.com/ie3-institute/simona/issues/1034)
 - Implement time series retrieval for WeatherSource [#1511](https://github.com/ie3-institute/simona/issues/1511)
 - Implement weather forecast provision by WeatherService [#1512](https://github.com/ie3-institute/simona/issues/1512)
+- Introduce optimizing EM strategy [#1500](https://github.com/ie3-institute/simona/issues/1500)
 - Enhance `ThermalConductance` by method to calculate for thermal power qDot [#1479](https://github.com/ie3-institute/simona/issues/1479)
 
 ### Changed
@@ -58,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed CFF-Version [#1464](https://github.com/ie3-institute/simona/issues/1464)
 - Fixed handleInput of `ProfileLoadModel` [#1441](https://github.com/ie3-institute/simona/issues/1441)
 - Fixed compiler warnings related to import and scala3 syntax [#1383](https://github.com/ie3-institute/simona/issues/1383)
+- Cleaned up dependencies [#1539](https://github.com/ie3-institute/simona/issues/1539)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

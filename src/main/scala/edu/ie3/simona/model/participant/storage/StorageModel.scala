@@ -54,7 +54,7 @@ class StorageModel private (
     override val qControl: QControl,
     val eStorage: Energy,
     val pMax: Power,
-    eta: Dimensionless,
+    val eta: Dimensionless,
     targetSoc: Option[Double],
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
