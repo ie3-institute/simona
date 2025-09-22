@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement time series retrieval for WeatherSource [#1511](https://github.com/ie3-institute/simona/issues/1511)
 - Implement weather forecast provision by WeatherService [#1512](https://github.com/ie3-institute/simona/issues/1512)
 - Introduce optimizing EM strategy [#1500](https://github.com/ie3-institute/simona/issues/1500)
+- Introduce `DomesticHotWaterStorage` [#1481](https://github.com/ie3-institute/simona/issues/1481)
 - Enhance `ThermalConductance` by method to calculate for thermal power qDot [#1479](https://github.com/ie3-institute/simona/issues/1479)
 
 ### Changed
