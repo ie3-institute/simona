@@ -156,6 +156,7 @@ class SimonaStandaloneSetup(
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
           simulationStart,
+          extSimSetupData.extPrimaryDataServices,
         ),
       ),
       "primaryServiceProxyAgent",

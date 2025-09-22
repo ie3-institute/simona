@@ -21,6 +21,8 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
+import edu.ie3.simona.service.primary.ExtPrimaryDataService
+import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -79,7 +81,7 @@ object ExtSimSetup {
         )
 
         // setup data services that belong to this external simulation
-        val updatedSetupData = connect(extSimulation, extSimSetupData)
+        val updatedSetupData = connect(extSimulation, extSimSetupData, index)
 
         // starting external simulation
         new Thread(extSimulation, s"External simulation $index")
@@ -104,6 +106,8 @@ object ExtSimSetup {
     *   To connect.
     * @param extSimSetupData
     *   That contains information about all external simulations.
+    * @param index
+    *   Index of the external link interface.
     * @param context
     *   The actor context of this actor system.
     * @param scheduler
@@ -116,6 +120,7 @@ object ExtSimSetup {
   private[setup] def connect(
       extSimulation: ExtSimulation,
       extSimSetupData: ExtSimSetupData,
+      index: Int,
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
@@ -134,6 +139,20 @@ object ExtSimSetup {
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
       case (setupData, connection) =>
         connection match {
+          case extPrimaryDataConnection: ExtPrimaryDataConnection =>
+            val serviceRef = context.spawn(
+              ExtPrimaryDataService(scheduler),
+              "ExtPrimaryDataService_$index",
+            )
+
+            setupService(
+              extPrimaryDataConnection,
+              serviceRef,
+              InitExtPrimaryData.apply,
+            )
+
+            extSimSetupData.update(extPrimaryDataConnection, serviceRef)
+
           case extEvDataConnection: ExtEvDataConnection =>
             if setupData.evDataConnection.nonEmpty then {
               throw ServiceException(
