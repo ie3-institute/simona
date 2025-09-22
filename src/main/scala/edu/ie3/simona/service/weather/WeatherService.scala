@@ -85,6 +85,8 @@ object WeatherService extends SimonaService {
     * @param activationTicks
     *   A sorted set of ticks, that yet have been sent to the scheduler (w\o
     *   next tick).
+    * @param startDateTime
+    *   The simulation time at which simulation started.
     * @param amountOfInterpolationCoords
     *   The amount of coordinates to be interpolated for any agent coordinate.
     */
@@ -93,6 +95,7 @@ object WeatherService extends SimonaService {
       coordinateData: Map[Coordinate, CoordinateData] = Map.empty,
       maybeNextActivationTick: Option[Long],
       activationTicks: SortedDistinctSeq[Long] = SortedDistinctSeq.empty,
+      startDateTime: ZonedDateTime,
       amountOfInterpolationCoords: Int = 4,
   ) extends ServiceBaseStateData
 
@@ -134,6 +137,7 @@ object WeatherService extends SimonaService {
           weatherSource,
           activationTicks = furtherActivationTicks,
           maybeNextActivationTick = maybeNextTick,
+          startDateTime = startDateTime,
         )
 
         Success(
@@ -270,6 +274,8 @@ object WeatherService extends SimonaService {
       ctx: ActorContext[Message],
   ): (WeatherBaseStateData, Option[Long]) = {
 
+    given simulationStart: ZonedDateTime = serviceStateData.startDateTime
+
     /* Pop the next activation tick and update the state data */
     val (
       maybeNextTick: Option[Long],
@@ -292,11 +298,15 @@ object WeatherService extends SimonaService {
           case WeatherDataType.CurrentAndForecast(length, interval) =>
             val endTick = tick + length.toSeconds.toLong
             // weather time series is forwarded without adding error
-            val series = updatedStateData.weatherSource.getWeather(
-              tick,
-              endTick,
-              coordinateWeights,
-            )
+            val series = updatedStateData.weatherSource
+              .getWeather(
+                tick,
+                endTick,
+                coordinateWeights,
+              )
+              .map { case (time, data) =>
+                time.toTick -> data
+              }
             WeatherSeriesData(reduceTimeSeriesResolution(series, interval))
         }
 
@@ -330,15 +340,15 @@ object WeatherService extends SimonaService {
     *   The adapted time series.
     */
   def reduceTimeSeriesResolution[T](
-      timeSeries: SortedMap[ZonedDateTime, T],
+      timeSeries: SortedMap[Long, T],
       resolution: Time,
-  ): SortedMap[ZonedDateTime, T] = {
+  ): SortedMap[Long, T] = {
     val resolutionSeconds = resolution.toSeconds.toLong
 
     timeSeries.foldLeft(timeSeries) { case (result, (it, _)) =>
       result.maxBefore(it) match {
         case Some((last, _)) =>
-          if last.plusSeconds(resolutionSeconds).isAfter(it) then
+          if last + resolutionSeconds > it then
             // interval from last to current key is too short
             result.removed(it)
           else result

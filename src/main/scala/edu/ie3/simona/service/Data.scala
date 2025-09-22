@@ -18,8 +18,7 @@ import squants.{Temperature, Velocity}
 import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
 
-import java.time.ZonedDateTime
-import scala.collection.SortedMap
+import scala.collection.immutable.SortedMap
 import scala.jdk.OptionConverters.RichOptional
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
@@ -390,7 +389,7 @@ object Data {
       *   The weather time series consisting of [[WeatherData]].
       */
     final case class WeatherSeriesData(
-        series: SortedMap[ZonedDateTime, WeatherData]
+        series: SortedMap[Long, WeatherData]
     ) extends SecondaryData
 
     final case class WholesalePrice(price: ComparableQuantity[EnergyPrice])
