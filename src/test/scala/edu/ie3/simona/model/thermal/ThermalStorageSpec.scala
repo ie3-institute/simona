@@ -20,10 +20,7 @@ import tech.units.indriya.quantity.Quantities.getQuantity
 
 import java.util.UUID
 
-class CylindricalThermalStorageSpec
-    extends UnitSpec
-    with Matchers
-    with BeforeAndAfterAll {
+class ThermalStorageSpec extends UnitSpec with Matchers with BeforeAndAfterAll {
 
   implicit val tolerance: Energy = KilowattHours(1e-10)
 
@@ -38,32 +35,22 @@ class CylindricalThermalStorageSpec
     getQuantity(50, PowerSystemUnits.KILOWATT),
   )
 
-  def buildThermalStorage(
-      cylindricalStorageInput: CylindricalStorageInput,
-      volume: Volume,
+  def buildStorage(
+      volume: Volume
   ): CylindricalThermalStorage = {
     val storedEnergy = CylindricalThermalStorage.volumeToEnergy(
-      volume,
-      cylindricalStorageInput.getC.toSquants,
-      cylindricalStorageInput.getInletTemp.toSquants,
-      cylindricalStorageInput.getReturnTemp.toSquants,
-    )
-    CylindricalThermalStorage(cylindricalStorageInput, storedEnergy)
-  }
-
-  def vol2Energy(volume: Volume): Energy = {
-    CylindricalThermalStorage.volumeToEnergy(
       volume,
       storageInput.getC.toSquants,
       storageInput.getInletTemp.toSquants,
       storageInput.getReturnTemp.toSquants,
     )
+    CylindricalThermalStorage(storageInput, storedEnergy)
   }
 
-  "CylindricalThermalStorage Model" should {
+  "ThermalStorage Model" should {
 
     "Apply, validation, and build method work correctly" in {
-      val storage = buildThermalStorage(storageInput, CubicMeters(70))
+      val storage = buildStorage(CubicMeters(70))
 
       storage.uuid shouldBe storageInput.getUuid
       storage.id shouldBe storageInput.getId
@@ -84,7 +71,7 @@ class CylindricalThermalStorageSpec
       )
 
       forAll(cases) { (storedEnergy, tick, qDot, expectedStoredEnergy) =>
-        val storage = buildThermalStorage(storageInput, CubicMeters(70))
+        val storage = buildStorage(CubicMeters(70))
         val lastState =
           ThermalStorage.ThermalStorageState(0L, KilowattHours(storedEnergy))
         val storageState =
@@ -94,7 +81,6 @@ class CylindricalThermalStorageSpec
           KilowattHours(expectedStoredEnergy)
         )
       }
-
     }
 
     "Check thresholds are calculated correctly" in {
@@ -122,7 +108,7 @@ class CylindricalThermalStorageSpec
             qDot,
             expectedThreshold,
         ) =>
-          val storage = buildThermalStorage(storageInput, CubicMeters(70))
+          val storage = buildStorage(CubicMeters(70))
           val state =
             ThermalStorage.ThermalStorageState(0L, KilowattHours(storedEnergy))
 
@@ -134,7 +120,6 @@ class CylindricalThermalStorageSpec
             case None            => fail("Expected a threshold but got None")
           }
       }
-
     }
   }
 }

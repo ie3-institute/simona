@@ -244,13 +244,11 @@ class WeatherServiceSpec
 
     "reduce time series resolution according to a given interval" when {
 
-      val startTime = ZonedDateTime.parse("2011-01-01T00:00:00Z")
-
       val timeSeries = SortedMap(
-        startTime -> 1,
-        startTime.plusHours(1) -> 2,
-        startTime.plusHours(2) -> 3,
-        startTime.plusHours(3) -> 4,
+        0L -> 1,
+        3600L -> 2,
+        7200L -> 3,
+        10800L -> 4,
       )
 
       "interval is finer than data resolution" in {
@@ -274,8 +272,8 @@ class WeatherServiceSpec
 
       "interval is more coarse than data resolution" in {
         val expectedResult = SortedMap(
-          startTime -> 1,
-          startTime.plusHours(2) -> 3,
+          0L -> 1,
+          7200L -> 3,
         )
 
         WeatherService.reduceTimeSeriesResolution(
