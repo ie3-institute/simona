@@ -492,7 +492,8 @@ class Transformer3wModelSpec
             val deadBand = Quantities.getQuantity(deadBandVal, PU)
 
             transformerModel.updateTapPos(currentTapPos)
-            val actual = transformerModel.computeDeltaTap(vChange, deadBand)
+            val actual =
+              transformerModel.computeDeltaTap(vChange, deadBand = deadBand)
             actual should be(expected)
           }
       }

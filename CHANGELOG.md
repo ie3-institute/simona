@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement weather forecast provision by WeatherService [#1512](https://github.com/ie3-institute/simona/issues/1512)
 - Introduce optimizing EM strategy [#1500](https://github.com/ie3-institute/simona/issues/1500)
 - Introduce `DomesticHotWaterStorage` [#1481](https://github.com/ie3-institute/simona/issues/1481)
+- Added support classes for transformer tap position calculation [#1543](https://github.com/ie3-institute/simona/issues/1543)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
