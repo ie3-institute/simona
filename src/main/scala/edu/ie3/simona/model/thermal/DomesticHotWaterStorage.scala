@@ -1,5 +1,5 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2024. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -9,7 +9,7 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
-  CylindricalStorageInput,
+  DomesticHotWaterStorageInput,
   ThermalBusInput,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
@@ -18,7 +18,7 @@ import squants.{Energy, Power}
 
 import java.util.UUID
 
-/** A cylindrical thermal storage.
+/** A domestic hot water storage.
   *
   * @param uuid
   *   the element's uuid
@@ -37,7 +37,7 @@ import java.util.UUID
   * @param storedEnergy
   *   Energy stored in the thermal storage
   */
-final case class CylindricalThermalStorage(
+final case class DomesticHotWaterStorage(
     uuid: UUID,
     id: String,
     operatorInput: OperatorInput,
@@ -56,32 +56,32 @@ final case class CylindricalThermalStorage(
       pThermalMax,
     ) {
 
-  /** Cylindrical storage starts empty */
-  override protected def initialEnergyLevel: Energy = zeroKWh
+  /** DHW storage starts full */
+  override protected def initialEnergyLevel: Energy = maxEnergyThreshold
 }
 
-object CylindricalThermalStorage extends ThermalStorageCalculations {
+object DomesticHotWaterStorage extends ThermalStorageCalculations {
 
-  /** Function to construct a new [[CylindricalThermalStorage]] based on a
-    * provided [[CylindricalStorageInput]]
+  /** Function to construct a new [[DomesticHotWaterStorage]] based on a
+    * provided [[DomesticHotWaterStorageInput]]
     *
     * @param input
-    *   instance of [[CylindricalStorageInput]] this storage should be built
-    *   from
+    *   instance of [[DomesticHotWaterStorageInput]] this storage should be
+    *   built from
     * @param initialStoredEnergy
     *   initial stored energy
     * @return
-    *   a ready-to-use [[CylindricalThermalStorage]] with referenced parameters
+    *   a ready-to-use [[DomesticHotWaterStorage]] with referenced parameters
     */
   def apply(
-      input: CylindricalStorageInput,
+      input: DomesticHotWaterStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
-  ): CylindricalThermalStorage = {
+  ): DomesticHotWaterStorage = {
     val maxEnergyThreshold =
       AbstractThermalStorage.calculateMaxEnergyThreshold(input)
     val pThermalMax = input.getpThermalMax().toSquants
 
-    new CylindricalThermalStorage(
+    new DomesticHotWaterStorage(
       input.getUuid,
       input.getId,
       input.getOperator,
