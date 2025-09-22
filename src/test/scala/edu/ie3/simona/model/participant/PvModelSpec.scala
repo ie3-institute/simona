@@ -11,17 +11,34 @@ import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
+import edu.ie3.simona.model.participant.PvModel.{PvState, RadiationData}
+import edu.ie3.simona.ontology.messages.flex.FlexType
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Kilovoltamperes,
+  WattsPerSquareMeter,
+}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
+import squants.Each
+import squants.energy.{Power, Watts}
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units.*
 
+import java.time.ZonedDateTime
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 
-class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
+class PvModelSpec
+    extends UnitSpec
+    with GivenWhenThen
+    with DefaultTestData
+    with WeatherTestData {
+
+  // testing tolerances
+  private given Power = Watts(1e-6)
 
   // build the NodeInputModel (which defines the location of the pv input model)
   // the NodeInputModel needs a GeoReference for the Pv to work
@@ -76,5 +93,103 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       actualSMax should approximate(expectedSMax)
     }
 
+    "handle singular weather data by storing it into state" in {
+      val oldState = PvState(0L, defaultSimulationStart)
+
+      val actualState =
+        pvModel.handleInput(oldState, Seq(weatherData), Each(1))
+
+      actualState.tick shouldEqual oldState.tick
+      actualState.dateTime shouldEqual defaultSimulationStart
+      actualState.radiationData shouldEqual SortedMap(
+        0L -> RadiationData(
+          diffIrradiance = weatherData.diffIrr,
+          dirIrradiance = weatherData.dirIrr,
+        )
+      )
+    }
+
+    "handle weather series data by storing it into state" in {
+      val oldState = PvState(0L, defaultSimulationStart)
+
+      val actualState =
+        pvModel.handleInput(oldState, Seq(weatherSeriesData), Each(1))
+
+      actualState.tick shouldEqual oldState.tick
+      actualState.dateTime shouldEqual defaultSimulationStart
+      actualState.radiationData shouldEqual weatherSeriesData.series.map {
+        case (tick, data) =>
+          tick -> RadiationData(data)
+      }
+    }
+
+    val startDate = ZonedDateTime.parse("2025-07-15T10:00:00+01:00")
+    // dir. irr., diff. irr., hour, expected power
+    val radiationToResult = Seq(
+      (400.0, 40.0, 10, -3526.5055027),
+      (500.0, 60.0, 11, -4475.9787502),
+      (100.0, 10.0, 12, -871.793398),
+      (200.0, 50.0, 13, -1883.7032106),
+    )
+
+    "calculate active power output depending on radiation and time" in {
+      val testCases = Table(
+        ("dirIrr", "diffIrr", "hour", "expectedPower"),
+        radiationToResult*
+      )
+
+      forAll(testCases) {
+        (dirIrr: Double, diffIrr: Double, hour: Int, expectedPower: Double) =>
+          val state = PvState(
+            tick = 0L,
+            dateTime = startDate.withHour(hour),
+            dirIrradiance = WattsPerSquareMeter(dirIrr),
+            diffIrradiance = WattsPerSquareMeter(diffIrr),
+          )
+          val (operatingPoint, nextTick) =
+            pvModel.determineOperatingPoint(state)
+
+          operatingPoint.activePower should approximate(Watts(expectedPower))
+          nextTick shouldBe None
+      }
+    }
+
+    "calculate forecast flex power series correctly" in {
+      val (radiationData, expectedResults) =
+        radiationToResult.zipWithIndex.map {
+          case ((dirIrr, diffIrr, _, expectedPower), i) =>
+            val tick = i * 3600L
+            val data = RadiationData(
+              dirIrradiance = WattsPerSquareMeter(dirIrr),
+              diffIrradiance = WattsPerSquareMeter(diffIrr),
+            )
+            val expectedResult = Watts(expectedPower)
+
+            (tick -> data, tick -> expectedResult)
+        }.unzip
+
+      val state = PvState(
+        tick = 0L,
+        dateTime = startDate,
+        radiationData = radiationData.to(SortedMap),
+      )
+
+      val flexOptions =
+        pvModel
+          .flexModels(FlexType.MathProgramming)
+          .determineFlexOptions(state)
+
+      flexOptions match {
+        case PowerSeriesMathFlexOptions(powerMap) =>
+          powerMap should have size expectedResults.size
+          expectedResults.foreach { case (tick, expectedResult) =>
+            powerMap(tick) should approximate(expectedResult)
+          }
+        case unexpected => fail(s"Received unexpected flex options $unexpected")
+      }
+
+    }
+
   }
+
 }

@@ -12,25 +12,29 @@ import edu.ie3.datamodel.models.result.system.{
   PvResult,
   SystemParticipantResult,
 }
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
   OperationChangeIndicator,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.PvModel.PvState
+import edu.ie3.simona.model.participant.PvModel.{PvState, RadiationData}
 import edu.ie3.simona.model.participant.SolarIrradiationCalculation.*
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.flex.PowerSeriesMathFlexModel
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.service.Data.SecondaryData.{
+  WeatherData,
+  WeatherSeriesData,
+}
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.*
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroWPerSM
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
@@ -40,6 +44,7 @@ import squants.space.{Degrees, SquareMeters}
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 
 class PvModel private (
     override val uuid: UUID,
@@ -76,7 +81,11 @@ class PvModel private (
 
   override val flexModels: Map[FlexType, ParticipantFlexModel[PvState]] =
     Map(
-      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
+      FlexType.MathProgramming -> PowerSeriesMathFlexModel(
+        this,
+        _.toStateSeries,
+      ),
     )
 
   override def determineState(
@@ -93,15 +102,15 @@ class PvModel private (
       nodalVoltage: Dimensionless,
   ): PvState =
     receivedData
-      .collectFirst { case weatherData: WeatherData =>
-        weatherData
+      .collectFirst {
+        case weatherData: WeatherData =>
+          SortedMap(state.tick -> RadiationData(weatherData))
+        case WeatherSeriesData(series) =>
+          series.map { case (tick, weatherData) =>
+            tick -> RadiationData(weatherData)
+          }
       }
-      .map(newData =>
-        state.copy(
-          diffIrradiance = newData.diffIrr,
-          dirIrradiance = newData.dirIrr,
-        )
-      )
+      .map(newData => state.copy(radiationData = newData))
       .getOrElse(state)
 
   /** Calculate the active power behaviour of the model.
@@ -114,9 +123,17 @@ class PvModel private (
   override def determineOperatingPoint(
       state: PvState
   ): (ActivePowerOperatingPoint, Option[Long]) = {
+    val (_, radiationData) = state.radiationData
+      .maxBefore(state.tick + 1)
+      .getOrElse(
+        throw new CriticalFailureException(
+          s"No radiation data available for current tick ${state.tick}"
+        )
+      )
+
     // Irradiance on a horizontal surface
-    val gBeamH = state.dirIrradiance
-    val gDifH = state.diffIrradiance
+    val gBeamH = radiationData.dirIrradiance
+    val gDifH = radiationData.diffIrradiance
 
     // === Beam irradiance parameters  === //
     val angleJ = calcAngleJ(state.dateTime)
@@ -246,23 +263,98 @@ class PvModel private (
 
 object PvModel {
 
-  /** Holds all relevant data for a pv model calculation.
+  /** Holds all relevant data for PV model calculation.
     *
     * @param tick
     *   The current tick.
     * @param dateTime
-    *   The date and time of the <b>ending</b> of time frame to calculate.
-    * @param diffIrradiance
-    *   The diffuse solar irradiance on a horizontal surface.
-    * @param dirIrradiance
-    *   The direct solar irradiance on a horizontal surface.
+    *   The date and time corresponding to the current tick.
+    * @param radiationData
+    *   A map of tick to corresponding radiation data. For regular calculations
+    *   of the operating point, only the radiation data for the current tick is
+    *   used. For forecasts, the map needs to contain further data for future
+    *   ticks.
     */
   final case class PvState(
       override val tick: Long,
       dateTime: ZonedDateTime,
-      diffIrradiance: Irradiance,
+      radiationData: SortedMap[Long, RadiationData] = SortedMap.empty,
+  ) extends ModelState {
+
+    /** Creates states for forecast calculation given the current state.
+      *
+      * @return
+      *   States for forecast calculation.
+      */
+    def toStateSeries: SortedMap[Long, PvState] = {
+      radiationData.map { case (dataTick, _) =>
+        val tickDiff = dataTick - tick
+        val tickState = PvState(
+          dataTick,
+          dateTime.plusSeconds(tickDiff),
+          radiationData,
+        )
+
+        dataTick -> tickState
+      }
+    }
+  }
+
+  object PvState {
+
+    /** Convenience constructor for creating a state for regular operating point
+      * calculation at the current point in simulation time.
+      *
+      * @param tick
+      *   The current tick.
+      * @param dateTime
+      *   The current date and time.
+      * @param dirIrradiance
+      *   The current direct solar irradiance on a horizontal surface.
+      * @param diffIrradiance
+      *   The current diffuse solar irradiance on a horizontal surface.
+      * @return
+      *   A state for calculation at the current point in simulation time.
+      */
+    def apply(
+        tick: Long,
+        dateTime: ZonedDateTime,
+        dirIrradiance: Irradiance,
+        diffIrradiance: Irradiance,
+    ): PvState = PvState(
+      tick,
+      dateTime,
+      SortedMap(
+        tick -> RadiationData(
+          dirIrradiance = dirIrradiance,
+          diffIrradiance = diffIrradiance,
+        )
+      ),
+    )
+
+  }
+
+  /** Radiation data for a specific point in simulation time.
+    *
+    * @param dirIrradiance
+    *   The direct solar irradiance on a horizontal surface.
+    * @param diffIrradiance
+    *   The diffuse solar irradiance on a horizontal surface.
+    */
+  final case class RadiationData(
       dirIrradiance: Irradiance,
-  ) extends ModelState
+      diffIrradiance: Irradiance,
+  )
+
+  object RadiationData {
+
+    def apply(weatherData: WeatherData): RadiationData =
+      RadiationData(
+        dirIrradiance = weatherData.dirIrr,
+        diffIrradiance = weatherData.diffIrr,
+      )
+
+  }
 
   final case class Factory(
       input: PvInput
@@ -275,12 +367,7 @@ object PvModel {
         tick: Long,
         simulationTime: ZonedDateTime,
     ): PvState =
-      PvState(
-        tick,
-        simulationTime,
-        zeroWPerSM,
-        zeroWPerSM,
-      )
+      PvState(tick, simulationTime)
 
     override def create(): PvModel =
       new PvModel(

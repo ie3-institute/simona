@@ -37,7 +37,7 @@ class ThermalHouseSpec
     with ThermalHouseTestData
     with DefaultTestData {
 
-  implicit val temperaturTolerance: Temperature = Celsius(1e-4)
+  implicit val temperatureTolerance: Temperature = Celsius(1e-4)
   implicit val energyTolerance: Energy = KilowattHours(1e-4)
   implicit val volumeTolerance: Volume = Litres(0.01)
 

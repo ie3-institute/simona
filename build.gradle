@@ -1,5 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer
-
 plugins {
   id 'java' // java support
   id 'scala' // scala support
@@ -9,7 +7,7 @@ plugins {
   id "com.github.ben-manes.versions" version '0.52.0'
   id "de.undercouch.download" version "5.6.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
-  id 'com.gradleup.shadow' version '8.3.9' // fat jar
+  id 'com.gradleup.shadow' version '9.1.0' // fat jar
   id "org.sonarqube" version "6.3.1.5724" // sonarqube
   id "org.scoverage" version "8.1" // scala code coverage scoverage
   id 'org.hidetake.ssh' version '2.12.0'
@@ -87,7 +85,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:powerflow:0.3.0') {
+  implementation('com.github.ie3-institute:powerflow:0.4.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -165,6 +163,10 @@ dependencies {
 
   // needed, because scala won't compile otherwise
   implementation 'org.influxdb:influxdb-java:2.25'
+
+  // optimization
+  implementation "com.github.vagmcs:optimus_${scalaVersion}:3.4.5"
+  implementation "com.github.vagmcs:optimus-solver-oj_${scalaVersion}:3.4.5"
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -186,15 +188,12 @@ application {
 
 //////////////////////////////////////////////////////////////////////
 // Build pekko'able fat jar using the gradle shadow plugin
-// see http://www.sureshpw.com/2015/10/building-akka-bundle-with-all.html
-// and https://github.com/akka/akka/issues/24248
+// see https://pekko.apache.org/docs/pekko/current/additional/packaging.html#gradle-the-jar-task-from-the-java-plugin
 //////////////////////////////////////////////////////////////////////
-shadowJar {
-  transform(AppendingTransformer) {
-    resource = 'reference.conf'
-  }
+tasks.shadowJar {
+  append 'reference.conf'
   zip64 = true
-  archiveBaseName.set('simona')
+  archiveBaseName = 'simona'
 }
 
 // scapegoat hook configuration

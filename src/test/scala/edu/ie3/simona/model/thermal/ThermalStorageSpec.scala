@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.input.thermal.DomesticHotWaterStorageInput
+import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
@@ -24,9 +24,9 @@ class ThermalStorageSpec extends UnitSpec with Matchers with BeforeAndAfterAll {
 
   implicit val tolerance: Energy = KilowattHours(1e-10)
 
-  lazy val storageInput = new DomesticHotWaterStorageInput(
+  lazy val storageInput = new CylindricalStorageInput(
     UUID.randomUUID(),
-    "DomesticHotWaterStorage",
+    "ThermalStorage",
     null,
     getQuantity(100, StandardUnits.VOLUME),
     getQuantity(30, StandardUnits.TEMPERATURE),
@@ -37,23 +37,14 @@ class ThermalStorageSpec extends UnitSpec with Matchers with BeforeAndAfterAll {
 
   def buildStorage(
       volume: Volume
-  ): DomesticHotWaterStorage = {
-    val storedEnergy = DomesticHotWaterStorage.volumeToEnergy(
+  ): CylindricalThermalStorage = {
+    val storedEnergy = CylindricalThermalStorage.volumeToEnergy(
       volume,
       storageInput.getC.toSquants,
       storageInput.getInletTemp.toSquants,
       storageInput.getReturnTemp.toSquants,
     )
-    DomesticHotWaterStorage(storageInput, storedEnergy)
-  }
-
-  def vol2Energy(volume: Volume): Energy = {
-    DomesticHotWaterStorage.volumeToEnergy(
-      volume,
-      storageInput.getC.toSquants,
-      storageInput.getInletTemp.toSquants,
-      storageInput.getReturnTemp.toSquants,
-    )
+    CylindricalThermalStorage(storageInput, storedEnergy)
   }
 
   "ThermalStorage Model" should {
