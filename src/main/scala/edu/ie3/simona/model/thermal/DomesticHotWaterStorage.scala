@@ -14,8 +14,6 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import squants.energy.Kilowatts
-import squants.time.Seconds
 import squants.{Energy, Power}
 
 import java.util.UUID
