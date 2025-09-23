@@ -46,11 +46,9 @@ object ExtPrimaryDataService extends SimonaService with ExtDataSupport {
 
   final case class ExtPrimaryDataStateData(
       extPrimaryData: ExtPrimaryDataConnection,
-      subscribers: List[UUID] = List.empty,
       uuidToActorRef: Map[UUID, ActorRef[ParticipantAgent.Request]] =
         Map.empty, // subscribers in SIMONA
       extPrimaryDataMessage: Option[PrimaryDataMessageFromExt] = None,
-      maybeNextTick: Option[Long] = None,
   ) extends ServiceBaseStateData
 
   case class InitExtPrimaryData(
@@ -123,10 +121,8 @@ object ExtPrimaryDataService extends SimonaService with ExtDataSupport {
         )
         ctx.log.info(s"Successful registration for $agentUUID")
 
-        serviceStateData.copy(
-          subscribers = serviceStateData.subscribers :+ agentUUID,
-          uuidToActorRef =
-            serviceStateData.uuidToActorRef + (agentUUID -> agentToBeRegistered),
+        serviceStateData.copy(uuidToActorRef =
+          serviceStateData.uuidToActorRef + (agentUUID -> agentToBeRegistered)
         )
 
       case Some(_) =>
@@ -139,17 +135,6 @@ object ExtPrimaryDataService extends SimonaService with ExtDataSupport {
     }
   }
 
-  /** Send out the information to all registered recipients
-    *
-    * @param tick
-    *   current tick data should be announced for
-    * @param serviceStateData
-    *   the current state data of this service
-    * @return
-    *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is send
-    *   in response to the trigger that was sent to start this announcement
-    */
   override protected def announceInformation(
       tick: Long
   )(using
@@ -179,41 +164,36 @@ object ExtPrimaryDataService extends SimonaService with ExtDataSupport {
     ctx.log.debug(
       s"Got activation to distribute primaryData = $primaryDataMessage"
     )
-    val actorToPrimaryData = primaryDataMessage.primaryData.asScala.flatMap {
-      case (agent, primaryDataPerAgent) =>
-        serviceStateData.uuidToActorRef
-          .get(agent)
-          .map((_, primaryDataPerAgent))
-          .orElse {
-            ctx.log.warn(
-              "A corresponding actor ref for UUID {} could not be found",
-              agent,
-            )
-            None
-          }
-    }
 
+    val uuidToAgent = serviceStateData.uuidToActorRef
     val maybeNextTick = primaryDataMessage.maybeNextTick.toScala.map(Long2long)
 
-    // Distribute Primary Data
-    if actorToPrimaryData.nonEmpty then {
-      actorToPrimaryData.foreach { case (actor, value) =>
-        value.toPrimaryData match {
-          case Success(primaryData) =>
-            actor ! DataProvision(
-              tick,
-              ctx.self,
-              primaryData,
-              maybeNextTick,
-            )
-          case Failure(exception) =>
-            /* Processing of data failed */
-            ctx.log.warn(
-              "Unable to convert received value to primary data. Skipped that data." +
-                "\nException: {}",
-              exception,
-            )
-        }
+    primaryDataMessage.primaryData.asScala.foreach { case (agentUuid, data) =>
+      data.toPrimaryData match {
+        case Success(primaryData) =>
+          uuidToAgent.get(agentUuid) match {
+            case Some(agentRef) =>
+              agentRef ! DataProvision(
+                tick,
+                ctx.self,
+                primaryData,
+                maybeNextTick,
+              )
+
+            case None =>
+              ctx.log.warn(
+                "A corresponding actor ref for UUID {} could not be found",
+                agentUuid,
+              )
+          }
+
+        case Failure(exception) =>
+          /* Processing of data failed */
+          ctx.log.warn(
+            "Unable to convert received value to primary data. Skipped that data." +
+              "\nException: {}",
+            exception,
+          )
       }
     }
 
@@ -236,6 +216,7 @@ object ExtPrimaryDataService extends SimonaService with ExtDataSupport {
     }
   }
 
+  // unused by this service
   override protected def handleDataResponseMessage(
       extResponseMsg: ServiceResponseMessage
   )(implicit
