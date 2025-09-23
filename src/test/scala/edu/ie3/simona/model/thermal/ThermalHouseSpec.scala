@@ -308,6 +308,142 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       }
     }
 
+    "calculating thermal energy demand for heating water" should {
+
+      val thermalEnergyDemandWater =
+        PrivateMethod[Energy](
+          Symbol("thermalEnergyDemandWater")
+        )
+
+      "calculate the thermal energy demand to heat up water correctly" in {
+
+        val cases = Table(
+          ("waterDemand", "startTemp", "endTemp", "expectedEnergy"),
+          (1d, 1d, 2d, 0.00116),
+          (1000d, -5d, 55d, 69.6),
+          (20d, 20d, 30d, 0.232),
+          (55d, 100d, 100d, 0d),
+          (2500d, 30d, 65d, 101.5),
+        )
+
+        forAll(cases) { (waterDemand, startTemp, endTemp, expectedResult) =>
+          val result =
+            thermalHouse invokePrivate thermalEnergyDemandWater(
+              Litres(waterDemand),
+              Celsius(startTemp),
+              Celsius(endTemp),
+            )
+
+          result should approximate(KilowattHours(expectedResult))
+        }
+
+      }
+
+      "throw an exception if end temperature is lower than start temperature" in {
+        val waterDemand = Litres(100)
+        val startTemp = Celsius(60)
+        val endTemp = Celsius(20)
+
+        intercept[RuntimeException] {
+          thermalHouse invokePrivate thermalEnergyDemandWater(
+            waterDemand,
+            startTemp,
+            endTemp,
+          )
+        }.getMessage shouldBe "End temperature of 20.0°C is lower than the start temperature 60.0°C for the water heating system."
+      }
+
+      "calculate the water demand correctly for a given hour" in {
+        val waterDemandOfHour =
+          PrivateMethod[Volume](
+            Symbol("waterDemandOfHour")
+          )
+        val cases = Table(
+          ("hour", "housingType", "noPersons", "expectedVolume"),
+          (0, "house", 0d, 0d),
+          (0, "house", 1d, 0.64602),
+          (0, "house", 2d, 1.29205),
+          (1, "house", 1d, 0.358904),
+          (3, "house", 4d, 0.43068),
+          (8, "house", 4d, 9.76219),
+          (0, "flat", 0d, 0d),
+          (0, "flat", 1d, 0.3589),
+          (0, "flat", 2d, 0.7178),
+          (1, "flat", 1d, 0.3589),
+          (3, "flat", 4d, 0d),
+          (8, "flat", 4d, 11.48493),
+        )
+
+        forAll(cases) { (hour, housingType, noPersons, expectedResult) =>
+          val demand = thermalHouse invokePrivate waterDemandOfHour(
+            hour,
+            noPersons,
+            housingType,
+          )
+          val expected = Litres(expectedResult)
+          demand should approximate(expected)
+        }
+      }
+
+      "return the correct sequence of hours to determine hot water demand for" in {
+        val simulationStart = ZonedDateTime.parse("2024-01-01T00:00:00Z")
+        val cases = Table(
+          ("lastTick", "tick", "expectedResult"),
+          (-1L, 0L, Some(Seq(0))),
+          (0L, 1800L, None),
+          (1800L, 1801L, None),
+          (0L, 3600L, Some(Seq(1))),
+          (3599L, 7200L, Some(Seq(1, 2))),
+          (-1L, 7200L, Some(Seq(0, 1, 2))),
+          (86000L, 86400L, Some(Seq(0))),
+          (
+            -1L,
+            86400L,
+            Some(
+              Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                18, 19, 20, 21, 22, 23, 0)
+            ),
+          ),
+        )
+
+        forAll(cases) { (lastTick, tick, expectedResult) =>
+          val thermalGridState = ThermalGridState(
+            Some(
+              ThermalHouseState(
+                lastTick,
+                testGridAmbientTemperature,
+                Celsius(20),
+              )
+            ),
+            None,
+            Some(ThermalStorageState(lastTick, zeroKWh)),
+          )
+
+          val state = HpState(
+            lastTick,
+            defaultSimulationStart.plusSeconds(lastTick),
+            thermalGridState,
+            HpOperatingPoint.zero,
+            noThermalDemand,
+          )
+
+          val simulationTime = tick.toDateTime(simulationStart)
+
+          val sequenceOfHours =
+            thermalHouse.checkIfNeedToDetermineDomesticHotWaterDemand(
+              tick,
+              simulationTime,
+              state,
+            )
+
+          expectedResult match {
+            case Some(expectedSeq) => sequenceOfHours shouldBe Some(expectedSeq)
+            case None              => sequenceOfHours shouldBe None
+          }
+        }
+      }
+    }
+
     "Check build method" in {
 
       val thermalTestHouse = thermalHouse(18, 22)
