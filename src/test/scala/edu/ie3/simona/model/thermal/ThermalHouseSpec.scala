@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.thermal
 
+import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,
   HouseTemperatureLowerBoundaryReached,
@@ -16,6 +18,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
 }
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.WattsPerKelvin
 import org.scalatest.prop.{TableFor2, TableFor3, TableFor4, TableFor7}
 import squants.energy.*
@@ -23,6 +26,8 @@ import squants.space.Litres
 import squants.thermal.*
 import squants.time.*
 import squants.{Energy, Temperature, Volume}
+
+import java.time.ZonedDateTime
 
 class ThermalHouseSpec
     extends UnitSpec
@@ -388,6 +393,63 @@ class ThermalHouseSpec
           )
           val expected = Litres(expectedResult)
           demand should approximate(expected)
+        }
+      }
+
+      "return the correct sequence of hours to determine hot water demand for" in {
+        val simulationStart = ZonedDateTime.parse("2024-01-01T00:00:00Z")
+        val cases = Table(
+          ("lastTick", "tick", "expectedResult"),
+          (-1L, 0L, Some(Seq(0))),
+          (0L, 1800L, None),
+          (1800L, 1801L, None),
+          (0L, 3600L, Some(Seq(1))),
+          (3599L, 7200L, Some(Seq(1, 2))),
+          (-1L, 7200L, Some(Seq(0, 1, 2))),
+          (86000L, 86400L, Some(Seq(0))),
+          (
+            -1L,
+            86400L,
+            Some(
+              Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                18, 19, 20, 21, 22, 23, 0)
+            ),
+          ),
+        )
+
+        forAll(cases) { (lastTick, tick, expectedResult) =>
+          val thermalGridState = ThermalGridState(
+            Some(
+              ThermalHouseState(
+                lastTick,
+                testGridAmbientTemperature,
+                Celsius(20),
+              )
+            ),
+            None,
+          )
+
+          val state = HpState(
+            lastTick,
+            defaultSimulationStart.plusSeconds(lastTick),
+            thermalGridState,
+            HpOperatingPoint.zero,
+            noThermalDemand,
+          )
+
+          val simulationTime = tick.toDateTime(simulationStart)
+
+          val sequenceOfHours =
+            thermalHouse.checkIfNeedToDetermineDomesticHotWaterDemand(
+              tick,
+              simulationTime,
+              state,
+            )
+
+          expectedResult match {
+            case Some(expectedSeq) => sequenceOfHours shouldBe Some(expectedSeq)
+            case None              => sequenceOfHours shouldBe None
+          }
         }
       }
     }
