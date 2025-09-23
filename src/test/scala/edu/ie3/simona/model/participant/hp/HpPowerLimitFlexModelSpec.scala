@@ -6,16 +6,8 @@
 
 package edu.ie3.simona.model.participant.hp
 
-import edu.ie3.simona.model.participant.hp.HpModel.{
-  HpOperatingPoint,
-  HpState,
-  ThermalGridOperatingPoint,
-}
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalDemandWrapper,
-  ThermalEnergyDemand,
-  ThermalGridState,
-}
+import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState, ThermalGridOperatingPoint}
+import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalDemandWrapper, ThermalEnergyDemand, ThermalGridState}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
@@ -50,6 +42,7 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
 
       val defaultState = HpState(
         0,
+        defaultSimulationStart,
         thermalState(Celsius(17d), ambientTemperature),
         HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
         noThermalDemand,

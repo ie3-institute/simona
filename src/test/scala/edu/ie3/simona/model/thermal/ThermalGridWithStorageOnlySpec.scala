@@ -6,15 +6,8 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.datamodel.models.input.thermal.{
-  ThermalHouseInput,
-  ThermalStorageInput,
-}
-import edu.ie3.simona.model.participant.hp.HpModel.{
-  HpOperatingPoint,
-  HpState,
-  ThermalGridOperatingPoint,
-}
+import edu.ie3.datamodel.models.input.thermal.{ThermalHouseInput, ThermalStorageInput}
+import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState, ThermalGridOperatingPoint}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.StorageFull
@@ -66,6 +59,7 @@ class ThermalGridWithStorageOnlySpec
       ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
     val initialHpState = HpState(
       0L,
+      defaultSimulationStart,
       initialGridState,
       HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
       onlyThermalDemandOfHeatStorage,
