@@ -10,21 +10,36 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.container.ThermalGrid as PsdmThermalGrid
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.system.{HpResult, SystemParticipantResult}
-import edu.ie3.simona.model.participant.ParticipantModel.{ModelState, OperatingPoint, OperationChangeIndicator, ParticipantModelFactory}
+import edu.ie3.datamodel.models.result.system.{
+  HpResult,
+  SystemParticipantResult,
+}
+import edu.ie3.simona.model.participant.ParticipantModel.{
+  ModelState,
+  OperatingPoint,
+  OperationChangeIndicator,
+  ParticipantModelFactory,
+}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.model.thermal.ThermalGrid.*
 import edu.ie3.simona.ontology.messages.flex.FlexType
-import edu.ie3.simona.service.Data.PrimaryData.{ComplexPower, ComplexPowerAndHeat, PrimaryDataWithComplexPower}
+import edu.ie3.simona.service.Data.PrimaryData.{
+  ComplexPower,
+  ComplexPowerAndHeat,
+  PrimaryDataWithComplexPower,
+}
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{toApparent, toSquants}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toApparent,
+  toSquants,
+}
 import squants.*
 
 import java.time.ZonedDateTime

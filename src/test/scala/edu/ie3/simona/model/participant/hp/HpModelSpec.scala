@@ -6,8 +6,16 @@
 
 package edu.ie3.simona.model.participant.hp
 
-import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState, ThermalGridOperatingPoint}
-import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalDemandWrapper, ThermalEnergyDemand, ThermalGridState}
+import edu.ie3.simona.model.participant.hp.HpModel.{
+  HpOperatingPoint,
+  HpState,
+  ThermalGridOperatingPoint,
+}
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
 import edu.ie3.simona.test.common.UnitSpec
