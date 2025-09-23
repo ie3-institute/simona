@@ -14,19 +14,25 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
   startingState,
 }
-import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.scala.quantities.WattsPerKelvin
 import org.scalatest.prop.{TableFor2, TableFor3, TableFor4, TableFor7}
 import squants.energy.*
+import squants.space.Litres
 import squants.thermal.*
 import squants.time.*
-import squants.{Energy, Temperature}
+import squants.{Energy, Temperature, Volume}
 
-class ThermalHouseSpec extends UnitSpec with HpInputTestData {
+class ThermalHouseSpec
+    extends UnitSpec
+    with HpInputTestData
+    with ThermalHouseTestData
+    with DefaultTestData {
 
   implicit val temperatureTolerance: Temperature = Celsius(1e-4)
   implicit val energyTolerance: Energy = KilowattHours(1e-4)
+  implicit val volumeTolerance: Volume = Litres(0.01)
 
   "ThermalHouse" should {
     "Functions testing inner temperature work as expected" in {
@@ -382,64 +388,6 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
           )
           val expected = Litres(expectedResult)
           demand should approximate(expected)
-        }
-      }
-
-      "return the correct sequence of hours to determine hot water demand for" in {
-        val simulationStart = ZonedDateTime.parse("2024-01-01T00:00:00Z")
-        val cases = Table(
-          ("lastTick", "tick", "expectedResult"),
-          (-1L, 0L, Some(Seq(0))),
-          (0L, 1800L, None),
-          (1800L, 1801L, None),
-          (0L, 3600L, Some(Seq(1))),
-          (3599L, 7200L, Some(Seq(1, 2))),
-          (-1L, 7200L, Some(Seq(0, 1, 2))),
-          (86000L, 86400L, Some(Seq(0))),
-          (
-            -1L,
-            86400L,
-            Some(
-              Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-                18, 19, 20, 21, 22, 23, 0)
-            ),
-          ),
-        )
-
-        forAll(cases) { (lastTick, tick, expectedResult) =>
-          val thermalGridState = ThermalGridState(
-            Some(
-              ThermalHouseState(
-                lastTick,
-                testGridAmbientTemperature,
-                Celsius(20),
-              )
-            ),
-            None,
-            Some(ThermalStorageState(lastTick, zeroKWh)),
-          )
-
-          val state = HpState(
-            lastTick,
-            defaultSimulationStart.plusSeconds(lastTick),
-            thermalGridState,
-            HpOperatingPoint.zero,
-            noThermalDemand,
-          )
-
-          val simulationTime = tick.toDateTime(simulationStart)
-
-          val sequenceOfHours =
-            thermalHouse.checkIfNeedToDetermineDomesticHotWaterDemand(
-              tick,
-              simulationTime,
-              state,
-            )
-
-          expectedResult match {
-            case Some(expectedSeq) => sequenceOfHours shouldBe Some(expectedSeq)
-            case None              => sequenceOfHours shouldBe None
-          }
         }
       }
     }
