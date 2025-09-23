@@ -19,7 +19,6 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.datamodel.models.result.thermal.{
   AbstractThermalStorageResult,
-  DomesticHotWaterStorageResult,
   ThermalHouseResult,
   ThermalUnitResult,
 }
@@ -123,26 +122,6 @@ object ResultEvent {
       )
     ] = {
       Option(storageResult).map { result =>
-        (
-          result.getTime,
-          result.getInputModel,
-          result.getqDot,
-          result.getEnergy,
-        )
-      }
-    }
-  }
-
-  object DomesticHotWaterStorageResult {
-    def unapply(result: DomesticHotWaterStorageResult): Option[
-      (
-          ZonedDateTime,
-          UUID,
-          ComparableQuantity[Power],
-          ComparableQuantity[Energy],
-      )
-    ] = {
-      Option(result).map { result =>
         (
           result.getTime,
           result.getInputModel,
