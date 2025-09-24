@@ -292,7 +292,11 @@ object EmAgent {
             val setPower = zeroKW
 
             val flexControl =
-              updatedModelShell.determineFlexControl(allFlexOptions, setPower)
+              updatedModelShell.determineFlexControl(
+                allFlexOptions,
+                setPower,
+                flexOptionsCore.activeTick,
+              )
 
             val (allFlexMsgs, newCore) = updatedCore
               .handleFlexCtrl(flexControl)
@@ -350,6 +354,7 @@ object EmAgent {
         modelShell.determineFlexControl(
           receivedFlexOptions,
           setPointActivePower,
+          flexCtrl.tick,
         )
 
       val (allFlexMsgs, newCore) = flexOptionsCore

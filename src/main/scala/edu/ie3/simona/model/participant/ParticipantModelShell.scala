@@ -156,7 +156,7 @@ final case class ParticipantModelShell[
     * @return
     *   An updated [[ParticipantModelShell]].
     */
-  def handleInputData(
+  def updateInputData(
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,

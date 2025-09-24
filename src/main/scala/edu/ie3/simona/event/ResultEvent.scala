@@ -18,7 +18,7 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
 }
 import edu.ie3.datamodel.models.result.thermal.{
-  CylindricalStorageResult,
+  AbstractThermalStorageResult,
   ThermalHouseResult,
   ThermalUnitResult,
 }
@@ -116,8 +116,8 @@ object ResultEvent {
       }
   }
 
-  object CylindricalThermalStorageResult {
-    def unapply(cylindricalStorageResult: CylindricalStorageResult): Option[
+  object AbstractThermalStorageResult {
+    def unapply(storageResult: AbstractThermalStorageResult): Option[
       (
           ZonedDateTime,
           UUID,
@@ -125,7 +125,7 @@ object ResultEvent {
           ComparableQuantity[Energy],
       )
     ] = {
-      Option(cylindricalStorageResult).map { result =>
+      Option(storageResult).map { result =>
         (
           result.getTime,
           result.getInputModel,

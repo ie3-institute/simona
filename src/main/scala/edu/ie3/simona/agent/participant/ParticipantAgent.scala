@@ -361,7 +361,7 @@ object ParticipantAgent {
 
       val (updatedShell, updatedGridAdapter) = Scope(modelShell)
         .map(
-          _.handleInputData(
+          _.updateInputData(
             inputHandler.getData,
             gridAdapter.nodalVoltage,
             activation.tick,

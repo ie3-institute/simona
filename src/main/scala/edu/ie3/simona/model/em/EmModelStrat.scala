@@ -28,17 +28,20 @@ trait EmModelStrat[FO <: FlexOptions] {
     * return data are
     *
     * @param flexOptions
-    *   The flex options per connected agent
+    *   The flex options per connected agent.
     * @param target
-    *   The target power to aim for when utilizing flexibility
+    *   The target power to aim for when utilizing flexibility.
+    * @param currentTick
+    *   The current tick.
     * @return
-    *   Power set points for connected agents, if applicable
+    *   Power set points for connected agents, if applicable.
     */
   def determineFlexControl(
       flexOptions: Iterable[
         (? <: AssetInput, FO)
       ],
       target: Power,
+      currentTick: Long,
   ): Iterable[(UUID, Power)]
 
   /** Depending on the model strategy used, not all flex options provided by
