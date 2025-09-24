@@ -8,6 +8,9 @@ package edu.ie3.simona.event.listener
 
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
+import edu.ie3.simona.api.data.connection.ExtResultListener
+import edu.ie3.simona.api.ontology.results.ProvideResultEntities
+import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ResultResponse
 import edu.ie3.simona.exceptions.{
@@ -15,21 +18,24 @@ import edu.ie3.simona.exceptions.{
   ProcessResultEventException,
 }
 import edu.ie3.simona.io.result.*
+import edu.ie3.simona.ontology.messages.ResultMessage
+import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import org.slf4j.Logger
+import edu.ie3.simona.util.CollectionUtils.asJava
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
-object ResultEventListener extends Transformer3wResultSupport {
+object ResultListener {
 
   trait Request
 
-  type Message = Request | ResultEvent.Response
+  type Message = Request | ResultMessage.Response
 
   private final case class SinkResponse(
       response: Map[Class[?], ResultEntitySink]
@@ -37,15 +43,14 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   private final case class InitFailed(ex: Exception) extends Request
 
-  /** [[ResultEventListener]] base data containing all information the listener
-    * needs
+  /** [[ResultListener]] base data containing all information the listener needs
     *
     * @param classToSink
     *   a map containing the sink for each class that should be processed by the
     *   listener
     */
   private final case class BaseData(
-      classToSink: Map[Class[_], ResultEntitySink]
+      classToSink: Map[Class[?], ResultEntitySink]
   )
 
   /** Initialize the sinks for this listener based on the provided collection
@@ -175,6 +180,26 @@ object ResultEventListener extends Transformer3wResultSupport {
       log.error("Error while writing result event: ", exception)
     }
 
+  /** Method to create an external result listener.
+    *
+    * @param connection
+    *   Result listener data connection.
+    * @return
+    *   The behavior of the listener.
+    */
+  def external(connection: ExtResultListener): Behavior[Message] =
+    Behaviors.receivePartial[Message] {
+      case (_, ResultResponse(results)) =>
+        connection.queueExtResponseMsg(
+          new ProvideResultEntities(results.asJava)
+        )
+
+        Behaviors.same
+
+      case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
+        DelayedStopHelper.handleMsg((ctx, msg))
+    }
+
   def apply(
       resultFileHierarchy: ResultFileHierarchy
   ): Behavior[Message] = Behaviors.setup[Message] { ctx =>
@@ -193,7 +218,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
     ctx.pipeToSelf(
       Future.sequence(
-        ResultEventListener.initializeSinks(resultFileHierarchy)
+        ResultListener.initializeSinks(resultFileHierarchy)
       )
     ) {
       case Failure(exception: Exception) => InitFailed(exception)

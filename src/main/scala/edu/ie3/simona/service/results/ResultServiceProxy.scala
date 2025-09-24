@@ -12,7 +12,12 @@ import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.*
 import edu.ie3.simona.event.listener.DelayedStopHelper
-import edu.ie3.simona.event.listener.ResultEventListener.{
+import edu.ie3.simona.ontology.messages.ResultMessage.{
+  RequestResult,
+  ResultResponse,
+}
+import edu.ie3.simona.service.ServiceStateData.ServiceBaseStateData
+import edu.ie3.simona.service.results.Transformer3wResultSupport.{
   AggregatedTransformer3wResult,
   Transformer3wKey,
 }
@@ -36,7 +41,7 @@ object ResultServiceProxy {
   final case class ExpectResult(assets: UUID | Seq[UUID], tick: Long)
 
   private final case class ResultServiceStateData(
-      listeners: Seq[ActorRef[ResultEvent.ResultResponse]],
+      listeners: Seq[ActorRef[ResultResponse]],
       simStartTime: ZonedDateTime,
       currentTick: Long = INIT_SIM_TICK,
       threeWindingResults: Map[
@@ -48,7 +53,7 @@ object ResultServiceProxy {
       waitingForResults: Map[UUID, Long] = Map.empty,
   ) extends ServiceBaseStateData {
     def notifyListener(results: Map[UUID, Iterable[ResultEntity]]): Unit =
-      listeners.foreach(_ ! ResultResponse(results))
+      if results.nonEmpty then listeners.foreach(_ ! ResultResponse(results))
 
     def notifyListener(result: ResultEntity): Unit =
       listeners.foreach(
@@ -124,7 +129,7 @@ object ResultServiceProxy {
   }
 
   def apply(
-      listeners: Seq[ActorRef[ResultEvent.ResultResponse]],
+      listeners: Seq[ActorRef[ResultResponse]],
       simStartTime: ZonedDateTime,
       bufferSize: Int = 10000,
   ): Behavior[Message] = Behaviors.withStash(bufferSize) { buffer =>
@@ -149,7 +154,7 @@ object ResultServiceProxy {
 
         // un-stash received requests
         buffer.unstashAll(idle(updatedStateData))
-      case (ctx, requestResultMessage: RequestResult) =>
+      case (_, requestResultMessage: RequestResult) =>
         val requestedResults = requestResultMessage.requestedResults
         val tick = requestResultMessage.tick
 

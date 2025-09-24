@@ -28,7 +28,6 @@ import edu.ie3.datamodel.models.result.{
   ResultEntity,
 }
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.listener.ResultEventListener
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime

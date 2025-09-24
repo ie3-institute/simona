@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduce optimizing EM strategy [#1500](https://github.com/ie3-institute/simona/issues/1500)
 - Introduce `DomesticHotWaterStorage` [#1481](https://github.com/ie3-institute/simona/issues/1481)
 - Enhance `ThermalConductance` by method to calculate for thermal power qDot [#1479](https://github.com/ie3-institute/simona/issues/1479)
+- Added external result provider [#1530](https://github.com/ie3-institute/simona/issues/1530)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)

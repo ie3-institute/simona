@@ -8,8 +8,11 @@ package edu.ie3.simona.sim.setup
 
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.connection.*
+import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.event.listener.ExtResultEvent
 import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.service.ev.ExtEvDataService
+import edu.ie3.simona.service.results.ExtResultProvider
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import org.apache.pekko.actor.typed.ActorRef
@@ -37,8 +40,8 @@ final case class ExtSimSetupData(
     ],
     emDataService: Option[ActorRef[ExtEmDataService.Message]],
     evDataService: Option[ActorRef[ExtEvDataService.Message]],
-    resultListeners: Seq[ActorRef[ExtResultEvent.Message]],
-    resultProviders: Seq[ActorRef[ExtResultEvent.Message]],
+    resultListeners: Seq[ActorRef[ResultListener.Message]],
+    resultProviders: Seq[ActorRef[ExtResultProvider.Message]],
 ) {
 
   private[setup] def update(
@@ -67,14 +70,14 @@ final case class ExtSimSetupData(
         ) =>
       copy(evDataService = Some(serviceRef))
     case (
-          _: ExtResultDataConnection,
-          providerRef: ActorRef[ExtResultEvent.Message],
-        ) =>
+      _: ExtResultDataConnection,
+      providerRef: ActorRef[ExtResultProvider.Message],
+      ) =>
       copy(resultProviders = resultProviders ++ Seq(providerRef))
     case (
-          _: ExtResultListener,
-          listenerRef: ActorRef[ExtResultEvent.Message],
-        ) =>
+      _: ExtResultListener,
+      listenerRef: ActorRef[ResultListener.Message],
+      ) =>
       copy(resultListeners = resultListeners ++ Seq(listenerRef))
     case (_, _) =>
       this
@@ -90,7 +93,7 @@ final case class ExtSimSetupData(
       connection
     }
 
-  def allActorRefs: Iterable[ActorRef[?]] =
+  def allServiceRefs: Iterable[ActorRef[?]] =
     extSimAdapters ++ primaryDataServices.map(_._2) ++ Seq(
       emDataService,
       evDataService,

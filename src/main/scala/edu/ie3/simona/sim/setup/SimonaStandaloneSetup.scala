@@ -15,9 +15,15 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
-import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
+import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
+import edu.ie3.simona.io.grid.GridProvider
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ResultMessage.{
+  RequestResult,
+  ResultResponse,
+}
 import edu.ie3.simona.ontology.messages.{
   RequestResult,
   SchedulerMessage,
@@ -162,7 +168,7 @@ class SimonaStandaloneSetup(
 
   override def resultServiceProxy(
       context: ActorContext[?],
-      listeners: Seq[ActorRef[ResultEvent.ResultResponse]],
+      listeners: Seq[ActorRef[ResultResponse]],
       simStartTime: ZonedDateTime,
   ): ActorRef[ResultServiceProxy.Message] =
     context.spawn(
@@ -276,13 +282,13 @@ class SimonaStandaloneSetup(
 
   override def resultEventListener(
       context: ActorContext[?]
-  ): Seq[ActorRef[ResultEventListener.Message]] = {
+  ): Seq[ActorRef[ResultListener.Message]] = {
     // append ResultEventListener as well to write raw output files
     Seq(
       context
         .spawn(
-          ResultEventListener(resultFileHierarchy),
-          ResultEventListener.getClass.getSimpleName,
+          ResultListener(resultFileHierarchy),
+          ResultListener.getClass.getSimpleName,
         )
     )
   }

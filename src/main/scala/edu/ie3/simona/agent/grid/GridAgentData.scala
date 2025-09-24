@@ -45,7 +45,7 @@ object GridAgentData {
     *   Containing actor references, that are relevant for the environment of
     *   the grid agent.
     * @param simonaConfig
-    *   config
+    *   Configuration of SIMONA, that is used for.
     * @param resolution
     *   That is used for the power flow. If no power flow should be carried out,
     *   this value is set to [[Long.MaxValue]].

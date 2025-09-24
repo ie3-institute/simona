@@ -26,8 +26,8 @@ import java.nio.file.Path
   * overall simulation has been successful or not. For specific status
   * information, the user needs to pass in and subscribe to the corresponding
   * listener e.g. [[edu.ie3.simona.event.listener.RuntimeEventListener]] for
-  * simulation status or [[edu.ie3.simona.event.listener.ResultEventListener]]
-  * for result events
+  * simulation status or [[edu.ie3.simona.event.listener.ResultListener]] for
+  * result events
   *
   * @since 01.07.20
   */
@@ -132,13 +132,15 @@ object SimonaSim {
           weatherService,
         ) ++
           gridAgents ++
-          extSimulationData.allActorRefs
+          extSimulationData.allServiceRefs
 
         /* watch all actors */
         allResultEventListeners.foreach(ctx.watch)
         resultProviders.foreach(ctx.watch)
         ctx.watch(runtimeEventListener)
+        ctx.watch(resultProxy)
         otherActors.foreach(ctx.watch)
+        extSimulationData.extSimAdapters.foreach(ctx.watch)
 
         // End pre-initialization phase
         preInitKey.unlock()
@@ -150,6 +152,7 @@ object SimonaSim {
           allResultEventListeners
             .appendedAll(resultProviders)
             .appended(runtimeEventListener)
+            .appended(resultProxy)
 
         idle(
           ActorData(

@@ -31,10 +31,12 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   SecondaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.service.weather.{WeatherDataType, WeatherService}
 import edu.ie3.simona.test.common.TestSpawnerTyped
@@ -105,7 +107,8 @@ class EmAgentIT
     "having load, pv and storage agents connected" should {
       "be initialized correctly and run through some activations" in {
         val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
-        val resultListener = TestProbe[ResultEvent]("ResultListener")
+        val resultServiceProxy =
+          TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
         val primaryServiceProxy =
           TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
         val weatherService = TestProbe[WeatherService.Message]("WeatherService")
@@ -114,8 +117,8 @@ class EmAgentIT
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val keys = ScheduleLock
@@ -133,7 +136,7 @@ class EmAgentIT
             "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
-            listener = Iterable(resultListener.ref),
+            listener = resultServiceProxy.ref,
             None,
           ),
           "EmAgent",
@@ -245,14 +248,14 @@ class EmAgentIT
           Some(7200),
         )
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0L.toDateTime
             emResult.getP should equalWithTolerance(-0.00057340027.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0018318880807.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -276,14 +279,14 @@ class EmAgentIT
           Some(14400),
         )
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
             emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00113292701968.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(13246)))
 
         /* TICK 13246
@@ -295,14 +298,14 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(13246)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 13246.toDateTime
             emResult.getP should equalWithTolerance(-0.00344685673.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.001132927.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
@@ -329,14 +332,14 @@ class EmAgentIT
 
         emAgentActivation ! Activation(14400)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 14400.toDateTime
             emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.000065375.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
       }
     }
@@ -344,7 +347,8 @@ class EmAgentIT
     "having load, pv and heat pump agents connected" should {
       "be initialized correctly and run through some activations" in {
         val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
-        val resultListener = TestProbe[ResultEvent]("ResultListener")
+        val resultServiceProxy =
+          TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
         val primaryServiceProxy =
           TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
         val weatherService = TestProbe[WeatherService.Message]("WeatherService")
@@ -353,8 +357,8 @@ class EmAgentIT
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val keys = ScheduleLock
@@ -372,7 +376,7 @@ class EmAgentIT
             "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
-            listener = Iterable(resultListener.ref),
+            listener = resultServiceProxy.ref,
             None,
           ),
           "EmAgent1",
@@ -504,14 +508,14 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0.toDateTime
             emResult.getP should equalWithTolerance(-0.0055734002706.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0018318880807.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -537,14 +541,14 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
             emResult.getP should equalWithTolerance(0.001403143271.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00014809252.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
         /* TICK 10800
@@ -570,14 +574,14 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 10800.toDateTime
             emResult.getP should equalWithTolerance(0.0011098586291.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.000244490516.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11000)))
 
         /* TICK 11000
@@ -605,14 +609,14 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 11000.toDateTime
             emResult.getP should equalWithTolerance(0.0050603789402.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0010539827178.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11500)))
 
         /* TICK 11500
@@ -640,14 +644,14 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 11500.toDateTime
             emResult.getP should equalWithTolerance(0.00013505248.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.000044389603878.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
       }
     }
@@ -655,7 +659,8 @@ class EmAgentIT
     "having a pv and a load agent connected" should {
       "have correct values also for agents with limited operation time" in {
         val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
-        val resultListener = TestProbe[ResultEvent]("ResultListener")
+        val resultServiceProxy =
+          TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
         val primaryServiceProxy =
           TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
         val weatherService = TestProbe[WeatherService.Message]("WeatherService")
@@ -664,8 +669,8 @@ class EmAgentIT
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val keys = ScheduleLock
@@ -683,7 +688,7 @@ class EmAgentIT
             "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
-            listener = Iterable(resultListener.ref),
+            listener = resultServiceProxy.ref,
             None,
           ),
           "EmAgentReactivePower",
@@ -786,14 +791,14 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0.toDateTime
             emResult.getP should equalWithTolerance(0.000268603.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
 
         /* TICK 3600
@@ -817,14 +822,14 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 3600.toDateTime
             emResult.getP should equalWithTolerance(0.000268603.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -848,14 +853,14 @@ class EmAgentIT
 
         emAgentActivation ! Activation(7200)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
             emResult.getP should equalWithTolerance(-0.008423564.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0027686916118.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
         /* TICK 10800
@@ -864,14 +869,14 @@ class EmAgentIT
         -> expect P and Q values of PV
          */
         emAgentActivation ! Activation(10800)
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 10800.toDateTime
             emResult.getP should equalWithTolerance(-0.008692167.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00285697715.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
@@ -880,14 +885,14 @@ class EmAgentIT
         -> expect P: 0 W Q: 0 var
          */
         emAgentActivation ! Activation(14400)
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 14400.toDateTime
             emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, None))
       }
     }

@@ -67,7 +67,7 @@ class EmAgentSpec
 
   "A self-optimizing EM agent" should {
     "be initialized correctly and run through some activations" in {
-      val resultListener = TestProbe[ResultEvent]("ResultListener")
+      val resultProxy = TestProbe[ResultEvent]("ResultProxy")
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
       val emAgent = spawn(
@@ -78,7 +78,7 @@ class EmAgentSpec
           "PRIORITIZED",
           simulationStart,
           parent = Left(scheduler.ref),
-          listener = Iterable(resultListener.ref),
+          listener = resultProxy.ref,
           None,
         )
       )
@@ -117,7 +117,7 @@ class EmAgentSpec
       )
 
       // expect no results for init
-      resultListener.expectNoMessage()
+      resultProxy.expectNoMessage()
       // expect completion from EmAgent
       scheduler.expectMessage(
         Completion(emAgent, Some(0))
@@ -179,7 +179,7 @@ class EmAgentSpec
       )
 
       // expect correct results
-      resultListener.expectMessageType[FlexOptionsResultEvent] match {
+      resultProxy.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
@@ -188,7 +188,7 @@ class EmAgentSpec
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
+      resultProxy.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe simulationStart
@@ -233,7 +233,7 @@ class EmAgentSpec
       emAgent ! FlexCompletion(modelUuid = evcsInput.getUuid)
 
       // expect correct results
-      resultListener.expectMessageType[FlexOptionsResultEvent] match {
+      resultProxy.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 300.toDateTime
@@ -242,7 +242,7 @@ class EmAgentSpec
           flexResult.getpMax() should equalWithTolerance(-.005.asMegaWatt)
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
+      resultProxy.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe 300.toDateTime
@@ -256,7 +256,7 @@ class EmAgentSpec
     }
 
     "revoke triggers correctly" in {
-      val resultListener = TestProbe[ResultEvent]("ResultListener")
+      val resultProxy = TestProbe[ResultEvent]("ResultProxy")
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
       val emAgent = spawn(
@@ -346,7 +346,7 @@ class EmAgentSpec
       )
 
       // expect correct results
-      resultListener.expectMessageType[FlexOptionsResultEvent] match {
+      resultProxy.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
@@ -355,7 +355,7 @@ class EmAgentSpec
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
+      resultProxy.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe simulationStart
@@ -416,7 +416,7 @@ class EmAgentSpec
       )
 
       // expect correct results
-      resultListener.expectMessageType[FlexOptionsResultEvent] match {
+      resultProxy.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 300.toDateTime
@@ -425,7 +425,7 @@ class EmAgentSpec
           flexResult.getpMax() should equalWithTolerance(.008.asMegaWatt)
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
+      resultProxy.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe 300.toDateTime
@@ -440,7 +440,7 @@ class EmAgentSpec
     }
 
     "handle ChangingFlexOptions indicator correctly" in {
-      val resultListener = TestProbe[ResultEvent]("ResultListener")
+      val resultProxy = TestProbe[ResultEvent]("ResultProxy")
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
       val emAgent = spawn(
@@ -451,7 +451,7 @@ class EmAgentSpec
           "PRIORITIZED",
           simulationStart,
           parent = Left(scheduler.ref),
-          listener = Iterable(resultListener.ref),
+          listener = resultProxy.ref,
           None,
         )
       )
@@ -531,7 +531,7 @@ class EmAgentSpec
         requestAtTick = Some(600),
       )
 
-      resultListener.expectMessageType[FlexOptionsResultEvent] match {
+      resultProxy.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
@@ -540,7 +540,7 @@ class EmAgentSpec
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
+      resultProxy.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe 0.toDateTime
@@ -610,7 +610,7 @@ class EmAgentSpec
       )
 
       // expect correct results
-      resultListener.expectMessageType[FlexOptionsResultEvent] match {
+      resultProxy.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 300.toDateTime
@@ -619,7 +619,7 @@ class EmAgentSpec
           flexResult.getpMax() should equalWithTolerance(.008.asMegaWatt)
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
+      resultProxy.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe 300.toDateTime
@@ -635,8 +635,7 @@ class EmAgentSpec
 
   "An EM-controlled EM agent" should {
     "be initialized correctly and run through some activations" in {
-      val resultListener = TestProbe[ResultEvent]("ResultListener")
-
+      val resultProxy = TestProbe[ResultEvent]("ResultProxy")
       val parentEmAgent = TestProbe[FlexResponse]("ParentEmAgent")
 
       val emAgent = spawn(
@@ -647,7 +646,7 @@ class EmAgentSpec
           "PRIORITIZED",
           simulationStart,
           parent = Right(parentEmAgent.ref),
-          listener = Iterable(resultListener.ref),
+          listener = resultProxy.ref,
           None,
         )
       )
@@ -689,7 +688,7 @@ class EmAgentSpec
       )
 
       // expect no results for init
-      resultListener.expectNoMessage()
+      resultProxy.expectNoMessage()
       // expect completion from EmAgent
       parentEmAgent.expectMessage(
         FlexCompletion(
@@ -727,7 +726,7 @@ class EmAgentSpec
         ),
       )
 
-      resultListener.expectMessageType[FlexOptionsResultEvent] match {
+      resultProxy.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
@@ -784,7 +783,7 @@ class EmAgentSpec
       )
 
       // expect correct results
-      resultListener.expectMessageType[ParticipantResultEvent] match {
+      resultProxy.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe 0.toDateTime
@@ -834,7 +833,7 @@ class EmAgentSpec
       )
 
       // expect correct results
-      resultListener.expectMessageType[ParticipantResultEvent] match {
+      resultProxy.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe 150.toDateTime

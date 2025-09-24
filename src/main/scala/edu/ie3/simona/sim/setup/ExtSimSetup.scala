@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
+import edu.ie3.simona.api.data.connection.*
 import com.typesafe.config.Config
 import edu.ie3.datamodel.models.input.container.JointGridContainer
 import edu.ie3.simona.api.data.connection.*
@@ -14,12 +15,15 @@ import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.event.listener.ExtResultEvent
+import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.{
   RequestResult,
   SchedulerMessage,
   ServiceMessage,
 }
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.em.ExtEmDataService
@@ -28,6 +32,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
+import edu.ie3.simona.service.results.ExtResultProvider
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -56,6 +61,10 @@ object ExtSimSetup {
     *   The actor context of this actor system.
     * @param scheduler
     *   The scheduler of simona.
+    * @param resultProxy
+    *   The result service proxy.
+    * @param startTime
+    *   The start time of the simulation.
     * @return
     *   An [[ExtSimSetupData]] that holds information regarding the external
     *   data connections as well as the actor references of the created
@@ -218,13 +227,12 @@ object ExtSimSetup {
 
           case extResultDataConnection: ExtResultDataConnection =>
             val extResultProvider = context.spawn(
-              ExtResultEvent
-                .provider(
-                  extResultDataConnection,
-                  scheduler,
-                  resultProxy,
-                ),
-              s"ExtResultProvider",
+              ExtResultProvider(
+                extResultDataConnection,
+                scheduler,
+                resultProxy,
+              ),
+              s"ExtResultProvider_$index",
             )
 
             extResultDataConnection.setActorRefs(
@@ -236,7 +244,7 @@ object ExtSimSetup {
 
           case extResultListener: ExtResultListener =>
             val extResultEventListener = context.spawn(
-              ExtResultEvent.listener(extResultListener),
+              ResultListener.external(extResultListener),
               s"ExtResultListener_$index",
             )
 
