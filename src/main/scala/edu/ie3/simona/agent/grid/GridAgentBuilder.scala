@@ -19,9 +19,6 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
 }
 import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
 import edu.ie3.simona.config.RuntimeConfig.*
-import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
-import edu.ie3.simona.config.RuntimeConfig.*
-import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -35,8 +32,6 @@ import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.em.ExtEmDataService
-import edu.ie3.simona.util.ConfigUtil.*
-import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -227,29 +222,32 @@ object GridAgentBuilder {
       gridAgentContext: ActorContext[GridAgent.Message],
   ): Map[UUID, ActorRef[FlexResponse]] = {
     // For the current level, split controlled and uncontrolled EMs.
+    val (controlledEmInputs, uncontrolledEms) = emInputs.partition {
+      case (_, emInput) => emInput.getControllingEm.isPresent
+    }
+
     // Uncontrolled EMs can be built right away.
-    val (controlledEmInputs, uncontrolledEms) = emInputs
-      .partitionMap { case (uuid, emInput) =>
-        if emInput.getControllingEm.isPresent then Left(uuid -> emInput)
-        else {
-          val actor = buildEm(
-            emInput,
-            maybeControllingEm = None,
-            emDataService,
-          )
-          Right(uuid -> actor)
-        }
-      }
+    val uncontrolledEmAgents = uncontrolledEms.flatMap {
+      case (uuid, emInput) if !previousLevelEms.contains(uuid) =>
+        val actor = buildEm(
+          emInput,
+          maybeControllingEm = None,
+          emDataService,
+        )
+        Some(uuid -> actor)
+      case (uuid, _) =>
+        gridAgentContext.log.warn(s"Agent with uuid '$uuid' was already built!")
+        None
+    }
 
     val previousLevelAndUncontrolledEms =
-      previousLevelEms ++ uncontrolledEms.toMap
+      previousLevelEms ++ uncontrolledEmAgents
 
     if controlledEmInputs.nonEmpty then {
       // For controlled EMs at the current level, more EMs
       // might need to be built at the next recursion level.
-      val controllingEms = controlledEmInputs.toMap.flatMap {
-        case (_, emInput) =>
-          emInput.getControllingEm.toScala.map(em => em.getUuid -> em)
+      val controllingEms = controlledEmInputs.flatMap { case (_, emInput) =>
+        emInput.getControllingEm.toScala.map(em => em.getUuid -> em)
       }
 
       // Return value includes previous level and uncontrolled EMs of this level
@@ -259,24 +257,28 @@ object GridAgentBuilder {
         emDataService,
       )
 
-      val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
-        val controllingEm = emInput.getControllingEm.toScala
-          .map(_.getUuid)
-          .map(uuid =>
-            recursiveEms.getOrElse(
-              uuid,
-              throw new CriticalFailureException(
-                s"Actor for EM $uuid not found."
-              ),
+      val controlledEms = controlledEmInputs.flatMap {
+        case (uuid, emInput) if !recursiveEms.contains(uuid) =>
+          val controllingEm = emInput.getControllingEm.toScala
+            .map(_.getUuid)
+            .map(uuid =>
+              recursiveEms.getOrElse(
+                uuid,
+                throw new CriticalFailureException(
+                  s"Actor for EM $uuid not found."
+                ),
+              )
+            )
+
+          Some(
+            uuid -> buildEm(
+              emInput,
+              maybeControllingEm = controllingEm,
+              emDataService,
             )
           )
-
-        uuid -> buildEm(
-          emInput,
-          maybeControllingEm = controllingEm,
-          emDataService,
-        )
-      }.toMap
+        case _ => None
+      }
 
       recursiveEms ++ controlledEms
     } else {

@@ -6,6 +6,9 @@
 
 package edu.ie3.simona.util
 
+import edu.ie3.simona.util.ReceiveMultiDataMap.log
+import org.slf4j.{Logger, LoggerFactory}
+
 final case class ReceiveMultiDataMap[K, V](
     private val expectedKeys: Map[K, Int],
     receivedData: Map[K, Seq[V]],
@@ -20,29 +23,29 @@ final case class ReceiveMultiDataMap[K, V](
       key: K,
       value: V,
   ): ReceiveMultiDataMap[K, V] = {
-    if !expectedKeys.contains(key) then {
-      if !receivedData.contains(key) then {
-        throw new RuntimeException(
-          s"Received value $value for key $key, but no data has been expected or received for this key."
-        )
-      } else {
-        val newValue = receivedData(key).appended(value)
-
-        copy(receivedData = receivedData.updated(key, newValue))
-      }
-
+    if !expectedKeys.contains(key) && !receivedData.contains(key) then {
+      throw new RuntimeException(
+        s"Received value $value for key $key, but no data has been expected or received for this key."
+      )
     } else {
       val count = expectedKeys(key) - 1
+
+      val newValue = receivedData.get(key) match {
+        case Some(values) =>
+          values.appended(value)
+        case None =>
+          Seq(value)
+      }
 
       if count == 0 then {
         copy(
           expectedKeys = expectedKeys.removed(key),
-          receivedData.updated(key, Seq(value)),
+          receivedData = receivedData.updated(key, newValue),
         )
       } else {
         copy(
           expectedKeys = expectedKeys.updated(key, count),
-          receivedData.updated(key, Seq(value)),
+          receivedData = receivedData.updated(key, newValue),
         )
       }
     }
@@ -56,6 +59,8 @@ final case class ReceiveMultiDataMap[K, V](
 }
 
 object ReceiveMultiDataMap {
+
+  private val log: Logger = LoggerFactory.getLogger("ReceiveMultiDataMap")
 
   def apply[K, V](
       expectedKeys: Map[K, Int]

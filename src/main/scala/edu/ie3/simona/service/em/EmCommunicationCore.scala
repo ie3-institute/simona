@@ -392,7 +392,9 @@ case class EmCommunicationCore(
 
       case control: IssueFlexControl =>
         // send set point to ext
-        log.warn(s"Receiver $receiverUuid got flex control message from $sender")
+        log.warn(
+          s"Receiver $receiverUuid got flex control message from $sender"
+        )
 
         val (time, power) = control match {
           case IssueNoControl(tick) =>
