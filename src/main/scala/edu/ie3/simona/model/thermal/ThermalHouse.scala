@@ -24,6 +24,9 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   lowerTemperatureTapWater,
   temperatureTolerance,
   upperTemperatureTapWater,
+  waterDemandVolumePerPersonYear,
+  waterVolumeRelativeFlat,
+  waterVolumeRelativeHouse,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
@@ -267,65 +270,6 @@ final case class ThermalHouse(
       housingType: String,
   ): Volume = {
 
-    // Volume => VDI 2067 Blatt 12
-    // Time series relative => DIN EN 12831-3 Table B.2 for single family houses and for flats
-    val waterVolumeRelativeHouse: Map[Int, Double] = Map(
-      0 -> 0.018,
-      1 -> 0.01,
-      2 -> 0.006,
-      3 -> 0.003,
-      4 -> 0.004,
-      5 -> 0.006,
-      6 -> 0.024,
-      7 -> 0.047,
-      8 -> 0.068,
-      9 -> 0.057,
-      10 -> 0.061,
-      11 -> 0.061,
-      12 -> 0.063,
-      13 -> 0.064,
-      14 -> 0.051,
-      15 -> 0.044,
-      16 -> 0.043,
-      17 -> 0.047,
-      18 -> 0.057,
-      19 -> 0.065,
-      20 -> 0.066,
-      21 -> 0.058,
-      22 -> 0.045,
-      23 -> 0.032,
-    )
-    val waterVolumeRelativeFlat: Map[Int, Double] = Map(
-      0 -> 0.01,
-      1 -> 0.01,
-      2 -> 0.01,
-      3 -> 0.0,
-      4 -> 0.0,
-      5 -> 0.1,
-      6 -> 0.03,
-      7 -> 0.06,
-      8 -> 0.08,
-      9 -> 0.06,
-      10 -> 0.05,
-      11 -> 0.05,
-      12 -> 0.06,
-      13 -> 0.06,
-      14 -> 0.05,
-      15 -> 0.04,
-      16 -> 0.04,
-      17 -> 0.05,
-      18 -> 0.06,
-      19 -> 0.07,
-      20 -> 0.07,
-      21 -> 0.06,
-      22 -> 0.05,
-      23 -> 0.02,
-    )
-
-    val waterDemandVolumePerPersonYear =
-      // Shower and Bath + bathroom sink + dish washing per hand (also dishwasher in the building)
-      Litres(8600 + 4200 + 300)
-
     val isHouse: Boolean =
       housingType.toLowerCase match {
         case "house" => true
@@ -552,6 +496,65 @@ object ThermalHouse {
 
   protected val lowerTemperatureTapWater: Temperature = Celsius(10d)
   protected val upperTemperatureTapWater: Temperature = Celsius(55d)
+
+  /** Volume values are based on VDI 2067 Blatt 12. Time series relative are
+    * based on DIN EN 12831-3 Table B.2 for single family houses and for flats
+    */
+  protected val waterDemandVolumePerPersonYear =
+    // Shower and Bath + bathroom sink + dish washing per hand (also dishwasher in the building)
+    Litres(8600 + 4200 + 300)
+  protected val waterVolumeRelativeHouse: Map[Int, Double] = Map(
+    0 -> 0.018,
+    1 -> 0.01,
+    2 -> 0.006,
+    3 -> 0.003,
+    4 -> 0.004,
+    5 -> 0.006,
+    6 -> 0.024,
+    7 -> 0.047,
+    8 -> 0.068,
+    9 -> 0.057,
+    10 -> 0.061,
+    11 -> 0.061,
+    12 -> 0.063,
+    13 -> 0.064,
+    14 -> 0.051,
+    15 -> 0.044,
+    16 -> 0.043,
+    17 -> 0.047,
+    18 -> 0.057,
+    19 -> 0.065,
+    20 -> 0.066,
+    21 -> 0.058,
+    22 -> 0.045,
+    23 -> 0.032,
+  )
+  protected val waterVolumeRelativeFlat: Map[Int, Double] = Map(
+    0 -> 0.01,
+    1 -> 0.01,
+    2 -> 0.01,
+    3 -> 0.0,
+    4 -> 0.0,
+    5 -> 0.1,
+    6 -> 0.03,
+    7 -> 0.06,
+    8 -> 0.08,
+    9 -> 0.06,
+    10 -> 0.05,
+    11 -> 0.05,
+    12 -> 0.06,
+    13 -> 0.06,
+    14 -> 0.05,
+    15 -> 0.04,
+    16 -> 0.04,
+    17 -> 0.05,
+    18 -> 0.06,
+    19 -> 0.07,
+    20 -> 0.07,
+    21 -> 0.06,
+    22 -> 0.05,
+    23 -> 0.02,
+  )
 
   def apply(input: ThermalHouseInput): ThermalHouse = new ThermalHouse(
     input.getUuid,
