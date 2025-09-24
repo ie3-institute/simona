@@ -84,7 +84,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       activePowerMW.toSquants shouldBe Kilowatts(1000.0)
 
       val apparentPowerVA = Quantities.getQuantity(15500, VOLTAMPERE)
-      apparentPowerVA.toSquants shouldBe Kilovoltamperes(15.5)
+      apparentPowerVA.toApparent shouldBe Kilovoltamperes(15.5)
     }
 
     "properly convert energy quantities from different units" in {
@@ -132,7 +132,8 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       val area = Quantities.getQuantity(500.0, SQUARE_METRE)
       area.toSquants shouldBe SquareMeters(500.0)
 
-      val areaKm2 = Quantities.getQuantity(0.01, SQUARE_METRE)
+      val areaKm2 =
+        Quantities.getQuantity(0.01, KILOMETRE.pow(2).asType(classOf[Area]))
       areaKm2.toSquants shouldBe SquareMeters(10000.0)
     }
 

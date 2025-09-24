@@ -85,7 +85,7 @@ object QuantityConversionUtils {
   extension (quantity: ComparableQuantity[Energy]) {
 
     def toSquants: squants.Energy = KilowattHours(
-      quantity.to(KILOVARHOUR).getValue.doubleValue
+      quantity.to(KILOWATTHOUR).getValue.doubleValue
     )
   }
 
