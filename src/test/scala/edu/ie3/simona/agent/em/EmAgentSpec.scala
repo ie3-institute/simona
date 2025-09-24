@@ -267,7 +267,7 @@ class EmAgentSpec
           "PRIORITIZED",
           simulationStart,
           parent = Left(scheduler.ref),
-          listener = Iterable(resultListener.ref),
+          listener = resultProxy.ref,
           None,
         )
       )

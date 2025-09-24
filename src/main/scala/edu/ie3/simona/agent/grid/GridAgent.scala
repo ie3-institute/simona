@@ -279,7 +279,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           createResultModels(
             gridAgentBaseData.gridEnv.gridModel,
             valueStore,
-            nextTick,
           )(using
             currentTick.toDateTime(using constantData.simStartTime),
             ctx.log,
@@ -330,9 +329,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   ): Behavior[Message] = {
 
     // notify listener about the results
-    results
-      .map(_.copy(nextTick = nextTick))
-      .foreach(constantData.notifyListeners)
+    results.foreach(constantData.notifyListeners)
 
     // do my cleanup stuff
     ctx.log.debug("Doing my cleanup stuff")

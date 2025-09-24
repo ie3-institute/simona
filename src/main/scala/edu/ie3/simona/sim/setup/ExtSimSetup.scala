@@ -17,11 +17,7 @@ import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.event.listener.ExtResultEvent
 import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.{
-  RequestResult,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.scheduler.ScheduleLock

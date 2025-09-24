@@ -70,14 +70,14 @@ final case class ExtSimSetupData(
         ) =>
       copy(evDataService = Some(serviceRef))
     case (
-      _: ExtResultDataConnection,
-      providerRef: ActorRef[ExtResultProvider.Message],
-      ) =>
+          _: ExtResultDataConnection,
+          providerRef: ActorRef[ExtResultProvider.Message],
+        ) =>
       copy(resultProviders = resultProviders ++ Seq(providerRef))
     case (
-      _: ExtResultListener,
-      listenerRef: ActorRef[ResultListener.Message],
-      ) =>
+          _: ExtResultListener,
+          listenerRef: ActorRef[ResultListener.Message],
+        ) =>
       copy(resultListeners = resultListeners ++ Seq(listenerRef))
     case (_, _) =>
       this

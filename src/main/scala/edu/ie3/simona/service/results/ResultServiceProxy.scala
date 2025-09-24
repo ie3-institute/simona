@@ -21,8 +21,6 @@ import edu.ie3.simona.service.results.Transformer3wResultSupport.{
   AggregatedTransformer3wResult,
   Transformer3wKey,
 }
-import edu.ie3.simona.ontology.messages.RequestResult
-import edu.ie3.simona.service.ServiceStateData.ServiceBaseStateData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
@@ -199,7 +197,6 @@ object ResultServiceProxy {
           transformer2wResults,
           partialTransformer3wResults,
           congestionResults,
-          nextTick,
         ) =>
       // handling of three winding transformers
       val (updatedResults, transformer3wResults) =

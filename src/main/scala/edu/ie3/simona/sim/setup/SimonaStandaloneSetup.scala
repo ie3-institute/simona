@@ -15,20 +15,14 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.io.grid.GridProvider
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.ResultMessage.{
   RequestResult,
   ResultResponse,
 }
-import edu.ie3.simona.ontology.messages.{
-  RequestResult,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}

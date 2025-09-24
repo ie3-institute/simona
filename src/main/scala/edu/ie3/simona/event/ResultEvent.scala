@@ -152,8 +152,6 @@ object ResultEvent {
     *   the <b>partial</b> power flow results for three winding transformers
     * @param congestionResults
     *   the congestion found by the congestion managements (default: empty)
-    * @param nextTick
-    *   The next tick, for which new result will be sent.
     */
   final case class PowerFlowResultEvent(
       nodeResults: Iterable[NodeResult],
@@ -162,7 +160,6 @@ object ResultEvent {
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult],
       congestionResults: Iterable[CongestionResult] = Iterable.empty,
-      nextTick: Long,
   ) extends ResultEvent {
 
     def +(congestionResult: Iterable[CongestionResult]): PowerFlowResultEvent =
@@ -181,10 +178,4 @@ object ResultEvent {
   final case class FlexOptionsResultEvent(
       flexOptionsResult: FlexOptionsResult
   ) extends ResultEvent
-
-  sealed trait Response
-
-  final case class ResultResponse(results: Map[UUID, Iterable[ResultEntity]])
-      extends Response
-
 }

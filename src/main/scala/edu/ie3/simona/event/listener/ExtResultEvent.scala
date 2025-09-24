@@ -16,9 +16,8 @@ import edu.ie3.simona.api.ontology.results.{
   RequestResultEntities,
   ResultDataMessageFromExt,
 }
-import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.ResultResponse
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.ontology.messages.ResultMessage.*
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -26,20 +25,19 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{
   Activation,
-  RequestResult,
+  ResultMessage,
   SchedulerMessage,
 }
+import edu.ie3.simona.util.CollectionUtils.asJava
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.util
-import java.util.UUID
-import edu.ie3.simona.util.CollectionUtils.asJava
 import scala.jdk.CollectionConverters.*
 
 object ExtResultEvent {
 
-  type Message = ResultEvent.Response | DelayedStopHelper.StoppingMsg
+  type Message = ResultMessage.Response | DelayedStopHelper.StoppingMsg
 
   private final case class ProviderState(
       scheduler: ActorRef[SchedulerMessage],

@@ -108,7 +108,7 @@ class EmAgentWithServiceSpec
 
       parentEmAgent
         .expectMessageType[RegisterControlledAsset]
-        .inputModel shouldBe emInput
+        .assetInput shouldBe emInput
 
       service.expectMessage(
         EmFlexMessage(

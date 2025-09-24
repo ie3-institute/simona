@@ -179,7 +179,6 @@ object CongestionManagementData {
       Seq.empty,
       Seq.empty,
       Seq.empty,
-      nextTick = nextTick,
     ),
   )
 }
