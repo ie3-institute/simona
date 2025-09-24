@@ -12,9 +12,8 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
 }
-import edu.ie3.util.scala.quantities.QuantityUtil.*
-import edu.ie3.simona.model.participant.hp.HpModel.HpState
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
+import edu.ie3.simona.model.participant.hp.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,
@@ -22,11 +21,14 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
+  lowerTemperatureTapWater,
   temperatureTolerance,
+  upperTemperatureTapWater,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.QuantityUtil.*
 import edu.ie3.util.scala.quantities.SquantsUtils.{
   RichEnergyDensity,
   RichThermalCapacity,
@@ -44,6 +46,7 @@ import squants.{Energy, Power, Temperature, Time, Volume}
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.annotation.static
 
 /** A thermal house model
   *
@@ -198,7 +201,7 @@ final case class ThermalHouse(
   }
 
   /** Calculate the energy demand for warm water for some specific hour at the
-    * instance in question. Temperatures are based on VDI 2067 - Blatt 12.
+    * instance in question.
     *
     * @param hour
     *   The hour for that the energy demand should be determined.
@@ -209,7 +212,11 @@ final case class ThermalHouse(
   private def calculateThermalEnergyOfWaterDemand(hour: Int): Energy = {
     val waterDemand =
       waterDemandOfHour(hour, houseInhabitants, housingType)
-    thermalEnergyDemandWater(waterDemand, Celsius(10d), Celsius(55d))
+    thermalEnergyDemandWater(
+      waterDemand,
+      lowerTemperatureTapWater,
+      upperTemperatureTapWater,
+    )
   }
 
   /** Calculate the energy required to heat up a given volume of water from a
@@ -539,6 +546,12 @@ final case class ThermalHouse(
 
 object ThermalHouse {
   protected def temperatureTolerance: Temperature = Kelvin(0.01d)
+
+  /** Temperature values are set constant and based on VDI 2067 Blatt 12
+    */
+
+  protected val lowerTemperatureTapWater: Temperature = Celsius(10d)
+  protected val upperTemperatureTapWater: Temperature = Celsius(55d)
 
   def apply(input: ThermalHouseInput): ThermalHouse = new ThermalHouse(
     input.getUuid,
