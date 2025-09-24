@@ -112,8 +112,13 @@ final case class EmServiceBaseCore(
         val tick = provideEmSetPoints.tick
         val emEntities = provideEmSetPoints.emSetPoints.keySet.asScala
 
-        emEntities.map(uuidToAgent).foreach { ref =>
-          ref ! FlexActivation(tick, PowerLimit)
+        emEntities.foreach { entity =>
+          uuidToAgent.get(entity) match {
+            case Some(ref) =>
+              ref ! FlexActivation(tick, PowerLimit)
+            case None =>
+              log.warn(s"Received entity: $entity")
+          }
         }
 
         (
