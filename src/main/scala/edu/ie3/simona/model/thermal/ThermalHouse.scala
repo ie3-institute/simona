@@ -454,16 +454,12 @@ final case class ThermalHouse(
     *   The applicable state of thermalHouse until this tick.
     * @param qDot
     *   The thermal feed in to the thermal house.
-    * @param nextTryForPossibleThreshold
-    *   Next or initial possible threshold value that should be find by
-    *   recursive search.
     * @return
     *   The next threshold, that will be reached.
     */
   def determineNextThreshold(
       thermalHouseState: ThermalHouseState,
       qDot: Power,
-      nextTryForPossibleThreshold: Long = 1,
   ): Option[ThermalThreshold] = {
     val limitTemperature = Kelvin(
       qDot.toWatts / ethLosses.toWattsPerKelvin
