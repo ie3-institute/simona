@@ -27,8 +27,15 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
-import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
+import edu.ie3.util.scala.quantities.SquantsUtils.{
+  RichEnergyDensity,
+  RichThermalCapacity,
+}
+import edu.ie3.util.scala.quantities.{
+  KilowattHoursPerCubicMeter,
+  ThermalConductance,
+  WattsPerKelvin,
+}
 import squants.energy.KilowattHours
 import squants.space.Litres
 import squants.thermal.{Celsius, Kelvin, ThermalCapacity}
@@ -228,9 +235,10 @@ final case class ThermalHouse(
         s"End temperature of $endTemperature is lower than the start temperature $startTemperature for the water heating system."
       )
 
-    waterDemand.toCubicMeters * KilowattHours(
-      1.16
-    ) * (endTemperature.toCelsiusDegrees - startTemperature.toCelsiusDegrees)
+    val specificHeatDemandWater = KilowattHoursPerCubicMeter(1.16)
+    val temperatureDelta = endTemperature - startTemperature
+
+    specificHeatDemandWater.calcEnergyToHeat(waterDemand, temperatureDelta)
   }
 
   /** Provides water demand of an building (house or flat) for a given hour of
