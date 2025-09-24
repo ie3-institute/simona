@@ -198,7 +198,7 @@ final case class ThermalHouse(
   }
 
   /** Calculate the energy demand for warm water for some specific hour at the
-    * instance in question.
+    * instance in question. Temperatures are based on VDI 2067 - Blatt 12.
     *
     * @param hour
     *   The hour for that the energy demand should be determined.
@@ -213,16 +213,16 @@ final case class ThermalHouse(
   }
 
   /** Calculate the energy required to heat up a given volume of water from a
-    * start to an end temperature
+    * start to an end temperature.
     *
     * @param waterDemand
-    *   water volume to get heated up
+    *   Water volume to get heated up.
     * @param startTemperature
-    *   starting Temperature
+    *   Starting Temperature.
     * @param endTemperature
-    *   end Temperature
+    *   End Temperature.
     * @return
-    *   the needed energy
+    *   The needed energy.
     */
 
   private def thermalEnergyDemandWater(
@@ -247,11 +247,11 @@ final case class ThermalHouse(
     * @param hour
     *   The hour for which the demand is to be calculated.
     * @param noPersonsInHoushold
-    *   number of persons living in the building
+    *   Number of persons living in the building.
     * @param housingType
-    *   type of the building, either `house` or `flat`
+    *   Type of the building, either `house` or `flat`.
     * @return
-    *   the needed energy
+    *   The needed energy.
     */
 
   private def waterDemandOfHour(
