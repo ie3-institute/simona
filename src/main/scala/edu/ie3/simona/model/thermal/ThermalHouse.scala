@@ -33,15 +33,15 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityUtil.*
 import edu.ie3.util.scala.quantities.SquantsUtils.{
-  RichEnergyDensity,
+  RichSpecificHeatCapacity,
   RichThermalCapacity,
 }
 import edu.ie3.util.scala.quantities.{
-  KilowattHoursPerCubicMeter,
+  KilowattHoursPerKelvinCubicMeters,
   ThermalConductance,
   WattsPerKelvin,
 }
-import squants.energy.KilowattHours
+import squants.energy.{Joules, KilowattHours}
 import squants.space.Litres
 import squants.thermal.{Celsius, Kelvin, ThermalCapacity}
 import squants.time.Seconds
@@ -49,7 +49,6 @@ import squants.{Energy, Power, Temperature, Time, Volume}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.annotation.static
 
 /** A thermal house model
   *
@@ -182,15 +181,12 @@ final case class ThermalHouse(
     *
     * @param hoursWaterDemandToDetermine
     *   Sequence of hours for which the energy demand should be determined.
-    * @param thermalHouseState
-    *   Actual state, that is valid for this model.
     * @return
     *   The needed energy for hot domestic water for the questioned hours.
     */
 
   def energyDemandDomesticHotWater(
-      hoursWaterDemandToDetermine: Option[Seq[Int]],
-      thermalHouseState: Option[ThermalHouseState],
+      hoursWaterDemandToDetermine: Option[Seq[Int]]
   ): ThermalEnergyDemand = {
     val totalEnergyDemand = hoursWaterDemandToDetermine match {
       case Some(hours) =>
@@ -245,18 +241,20 @@ final case class ThermalHouse(
         s"End temperature of $endTemperature is lower than the start temperature $startTemperature for the water heating system."
       )
 
-    val specificHeatDemandWater = KilowattHoursPerCubicMeter(1.16)
+    val specificHeatDemandWater = KilowattHoursPerKelvinCubicMeters(
+      Joules(4.184e8).toKilowattHours
+    )
     val temperatureDelta = endTemperature - startTemperature
 
     specificHeatDemandWater.calcEnergyToHeat(waterDemand, temperatureDelta)
   }
 
-  /** Provides water demand of an building (house or flat) for a given hour of
+  /** Provides water demand of a building (house or flat) for a given hour of
     * the day based on the housingType and the number of inhabitants
     *
     * @param hour
     *   The hour for which the demand is to be calculated.
-    * @param noPersonsInHoushold
+    * @param noPersonsInHousehold
     *   Number of persons living in the building.
     * @param housingType
     *   Type of the building, either `house` or `flat`.
@@ -266,7 +264,7 @@ final case class ThermalHouse(
 
   private def waterDemandOfHour(
       hour: Int,
-      noPersonsInHoushold: Double,
+      noPersonsInHousehold: Double,
       housingType: String,
   ): Volume = {
 
@@ -288,7 +286,7 @@ final case class ThermalHouse(
       throw new RuntimeException(
         "Couldn't get the actual hour to determine water demand"
       ),
-    ) * noPersonsInHoushold * waterDemandVolumePerPersonYear / 365
+    ) * noPersonsInHousehold * waterDemandVolumePerPersonYear / 365
   }
 
   /** Calculate the needed energy to change from a given current temperature to
@@ -306,7 +304,8 @@ final case class ThermalHouse(
   private def energyToReachTargetTemperature(
       currentTemperature: Temperature
   ): Energy = {
-    val temperatureDiff =(targetTemperature - currentTemperature).max(Kelvin(0))
+    val temperatureDiff =
+      (targetTemperature - currentTemperature).max(Kelvin(0))
 
     ethCapa * temperatureDiff
   }
@@ -489,14 +488,14 @@ final case class ThermalHouse(
 object ThermalHouse {
   protected def temperatureTolerance: Temperature = Kelvin(0.01d)
 
-  /** Temperature values are set constant and based on VDI 2067 Blatt 12
+  /** Temperature values are set constant and based on VDI 2067 Blatt 12.
     */
 
   protected val lowerTemperatureTapWater: Temperature = Celsius(10d)
   protected val upperTemperatureTapWater: Temperature = Celsius(55d)
 
   /** Volume values are based on VDI 2067 Blatt 12. Time series relative are
-    * based on DIN EN 12831-3 Table B.2 for single family houses and for flats
+    * based on DIN EN 12831-3 Table B.2 for single family houses and for flats.
     */
   protected val waterDemandVolumePerPersonYear =
     // Shower and Bath + bathroom sink + dish washing per hand (also dishwasher in the building)

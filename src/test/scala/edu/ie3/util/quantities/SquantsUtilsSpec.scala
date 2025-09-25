@@ -7,11 +7,14 @@
 package edu.ie3.util.quantities
 
 import edu.ie3.simona.test.matchers.SquantsMatchers
-import edu.ie3.util.scala.quantities.KilowattHoursPerCubicMeter
+import edu.ie3.util.scala.quantities.{
+  KilowattHoursPerCubicMeter,
+  KilowattHoursPerKelvinCubicMeters,
+}
 import edu.ie3.util.scala.quantities.SquantsUtils.{
   RichElectricPotential,
   RichEnergy,
-  RichEnergyDensity,
+  RichSpecificHeatCapacity,
   RichThermalCapacity,
 }
 import org.scalatest.flatspec.AnyFlatSpec
@@ -37,8 +40,8 @@ class SquantsUtilsSpec extends AnyFlatSpec with Matchers with SquantsMatchers {
     Kilovolts(10).multiplyWithDimensionless(Each(2)) should be(Kilovolts(20.0))
   }
 
-  it should "return Energy when an EnergyDensity is multiplied by Volume and temperature delta in Celsius" in {
-    KilowattHoursPerCubicMeter(1.16).calcEnergyToHeat(
+  it should "return Energy when a SpecificHeatCapacity is multiplied with Volume and temperature delta in Celsius" in {
+    KilowattHoursPerKelvinCubicMeters(1.16).calcEnergyToHeat(
       CubicMeters(4),
       Celsius(12),
     ) should approximate(
@@ -46,8 +49,8 @@ class SquantsUtilsSpec extends AnyFlatSpec with Matchers with SquantsMatchers {
     )
   }
 
-  it should "return Energy when an EnergyDensity is multiplied by Volume and temperature delta in Kelvin" in {
-    KilowattHoursPerCubicMeter(1.16).calcEnergyToHeat(
+  it should "return Energy when a SpecificHeatCapacity is multiplied with Volume and temperature delta in Kelvin" in {
+    KilowattHoursPerKelvinCubicMeters(1.16).calcEnergyToHeat(
       CubicMeters(4),
       Kelvin(12),
     ) should approximate(
