@@ -36,7 +36,7 @@ class ThermalHouseSpec
     with DefaultTestData {
 
   implicit val temperatureTolerance: Temperature = Celsius(1e-4)
-  implicit val energyTolerance: Energy = KilowattHours(1e-4)
+  implicit val energyTolerance: Energy = KilowattHours(1e-9)
   implicit val volumeTolerance: Volume = Litres(0.01)
 
   "ThermalHouse" should {
@@ -330,11 +330,11 @@ class ThermalHouseSpec
 
         val cases = Table(
           ("waterDemand", "startTemp", "endTemp", "expectedEnergy"),
-          (1d, 1d, 2d, 0.00116),
-          (1000d, -5d, 55d, 69.6),
-          (20d, 20d, 30d, 0.232),
+          (1d, 1d, 2d, 0.00116222222),
+          (1000d, -5d, 55d, 69.733333333),
+          (20d, 20d, 30d, 0.2324444444),
           (55d, 100d, 100d, 0d),
-          (2500d, 30d, 65d, 101.5),
+          (2500d, 30d, 65d, 101.6944444444),
         )
 
         forAll(cases) { (waterDemand, startTemp, endTemp, expectedResult) =>

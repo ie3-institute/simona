@@ -242,7 +242,7 @@ final case class ThermalHouse(
       )
 
     val specificHeatDemandWater = KilowattHoursPerKelvinCubicMeters(
-      Joules(4.184e8).toKilowattHours
+      Joules(4184e3).toKilowattHours
     )
     val temperatureDelta = endTemperature - startTemperature
 
