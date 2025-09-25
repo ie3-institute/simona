@@ -305,8 +305,7 @@ final case class ThermalHouse(
       currentTemperature: Temperature
   ): Energy = {
     val temperatureDiff =
-      Kelvin(targetTemperature.toKelvinScale - currentTemperature.toKelvinScale)
-        .max(Kelvin(0))
+      (targetTemperature - currentTemperature).max(Kelvin(0))
 
     ethCapa * temperatureDiff
   }
