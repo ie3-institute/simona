@@ -47,6 +47,7 @@ class HpModelSpec
       val ambientTemperature = Celsius(10)
       val defaultState = HpState(
         0,
+        defaultSimulationStart,
         thermalState(Celsius(17d), ambientTemperature),
         HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
         noThermalDemand,
@@ -174,6 +175,7 @@ class HpModelSpec
           updatedState match {
             case HpState(
                   tick,
+                  _,
                   ThermalGridState(Some(thermalHouseState), _),
                   _,
                   thermalDemands,
@@ -227,6 +229,7 @@ class HpModelSpec
         ) =>
           val state = HpState(
             tick,
+            defaultSimulationStart,
             ThermalGridState(
               Some(ThermalHouseState(tick, ambientTemperature, Celsius(19))),
               None,
@@ -276,6 +279,7 @@ class HpModelSpec
         ) =>
           val state = HpState(
             tick,
+            defaultSimulationStart,
             ThermalGridState(
               Some(ThermalHouseState(tick, ambientTemperature, Celsius(19))),
               None,
