@@ -254,7 +254,7 @@ class ThermalGridIT
                   )
                   if inputModel == littleDomesticHotWaterStorageInput.getUuid =>
                 time shouldBe 0.toDateTime
-                qDot should equalWithTolerance(-0.004955161979312273.asMegaWatt)
+                qDot should equalWithTolerance(-0.004964654626782.asMegaWatt)
                 energy should equalWithTolerance(0.000522.asMegaWattHour)
             }
         }
@@ -292,9 +292,7 @@ class ThermalGridIT
                   if inputModel == littleDomesticHotWaterStorageInput.getUuid =>
                 time shouldBe 49.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0004545547397260274.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.0004544255342.asMegaWattHour)
               case _ => fail("Unexpected thermal unit result")
             }
         }
@@ -397,17 +395,17 @@ class ThermalGridIT
                   )
                   if inputModel == littleDomesticHotWaterStorageInput.getUuid =>
                 time shouldBe 3600.toDateTime
-                qDot should equalWithTolerance(-0.004995945205479452.asMegaWatt)
+                qDot should equalWithTolerance(-0.004826747553816049.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.0004545547397260274.asMegaWattHour
+                  0.00045442553424658.asMegaWattHour
                 )
               case _ => fail("Unexpected thermal unit result")
             }
         }
       resultListener.expectNoMessage()
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(3627)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(3628)))
 
-      /* TICK 3627
+      /* TICK 3628
       Domestic hot water storage will stop discharging.
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.85 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -415,7 +413,7 @@ class ThermalGridIT
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.1 kWh
       Heat pump: stays on - continue with same behaviour as before
        */
-      heatPumpAgent ! Activation(3627)
+      heatPumpAgent ! Activation(3628)
 
       Range(0, 2)
         .map { _ =>
@@ -424,7 +422,7 @@ class ThermalGridIT
         .foreach {
           case ParticipantResultEvent(hpResult) =>
             hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-            hpResult.getTime shouldBe 3627.toDateTime
+            hpResult.getTime shouldBe 3628.toDateTime
             hpResult.getP should equalWithTolerance(pRunningHp)
             hpResult.getQ should equalWithTolerance(
               qRunningHp
@@ -438,9 +436,9 @@ class ThermalGridIT
                     energy,
                   )
                   if inputModel == littleDomesticHotWaterStorageInput.getUuid =>
-                time shouldBe 3627.toDateTime
+                time shouldBe 3628.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(0.000417085151.asMegaWattHour)
+                energy should equalWithTolerance(0.00041688416.asMegaWattHour)
               case _ => fail("Unexpected thermal unit result")
             }
         }
@@ -567,8 +565,8 @@ class ThermalGridIT
                   )
                   if inputModel == littleDomesticHotWaterStorageInput.getUuid =>
                 time shouldBe 21600.toDateTime
-                qDot should equalWithTolerance(-0.004980573066.asMegaWatt)
-                energy should equalWithTolerance(0.00034589293.asMegaWattHour)
+                qDot should equalWithTolerance(-0.004990114394.asMegaWatt)
+                energy should equalWithTolerance(0.00034555556.asMegaWattHour)
               case _ => fail("Unexpected thermal unit result")
             }
         }
@@ -607,7 +605,7 @@ class ThermalGridIT
                 time shouldBe 21665.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.00025596591780821927.asMegaWattHour
+                  0.00025545627397260273.asMegaWattHour
                 )
               case _ => fail("Unexpected thermal unit result")
             }
@@ -1503,10 +1501,8 @@ class ThermalGridIT
                   )
                   if inputModel == smallDomesticHotWaterStorageInput.getUuid =>
                 time shouldBe 0.toDateTime
-                qDot should equalWithTolerance(-0.004986861668742217.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0014981399999999998.asMegaWattHour
-                )
+                qDot should equalWithTolerance(-0.004996415043586552.asMegaWatt)
+                energy should equalWithTolerance(0.00149814.asMegaWattHour)
             }
         }
       resultListener.expectNoMessage()
@@ -1553,9 +1549,7 @@ class ThermalGridIT
                   if inputModel == smallDomesticHotWaterStorageInput.getUuid =>
                 time shouldBe 165.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.001269575506849315.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.0012691376438.asMegaWattHour)
               case _ => fail("Unexpected thermal unit result")
             }
         }
@@ -1670,9 +1664,9 @@ class ThermalGridIT
                   )
                   if inputModel == smallDomesticHotWaterStorageInput.getUuid =>
                 time shouldBe 3600.toDateTime
-                qDot should equalWithTolerance(-0.004986861668742217.asMegaWatt)
+                qDot should equalWithTolerance(-0.004996415043586552.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.001269575506849315.asMegaWattHour
+                  0.0012691376438356.asMegaWattHour
                 )
               case _ => fail("Unexpected thermal unit result")
             }
@@ -1722,7 +1716,7 @@ class ThermalGridIT
                 time shouldBe 3765.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.00104101101369863.asMegaWattHour
+                  0.00104013528767.asMegaWattHour
                 )
               case _ => fail("Unexpected thermal unit result")
             }
@@ -1959,13 +1953,13 @@ class ThermalGridIT
                   )
                   if inputModel == smallDomesticHotWaterStorageInput.getUuid =>
                 time shouldBe 7200.toDateTime
-                qDot should equalWithTolerance(-0.0049988839968.asMegaWatt)
-                energy should equalWithTolerance(0.001041011014.asMegaWattHour)
+                qDot should equalWithTolerance(-0.0049791711608.asMegaWatt)
+                energy should equalWithTolerance(0.001040135288.asMegaWattHour)
               case _ => fail("Unexpected thermal unit result")
             }
         }
       resultListener.expectNoMessage()
-      scheduler.expectMessage(Completion(emAgentActivation, Some(7370)))
+      scheduler.expectMessage(Completion(emAgentActivation, Some(7371)))
 
       /* TICK 7370
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.38 kWh
@@ -1974,7 +1968,7 @@ class ThermalGridIT
       DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.69 kWh
       Heat pump: stays off
        */
-      emAgentActivation ! Activation(7370)
+      emAgentActivation ! Activation(7371)
 
       Range(0, 3)
         .map { _ =>
@@ -1985,12 +1979,12 @@ class ThermalGridIT
             participantResult match {
               case HpResult(hpResult) =>
                 hpResult._2 shouldBe typicalHpInputModel.getUuid
-                hpResult._1 shouldBe 7370.toDateTime
+                hpResult._1 shouldBe 7371.toDateTime
                 hpResult._3 should equalWithTolerance(0.asMegaWatt)
                 hpResult._4 should equalWithTolerance(0.asMegaVar)
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
-                emResult._1 shouldBe 7370.toDateTime
+                emResult._1 shouldBe 7371.toDateTime
                 emResult._3 should equalWithTolerance(0.asMegaWatt)
                 emResult._4 should equalWithTolerance(0.asMegaVar)
             }
@@ -2003,11 +1997,9 @@ class ThermalGridIT
                     energy,
                   )
                   if inputModel == smallDomesticHotWaterStorageInput.getUuid =>
-                time shouldBe 7370.toDateTime
+                time shouldBe 7371.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0008049526027397258.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.0008036246575.asMegaWattHour)
               case _ => fail("Unexpected thermal unit result")
             }
         }
@@ -2066,9 +2058,7 @@ class ThermalGridIT
                   ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 9200.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
-                energy should equalWithTolerance(
-                  0.0063104.asMegaWattHour
-                )
+                energy should equalWithTolerance(0.0063104.asMegaWattHour)
               case _ => fail("Unexpected thermal unit result")
             }
         }
@@ -2172,9 +2162,9 @@ class ThermalGridIT
                   )
                   if inputModel == smallDomesticHotWaterStorageInput.getUuid =>
                 time shouldBe 10800.toDateTime
-                qDot should equalWithTolerance(-0.004990169546282365.asMegaWatt)
+                qDot should equalWithTolerance(-0.004999729258056852.asMegaWatt)
                 energy should equalWithTolerance(
-                  0.0008049526027397258.asMegaWattHour
+                  0.00803624657534246.asMegaWattHour
                 )
               case _ => fail("Unexpected thermal unit result")
             }

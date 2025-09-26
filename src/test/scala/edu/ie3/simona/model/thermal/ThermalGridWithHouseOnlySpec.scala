@@ -200,8 +200,8 @@ class ThermalGridWithHouseOnlySpec
         val tick = 86399 // heat demand for one day
         val expectedEnergyDemandWater =
           ThermalEnergyDemand(
-            KilowattHours(3.7469589),
-            KilowattHours(3.7469589),
+            KilowattHours(3.7541369),
+            KilowattHours(3.7541369),
           )
 
         val hoursToDetermine =
