@@ -6,6 +6,9 @@
 
 package edu.ie3.simona.model.thermal
 
+import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.datamodel.models.input.OperatorInput
+import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
@@ -16,11 +19,9 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
   startingState,
 }
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import edu.ie3.util.scala.quantities.WattsPerKelvin
 import org.scalatest.prop.{TableFor2, TableFor3, TableFor4, TableFor7}
 import squants.energy.*
@@ -28,8 +29,11 @@ import squants.space.Litres
 import squants.thermal.*
 import squants.time.*
 import squants.{Energy, Temperature, Volume}
+import tech.units.indriya.quantity.Quantities.getQuantity
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 class ThermalHouseSpec
     extends UnitSpec
@@ -38,12 +42,12 @@ class ThermalHouseSpec
     with DefaultTestData {
 
   implicit val temperatureTolerance: Temperature = Celsius(1e-4)
-  implicit val energyTolerance: Energy = KilowattHours(1e-4)
+  implicit val energyTolerance: Energy = KilowattHours(1e-9)
+  implicit val volumeTolerance: Volume = Litres(0.01)
   implicit val volumeTolerance: Volume = Litres(0.01)
 
   "ThermalHouse" should {
     "Functions testing inner temperature work as expected" in {
-
       val thermalHouseTest = thermalHouse(18, 22)
 
       val testCases: TableFor3[Double, Boolean, Boolean] = Table(
@@ -69,6 +73,38 @@ class ThermalHouseSpec
       }
     }
 
+    "handle edge cases in newInnerTemperature" in {
+      val house = thermalHouse(18, 22)
+      // Test with very high power
+      val highPowerTemp = house.newInnerTemperature(
+        Kilowatts(1000000),
+        Hours(1),
+        Celsius(20),
+        Celsius(10),
+      )
+      highPowerTemp should be > Celsius(50)
+
+      // Test with zero power
+      val zeroPowerTemp = house.newInnerTemperature(
+        Kilowatts(0),
+        Hours(1),
+        Celsius(20),
+        Celsius(10),
+      )
+      zeroPowerTemp should be < Celsius(20)
+    }
+
+    "calculate correct K1 and K2 factors" in {
+      val house = thermalHouse(18, 22)
+      val method =
+        PrivateMethod[Tuple2[Double, Double]](Symbol("getFactorsK1AndK2"))
+
+      val (k1, k2) = house invokePrivate method(Kilowatts(2), Celsius(20))
+
+      k1 should be > 0.0
+      k2 should be > 0.0
+    }
+
     "Comprising function to calculate new inner temperature works as expected" in {
       val thermalHouseTest = thermalHouse(18, 22)
       val thermalPower = Kilowatts(100)
@@ -84,6 +120,44 @@ class ThermalHouseSpec
       )
 
       newInnerTemperature should approximate(Temperature(28.5646, Celsius))
+    }
+
+    "calculate correct energy demand for heating" in {
+      val house = thermalHouse(18, 22)
+
+      val testCases = Table(
+        ("innerTemp", "ambientTemp", "expectedRequired", "expectedPossible"),
+        // Temperature to low
+        (16.0, 10.0, 40.0, 40.0),
+        (17.0, 10.0, 30.0, 30.0),
+        (17.0, 17.0, 30.0, 30.0),
+        (17.0, 30.0, 30.0, 30.0),
+        (17.9, 10.0, 21.0, 21.0),
+        // Temperature between boundaries
+        (20.0, 10.0, 0.0, 0.0),
+        (20.0, 20.0, 0.0, 0.0),
+        (20.0, 30.0, 0.0, 0.0),
+        (21.0, 10.0, 0.0, 0.0),
+        // Temperature too high
+        (22.1, 10.0, 0.0, 0.0),
+        (22.1, 30.0, 0.0, 0.0),
+        (23.0, 10.0, 0.0, 0.0),
+      )
+
+      forAll(testCases) {
+        (
+            innerTemp: Double,
+            ambientTemp: Double,
+            expectedRequired: Double,
+            expectedPossible: Double,
+        ) =>
+          val state =
+            ThermalHouseState(0L, Celsius(ambientTemp), Celsius(innerTemp))
+          val demand = house.energyDemandHeating(state)
+
+          demand.required should approximate(KilowattHours(expectedRequired))
+          demand.possible should approximate(KilowattHours(expectedPossible))
+      }
     }
 
     "Check for the correct state of house" in {
@@ -332,11 +406,11 @@ class ThermalHouseSpec
 
         val cases = Table(
           ("waterDemand", "startTemp", "endTemp", "expectedEnergy"),
-          (1d, 1d, 2d, 0.00116),
-          (1000d, -5d, 55d, 69.6),
-          (20d, 20d, 30d, 0.232),
+          (1d, 1d, 2d, 0.00116222222),
+          (1000d, -5d, 55d, 69.733333333),
+          (20d, 20d, 30d, 0.2324444444),
           (55d, 100d, 100d, 0d),
-          (2500d, 30d, 65d, 101.5),
+          (2500d, 30d, 65d, 101.6944444444),
         )
 
         forAll(cases) { (waterDemand, startTemp, endTemp, expectedResult) =>
@@ -350,6 +424,27 @@ class ThermalHouseSpec
           result should approximate(KilowattHours(expectedResult))
         }
 
+      }
+
+      "calculate correct energy demand for domestic hot water" in {
+        val house = thermalHouse(18, 22)
+
+        val testCases = Table(
+          ("hours", "expectedEnergy"),
+          (None, 0.0),
+          (Some(Seq()), 0.0),
+          (Some(Seq(8)), 0.255281315),
+          (Some(Seq(7, 8, 9)), 0.6457115616),
+          (Some(Seq(0, 1, 2, 3)), 0.1389030685),
+        )
+
+        forAll(testCases) { (hours: Option[Seq[Int]], expectedEnergy: Double) =>
+          val demand = house.energyDemandDomesticHotWater(hours)
+
+          demand.required should approximate(KilowattHours(expectedEnergy))
+          demand.possible should approximate(KilowattHours(expectedEnergy))
+          demand.required shouldBe demand.possible
+        }
       }
 
       "throw an exception if end temperature is lower than start temperature" in {
@@ -429,7 +524,6 @@ class ThermalHouseSpec
               )
             ),
             None,
-            Some(ThermalStorageState(lastTick, zeroKWh)),
           )
 
           val state = HpState(
