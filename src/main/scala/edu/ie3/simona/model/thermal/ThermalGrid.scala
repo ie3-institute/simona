@@ -256,12 +256,10 @@ final case class ThermalGrid(
     }
   }
 
-  /** Handles the case, when a grid has feed in. Depending on which entity has
-    * some heat demand the house or the storage will be heated up / filled up.
-    * First the actions from last operating point will be considered and checked
-    * if the behaviour should be continued. This might be the case, if we got
-    * activated by updated weather data. If this is not the case, all other
-    * cases will be handled by [[ThermalGrid.handleFinalFeedInCases]].
+  /** Handles the case, when a grid has feed in. To do so, first the conditions
+    * of all grid elements are evaluated if there is demand for heating. Based
+    * on these, the distribution strategy for the heating power (qDot) is
+    * chosen.
     *
     * @param state
     *   State of the heat pump.
@@ -277,21 +275,16 @@ final case class ThermalGrid(
       qDot: Power,
   ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
     // TODO: We would need to issue a storage result model here...
+    val conditions = ThermalDemandConditions.from(state)
+    val strategy = selectFeedInStrategy(conditions)
+    val (qDotHouse, qDotHeatStorage, qDotWaterStorage) = strategy(qDot)
 
-    /* Consider the action in the last state
-    We can continue using the qDots from last operating point to keep continuity.
-    If the house was heated in lastState and has still some demand and the domestic
-    hot water storage as no demand. */
-    if state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW &&
-      state.thermalDemands.houseDemand.hasPossibleDemand &&
-      !state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand
-    then handleCase(state, qDot, zeroKW, zeroKW)
-    // or finally check for all other cases.
-    else handleFinalFeedInCases(state, qDot)
+    handleCase(state, qDotHouse, qDotHeatStorage, qDotWaterStorage)
   }
 
-  /** Handles the last cases of [[ThermalGrid.handleFeedIn]], where the thermal
-    * feed in should be determined.
+  /** Selects the strategy how to distribute the thermal power (qDot) from the
+    * heat source to the elements within this ThermalGrid.
+    *
     * | No | Conditions                                   | Result                          |
     * |:---|:---------------------------------------------|:--------------------------------|
     * | 1  | if house.reqD AND waterStorage.reqD          | split to house and waterStorage |
@@ -302,34 +295,32 @@ final case class ThermalGrid(
     * | 6  | else if house.posD                           | house                           |
     * | 7  | else                                         | no output                       |
     *
-    * @param state
-    *   State of the heat pump.
-    * @param qDot
-    *   Feed in to the grid from thermal generation (e.g. heat pump) or thermal
-    *   storages.
+    * @param conditions
+    *   The ThermalDemandConditions, describing the current status of heat
+    *   demand of the grid elements.
     * @return
-    *   The operating point of the thermal grid and the thermalThreshold if
-    *   there is one.
+    *   The FeedInStrategy how to distribute the qDot from the heat source.
     */
-  private def handleFinalFeedInCases(
-      state: HpState,
-      qDot: Power,
-  ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
-
-    if state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand && (state.thermalDemands.houseDemand.hasRequiredDemand ||
-        (state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW && state.lastHpOperatingPoint.thermalOps.qDotHp > zeroKW))
-    then
-      // if the DomesticHotWaterStorage has reqDemand AND house has reqDemand or was heated in lastState by Hp, we would like to split the qDot between house and waterStorage
-      handleCase(state, qDot / 2, zeroKW, qDot / 2)
-    else if state.thermalDemands.houseDemand.hasRequiredDemand then
-      handleCase(state, qDot, zeroKW, zeroKW)
-    else if state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand
-    then handleCase(state, zeroKW, zeroKW, qDot)
-    else if state.thermalDemands.heatStorageDemand.hasRequiredDemand || state.thermalDemands.heatStorageDemand.hasPossibleDemand
-    then handleCase(state, zeroKW, qDot, zeroKW)
-    else if state.thermalDemands.houseDemand.hasPossibleDemand then
-      handleCase(state, qDot, zeroKW, zeroKW)
-    else handleCase(state, zeroKW, zeroKW, zeroKW)
+  private def selectFeedInStrategy(
+      conditions: ThermalDemandConditions
+  ): FeedInStrategy = {
+    if conditions.shouldContinueHouseHeating then {
+      HouseOnlyStrategy
+    } else if conditions.waterStorageDemand &&
+      (conditions.houseDemand || conditions.houseHeatedLastState)
+    then {
+      SplitHouseWaterStrategy
+    } else if conditions.houseDemand then {
+      HouseOnlyStrategy
+    } else if conditions.waterStorageDemand then {
+      WaterStorageOnlyStrategy
+    } else if conditions.heatStorageDemand then {
+      HeatStorageOnlyStrategy
+    } else if conditions.housePossible then {
+      HouseOnlyStrategy
+    } else {
+      NoOperationStrategy
+    }
   }
 
   /** Handles the different thermal flows from and into the thermal grid.
