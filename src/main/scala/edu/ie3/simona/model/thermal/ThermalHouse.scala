@@ -473,7 +473,7 @@ final case class ThermalHouse(
 
 object ThermalHouse {
   protected def temperatureTolerance: Temperature = Kelvin(0.01d)
-
+  
   /** Temperature values are set constant and based on VDI 2067 Blatt 12.
     */
   protected val lowerTemperatureTapWater: Temperature = Celsius(10d)
