@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.thermal
 
+import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
@@ -40,31 +41,66 @@ class ThermalHouseSpec
   implicit val volumeTolerance: Volume = Litres(0.01)
 
   "ThermalHouse" should {
-    "Functions testing inner temperature work as expected" in {
+    val thermalHouseTest = thermalHouse(18, 22)
 
-      val thermalHouseTest = thermalHouse(18, 22)
+    val testCases: TableFor3[Double, Boolean, Boolean] = Table(
+      ("Inner Temperature (C)", "Is Too High", "Is Too Low"),
+      (17d, false, true),
+      (17.98d, false, true),
+      (18d, false, true),
+      (19.98d, false, false),
+      (20d, true, false),
+      (22d, true, false),
+      (22.02d, true, false),
+      (23d, true, false),
+    )
 
-      val testCases: TableFor3[Double, Boolean, Boolean] = Table(
-        ("Inner Temperature (C)", "Is Too High", "Is Too Low"),
-        (17d, false, true),
-        (17.98d, false, true),
-        (18d, false, true),
-        (19.98d, false, false),
-        (20d, true, false),
-        (22d, true, false),
-        (22.02d, true, false),
-        (23d, true, false),
-      )
+    forAll(testCases) {
+      (innerTemperature: Double, isTooHigh: Boolean, isTooLow: Boolean) =>
+        val innerTemp = Temperature(innerTemperature, Celsius)
+        val isHigher = thermalHouseTest.isInnerTemperatureTooHigh(innerTemp)
+        val isLower = thermalHouseTest.isInnerTemperatureTooLow(innerTemp)
 
-      forAll(testCases) {
-        (innerTemperature: Double, isTooHigh: Boolean, isTooLow: Boolean) =>
-          val innerTemp = Temperature(innerTemperature, Celsius)
-          val isHigher = thermalHouseTest.isInnerTemperatureTooHigh(innerTemp)
-          val isLower = thermalHouseTest.isInnerTemperatureTooLow(innerTemp)
+        isHigher shouldBe isTooHigh
+        isLower shouldBe isTooLow
+    }
 
-          isHigher shouldBe isTooHigh
-          isLower shouldBe isTooLow
+    "throw exception when constructed with invalid temperature boundaries" in {
+      intercept[IllegalArgumentException] {
+        val house = thermalHouse(22, 18)
       }
+    }
+
+    "handle edge cases in newInnerTemperature" in {
+      val house = thermalHouse(18, 22)
+      // Test with very high power
+      val highPowerTemp = house.newInnerTemperature(
+        Kilowatts(1000000),
+        Hours(1),
+        Celsius(20),
+        Celsius(10),
+      )
+      highPowerTemp should be > Celsius(50)
+
+      // Test with zero power
+      val zeroPowerTemp = house.newInnerTemperature(
+        Kilowatts(0),
+        Hours(1),
+        Celsius(20),
+        Celsius(10),
+      )
+      zeroPowerTemp should be < Celsius(20)
+    }
+
+    "calculate correct K1 and K2 factors" in {
+      val house = thermalHouse(18, 22)
+      val method =
+        PrivateMethod[Tuple2[Double, Double]](Symbol("getFactorsK1AndK2"))
+
+      val (k1, k2) = house invokePrivate method(Kilowatts(2), Celsius(20))
+
+      k1 should be > 0.0
+      k2 should be > 0.0
     }
 
     "Comprising function to calculate new inner temperature works as expected" in {
@@ -82,6 +118,37 @@ class ThermalHouseSpec
       )
 
       newInnerTemperature should approximate(Temperature(28.5646, Celsius))
+    }
+
+    "calculate correct energy demand for heating" in {
+      val house = thermalHouse(18, 22)
+
+      val testCases = Table(
+        ("innerTemp", "expectedRequired", "expectedPossible"),
+        // Temperature to low
+        (17.0, 34.722222, 34.722222),
+        (17.9, 5.787037, 5.787037),
+        // Temperature between boundaries
+        (20.0, 0.0, 23.148148),
+        (21.0, 0.0, 11.574074),
+        // Temperature too high
+        (22.1, 0.0, 0.0),
+        (23.0, 0.0, 0.0),
+      )
+
+      forAll(testCases) {
+        (
+            innerTemp: Double,
+            expectedRequired: Double,
+            expectedPossible: Double,
+        ) =>
+          val state =
+            ThermalHouseState(0L, Celsius(innerTemp), Celsius(innerTemp))
+          val demand = house.energyDemandHeating(state)
+
+          demand.required should approximate(KilowattHours(expectedRequired))
+          demand.possible should approximate(KilowattHours(expectedPossible))
+      }
     }
 
     "Check for the correct state of house" in {
@@ -348,6 +415,27 @@ class ThermalHouseSpec
           result should approximate(KilowattHours(expectedResult))
         }
 
+      }
+
+      "calculate correct energy demand for domestic hot water" in {
+        val house = thermalHouse(18, 22)
+
+        val testCases = Table(
+          ("hours", "expectedEnergy"),
+          (None, 0.0),
+          (Some(Seq()), 0.0),
+          (Some(Seq(8)), 0.255281315),
+          (Some(Seq(7, 8, 9)), 0.6457115616),
+          (Some(Seq(0, 1, 2, 3)), 0.1389030685),
+        )
+
+        forAll(testCases) { (hours: Option[Seq[Int]], expectedEnergy: Double) =>
+          val demand = house.energyDemandDomesticHotWater(hours)
+
+          demand.required should approximate(KilowattHours(expectedEnergy))
+          demand.possible should approximate(KilowattHours(expectedEnergy))
+          demand.required shouldBe demand.possible
+        }
       }
 
       "throw an exception if end temperature is lower than start temperature" in {
