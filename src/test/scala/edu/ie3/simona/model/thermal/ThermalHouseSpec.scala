@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
+import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
@@ -19,9 +19,11 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
   startingState,
 }
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import edu.ie3.util.scala.quantities.WattsPerKelvin
 import org.scalatest.prop.{TableFor2, TableFor3, TableFor4, TableFor7}
 import squants.energy.*
@@ -43,7 +45,6 @@ class ThermalHouseSpec
 
   implicit val temperatureTolerance: Temperature = Celsius(1e-4)
   implicit val energyTolerance: Energy = KilowattHours(1e-9)
-  implicit val volumeTolerance: Volume = Litres(0.01)
   implicit val volumeTolerance: Volume = Litres(0.01)
 
   "ThermalHouse" should {
@@ -524,6 +525,7 @@ class ThermalHouseSpec
               )
             ),
             None,
+            Some(ThermalStorageState(lastTick, zeroKWh)),
           )
 
           val state = HpState(

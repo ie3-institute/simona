@@ -154,8 +154,7 @@ final case class ThermalGrid(
           // Calculate domestic hot water demand
           val domesticHotWaterDemand =
             thermalHouse.energyDemandDomesticHotWater(
-              hoursWaterDemandToDetermine,
-              thermalGridState.houseState,
+              hoursWaterDemandToDetermine
             )
           // Calculate heating demand of house
           val heatingDemand = {
