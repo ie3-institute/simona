@@ -57,6 +57,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.matchers.should
@@ -151,6 +152,26 @@ class ThermalGridIT
       val hpInitSchedule = scheduler.expectMessageType[ScheduleActivation]
       hpInitSchedule.tick shouldBe INIT_SIM_TICK
       val heatPumpAgent = hpInitSchedule.actor
+
+      /** Helper Method        * */
+      def performMultipleActivations(
+          activationActor: ActorRef[Activation],
+          tickPairs: Seq[(Long, Long)],
+      ): Unit = {
+        tickPairs.foreach { case (currentTick, nextTick) =>
+          activationActor ! Activation(currentTick)
+
+          Range(0, 2)
+            .map { _ => resultListener.expectMessageType[ResultEvent] }
+            .foreach {
+              case ParticipantResultEvent(_) =>
+              case ThermalResultEvent(_)     =>
+            }
+
+          resultListener.expectNoMessage()
+          scheduler.expectMessage(Completion(activationActor, Some(nextTick)))
+        }
+      }
 
       /* INIT */
 
@@ -489,36 +510,17 @@ class ThermalGridIT
       The results are checked implicitly through the state of stored energy at the next result check.
        */
       val activationTicksBlock =
-        Seq(7200, 7217, 10800, 10809, 14400, 14411, 18000, 18017, 21600)
-
+        Seq(7200L, 7217L, 10800L, 10809L, 14400L, 14411L, 18000L, 18017L,
+          21600L)
       val tickPairs = activationTicksBlock.zipWithIndex.collect {
         case (tick, index) if index < activationTicksBlock.length - 1 =>
           (tick, activationTicksBlock(index + 1))
       }
 
-      tickPairs.foreach { case (currentTick, nextTick) =>
-        heatPumpAgent ! Activation(currentTick)
-        // Each step we expect a message for the Hp and the DomesticHotWaterStorage, but we don't check the content here.
-        Range(0, 2)
-          .map { _ =>
-            resultListener.expectMessageType[ResultEvent]
-          }
-          .foreach {
-            case ParticipantResultEvent(participantResult) =>
-              participantResult match {
-                case HpResult(_) =>
-                case _           => fail("unexpected result")
-              }
-            case ThermalResultEvent(thermalUnitResult) =>
-              thermalUnitResult match {
-                case AbstractThermalStorageResult(_, inputModel, _, _)
-                    if inputModel == littleDomesticHotWaterStorageInput.getUuid =>
-                case _ => fail("unexpected result")
-              }
-          }
-        resultListener.expectNoMessage()
-        scheduler.expectMessage(Completion(heatPumpAgent, Some(nextTick)))
-      }
+      performMultipleActivations(
+        heatPumpAgent,
+        tickPairs,
+      )
 
       /* TICK 21600
       House would reach lowerTempBoundary at tick 50797.
@@ -1366,6 +1368,26 @@ class ThermalGridIT
       val emInitSchedule = scheduler.expectMessageType[ScheduleActivation]
       emInitSchedule.tick shouldBe INIT_SIM_TICK
       val emAgentActivation = emInitSchedule.actor
+
+      /** Helper Method        * */
+      def performMultipleActivations(
+          activationActor: ActorRef[Activation],
+          tickPairs: Seq[(Long, Long)],
+      ): Unit = {
+        tickPairs.foreach { case (currentTick, nextTick) =>
+          activationActor ! Activation(currentTick)
+
+          Range(0, 3)
+            .map { _ => resultListener.expectMessageType[ResultEvent] }
+            .foreach {
+              case ParticipantResultEvent(_) =>
+              case ThermalResultEvent(_)     =>
+            }
+
+          resultListener.expectNoMessage()
+          scheduler.expectMessage(Completion(activationActor, Some(nextTick)))
+        }
+      }
 
       scheduler.expectNoMessage()
 
@@ -2434,37 +2456,17 @@ class ThermalGridIT
      The results are checked implicitly through the state of stored energy at the next result check.
        */
       val firstActivationTicksBlock =
-        Seq(14400, 14538, 18000, 18119, 21600, 21717, 24413)
+        Seq(14400L, 14538L, 18000L, 18119L, 21600L, 21717L, 24413L)
 
       val firstTickPairs = firstActivationTicksBlock.zipWithIndex.collect {
         case (tick, index) if index < firstActivationTicksBlock.length - 1 =>
           (tick, firstActivationTicksBlock(index + 1))
       }
 
-      firstTickPairs.foreach { case (currentTick, nextTick) =>
-        emAgentActivation ! Activation(currentTick)
-        // Each step we expect a message for the Hp and the DomesticHotWaterStorage, but we don't check the content here.
-        Range(0, 3)
-          .map { _ =>
-            resultListener.expectMessageType[ResultEvent]
-          }
-          .foreach {
-            case ParticipantResultEvent(participantResult) =>
-              participantResult match {
-                case HpResult(_) =>
-                case EmResult(_) =>
-                case _           => fail("unexpected result")
-              }
-            case ThermalResultEvent(thermalUnitResult) =>
-              thermalUnitResult match {
-                case AbstractThermalStorageResult(_, inputModel, _, _)
-                    if inputModel == smallDomesticHotWaterStorageInput.getUuid =>
-                case _ => fail("unexpected result")
-              }
-          }
-        resultListener.expectNoMessage()
-        scheduler.expectMessage(Completion(emAgentActivation, Some(nextTick)))
-      }
+      performMultipleActivations(
+        emAgentActivation,
+        firstTickPairs,
+      )
 
       /* TICK 24413
         House reaches lower boundary, since we don't have surplus energy from pv, we would use the energy from storage to heat the house.
@@ -2987,37 +2989,17 @@ class ThermalGridIT
        */
 
       val secondActivationTicksBlock =
-        Seq(32400, 32576, 36000, 36179, 39600, 39757, 41937)
+        Seq(32400L, 32576L, 36000L, 36179L, 39600L, 39757L, 41937L)
 
       val secondTickPairs = secondActivationTicksBlock.zipWithIndex.collect {
         case (tick, index) if index < secondActivationTicksBlock.length - 1 =>
           (tick, secondActivationTicksBlock(index + 1))
       }
 
-      secondTickPairs.foreach { case (currentTick, nextTick) =>
-        emAgentActivation ! Activation(currentTick)
-        // Each step we expect a message for the Hp and the DomesticHotWaterStorage, but we don't check the content here.
-        Range(0, 3)
-          .map { _ =>
-            resultListener.expectMessageType[ResultEvent]
-          }
-          .foreach {
-            case ParticipantResultEvent(participantResult) =>
-              participantResult match {
-                case HpResult(_) =>
-                case EmResult(_) =>
-                case _           => fail("unexpected result")
-              }
-            case ThermalResultEvent(thermalUnitResult) =>
-              thermalUnitResult match {
-                case AbstractThermalStorageResult(_, inputModel, _, _)
-                    if inputModel == smallDomesticHotWaterStorageInput.getUuid =>
-                case _ => fail("unexpected result")
-              }
-          }
-        resultListener.expectNoMessage()
-        scheduler.expectMessage(Completion(emAgentActivation, Some(nextTick)))
-      }
+      performMultipleActivations(
+        emAgentActivation,
+        secondTickPairs,
+      )
 
       /* TICK 41937
       House reaches lower temperature.
@@ -3079,37 +3061,17 @@ class ThermalGridIT
 The results are checked implicitly through the state of stored energy at the next result check.
        */
       val thirdActivationTicksBlock =
-        Seq(43200, 43322)
+        Seq(43200L, 43322L)
 
       val thirdTickPairs = thirdActivationTicksBlock.zipWithIndex.collect {
         case (tick, index) if index < thirdActivationTicksBlock.length - 1 =>
           (tick, thirdActivationTicksBlock(index + 1))
       }
 
-      thirdTickPairs.foreach { case (currentTick, nextTick) =>
-        emAgentActivation ! Activation(currentTick)
-        // Each step we expect a message for the Hp and the DomesticHotWaterStorage, but we don't check the content here.
-        Range(0, 3)
-          .map { _ =>
-            resultListener.expectMessageType[ResultEvent]
-          }
-          .foreach {
-            case ParticipantResultEvent(participantResult) =>
-              participantResult match {
-                case HpResult(_) =>
-                case EmResult(_) =>
-                case _           => fail("unexpected result")
-              }
-            case ThermalResultEvent(thermalUnitResult) =>
-              thermalUnitResult match {
-                case AbstractThermalStorageResult(_, inputModel, _, _)
-                    if inputModel == smallDomesticHotWaterStorageInput.getUuid =>
-                case _ => fail("unexpected result")
-              }
-          }
-        resultListener.expectNoMessage()
-        scheduler.expectMessage(Completion(emAgentActivation, Some(nextTick)))
-      }
+      performMultipleActivations(
+        emAgentActivation,
+        thirdTickPairs,
+      )
 
       /* TICK 43322
         Domestic hot water storage stops discharging
@@ -3328,37 +3290,17 @@ The results are checked implicitly through the state of stored energy at the nex
     The results are checked implicitly through the state of stored energy at the next result check.
        */
       val fourthActivationTicksBlock =
-        Seq(46887, 50400, 50449, 54000, 54028, 55261)
+        Seq(46887L, 50400L, 50449L, 54000L, 54028L, 55261L)
 
       val fourthTickPairs = fourthActivationTicksBlock.zipWithIndex.collect {
         case (tick, index) if index < fourthActivationTicksBlock.length - 1 =>
           (tick, fourthActivationTicksBlock(index + 1))
       }
 
-      fourthTickPairs.foreach { case (currentTick, nextTick) =>
-        emAgentActivation ! Activation(currentTick)
-        // Each step we expect a message for the Hp and the DomesticHotWaterStorage, but we don't check the content here.
-        Range(0, 3)
-          .map { _ =>
-            resultListener.expectMessageType[ResultEvent]
-          }
-          .foreach {
-            case ParticipantResultEvent(participantResult) =>
-              participantResult match {
-                case HpResult(_) =>
-                case EmResult(_) =>
-                case _           => fail("unexpected result")
-              }
-            case ThermalResultEvent(thermalUnitResult) =>
-              thermalUnitResult match {
-                case AbstractThermalStorageResult(_, inputModel, _, _)
-                    if inputModel == smallDomesticHotWaterStorageInput.getUuid =>
-                case _ => fail("unexpected result")
-              }
-          }
-        resultListener.expectNoMessage()
-        scheduler.expectMessage(Completion(emAgentActivation, Some(nextTick)))
-      }
+      performMultipleActivations(
+        emAgentActivation,
+        fourthTickPairs,
+      )
 
       /* TICK 55261
       House reaches target temperature.
