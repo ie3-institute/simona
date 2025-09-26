@@ -6,7 +6,9 @@
 
 package edu.ie3.simona.model.thermal
 
+import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.datamodel.models.input.OperatorInput
+import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
@@ -27,8 +29,11 @@ import squants.space.Litres
 import squants.thermal.*
 import squants.time.*
 import squants.{Energy, Temperature, Volume}
+import tech.units.indriya.quantity.Quantities.getQuantity
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 class ThermalHouseSpec
     extends UnitSpec
@@ -64,12 +69,6 @@ class ThermalHouseSpec
 
           isHigher shouldBe isTooHigh
           isLower shouldBe isTooLow
-      }
-    }
-
-    "throw exception when constructed with invalid temperature boundaries" in {
-      intercept[IllegalArgumentException] {
-        val house = thermalHouse(22, 18)
       }
     }
 
