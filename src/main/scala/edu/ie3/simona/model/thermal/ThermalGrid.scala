@@ -533,6 +533,7 @@ final case class ThermalGrid(
       state: HpState,
       domesticHotWaterDemand: ThermalEnergyDemand,
   ): (Power, Option[ThermalThreshold]) = {
+    val minimumOperationDuration = Seconds(1)
     if domesticHotWaterDemand.required > zeroKWh then {
       val chargingPower = domesticHotWaterStorage
         .map(_.getpThermalMax)
@@ -545,7 +546,7 @@ final case class ThermalGrid(
       val approxDurationAtFullPower =
         domesticHotWaterDemand.required / chargingPower
 
-      if approxDurationAtFullPower > Seconds(1) then {
+      if approxDurationAtFullPower > minimumOperationDuration then {
         val preciseChargingPower =
           -1 * domesticHotWaterDemand.required / Seconds(
             approxDurationAtFullPower.toSeconds.toLong + 1
@@ -561,7 +562,7 @@ final case class ThermalGrid(
         )
       } else {
         (
-          -1 * domesticHotWaterDemand.required / Seconds(1d),
+          -1 * domesticHotWaterDemand.required / minimumOperationDuration,
           Some(SimpleThermalThreshold(state.tick + 1)),
         )
       }
