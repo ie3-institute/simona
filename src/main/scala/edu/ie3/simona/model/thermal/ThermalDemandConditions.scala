@@ -31,9 +31,9 @@ private object ThermalDemandConditions {
     */
   def from(state: HpState): ThermalDemandConditions = ThermalDemandConditions(
     /* Consider the action in the last state
-     *We can continue using the qDots from last operating point to keep continuity.
-     *If the house was heated in lastState and has still some demand and the domestic
-     *hot water storage as no demand. */
+     * We can continue using the qDots from last operating point to keep continuity.
+     * If the house was heated in lastState and has still some demand and the domestic
+     * hot water storage as no demand. */
     shouldContinueHouseHeating =
       state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW &&
         state.thermalDemands.houseDemand.hasPossibleDemand &&
