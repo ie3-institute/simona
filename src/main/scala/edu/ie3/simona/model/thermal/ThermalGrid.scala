@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
+  DomesticHotWaterStorageResult,
   ThermalHouseResult,
 }
 import edu.ie3.simona.exceptions.InvalidParameterException
@@ -27,10 +28,10 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.quantities.QuantityUtils.{
-  asMegaWattHour,
   asKelvin,
-  asPu,
   asMegaWatt,
+  asMegaWattHour,
+  asPu,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import squants.energy.KilowattHours
@@ -465,25 +466,10 @@ final case class ThermalGrid(
       currentOperatingPoint: HpOperatingPoint,
       dateTime: ZonedDateTime,
   ): Seq[ResultEntity] = {
-    val typedResults = createTypedResults(
-      state,
-      lastOperatingPoint,
-      currentOperatingPoint,
-      dateTime,
-    )
-    typedResults.map(_.getResultEntity)
-  }
-
-  private def createTypedResults(
-      state: HpState,
-      lastOperatingPoint: Option[HpOperatingPoint],
-      currentOperatingPoint: HpOperatingPoint,
-      dateTime: ZonedDateTime,
-  ): Seq[ThermalResult] = {
     val currentOpThermals = currentOperatingPoint.thermalOps
     val lastOpThermals = lastOperatingPoint.map(_.thermalOps)
 
-    val houseResults = house.toSeq.flatMap { h =>
+    val houseResults: Seq[ThermalResult] = house.toSeq.flatMap { h =>
       if shouldCreateResult(
           lastOpThermals.map(_.qDotHouse),
           currentOpThermals.qDotHouse,
@@ -496,7 +482,7 @@ final case class ThermalGrid(
       } else None
     }
 
-    val heatStorageResults = heatStorage.toSeq.collect {
+    val heatStorageResults: Seq[ThermalResult] = heatStorage.toSeq.collect {
       case storage: CylindricalThermalStorage
           if shouldCreateResult(
             lastOpThermals.map(_.qDotHeatStorage),
@@ -511,10 +497,10 @@ final case class ThermalGrid(
         ).map(HeatStorageResult)
     }.flatten
 
-    houseResults ++ heatStorageResults
+    (houseResults ++ heatStorageResults).map(_.getResultEntity)
   }
 
-  def createThermalHouseResult(
+  private def createThermalHouseResult(
       state: HpState,
       thermalHouse: ThermalHouse,
       dateTime: ZonedDateTime,
@@ -536,7 +522,7 @@ final case class ThermalGrid(
       )
   }
 
-  def createCylindricalStorageResult(
+  private def createCylindricalStorageResult(
       state: HpState,
       storage: CylindricalThermalStorage,
       dateTime: ZonedDateTime,
@@ -559,12 +545,35 @@ final case class ThermalGrid(
       )
   }
 
+  def createDomesticHotWaterStorageResult(
+      state: HpState,
+      storage: DomesticHotWaterStorage,
+      dateTime: ZonedDateTime,
+      currentOpThermals: ThermalGridOperatingPoint,
+  ): Option[DomesticHotWaterStorageResult] = {
+    state.thermalGridState.heatStorageState // Dummy till DomesticHotStorage is introduced
+      .collectFirst { case ThermalStorageState(_, storedEnergy) =>
+        new DomesticHotWaterStorageResult(
+          dateTime,
+          storage.uuid,
+          storedEnergy.toMegawattHours.asMegaWattHour,
+          currentOpThermals.qDotHeatStorage.toMegawatts.asMegaWatt, // Dummy till DomesticHotStorage is introduced
+          (storedEnergy / storage.maxEnergyThreshold).asPu,
+        )
+      }
+      .orElse(
+        throw new NotImplementedError(
+          s"Result handling for storage type '${storage.getClass.getSimpleName}' not supported."
+        )
+      )
+  }
+
   private def shouldCreateResult(
       lastQDot: Option[Power],
       currentQDot: Power,
       tick: Long,
   ): Boolean = {
-    lastQDot.forall(_ != currentQDot) || tick == 0
+    !lastQDot.contains(currentQDot) || tick == 0
   }
 }
 
