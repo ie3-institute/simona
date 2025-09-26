@@ -472,20 +472,20 @@ final case class ThermalHouse(
 }
 
 object ThermalHouse {
-  protected def temperatureTolerance: Temperature = Kelvin(0.01d)
-  
+  private def temperatureTolerance: Temperature = Kelvin(0.01d)
+
   /** Temperature values are set constant and based on VDI 2067 Blatt 12.
     */
-  protected val lowerTemperatureTapWater: Temperature = Celsius(10d)
-  protected val upperTemperatureTapWater: Temperature = Celsius(55d)
+  private val lowerTemperatureTapWater: Temperature = Celsius(10d)
+  private val upperTemperatureTapWater: Temperature = Celsius(55d)
 
   /** Volume values are based on VDI 2067 Blatt 12. Time series relative are
     * based on DIN EN 12831-3 Table B.2 for single family houses and for flats.
     */
-  protected val waterDemandVolumePerPersonYear =
+  private val waterDemandVolumePerPersonYear =
     // Shower and Bath + bathroom sink + dish washing per hand (also dishwasher in the building)
     Litres(8600 + 4200 + 300)
-  protected val waterVolumeRelativeHouse = Map(
+  private val waterVolumeRelativeHouse = Map(
     0 -> 0.018,
     1 -> 0.01,
     2 -> 0.006,
@@ -511,7 +511,7 @@ object ThermalHouse {
     22 -> 0.045,
     23 -> 0.032,
   )
-  protected val waterVolumeRelativeFlat = Map(
+  private val waterVolumeRelativeFlat = Map(
     0 -> 0.01,
     1 -> 0.01,
     2 -> 0.01,
