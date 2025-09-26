@@ -142,7 +142,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       angle.toSquants shouldBe Radians(Math.PI / 2)
 
       val angleDeg = Quantities.getQuantity(90.0, DEGREE_GEOM)
-      angleDeg.toSquants shouldBe (Radians(Math.PI / 2))
+      angleDeg.toSquants shouldBe Radians(Math.PI / 2)
     }
 
     "properly convert volume quantities" in {
