@@ -41,66 +41,68 @@ class ThermalHouseSpec
   implicit val volumeTolerance: Volume = Litres(0.01)
 
   "ThermalHouse" should {
-    val thermalHouseTest = thermalHouse(18, 22)
+    "Functions testing inner temperature work as expected" in {
+      val thermalHouseTest = thermalHouse(18, 22)
 
-    val testCases: TableFor3[Double, Boolean, Boolean] = Table(
-      ("Inner Temperature (C)", "Is Too High", "Is Too Low"),
-      (17d, false, true),
-      (17.98d, false, true),
-      (18d, false, true),
-      (19.98d, false, false),
-      (20d, true, false),
-      (22d, true, false),
-      (22.02d, true, false),
-      (23d, true, false),
-    )
+      val testCases: TableFor3[Double, Boolean, Boolean] = Table(
+        ("Inner Temperature (C)", "Is Too High", "Is Too Low"),
+        (17d, false, true),
+        (17.98d, false, true),
+        (18d, false, true),
+        (19.98d, false, false),
+        (20d, true, false),
+        (22d, true, false),
+        (22.02d, true, false),
+        (23d, true, false),
+      )
 
-    forAll(testCases) {
-      (innerTemperature: Double, isTooHigh: Boolean, isTooLow: Boolean) =>
-        val innerTemp = Temperature(innerTemperature, Celsius)
-        val isHigher = thermalHouseTest.isInnerTemperatureTooHigh(innerTemp)
-        val isLower = thermalHouseTest.isInnerTemperatureTooLow(innerTemp)
+      forAll(testCases) {
+        (innerTemperature: Double, isTooHigh: Boolean, isTooLow: Boolean) =>
+          val innerTemp = Temperature(innerTemperature, Celsius)
+          val isHigher = thermalHouseTest.isInnerTemperatureTooHigh(innerTemp)
+          val isLower = thermalHouseTest.isInnerTemperatureTooLow(innerTemp)
 
-        isHigher shouldBe isTooHigh
-        isLower shouldBe isTooLow
-    }
-
-    "throw exception when constructed with invalid temperature boundaries" in {
-      intercept[IllegalArgumentException] {
-        val house = thermalHouse(22, 18)
+          isHigher shouldBe isTooHigh
+          isLower shouldBe isTooLow
       }
-    }
 
-    "handle edge cases in newInnerTemperature" in {
-      val house = thermalHouse(18, 22)
-      // Test with very high power
-      val highPowerTemp = house.newInnerTemperature(
-        Kilowatts(1000000),
-        Hours(1),
-        Celsius(20),
-        Celsius(10),
-      )
-      highPowerTemp should be > Celsius(50)
+      "throw exception when constructed with invalid temperature boundaries" in {
+        intercept[IllegalArgumentException] {
+          val house = thermalHouse(22, 18)
+        }
+      }
 
-      // Test with zero power
-      val zeroPowerTemp = house.newInnerTemperature(
-        Kilowatts(0),
-        Hours(1),
-        Celsius(20),
-        Celsius(10),
-      )
-      zeroPowerTemp should be < Celsius(20)
-    }
+      "handle edge cases in newInnerTemperature" in {
+        val house = thermalHouse(18, 22)
+        // Test with very high power
+        val highPowerTemp = house.newInnerTemperature(
+          Kilowatts(1000000),
+          Hours(1),
+          Celsius(20),
+          Celsius(10),
+        )
+        highPowerTemp should be > Celsius(50)
 
-    "calculate correct K1 and K2 factors" in {
-      val house = thermalHouse(18, 22)
-      val method =
-        PrivateMethod[Tuple2[Double, Double]](Symbol("getFactorsK1AndK2"))
+        // Test with zero power
+        val zeroPowerTemp = house.newInnerTemperature(
+          Kilowatts(0),
+          Hours(1),
+          Celsius(20),
+          Celsius(10),
+        )
+        zeroPowerTemp should be < Celsius(20)
+      }
 
-      val (k1, k2) = house invokePrivate method(Kilowatts(2), Celsius(20))
+      "calculate correct K1 and K2 factors" in {
+        val house = thermalHouse(18, 22)
+        val method =
+          PrivateMethod[Tuple2[Double, Double]](Symbol("getFactorsK1AndK2"))
 
-      k1 should be > 0.0
-      k2 should be > 0.0
+        val (k1, k2) = house invokePrivate method(Kilowatts(2), Celsius(20))
+
+        k1 should be > 0.0
+        k2 should be > 0.0
+      }
     }
 
     "Comprising function to calculate new inner temperature works as expected" in {
