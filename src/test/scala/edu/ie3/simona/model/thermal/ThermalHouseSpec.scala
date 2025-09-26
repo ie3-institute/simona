@@ -65,44 +65,44 @@ class ThermalHouseSpec
           isHigher shouldBe isTooHigh
           isLower shouldBe isTooLow
       }
+    }
 
-      "throw exception when constructed with invalid temperature boundaries" in {
-        intercept[IllegalArgumentException] {
-          val house = thermalHouse(22, 18)
-        }
+    "throw exception when constructed with invalid temperature boundaries" in {
+      intercept[IllegalArgumentException] {
+        val house = thermalHouse(22, 18)
       }
+    }
 
-      "handle edge cases in newInnerTemperature" in {
-        val house = thermalHouse(18, 22)
-        // Test with very high power
-        val highPowerTemp = house.newInnerTemperature(
-          Kilowatts(1000000),
-          Hours(1),
-          Celsius(20),
-          Celsius(10),
-        )
-        highPowerTemp should be > Celsius(50)
+    "handle edge cases in newInnerTemperature" in {
+      val house = thermalHouse(18, 22)
+      // Test with very high power
+      val highPowerTemp = house.newInnerTemperature(
+        Kilowatts(1000000),
+        Hours(1),
+        Celsius(20),
+        Celsius(10),
+      )
+      highPowerTemp should be > Celsius(50)
 
-        // Test with zero power
-        val zeroPowerTemp = house.newInnerTemperature(
-          Kilowatts(0),
-          Hours(1),
-          Celsius(20),
-          Celsius(10),
-        )
-        zeroPowerTemp should be < Celsius(20)
-      }
+      // Test with zero power
+      val zeroPowerTemp = house.newInnerTemperature(
+        Kilowatts(0),
+        Hours(1),
+        Celsius(20),
+        Celsius(10),
+      )
+      zeroPowerTemp should be < Celsius(20)
+    }
 
-      "calculate correct K1 and K2 factors" in {
-        val house = thermalHouse(18, 22)
-        val method =
-          PrivateMethod[Tuple2[Double, Double]](Symbol("getFactorsK1AndK2"))
+    "calculate correct K1 and K2 factors" in {
+      val house = thermalHouse(18, 22)
+      val method =
+        PrivateMethod[Tuple2[Double, Double]](Symbol("getFactorsK1AndK2"))
 
-        val (k1, k2) = house invokePrivate method(Kilowatts(2), Celsius(20))
+      val (k1, k2) = house invokePrivate method(Kilowatts(2), Celsius(20))
 
-        k1 should be > 0.0
-        k2 should be > 0.0
-      }
+      k1 should be > 0.0
+      k2 should be > 0.0
     }
 
     "Comprising function to calculate new inner temperature works as expected" in {
