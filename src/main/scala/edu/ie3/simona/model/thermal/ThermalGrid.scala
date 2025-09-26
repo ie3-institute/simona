@@ -149,82 +149,111 @@ final case class ThermalGrid(
   ): ThermalDemandWrapper = {
 
     val (houseDemandHeating, houseDemandWater) =
-      house.zip(thermalGridState.houseState) match {
-        case Some((thermalHouse, houseState)) =>
-          // Calculate domestic hot water demand
-          val domesticHotWaterDemand =
-            thermalHouse.energyDemandDomesticHotWater(
-              hoursWaterDemandToDetermine
-            )
-          // Calculate heating demand of house
-          val heatingDemand = {
-            if houseState.innerTemperature < thermalHouse.targetTemperature
-            then {
-              thermalHouse.energyDemandHeating(houseState)
-            } else {
-              ThermalEnergyDemand.noDemand
-            }
-          }
-          (heatingDemand, domesticHotWaterDemand)
-
-        case None =>
-          (ThermalEnergyDemand.noDemand, ThermalEnergyDemand.noDemand)
-      }
-
-    val heatStorageDemand =
-      heatStorage.zip(thermalGridState.heatStorageState) match {
-        case Some((storage, storageState)) =>
-          val storedEnergy = storageState.storedEnergy
-          val storageRequired = {
-            if storedEnergy == zeroKWh then storage.getMaxEnergyThreshold
-            else zeroMWh
-          }
-
-          val storagePossible = storage.getMaxEnergyThreshold - storedEnergy
-          ThermalEnergyDemand(
-            storageRequired,
-            storagePossible,
-          )
-        case None => ThermalEnergyDemand.noDemand
-      }
-
-    val domesticHotWaterStorageDemand =
-      domesticHotWaterStorage.zip(
-        thermalGridState.domesticHotWaterStorageState
-      ) match {
-        case Some((storage, storageState)) =>
-          val storedEnergy = storageState.storedEnergy
-          val storageRequired = {
-            if storedEnergy == zeroKWh then storage.getMaxEnergyThreshold
-            else zeroMWh
-          }
-
-          val storagePossible = storage.getMaxEnergyThreshold - storedEnergy
-          ThermalEnergyDemand(
-            storageRequired,
-            storagePossible,
-          )
-        case None => ThermalEnergyDemand.noDemand
-      }
+      calculateHouseDemand(thermalGridState, hoursWaterDemandToDetermine)
+    val heatStorageDemand = calculateHeatStorageDemand(thermalGridState)
+    val domesticHotWaterStorageDemand = calculateDomesticStorageDemand(
+      thermalGridState
+    )
 
     ThermalDemandWrapper(
-      ThermalEnergyDemand(
-        houseDemandHeating.required,
-        houseDemandHeating.possible,
-      ),
-      ThermalEnergyDemand(
-        heatStorageDemand.required,
-        heatStorageDemand.possible,
-      ),
-      ThermalEnergyDemand(
-        houseDemandWater.required,
-        houseDemandWater.possible,
-      ),
-      ThermalEnergyDemand(
-        domesticHotWaterStorageDemand.required,
-        domesticHotWaterStorageDemand.possible,
-      ),
+      houseDemandHeating,
+      heatStorageDemand,
+      houseDemandWater,
+      domesticHotWaterStorageDemand,
     )
+  }
+
+  /** Determine the energy demand for heating and the water demand of the house.
+    *
+    * @param thermalGridState
+    *   Last state of the thermal grid.
+    * @param hoursWaterDemandToDetermine
+    *   The hours of which the energy demand for domestic hot water will have to
+    *   be determined.
+    * @return
+    *   The energy and water demand of the house.
+    */
+  private def calculateHouseDemand(
+      thermalGridState: ThermalGridState,
+      hoursWaterDemandToDetermine: Option[Seq[Int]],
+  ): (ThermalEnergyDemand, ThermalEnergyDemand) = {
+    house.zip(thermalGridState.houseState) match {
+      case Some((thermalHouse, houseState)) =>
+        // Calculate domestic hot water demand
+        val domesticHotWaterDemand =
+          thermalHouse.energyDemandDomesticHotWater(
+            hoursWaterDemandToDetermine
+          )
+        // Calculate heating demand of house
+        val heatingDemand = {
+          if houseState.innerTemperature < thermalHouse.targetTemperature
+          then {
+            thermalHouse.energyDemandHeating(houseState)
+          } else {
+            ThermalEnergyDemand.noDemand
+          }
+        }
+        (heatingDemand, domesticHotWaterDemand)
+
+      case None =>
+        (ThermalEnergyDemand.noDemand, ThermalEnergyDemand.noDemand)
+    }
+  }
+
+  /** Determine the energy demand of the HeatStorage.
+    *
+    * @param thermalGridState
+    *   Last state of the thermal grid.
+    * @return
+    *   The energy demand of the HeatStorage.
+    */
+  private def calculateHeatStorageDemand(
+      thermalGridState: ThermalGridState
+  ): ThermalEnergyDemand = {
+    heatStorage.zip(thermalGridState.heatStorageState) match {
+      case Some((storage, storageState)) =>
+        val storedEnergy = storageState.storedEnergy
+        val storageRequired = {
+          if storedEnergy == zeroKWh then storage.getMaxEnergyThreshold
+          else zeroMWh
+        }
+
+        val storagePossible = storage.getMaxEnergyThreshold - storedEnergy
+        ThermalEnergyDemand(
+          storageRequired,
+          storagePossible,
+        )
+      case None => ThermalEnergyDemand.noDemand
+    }
+  }
+
+  /** Determine the energy demand of the DomesticHotWaterStorage.
+    *
+    * @param thermalGridState
+    *   Last state of the thermal grid.
+    * @return
+    *   The energy demand of the domestic hot water storage.
+    */
+  private def calculateDomesticStorageDemand(
+      thermalGridState: ThermalGridState
+  ): ThermalEnergyDemand = {
+    domesticHotWaterStorage.zip(
+      thermalGridState.domesticHotWaterStorageState
+    ) match {
+      case Some((storage, storageState)) =>
+        val storedEnergy = storageState.storedEnergy
+        val storageRequired = {
+          if storedEnergy == zeroKWh then storage.getMaxEnergyThreshold
+          else zeroMWh
+        }
+
+        val storagePossible = storage.getMaxEnergyThreshold - storedEnergy
+        ThermalEnergyDemand(
+          storageRequired,
+          storagePossible,
+        )
+      case None => ThermalEnergyDemand.noDemand
+    }
   }
 
   /** Handles the case, when a grid has feed in. Depending on which entity has
