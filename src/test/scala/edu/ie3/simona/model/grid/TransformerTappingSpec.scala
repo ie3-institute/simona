@@ -9,14 +9,19 @@ package edu.ie3.simona.model.grid
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.QuantityUtils.{asPercent, asPu}
+import squants.{Dimensionless, Each, Percent}
 
 class TransformerTappingSpec extends UnitSpec {
+
+  private given Conversion[Double, Dimensionless] = (d: Double) => Each(d)
+
+  private given Dimensionless = Each(1e-3)
 
   "A TransformerTapping" should {
 
     val dummyTransformer = DummyTransformer(
       new TransformerTappingModel(
-        1.0.asPercent,
+        Percent(1),
         0,
         5,
         -5,
@@ -30,24 +35,18 @@ class TransformerTappingSpec extends UnitSpec {
 
       val cases = Table(
         ("increase", "decrease", "expectedChanges"),
-        (
-          0.03.asPu,
-          -0.01.asPu,
-          List(-0.01.asPu, 0.asPu, 0.01.asPu, 0.02.asPu, 0.03.asPu),
-        ),
-        (0.03.asPu, 0.01.asPu, List(0.01.asPu, 0.02.asPu, 0.03.asPu)),
-        (
-          -0.01.asPu,
-          -0.03.asPu,
-          List(-0.03.asPu, -0.02.asPu, -0.01.asPu),
-        ),
-        (0.01.asPu, 0.02.asPu, List(0.01.asPu)),
-        (-0.02.asPu, -0.01.asPu, List(-0.01.asPu)),
+        (0.03, -0.01, List(-0.01, 0, 0.01, 0.02, 0.03)),
+        (0.03, 0.01, List(0.01, 0.02, 0.03)),
+        (-0.01, -0.03, List(-0.03, -0.02, -0.01)),
+        (0.01, 0.02, List(0.01)),
+        (-0.02, -0.01, List(-0.01)),
       )
 
       forAll(cases) { (increase, decrease, expectedChanges) =>
         val actual =
-          dummyTransformer.getPossibleVoltageChanges(increase, decrease)
+          dummyTransformer
+            .getPossibleVoltageChanges(increase, decrease)
+            .map(_.toEach)
 
         actual shouldBe expectedChanges
       }
