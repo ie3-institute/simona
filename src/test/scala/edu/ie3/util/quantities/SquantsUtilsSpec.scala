@@ -6,27 +6,21 @@
 
 package edu.ie3.util.quantities
 
-import edu.ie3.simona.test.matchers.SquantsMatchers
-import edu.ie3.util.scala.quantities.{
-  KilowattHoursPerCubicMeter,
-  KilowattHoursPerKelvinCubicMeters,
-}
+import edu.ie3.util.scala.quantities.KilowattHoursPerCubicMeter
 import edu.ie3.util.scala.quantities.SquantsUtils.{
   RichElectricPotential,
   RichEnergy,
-  RichSpecificHeatCapacity,
   RichThermalCapacity,
 }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import squants.Each
 import squants.electro.Kilovolts
-import squants.energy.{Energy, KilowattHours}
+import squants.energy.KilowattHours
 import squants.space.CubicMeters
-import squants.thermal.{Celsius, JoulesPerKelvin}
-import squants.{Each, Kelvin}
+import squants.thermal.JoulesPerKelvin
 
-class SquantsUtilsSpec extends AnyFlatSpec with Matchers with SquantsMatchers {
-  given energyTolerance: Energy = KilowattHours(1e-12)
+class SquantsUtilsSpec extends AnyFlatSpec with Matchers {
 
   behavior of "SquantsUtils and its Units of Measure"
 
@@ -38,24 +32,6 @@ class SquantsUtilsSpec extends AnyFlatSpec with Matchers with SquantsMatchers {
 
   it should "return Voltage when an ElectricPotential is multiplied by Dimensionless" in {
     Kilovolts(10).multiplyWithDimensionless(Each(2)) should be(Kilovolts(20.0))
-  }
-
-  it should "return Energy when a SpecificHeatCapacity is multiplied with Volume and temperature delta in Celsius" in {
-    KilowattHoursPerKelvinCubicMeters(1.16).calcEnergyToHeat(
-      CubicMeters(4),
-      Celsius(12),
-    ) should approximate(
-      KilowattHours(55.68)
-    )
-  }
-
-  it should "return Energy when a SpecificHeatCapacity is multiplied with Volume and temperature delta in Kelvin" in {
-    KilowattHoursPerKelvinCubicMeters(1.16).calcEnergyToHeat(
-      CubicMeters(4),
-      Kelvin(12),
-    ) should approximate(
-      KilowattHours(55.68)
-    )
   }
 
   it should "convert a ThermalCapacity to correct value in WattHoursPerKelvin" in {

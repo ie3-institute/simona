@@ -7,10 +7,10 @@
 package edu.ie3.util.scala.quantities
 
 import squants.electro.{ElectricPotential, Volts}
-import squants.energy.{Energy, KilowattHours}
+import squants.energy.Energy
 import squants.space.{CubicMeters, Volume}
 import squants.thermal.ThermalCapacity
-import squants.{Dimensionless, Each, Temperature}
+import squants.{Dimensionless, Each}
 
 object SquantsUtils {
   implicit class RichEnergy(energy: Energy) {
@@ -32,18 +32,9 @@ object SquantsUtils {
     ): ElectricPotential = Volts(
       electricPotential.toVolts * that.toEach
     )
+
   }
 
-  implicit class RichSpecificHeatCapacity(
-      specificHeatCapacity: SpecificHeatCapacity
-  ) {
-    def calcEnergyToHeat(
-        volume: Volume,
-        temperatureDelta: Temperature,
-    ): Energy = KilowattHours(
-      specificHeatCapacity.toKilowattHoursPerKelvinCubicMeters * volume.toCubicMeters * temperatureDelta.toKelvinDegrees
-    )
-  }
   implicit class RichThermalCapacity(
       thermalCapacity: ThermalCapacity
   ) {

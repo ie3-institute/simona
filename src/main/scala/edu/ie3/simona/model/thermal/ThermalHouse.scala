@@ -19,23 +19,12 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,
   HouseTemperatureLowerBoundaryReached,
 }
-import edu.ie3.simona.model.thermal.ThermalHouse.{
-  ThermalHouseState,
-  lowerTemperatureTapWater,
-  temperatureTolerance,
-  upperTemperatureTapWater,
-  waterDemandVolumePerPersonYear,
-  waterVolumeRelativeFlat,
-  waterVolumeRelativeHouse,
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.*
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityUtil.*
-import edu.ie3.util.scala.quantities.SquantsUtils.{
-  RichSpecificHeatCapacity,
-  RichThermalCapacity,
-}
+import edu.ie3.util.scala.quantities.SquantsUtils.RichThermalCapacity
 import edu.ie3.util.scala.quantities.{
   KilowattHoursPerKelvinCubicMeters,
   ThermalConductance,
@@ -151,7 +140,6 @@ final case class ThermalHouse(
     *   A sequence of the absolute hour in simulation time. Or None, if we
     *   already simulated a tick within the actual hour.
     */
-
   def checkIfNeedToDetermineDomesticHotWaterDemand(
       tick: Long,
       simulationTime: ZonedDateTime,
@@ -184,7 +172,6 @@ final case class ThermalHouse(
     * @return
     *   The needed energy for hot domestic water for the questioned hours.
     */
-
   def energyDemandDomesticHotWater(
       hoursWaterDemandToDetermine: Option[Seq[Int]]
   ): ThermalEnergyDemand = {
@@ -207,7 +194,6 @@ final case class ThermalHouse(
     * @return
     *   The needed energy for domestic hot water in the questioned hour.
     */
-
   private def calculateThermalEnergyOfWaterDemand(hour: Int): Energy = {
     val waterDemand =
       waterDemandOfHour(hour, houseInhabitants, housingType)
@@ -230,7 +216,6 @@ final case class ThermalHouse(
     * @return
     *   The needed energy.
     */
-
   private def thermalEnergyDemandWater(
       waterDemand: Volume,
       startTemperature: Temperature,
@@ -244,13 +229,16 @@ final case class ThermalHouse(
     val specificHeatDemandWater = KilowattHoursPerKelvinCubicMeters(
       Joules(4184e3).toKilowattHours
     )
-    val temperatureDelta = endTemperature - startTemperature
 
-    specificHeatDemandWater.calcEnergyToHeat(waterDemand, temperatureDelta)
+    specificHeatDemandWater.calcEnergy(
+      startTemperature,
+      endTemperature,
+      waterDemand,
+    )
   }
 
   /** Provides water demand of a building (house or flat) for a given hour of
-    * the day based on the housingType and the number of inhabitants
+    * the day based on the housingType and the number of inhabitants.
     *
     * @param hour
     *   The hour for which the demand is to be calculated.
@@ -261,13 +249,11 @@ final case class ThermalHouse(
     * @return
     *   The needed energy.
     */
-
   private def waterDemandOfHour(
       hour: Int,
       noPersonsInHousehold: Double,
       housingType: String,
   ): Volume = {
-
     val isHouse: Boolean =
       housingType.toLowerCase match {
         case "house" => true
@@ -278,7 +264,7 @@ final case class ThermalHouse(
           )
       }
 
-    val waterVolumeRelative: Map[Int, Double] =
+    val waterVolumeRelative =
       if isHouse then waterVolumeRelativeHouse else waterVolumeRelativeFlat
 
     waterVolumeRelative.getOrElse(
@@ -490,7 +476,6 @@ object ThermalHouse {
 
   /** Temperature values are set constant and based on VDI 2067 Blatt 12.
     */
-
   protected val lowerTemperatureTapWater: Temperature = Celsius(10d)
   protected val upperTemperatureTapWater: Temperature = Celsius(55d)
 
@@ -500,7 +485,7 @@ object ThermalHouse {
   protected val waterDemandVolumePerPersonYear =
     // Shower and Bath + bathroom sink + dish washing per hand (also dishwasher in the building)
     Litres(8600 + 4200 + 300)
-  protected val waterVolumeRelativeHouse: Map[Int, Double] = Map(
+  protected val waterVolumeRelativeHouse = Map(
     0 -> 0.018,
     1 -> 0.01,
     2 -> 0.006,
@@ -526,7 +511,7 @@ object ThermalHouse {
     22 -> 0.045,
     23 -> 0.032,
   )
-  protected val waterVolumeRelativeFlat: Map[Int, Double] = Map(
+  protected val waterVolumeRelativeFlat = Map(
     0 -> 0.01,
     1 -> 0.01,
     2 -> 0.01,
