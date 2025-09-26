@@ -58,8 +58,8 @@ import scala.language.postfixOps
   */
 final case class ThermalGrid(
     house: Option[ThermalHouse],
-    heatStorage: Option[ThermalStorage],
-    domesticHotWaterStorage: Option[ThermalStorage],
+    heatStorage: Option[CylindricalThermalStorage],
+    domesticHotWaterStorage: Option[DomesticHotWaterStorage],
 ) extends LazyLogging {
 
   /** Determines the state of the ThermalGrid by using the HpOperatingPoint.
@@ -356,8 +356,7 @@ final case class ThermalGrid(
     val (_, thresholdThermalHouse) =
       handleFeedInHouse(state, qDotHouse)
 
-    val thresholdHeatStorage =
-      handleFeedInStorage(state, qDotHeatStorage, heatStorage)
+    val thresholdHeatStorage = handleFeedInHeatStorage(state, qDotHeatStorage)
 
     // Handle domestic hot water demand
     val (resultingQDotHotWaterStorage, thresholdHotWaterStorage) =
@@ -365,11 +364,8 @@ final case class ThermalGrid(
       if qDotDomesticHotWaterStorage == zeroKW then
         handleHotWaterConsumption(state)
       else {
-        val threshold = handleFeedInStorage(
-          state,
-          qDotDomesticHotWaterStorage,
-          domesticHotWaterStorage,
-        )
+        val threshold =
+          handleFeedInHotWaterStorage(state, qDotDomesticHotWaterStorage)
         (qDotDomesticHotWaterStorage, threshold)
       }
 
@@ -435,42 +431,55 @@ final case class ThermalGrid(
     *
     * @param state
     *   State of the heat pump.
-    * @param qDotStorage
-    *   Feed in to the storage (positive: Storage is charging, negative: Storage
-    *   is discharging).
+    * @param qDotHeatStorage
+    *   Feed in to the heat storage (positive: Storage is charging, negative:
+    *   Storage is discharging).
+    * @param qDotHotWaterStorage
+    *   Feed in to the water storage (positive: Storage is charging, negative:
+    *   Storage is discharging).
     * @return
     *   The ThermalThreshold if there is one.
     */
-  private def handleFeedInStorage(
+  private def handleFeedInStorages(
+      state: HpState,
+      qDotHeatStorage: Power,
+      qDotHotWaterStorage: Power,
+  ): (Option[ThermalThreshold], Option[ThermalThreshold]) = {
+    // TODO: We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
+    val heatStorageThreshold =
+      if qDotHeatStorage != zeroKW then
+        handleFeedInHeatStorage(state, qDotHeatStorage)
+      else None
+
+    val hotWaterStorageThreshold =
+      if qDotHotWaterStorage != zeroKW then
+        handleFeedInHotWaterStorage(state, qDotHotWaterStorage)
+      else None
+
+    (heatStorageThreshold, hotWaterStorageThreshold)
+  }
+
+  private def handleFeedInHeatStorage(
       state: HpState,
       qDotStorage: Power,
-      storage: Option[ThermalStorage],
   ): Option[ThermalThreshold] = {
-    // TODO: We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
-    val selectedState = storage match {
-      case Some(_: CylindricalThermalStorage) =>
-        state.thermalGridState.heatStorageState
-      case Some(_: DomesticHotWaterStorage) =>
-        state.thermalGridState.domesticHotWaterStorageState
-      case _ => None
-    }
+    for {
+      storage <- heatStorage.collect { case s: CylindricalThermalStorage => s }
+      storageState <- state.thermalGridState.heatStorageState
+    } yield storage.determineNextThreshold(storageState, qDotStorage)
+  }.flatten
 
-    (storage, selectedState) match {
-      case (
-            Some(domesticHotWaterStorage: DomesticHotWaterStorage),
-            Some(domesticHotWaterStorageState),
-          ) =>
-        domesticHotWaterStorage
-          .determineNextThreshold(domesticHotWaterStorageState, qDotStorage)
-
-      case (
-            Some(thermalStorage: CylindricalThermalStorage),
-            Some(heatStorageState),
-          ) =>
-        thermalStorage.determineNextThreshold(heatStorageState, qDotStorage)
-      case _ => None
-    }
-  }
+  private def handleFeedInHotWaterStorage(
+      state: HpState,
+      qDotStorage: Power,
+  ): Option[ThermalThreshold] = {
+    for {
+      storage <- domesticHotWaterStorage.collect {
+        case s: DomesticHotWaterStorage => s
+      }
+      storageState <- state.thermalGridState.domesticHotWaterStorageState
+    } yield storage.determineNextThreshold(storageState, qDotStorage)
+  }.flatten
 
   /** Determines the next threshold of a given input sequence of thresholds.
     *

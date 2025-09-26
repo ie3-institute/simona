@@ -148,8 +148,8 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
 
   protected def thermalGrid(
       thermalHouse: ThermalHouse,
-      thermalStorage: Option[ThermalStorage] = None,
-      domesticWaterStorage: Option[ThermalStorage] = None,
+      thermalStorage: Option[CylindricalThermalStorage] = None,
+      domesticWaterStorage: Option[DomesticHotWaterStorage] = None,
   ): ThermalGrid =
     ThermalGrid(
       Some(thermalHouse),
