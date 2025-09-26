@@ -47,17 +47,20 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
     * be used.
     *
     * @param flexOptions
-    *   The flex options per connected system participant
+    *   The flex options per connected system participant.
     * @param target
-    *   The target power to aim for when utilizing flexibility
+    *   The target power to aim for when utilizing flexibility.
+    * @param currentTick
+    *   The current tick.
     * @return
-    *   Power set points for devices, if applicable
+    *   Power set points for devices, if applicable.
     */
   override def determineFlexControl(
       flexOptions: Iterable[
         (? <: AssetInput, PowerLimitFlexOptions)
       ],
       target: Power,
+      currentTick: Long,
   ): Seq[(UUID, Power)] = {
 
     val totalRefPower =
