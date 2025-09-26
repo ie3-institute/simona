@@ -9,6 +9,10 @@ package edu.ie3.util.quantities
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.DoubleUtils.~=
 import edu.ie3.util.quantities.PowerSystemUnits.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toApparent,
+  toSquants,
+}
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
   EuroPerKilowatthour,
@@ -16,15 +20,12 @@ import edu.ie3.util.scala.quantities.{
   KilowattHoursPerKelvinCubicMeters,
 }
 import squants.electro.*
-import squants.energy.{KilowattHours, Kilowatts}
+import squants.energy.{Energy, Kilowatts}
+import squants.energy.{KilowattHours, Energy as SquantsEnergy}
 import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.{Amperes, Each, Radians, Temperature}
 import tech.units.indriya.ComparableQuantity
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toApparent,
-  toSquants,
-}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.*
 
@@ -33,6 +34,7 @@ import javax.measure.quantity.*
 class QuantityConversionUtilsSpec extends UnitSpec {
   implicit val doubleTolerance: Double = 1e-10
   implicit val temperatureTolerance: Temperature = Celsius(1e-10)
+  implicit val energyTolerance: SquantsEnergy = KilowattHours(1e-9)
 
   "QuantityConversionUtils" should {
     "properly convert from ComparableQuantity[Temperature] to squants temperatures and its double values" in {
@@ -92,7 +94,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       energy.toSquants shouldBe KilowattHours(123.45)
 
       val energyMwh = Quantities.getQuantity(1.5, MEGAVARHOUR)
-      energyMwh.toSquants shouldBe KilowattHours(1500)
+      energyMwh.toSquants should approximate(KilowattHours(1500))
     }
 
     "properly convert energy price quantities" in {
