@@ -126,26 +126,33 @@ class ThermalHouseSpec
       val house = thermalHouse(18, 22)
 
       val testCases = Table(
-        ("innerTemp", "expectedRequired", "expectedPossible"),
+        ("innerTemp", "ambientTemp", "expectedRequired", "expectedPossible"),
         // Temperature to low
-        (17.0, 34.722222, 34.722222),
-        (17.9, 5.787037, 5.787037),
+        (16.0, 10.0, 40.0, 40.0),
+        (17.0, 10.0, 30.0, 30.0),
+        (17.0, 17.0, 30.0, 30.0),
+        (17.0, 30.0, 30.0, 30.0),
+        (17.9, 10.0, 21.0, 21.0),
         // Temperature between boundaries
-        (20.0, 0.0, 23.148148),
-        (21.0, 0.0, 11.574074),
+        (20.0, 10.0, 0.0, 0.0),
+        (20.0, 20.0, 0.0, 0.0),
+        (20.0, 30.0, 0.0, 0.0),
+        (21.0, 10.0, 0.0, 0.0),
         // Temperature too high
-        (22.1, 0.0, 0.0),
-        (23.0, 0.0, 0.0),
+        (22.1, 10.0, 0.0, 0.0),
+        (22.1, 30.0, 0.0, 0.0),
+        (23.0, 10.0, 0.0, 0.0),
       )
 
       forAll(testCases) {
         (
             innerTemp: Double,
+            ambientTemp: Double,
             expectedRequired: Double,
             expectedPossible: Double,
         ) =>
           val state =
-            ThermalHouseState(0L, Celsius(innerTemp), Celsius(innerTemp))
+            ThermalHouseState(0L, Celsius(ambientTemp), Celsius(innerTemp))
           val demand = house.energyDemandHeating(state)
 
           demand.required should approximate(KilowattHours(expectedRequired))
