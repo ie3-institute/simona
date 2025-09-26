@@ -50,7 +50,7 @@ import scala.language.postfixOps
   */
 final case class ThermalGrid(
     house: Option[ThermalHouse],
-    heatStorage: Option[ThermalStorage],
+    heatStorage: Option[CylindricalThermalStorage],
 ) extends LazyLogging {
 
   /** Determines the state of the ThermalGrid by using the HpOperatingPoint.
@@ -255,7 +255,7 @@ final case class ThermalGrid(
       handleFeedInHouse(state, qDotHouse)
 
     val heatStorageThreshold =
-      handleFeedInStorage(state, qDotHeatStorage)
+      handleFeedInStorages(state, qDotHeatStorage)
 
     val nextThreshold = determineNextThreshold(
       Seq(
@@ -314,27 +314,34 @@ final case class ThermalGrid(
 
   /** Handles the case, when the storage has heat demand and will be filled up
     * here (positive qDot).
+    *
     * @param state
     *   State of the heat pump.
-    * @param qDotStorage
-    *   Feed in to the storage (positive: Storage is charging, negative: Storage
-    *   is discharging).
+    * @param qDotHeatStorage
+    *   Feed in to the heat storage (positive: Storage is charging, negative:
+    *   Storage is discharging).
     * @return
     *   The ThermalThreshold if there is one.
     */
-  private def handleFeedInStorage(
+  private def handleFeedInStorages(
+      state: HpState,
+      qDotHeatStorage: Power,
+  ): Option[ThermalThreshold] = {
+    // TODO: We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
+    if qDotHeatStorage != zeroKW then
+      handleFeedInHeatStorage(state, qDotHeatStorage)
+    else None
+  }
+
+  private def handleFeedInHeatStorage(
       state: HpState,
       qDotStorage: Power,
   ): Option[ThermalThreshold] = {
-    heatStorage.zip(state.thermalGridState.heatStorageState) match {
-      case Some((thermalStorage, storageState)) =>
-        thermalStorage.determineNextThreshold(
-          storageState,
-          qDotStorage,
-        )
-      case _ => None
-    }
-  }
+    for {
+      storage <- heatStorage.collect { case s: CylindricalThermalStorage => s }
+      storageState <- state.thermalGridState.heatStorageState
+    } yield storage.determineNextThreshold(storageState, qDotStorage)
+  }.flatten
 
   /** Determines the next threshold of a given input sequence of thresholds.
     *
@@ -342,7 +349,7 @@ final case class ThermalGrid(
     *   Sequence of Options of possible next thresholds from the thermal house
     *   or storage.
     * @return
-    *   The next threshold.
+    *   The next [[ThermalThreshold]] or [[None]].
     */
   private def determineNextThreshold(
       thresholds: Seq[Option[ThermalThreshold]]
@@ -458,78 +465,106 @@ final case class ThermalGrid(
       currentOperatingPoint: HpOperatingPoint,
       dateTime: ZonedDateTime,
   ): Seq[ResultEntity] = {
-    val currentOpThermals = currentOperatingPoint.thermalOps
+    val typedResults = createTypedResults(
+      state,
+      lastOperatingPoint,
+      currentOperatingPoint,
+      dateTime,
+    )
+    typedResults.map(_.getResultEntity)
+  }
 
+  private def createTypedResults(
+      state: HpState,
+      lastOperatingPoint: Option[HpOperatingPoint],
+      currentOperatingPoint: HpOperatingPoint,
+      dateTime: ZonedDateTime,
+  ): Seq[ThermalResult] = {
+    val currentOpThermals = currentOperatingPoint.thermalOps
     val lastOpThermals = lastOperatingPoint.map(_.thermalOps)
 
-    def createThermalHouseResult(
-        thermalHouse: ThermalHouse
-    ): Option[ThermalHouseResult] = {
-      state.thermalGridState.houseState
-        .collectFirst { case ThermalHouseState(_, _, innerTemperature) =>
-          new ThermalHouseResult(
-            dateTime,
-            thermalHouse.uuid,
-            currentOpThermals.qDotHouse.toMegawatts.asMegaWatt,
-            innerTemperature.toKelvinScale.asKelvin,
-          )
-        }
-        .orElse(
-          throw new NotImplementedError(
-            s"Result handling for thermalHouse type '${thermalHouse.getClass.getSimpleName}' not supported."
-          )
+    val houseResults = house.toSeq.flatMap { h =>
+      if shouldCreateResult(
+          lastOpThermals.map(_.qDotHouse),
+          currentOpThermals.qDotHouse,
+          state.tick,
         )
-    }
-
-    def createCylindricalStorageResult(
-        storage: CylindricalThermalStorage
-    ): Option[CylindricalStorageResult] = {
-      state.thermalGridState.heatStorageState
-        .collectFirst { case ThermalStorageState(_, storedEnergy) =>
-          new CylindricalStorageResult(
-            dateTime,
-            storage.uuid,
-            storedEnergy.toMegawattHours.asMegaWattHour,
-            currentOpThermals.qDotHeatStorage.toMegawatts.asMegaWatt,
-            (storedEnergy / storage.maxEnergyThreshold).asPu,
-          )
-        }
-        .orElse(
-          throw new NotImplementedError(
-            s"Result handling for storage type '${storage.getClass.getSimpleName}' not supported."
-          )
+      then {
+        createThermalHouseResult(state, h, dateTime, currentOpThermals).map(
+          HouseResult
         )
+      } else None
     }
 
-    // We always want the results if there are changes or it's the first tick
-    val maybeHouseResult = {
-      (
-        house,
-        lastOpThermals.forall(
-          _.qDotHouse != currentOpThermals.qDotHouse
-        ) || state.tick == 0,
-      ) match {
-        case (Some(house: ThermalHouse), true) =>
-          createThermalHouseResult(house)
-        case _ => None
+    val heatStorageResults = heatStorage.toSeq.collect {
+      case storage: CylindricalThermalStorage
+          if shouldCreateResult(
+            lastOpThermals.map(_.qDotHeatStorage),
+            currentOpThermals.qDotHeatStorage,
+            state.tick,
+          ) =>
+        createCylindricalStorageResult(
+          state,
+          storage,
+          dateTime,
+          currentOpThermals,
+        ).map(HeatStorageResult)
+    }.flatten
+
+    houseResults ++ heatStorageResults
+  }
+
+  def createThermalHouseResult(
+      state: HpState,
+      thermalHouse: ThermalHouse,
+      dateTime: ZonedDateTime,
+      currentOpThermals: ThermalGridOperatingPoint,
+  ): Option[ThermalHouseResult] = {
+    state.thermalGridState.houseState
+      .collectFirst { case ThermalHouseState(_, _, innerTemperature) =>
+        new ThermalHouseResult(
+          dateTime,
+          thermalHouse.uuid,
+          currentOpThermals.qDotHouse.toMegawatts.asMegaWatt,
+          innerTemperature.toKelvinScale.asKelvin,
+        )
       }
-    }
+      .orElse(
+        throw new NotImplementedError(
+          s"Result handling for thermalHouse type '${thermalHouse.getClass.getSimpleName}' not supported."
+        )
+      )
+  }
 
-    // We always want the results if there are changes or it's the first tick
-    val maybeHeatStorageResult = {
-      (
-        heatStorage,
-        lastOpThermals.forall(
-          _.qDotHeatStorage != currentOpThermals.qDotHeatStorage
-        ) || state.tick == 0,
-      ) match {
-        case (Some(storage: CylindricalThermalStorage), true) =>
-          createCylindricalStorageResult(storage)
-        case _ => None
+  def createCylindricalStorageResult(
+      state: HpState,
+      storage: CylindricalThermalStorage,
+      dateTime: ZonedDateTime,
+      currentOpThermals: ThermalGridOperatingPoint,
+  ): Option[CylindricalStorageResult] = {
+    state.thermalGridState.heatStorageState
+      .collectFirst { case ThermalStorageState(_, storedEnergy) =>
+        new CylindricalStorageResult(
+          dateTime,
+          storage.uuid,
+          storedEnergy.toMegawattHours.asMegaWattHour,
+          currentOpThermals.qDotHeatStorage.toMegawatts.asMegaWatt,
+          (storedEnergy / storage.maxEnergyThreshold).asPu,
+        )
       }
-    }
+      .orElse(
+        throw new NotImplementedError(
+          s"Result handling for storage type '${storage.getClass.getSimpleName}' not supported."
+        )
+      )
+  }
 
-    Seq(maybeHouseResult, maybeHeatStorageResult).flatten
+  private def shouldCreateResult(
+      lastQDot: Option[Power],
+      currentQDot: Power,
+      tick: Long,
+  ): Boolean = {
+    lastQDot.forall(_ != currentQDot) || tick == 0
   }
 }
 
@@ -554,6 +589,7 @@ object ThermalGrid {
   }
 
   /** Current state of a grid.
+    *
     * @param houseState
     *   State of the thermal house.
     * @param heatStorageState
@@ -608,6 +644,7 @@ object ThermalGrid {
     * energy, that can be handled. The possible energy always has to be greater
     * than or equal to the absolutely required energy. Thus, this class can only
     * be instantiated via factory.
+    *
     * @param required
     *   The absolutely required energy to reach target state. For
     *   [[ThermalHouse]] this would be the energy demand to reach the boundary
@@ -626,10 +663,11 @@ object ThermalGrid {
       possible + rhs.possible,
     )
 
-    def hasRequiredDemand: Boolean = required > zeroMWh
+    def hasRequiredDemand: Boolean = required > zeroKWh
 
-    def hasPossibleDemand: Boolean = possible > zeroMWh
+    def hasPossibleDemand: Boolean = possible > zeroKWh
   }
+
   object ThermalEnergyDemand {
 
     /** Builds a new instance of [[ThermalEnergyDemand]]. If the possible energy
