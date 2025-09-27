@@ -597,14 +597,24 @@ final case class ThermalGrid(
       }
     } else {
 
-      val time = state.simulationTime
-      val nextFullHour: ZonedDateTime =
-        time.plusHours(1).withMinute(0).withSecond(0).withNano(0)
-      val simulationStartTime = time.minusSeconds(state.tick)
-      val nextThreshold = nextFullHour.toTick(simulationStartTime)
-
+      val nextThreshold = calculateNextHourThreshold(state)
       (zeroKW, Some(SimpleThermalThreshold(nextThreshold)))
     }
+  }
+
+  /** Calculates the tick value for the next full hour threshold based on the
+    * current simulation state.
+    * @param state
+    *   State of the heat pump.
+    * @return
+    *   The tick of the next full hour.
+    */
+  private def calculateNextHourThreshold(state: HpState): Long = {
+    val time = state.simulationTime
+    val nextFullHour: ZonedDateTime =
+      time.plusHours(1).withMinute(0).withSecond(0).withNano(0)
+    val simulationStartTime = time.minusSeconds(state.tick)
+    nextFullHour.toTick(simulationStartTime)
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>
@@ -939,9 +949,7 @@ object ThermalGrid {
         required: Energy,
         possible: Energy,
     ): ThermalEnergyDemand = {
-      if math.abs(possible.toKilowattHours) < math.abs(
-          required.toKilowattHours
-        )
+      if math.abs(possible.toKilowattHours) < math.abs(required.toKilowattHours)
       then
         throw new InvalidParameterException(
           s"The possible amount of energy $possible is smaller than the required amount of energy $required. This is not supported."
