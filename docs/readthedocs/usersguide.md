@@ -25,6 +25,14 @@ You can find and download the source code of the latest stable SIMONA version [h
 
     $ git clone https://github.com/ie3-institute/simona.git
 
+## Docker
+
+Docker is a tool used to containerize the entire setup. A container is like a lightweight, isolated environment that bundles everything the software needs into a single package. It is the tool used to handle the entire project setup in a single space. 
+
+Using Docker, various applications across different platforms can be run simultaneously. Instead of installing different plugins required for simona on the local machine, docker can be used to run the entire simona setup after creating an image while interacting with different environments.
+Each component has its own environment inside the Docker container setup and are defined in a yml file to ensure consistency and all the required plugins and libraries used are defines in the requirements file.
+
+You can find more information on docker setup and installation [here](https://www.docker.com/)
 
 ## Running a Standalone Simulation
 
