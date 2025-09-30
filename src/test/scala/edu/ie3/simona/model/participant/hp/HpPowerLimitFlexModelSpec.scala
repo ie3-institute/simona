@@ -50,6 +50,7 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
 
       val defaultState = HpState(
         0,
+        defaultSimulationStart,
         thermalState(Celsius(17d), ambientTemperature),
         HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
         noThermalDemand,

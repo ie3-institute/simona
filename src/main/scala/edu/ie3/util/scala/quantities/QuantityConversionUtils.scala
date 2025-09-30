@@ -23,7 +23,6 @@ import squants.thermal.Celsius
 import squants.{Amperes, Each, Radians, Velocity}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.unit.Units.*
-
 import javax.measure.quantity.*
 
 /** Some utilities to improve the conversion between [[ComparableQuantity]] and
@@ -86,7 +85,7 @@ object QuantityConversionUtils {
   extension (quantity: ComparableQuantity[Energy]) {
 
     def toSquants: squants.Energy = KilowattHours(
-      quantity.to(KILOVARHOUR).getValue.doubleValue
+      quantity.to(KILOWATTHOUR).getValue.doubleValue
     )
   }
 

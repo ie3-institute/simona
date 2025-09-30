@@ -27,7 +27,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull,
 }
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy.*
 import squants.thermal.Celsius
@@ -39,7 +39,8 @@ import scala.jdk.CollectionConverters.*
 class ThermalGridWithHouseAndStorageSpec
     extends UnitSpec
     with ThermalHouseTestData
-    with ThermalStorageTestData {
+    with ThermalStorageTestData
+    with DefaultTestData {
 
   protected given tempTolerance: Temperature = Kelvin(1e-3)
   protected given powerTolerance: Power = Watts(1e-3)
@@ -59,6 +60,7 @@ class ThermalGridWithHouseAndStorageSpec
 
   val initialHpState: HpState = HpState(
     0L,
+    defaultSimulationStart,
     initialGridState,
     HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
     onlyThermalDemandOfHeatStorage,
