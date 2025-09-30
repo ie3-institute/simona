@@ -54,6 +54,7 @@ case class EmCommunicationCore(
     currentSetPoint: Map[UUID, Power] = Map.empty,
     activatedAgents: Set[UUID] = Set.empty,
     waitingForFlexOptions: Set[UUID] = Set.empty,
+    missingFlexOptionsFromExt: Map[UUID, Int] = Map.empty,
     waitingForSetPoint: Set[UUID] = Set.empty,
     expectDataFrom: ReceiveMultiDataMap[UUID, EmData] =
       ReceiveMultiDataMap.empty,
@@ -137,6 +138,8 @@ case class EmCommunicationCore(
                 tick,
                 requestedFlexType.getOrElse(uuid, FlexType.PowerLimit),
               )
+
+              // uuid -> number of sent flex requests
               uuid -> Try(uuidToInferior(uuid).size).getOrElse(1)
             }
           case _ =>
@@ -148,9 +151,9 @@ case class EmCommunicationCore(
         }
 
         // handle flex options
-        val expectFlexOptions = provideEmData.flexOptions.asScala.flatMap {
-          case (uuid, options) if waitingForFlexOptions.contains(uuid) =>
-            val agent = uuidToAgent(uuid)
+        val receivedFlexOptions = provideEmData.flexOptions.asScala.flatMap {
+          case (receiver, options) if waitingForFlexOptions.contains(receiver) =>
+            val agent = uuidToAgent(receiver)
 
             // send flex options to agent
             options.asScala.foreach { option =>
@@ -164,15 +167,24 @@ case class EmCommunicationCore(
               )
             }
 
-            Some(uuid -> 1)
+            // receiver -> number of received flex options
+            Some(receiver -> options.size)
           case _ => None
         }.toMap
+
+        // TODO: Improve this part
+        val updatedMissingFlexOptions = receivedFlexOptions.map { case (receiver, numberOfOptions) =>
+          val missing = missingFlexOptionsFromExt.getOrElse(receiver, 0) - numberOfOptions
+          receiver -> missing
+        }
+        val expectFlexOptions = receivedFlexOptions.map { case (receiver, _) => receiver -> 1}
+
 
         // handle set points
         val expectedSetPoints = provideEmData.setPoints.asScala.flatMap {
           case (uuid, setPoint)
-              if waitingForSetPoint.contains(uuid) | waitingForFlexOptions
-                .contains(uuid) =>
+            if waitingForSetPoint.contains(uuid) | waitingForFlexOptions
+              .contains(uuid) =>
             val agent = uuidToAgent(uuid)
 
             setPoint.power.toScala.flatMap(
@@ -185,6 +197,7 @@ case class EmCommunicationCore(
                 agent ! IssueNoControl(extTick)
             }
 
+            // sender -> number of set points to send
             Some(uuid -> Try(uuidToInferior(uuid).size).getOrElse(0))
           case _ => None
         }.toMap
@@ -202,19 +215,25 @@ case class EmCommunicationCore(
         )
 
         // update state data
-        (
-          copy(
-            disaggregated = updatedDisaggregated,
-            activatedAgents = activatedAgents ++ activatedKeys,
-            waitingForFlexOptions =
-              waitingForFlexOptions ++ activatedKeys -- flexOptionKeys -- setPointKeys,
-            waitingForSetPoint =
-              waitingForSetPoint ++ flexOptionKeys -- setPointKeys,
-            expectDataFrom = updatedExpectDataFrom,
-            completions = completions.addExpectedKeys(activatedKeys),
-          ),
-          None,
+        val newState = copy(
+          disaggregated = updatedDisaggregated,
+          activatedAgents = activatedAgents ++ activatedKeys,
+          waitingForFlexOptions =
+            waitingForFlexOptions ++ activatedKeys -- flexOptionKeys -- setPointKeys,
+          waitingForSetPoint =
+            waitingForSetPoint ++ flexOptionKeys -- setPointKeys,
+          missingFlexOptionsFromExt = missingFlexOptionsFromExt ++ updatedMissingFlexOptions,
+          expectDataFrom = updatedExpectDataFrom,
+          completions = completions.addExpectedKeys(activatedKeys),
         )
+
+        log.warn(s"Activated: ${newState.activatedAgents}; WaitingForFlexOptions: ${newState.waitingForFlexOptions}; WaitingForSetPoints: ${newState.waitingForSetPoint}")
+        log.warn(s"Missing flex options: ${newState.missingFlexOptionsFromExt}")
+
+        val msgToExt = None
+
+        log.warn(s"ExtMsg: $msgToExt")
+        (newState, msgToExt)
       }
 
     case _: RequestEmFlexResults =>
@@ -313,7 +332,11 @@ case class EmCommunicationCore(
               Some(new EmResultResponse(updated.receivedData.asJava)),
             )
           } else {
-            if updated.hasCompleted then {
+            val hasCompleted = updated.hasCompleted
+
+            log.warn(s"Internal state: $updated")
+
+            if hasCompleted then {
               val (receivedData, updatedMap) = updated.getFinished
 
               (

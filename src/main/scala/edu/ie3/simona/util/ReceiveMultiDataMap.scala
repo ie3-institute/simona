@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.util
 
-import edu.ie3.simona.util.ReceiveMultiDataMap.log
 import org.slf4j.{Logger, LoggerFactory}
 
 final case class ReceiveMultiDataMap[K, V](
@@ -21,6 +20,8 @@ final case class ReceiveMultiDataMap[K, V](
   def nonComplete: Boolean = expectedKeys.nonEmpty
 
   def expects(key: K): Boolean = expectedKeys.contains(key)
+
+  def getExpected(key: K): Int = expectedKeys.getOrElse(key, 0)
 
   def getFinished: (Map[K, Seq[V]], ReceiveMultiDataMap[K, V]) = {
     val data = finishedKeys.map { key => key -> receivedData(key) }.toMap
