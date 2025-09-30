@@ -8,8 +8,17 @@ package edu.ie3.simona.api
 
 import edu.ie3.simona.api.data.ExtSimAdapterData
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
-import edu.ie3.simona.api.ontology.simulation.{ActivationMessage, ControlResponseMessageFromExt, TerminationCompleted, TerminationMessage, CompletionMessage as ExtCompletionMessage}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.api.ontology.simulation.{
+  ActivationMessage,
+  ControlResponseMessageFromExt,
+  TerminationCompleted,
+  TerminationMessage,
+  CompletionMessage as ExtCompletionMessage,
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.ServiceMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock

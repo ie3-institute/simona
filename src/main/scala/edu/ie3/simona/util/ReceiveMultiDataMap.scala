@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.util
 
+import edu.ie3.simona.util.ReceiveMultiDataMap.log
 import org.slf4j.{Logger, LoggerFactory}
 
 final case class ReceiveMultiDataMap[K, V](
@@ -30,8 +31,8 @@ final case class ReceiveMultiDataMap[K, V](
       data,
       copy(
         receivedData = receivedData.removedAll(finishedKeys),
-        finishedKeys = Set.empty
-      )
+        finishedKeys = Set.empty,
+      ),
     )
   }
 
@@ -68,8 +69,11 @@ final case class ReceiveMultiDataMap[K, V](
     }
   }
 
-  def addExpectedKeys(keys: Map[K, Int]): ReceiveMultiDataMap[K, V] =
-    copy(expectedKeys = expectedKeys ++ keys.filter(_._2 > 0))
+  def addExpectedKeys(keys: Map[K, Int]): ReceiveMultiDataMap[K, V] = {
+    val (add, remove) = keys.partition(_._2 > 0)
+    val updated = (expectedKeys ++ add).removedAll(remove.keys)
+    copy(expectedKeys = updated)
+  }
 
   def getExpectedKeys: Set[K] = expectedKeys.keySet
 
