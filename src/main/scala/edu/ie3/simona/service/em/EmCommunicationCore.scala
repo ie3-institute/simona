@@ -313,14 +313,27 @@ case class EmCommunicationCore(
               Some(new EmResultResponse(updated.receivedData.asJava)),
             )
           } else {
-            (
-              copy(
-                allFlexOptions = allFlexOptions.updated(sender, resultToExt),
-                currentSetPoint = currentSetPoint.updated(sender, pRef),
-                expectDataFrom = updated,
-              ),
-              None,
-            )
+            if updated.hasCompleted then {
+              val (receivedData, updatedMap) = updated.getFinished
+
+              (
+                copy(
+                  allFlexOptions = allFlexOptions.updated(sender, resultToExt),
+                  currentSetPoint = currentSetPoint.updated(sender, pRef),
+                  expectDataFrom = updatedMap,
+                ),
+                Some(new EmResultResponse(receivedData.asJava))
+              )
+            } else {
+              (
+                copy(
+                  allFlexOptions = allFlexOptions.updated(sender, resultToExt),
+                  currentSetPoint = currentSetPoint.updated(sender, pRef),
+                  expectDataFrom = updated,
+                ),
+                None,
+              )
+            }
           }
         }
 

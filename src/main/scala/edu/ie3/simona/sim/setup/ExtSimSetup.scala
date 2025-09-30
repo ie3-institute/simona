@@ -6,20 +6,18 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.simona.api.data.connection.*
 import com.typesafe.config.Config
 import edu.ie3.datamodel.models.input.container.JointGridContainer
+import edu.ie3.simona.api.data.ExtSimAdapterData
 import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
-import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
+import edu.ie3.simona.api.simulation.ExtSimulation
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
-import edu.ie3.simona.event.listener.ExtResultEvent
-import edu.ie3.simona.event.listener.ResultListener
+import edu.ie3.simona.event.listener.{ExtResultEvent, ResultListener}
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.em.ExtEmDataService

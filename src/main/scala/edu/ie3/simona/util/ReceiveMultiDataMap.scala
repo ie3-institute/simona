@@ -11,13 +11,28 @@ import org.slf4j.{Logger, LoggerFactory}
 
 final case class ReceiveMultiDataMap[K, V](
     private val expectedKeys: Map[K, Int],
+    finishedKeys: Set[K],
     receivedData: Map[K, Seq[V]],
 ) {
   def isComplete: Boolean = expectedKeys.isEmpty
 
+  def hasCompleted: Boolean = finishedKeys.nonEmpty
+
   def nonComplete: Boolean = expectedKeys.nonEmpty
 
   def expects(key: K): Boolean = expectedKeys.contains(key)
+
+  def getFinished: (Map[K, Seq[V]], ReceiveMultiDataMap[K, V]) = {
+    val data = finishedKeys.map { key => key -> receivedData(key) }.toMap
+
+    (
+      data,
+      copy(
+        receivedData = receivedData.removedAll(finishedKeys),
+        finishedKeys = Set.empty
+      )
+    )
+  }
 
   def addData[A](
       key: K,
@@ -40,6 +55,7 @@ final case class ReceiveMultiDataMap[K, V](
       if count == 0 then {
         copy(
           expectedKeys = expectedKeys.removed(key),
+          finishedKeys = finishedKeys + key,
           receivedData = receivedData.updated(key, newValue),
         )
       } else {
@@ -67,12 +83,14 @@ object ReceiveMultiDataMap {
   ): ReceiveMultiDataMap[K, V] =
     ReceiveMultiDataMap(
       expectedKeys = expectedKeys,
+      finishedKeys = Set.empty,
       receivedData = Map.empty,
     )
 
   def empty[K, V]: ReceiveMultiDataMap[K, V] =
     ReceiveMultiDataMap(
       expectedKeys = Map.empty,
+      finishedKeys = Set.empty,
       receivedData = Map.empty,
     )
 

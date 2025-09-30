@@ -191,7 +191,7 @@ application {
 // see https://pekko.apache.org/docs/pekko/current/additional/packaging.html#gradle-the-jar-task-from-the-java-plugin
 //////////////////////////////////////////////////////////////////////
 tasks.shadowJar {
-  append 'reference.conf'
+  //append 'reference.conf'
   zip64 = true
   archiveBaseName = 'simona'
 }
