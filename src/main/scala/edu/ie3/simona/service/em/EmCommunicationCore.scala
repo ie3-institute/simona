@@ -15,6 +15,7 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
+import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.*
@@ -26,9 +27,80 @@ import squants.Power
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.Try
+
+object EmCommunicationCore {
+
+  final case class EmAgentState(
+                                 private var receivedActivation: Boolean = false,
+                                 private val awaitedFlexOptions: mutable.Set[UUID] = mutable.Set.empty,
+                                 private var awaitedSetPoint: Boolean = false,
+                                 private var waitingForInternal: Boolean = false,
+                               ) {
+    def setReceivedRequest: Unit = {
+      receivedActivation = true
+      waitingForInternal = true
+    }
+
+    def addSendRequest(request: UUID): Unit = {
+      awaitedFlexOptions.add(request)
+    }
+
+    def addSendRequests(requests: Seq[UUID]): Unit = {
+      awaitedFlexOptions.addAll(requests)
+    }
+
+    def handleReceivedFlexOption(flexOption: UUID): Unit = {
+      awaitedFlexOptions.remove(flexOption)
+      waitingForInternal = false
+
+      if awaitedFlexOptions.isEmpty then {
+        awaitedSetPoint = true
+        waitingForInternal = true
+      }
+    }
+
+    def handleReceivedFlexOptions(flexOptions: Seq[UUID]): Unit = {
+      flexOptions.foreach(awaitedFlexOptions.remove)
+      waitingForInternal = false
+
+      if awaitedFlexOptions.isEmpty then {
+        awaitedSetPoint = true
+        waitingForInternal = true
+      }
+    }
+
+    def setReceivedSetPoint: Unit = {
+      awaitedSetPoint = false
+      waitingForInternal = true
+    }
+
+    def setWaitingForInternal(value: Boolean): Unit = {
+      waitingForInternal = value
+    }
+
+    def getAwaited: Set[UUID] = awaitedFlexOptions.toSet
+
+    def isWaitingForActivation: Boolean = !receivedActivation
+
+    def isWaitingForExtern: Boolean = awaitedFlexOptions.nonEmpty && !waitingForInternal
+
+    def isWaitingForSetPoint: Boolean = awaitedSetPoint
+
+    def isWaitingForInternal: Boolean = waitingForInternal
+
+    def clear(): Unit = {
+      receivedActivation = false
+      awaitedFlexOptions.clear
+      awaitedSetPoint = false
+      waitingForInternal = false
+    }
+  }
+}
+
 
 case class EmCommunicationCore(
     disaggregated: Map[UUID, Boolean] = Map.empty,
@@ -44,8 +116,7 @@ case class EmCommunicationCore(
     allFlexOptions: Map[UUID, FlexOptionsResult] = Map.empty,
     currentSetPoint: Map[UUID, Power] = Map.empty,
     activatedAgents: Set[UUID] = Set.empty,
-    waitingForFlexOptions: Set[UUID] = Set.empty,
-    waitingForSetPoint: Set[UUID] = Set.empty,
+    emStates: Map[UUID, EmAgentState] = Map.empty,
     expectDataFrom: ReceiveMultiDataMap[UUID, EmData] =
       ReceiveMultiDataMap.empty,
 ) extends EmServiceCore {
@@ -79,12 +150,13 @@ case class EmCommunicationCore(
       refToUuid = refToUuid.updated(ref, uuid),
       uuidToInferior = updatedInferior,
       uuidToParent = updatedUuidToParent,
+      emStates = emStates.updated(uuid, EmAgentState())
     )
   }
 
-  override def handleExtMessage(tick: Long, extMSg: EmDataMessageFromExt)(using
+  override def handleExtMessage(tick: Long, extMsg: EmDataMessageFromExt)(using
       log: Logger
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = extMSg match {
+  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = extMsg match {
     case requestEmCompletion: RequestEmCompletion =>
       // finish tick and return next tick
       val extTick = requestEmCompletion.tick
@@ -111,6 +183,8 @@ case class EmCommunicationCore(
       }
 
     case provideEmData: ProvideEmData =>
+      log.warn(s"Handling ext message: $provideEmData")
+
       // provide em data
       val extTick = provideEmData.tick
 
@@ -122,8 +196,11 @@ case class EmCommunicationCore(
         // handle flex requests
         val requests = provideEmData.flexRequests.asScala
         val activated = requests.flatMap {
-          case (uuid, _) if !activatedAgents.contains(uuid) =>
+          case (uuid, _) if emStates(uuid).isWaitingForActivation =>
             uuidToAgent.get(uuid).map { agent =>
+              // update the em state
+              emStates(uuid).setReceivedRequest
+
               agent ! FlexShiftActivation(
                 tick,
                 requestedFlexType.getOrElse(uuid, FlexType.PowerLimit),
@@ -142,13 +219,20 @@ case class EmCommunicationCore(
 
         // handle flex options
         val expectFlexOptions = provideEmData.flexOptions.asScala.flatMap {
-          case (receiver, options) if waitingForFlexOptions.contains(receiver) =>
+          case (receiver, options) if emStates(receiver).isWaitingForExtern =>
             val agent = uuidToAgent(receiver)
+
+            val emState = emStates(receiver)
 
             // send flex options to agent
             options.asScala.foreach { option =>
+              val sender = option.sender
+
+              // update the em state
+              emState.handleReceivedFlexOption(sender)
+
               agent ! ProvideFlexOptions(
-                option.sender,
+                sender,
                 PowerLimitFlexOptions(
                   option.pRef.toSquants,
                   option.pMin.toSquants,
@@ -163,12 +247,12 @@ case class EmCommunicationCore(
         }.toMap
 
         // handle set points
-        val setPoints = provideEmData.setPoints.asScala
-        val expectedSetPoints = setPoints.flatMap {
-          case (uuid, setPoint)
-              if waitingForSetPoint.contains(uuid) | waitingForFlexOptions
-                .contains(uuid) =>
+        val expectedSetPoints = provideEmData.setPoints().asScala.flatMap {
+          case (uuid, setPoint) if emStates(uuid).isWaitingForSetPoint =>
             val agent = uuidToAgent(uuid)
+
+            // updates the em state
+            emStates(uuid).setReceivedRequest
 
             setPoint.power.toScala.flatMap(
               _.getP.toScala.map(_.toSquants)
@@ -185,6 +269,19 @@ case class EmCommunicationCore(
           case _ => None
         }.toMap
 
+        // check if we need to wait for internal answers
+        val mesgToExt = if emStates.exists(_._2.isWaitingForInternal) then {
+          None
+        } else {
+          val awaited = emStates.filter((_, x) => x.isWaitingForExtern).map {
+            case (uuid, state) => uuid -> state.getAwaited
+          }
+
+          log.info(s"Waiting for external data: $awaited")
+
+          None//Some(new EmResultResponse(Map.empty.asJava))
+        }
+
         val activatedKeys = activated.keySet
         val flexOptionKeys = expectFlexOptions.keys
         val setPointKeys = expectedSetPoints.keys
@@ -197,24 +294,19 @@ case class EmCommunicationCore(
           s"ExpectDataFrom: $updatedExpectDataFrom, Request: $activated, FlexOption: $expectFlexOptions, SetPoint: $expectedSetPoints"
         )
 
-        val updatedWaitingForFlexOptions = waitingForFlexOptions ++ activatedKeys.filter(uuidToInferior.contains) -- flexOptionKeys -- setPointKeys
-
         // update state data
         val newState = copy(
           disaggregated = updatedDisaggregated,
           activatedAgents = activatedAgents ++ activatedKeys,
-          waitingForFlexOptions = updatedWaitingForFlexOptions,
-          waitingForSetPoint =
-            waitingForSetPoint ++ flexOptionKeys -- setPointKeys,
           expectDataFrom = updatedExpectDataFrom,
           completions = completions.addExpectedKeys(activatedKeys),
         )
 
-        log.warn(
-          s"Activated: ${newState.activatedAgents}; WaitingForFlexOptions: ${newState.waitingForFlexOptions}; WaitingForSetPoints: ${newState.waitingForSetPoint}"
-        )
+        log.warn(s"Activated: ${newState.activatedAgents}")
+        log.warn(s"EmStates: ${newState.emStates}")
+        log.warn(s"Message to ext: $mesgToExt")
 
-        (newState, None)
+        (newState, mesgToExt)
       }
 
     case _: RequestEmFlexResults =>
@@ -304,13 +396,19 @@ case class EmCommunicationCore(
           val updated = expectDataFrom.addData(sender, resultToExt)
 
           if updated.isComplete then {
+            val data = updated.receivedData
+
+            // should no longer wait for internal data
+            data.keys.foreach { uuid => emStates(uuid).setWaitingForInternal(false) }
+            log.warn(s"Updated EmStates: $emStates")
+
             (
               copy(
                 allFlexOptions = allFlexOptions.updated(sender, resultToExt),
                 currentSetPoint = currentSetPoint.updated(sender, pRef),
                 expectDataFrom = ReceiveMultiDataMap.empty,
               ),
-              Some(new EmResultResponse(updated.receivedData.asJava)),
+              Some(new EmResultResponse(data.asJava)),
             )
           } else {
             (
@@ -380,6 +478,9 @@ case class EmCommunicationCore(
 
     val updated = flexRequest match {
       case FlexActivation(tick, flexType) =>
+         // update the em state => waiting for external flex option provision
+         emStates(sender).addSendRequest(receiverUuid)
+
         // send request to ext
         expectDataFrom.addData(
           sender,
@@ -425,9 +526,15 @@ case class EmCommunicationCore(
     }
 
     if updated.isComplete then {
+      val data = updated.receivedData
+
+      // should no longer wait for internal data
+      data.keys.foreach { uuid => emStates(uuid).setWaitingForInternal(false) }
+      log.warn(s"Updated EmStates: $emStates")
+
       (
         copy(expectDataFrom = ReceiveMultiDataMap.empty),
-        Some(new EmResultResponse(updated.receivedData.asJava)),
+        Some(new EmResultResponse(data.asJava)),
       )
     } else {
       (copy(expectDataFrom = updated), None)

@@ -78,9 +78,9 @@ final case class EmServiceBaseCore(
     )
   }
 
-  override def handleExtMessage(tick: Long, extMSg: EmDataMessageFromExt)(using
-      log: Logger
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = extMSg match {
+  override def handleExtMessage(tick: Long, extMsg: EmDataMessageFromExt)(using
+                                                                          log: Logger
+  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = extMsg match {
     case requestEmFlexResults: RequestEmFlexResults =>
       val tick = requestEmFlexResults.tick
       val emEntities = requestEmFlexResults.emEntities.asScala
@@ -132,7 +132,7 @@ final case class EmServiceBaseCore(
 
     case _ =>
       throw new CriticalFailureException(
-        s"The EmServiceBaseCore is not able to handle the message: $extMSg"
+        s"The EmServiceBaseCore is not able to handle the message: $extMsg"
       )
   }
 
