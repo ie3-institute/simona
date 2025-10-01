@@ -9,6 +9,8 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.Power
 
+/** Trait to provide a feed-in strategy for handling thermal infeed (qDot).
+  */
 private sealed trait FeedInStrategy {
   def apply(
       qDot: Power

@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove type parameters from data and message classes [#1524](https://github.com/ie3-institute/simona/issues/1524)
 - Adapt ThermalHouse and HP flexibility behaviour [#1391](https://github.com/ie3-institute/simona/issues/1391)
 - Refactored method to handle feed in within `ThermalGrid` [#1554](https://github.com/ie3-institute/simona/issues/1554)
+
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
 - Fixed variable shadowing [#1371](https://github.com/ie3-institute/simona/issues/1371)
