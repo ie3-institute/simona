@@ -328,7 +328,7 @@ final case class ThermalGrid(
       state: HpState,
       qDotHeatStorage: Power,
   ): Option[ThermalThreshold] = {
-    // TODO: We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
+    // TODO: Issue #1562 We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
     if qDotHeatStorage != zeroKW then
       handleFeedInHeatStorage(state, qDotHeatStorage)
     else None
