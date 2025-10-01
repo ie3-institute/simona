@@ -27,23 +27,27 @@ private object ThermalDemandConditions {
     * activated by updated weather data. If this is not the case, all other
     * cases will be handled.
     */
-  def from(state: HpState): ThermalDemandConditions = ThermalDemandConditions(
-    /* Consider the action in the last state
-     * We can continue using the qDots from last operating point to keep continuity.
-     *If the house was heated in lastState and has still some demand.
-     */
-    shouldContinueHouseHeating =
-      state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW &&
-        state.thermalDemands.houseDemand.hasPossibleDemand,
-    houseDemand = state.thermalDemands.houseDemand.hasRequiredDemand,
-    heatStorageDemand =
-      state.thermalDemands.heatStorageDemand.hasRequiredDemand ||
-        state.thermalDemands.heatStorageDemand.hasPossibleDemand,
-    housePossible = state.thermalDemands.houseDemand.hasPossibleDemand,
-    heatStoragePossible =
-      state.thermalDemands.heatStorageDemand.hasPossibleDemand,
-    houseHeatedLastState =
-      state.lastHpOperatingPoint.thermalOps.qDotHouse > zeroKW &&
-        state.lastHpOperatingPoint.thermalOps.qDotHp > zeroKW,
-  )
+  def from(state: HpState): ThermalDemandConditions = {
+    val lastOperatingPoint = state.lastHpOperatingPoint.thermalOps
+    val houseDemand = state.thermalDemands.houseDemand
+    val heatStorageDemand = state.thermalDemands.heatStorageDemand
+
+    val isHouseHeatedLastState =
+      lastOperatingPoint.qDotHouse > zeroKW && lastOperatingPoint.qDotHp > zeroKW
+
+    ThermalDemandConditions(
+      /* Consider the action in the last state
+       * We can continue using the qDots from last operating point to keep continuity.
+       * If the house was heated in lastState and has still some demand.
+       */
+      shouldContinueHouseHeating =
+        lastOperatingPoint.qDotHouse > zeroKW && houseDemand.hasPossibleDemand,
+      houseDemand = houseDemand.hasRequiredDemand,
+      heatStorageDemand =
+        heatStorageDemand.hasRequiredDemand || heatStorageDemand.hasPossibleDemand,
+      housePossible = houseDemand.hasPossibleDemand,
+      heatStoragePossible = heatStorageDemand.hasPossibleDemand,
+      houseHeatedLastState = isHouseHeatedLastState,
+    )
+  }
 }
