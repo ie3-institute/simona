@@ -46,7 +46,7 @@ SIMONA provides a Dockerfile in the root directory that can be used to build a D
 
        docker run -v `realpath input`:/input --rm simona
    
-Note that for the windows setup you have to manually enter the absolute path.So please replace this `realpath input` with the direcory in your local setup.
+Note that with a Windows setup, you have to manually enter the absolute path. So please replace \`realpath input\` with the full path to the project directory.
 
 5. Once the container runs, SIMONA executes the simulation using the mounted input data and produces output in the container.
    
