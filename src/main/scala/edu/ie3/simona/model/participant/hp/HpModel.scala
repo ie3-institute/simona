@@ -82,6 +82,7 @@ class HpModel private (
 
     lastState.copy(
       tick = tick,
+      simulationTime = simulationTime,
       thermalGridState = thermalGridState,
       lastHpOperatingPoint = operatingPoint,
       thermalDemands = thermalDemands,
@@ -348,6 +349,8 @@ object HpModel {
     *
     * @param tick
     *   The current tick.
+    * @param simulationTime
+    *   The current simulation time
     * @param thermalGridState
     *   The applicable state of the [[ThermalGrid]].
     * @param lastHpOperatingPoint
@@ -358,6 +361,7 @@ object HpModel {
     */
   final case class HpState(
       override val tick: Long,
+      simulationTime: ZonedDateTime,
       thermalGridState: ThermalGridState,
       lastHpOperatingPoint: HpOperatingPoint,
       thermalDemands: ThermalDemandWrapper,
@@ -381,6 +385,7 @@ object HpModel {
 
       HpState(
         tick,
+        simulationTime,
         initialState,
         HpOperatingPoint.zero,
         thermalDemand,
