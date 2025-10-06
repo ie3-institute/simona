@@ -173,7 +173,7 @@ final case class ThermalGrid(
     // TODO: We would need to issue a storage result model here...
     val conditions = ThermalDemandConditions.from(state)
     val strategy = selectFeedInStrategy(conditions)
-    val (qDotHouse, qDotHeatStorage) = strategy(qDot)
+    val (qDotHouse, qDotHeatStorage) = strategy(qDot, heatStorage)
 
     handleCase(state, qDotHouse, qDotHeatStorage)
 
@@ -223,7 +223,7 @@ final case class ThermalGrid(
     } else if conditions.houseDemand then {
       HouseOnlyStrategy
     } else if conditions.heatStorageDemand then {
-      HeatStorageOnlyStrategy
+      HeatStorageFirstStrategy
     } else if conditions.housePossible then {
       HouseOnlyStrategy
     } else {
