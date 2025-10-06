@@ -27,30 +27,31 @@ You can find and download the source code of the latest stable SIMONA version [h
 
 ## Docker
 
-Docker is a tool used to containerize the entire setup. A container is like a lightweight, isolated environment that bundles everything the software needs into a single package. It is the tool used to handle the entire project setup in a single space. 
+Docker is a tool used to containerize the entire setup. A container is like a lightweight, isolated environment that bundles everything the software needs into a single package. It is the tool used to handle the entire project setup in a single space. It can run on local setups or on virtual machines and can be used to create containers, volumes and the images.
 
-Using Docker, various applications across different platforms can be run simultaneously. Instead of installing different plugins required for simona on the local machine, docker can be used to run the entire simona setup after creating an image while interacting with different environments.
-Each component has its own environment inside the Docker container setup and are defined to ensure consistency.
+Using Docker, you can create the containers, volumes, plugins and images and use them simultaneously. Instead of installing different plugins required for simona on the local machine, docker can be used to run the entire SIMONA setup after creating an image while interacting with different environments. To build a docker image, you have create
+your own dockerfile which has syntaxes with steps defined to create an image. Since different instructions are defined to create an image each of these create a layer. If you rebuild the image after making the changes in the dockerfile, then only the layers affected will be changed. 
 
-SIMONA provides a Dockerfile in the root directory that can be used to build a Docker image and run simulations inside a container.
+SIMONA provides a Dockerfile in the root directory that can be used to build a Docker image and run simulations inside a container. 
 
 ### Building Docker Image
 
 1. Locate the dockerfile in the root directory from the SIMONA and build the image by specifying the below command:
     
-       docker build --build-arg version=2.1.0 -t simona 
+       docker build --build-arg version=4.1.0 -t simona 
 
-2. This creates a Docker image for the SIMONA in your local setup.
-3. To run simona and mount on your directory use the following command:
+This creates a Docker image for the SIMONA in your local setup once the command is executed.
+
+2. To run simona and mount on your directory use the following command:
 
        docker run -v `realpath input`:/input --rm simona
    
-Note that with a Windows setup, you have to manually enter the absolute path. So please replace \`realpath input\` with the full path to the project directory.
+Note that for the windows setup you have to manually enter the absolute path.So please replace this `realpath input` with the direcory in your local setup.
 
-4. Once the container runs, SIMONA executes the simulation using the mounted input data and produces output in the container.
+3. Once the container runs, SIMONA executes the simulation using the mounted input data and produces output in the container.
    
 
-You can find more information on the docker setup and installation [here](https://docs.docker.com/engine/install/).
+You can find more information on docker setup and installation [here](https://docs.docker.com/engine/install/).
 Documentation for docker can be found [here](https://docs.docker.com/get-started/).
 Useful commands for docker can be found [here](https://docs.docker.com/reference/cli/docker/).
 
