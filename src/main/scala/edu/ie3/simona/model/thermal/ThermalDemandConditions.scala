@@ -44,15 +44,15 @@ private object ThermalDemandConditions {
        * hot water storage as no demand. */
       shouldContinueHouseHeating =
         lastOperatingPoint.qDotHouse > zeroKW && houseDemand.hasPossibleDemand &&
-        !state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand,
+          !state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand,
       houseDemand = houseDemand.hasRequiredDemand,
-    waterStorageDemand =
-      state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand,
+      waterStorageDemand =
+        state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand,
       heatStorageDemand =
         heatStorageDemand.hasRequiredDemand || heatStorageDemand.hasPossibleDemand,
       housePossible = houseDemand.hasPossibleDemand,
-    waterStoragePossible =
-      state.thermalDemands.domesticHotWaterStorageDemand.hasPossibleDemand,
+      waterStoragePossible =
+        state.thermalDemands.domesticHotWaterStorageDemand.hasPossibleDemand,
       heatStoragePossible = heatStorageDemand.hasPossibleDemand,
       houseHeatedLastState = isHouseHeatedLastState,
     )
