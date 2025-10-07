@@ -21,8 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduce `DomesticHotWaterStorage` [#1481](https://github.com/ie3-institute/simona/issues/1481)
 - Enhance `ThermalConductance` by method to calculate for thermal power qDot [#1479](https://github.com/ie3-institute/simona/issues/1479)
 - Enhancing `QuantityConversionUtilsSpec` with more tests [#1400](https://github.com/ie3-institute/simona/issues/1400)
-- Introducing energy demand for warm water heating [#856](https://github.com/ie3-institute/simona/issues/856)
 - Prepare ThermalHouse for changes by including tap water [#1547](https://github.com/ie3-institute/simona/issues/1547)
+- Introducing energy demand for warm water heating [#856](https://github.com/ie3-institute/simona/issues/856)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
@@ -50,8 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unify coordinate class [#1516](https://github.com/ie3-institute/simona/issues/1516)
 - Remove type parameters from data and message classes [#1524](https://github.com/ie3-institute/simona/issues/1524)
 - Adapt ThermalHouse and HP flexibility behaviour [#1391](https://github.com/ie3-institute/simona/issues/1391)
-- Refactored method to handle feed in within `ThermalGrid` [#1554](https://github.com/ie3-institute/simona/issues/1554)
 - Use ThermalStorageTypes for type safety [#1556](https://github.com/ie3-institute/simona/issues/1556)
+- Refactored method to handle feed in within `ThermalGrid` [#1554](https://github.com/ie3-institute/simona/issues/1554)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

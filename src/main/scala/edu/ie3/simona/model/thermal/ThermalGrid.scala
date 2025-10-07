@@ -436,7 +436,7 @@ final case class ThermalGrid(
       qDotHeatStorage: Power,
       qDotHotWaterStorage: Power,
   ): (Option[ThermalThreshold], Option[ThermalThreshold]) = {
-    // TODO: We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
+    // TODO: Issue #1562 We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
     val heatStorageThreshold =
       if qDotHeatStorage != zeroKW then
         handleFeedInHeatStorage(state, qDotHeatStorage)
@@ -760,7 +760,7 @@ final case class ThermalGrid(
         )
     }
 
-    // We always want the results if there are changes or it's the first tick
+    // We always want the results if there are changes, or it's the first tick
     val maybeHouseResult = {
       (
         house,
@@ -774,7 +774,7 @@ final case class ThermalGrid(
       }
     }
 
-    // We always want the results if there are changes or it's the first tick
+    // We always want the results if there are changes, or it's the first tick
     val maybeHeatStorageResult = {
       (
         heatStorage,
@@ -788,8 +788,8 @@ final case class ThermalGrid(
       }
     }
 
-    // We always want the results if there are changes or it's the first tick
-    val maybeDomesticHotStorageResult = {
+    // We always want the results if there are changes, or it's the first tick
+    val maybeDomesticHotWaterStorageResult = {
       (
         domesticHotWaterStorage,
         lastOpThermals.forall(
@@ -805,7 +805,7 @@ final case class ThermalGrid(
     Seq(
       maybeHouseResult,
       maybeHeatStorageResult,
-      maybeDomesticHotStorageResult,
+      maybeDomesticHotWaterStorageResult,
     ).flatten
   }
 }
