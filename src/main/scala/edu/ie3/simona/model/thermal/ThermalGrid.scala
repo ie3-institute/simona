@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
+  DomesticHotWaterStorageResult,
   ThermalHouseResult,
 }
 import edu.ie3.simona.exceptions.InvalidParameterException
@@ -27,10 +28,10 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.quantities.QuantityUtils.{
-  asMegaWattHour,
   asKelvin,
-  asPu,
   asMegaWatt,
+  asMegaWattHour,
+  asPu,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import squants.energy.KilowattHours
@@ -50,7 +51,7 @@ import scala.language.postfixOps
   */
 final case class ThermalGrid(
     house: Option[ThermalHouse],
-    heatStorage: Option[ThermalStorage],
+    heatStorage: Option[CylindricalThermalStorage],
 ) extends LazyLogging {
 
   /** Determines the state of the ThermalGrid by using the HpOperatingPoint.
@@ -255,7 +256,7 @@ final case class ThermalGrid(
       handleFeedInHouse(state, qDotHouse)
 
     val heatStorageThreshold =
-      handleFeedInStorage(state, qDotHeatStorage)
+      handleFeedInStorages(state, qDotHeatStorage)
 
     val nextThreshold = determineNextThreshold(
       Seq(
@@ -314,27 +315,34 @@ final case class ThermalGrid(
 
   /** Handles the case, when the storage has heat demand and will be filled up
     * here (positive qDot).
+    *
     * @param state
     *   State of the heat pump.
-    * @param qDotStorage
-    *   Feed in to the storage (positive: Storage is charging, negative: Storage
-    *   is discharging).
+    * @param qDotHeatStorage
+    *   Feed in to the heat storage (positive: Storage is charging, negative:
+    *   Storage is discharging).
     * @return
     *   The ThermalThreshold if there is one.
     */
-  private def handleFeedInStorage(
+  private def handleFeedInStorages(
+      state: HpState,
+      qDotHeatStorage: Power,
+  ): Option[ThermalThreshold] = {
+    // TODO: Issue #1562 We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
+    if qDotHeatStorage != zeroKW then
+      handleFeedInHeatStorage(state, qDotHeatStorage)
+    else None
+  }
+
+  private def handleFeedInHeatStorage(
       state: HpState,
       qDotStorage: Power,
   ): Option[ThermalThreshold] = {
-    heatStorage.zip(state.thermalGridState.heatStorageState) match {
-      case Some((thermalStorage, storageState)) =>
-        thermalStorage.determineNextThreshold(
-          storageState,
-          qDotStorage,
-        )
-      case _ => None
-    }
-  }
+    for {
+      storage <- heatStorage.collect { case s: CylindricalThermalStorage => s }
+      storageState <- state.thermalGridState.heatStorageState
+    } yield storage.determineNextThreshold(storageState, qDotStorage)
+  }.flatten
 
   /** Determines the next threshold of a given input sequence of thresholds.
     *
@@ -342,7 +350,7 @@ final case class ThermalGrid(
     *   Sequence of Options of possible next thresholds from the thermal house
     *   or storage.
     * @return
-    *   The next threshold.
+    *   The next [[ThermalThreshold]] or [[None]].
     */
   private def determineNextThreshold(
       thresholds: Seq[Option[ThermalThreshold]]
@@ -501,7 +509,27 @@ final case class ThermalGrid(
         )
     }
 
-    // We always want the results if there are changes or it's the first tick
+    def createDomesticHotWaterStorageResult(
+        storage: DomesticHotWaterStorage
+    ): Option[DomesticHotWaterStorageResult] = {
+      state.thermalGridState.heatStorageState // TODO Dummy
+        .collectFirst { case ThermalStorageState(_, storedEnergy) =>
+          new DomesticHotWaterStorageResult(
+            dateTime,
+            storage.uuid,
+            storedEnergy.toMegawattHours.asMegaWattHour,
+            currentOpThermals.qDotHeatStorage.toMegawatts.asMegaWatt, // TODO Dummy
+            (storedEnergy / storage.maxEnergyThreshold).asPu,
+          )
+        }
+        .orElse(
+          throw new NotImplementedError(
+            s"Result handling for storage type '${storage.getClass.getSimpleName}' not supported."
+          )
+        )
+    }
+
+    // We always want the results if there are changes, or it's the first tick
     val maybeHouseResult = {
       (
         house,
@@ -515,7 +543,7 @@ final case class ThermalGrid(
       }
     }
 
-    // We always want the results if there are changes or it's the first tick
+    // We always want the results if there are changes, or it's the first tick
     val maybeHeatStorageResult = {
       (
         heatStorage,
@@ -529,7 +557,10 @@ final case class ThermalGrid(
       }
     }
 
-    Seq(maybeHouseResult, maybeHeatStorageResult).flatten
+    Seq(
+      maybeHouseResult,
+      maybeHeatStorageResult,
+    ).flatten
   }
 }
 
@@ -554,6 +585,7 @@ object ThermalGrid {
   }
 
   /** Current state of a grid.
+    *
     * @param houseState
     *   State of the thermal house.
     * @param heatStorageState
@@ -608,6 +640,7 @@ object ThermalGrid {
     * energy, that can be handled. The possible energy always has to be greater
     * than or equal to the absolutely required energy. Thus, this class can only
     * be instantiated via factory.
+    *
     * @param required
     *   The absolutely required energy to reach target state. For
     *   [[ThermalHouse]] this would be the energy demand to reach the boundary
@@ -626,10 +659,11 @@ object ThermalGrid {
       possible + rhs.possible,
     )
 
-    def hasRequiredDemand: Boolean = required > zeroMWh
+    def hasRequiredDemand: Boolean = required > zeroKWh
 
-    def hasPossibleDemand: Boolean = possible > zeroMWh
+    def hasPossibleDemand: Boolean = possible > zeroKWh
   }
+
   object ThermalEnergyDemand {
 
     /** Builds a new instance of [[ThermalEnergyDemand]]. If the possible energy
