@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.service.em
 
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.api.data.model.em.ExtendedFlexOptionsResult
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
@@ -28,16 +30,18 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power as PsdmPower
 import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.jdk.OptionConverters.RichOptional
+import scala.jdk.OptionConverters.{RichOption, RichOptional}
 
 trait EmServiceCore {
   def lastFinishedTick: Long
 
   def uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]]
 
+  def allFlexOptions: Map[UUID, FlexOptionsResult]
+
   def completions: ReceiveDataMap[UUID, FlexCompletion]
 
-  implicit class SquantsToQuantity(private val value: Power) {
+  extension (value: Power) {
     def toQuantity: ComparableQuantity[PsdmPower] = value.toMegawatts.asMegaWatt
   }
 
@@ -146,10 +150,44 @@ trait EmServiceCore {
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
-  final def getMaybeNextTick: Option[java.lang.Long] = completions.receivedData
-    .flatMap { case (_, completion) =>
-      completion.requestAtTick
+  final def addDisaggregatingFlexOptions(
+      data: Map[UUID, ExtendedFlexOptionsResult],
+      structure: Map[UUID, Set[UUID]],
+  ): Unit = {
+    data.foreach { case (key, value) =>
+      structure(key).foreach { inferior =>
+        value.addDisaggregated(inferior, allFlexOptions(inferior))
+      }
     }
-    .minOption
-    .map(long2Long)
+  }
+
+  final def handleCompletion(tick: Long, completion: FlexCompletion): (
+      ReceiveDataMap[UUID, FlexCompletion],
+      Option[EmDataResponseMessageToExt],
+      Boolean,
+  ) = {
+    val updated = completions.addData(completion.modelUuid, completion)
+
+    if updated.isComplete then {
+      val allKeys = updated.receivedData.keySet
+
+      val extMsgOption = if tick != INIT_SIM_TICK then {
+        // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
+        Some(new EmCompletion(getMaybeNextTick))
+      } else None
+
+      // every em agent has sent a completion message
+      (ReceiveDataMap(allKeys), extMsgOption, true)
+
+    } else (updated, None, false)
+  }
+
+  private final def getMaybeNextTick: java.util.Optional[java.lang.Long] =
+    completions.receivedData
+      .flatMap { case (_, completion) =>
+        completion.requestAtTick
+      }
+      .minOption
+      .map(long2Long)
+      .toJava
 }

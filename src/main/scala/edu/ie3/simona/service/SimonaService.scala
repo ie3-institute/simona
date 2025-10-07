@@ -248,11 +248,20 @@ abstract class SimonaService {
       initServiceData: InitializeServiceStateData
   )(using log: Logger): Try[(S, Option[Long])]
 
+  /** Handles some service response messages that are received during
+    * initialization.
+    * @param serviceResponse
+    *   To handle.
+    * @param ctx
+    *   The actor context of this service.
+    */
   protected def handleServiceResponse(
       serviceResponse: ServiceResponseMessage
   )(using
       ctx: ActorContext[Message]
-  ): Unit = {}
+  ): Unit = ctx.log.warn(
+    s"This service (${ctx.self}) received an unhandled service response message during initialization. Msg: $serviceResponse"
+  )
 
   /** Handle a request to register for information from this service.
     *
