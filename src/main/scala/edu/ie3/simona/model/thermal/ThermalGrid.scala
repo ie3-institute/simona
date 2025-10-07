@@ -11,8 +11,6 @@ import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   DomesticHotWaterStorageInput,
 }
-import edu.ie3.util.scala.quantities.QuantityUtil.*
-import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
@@ -32,6 +30,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.QuantityUtils.{
   asKelvin,
   asMegaWatt,
@@ -39,6 +38,7 @@ import edu.ie3.util.quantities.QuantityUtils.{
   asPu,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.QuantityUtil.*
 import squants.energy.KilowattHours
 import squants.{Energy, Power, Seconds, Temperature}
 
@@ -277,7 +277,8 @@ final case class ThermalGrid(
     // TODO: We would need to issue a storage result model here...
     val conditions = ThermalDemandConditions.from(state)
     val strategy = selectFeedInStrategy(conditions)
-    val (qDotHouse, qDotHeatStorage, qDotWaterStorage) = strategy(qDot)
+    val (qDotHouse, qDotHeatStorage, qDotWaterStorage) =
+      strategy(qDot, heatStorage, domesticHotWaterStorage)
 
     handleCase(state, qDotHouse, qDotHeatStorage, qDotWaterStorage)
   }
@@ -313,9 +314,9 @@ final case class ThermalGrid(
     } else if conditions.houseDemand then {
       HouseOnlyStrategy
     } else if conditions.waterStorageDemand then {
-      WaterStorageOnlyStrategy
+      WaterStorageFirstStrategy
     } else if conditions.heatStorageDemand then {
-      HeatStorageOnlyStrategy
+      HeatStorageFirstStrategy
     } else if conditions.housePossible then {
       HouseOnlyStrategy
     } else {

@@ -752,7 +752,7 @@ class ThermalGridWithHouseAndStorageSpec
   }
 
   "load the storage, if the target temperature in the house is reached" in {
-    val externalQDot = testGridQDotInfeed * 10
+    val externalQDot = testGridQDotInfeed
 
     val (thermalGridOperatingPoint, reachedThreshold) =
       thermalGrid.handleFeedIn(
@@ -768,6 +768,24 @@ class ThermalGridWithHouseAndStorageSpec
       zeroKW,
     )
   }
+  "load the storage, if the target temperature in the house is reached and overheat the house with remaining qDot" in {
+    val externalQDot = testGridQDotInfeed * 10
+
+    val (thermalGridOperatingPoint, reachedThreshold) =
+      thermalGrid.handleFeedIn(
+        initialHpState,
+        externalQDot,
+      )
+
+    reachedThreshold shouldBe Some(SimpleThermalThreshold(3600))
+    thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
+      externalQDot,
+      Kilowatts(130d),
+      heatStorage.pThermalMax,
+      zeroKW,
+    )
+  }
+
   "don't load the heat storage, use qDot directly to cover hot water demand before recharge domestic hot water storage if the upper temperature in the house is reached and the domestic hot water storage is empty" in {
     val firstThermalDemands = ThermalDemandWrapper(
       ThermalEnergyDemand(zeroKWh, zeroKWh),
@@ -804,11 +822,11 @@ class ThermalGridWithHouseAndStorageSpec
 
     firstOperatingPoint shouldBe ThermalGridOperatingPoint(
       testGridQDotInfeed,
+      Kilowatts(4), // remaining qDot into house
       zeroKW,
-      zeroKW,
-      testGridQDotInfeed,
+      domesticHotWaterStorage.pThermalMax,
     )
-    firstReachedThreshold shouldBe Some(StorageFull(2923))
+    firstReachedThreshold shouldBe Some(StorageFull(3986))
   }
 
 }

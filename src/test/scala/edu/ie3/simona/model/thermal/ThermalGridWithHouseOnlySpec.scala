@@ -270,6 +270,41 @@ class ThermalGridWithHouseOnlySpec
           testGridQDotInfeed / 2,
         )
       }
+
+      "heat up the house and domestic hot water storage parallel, but split qDot would exceed pThermalMax of storage" in {
+        val qDotInfeed = testGridQDotInfeed * 2
+        val gridState = initialGridState.copy(
+          houseState = initialGridState.houseState.map(
+            _.copy(innerTemperature = Celsius(10))
+          ),
+          domesticHotWaterStorageState =
+            initialGridState.domesticHotWaterStorageState.map(
+              _.copy(storedEnergy = zeroKWh)
+            ),
+        )
+
+        val state = HpState(
+          0,
+          defaultSimulationStart,
+          gridState,
+          HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
+          thermalDemandOfHouseAndWaterStorage,
+        )
+
+        val (thermalGridOperatingPoint, reachedThreshold) =
+          thermalGrid.handleFeedIn(
+            state,
+            qDotInfeed,
+          )
+
+        reachedThreshold shouldBe Some(StorageFull(3986L))
+        thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
+          qDotInfeed,
+          Kilowatts(19d),
+          zeroKW,
+          domesticHotWaterStorage.pThermalMax,
+        )
+      }
     }
 
     "updating the grid state dependent on the given thermal feed in" should {
