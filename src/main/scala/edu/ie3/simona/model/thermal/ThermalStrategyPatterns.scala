@@ -19,6 +19,23 @@ private sealed trait FeedInStrategy {
       heatStorage: Option[CylindricalThermalStorage],
       waterStorage: Option[DomesticHotWaterStorage],
   ): (Power, Power, Power) // (house, heatStorage, waterStorage)
+
+  protected def getMaxPower(
+      storage: Option[? <: { def pThermalMax: Power }],
+      storageType: String,
+  ): Power =
+    storage
+      .getOrElse(
+        throw new InvalidParameterException(
+          s"Could not find $storageType but expected one."
+        )
+      )
+      .pThermalMax
+
+  protected def distribute(qDot: Power, maxCapacity: Power): (Power, Power) =
+    // Check if storage can handle qDot
+    if qDot > maxCapacity then (qDot - maxCapacity, maxCapacity)
+    else (zeroKW, qDot)
 }
 
 private object SplitHouseWaterStrategy extends FeedInStrategy {
@@ -27,20 +44,14 @@ private object SplitHouseWaterStrategy extends FeedInStrategy {
       heatStorage: Option[CylindricalThermalStorage],
       waterStorage: Option[DomesticHotWaterStorage],
   ): (Power, Power, Power) = {
-    val pThermalMaxWaterStorage = waterStorage
-      .getOrElse(
-        throw new InvalidParameterException(
-          "Could not find heatStorage but expected one."
-        )
-      )
-      .pThermalMax
+    val maxWater = getMaxPower(waterStorage, "waterStorage")
+    val halfQDot = qDot / 2
 
     // Check if water storage can handle half of qDot
-    if qDot / 2 > pThermalMaxWaterStorage
-    then {
-      val remainingQDot = qDot - pThermalMaxWaterStorage
-      (remainingQDot, zeroKW, pThermalMaxWaterStorage)
-    } else (qDot / 2, zeroKW, qDot / 2)
+    if halfQDot > maxWater then {
+      val remaining = qDot - maxWater
+      (remaining, zeroKW, maxWater)
+    } else (halfQDot, zeroKW, halfQDot)
   }
 }
 
@@ -59,20 +70,9 @@ private object WaterStorageFirstStrategy extends FeedInStrategy {
       heatStorage: Option[CylindricalThermalStorage],
       waterStorage: Option[DomesticHotWaterStorage],
   ): (Power, Power, Power) = {
-    val pThermalMaxWaterStorage = waterStorage
-      .getOrElse(
-        throw new InvalidParameterException(
-          "Could not find heatStorage but expected one."
-        )
-      )
-      .pThermalMax
-
-    // Check if water storage can handle qDot
-    if qDot > pThermalMaxWaterStorage
-    then {
-      val remainingQDot = qDot - pThermalMaxWaterStorage
-      (remainingQDot, zeroKW, pThermalMaxWaterStorage)
-    } else (zeroKW, zeroKW, qDot)
+    val maxWater = getMaxPower(waterStorage, "waterStorage")
+    val (remaining, toWater) = distribute(qDot, maxWater)
+    (remaining, zeroKW, toWater)
   }
 }
 
@@ -82,20 +82,9 @@ private object HeatStorageFirstStrategy extends FeedInStrategy {
       heatStorage: Option[CylindricalThermalStorage],
       waterStorage: Option[DomesticHotWaterStorage],
   ): (Power, Power, Power) = {
-    val pThermalMaxHeatStorage = heatStorage
-      .getOrElse(
-        throw new InvalidParameterException(
-          "Could not find heatStorage but expected one."
-        )
-      )
-      .pThermalMax
-
-    // Check if heat storage can handle qDot
-    if qDot > pThermalMaxHeatStorage
-    then {
-      val remainingQDot = qDot - pThermalMaxHeatStorage
-      (remainingQDot, pThermalMaxHeatStorage, zeroKW)
-    } else (zeroKW, qDot, zeroKW)
+    val maxHeat = getMaxPower(heatStorage, "heatStorage")
+    val (remaining, toHeat) = distribute(qDot, maxHeat)
+    (remaining, toHeat, zeroKW)
   }
 }
 
