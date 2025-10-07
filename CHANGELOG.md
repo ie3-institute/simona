@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhance `ThermalConductance` by method to calculate for thermal power qDot [#1479](https://github.com/ie3-institute/simona/issues/1479)
 - Enhancing `QuantityConversionUtilsSpec` with more tests [#1400](https://github.com/ie3-institute/simona/issues/1400)
 - Prepare ThermalHouse for changes by including tap water [#1547](https://github.com/ie3-institute/simona/issues/1547)
+- Added basic external em service [#1566](https://github.com/ie3-institute/simona/issues/1566)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)

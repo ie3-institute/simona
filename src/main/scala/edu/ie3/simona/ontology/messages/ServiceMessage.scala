@@ -6,10 +6,15 @@
 
 package edu.ie3.simona.ontology.messages
 
+import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexRequest,
+  FlexResponse,
+}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import org.apache.pekko.actor.typed.ActorRef
@@ -48,6 +53,13 @@ object ServiceMessage {
   final case class SecondaryServiceRegistrationMessage(
       requestingActor: ActorRef[ParticipantAgent.Request],
       data: Any,
+  ) extends ServiceRegistrationMessage
+
+  final case class EmServiceRegistration(
+      requestingActor: ActorRef[EmAgent.Message],
+      inputUuid: UUID,
+      parentEm: Option[ActorRef[FlexResponse]],
+      parentUuid: Option[UUID],
   ) extends ServiceRegistrationMessage
 
   /** Message to register with a primary data service.
@@ -141,4 +153,8 @@ object ServiceMessage {
       evModels: Seq[EvModelWrapper],
   ) extends ServiceResponseMessage
 
+  final case class EmFlexMessage(
+      message: FlexRequest | FlexResponse,
+      receiver: UUID | ActorRef[FlexResponse] | ActorRef[EmAgent.Message],
+  ) extends ServiceResponseMessage
 }

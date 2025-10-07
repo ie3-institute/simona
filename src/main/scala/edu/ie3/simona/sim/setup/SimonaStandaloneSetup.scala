@@ -219,6 +219,7 @@ class SimonaStandaloneSetup(
     setupExtSim(extLinks, args)(using
       context,
       scheduler,
+      simonaConfig.simona.time.simStartTime,
     )
   }
 
