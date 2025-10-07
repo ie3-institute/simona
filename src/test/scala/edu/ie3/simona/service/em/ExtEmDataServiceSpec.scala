@@ -397,9 +397,30 @@ class ExtEmDataServiceSpec
       )
 
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(emService))
-
       emService ! Activation(0)
 
+      // first the em agents are activated by the service
+      emAgent1.expectMessageType[FlexActivation]
+      emAgent2.expectMessageType[FlexActivation]
+
+      // then the agents sent their option
+      emService ! EmFlexMessage(
+        ProvideFlexOptions(
+          emAgent1UUID,
+          PowerLimitFlexOptions(zeroKW, zeroKW, zeroKW),
+        ),
+        emAgent1UUID, // prevents from sending the message back
+      )
+
+      emService ! EmFlexMessage(
+        ProvideFlexOptions(
+          emAgent2UUID,
+          PowerLimitFlexOptions(zeroKW, zeroKW, zeroKW),
+        ),
+        emAgent2UUID, // prevents from sending the message back
+      )
+
+      // now the agents are able to receive em set points
       emAgent1.expectMessage(
         IssuePowerControl(0, Kilowatts(-3))
       )

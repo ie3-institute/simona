@@ -29,6 +29,29 @@ import scala.jdk.CollectionConverters.{
 }
 import scala.jdk.OptionConverters.RichOption
 
+/** Basic service core for an [[ExtEmDataService]].
+  * @param lastFinishedTick
+  *   The last tick that was completed.
+  * @param uuidToAgent
+  *   Map: uuid to em agent reference.
+  * @param flexOptions
+  *   ReceiveDataMap: uuid to flex option result.
+  * @param allFlexOptions
+  *   Map: uuid to flex option result.
+  * @param completions
+  *   ReceiveDataMap: uuid to completions.
+  * @param structure
+  *   Map: uuid to inferior em agent uuids.
+  * @param disaggregatedFlex
+  *   True, if disaggregated flex options should be sent to the external
+  *   simulation.
+  * @param sendOptionsToExt
+  *   True, if flex options should be sent to the external simulation.
+  * @param canHandleSetPoints
+  *   True, if the core can process the em set points.
+  * @param setPointOption
+  *   Option for em set points that needs to be handled at a later time.
+  */
 final case class EmServiceBaseCore(
     override val lastFinishedTick: Long = PRE_INIT_TICK,
     override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
@@ -55,16 +78,12 @@ final case class EmServiceBaseCore(
     val updatedStructure = parentUuid match {
       case Some(parent) =>
         structure.get(parent) match {
-          case Some(subEm) =>
-            val allSubEms = subEm + modelUuid
-
+          case Some(subEms) =>
+            val allSubEms = subEms + modelUuid
             structure ++ Map(parent -> allSubEms)
           case None =>
             structure ++ Map(parent -> Set(modelUuid))
         }
-
-      case None if !structure.contains(modelUuid) =>
-        structure ++ Map(modelUuid -> Set.empty[UUID])
 
       case _ =>
         // we already added the model as parent
@@ -75,13 +94,13 @@ final case class EmServiceBaseCore(
     copy(
       uuidToAgent = uuidToAgent + (modelUuid -> ref),
       completions = completions.addExpectedKeys(Set(modelUuid)),
-      structure = updatedStructure,
+      structure = updatedStructure ++ Map(modelUuid -> Set.empty[UUID]),
     )
   }
 
   override def handleExtMessage(tick: Long, extMsg: EmDataMessageFromExt)(using
       log: Logger
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = extMsg match {
+  ): (EmServiceBaseCore, Option[EmDataResponseMessageToExt]) = extMsg match {
     case requestEmFlexResults: RequestEmFlexResults =>
       val tick = requestEmFlexResults.tick
       val emEntities = requestEmFlexResults.emEntities.asScala
@@ -144,7 +163,7 @@ final case class EmServiceBaseCore(
   )(using
       startTime: ZonedDateTime,
       log: Logger,
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
+  ): (EmServiceBaseCore, Option[EmDataResponseMessageToExt]) = {
     receiver.foreach(_ ! flexResponse)
 
     flexResponse match {
@@ -177,7 +196,7 @@ final case class EmServiceBaseCore(
                 // we have received new set points, that are not handled yet => we will handle them now
                 handleSetPoint(tick, setPoints, log)
 
-                (updatedCore, None)
+                (updatedCore.copy(setPointOption = None), None)
               case None =>
                 // we are now able to handle set points, but we have not yet received any
                 (updatedCore, None)
@@ -218,6 +237,30 @@ final case class EmServiceBaseCore(
     }
   }
 
+  override def handleFlexRequest(
+      flexRequest: FlexRequest,
+      receiver: ActorRef[FlexRequest],
+  )(using
+      startTime: ZonedDateTime,
+      log: Logger,
+  ): (EmServiceBaseCore, Option[EmDataResponseMessageToExt]) = {
+    log.debug(s"$receiver: $flexRequest")
+    receiver ! flexRequest
+
+    (this, None)
+  }
+
+  /** Method to handle flex options.
+    * @param tick
+    *   Current tick of the service.
+    * @param provideFlexOptions
+    *   The provided flex options.
+    * @param startTime
+    *   The start time of the simulation.
+    * @return
+    *   An updated service core and an option for a message that should be sent
+    *   to the external simulation.
+    */
   private def handleFlexOptions(
       tick: Long,
       provideFlexOptions: ProvideFlexOptions,
@@ -254,18 +297,6 @@ final case class EmServiceBaseCore(
       (flexOptions, allFlexOptions)
   }
 
-  override def handleFlexRequest(
-      flexRequest: FlexRequest,
-      receiver: ActorRef[FlexRequest],
-  )(using
-      startTime: ZonedDateTime,
-      log: Logger,
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
-    log.debug(s"$receiver: $flexRequest")
-    receiver ! flexRequest
-
-    (this, None)
-  }
 }
 
 object EmServiceBaseCore {

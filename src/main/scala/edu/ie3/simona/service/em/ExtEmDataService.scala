@@ -37,6 +37,16 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
 
   override type S = ExtEmDataStateData
 
+  /** Method to create an adapter for responses for the em service.
+    * @param emService
+    *   The actor reference for the em service.
+    * @param receiver
+    *   Of the message.
+    * @param ctx
+    *   The actor context to use.
+    * @return
+    *   An adapter for to use.
+    */
   def emServiceResponseAdapter(
       emService: ActorRef[ServiceResponseMessage],
       receiver: UUID | ActorRef[FlexResponse],
@@ -54,6 +64,16 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
     ctx.spawn(request, "response-adapter")
   }
 
+  /** Method to create an adapter for requests for the em service.
+    * @param emService
+    *   The actor reference for the em service.
+    * @param receiver
+    *   Of the message.
+    * @param ctx
+    *   The actor context to use.
+    * @return
+    *   An adapter for to use.
+    */
   def emServiceRequestAdapter(
       emService: ActorRef[ServiceResponseMessage],
       receiver: ActorRef[EmAgent.Message],

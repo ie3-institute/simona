@@ -32,23 +32,53 @@ import javax.measure.quantity.Power as PsdmPower
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 
+/** Trait for all em service cores.
+  */
 trait EmServiceCore {
-  def lastFinishedTick: Long
 
-  def uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]]
+  /** The last tick that was completed.
+    */
+  val lastFinishedTick: Long
 
-  def allFlexOptions: Map[UUID, FlexOptionsResult]
+  /** Map: uuid to em agent reference.
+    */
+  val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]]
 
-  def completions: ReceiveDataMap[UUID, FlexCompletion]
+  /** Map: uuid to flex option result.
+    */
+  val allFlexOptions: Map[UUID, FlexOptionsResult]
 
+  /** ReceiveDataMap: uuid to completions.
+    */
+  val completions: ReceiveDataMap[UUID, FlexCompletion]
+
+  /** Extension to convert a squants power value to a psdm power value.
+    */
   extension (value: Power) {
     def toQuantity: ComparableQuantity[PsdmPower] = value.toMegawatts.asMegaWatt
   }
 
+  /** Method to handle a registration message.
+    * @param emServiceRegistration
+    *   The registration to handle.
+    * @return
+    *   An updated service core.
+    */
   def handleRegistration(
       emServiceRegistration: EmServiceRegistration
   ): EmServiceCore
 
+  /** Method to handle the received message from the external simulation.
+    * @param tick
+    *   Current tick of the service.
+    * @param extMsg
+    *   The message from external.
+    * @param log
+    *   Logger for logging messages.
+    * @return
+    *   An updated service core and an option for a message that should be sent
+    *   to the external simulation.
+    */
   def handleExtMessage(
       tick: Long,
       extMsg: EmDataMessageFromExt,
@@ -56,6 +86,19 @@ trait EmServiceCore {
       log: Logger
   ): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
+  /** Method to handle data response messages from the em agents.
+    * @param tick
+    *   Current tick of the service.
+    * @param responseMsg
+    *   To handle.
+    * @param startTime
+    *   The start time of the simulation.
+    * @param log
+    *   Logger for logging messages.
+    * @return
+    *   An updated service core and an option for a message that should be sent
+    *   to the external simulation.
+    */
   final def handleDataResponseMessage(
       tick: Long,
       responseMsg: ServiceResponseMessage,
@@ -99,6 +142,14 @@ trait EmServiceCore {
       }
   }
 
+  /** Method to handle the set points provided by the external simulation.
+    * @param tick
+    *   Current tick of the service.
+    * @param provideEmSetPoints
+    *   The set points to handle.
+    * @param log
+    *   Logger for logging messages.
+    */
   final def handleSetPoint(
       tick: Long,
       provideEmSetPoints: ProvideEmSetPointData,
@@ -133,6 +184,21 @@ trait EmServiceCore {
       }
   }
 
+  /** Method to handle flex responses from the em agents.
+    * @param tick
+    *   Current tick of the service.
+    * @param flexResponse
+    *   From the agent to handle.
+    * @param receiver
+    *   The receiver of the agent.
+    * @param startTime
+    *   The start time of the simulation.
+    * @param log
+    *   Logger for logging messages.
+    * @return
+    *   An updated service core and an option for a message that should be sent
+    *   to the external simulation.
+    */
   def handleFlexResponse(
       tick: Long,
       flexResponse: FlexResponse,
@@ -142,6 +208,19 @@ trait EmServiceCore {
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
+  /** Method to handle flex requests to the em agents.
+    * @param flexRequest
+    *   That is sent to an agents.
+    * @param receiver
+    *   Of the flex request.
+    * @param startTime
+    *   The start time of the simulation.
+    * @param log
+    *   Logger for logging messages.
+    * @return
+    *   An updated service core and an option for a message that should be sent
+    *   to the external simulation.
+    */
   def handleFlexRequest(
       flexRequest: FlexRequest,
       receiver: ActorRef[FlexRequest],
@@ -150,6 +229,12 @@ trait EmServiceCore {
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
+  /** Method to add disaggregated flex options to given data.
+    * @param data
+    *   That should be enriched.
+    * @param structure
+    *   To derive the needed disaggregated data.
+    */
   final def addDisaggregatingFlexOptions(
       data: Map[UUID, ExtendedFlexOptionsResult],
       structure: Map[UUID, Set[UUID]],
@@ -161,6 +246,16 @@ trait EmServiceCore {
     }
   }
 
+  /** Method to handle received completion messages.
+    * @param tick
+    *   Current tick of the service.
+    * @param completion
+    *   To handle.
+    * @return
+    *   The updated ReceiveDataMap an option for or a message that should be
+    *   sent to the external simulation and a boolean that tells, if all
+    *   completions have been received.
+    */
   final def handleCompletion(tick: Long, completion: FlexCompletion): (
       ReceiveDataMap[UUID, FlexCompletion],
       Option[EmDataResponseMessageToExt],
@@ -182,6 +277,10 @@ trait EmServiceCore {
     } else (updated, None, false)
   }
 
+  /** Method to calculate the next tick option.
+    * @return
+    *   An option for the next activation tick.
+    */
   private final def getMaybeNextTick: java.util.Optional[java.lang.Long] =
     completions.receivedData
       .flatMap { case (_, completion) =>
