@@ -55,6 +55,7 @@ final case class ThermalGrid(
 ) extends LazyLogging {
 
   /** Determines the state of the ThermalGrid by using the HpOperatingPoint.
+    *
     * @param tick
     *   The current tick of simulation.
     * @param lastState
@@ -102,6 +103,7 @@ final case class ThermalGrid(
   }
 
   /** Determine the energy demand of the thermalGrid.
+    *
     * @param thermalGridState
     *   Last state of the thermal grid.
     * @return
@@ -425,13 +427,13 @@ final case class ThermalGrid(
         storageState,
         thermalStorage.getpThermalMax * -1,
       )
+
       val nextThreshold = determineNextThreshold(
         Seq(
           revisedHouseThreshold,
           revisedStorageThreshold,
         )
       )
-
       (
         ThermalGridOperatingPoint(
           zeroKW,
@@ -665,6 +667,7 @@ object ThermalGrid {
 
     /** Builds a new instance of [[ThermalEnergyDemand]]. If the possible energy
       * is less than the required energy, this is considered to be a bad state.
+      *
       * @param required
       *   The absolutely required energy to reach target state.
       * @param possible
