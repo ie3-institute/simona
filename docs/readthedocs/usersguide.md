@@ -25,36 +25,6 @@ You can find and download the source code of the latest stable SIMONA version [h
 
     $ git clone https://github.com/ie3-institute/simona.git
 
-## Docker
-
-Docker is a tool used to containerize the entire setup. A container is like a lightweight, isolated environment that bundles everything the software needs into a single package. It is the tool used to handle the entire project setup in a single space. It can run on local setups or on virtual machines and can be used to create containers, volumes and the images.
-
-Using Docker, you can create the containers, volumes, plugins and images and use them simultaneously. Instead of installing different plugins required for simona on the local machine, docker can be used to run the entire SIMONA setup after creating an image while interacting with different environments. To build a docker image, you have create
-your own dockerfile which has syntaxes with steps defined to create an image. Since different instructions are defined to create an image each of these create a layer. If you rebuild the image after making the changes in the dockerfile, then only the layers affected will be changed. 
-
-SIMONA provides a Dockerfile in the root directory that can be used to build a Docker image and run simulations inside a container. 
-
-### Building Docker Image
-
-1. Locate the dockerfile in the root directory from the SIMONA and build the image by specifying the below command:
-    
-       docker build --build-arg version=4.1.0 -t simona 
-
-This creates a Docker image for the SIMONA in your local setup once the command is executed.
-
-2. To run simona and mount on your directory use the following command:
-
-       docker run -v `realpath input`:/input --rm simona
-   
-Note that for the windows setup you have to manually enter the absolute path.So please replace this `realpath input` with the direcory in your local setup.
-
-3. Once the container runs, SIMONA executes the simulation using the mounted input data and produces output in the container.
-   
-
-You can find more information on docker setup and installation [here](https://docs.docker.com/engine/install/).
-Documentation for docker can be found [here](https://docs.docker.com/get-started/).
-Useful commands for docker can be found [here](https://docs.docker.com/reference/cli/docker/).
-
 ## Running a Standalone Simulation
 
 Running a standalone simulation is a matter of invoking the ``RunSimonaStandalone`` object. You can find it at ``./src/main/scala/edu/ie3/simona/main``.
@@ -80,6 +50,34 @@ If you use an integrated development environment (IDE) all you have to do is nav
 When executed, the simulation starts at a specified start time and simulates the system interactions until the specified end time.
 As you might wonder who tells SIMONA when to start, when to end and what to actually perform a simulation on, there is indeed a piece missing.
 Since a simulation can be run with all sorts of grids and with different parameter sets, a simulation configuration has to be set for successful execution.
+
+## Docker
+
+Docker is a tool used to containerize the entire setup. A container is like a lightweight, isolated environment that bundles everything the software needs into a single package. It is the tool used to handle the entire project setup in a single space. It can run on local setups or on virtual machines and can be used to create containers, volumes and the images.
+
+Using Docker, you can create the containers, volumes, plugins and images and use them simultaneously. Instead of installing different plugins required for SIMONA on the local machine, docker can be used to run the entire SIMONA setup after creating an image while interacting with different environments. To build a docker image, you have create your own Dockerfile which has a set of instructions needed required to create an image. Once the image is built, you can run SiMONA inside a container on any system with all the necessary dependencies so that it works the same way on any system.
+
+SIMONA provides a Dockerfile in the root directory that can be used to build a Docker image and run simulations inside a container. 
+
+### Building Docker Image
+
+1. Locate the dockerfile in the root directory from the SIMONA and build the image by specifying the below command:
+    
+       docker build --build-arg version=4.1.0 -t simona 
+
+This creates a Docker image for the SIMONA in your local setup once the command is executed.
+
+2. To run simona and mount on your directory use the following command:
+
+       docker run -v `realpath input`:/input --rm simona
+   
+Note that for the windows setup you have to manually enter the absolute path. So please provide the full path to the project directory and replace it with the path input in the command line.
+
+3. Once the container runs, SIMONA executes the simulation using the mounted input data and produces output in the container.
+
+You can find more information on docker setup and installation [here](https://docs.docker.com/engine/install/).
+Documentation for docker can be found [here](https://docs.docker.com/get-started/).
+Useful commands for docker can be found [here](https://docs.docker.com/reference/cli/docker/).
 
 ## Simulation Inputs
 
