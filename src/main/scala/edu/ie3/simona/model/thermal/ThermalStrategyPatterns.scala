@@ -8,6 +8,7 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.Power
+import scala.reflect.Selectable.reflectiveSelectable
 
 import java.security.InvalidParameterException
 
@@ -18,6 +19,40 @@ private sealed trait FeedInStrategy {
       qDot: Power,
       heatStorage: Option[CylindricalThermalStorage],
   ): (Power, Power) // (house, heatStorage)
+
+  /** Get maximum thermal power of a storage.
+    *
+    * @param storage
+    *   The storage to determine.
+    * @return
+    */
+  protected def getMaxPower(
+      storage: Option[? <: { def pThermalMax: Power }]
+  ): Power =
+    storage
+      .getOrElse(
+        throw new InvalidParameterException(
+          s"Could not find $storage but expected one."
+        )
+      )
+      .pThermalMax
+
+  /** Distributes the thermal infeed qDot in case the maximum capacity exceeds
+    * the infeed.
+    *
+    * @param qDot
+    *   The thermal infeed.
+    * @param maxCapacity
+    *   The maximum capacity of the thermal sink.
+    * @return
+    *   Distributed qDot, zero and qDot in case the thermal sink can handle the
+    *   infeed, else remaining qDot and the maximum capacity of the thermal
+    *   sink.
+    */
+  protected def distribute(qDot: Power, maxCapacity: Power): (Power, Power) =
+    // Check if storage can handle qDot
+    if qDot > maxCapacity then (qDot - maxCapacity, maxCapacity)
+    else (zeroKW, qDot)
 }
 
 private object HouseOnlyStrategy extends FeedInStrategy {
@@ -33,18 +68,9 @@ private object HeatStorageFirstStrategy extends FeedInStrategy {
       qDot: Power,
       heatStorage: Option[CylindricalThermalStorage],
   ): (Power, Power) = {
-    val pThermalMaxHeatStorage = heatStorage
-      .getOrElse(
-        throw new InvalidParameterException(
-          "Could not find heatStorage but expected one."
-        )
-      )
-      .pThermalMax
-    if qDot > pThermalMaxHeatStorage
-    then {
-      val remainingQDot = qDot - pThermalMaxHeatStorage
-      (remainingQDot, pThermalMaxHeatStorage)
-    } else (zeroKW, qDot)
+    val maxHeat = getMaxPower(heatStorage)
+    val (remaining, toHeat) = distribute(qDot, maxHeat)
+    (remaining, toHeat)
   }
 }
 
