@@ -288,11 +288,11 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 3416.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
+              case _ => fail("Unexpected thermal unit result")
             }
         }
       resultListener.expectNoMessage()
@@ -377,7 +377,7 @@ class ThermalGridIT
       /* TICK 21600
       House would reach lowerTempBoundary at tick 50797.
       But now it's getting colder which should decrease inner temp of house faster.
-      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 11.56 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 11.57 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays off
        */
@@ -413,7 +413,7 @@ class ThermalGridIT
 
       /* TICK 23288
       House reach lowerTemperatureBoundary
-      House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.00 kWh
+      House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays off, demand should be covered by storage
        */
@@ -449,11 +449,11 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 23288.toDateTime
                 qDot should equalWithTolerance(-0.011.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
+              case _ => fail("Unexpected thermal unit result")
             }
         }
       resultListener.expectNoMessage()
@@ -497,7 +497,7 @@ class ThermalGridIT
 
       /* TICK 26704
         Heat storage is empty
-        House demand heating : requiredDemand = 0.0kWh, possibleDemand = 11.88 kWh
+        House demand heating : requiredDemand = 0.0kWh, possibleDemand = 11.51 kWh
         HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
        */
@@ -523,11 +523,11 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 26704.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
+              case _ => fail("Unexpected thermal unit result")
             }
         }
       resultListener.expectNoMessage()
@@ -570,7 +570,7 @@ class ThermalGridIT
 
       /* TICK 31837
         House will reach the upperTemperatureBoundary
-        House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+        House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
         Heat pump: stays on to recharge the storage now
        */
@@ -606,11 +606,11 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 31837.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
+              case _ => fail("Unexpected thermal unit result")
             }
         }
       resultListener.expectNoMessage()
@@ -654,11 +654,11 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 35253.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
+              case _ => fail("Unexpected thermal unit result")
             }
         }
       resultListener.expectNoMessage()
@@ -666,8 +666,8 @@ class ThermalGridIT
 
       /* TICK 35788
       Neither house nor heat storage have any demand
-      House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
-      HeatStorage          : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned off
        */
       heatPumpAgent ! Activation(35788)
@@ -908,8 +908,7 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 0.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -971,8 +970,7 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 1800.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
@@ -1026,8 +1024,7 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 5216.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
@@ -1084,11 +1081,11 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 5400.toDateTime
                 qDot should equalWithTolerance(-0.011.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
+              case _ => fail("Unexpected thermal unit result")
             }
         }
       resultListener.expectNoMessage()
@@ -1138,8 +1135,7 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 6731.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.0063730555556.asMegaWattHour)
@@ -1197,8 +1193,7 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 9200.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(0.0063730555556.asMegaWattHour)
@@ -1256,6 +1251,7 @@ class ThermalGridIT
                 time shouldBe 10531.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
+              case _ => fail("Unexpected thermal unit result")
             }
         }
       resultListener.expectNoMessage()
@@ -1501,6 +1497,7 @@ class ThermalGridIT
                 time shouldBe 24412.toDateTime
                 qDot should equalWithTolerance(-0.011.asMegaWatt)
                 energy should equalWithTolerance(0.01044.asMegaWattHour)
+              case _ => fail("Unexpected thermal unit result")
             }
         }
       resultListener.expectNoMessage()
@@ -1554,8 +1551,7 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 25200.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.0080322222222.asMegaWattHour)
@@ -1634,7 +1630,7 @@ class ThermalGridIT
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 30872.toDateTime
                 emResult._3 should equalWithTolerance(
-                  -0.0000638964970.asMegaWatt
+                  -0.000063896497.asMegaWatt
                 )
                 emResult._4 should equalWithTolerance(-0.000021001763.asMegaVar)
             }
@@ -1655,8 +1651,7 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 30872.toDateTime
                 qDot should equalWithTolerance(0.011.asMegaWatt)
                 energy should equalWithTolerance(0.008032222222.asMegaWattHour)
@@ -1714,8 +1709,7 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 31000.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.0084233333333.asMegaWattHour)
@@ -1769,8 +1763,7 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 40942.toDateTime
                 qDot should equalWithTolerance(-0.011.asMegaWatt)
                 energy should equalWithTolerance(0.008423333333.asMegaWattHour)
@@ -1828,11 +1821,11 @@ class ThermalGridIT
                     inputModel,
                     qDot,
                     energy,
-                  ) =>
-                inputModel shouldBe typicalHeatStorage.getUuid
+                  ) if inputModel == typicalHeatStorage.getUuid =>
                 time shouldBe 43698.toDateTime
                 qDot should equalWithTolerance(0.asMegaWatt)
                 energy should equalWithTolerance(0.asMegaWattHour)
+              case _ => fail("Unexpected thermal unit result")
             }
         }
       resultListener.expectNoMessage()
