@@ -667,6 +667,7 @@ class ThermalGridWithHouseAndStorageSpec
           heatStorage.pThermalMax * -1,
           zeroKW,
         )
+
         threshold shouldBe Some(HouseTargetTemperatureReached(6344L))
       }
     }
@@ -752,11 +753,26 @@ class ThermalGridWithHouseAndStorageSpec
   }
 
   "load the storage, if the target temperature in the house is reached" in {
-    val externalQDot = testGridQDotInfeed
+    val externalQDot = testGridQDotInfeed * 1.3
+
+    val gridState = initialGridState.copy(
+      houseState = Some(
+        ThermalHouseState(
+          -1,
+          testGridAmbientTemperature,
+          thermalHouse.upperBoundaryTemperature,
+        )
+      ),
+      heatStorageState = Some(expectedHeatStorageStartingState),
+    )
+
+    val state = initialHpState.copy(
+      thermalGridState = gridState
+    )
 
     val (thermalGridOperatingPoint, reachedThreshold) =
       thermalGrid.handleFeedIn(
-        initialHpState,
+        state,
         externalQDot,
       )
 
@@ -768,12 +784,27 @@ class ThermalGridWithHouseAndStorageSpec
       zeroKW,
     )
   }
-  "load the storage, if the target temperature in the house is reached and overheat the house with remaining qDot" in {
+  "load the storage, if the temperature in the house is sufficient and overheat the house with remaining qDot" in {
     val externalQDot = testGridQDotInfeed * 10
+
+    val gridState = initialGridState.copy(
+      houseState = Some(
+        ThermalHouseState(
+          -1,
+          testGridAmbientTemperature,
+          thermalHouse.upperBoundaryTemperature,
+        )
+      ),
+      heatStorageState = Some(expectedHeatStorageStartingState),
+    )
+
+    val state = initialHpState.copy(
+      thermalGridState = gridState
+    )
 
     val (thermalGridOperatingPoint, reachedThreshold) =
       thermalGrid.handleFeedIn(
-        initialHpState,
+        state,
         externalQDot,
       )
 

@@ -408,31 +408,38 @@ final case class ThermalHouse(
       qDot.toWatts / ethLosses.toWattsPerKelvin
     ) + Kelvin(thermalHouseState.ambientTemperature.toKelvinScale)
 
-    if isInnerTemperatureTooLow(limitTemperature + temperatureTolerance) then
-    /* Losses and gain of house are not in balance, thus temperature will reach some limit sooner or later */
-    /* House has more losses than gain */
-    {
-      nextActivation(
-        thermalHouseState.tick,
-        lowerBoundaryTemperature,
-        thermalHouseState.innerTemperature,
-        thermalHouseState.ambientTemperature,
-        qDot,
-      ).map(HouseTemperatureLowerBoundaryReached.apply)
-    } else if isInnerTemperatureTooHigh(
-        limitTemperature - temperatureTolerance
-      ) && qDot > zeroKW
-    then { /* House has more gain than losses AND gain is not caused external (through ambient temperature) */
-      nextActivation(
-        thermalHouseState.tick,
-        targetTemperature,
-        thermalHouseState.innerTemperature,
-        thermalHouseState.ambientTemperature,
-        qDot,
-      ).map(HouseTargetTemperatureReached.apply)
-    } else {
-      /* House is in perfect balance */
-      None
+    val maybeNextThreshold = {
+      if isInnerTemperatureTooLow(limitTemperature + temperatureTolerance) then
+      /* Losses and gain of house are not in balance, thus temperature will reach some limit sooner or later */
+      /* House has more losses than gain */ {
+        nextActivation(
+          thermalHouseState.tick,
+          lowerBoundaryTemperature,
+          thermalHouseState.innerTemperature,
+          thermalHouseState.ambientTemperature,
+          qDot,
+        ).map(HouseTemperatureLowerBoundaryReached.apply)
+      } else if isInnerTemperatureTooHigh(
+          limitTemperature - temperatureTolerance
+        ) && qDot > zeroKW
+      then { /* House has more gain than losses AND gain is not caused external (through ambient temperature) */
+        nextActivation(
+          thermalHouseState.tick,
+          targetTemperature,
+          thermalHouseState.innerTemperature,
+          thermalHouseState.ambientTemperature,
+          qDot,
+        ).map(HouseTargetTemperatureReached.apply)
+      } else {
+        /* House is in perfect balance */
+        None
+      }
+    }
+
+    // If next threshold is negative or zero (e.g. due to overheating beyond target temperature) there should be no next threshold
+    maybeNextThreshold match {
+      case Some(threshold) if threshold.tick <= 0 => None
+      case _                                      => maybeNextThreshold
     }
   }
 

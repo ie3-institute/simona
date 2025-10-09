@@ -396,24 +396,10 @@ final case class ThermalGrid(
   ): (Power, Option[ThermalThreshold]) = {
     house.zip(state.thermalGridState.houseState) match {
       case Some((thermalHouse, houseState)) =>
-        /* Check if house can handle the thermal feed in */
-        if thermalHouse.isInnerTemperatureTooHigh(
-            houseState.innerTemperature
-          )
-        then {
+        val threshold =
+          thermalHouse.determineNextThreshold(houseState, qDotHouse)
 
-          val maybeFullHouseThreshold =
-            thermalHouse.determineNextThreshold(houseState, zeroKW)
-
-          (qDotHouse, maybeFullHouseThreshold)
-
-        } else {
-          val threshold = thermalHouse.determineNextThreshold(
-            houseState,
-            qDotHouse,
-          )
-          (zeroKW, threshold)
-        }
+        (qDotHouse, threshold)
       case _ => (zeroKW, None)
     }
   }
@@ -437,7 +423,6 @@ final case class ThermalGrid(
       qDotHeatStorage: Power,
       qDotHotWaterStorage: Power,
   ): (Option[ThermalThreshold], Option[ThermalThreshold]) = {
-    // TODO: Issue #1562 We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
     val heatStorageThreshold =
       if qDotHeatStorage != zeroKW then
         handleFeedInHeatStorage(state, qDotHeatStorage)
