@@ -256,6 +256,7 @@ class ThermalGridWithHouseAndStorageSpec
             )
           )
         }
+
         "exactly calculate the state of the thermalGrid with non-zero OperatingPoint" in {
           val tick = 10800
           val gridState = initialGridState.copy(houseState =

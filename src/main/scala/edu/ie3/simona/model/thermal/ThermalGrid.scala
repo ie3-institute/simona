@@ -847,7 +847,7 @@ object ThermalGrid {
       * or it is empty.
       *
       * @return
-      *   boolean which is true, if there is no heat Storage, or it's empty.
+      *   boolean which is true, if there is no heat storage, or it's empty.
       */
     def isHeatStorageEmpty: Boolean = {
       implicit val tolerance: Energy = KilowattHours(1e-3)
@@ -908,11 +908,10 @@ object ThermalGrid {
       required: Energy,
       possible: Energy,
   ) {
-    def +(rhs: ThermalEnergyDemand): ThermalEnergyDemand =
-      ThermalEnergyDemand(
-        required + rhs.required,
-        possible + rhs.possible,
-      )
+    def +(rhs: ThermalEnergyDemand): ThermalEnergyDemand = ThermalEnergyDemand(
+      required + rhs.required,
+      possible + rhs.possible,
+    )
 
     def hasRequiredDemand: Boolean = required > zeroKWh
 
