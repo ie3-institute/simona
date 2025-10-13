@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhancing `QuantityConversionUtilsSpec` with more tests [#1400](https://github.com/ie3-institute/simona/issues/1400)
 - Prepare ThermalHouse for changes by including tap water [#1547](https://github.com/ie3-institute/simona/issues/1547)
 - Updated docker documentation [#488](https://github.com/ie3-institute/simona/issues/488)
+- Added support classes for transformer tap position calculation [#1543](https://github.com/ie3-institute/simona/issues/1543)
 - Introducing energy demand for warm water heating [#856](https://github.com/ie3-institute/simona/issues/856)
 
 ### Changed
