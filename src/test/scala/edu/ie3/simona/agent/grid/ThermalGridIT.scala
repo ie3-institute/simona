@@ -1521,6 +1521,7 @@ class ThermalGridIT
 
       /* TICK 1800
         New Weather: The sun comes out, PV will produce.
+        PV: -6.3 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.25 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
@@ -1687,6 +1688,7 @@ class ThermalGridIT
 
       /* TICK 5216
       Storage is fully heated up, meanwhile house cooled a bit.
+      PV: -6.3 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 3.59 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2020,6 +2022,7 @@ class ThermalGridIT
 
       /* TICK 10531
       Storage is full, now heating the house till target temperature.
+      PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.62 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2175,6 +2178,7 @@ class ThermalGridIT
 
       /* TICK 11638
       House reaches target temperature boundary.
+      PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2221,6 +2225,7 @@ class ThermalGridIT
       /* TICK 12000
       House would reach lowerTempBoundary at tick 23809,
       but now it's getting colder which should decrease inner temp of house faster, but the sun is still there.
+      PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.25 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2279,6 +2284,7 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(12139)))
 
       /* TICK 12139
+      PV: 0.0 kW
       House reaches the target temperature.
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
