@@ -41,7 +41,7 @@ object TransformerTappingSupport {
         case _ =>
           // check for possible increase and decrease that can be applied to all transformers
 
-          // TODO: Enhance this, to support transformer combinations with different tap deltas
+          // TODO #1553: Enhance this, to support transformer combinations with different tap deltas
           val (increases, decreases) = tappingRanges.unzip
           (
             increases.minByOption(_.toEach).getOrElse(zeroPU),

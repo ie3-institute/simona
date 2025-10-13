@@ -20,11 +20,9 @@ import edu.ie3.simona.model.grid.{
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import org.apache.pekko.actor.typed.ActorRef
-import squants.Each
-import tech.units.indriya.ComparableQuantity
+import squants.{Dimensionless, Each}
 
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
 
 /** Object that contains information about possible voltage changes. <p> If the
   * delta plus is negative -> upper voltage violation <p> If the delta minus is
@@ -40,9 +38,9 @@ import javax.measure.quantity.Dimensionless
   *   For voltage change.
   */
 final case class VoltageRange(
-    deltaPlus: squants.Dimensionless,
-    deltaMinus: squants.Dimensionless,
-    suggestion: squants.Dimensionless,
+    deltaPlus: Dimensionless,
+    deltaMinus: Dimensionless,
+    suggestion: Dimensionless,
 ) {
 
   /** Method to update this voltage range with voltage delta.
@@ -53,7 +51,7 @@ final case class VoltageRange(
     *   A new [[VoltageRange]].
     */
   def updateWithVoltageDelta(
-      deltaV: squants.Dimensionless
+      deltaV: Dimensionless
   ): VoltageRange = {
 
     val (plus, minus) = (deltaV < deltaPlus, deltaV > deltaMinus) match {
@@ -67,7 +65,7 @@ final case class VoltageRange(
         // greater than both range limits => limits are unchanged
         (deltaPlus, deltaMinus)
       case (false, false) =>
-        // should is only possible, if deltaMinus > deltaPlus => limits are unchanged
+        // should only be possible, if deltaMinus > deltaPlus => limits are unchanged
         (deltaPlus, deltaMinus)
     }
 
@@ -118,11 +116,11 @@ final case class VoltageRange(
 
 object VoltageRange {
 
-  private given squants.Dimensionless = Each(1e-3)
+  private given Dimensionless = Each(1e-3)
 
   def apply(
-      deltaPlus: squants.Dimensionless,
-      deltaMinus: squants.Dimensionless,
+      deltaPlus: Dimensionless,
+      deltaMinus: Dimensionless,
   ): VoltageRange = {
     val plus = deltaPlus.toEach
     val minus = deltaMinus.toEach
@@ -200,19 +198,19 @@ object VoltageRange {
     // calculate voltage range
     val nodeResMap = powerFlowResultEvent.nodeResults
       .filter(res => nodesInSubnet.contains(res.getInputModel))
-      .map(res => res.getInputModel -> res.getvMag)
+      .map(res => res.getInputModel -> res.getvMag.toSquants)
       .toMap
     val minVoltage = nodeResMap
-      .minByOption(_._2)
+      .minByOption(_._2.toEach)
       .getOrElse(throw new CriticalFailureException(s"No node result found!"))
     val maxVoltage = nodeResMap
-      .maxByOption(_._2)
+      .maxByOption(_._2.toEach)
       .getOrElse(throw new CriticalFailureException(s"No node result found!"))
 
     // build initial range
     val range = VoltageRange(
-      voltageLimits.vMax.subtract(maxVoltage._2).toSquants,
-      voltageLimits.vMin.subtract(minVoltage._2).toSquants,
+      voltageLimits.vMax.toSquants - maxVoltage._2,
+      voltageLimits.vMin.toSquants - minVoltage._2,
     )
 
     // updating the voltage range prevent or heal line congestions
@@ -248,10 +246,10 @@ object VoltageRange {
     *   A voltage delta.
     */
   def calculateVoltageDeltaFromLineCurrent(
-      nodeResults: Map[UUID, ComparableQuantity[Dimensionless]],
+      nodeResults: Map[UUID, Dimensionless],
       lineResults: Iterable[LineResult],
       gridComponents: GridComponents,
-  ): squants.Dimensionless = {
+  ): Dimensionless = {
     val lineMap = gridComponents.lines.map(line => line.uuid -> line).toMap
 
     // calculate the voltage change that ensures there is no line congestion
@@ -267,7 +265,7 @@ object VoltageRange {
             (res.getiBMag(), line.nodeBUuid)
           }
 
-        val voltage = nodeResults(node).toSquants
+        val voltage = nodeResults(node)
         val deltaI = line.iNom - current.toSquants
 
         // calculate the voltage change
@@ -297,7 +295,7 @@ object VoltageRange {
     */
   def combineAndUpdate(
       ranges: Iterable[VoltageRange],
-      offset: squants.Dimensionless,
+      offset: Dimensionless,
   ): VoltageRange = {
     // finds the minimal voltage increase
     val minPlus = ranges.minByOption(_.deltaPlus).map(_.deltaPlus)

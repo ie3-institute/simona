@@ -13,6 +13,7 @@ import edu.ie3.simona.agent.grid.congestion.VoltageRange
 import edu.ie3.simona.agent.grid.congestion.VoltageRange.calculateVoltageDeltaFromLineCurrent
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.GridModel.GridComponents
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.simona.model.grid.VoltageLimits
 import edu.ie3.simona.test.common.model.grid.{
   DbfsTestGrid,
@@ -123,7 +124,7 @@ class VoltageRangeSpec
 
       forAll(cases) { (results, deltaV) =>
         val nodeResults = results.nodeResults
-          .map(res => res.getInputModel -> res.getvMag)
+          .map(res => res.getInputModel -> res.getvMag.toSquants)
           .toMap
 
         val actualDeltaV = calculateVoltageDeltaFromLineCurrent(
