@@ -41,7 +41,7 @@ private object ThermalDemandConditions {
       /* Consider the action in the last state
        * We can continue using the qDots from last operating point to keep continuity.
        * If the house was heated in lastState and has still some demand and the domestic
-       * hot water storage as no demand. */
+       * hot water storage has no demand. */
       shouldContinueHouseHeating =
         lastOperatingPoint.qDotHouse > zeroKW && houseDemand.hasPossibleDemand &&
           !state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand,
