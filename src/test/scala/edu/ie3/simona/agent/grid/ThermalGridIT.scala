@@ -2467,7 +2467,7 @@ class ThermalGridIT
         )
       }
 
-      Range(0, 3)
+      Range(0, 4)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
