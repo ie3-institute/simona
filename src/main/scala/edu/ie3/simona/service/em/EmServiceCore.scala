@@ -46,8 +46,8 @@ trait EmServiceCore {
   ): EmServiceCore
 
   def handleExtMessage(
-                        tick: Long,
-                        extMsg: EmDataMessageFromExt,
+      tick: Long,
+      extMsg: EmDataMessageFromExt,
   )(using
       log: Logger
   ): (EmServiceCore, Option[EmDataResponseMessageToExt])
