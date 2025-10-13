@@ -32,7 +32,11 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
@@ -142,7 +146,7 @@ class PrimaryServiceProxySpec
     m
   }
   private val validExtPrimaryDataService = spawn(
-    ExtPrimaryDataService(scheduler.ref)
+    ExtPrimaryServiceWorker(scheduler.ref)
   )
 
   private val extEntityId =
@@ -448,6 +452,41 @@ class PrimaryServiceProxySpec
           tick shouldBe INIT_SIM_TICK
           key shouldBe None
       }
+    }
+
+    "forwarding the registration to correct ext worker" in {
+      val extWorker1 = TestProbe[ServiceMessage]("extWorker1")
+      val extWorker2 = TestProbe[ServiceMessage]("extWorker2")
+
+      val participant1 = TestProbe[ParticipantAgent.Message]("Participant1").ref
+      val participant2 = TestProbe[ParticipantAgent.Message]("Participant2").ref
+
+      val extEntityUuid1 = UUID.randomUUID()
+      val extEntityUuid2 = UUID.randomUUID()
+
+      val stateData = PrimaryServiceStateData(
+        Map.empty,
+        Map.empty,
+        simulationStart,
+        validPrimaryConfig,
+        Map(extEntityUuid1 -> extWorker1.ref, extEntityUuid2 -> extWorker2.ref),
+      )
+
+      val behavior = BehaviorTestKit(PrimaryServiceProxy.onMessage(stateData))
+
+      behavior.run(
+        PrimaryServiceRegistrationMessage(participant1, extEntityUuid1)
+      )
+      extWorker1.expectMessage(
+        PrimaryServiceRegistrationMessage(participant1, extEntityUuid1)
+      )
+
+      behavior.run(
+        PrimaryServiceRegistrationMessage(participant2, extEntityUuid2)
+      )
+      extWorker2.expectMessage(
+        PrimaryServiceRegistrationMessage(participant2, extEntityUuid2)
+      )
     }
   }
 

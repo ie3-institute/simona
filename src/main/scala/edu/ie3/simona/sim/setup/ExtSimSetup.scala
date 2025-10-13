@@ -21,8 +21,8 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.service.primary.ExtPrimaryDataService
-import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -141,7 +141,7 @@ object ExtSimSetup {
         connection match {
           case extPrimaryDataConnection: ExtPrimaryDataConnection =>
             val serviceRef = context.spawn(
-              ExtPrimaryDataService(scheduler),
+              ExtPrimaryServiceWorker(scheduler),
               "ExtPrimaryDataService_$index",
             )
 

@@ -40,7 +40,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
-object ExtPrimaryDataService extends SimonaService with ExtDataSupport {
+object ExtPrimaryServiceWorker extends SimonaService with ExtDataSupport {
 
   override type S = ExtPrimaryDataStateData
 

@@ -29,7 +29,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
-import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.asKiloWatt
@@ -72,7 +72,7 @@ class ExtPrimaryDataServiceSpec
         Map(validUuid -> classOf[PValue]).asJava
       )
 
-      val primaryDataService = spawn(ExtPrimaryDataService(scheduler.ref))
+      val primaryDataService = spawn(ExtPrimaryServiceWorker(scheduler.ref))
       extPrimaryDataConnection.setActorRefs(
         primaryDataService,
         extSimAdapter.ref,
@@ -109,7 +109,7 @@ class ExtPrimaryDataServiceSpec
       )
 
       // we need to create another service, since we want to continue using the other in later tests
-      val service = spawn(ExtPrimaryDataService(schedulerProbe.ref))
+      val service = spawn(ExtPrimaryServiceWorker(schedulerProbe.ref))
       extPrimaryDataConnection.setActorRefs(service, extSimAdapter.ref)
 
       val key =
@@ -139,7 +139,7 @@ class ExtPrimaryDataServiceSpec
       )
 
       // we need to create another service, since we want to continue using the other in later tests
-      val service = spawn(ExtPrimaryDataService(schedulerProbe.ref))
+      val service = spawn(ExtPrimaryServiceWorker(schedulerProbe.ref))
       extPrimaryDataConnection.setActorRefs(service, extSimAdapter.ref)
 
       val key =
@@ -168,7 +168,7 @@ class ExtPrimaryDataServiceSpec
       Map(validUuid -> classOf[PValue]).asJava
     )
 
-    val serviceRef = spawn(ExtPrimaryDataService(scheduler.ref))
+    val serviceRef = spawn(ExtPrimaryServiceWorker(scheduler.ref))
     extPrimaryDataConnection.setActorRefs(serviceRef, extSimAdapter.ref)
 
     "init the service actor" in {
