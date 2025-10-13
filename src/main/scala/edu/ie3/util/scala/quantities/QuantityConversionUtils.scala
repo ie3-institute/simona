@@ -22,6 +22,7 @@ import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.{Amperes, Each, Radians, Velocity}
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.*
 import javax.measure.quantity.*
 
@@ -38,6 +39,11 @@ object QuantityConversionUtils {
     def toSquants: squants.Dimensionless = Each(
       quantity.to(PU).getValue.doubleValue
     )
+  }
+
+  extension (quantity: squants.Dimensionless) {
+    def toQuantity: ComparableQuantity[Dimensionless] =
+      Quantities.getQuantity(quantity.toEach, PU)
   }
 
   /** Extension for [[ComparableQuantity]] of type [[ElectricPotential]] that
