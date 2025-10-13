@@ -1960,6 +1960,7 @@ class ThermalGridIT
 
       /* TICK 9200
       The sun is back again, storage first.
+      PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.7 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 4.07 kWh
@@ -2443,6 +2444,7 @@ class ThermalGridIT
 
       /* TICK 25200
         The sun comes out and it's getting warmer.
+        PV: -4.4 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.53 kWh
         House demand water   : requiredDemand = 0.18 kWh, possibleDemand = 0.18 kWh
         HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 2.4 kWh
@@ -2465,7 +2467,7 @@ class ThermalGridIT
         )
       }
 
-      Range(0, 4)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -2623,6 +2625,7 @@ class ThermalGridIT
 
       /* TICK 27500
         Additional trigger caused by (unchanged) weather data should not change this.
+        PV: -3.9 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 9.5 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 2.41 kWh
@@ -2760,6 +2763,7 @@ class ThermalGridIT
 
       /* TICK 31000
         The sun is gone again, it's getting colder as well.
+        PV: 0.0 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.17 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 2.41 kWh

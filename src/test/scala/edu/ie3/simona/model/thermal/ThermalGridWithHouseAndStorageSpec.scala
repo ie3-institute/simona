@@ -860,5 +860,4 @@ class ThermalGridWithHouseAndStorageSpec
     )
     firstReachedThreshold shouldBe Some(StorageFull(3986))
   }
-
 }
