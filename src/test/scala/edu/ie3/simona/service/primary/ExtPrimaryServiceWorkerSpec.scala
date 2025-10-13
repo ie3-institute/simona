@@ -46,7 +46,7 @@ import squants.energy.Kilowatts
 import java.util.{Optional, UUID}
 import scala.jdk.CollectionConverters.*
 
-class ExtPrimaryDataServiceSpec
+class ExtPrimaryServiceWorkerSpec
     extends ScalaTestWithActorTestKit
     with AnyWordSpecLike
     with should.Matchers
