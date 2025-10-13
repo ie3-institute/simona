@@ -18,7 +18,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,
   HouseTemperatureLowerBoundaryReached,
 }
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy.*
 import squants.thermal.Celsius
@@ -26,7 +26,11 @@ import squants.{Energy, Power, Temperature}
 
 import scala.jdk.CollectionConverters.*
 
-class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
+class ThermalGridWithHouseOnlySpec
+    extends UnitSpec
+    with ThermalHouseTestData
+    with DefaultTestData
+    with ThermalStorageTestData {
 
   implicit val tempTolerance: Temperature = Celsius(1e-3)
   implicit val powerTolerance: Power = Watts(1e-3)
@@ -65,6 +69,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
     val initialHpState = HpState(
       0L,
+      defaultSimulationStart,
       initialGridState,
       HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
       noThermalDemand,
@@ -165,6 +170,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
         val state = HpState(
           0,
+          defaultSimulationStart,
           gridState,
           HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
           onlyThermalDemandOfHouse,
