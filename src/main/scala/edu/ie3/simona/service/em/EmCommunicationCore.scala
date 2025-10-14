@@ -94,11 +94,14 @@ object EmCommunicationCore {
 
     def isWaitingForActivation: Boolean = !receivedActivation
 
-    def isWaitingForExtern: Boolean = (awaitedFlexOptions.nonEmpty || awaitedSetPoint) && !waitingForInternal
+    def isWaitingForExtern: Boolean =
+      (awaitedFlexOptions.nonEmpty || awaitedSetPoint) && !waitingForInternal
 
     def isWaitingForSetPoint: Boolean = awaitedSetPoint
 
     def isWaitingForInternal: Boolean = waitingForInternal
+
+    def isActivated: Boolean = receivedActivation
 
     def clear(): Unit = {
       receivedActivation = false
@@ -126,6 +129,7 @@ case class EmCommunicationCore(
     emStates: Map[UUID, EmAgentState] = Map.empty,
     expectDataFrom: ReceiveMultiDataMap[UUID, EmData] =
       ReceiveMultiDataMap.empty,
+    nextActivation: Map[UUID, Long] = Map.empty
 ) extends EmServiceCore {
 
   override def handleRegistration(
@@ -158,6 +162,7 @@ case class EmCommunicationCore(
       uuidToInferior = updatedInferior,
       uuidToParent = updatedUuidToParent,
       emStates = emStates.updated(uuid, EmAgentState()),
+      nextActivation = nextActivation.updated(uuid, 0)
     )
   }
 
@@ -213,8 +218,12 @@ case class EmCommunicationCore(
                 requestedFlexType.getOrElse(uuid, FlexType.PowerLimit),
               )
 
+              val count = Try {
+                uuidToInferior(uuid).count { id => nextActivation(id) <= tick}
+              }.getOrElse(1)
+
               // uuid -> number of sent flex requests
-              uuid -> Try(uuidToInferior(uuid).size).getOrElse(1)
+              uuid -> count
             }
           case _ =>
             None
@@ -275,8 +284,12 @@ case class EmCommunicationCore(
                   agent ! IssueNoControl(extTick)
               }
 
+              val count = Try {
+                uuidToInferior(uuid).count { id => emStates(id).isActivated }
+              }.getOrElse(0)
+
               // sender -> number of set points to send
-              Some(uuid -> Try(uuidToInferior(uuid).size).getOrElse(0))
+              Some(uuid -> count)
             case _ => None
           }
           .toMap
@@ -443,6 +456,12 @@ case class EmCommunicationCore(
 
           if updatedData.isComplete then {
             emStates.foreach(_._2.clear())
+            log.warn(s"Cleared EmStates: $emStates")
+
+            // the next activations
+            val additionalActivation = updatedData.receivedData.flatMap { case (uuid, msg) =>
+              msg.requestAtTick.map(uuid -> _)
+            }
 
             (
               copy(
@@ -453,6 +472,7 @@ case class EmCommunicationCore(
                 currentSetPoint = Map.empty,
                 activatedAgents = Set.empty,
                 expectDataFrom = ReceiveMultiDataMap.empty,
+                nextActivation = nextActivation ++ additionalActivation,
               ),
               Some(new EmCompletion(getMaybeNextTick.toJava)),
             )
@@ -556,7 +576,9 @@ case class EmCommunicationCore(
     }
   }
 
-  private def getMsgToExtOption(using log: Logger): Option[EmDataResponseMessageToExt] = {
+  private def getMsgToExtOption(using
+      log: Logger
+  ): Option[EmDataResponseMessageToExt] = {
     if emStates.exists(_._2.isWaitingForInternal) then {
       None
     } else {

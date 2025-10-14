@@ -201,15 +201,18 @@ object EmAgent {
     case (_, msg: Activation) =>
       activate(emData, modelShell, core, msg.tick)
 
-    case (_, msg: FlexActivation) =>
-      activate(emData, modelShell, core, msg.tick)
+    case (ctx, msg: FlexActivation) =>
+      val tick = msg.tick
+      ctx.log.info(s"EmAgent (${modelShell.uuid}) activated for tick $tick")
+
+      activate(emData, modelShell, core, tick)
 
     case (ctx, msg: FlexShiftActivation) =>
       val tick = msg.tick
       ctx.log.info(
         s"EmAgent (${modelShell.uuid}) activated by service for tick $tick"
       )
-      activate(emData, modelShell, core.gotoTick(tick), msg.tick)
+      activate(emData, modelShell, core.gotoTick(tick), tick)
 
     case (ctx, msg: IssueFlexControl) =>
       val flexOptionsCore = core.activate(msg.tick)
@@ -398,6 +401,9 @@ object EmAgent {
             inactiveCore,
             lastActiveTick = updatedCore.activeTick,
           )(using ctx.self)
+
+          ctx.log.info(s"${modelShell.uuid} -> inactive, next tick ${completion.requestAtTick}")
+
           inactive(emData, modelShell, inactiveCore)
         }
         .getOrElse {
