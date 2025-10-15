@@ -9,21 +9,12 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent.Message
-import edu.ie3.simona.api.data.model.em.{
-  EmData,
-  EmSetPoint,
-  ExtendedFlexOptionsResult,
-  FlexOptionRequest,
-}
+import edu.ie3.simona.api.data.model.em.{EmData, EmSetPoint, ExtendedFlexOptionsResult, FlexOptionRequest}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{
-  FlexType,
-  FlexibilityMessage,
-  PowerLimitFlexOptions,
-}
+import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -39,6 +30,7 @@ import java.util.UUID
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
+import scala.math.max
 import scala.util.Try
 
 object EmCommunicationCore {
@@ -218,9 +210,9 @@ case class EmCommunicationCore(
                 requestedFlexType.getOrElse(uuid, FlexType.PowerLimit),
               )
 
-              val count = Try {
+              val count = max(Try {
                 uuidToInferior(uuid).count { id => nextActivation(id) <= tick}
-              }.getOrElse(1)
+              }.getOrElse(1), 1)
 
               // uuid -> number of sent flex requests
               uuid -> count
