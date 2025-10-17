@@ -156,7 +156,6 @@ final case class EmServiceBaseCore(
             val result = new ExtendedFlexOptionsResult(
               tick.toDateTime,
               modelUuid,
-              modelUuid,
               min.toQuantity,
               ref.toQuantity,
               max.toQuantity,
