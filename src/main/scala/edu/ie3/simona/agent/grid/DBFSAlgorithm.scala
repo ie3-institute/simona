@@ -1151,9 +1151,17 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 //                  case assetPowerUnchangedMessage: AssetPowerUnchangedMessage =>
 //                    (assetAgent, assetPowerUnchangedMessage)
 //                }
-              ctx.ask(assetAgent, (replyTo: ActorRef[RequestAssetPowerMessage]) => 
-                  RequestAssetPowerMessage(currentTick, eInPu, fInPU, replyTo)
-                ) 
+              ctx
+                .ask(
+                  assetAgent,
+                  (replyTo: ActorRef[ProvidedPowerResponse]) =>
+                    RequestAssetPowerMessage(
+                      currentTick,
+                      eInPu,
+                      fInPU,
+                      replyTo,
+                    ),
+                )
                 .map {
                   case providedPowerValuesMessage: AssetPowerChangedMessage =>
                     (assetAgent, providedPowerValuesMessage)
