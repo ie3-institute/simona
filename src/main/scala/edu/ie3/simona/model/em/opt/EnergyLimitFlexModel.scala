@@ -4,36 +4,33 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.em
+package edu.ie3.simona.model.em.opt
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.StorageMathFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyLimitFlexOptions.ParticipantEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.SoftConstraint
+import edu.ie3.util.interval.ClosedInterval
 import optimus.algebra.{Const, Double2Const, Expression}
 import optimus.optimization.MPModel
-import optimus.optimization.model.MPFloatVar
-import squants.energy.{Energy, Power}
-import squants.{Dimensionless, Each, Time}
+import optimus.optimization.model.{MPFloatVar, MPVar}
+import squants.energy.Kilowatts
+import squants.{Each, Power, Time}
 
 object EnergyLimitFlexModel {
 
   def addStep(
-      flexOptions: ParticipantEnergyBoundaries,
+      energyBoundaries: ParticipantEnergyBoundaries,
       tick: Long,
       duration: Time,
-      formerState: Option[Expression],
+      lastState: Option[Expression],
   )(using model: MPModel): StepResults = {
 
-    val energyLimits = flexOptions.energyLimits
+    val energyLimits = energyBoundaries.energyLimits
       .maxBefore(tick + 1)
       .map { case (_, limits) =>
         limits
       }
       .getOrElse(throw new CriticalFailureException("No energy limits found!"))
-
-    // todo
-    val eta = Each(1)
 
     if energyLimits.getUpper == energyLimits.getLower then {
       // there is no flexibility at all, thus we don't need any state to keep track of
@@ -43,12 +40,17 @@ object EnergyLimitFlexModel {
     } else {
       // we do have some flexibility at this point in time, model it
 
-      // determining a previous state
-      val oldState = formerState.getOrElse {
+      // we use charging efficiency for both charging and discharging,
+      // since we use the adapted storage model here
+      val eta = energyBoundaries.etaCharge
 
-        val formerEnergyLimits = flexOptions.energyLimits.maxBefore(tick).map {
-          case (_, limits) => limits
-        }
+      // determining a previous state
+      val previousState = lastState.getOrElse {
+
+        val formerEnergyLimits =
+          energyBoundaries.energyLimits.maxBefore(tick).map {
+            case (_, limits) => limits
+          }
 
         // we have been given no former state as a parameter. Either...
         formerEnergyLimits
@@ -65,33 +67,42 @@ object EnergyLimitFlexModel {
           .getOrElse(Const(0d))
       }
 
-      // modeling the new state
+      // modeling the operating point (power),
+      // valid between that previous and new state
+      val p = MPFloatVar(
+        "p",
+        energyBoundaries.powerLimits.getLower.toKilowatts,
+        energyBoundaries.powerLimits.getUpper.toKilowatts,
+      )
+
+      // modeling the new state (stored energy)
       val newState = MPFloatVar(
         "state",
         energyLimits.getLower.toKilowattHours,
         energyLimits.getUpper.toKilowattHours,
       )
 
-      // modeling the operating point (power)
-      val p = MPFloatVar(
-        "p",
-        flexOptions.powerLimits.getLower.toKilowatts,
-        flexOptions.powerLimits.getUpper.toKilowatts,
-      )
-
       val softConstraint =
         if eta == Each(1) then {
-          model.add(newState := oldState + p * duration.toHours)
+          // there are no charging/discharging losses, we can keep it simple
+
+          model.add(newState := previousState + p * duration.toHours)
           None
         } else {
+          // there are charging/discharging losses, thus use the full model
+
           val pAbs =
-            MPFloatVar("pAbs", 0, flexOptions.powerLimits.getUpper.toKilowatts)
+            MPFloatVar(
+              "pAbs",
+              0,
+              energyBoundaries.powerLimits.getUpper.toKilowatts,
+            )
 
           model.add(pAbs >:= p)
           model.add(pAbs >:= -p)
 
           model.add(
-            newState := oldState + (p - pAbs * (1 - eta.toEach)) * duration.toHours
+            newState := previousState + (p - pAbs * (1 - eta.toEach)) * duration.toHours
           )
 
           Some(new SoftConstraint {
@@ -131,56 +142,47 @@ object EnergyLimitFlexModel {
 
   }
 
-  object StorageMathFlexOptions {
+  def adaptEnergyBoundaries(
+      boundaries: ParticipantEnergyBoundaries
+  ) = {
 
-    /** Creates an equivalent linear battery model using parameters of a regular
-      * model. A common efficiency needs to be calculated for charging and
-      * discharging operations. Furthermore, energy amounts need to be adapted.
-      *
-      * @param currentEnergy
-      *   The currently stored energy.
-      * @param eStorage
-      *   The storage capacity.
-      * @param pMax
-      *   The maximum charging and discharging power.
-      * @param etaCharging
-      *   The charging efficiency.
-      * @param etaDischarging
-      *   The discharging efficiency.
-      * @return
-      *   An adapted model.
-      */
-    def createAdaptedFlexOptions(
-        currentEnergy: Energy,
-        eStorage: Energy,
-        pMax: Power,
-        etaCharging: Dimensionless,
-        etaDischarging: Dimensionless,
-    ): StorageMathFlexOptions = {
+    val etaCh = boundaries.etaCharge.toEach
+    val etaDis = boundaries.etaDischarge.toEach
 
-      // todo adapt
-      val etaCh = etaCharging.toEach
-      val etaDis = etaDischarging.toEach
+    val etaAvg = (2 * etaCh * etaDis) / (1 + etaCh * etaDis)
 
-      val etaAvg = (2 * etaCh * etaDis) / (1 + etaCh * etaDis)
+    val newEnergyLimits = boundaries.energyLimits.map { case (tick, limits) =>
+      val newLower = (limits.getLower / etaCh) * etaAvg
+      val newUpper = (limits.getUpper / etaCh) * etaAvg
 
-      val adaptedCurrentEnergy = (currentEnergy / etaCh) * etaAvg
-      val adaptedEStorage = (eStorage / etaCh) * etaAvg
-
-      new StorageMathFlexOptions(
-        adaptedCurrentEnergy,
-        adaptedEStorage,
-        pMax,
-        Each(etaAvg),
-      )
+      tick -> ClosedInterval(newLower, newUpper)
     }
+
+    val etaAvgEach = Each(etaAvg)
+
+    boundaries.copy(
+      energyLimits = newEnergyLimits,
+      etaCharge = etaAvgEach,
+      etaDischarge = etaAvgEach,
+    )
 
   }
 
   final case class StepResults(
       state: Option[Expression],
-      operation: Expression,
+      operation: Const | MPVar,
       softConstraint: Option[SoftConstraint],
-  )
+  ) {
+
+    def getOperationResult: Power = Kilowatts(operation match {
+      case const: Const => const.value
+      case variable: MPVar =>
+        variable.value.getOrElse(
+          throw new CriticalFailureException(
+            s"No result present for variable $variable"
+          )
+        )
+    })
+  }
 
 }
