@@ -15,7 +15,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.util.ReceiveDataMap
-import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
+import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
@@ -48,7 +48,9 @@ import scala.jdk.OptionConverters.RichOption
   * @param sendOptionsToExt
   *   True, if flex options should be sent to the external simulation.
   * @param canHandleSetPoints
-  *   True, if the core can process the em set points.
+  *   True, if the core can sent the received em set points to the agent. It
+  *   will only be true, of all em agent are able to process the send set
+  *   points.
   * @param setPointOption
   *   Option for em set points that needs to be handled at a later time.
   */
@@ -135,6 +137,7 @@ final case class EmServiceBaseCore(
         emEntities.foreach { entity =>
           uuidToAgent.get(entity) match {
             case Some(ref) =>
+              // activate the necessary em agent, this is needed, because an em agent needs to know its current flex option to properly handle the given set point
               ref ! FlexActivation(tick, PowerLimit)
             case None =>
               log.warn(s"Received entity: $entity")
@@ -281,7 +284,7 @@ final case class EmServiceBaseCore(
         max.toQuantity,
       )
 
-      if flexOptions.getExpectedKeys.contains(modelUuid) then {
+      if flexOptions.expects(modelUuid) then {
         (
           flexOptions.addData(modelUuid, result),
           allFlexOptions,
