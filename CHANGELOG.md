@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Updates
 - Updated gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)
+- Update simonaAPI to version 0.11.0 [#1573](https://github.com/ie3-institute/simona/issues/1573)
 
 ## [4.0.0] - 2025-05-09
 
