@@ -205,21 +205,63 @@ class HpModel private (
       state: HpState,
       setPower: Option[Power],
   ): (Power, Power) = {
-    val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
-    val turnOn = setPower match {
-      case Some(value) =>
-        /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
-        value > (sRated.toActivePower(cosPhiRated) * 0.5)
-      case None =>
-        determineHpOperatingOptions(
-          state.thermalGridState,
-          state.thermalDemands,
-          wasRunningLastOp,
-        )._1
+//    val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
+//    val turnOn = setPower match {
+//      case Some(value) =>
+//        /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
+//        value > (sRated.toActivePower(cosPhiRated) * 0.5)
+//      case None =>
+//        determineHpOperatingOptions(
+//          state.thermalGridState,
+//          state.thermalDemands,
+//          wasRunningLastOp,
+//        )._1
+//    }
+    /* Factor for house demand: 1.0 if required, some fraction if possible, 0.0 if none
+    * This si done because to pic up a specific operating point.
+    * Since the hasRequiredDemand and hasPossibleDemand are boolean based on those inputs
+    * It will assume the following defined cases for both house and heat storage demands.
+    * Once the totalFactor is calculated based on the cases outputs and capped at 1 */
+
+    // Factor for house demand with three values used for flexibility choosing
+    val houseFactor = state.thermalDemands.houseDemand match {
+      case d if d.hasRequiredDemand  => 1.0
+      case d if d.hasPossibleDemand  => 0.5
+      case _                         => 0.0
     }
 
-    if turnOn then (pRated, pThermal)
-    else (zeroKW, zeroKW)
+    // Factor for storage demand with three values used for flexibility choosing
+    val storageFactor = state.thermalDemands.heatStorageDemand match {
+      case d if d.hasRequiredDemand  => 1.0
+      case d if d.hasPossibleDemand  => 0.5
+      case _                         => 0.0
+    }
+
+    // Normalize total factor by using min(1.0) because assuming
+    //at 100% as max rated capacity
+    val totalFactor = (houseFactor + storageFactor).min(1.0)
+
+    // Determine power based on optional setpoint from energy management
+    // Assuming we have a new set point p we can calulate a new setf actor value
+    // but still it will be operating within the given setpoints(manually giving new values)
+    // If no new setpoint given then default totalFactor will be used to calculate the active and thermal power.
+    val finalFactor = setPower match {
+      case Some(p) =>
+        val setFactor = (p / pRated).min(1.0)
+        totalFactor.min(setFactor)
+      case None => totalFactor
+    }
+
+    // Calculate active and thermal power
+    val activePower = pRated * finalFactor
+    val thermalPower = pThermal * finalFactor
+
+    (activePower, thermalPower)
+
+    //if turnOn then (pRated, pThermal)
+    //else (zeroKW, zeroKW)
+
+
   }
 
   /** Depending on the input, this function determines the different operating
