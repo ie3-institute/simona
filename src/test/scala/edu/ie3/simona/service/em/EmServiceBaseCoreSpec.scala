@@ -148,7 +148,7 @@ class EmServiceBaseCoreSpec
 
       val setPointData = ProvideEmSetPointData(
         0L,
-        Map(emUuid -> new EmSetPoint(emUuid, emUuid, 5.asKiloWatt)).asJava,
+        Map(emUuid -> new EmSetPoint(emUuid, 5.asKiloWatt)).asJava,
         Optional.of(900L),
       )
 

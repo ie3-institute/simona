@@ -9,11 +9,7 @@ package edu.ie3.simona.service.em
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
-import edu.ie3.simona.api.data.model.em.{
-  EmSetPoint,
-  ExtendedFlexOptionsResult,
-  FlexOptions,
-}
+import edu.ie3.simona.api.data.model.em.{EmSetPoint, ExtendedFlexOptionsResult}
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
@@ -51,7 +47,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
-import java.util.{Optional, UUID}
+import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOption
@@ -310,7 +306,6 @@ class ExtEmDataServiceSpec
           emAgent1UUID -> new ExtendedFlexOptionsResult(
             simulationStart,
             emAgent1UUID,
-            emAgent1UUID,
             0.asMegaWatt,
             0.005.asMegaWatt,
             0.01.asMegaWatt,
@@ -383,12 +378,10 @@ class ExtEmDataServiceSpec
           Map(
             emAgent1UUID -> new EmSetPoint(
               emAgent1UUID,
-              emAgentSupUUID,
               -3d.asKiloWatt,
             ),
             emAgent2UUID -> new EmSetPoint(
               emAgent2UUID,
-              emAgentSupUUID,
               0d.asKiloWatt,
             ),
           ).asJava,

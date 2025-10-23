@@ -27,7 +27,6 @@ import scala.jdk.CollectionConverters.{
   MapHasAsJava,
   SetHasAsScala,
 }
-import scala.jdk.OptionConverters.RichOption
 
 /** Basic service core for an [[ExtEmDataService]].
   * @param lastFinishedTick
@@ -277,7 +276,6 @@ final case class EmServiceBaseCore(
         ) =>
       val result = new ExtendedFlexOptionsResult(
         tick.toDateTime,
-        modelUuid,
         modelUuid,
         min.toQuantity,
         ref.toQuantity,
