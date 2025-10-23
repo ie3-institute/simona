@@ -55,6 +55,7 @@ final case class ThermalGrid(
 ) extends LazyLogging {
 
   /** Determines the state of the ThermalGrid by using the HpOperatingPoint.
+    *
     * @param tick
     *   The current tick of simulation.
     * @param lastState
@@ -102,6 +103,7 @@ final case class ThermalGrid(
   }
 
   /** Determine the energy demand of the thermalGrid.
+    *
     * @param thermalGridState
     *   Last state of the thermal grid.
     * @return
@@ -173,7 +175,7 @@ final case class ThermalGrid(
     // TODO: We would need to issue a storage result model here...
     val conditions = ThermalDemandConditions.from(state)
     val strategy = selectFeedInStrategy(conditions)
-    val (qDotHouse, qDotHeatStorage) = strategy(qDot)
+    val (qDotHouse, qDotHeatStorage) = strategy(qDot, heatStorage)
 
     handleCase(state, qDotHouse, qDotHeatStorage)
 
@@ -223,7 +225,7 @@ final case class ThermalGrid(
     } else if conditions.houseDemand then {
       HouseOnlyStrategy
     } else if conditions.heatStorageDemand then {
-      HeatStorageOnlyStrategy
+      HeatStorageFirstStrategy
     } else if conditions.housePossible then {
       HouseOnlyStrategy
     } else {
@@ -288,24 +290,10 @@ final case class ThermalGrid(
   ): (Power, Option[ThermalThreshold]) = {
     house.zip(state.thermalGridState.houseState) match {
       case Some((thermalHouse, houseState)) =>
-        /* Check if house can handle the thermal feed in */
-        if thermalHouse.isInnerTemperatureTooHigh(
-            houseState.innerTemperature
-          )
-        then {
+        val threshold =
+          thermalHouse.determineNextThreshold(houseState, qDotHouse)
 
-          val maybeFullHouseThreshold =
-            thermalHouse.determineNextThreshold(houseState, zeroKW)
-
-          (qDotHouse, maybeFullHouseThreshold)
-
-        } else {
-          val threshold = thermalHouse.determineNextThreshold(
-            houseState,
-            qDotHouse,
-          )
-          (zeroKW, threshold)
-        }
+        (qDotHouse, threshold)
       case _ => (zeroKW, None)
     }
   }
@@ -325,7 +313,6 @@ final case class ThermalGrid(
       state: HpState,
       qDotHeatStorage: Power,
   ): Option[ThermalThreshold] = {
-    // TODO: Issue #1562 We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
     if qDotHeatStorage != zeroKW then
       handleFeedInHeatStorage(state, qDotHeatStorage)
     else None
@@ -425,13 +412,13 @@ final case class ThermalGrid(
         storageState,
         thermalStorage.getpThermalMax * -1,
       )
+
       val nextThreshold = determineNextThreshold(
         Seq(
           revisedHouseThreshold,
           revisedStorageThreshold,
         )
       )
-
       (
         ThermalGridOperatingPoint(
           zeroKW,
@@ -665,6 +652,7 @@ object ThermalGrid {
 
     /** Builds a new instance of [[ThermalEnergyDemand]]. If the possible energy
       * is less than the required energy, this is considered to be a bad state.
+      *
       * @param required
       *   The absolutely required energy to reach target state.
       * @param possible
