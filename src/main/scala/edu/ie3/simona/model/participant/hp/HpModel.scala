@@ -242,9 +242,10 @@ class HpModel private (
     val totalFactor = (houseFactor + storageFactor).min(1.0)
 
     // Determine power based on optional setpoint from energy management
-    // Assuming we have a new set point p we can calulate a new setf actor value
+    // Assuming we have a new set point p we can calulate a new set factor value
     // but still it will be operating within the given setpoints(manually giving new values)
     // If no new setpoint given then default totalFactor will be used to calculate the active and thermal power.
+    // So we can use p to in-case vary the setpoint for heatpump.
     val finalFactor = setPower match {
       case Some(p) =>
         val setFactor = (p / pRated).min(1.0)
