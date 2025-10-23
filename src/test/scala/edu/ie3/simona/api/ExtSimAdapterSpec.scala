@@ -11,7 +11,7 @@ import edu.ie3.simona.api.ontology.{
   DataMessageFromExt,
   ScheduleDataServiceMessage,
 }
-import edu.ie3.simona.api.simulation.ExtSimAdapterData
+import edu.ie3.simona.api.data.ExtSimAdapterData
 import edu.ie3.simona.api.ontology.simulation.{
   ActivationMessage,
   ControlResponseMessageFromExt,
@@ -57,7 +57,7 @@ class ExtSimAdapterSpec
       val lock = TestProbe[ScheduleLock.Message]("lock")
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
-      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
+      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs, null, null)
 
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
@@ -74,7 +74,7 @@ class ExtSimAdapterSpec
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
-      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
+      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs, null, null)
 
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
 
@@ -110,7 +110,7 @@ class ExtSimAdapterSpec
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
-      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
+      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs, null, null)
       val dataService = TestProbe[DataMessageFromExt]("dataService")
 
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
@@ -142,7 +142,7 @@ class ExtSimAdapterSpec
     "terminate the external simulation and itself when told to" in {
       forAll(Table("simSuccessful", true, false)) { (simSuccessful: Boolean) =>
         val probe = TestProbe[ControlResponseMessageFromExt]("probe")
-        val extData = new ExtSimAdapterData(probe.ref, mainArgs)
+        val extData = new ExtSimAdapterData(probe.ref, mainArgs, null, null)
 
         val extSimAdapter = BehaviorTestKit(
           ExtSimAdapter.receiveIdle(
