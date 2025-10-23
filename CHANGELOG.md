@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed compiler warnings related to import and scala3 syntax [#1383](https://github.com/ie3-institute/simona/issues/1383)
 - Cleaned up dependencies [#1539](https://github.com/ie3-institute/simona/issues/1539)
 - Fixed consideration of `ThermalStorage` maximum thermal power [#1562](https://github.com/ie3-institute/simona/issues/1562)
+- Fixed shadowJar reference.conf not being merged [#1575](https://github.com/ie3-institute/simona/issues/1575)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
