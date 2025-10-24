@@ -25,6 +25,7 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.{
   ListHasAsScala,
   MapHasAsJava,
+  MapHasAsScala,
   SetHasAsScala,
 }
 
@@ -42,9 +43,9 @@ import scala.jdk.CollectionConverters.{
   * @param structure
   *   A map that contains information about uuids of inferior em agents. This
   *   information is used to determine the disaggregated flex options.
-  * @param disaggregatedFlex
-  *   True, if disaggregated flex options should be sent to the external
-  *   simulation.
+  * @param disaggregated
+  *   A map: uuid of em agent to boolean. It defines for which em agent we
+  *   should return disaggregated flex optios.
   * @param sendOptionsToExt
   *   True, if flex options should be sent to the external simulation.
   * @param canHandleSetPoints
@@ -64,7 +65,7 @@ final case class EmServiceBaseCore(
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
     structure: Map[UUID, Set[UUID]] = Map.empty,
-    disaggregatedFlex: Boolean = false,
+    disaggregated: Map[UUID, Boolean] = Map.empty,
     sendOptionsToExt: Boolean = false,
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[ProvideEmSetPointData] = None,
@@ -106,20 +107,49 @@ final case class EmServiceBaseCore(
     case requestEmFlexResults: RequestEmFlexResults =>
       val tick = requestEmFlexResults.tick
       val emEntities = requestEmFlexResults.emEntities.asScala
-      val disaggregated = requestEmFlexResults.disaggregated
+      val disaggregatedFlex = requestEmFlexResults.disaggregated
 
-      if disaggregated then {
-        log.warn(s"Disaggregated flex options are currently not supported!")
-      }
+      val requests = emEntities.flatMap { entity =>
+        uuidToAgent.get(entity).map { ref =>
+          ref ! FlexActivation(tick, PowerLimit)
 
-      emEntities.map(uuidToAgent).foreach { ref =>
-        ref ! FlexActivation(tick, PowerLimit)
-      }
+          entity -> disaggregatedFlex
+        }
+      }.toMap
 
       (
         copy(
           flexOptions = ReceiveDataMap(emEntities.toSet),
-          disaggregatedFlex = disaggregated,
+          disaggregated = disaggregated ++ requests,
+          sendOptionsToExt = true,
+        ),
+        None,
+      )
+
+    case provideEmData: ProvideEmData =>
+      if !provideEmData.flexOptions.isEmpty || !provideEmData
+          .setPoints()
+          .isEmpty
+      then {
+        log.warn(
+          s"We received the following data '$provideEmData'. The base service can currently not handle the provided flex options and set points."
+        )
+      }
+
+      val tick = provideEmData.tick
+      val flexRequests = provideEmData.flexRequests.asScala.flatMap {
+        case (entity, request) =>
+          uuidToAgent.get(entity).map { ref =>
+            ref ! FlexActivation(tick, PowerLimit)
+
+            entity -> request.disaggregated
+          }
+      }.toMap
+
+      (
+        copy(
+          flexOptions = ReceiveDataMap(flexRequests.keySet),
+          disaggregated = disaggregated ++ flexRequests,
           sendOptionsToExt = true,
         ),
         None,
@@ -179,9 +209,14 @@ final case class EmServiceBaseCore(
           // we received all flex options
           val data = updated.receivedData
 
-          if disaggregatedFlex then {
-            // we add the disaggregated flex options
-            addDisaggregatingFlexOptions(data, structure)
+          data.foreach { case (uuid, flexOption) =>
+            if disaggregated.contains(uuid) then {
+              // we add the disaggregated flex options
+              addDisaggregatingFlexOptions(
+                flexOption,
+                structure.getOrElse(uuid, Set.empty),
+              )
+            }
           }
 
           val updatedCore = copy(
@@ -227,7 +262,7 @@ final case class EmServiceBaseCore(
               lastFinishedTick = tick,
               completions = updated,
               allFlexOptions = Map.empty,
-              disaggregatedFlex = false,
+              disaggregated = Map.empty,
               sendOptionsToExt = false,
               canHandleSetPoints = false,
             ),

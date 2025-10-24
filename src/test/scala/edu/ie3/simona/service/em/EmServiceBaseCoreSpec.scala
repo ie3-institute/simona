@@ -67,7 +67,7 @@ class EmServiceBaseCoreSpec
       updatedCore.allFlexOptions shouldBe empty
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.structure shouldBe Map(emUuid -> Set.empty)
-      updatedCore.disaggregatedFlex shouldBe false
+      updatedCore.disaggregated shouldBe Map.empty
       updatedCore.sendOptionsToExt shouldBe false
       updatedCore.canHandleSetPoints shouldBe false
       updatedCore.setPointOption shouldBe None
@@ -100,7 +100,7 @@ class EmServiceBaseCoreSpec
         emUuid -> Set.empty,
         parentEmUuid -> Set(emUuid),
       )
-      updatedCore.disaggregatedFlex shouldBe false
+      updatedCore.disaggregated shouldBe Map.empty
       updatedCore.sendOptionsToExt shouldBe false
       updatedCore.canHandleSetPoints shouldBe false
       updatedCore.setPointOption shouldBe None
@@ -132,7 +132,9 @@ class EmServiceBaseCoreSpec
       updatedCore.allFlexOptions shouldBe empty
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.structure shouldBe Map(emUuid -> Set.empty)
-      updatedCore.disaggregatedFlex shouldBe true // since we requested disaggregated flex options
+      updatedCore.disaggregated shouldBe Map(
+        emUuid -> true
+      ) // since we requested disaggregated flex options
       updatedCore.sendOptionsToExt shouldBe true // since we received a flex option request
       updatedCore.canHandleSetPoints shouldBe false
       updatedCore.setPointOption shouldBe None
@@ -168,7 +170,7 @@ class EmServiceBaseCoreSpec
       updatedCore.allFlexOptions shouldBe empty
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.structure shouldBe Map(emUuid -> Set.empty)
-      updatedCore.disaggregatedFlex shouldBe false
+      updatedCore.disaggregated shouldBe Map.empty
       updatedCore.sendOptionsToExt shouldBe false // since we didn't receive a flex option request
       updatedCore.canHandleSetPoints shouldBe false
       updatedCore.setPointOption shouldBe Some(
@@ -207,7 +209,7 @@ class EmServiceBaseCoreSpec
         Set(emUuid)
       )
       coreAfterFlexOptionProvision.structure shouldBe Map(emUuid -> Set.empty)
-      coreAfterFlexOptionProvision.disaggregatedFlex shouldBe false
+      coreAfterFlexOptionProvision.disaggregated shouldBe Map.empty
       coreAfterFlexOptionProvision.sendOptionsToExt shouldBe false // since we didn't receive a flex option request
       coreAfterFlexOptionProvision.canHandleSetPoints shouldBe true // since all agents have provided flex options
       coreAfterFlexOptionProvision.setPointOption shouldBe None // empty, since we handled the data

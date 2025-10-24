@@ -230,19 +230,17 @@ trait EmServiceCore {
   ): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
   /** Method to add disaggregated flex options to given data.
-    * @param data
+    * @param flexOption
     *   That should be enriched.
-    * @param structure
+    * @param inferiorAgents
     *   To derive the needed disaggregated data.
     */
   final def addDisaggregatingFlexOptions(
-      data: Map[UUID, ExtendedFlexOptionsResult],
-      structure: Map[UUID, Set[UUID]],
+      flexOption: ExtendedFlexOptionsResult,
+      inferiorAgents: Set[UUID],
   ): Unit = {
-    data.foreach { case (uuid, flexOption) =>
-      structure(uuid).foreach { inferior =>
-        flexOption.addDisaggregated(inferior, allFlexOptions(inferior))
-      }
+    inferiorAgents.foreach { inferior =>
+      flexOption.addDisaggregated(inferior, allFlexOptions(inferior))
     }
   }
 
