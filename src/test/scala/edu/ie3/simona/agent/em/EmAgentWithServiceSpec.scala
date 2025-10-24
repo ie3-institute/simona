@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.result.system.EmResult
+import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
@@ -18,8 +19,9 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
   EmServiceRegistration,
 }
+import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.test.common.input.EmInputTestData
@@ -60,8 +62,13 @@ class EmAgentWithServiceSpec
     flexResult = true, // also test FlexOptionsResult if EM-controlled
   )
 
-  private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
-  private implicit val reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
+  private val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
+    uuids = List("default"),
+    aggregateFlex = "SELF_OPT",
+  )
+
+  private given activePowerTolerance: Power = Kilowatts(1e-10)
+  private given reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
 
   "An EM-controlled EM agent with em service" should {
 
@@ -125,11 +132,11 @@ class EmAgentWithServiceSpec
       service.expectNoMessage()
 
       /* TICK -1 */
-      emAgentFlex ! FlexActivation(INIT_SIM_TICK)
+      emAgentFlex ! FlexActivation(INIT_SIM_TICK, PowerLimit)
 
       // expect flex activations
-      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
-      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
+      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK, PowerLimit))
+      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK, PowerLimit))
 
       // receive flex completions
       emAgent ! FlexCompletion(
@@ -158,16 +165,16 @@ class EmAgentWithServiceSpec
       )
 
       /* TICK 0 */
-      emAgentFlex ! FlexActivation(0)
+      emAgentFlex ! FlexActivation(0, PowerLimit)
 
       // expect activations and flex requests
-      pvAgent.expectMessage(FlexActivation(0))
-      evcsAgent.expectMessage(FlexActivation(0))
+      pvAgent.expectMessage(FlexActivation(0, PowerLimit))
+      evcsAgent.expectMessage(FlexActivation(0, PowerLimit))
 
       // send flex options
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
@@ -179,7 +186,7 @@ class EmAgentWithServiceSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -199,7 +206,7 @@ class EmAgentWithServiceSpec
         case EmFlexMessage(
               ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(
+                PowerLimitFlexOptions(
                   referencePower,
                   minPower,
                   maxPower,
@@ -435,20 +442,20 @@ class EmAgentWithServiceSpec
       service.expectNoMessage()
 
       /* TICK -1 */
-      parentEmAgent ! FlexActivation(INIT_SIM_TICK)
+      parentEmAgent ! FlexActivation(INIT_SIM_TICK, PowerLimit)
 
       service.expectMessage(
         EmFlexMessage(
-          FlexActivation(INIT_SIM_TICK),
+          FlexActivation(INIT_SIM_TICK, PowerLimit),
           emAgent,
         )
       )
 
-      emAgent ! FlexActivation(INIT_SIM_TICK)
+      emAgent ! FlexActivation(INIT_SIM_TICK, PowerLimit)
 
       // expect flex activations
-      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
-      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
+      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK, PowerLimit))
+      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK, PowerLimit))
 
       // receive flex completions
       emAgent ! FlexCompletion(
@@ -492,25 +499,25 @@ class EmAgentWithServiceSpec
       )
 
       /* TICK 0 */
-      parentEmAgent ! FlexActivation(0)
+      parentEmAgent ! FlexActivation(0, PowerLimit)
 
       service.expectMessage(
         EmFlexMessage(
-          FlexActivation(0),
+          FlexActivation(0, PowerLimit),
           emAgent,
         )
       )
 
-      emAgent ! FlexActivation(0)
+      emAgent ! FlexActivation(0, PowerLimit)
 
       // expect activations and flex requests
-      pvAgent.expectMessage(FlexActivation(0))
-      evcsAgent.expectMessage(FlexActivation(0))
+      pvAgent.expectMessage(FlexActivation(0, PowerLimit))
+      evcsAgent.expectMessage(FlexActivation(0, PowerLimit))
 
       // send flex options
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(-5),
           Kilowatts(-5),
           Kilowatts(0),
@@ -522,7 +529,7 @@ class EmAgentWithServiceSpec
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(2),
           Kilowatts(-11),
           Kilowatts(11),
@@ -542,7 +549,7 @@ class EmAgentWithServiceSpec
         case EmFlexMessage(
               ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(
+                PowerLimitFlexOptions(
                   referencePower,
                   minPower,
                   maxPower,
@@ -560,7 +567,7 @@ class EmAgentWithServiceSpec
 
       parentEmAgent ! ProvideFlexOptions(
         updatedEmInput.getUuid,
-        MinMaxFlexOptions(
+        PowerLimitFlexOptions(
           Kilowatts(0),
           Kilowatts(-16),
           Kilowatts(6),
@@ -571,7 +578,7 @@ class EmAgentWithServiceSpec
         case EmFlexMessage(
               ProvideFlexOptions(
                 modelUuid,
-                MinMaxFlexOptions(
+                PowerLimitFlexOptions(
                   referencePower,
                   minPower,
                   maxPower,
@@ -674,14 +681,46 @@ class EmAgentWithServiceSpec
         )
       )
 
-      parentEmAgent ! IssueNoControl(150)
+      parentEmAgent ! FlexCompletion(
+        modelUuid = updatedEmInput.getUuid,
+        requestAtTick = Some(300),
+      )
 
-      // TODO: FIX
-      // service.expectMessage(EmFlexMessage(IssueNoControl(150), emAgentFlex))
+      service.expectMessageType[EmFlexMessage] match {
+        case EmFlexMessage(
+              FlexResult(_, result),
+              modelUuid: UUID,
+            ) =>
+          result.p should approximate(Kilowatts(6))
+          result.q should approximate(Kilovars(0.6))
+          modelUuid shouldBe parentEmInput.getUuid
+      }
+
+      resultListener.expectMessageType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe parentEmInput.getUuid
+          emResult.getTime shouldBe 0.toDateTime
+          emResult.getP should equalWithTolerance(.006.asMegaWatt)
+          emResult.getQ should equalWithTolerance(.0006.asMegaVar)
+      }
+
+      service.expectMessage(
+        EmFlexMessage(
+          FlexCompletion(
+            modelUuid = parentEmInput.getUuid,
+            requestAtTick = Some(300),
+          ),
+          parentEmInput.getUuid,
+        )
+      )
 
       /* TICK 150 */
       // The mock parent EM now acts as if the situation changed before tick 300,
       // so that the flex control changes before new flex option calculations are due
+
+      parentEmAgent ! IssueNoControl(150)
+
+      service.expectMessage(EmFlexMessage(IssueNoControl(150), emAgent))
 
       // no control means reference power of the latest flex options = 0 kW
       emAgent ! IssueNoControl(150)

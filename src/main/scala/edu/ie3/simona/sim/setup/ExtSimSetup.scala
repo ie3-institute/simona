@@ -9,7 +9,12 @@ package edu.ie3.simona.sim.setup
 import com.typesafe.config.Config
 import edu.ie3.datamodel.models.input.container.JointGridContainer
 import edu.ie3.simona.api.data.ExtSimAdapterData
-import edu.ie3.simona.api.data.connection.*
+import edu.ie3.simona.api.data.connection.{
+  ExtEmDataConnection,
+  ExtEvDataConnection,
+  ExtInputDataConnection,
+  ExtPrimaryDataConnection,
+}
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.ExtSimulation
@@ -158,21 +163,23 @@ object ExtSimSetup {
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
       case (setupData, connection) =>
         connection match {
-          case extPrimaryDataConnection: ExtPrimaryDataConnection =>
-            val serviceRef = context.spawn(
-              ExtPrimaryDataService(scheduler),
-              "ExtPrimaryDataService",
-            )
+        connection match {
+        case extPrimaryDataConnection: ExtPrimaryDataConnection =>
+        val serviceRef = context.spawn(
+        ExtPrimaryDataService(scheduler),
+        "ExtPrimaryDataService",
+        )
 
-            setupService(
-              extPrimaryDataConnection,
-              serviceRef,
-              InitExtPrimaryData.apply,
-            )
+        setupService(
+        extPrimaryDataConnection,
+        serviceRef,
+        InitExtPrimaryData.apply,
+        )
 
-            extSimSetupData.update(extPrimaryDataConnection, serviceRef)
+        extSimSetupData.update(extPrimaryDataConnection, serviceRef)
 
-          case extEmDataConnection: ExtEmDataConnection =>
+
+        case extEmDataConnection: ExtEmDataConnection =>
             if setupData.emDataService.nonEmpty then {
               throw ServiceException(
                 s"Trying to connect another EmDataConnection. Currently only one is allowed."

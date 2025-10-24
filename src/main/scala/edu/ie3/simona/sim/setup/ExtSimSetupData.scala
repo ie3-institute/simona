@@ -11,10 +11,10 @@ import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.event.listener.ExtResultEvent
 import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.results.ExtResultProvider
 import edu.ie3.simona.service.em.ExtEmDataService
-import edu.ie3.simona.service.ev.ExtEvDataService
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Case class that holds information regarding the external data connections as
@@ -94,10 +94,10 @@ final case class ExtSimSetupData(
     }
 
   def allServiceRefs: Iterable[ActorRef[?]] =
-    extSimAdapters ++ primaryDataServices.map(_._2) ++ Seq(
+    Seq(
       emDataService,
       evDataService,
-    ).flatten ++ resultListeners ++ resultProviders
+    ).flatten ++ extResultListeners ++ primaryDataServices.map(_._2)
 }
 
 object ExtSimSetupData {

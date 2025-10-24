@@ -103,8 +103,8 @@ trait SimonaSetup {
     * @param scheduler
     *   Actor reference to it's according scheduler to use.
     * @param extSimSetupData
-    *   that can contain external.
-    *   [[edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection]]
+    *   that can contain external
+    *   [[edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection]].
     * @return
     *   An actor reference to the service.
     */

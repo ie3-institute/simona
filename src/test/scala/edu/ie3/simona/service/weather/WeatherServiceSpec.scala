@@ -48,7 +48,6 @@ import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 import squants.time.Hours
 
-import java.time.ZonedDateTime
 import scala.collection.immutable.SortedMap
 import scala.language.implicitConversions
 

@@ -58,6 +58,17 @@ object ServiceMessage {
       data: Any,
   ) extends ServiceRegistrationMessage
 
+  /** Message to register an energy management agent with an energy management
+    * service.
+    * @param requestingActor
+    *   The actor to register.
+    * @param inputUuid
+    *   The uuid of the actor.
+    * @param parentEm
+    *   An option for the parent actor of the requesting actor.
+    * @param parentUuid
+    *   An option for the uuid of the parent actor.
+    */
   final case class EmServiceRegistration(
       requestingActor: ActorRef[EmAgent.Message],
       inputUuid: UUID,
@@ -156,24 +167,15 @@ object ServiceMessage {
       evModels: Seq[EvModelWrapper],
   ) extends ServiceResponseMessage
 
+  /** A message that is sent to an energy management service by an energy
+    * management agent.
+    * @param message
+    *   The actual flex message that is sent by the agent.
+    * @param receiver
+    *   The receiver of the message.
+    */
   final case class EmFlexMessage(
       message: FlexRequest | FlexResponse,
       receiver: UUID | ActorRef[FlexResponse] | ActorRef[EmAgent.Message],
   ) extends ServiceResponseMessage
-
-  @deprecated
-  final case class ResultResponseMessage(results: Iterable[ResultEntity])
-      extends ServiceMessage
-      with ServiceResponseMessage {
-    def tick(using startTime: ZonedDateTime): Long = {
-      val time = results match {
-        case res :: el => res.getTime
-      }
-
-      TimeUtil.withDefaults.zonedDateTimeDifferenceInSeconds(
-        startTime,
-        time,
-      )
-    }
-  }
 }

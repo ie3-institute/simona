@@ -78,8 +78,7 @@ object EmAgent {
       emDataService: Option[ActorRef[ExtEmDataService.Message]],
   ): Behavior[Message] = Behaviors.setup[Message] { ctx =>
 
-    val parentData: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]] =
-      emDataService match {
+    val parentData = emDataService match {
         case Some(service) =>
           // since we have a service, it will replace the default agent communication
           given ActorContext[Message] = ctx
@@ -129,8 +128,8 @@ object EmAgent {
             )
           }
 
-          parent
-      }
+        parent
+    }
 
     val constantData = EmData(
       outputConfig,

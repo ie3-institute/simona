@@ -131,8 +131,7 @@ object SimonaSim {
           primaryServiceProxy,
           weatherService,
         ) ++
-          gridAgents ++
-          extSimulationData.allServiceRefs
+          gridAgents ++ extSimulationData.allServiceRefs
 
         /* watch all actors */
         allResultEventListeners.foreach(ctx.watch)

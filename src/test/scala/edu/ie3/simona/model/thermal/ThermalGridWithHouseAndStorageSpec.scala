@@ -541,23 +541,67 @@ class ThermalGridWithHouseAndStorageSpec
     }
 
     "load the storage, if the target temperature in the house is reached" in {
-      val externalQDot = testGridQDotInfeed * 10
+      val externalQDot = testGridQDotInfeed * 1.3
+
+      val gridState = initialGridState.copy(
+        houseState = Some(
+          ThermalHouseState(
+            -1,
+            testGridAmbientTemperature,
+            thermalHouse.upperBoundaryTemperature,
+          )
+        ),
+        heatStorageState = Some(expectedHeatStorageStartingState),
+      )
+
+      val state = initialHpState.copy(
+        thermalGridState = gridState
+      )
 
       val (thermalGridOperatingPoint, reachedThreshold) =
         thermalGrid.handleFeedIn(
-          initialHpState,
+          state,
           externalQDot,
         )
 
-      reachedThreshold shouldBe Some(
-        StorageFull(27600)
-      )
+      reachedThreshold shouldBe Some(StorageFull(212307))
       thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
         externalQDot,
         zeroKW,
         externalQDot,
       )
     }
-  }
 
+    "load the storage, if the temperature in the house is sufficient and overheat the house with remaining qDot" in {
+      val externalQDot = testGridQDotInfeed * 10
+
+      val gridState = initialGridState.copy(
+        houseState = Some(
+          ThermalHouseState(
+            -1,
+            testGridAmbientTemperature,
+            thermalHouse.upperBoundaryTemperature,
+          )
+        ),
+        heatStorageState = Some(expectedHeatStorageStartingState),
+      )
+
+      val state = initialHpState.copy(
+        thermalGridState = gridState
+      )
+
+      val (thermalGridOperatingPoint, reachedThreshold) =
+        thermalGrid.handleFeedIn(
+          state,
+          externalQDot,
+        )
+
+      reachedThreshold shouldBe Some(StorageFull(207000))
+      thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
+        externalQDot,
+        Kilowatts(130d),
+        heatStorage.pThermalMax,
+      )
+    }
+  }
 }

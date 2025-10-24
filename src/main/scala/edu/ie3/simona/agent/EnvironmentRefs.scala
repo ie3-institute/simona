@@ -9,6 +9,7 @@ package edu.ie3.simona.agent
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.service.em.ExtEmDataService
+import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.results.ResultServiceProxy
 import org.apache.pekko.actor.typed.ActorRef
 
@@ -40,5 +41,5 @@ final case class EnvironmentRefs(
     weather: ActorRef[ServiceMessage],
     loadProfiles: ActorRef[ServiceMessage],
     emDataService: Option[ActorRef[ExtEmDataService.Message]],
-    evDataService: Option[ActorRef[ServiceMessage]],
+    evDataService: Option[ActorRef[ExtEvDataService.Message]],
 )
