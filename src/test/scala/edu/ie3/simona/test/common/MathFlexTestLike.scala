@@ -23,6 +23,8 @@ import squants.energy.{KilowattHours, Kilowatts}
 
 import scala.collection.immutable.SortedMap
 
+/** todo rename
+  */
 trait MathFlexTestLike {
 
   extension (seq: Seq[Int])
@@ -69,13 +71,15 @@ trait MathFlexTestLike {
       assetVars: AssetVarContainer
   )(using EnergyConversionFactor): String =
     s"\n\tDEBUGGING asset ${assetVars.assetUuid}:" +
-      assetVars.results.map { res =>
-        s"\n\t\tTrajectory: ${res
-            .map(step =>
-              step.getOperationResult.toString +
-                step.state.map(energy => s" ( -> ${KilowattHours(energy.value.value).toString})").getOrElse("")
-            )
-            .mkString(", ")}"
-      }
+      assetVars.results
+        .map { res =>
+          s"\n\t\tTrajectory: ${res
+              .map(step =>
+                step.getOperationResult.toString +
+                  step.state.map(energy => s" ( -> ${KilowattHours(energy.value.value).toString})").getOrElse("")
+              )
+              .mkString(", ")}"
+        }
+        .mkString("")
 
 }
