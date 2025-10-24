@@ -239,9 +239,9 @@ trait EmServiceCore {
       data: Map[UUID, ExtendedFlexOptionsResult],
       structure: Map[UUID, Set[UUID]],
   ): Unit = {
-    data.foreach { case (key, value) =>
-      structure(key).foreach { inferior =>
-        value.addDisaggregated(inferior, allFlexOptions(inferior))
+    data.foreach { case (uuid, flexOption) =>
+      structure(uuid).foreach { inferior =>
+        flexOption.addDisaggregated(inferior, allFlexOptions(inferior))
       }
     }
   }

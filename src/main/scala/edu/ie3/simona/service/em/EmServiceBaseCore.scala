@@ -40,7 +40,8 @@ import scala.jdk.CollectionConverters.{
   * @param completions
   *   ReceiveDataMap: uuid to completions.
   * @param structure
-  *   Map: uuid to inferior em agent uuids.
+  *   A map that contains information about uuids of inferior em agents. This
+  *   information is used to determine the disaggregated flex options.
   * @param disaggregatedFlex
   *   True, if disaggregated flex options should be sent to the external
   *   simulation.
@@ -48,8 +49,8 @@ import scala.jdk.CollectionConverters.{
   *   True, if flex options should be sent to the external simulation.
   * @param canHandleSetPoints
   *   True, if the core can sent the received em set points to the agent. It
-  *   will only be true, of all em agent are able to process the send set
-  *   points.
+  *   will only be true, of all em agent are activated for the current tick and
+  *   therefore able to process the send set points.
   * @param setPointOption
   *   Option for em set points that needs to be handled at a later time.
   */
@@ -87,8 +88,8 @@ final case class EmServiceBaseCore(
         }
 
       case _ =>
-        // we already added the model as parent
-        // therefore, no changes are needed
+        // since the given em agent has no parent, no changes to the parent structure are needed
+        // the actual em agent is added to the structure later
         structure
     }
 
@@ -136,7 +137,8 @@ final case class EmServiceBaseCore(
         emEntities.foreach { entity =>
           uuidToAgent.get(entity) match {
             case Some(ref) =>
-              // activate the necessary em agent, this is needed, because an em agent needs to know its current flex option to properly handle the given set point
+              // activate the necessary em agent, this is needed, because an em agent needs to know
+              // its current flex option to properly handle the given set point
               ref ! FlexActivation(tick, PowerLimit)
             case None =>
               log.warn(s"Received entity: $entity")
@@ -260,8 +262,7 @@ final case class EmServiceBaseCore(
     * @param startTime
     *   The start time of the simulation.
     * @return
-    *   An updated service core and an option for a message that should be sent
-    *   to the external simulation.
+    *   An updated service core and a map: uuid to flex options
     */
   private def handleFlexOptions(
       tick: Long,
