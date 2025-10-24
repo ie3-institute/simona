@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant.storage
 
-import edu.ie3.simona.model.em.OptimizedFlexStrat
 import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.StorageMathFlexOptions
 import edu.ie3.simona.model.participant.storage.StorageMathFlexModelSpec.*
 import edu.ie3.simona.test.common.{MathFlexTestLike, UnitSpec}

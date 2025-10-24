@@ -6,16 +6,20 @@
 
 package edu.ie3.simona.test.common
 
-import edu.ie3.simona.model.em.OptimizedFlexStrat.AssetVarContainer
+import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
+  AssetVarContainer,
+  StepResults,
+}
 import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.{
   StorageOperationVars,
   StorageStateVars,
 }
 import optimus.algebra.Const
 import optimus.optimization.model.MPVar
+import org.scalatest.Assertions.fail
 import org.scalatest.OptionValues.convertOptionToValuable
 import squants.{Dimensionless, Power}
-import squants.energy.Kilowatts
+import squants.energy.{KilowattHours, Kilowatts}
 
 import scala.collection.immutable.SortedMap
 
@@ -34,9 +38,22 @@ trait MathFlexTestLike {
       solution * conversion.factor
     }
 
+  extension (res: StepResults)
+    def energyVal(using conversion: EnergyConversionFactor): Double = {
+      val solution = res.state
+        .getOrElse(fail("No state provided in StepResults!"))
+        .value
+        .value
+      solution * conversion.factor
+    }
+
   extension (state: StorageOperationVars)
     def pVal: Double =
       state.p.value.value
+
+  extension (res: StepResults)
+    def pVal: Double =
+      res.getOperationResult.toKilowatts
 
   final case class EnergyConversionFactor(factor: Double)
 
@@ -49,10 +66,16 @@ trait MathFlexTestLike {
   }
 
   def buildDebugString(
-      batVars: AssetVarContainer[StorageStateVars, StorageOperationVars]
+      assetVars: AssetVarContainer
   )(using EnergyConversionFactor): String =
-    "\n\tDEBUGGING:" +
-      s"\n\t\tOperation values: ${batVars.operationVars.map(_.pVal).mkString(", ")}" +
-      s"\n\t\tState values: ${batVars.states.map(_.energyVal).mkString(", ")}"
+    s"\n\tDEBUGGING asset ${assetVars.assetUuid}:" +
+      assetVars.results.map { res =>
+        s"\n\t\tTrajectory: ${res
+            .map(step =>
+              step.getOperationResult.toString +
+                step.state.map(energy => s" ( -> ${KilowattHours(energy.value.value).toString})").getOrElse("")
+            )
+            .mkString(", ")}"
+      }
 
 }

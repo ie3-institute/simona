@@ -9,24 +9,27 @@ package edu.ie3.simona.model.em.opt
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat
-import edu.ie3.simona.model.em.opt.EnergyLimitFlexModel.StepResults
+import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
-import edu.ie3.simona.ontology.messages.flex.EnergyLimitFlexOptions
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.{
   OperationVars,
   SoftConstraint,
 }
-import optimus.algebra.{Double2Const, Expression, Zero}
+import optimus.algebra.{Const, Double2Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
+import optimus.optimization.model.{MPFloatVar, MPVar}
 import org.slf4j.Logger
-import squants.{Power, Time}
+import squants.energy.Kilowatts
+import squants.{Each, Power, Time}
 
 import java.util.UUID
 
 /** Flex strategy that optimizes over a fixed amount of time steps into the
-  * future. Works with [[EnergyLimitFlexOptions]], which describe constraints on
-  * present and future behavior of a participant.
+  * future. Works with [[EnergyBoundariesFlexOptions]], which describe
+  * constraints on present and future behavior of a participant.
   *
   * @param sampleTime
   *   The amount of time between the steps.
@@ -43,10 +46,10 @@ final case class OptimizedFlexStrat(
     predictionHorizon: Time,
     powerObjectiveFactory: PowerObjectiveFactory,
     logger: Logger,
-) extends EmModelStrat[EnergyLimitFlexOptions] {
+) extends EmModelStrat[EnergyBoundariesFlexOptions] {
 
   override def determineFlexControl(
-      flexOptions: Iterable[(? <: AssetInput, EnergyLimitFlexOptions)],
+      flexOptions: Iterable[(? <: AssetInput, EnergyBoundariesFlexOptions)],
       target: Power,
       currentTick: Long,
   ): Iterable[(UUID, Power)] = {
@@ -58,9 +61,11 @@ final case class OptimizedFlexStrat(
 
     val ticks = Range.Long(currentTick, lastPredictedTick, sampleTicks)
 
-    val assetVars = flexOptions.map { case (asset: AssetInput, fo) =>
-      addAssetConstraints(asset.getUuid, fo, sampleTime, ticks)
-    }
+    val assetVars = addAssetConstraints(
+      flexOptions.map { case (asset: AssetInput, fo) => asset.getUuid -> fo },
+      sampleTime,
+      ticks,
+    )
 
     val objectiveContainer =
       buildObjective(assetVars, target, sampleTime, powerObjectiveFactory)
@@ -109,8 +114,8 @@ final case class OptimizedFlexStrat(
 
   override def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: EnergyLimitFlexOptions,
-  ): EnergyLimitFlexOptions = flexOptions
+      flexOptions: EnergyBoundariesFlexOptions,
+  ): EnergyBoundariesFlexOptions = flexOptions
 }
 
 object OptimizedFlexStrat {
@@ -120,52 +125,216 @@ object OptimizedFlexStrat {
     */
   private val softConstraintThreshold: Double = 1e-3
 
-  /** Creates and adds constraints for the given asset for all given sample
+  /** Creates and adds constraints for the given assets for all given sample
     * times. States and operating points are strung together according to the
     * sample times.
     *
-    * @param assetUuid
-    *   The UUID of the asset.
     * @param flexOptions
-    *   The flex options that the asset provided.
+    *   The flex options that all assets provided.
     * @param ticks
     *   The ticks of the sample times to add constraints for.
     * @param sampleTime
     * @param model
     *   The optimization model to use.
-    * @tparam SV
-    *   The type of state variables.
-    * @tparam OV
-    *   The type of operation variables.
     * @return
     *   A container that holds all state and operation variables.
     */
-  def addAssetConstraints[SV, OV <: OperationVars](
-      assetUuid: UUID,
-      flexOptions: EnergyLimitFlexOptions,
+  def addAssetConstraints(
+      flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
       sampleTime: Time,
       ticks: Seq[Long],
-  )(using model: MPModel): AssetVarContainer = {
+  )(using model: MPModel): Iterable[AssetVarContainer] = {
+    flexOptions.map { case (assetUUID, fo) =>
+      val results = fo.energyBoundaries
+        .map(adaptEnergyBoundaries)
+        .map { boundaries =>
+          ticks.foldLeft[IndexedSeq[StepResults]](IndexedSeq.empty) {
+            case (previousResults, tick) =>
+              val previousState = previousResults.headOption.flatMap(_.state)
 
-    val results = flexOptions.energyBoundaries
-      .map(EnergyLimitFlexModel.adaptEnergyBoundaries)
-      .map { boundaries =>
-        ticks.foldLeft[IndexedSeq[StepResults]](IndexedSeq.empty) {
-          case (previousResults, tick) =>
-            val previousState = previousResults.headOption.flatMap(_.state)
+              val res = addAssetStep(
+                boundaries,
+                tick,
+                sampleTime,
+                previousState,
+              )
 
-            val res = EnergyLimitFlexModel.addStep(
-              boundaries,
-              tick,
-              sampleTime,
-              previousState,
-            )
-
-            previousResults.appended(res)
+              previousResults.appended(res)
+          }
         }
+
+      AssetVarContainer(assetUUID, results)
+    }
+  }
+
+  private def addAssetStep(
+      energyBoundaries: ParticipantEnergyBoundaries,
+      tick: Long,
+      duration: Time,
+      lastState: Option[Expression],
+  )(using model: MPModel): StepResults = {
+
+    val energyLimits = energyBoundaries.energyLimits
+      .maxBefore(tick + 1)
+      .map { case (_, limits) =>
+        limits
+      }
+      .getOrElse(throw new CriticalFailureException("No energy limits found!"))
+
+    if energyLimits.getUpper == energyLimits.getLower then {
+      // there is no flexibility at all, thus we don't need any state to keep track of
+
+      val fixedPower = energyLimits.getUpper / duration
+      StepResults(None, Const(fixedPower.toKilowatts), None)
+    } else {
+      // we do have some flexibility at this point in time, model it
+
+      // we use charging efficiency for both charging and discharging,
+      // since we use the adapted storage model here
+      val eta = energyBoundaries.etaCharge
+
+      // determining a previous state
+      val previousState = lastState.getOrElse {
+
+        val formerEnergyLimits =
+          energyBoundaries.energyLimits.maxBefore(tick).map {
+            case (_, limits) => limits
+          }
+
+        // we have been given no former state as a parameter. Either...
+        formerEnergyLimits
+          .map { limits =>
+            if limits.getLower == limits.getUpper then
+              // ... there was no flexibility in the last step, thus we use the last energy value
+              Const(limits.getUpper.toKilowattHours)
+            else
+              throw new CriticalFailureException(
+                "No former state was given, although there was flexibility in the last step"
+              )
+          }
+          // ... or this is the initial step, thus we start at 0
+          .getOrElse(Const(0d))
       }
 
-    AssetVarContainer(assetUuid, results)
+      // modeling the operating point (power),
+      // valid between that previous and new state
+      val p = MPFloatVar(
+        "p",
+        energyBoundaries.powerLimits.getLower.toKilowatts,
+        energyBoundaries.powerLimits.getUpper.toKilowatts,
+      )
+
+      // modeling the new state (stored energy)
+      val newState = MPFloatVar(
+        "state",
+        energyLimits.getLower.toKilowattHours,
+        energyLimits.getUpper.toKilowattHours,
+      )
+
+      val softConstraint =
+        if eta == Each(1) then {
+          // there are no charging/discharging losses, we can keep it simple
+
+          model.add(newState := previousState + p * duration.toHours)
+          None
+        } else {
+          // there are charging/discharging losses, thus use the full model
+
+          val pAbsMax = energyBoundaries.powerLimits.getUpper.max(
+            -energyBoundaries.powerLimits.getLower
+          )
+
+          val pAbs =
+            MPFloatVar(
+              "pAbs",
+              0,
+              pAbsMax.toKilowatts,
+            )
+
+          model.add(pAbs >:= p)
+          model.add(pAbs >:= -p)
+
+          model.add(
+            newState := previousState + (p - pAbs * (1 - eta.toEach)) * duration.toHours
+          )
+
+          Some(new SoftConstraint {
+
+            override def getExpression: Expression = {
+              // Total penalty is slightly larger than the losses
+              // calculated by StorageMathFlexOptions. Thus, the
+              // value of pAbs should be pushed down to the absolute
+              // of p.
+              val epsilon = 1e-6
+              pAbs * (1 - eta.toEach + epsilon) * duration.toHours
+            }
+
+            override def getError: Double = {
+              val (pValue, pAbsValue) = getVals
+              math.abs(math.abs(pValue) - pAbsValue)
+            }
+
+            override def getWarningMessage: String = {
+              val (pValue, pAbsValue) = getVals
+              s"Soft constraint for storage: Approximated absolute power value $pAbsValue and absolute power value |$pValue| are $getError apart."
+            }
+
+            private def getVals: (Double, Double) = p.value
+              .zip(pAbs.value)
+              .getOrElse(
+                throw new CriticalFailureException(
+                  "Solution are expected to be determined at this point!"
+                )
+              )
+
+          })
+        }
+
+      StepResults(Some(newState), p, softConstraint)
+    }
+
+  }
+
+  def adaptEnergyBoundaries(
+      boundaries: ParticipantEnergyBoundaries
+  ) = {
+    val etaCh = boundaries.etaCharge.toEach
+    val etaDis = boundaries.etaDischarge.toEach
+
+    val etaAvg = (2 * etaCh * etaDis) / (1 + etaCh * etaDis)
+
+    val newEnergyLimits = boundaries.energyLimits.map { case (tick, limits) =>
+      val newLower = (limits.getLower / etaCh) * etaAvg
+      val newUpper = (limits.getUpper / etaCh) * etaAvg
+
+      tick -> ClosedInterval(newLower, newUpper)
+    }
+
+    val etaAvgEach = Each(etaAvg)
+
+    boundaries.copy(
+      energyLimits = newEnergyLimits,
+      etaCharge = etaAvgEach,
+      etaDischarge = etaAvgEach,
+    )
+
+  }
+
+  final case class StepResults(
+      state: Option[MPVar],
+      operation: Const | MPVar,
+      softConstraint: Option[SoftConstraint],
+  ) {
+
+    def getOperationResult: Power = Kilowatts(operation match {
+      case const: Const => const.value
+      case variable: MPVar =>
+        variable.value.getOrElse(
+          throw new CriticalFailureException(
+            s"No result present for variable $variable"
+          )
+        )
+    })
   }
 
   /** Builds an objective to minimize given the asset variables and an objective
