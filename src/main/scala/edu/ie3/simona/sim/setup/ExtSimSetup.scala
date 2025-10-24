@@ -9,12 +9,7 @@ package edu.ie3.simona.sim.setup
 import com.typesafe.config.Config
 import edu.ie3.datamodel.models.input.container.JointGridContainer
 import edu.ie3.simona.api.data.ExtSimAdapterData
-import edu.ie3.simona.api.data.connection.{
-  ExtEmDataConnection,
-  ExtEvDataConnection,
-  ExtInputDataConnection,
-  ExtPrimaryDataConnection,
-}
+import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.ExtSimulation
@@ -175,7 +170,7 @@ object ExtSimSetup {
               InitExtPrimaryData.apply,
             )
 
-            extSimSetupData.update(extPrimaryDataConnection, serviceRef)
+            setupData.update(extPrimaryDataConnection, serviceRef)
 
           case extEmDataConnection: ExtEmDataConnection =>
             if setupData.emDataService.nonEmpty then {
@@ -201,7 +196,7 @@ object ExtSimSetup {
                 InitExtEmData(_, startTime),
               )
 
-              extSimSetupData.update(extEmDataConnection, serviceRef)
+              setupData.copy(emDataService = Some(serviceRef))
             }
 
           case extEvDataConnection: ExtEvDataConnection =>
@@ -222,7 +217,7 @@ object ExtSimSetup {
               InitExtEvData.apply,
             )
 
-            extSimSetupData.update(extEvDataConnection, serviceRef)
+            setupData.update(extEvDataConnection, serviceRef)
 
           case extResultDataConnection: ExtResultDataConnection =>
             val extResultProvider = context.spawn(
@@ -239,7 +234,7 @@ object ExtSimSetup {
               extSimAdapter,
             )
 
-            extSimSetupData.update(extResultDataConnection, extResultProvider)
+            setupData.update(extResultDataConnection, extResultProvider)
 
           case extResultListener: ExtResultListener =>
             val extResultEventListener = context.spawn(
@@ -247,7 +242,7 @@ object ExtSimSetup {
               s"ExtResultListener_$index",
             )
 
-            extSimSetupData.update(extResultListener, extResultEventListener)
+            setupData.update(extResultListener, extResultEventListener)
 
           case otherConnection =>
             log.warn(

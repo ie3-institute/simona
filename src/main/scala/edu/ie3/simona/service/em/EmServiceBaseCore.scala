@@ -15,20 +15,14 @@ import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.util.ReceiveDataMap
-import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters.{
-  ListHasAsScala,
-  MapHasAsJava,
-  MapHasAsScala,
-  SetHasAsScala,
-}
-import scala.jdk.OptionConverters.RichOption
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SetHasAsScala}
 
 /** Basic service core for an [[ExtEmDataService]].
   * @param lastFinishedTick
@@ -161,10 +155,14 @@ final case class EmServiceBaseCore(
 
     case provideEmSetPoints: ProvideEmSetPointData =>
       if canHandleSetPoints then {
+        log.warn(s"Handling of set points.")
+
         handleSetPoint(tick, provideEmSetPoints, log)
 
         (this, None)
       } else {
+        log.warn(s"Cannot handle set points.")
+
         val tick = provideEmSetPoints.tick
         val emEntities = provideEmSetPoints.emSetPoints.keySet.asScala
 
@@ -258,23 +256,32 @@ final case class EmServiceBaseCore(
         }
 
       case completion: FlexCompletion =>
-        val (updated, extMsgOption, finished) =
-          handleCompletion(tick, completion)
+        if tick == INIT_SIM_TICK then {
+          receiver match {
+            case Left(value) =>
+              (copy(lastFinishedTick = tick), None)
+            case Right(_) =>
+              (this, None)
+          }
+        } else {
+          val (updated, extMsgOption, finished) =
+            handleCompletion(tick, completion)
 
-        if finished then {
-          (
-            copy(
-              lastFinishedTick = tick,
-              completions = updated,
-              allFlexOptions = Map.empty,
-              disaggregated = Map.empty,
-              sendOptionsToExt = false,
-              canHandleSetPoints = false,
-            ),
-            extMsgOption,
-          )
+          if finished then {
+            (
+              copy(
+                lastFinishedTick = tick,
+                completions = updated,
+                allFlexOptions = Map.empty,
+                disaggregated = Map.empty,
+                sendOptionsToExt = false,
+                canHandleSetPoints = false,
+              ),
+              extMsgOption,
+            )
 
-        } else (copy(completions = updated), extMsgOption)
+          } else (copy(completions = updated), extMsgOption)
+        }
 
       case _ =>
         (this, None)

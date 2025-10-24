@@ -9,23 +9,13 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent.Message
-import edu.ie3.simona.api.data.model.em.{
-  EmCommunicationMessage,
-  EmData,
-  EmSetPoint,
-  ExtendedFlexOptionsResult,
-  FlexOptionRequest,
-  FlexOptions,
-}
+import edu.ie3.simona.api.data.model.em
+import edu.ie3.simona.api.data.model.em.{EmCommunicationMessage, EmData, EmSetPoint, ExtendedFlexOptionsResult, FlexOptionRequest, FlexOptions, GeneralFlexOptions}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{
-  FlexType,
-  FlexibilityMessage,
-  PowerLimitFlexOptions,
-}
+import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -40,7 +30,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.*
+import scala.jdk.OptionConverters.RichOptional
 import scala.math.max
 import scala.util.Try
 
@@ -126,7 +116,7 @@ case class EmCommunicationCore(
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
     requestedFlexType: Map[UUID, FlexType] = Map.empty,
-    allFlexOptions: Map[UUID, FlexOptionsResult] = Map.empty,
+    allFlexOptions: Map[UUID, FlexOptions] = Map.empty,
     currentSetPoint: Map[UUID, Power] = Map.empty,
     activatedAgents: Set[UUID] = Set.empty,
     emStates: Map[UUID, EmAgentState] = Map.empty,
@@ -186,14 +176,14 @@ case class EmCommunicationCore(
         // deactivate agents by sending an IssueNoControl message
         // activatedAgents.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
 
-        val nextTick: Option[java.lang.Long] =
+        val nextTick: java.util.Optional[java.lang.Long] =
           if activatedAgents.nonEmpty then {
-            requestEmCompletion.maybeNextTick.toScala
+            requestEmCompletion.maybeNextTick
           } else getMaybeNextTick
 
         (
           copy(lastFinishedTick = tick),
-          Some(new EmCompletion(nextTick.toJava)),
+          Some(new EmCompletion(nextTick)),
         )
       }
 
@@ -423,23 +413,27 @@ case class EmCommunicationCore(
                 None
             }
 
-          case flexOptions: FlexOptions =>
+          case flexOption: FlexOptions =>
             val agent = uuidToAgent(receiver)
-
             val emState = emStates(receiver)
 
             // update the em state
             emState.handleReceivedFlexOption(sender)
 
-            // send flex options to agent
-            agent ! ProvideFlexOptions(
-              sender,
-              PowerLimitFlexOptions(
-                flexOptions.pRef.toSquants,
-                flexOptions.pMin.toSquants,
-                flexOptions.pMax.toSquants,
-              ),
-            )
+            flexOption match {
+              case options: em.PowerLimitFlexOptions =>
+                // send flex options to agent
+                agent ! ProvideFlexOptions(
+                  sender,
+                  PowerLimitFlexOptions(
+                    options.pRef.toSquants,
+                    options.pMin.toSquants,
+                    options.pMax.toSquants,
+                  ),
+                )
+              case other =>
+                log.warn(s"Cannot handle flex option: $other")
+            }
 
             // receiver -> number of received flex options
             Some(receiver -> 1)
@@ -621,8 +615,16 @@ case class EmCommunicationCore(
                 uuidToInferior(receiverUuid)
                   .flatMap(allFlexOptions.get)
                   .foreach { result =>
-                    flexOptionResult
-                      .addDisaggregated(result.getInputModel, result)
+                    val model = result match {
+                      case result: ExtendedFlexOptionsResult =>
+                        result.getInputModel
+                      case options: GeneralFlexOptions =>
+                        options.model
+                      case options: em.PowerLimitFlexOptions =>
+                        options.model
+                    }
+
+                    flexOptionResult.addDisaggregated(model, result)
                   }
               }
 
@@ -708,7 +710,7 @@ case class EmCommunicationCore(
                 expectDataFrom = ReceiveMultiDataMap.empty,
                 nextActivation = nextActivation ++ additionalActivation,
               ),
-              Some(new EmCompletion(getMaybeNextTick.toJava)),
+              Some(new EmCompletion(getMaybeNextTick)),
             )
           } else {
             val msgToExt = getMsgToExtOption

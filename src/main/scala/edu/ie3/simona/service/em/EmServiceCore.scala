@@ -9,13 +9,9 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.model.em.ExtendedFlexOptionsResult
+import edu.ie3.simona.api.data.model.em.{ExtendedFlexOptionsResult, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  EmFlexMessage,
-  EmServiceRegistration,
-  ServiceResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{EmFlexMessage, EmServiceRegistration, ServiceResponseMessage}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -35,8 +31,6 @@ import scala.jdk.OptionConverters.{RichOption, RichOptional}
 /** Trait for all em service cores.
   */
 trait EmServiceCore {
-  def lastFinishedTick: Long
-
   /** The last tick that was completed.
     */
   val lastFinishedTick: Long
@@ -47,7 +41,7 @@ trait EmServiceCore {
 
   /** Map: uuid to flex option result.
     */
-  val allFlexOptions: Map[UUID, FlexOptionsResult]
+  val allFlexOptions: Map[UUID, FlexOptions]
 
   /** ReceiveDataMap: uuid to completions.
     */
@@ -280,7 +274,7 @@ trait EmServiceCore {
     * @return
     *   An option for the next activation tick.
     */
-  private final def getMaybeNextTick: java.util.Optional[java.lang.Long] =
+  protected final def getMaybeNextTick: java.util.Optional[java.lang.Long] =
     completions.receivedData
       .flatMap { case (_, completion) =>
         completion.requestAtTick

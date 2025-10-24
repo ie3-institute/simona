@@ -60,11 +60,6 @@ final case class ExtSimSetupData(
         ) =>
       update(primaryConnection, serviceRef)
     case (
-          _: ExtEmDataConnection,
-          serviceRef: ActorRef[ExtEmDataService.Message],
-        ) =>
-      copy(emDataService = Some(serviceRef))
-    case (
           _: ExtEvDataConnection,
           serviceRef: ActorRef[ExtEvDataService.Message],
         ) =>
@@ -97,7 +92,7 @@ final case class ExtSimSetupData(
     Seq(
       emDataService,
       evDataService,
-    ).flatten ++ extResultListeners ++ primaryDataServices.map(_._2)
+    ).flatten ++ resultListeners ++ resultProviders ++ primaryDataServices.map(_._2)
 }
 
 object ExtSimSetupData {
