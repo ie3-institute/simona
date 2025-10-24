@@ -150,7 +150,7 @@ object OptimizedFlexStrat {
         .map { boundaries =>
           ticks.foldLeft[IndexedSeq[StepResults]](IndexedSeq.empty) {
             case (previousResults, tick) =>
-              val previousState = previousResults.headOption.flatMap(_.state)
+              val previousState = previousResults.lastOption.flatMap(_.state)
 
               val res = addAssetStep(
                 boundaries,
