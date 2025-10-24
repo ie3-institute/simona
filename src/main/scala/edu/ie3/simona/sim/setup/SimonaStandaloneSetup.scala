@@ -211,6 +211,7 @@ class SimonaStandaloneSetup(
     setupExtSim(extLinks, args, typeSafeConfig, grid)(using
       context,
       scheduler,
+      simonaConfig.simona.time.simStartTime,
     )
   }
 

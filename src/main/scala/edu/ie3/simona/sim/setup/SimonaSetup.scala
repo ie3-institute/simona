@@ -123,7 +123,7 @@ trait SimonaSetup {
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[ServiceMessage]
 
-  /** Creates a load profile service
+  /** Creates a load profile service.
     *
     * @param context
     *   Actor context to use.

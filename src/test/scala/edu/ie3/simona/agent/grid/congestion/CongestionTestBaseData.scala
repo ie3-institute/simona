@@ -80,6 +80,7 @@ trait CongestionTestBaseData
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
     loadProfiles = loadProfileService.ref,
+    emDataService = None,
     evDataService = None,
   )
 
