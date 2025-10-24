@@ -79,54 +79,54 @@ object EmAgent {
   ): Behavior[Message] = Behaviors.setup[Message] { ctx =>
 
     val parentData = emDataService match {
-        case Some(service) =>
-          // since we have a service, it will replace the default agent communication
-          given ActorContext[Message] = ctx
+      case Some(service) =>
+        // since we have a service, it will replace the default agent communication
+        given ActorContext[Message] = ctx
 
-          val uuid = inputModel.getUuid
+        val uuid = inputModel.getUuid
 
-          service ! EmServiceRegistration(
+        service ! EmServiceRegistration(
+          ctx.self,
+          uuid,
+          parent.toOption,
+          inputModel.getControllingEm.toScala.map(_.getUuid),
+        )
+
+        // given to the parent
+        val requestAdapter = ExtEmDataService.emServiceRequestAdapter(
+          service,
+          ctx.self,
+        )
+
+        val adaptedParent = parent match {
+          case Left(_) =>
+            uuid
+          case Right(value) =>
+            value
+        }
+
+        // used by this agent
+        val responseAdapter = ExtEmDataService.emServiceResponseAdapter(
+          service,
+          adaptedParent,
+        )
+
+        parent.map {
+          _ ! RegisterControlledAsset(
+            requestAdapter,
+            inputModel,
+          )
+        }
+
+        Right(responseAdapter)
+
+      case None =>
+        parent.map {
+          _ ! RegisterControlledAsset(
             ctx.self,
-            uuid,
-            parent.toOption,
-            inputModel.getControllingEm.toScala.map(_.getUuid),
+            inputModel,
           )
-
-          // given to the parent
-          val requestAdapter = ExtEmDataService.emServiceRequestAdapter(
-            service,
-            ctx.self,
-          )
-
-          val adaptedParent = parent match {
-            case Left(_) =>
-              uuid
-            case Right(value) =>
-              value
-          }
-
-          // used by this agent
-          val responseAdapter = ExtEmDataService.emServiceResponseAdapter(
-            service,
-            adaptedParent,
-          )
-
-          parent.map {
-            _ ! RegisterControlledAsset(
-              requestAdapter,
-              inputModel,
-            )
-          }
-
-          Right(responseAdapter)
-
-        case None =>
-          parent.map {
-            _ ! RegisterControlledAsset(
-              ctx.self,
-              inputModel,
-            )
-          }
+        }
 
         parent
     }

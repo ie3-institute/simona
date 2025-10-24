@@ -197,7 +197,7 @@ case class EmCommunicationCore(
         )
       }
 
-      /*
+    /*
     case provideEmData: ProvideEmData =>
       log.warn(s"Handling ext message: $provideEmData")
 
@@ -330,7 +330,7 @@ case class EmCommunicationCore(
 
         (newState, msgToExt)
       }
-       */
+     */
     case flexRequest: RequestEmFlexResults =>
       val disagg = flexRequest.disaggregated
       val entities = flexRequest.emEntities.asScala
@@ -362,7 +362,8 @@ case class EmCommunicationCore(
         } else None
       }.toMap
 
-      val updatedDisaggregated = disaggregated ++ entities.map(uuid => uuid -> disagg).toMap
+      val updatedDisaggregated =
+        disaggregated ++ entities.map(uuid => uuid -> disagg).toMap
 
       val updatedExpectDataFrom = expectDataFrom.addExpectedKeys(mapping)
 
@@ -511,30 +512,34 @@ case class EmCommunicationCore(
     case provideEmSetPoints: ProvideEmSetPointData =>
       val extTick = provideEmSetPoints.tick
 
-      val mapping = provideEmSetPoints.emSetPoints().asScala.flatMap { case (receiver, setPoint) =>
-        val agent = uuidToAgent(receiver)
-        log.warn(s"Receiver of set point: $agent")
+      val mapping = provideEmSetPoints
+        .emSetPoints()
+        .asScala
+        .flatMap { case (receiver, setPoint) =>
+          val agent = uuidToAgent(receiver)
+          log.warn(s"Receiver of set point: $agent")
 
-        // updates the em state
-        emStates(receiver).setReceivedSetPoint()
+          // updates the em state
+          emStates(receiver).setReceivedSetPoint()
 
-        setPoint.power.toScala.flatMap(
-          _.getP.toScala.map(_.toSquants)
-        ) match {
-          case Some(power) =>
-            agent ! IssuePowerControl(extTick, power)
+          setPoint.power.toScala.flatMap(
+            _.getP.toScala.map(_.toSquants)
+          ) match {
+            case Some(power) =>
+              agent ! IssuePowerControl(extTick, power)
 
-          case None =>
-            agent ! IssueNoControl(extTick)
+            case None =>
+              agent ! IssueNoControl(extTick)
+          }
+
+          val count = Try {
+            uuidToInferior(receiver).count { id => emStates(id).isActivated }
+          }.getOrElse(0)
+
+          // sender -> number of set points to send
+          Some(receiver -> count)
         }
-
-        val count = Try {
-          uuidToInferior(receiver).count { id => emStates(id).isActivated }
-        }.getOrElse(0)
-
-        // sender -> number of set points to send
-        Some(receiver -> count)
-      }.toMap
+        .toMap
 
       val updatedExpectDataFrom = expectDataFrom.addExpectedKeys(mapping)
 

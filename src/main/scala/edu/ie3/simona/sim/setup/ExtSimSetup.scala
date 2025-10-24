@@ -163,23 +163,21 @@ object ExtSimSetup {
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
       case (setupData, connection) =>
         connection match {
-        connection match {
-        case extPrimaryDataConnection: ExtPrimaryDataConnection =>
-        val serviceRef = context.spawn(
-        ExtPrimaryDataService(scheduler),
-        "ExtPrimaryDataService",
-        )
+          case extPrimaryDataConnection: ExtPrimaryDataConnection =>
+            val serviceRef = context.spawn(
+              ExtPrimaryDataService(scheduler),
+              "ExtPrimaryDataService",
+            )
 
-        setupService(
-        extPrimaryDataConnection,
-        serviceRef,
-        InitExtPrimaryData.apply,
-        )
+            setupService(
+              extPrimaryDataConnection,
+              serviceRef,
+              InitExtPrimaryData.apply,
+            )
 
-        extSimSetupData.update(extPrimaryDataConnection, serviceRef)
+            extSimSetupData.update(extPrimaryDataConnection, serviceRef)
 
-
-        case extEmDataConnection: ExtEmDataConnection =>
+          case extEmDataConnection: ExtEmDataConnection =>
             if setupData.emDataService.nonEmpty then {
               throw ServiceException(
                 s"Trying to connect another EmDataConnection. Currently only one is allowed."
