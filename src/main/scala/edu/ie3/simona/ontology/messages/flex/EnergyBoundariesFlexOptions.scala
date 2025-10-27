@@ -6,9 +6,11 @@
 
 package edu.ie3.simona.ontology.messages.flex
 
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import squants.time.Seconds
 import squants.{Dimensionless, Each, Energy, Power, Time}
 
 import scala.collection.immutable.SortedMap
@@ -47,25 +49,40 @@ object EnergyBoundariesFlexOptions {
       *
       * @param powerSeries
       *   The power time series.
-      * @param resolution
-      *   Time between power series entries.
       * @return
       */
     def apply(
-        powerSeries: SortedMap[Long, Power],
-        resolution: Time,
+        powerSeries: SortedMap[Long, Power]
     ): ParticipantEnergyBoundaries = {
 
-      val energySeries = powerSeries.map { case (tick, power) =>
-        val energy = power * resolution
-        tick -> ClosedInterval(energy, energy)
-      }
+      val (firstTick, firstPower) = powerSeries.headOption.getOrElse(
+        throw new CriticalFailureException("Empty power time series!")
+      )
+
+      val (energySeries, _) =
+        powerSeries.tail.foldLeft(
+          (SortedMap(firstTick -> zeroKWh), firstPower)
+        ) { case ((previousSeries, lastPower), (tick, power)) =>
+          val (lastTick, lastEnergy) = previousSeries
+            .maxBefore(tick)
+            .getOrElse(
+              throw new CriticalFailureException(
+                s"No value before $tick in previous values $previousSeries"
+              )
+            )
+
+          val addedEnergy = lastPower * Seconds(tick - lastTick)
+          val tickEnergy = lastEnergy + addedEnergy
+          (previousSeries.updated(tick, tickEnergy), power)
+        }
 
       val minPower = powerSeries.values.minOption.getOrElse(zeroKW)
       val maxPower = powerSeries.values.maxOption.getOrElse(zeroKW)
 
       ParticipantEnergyBoundaries(
-        energyLimits = energySeries,
+        energyLimits = energySeries.map { case (tick, energy) =>
+          tick -> ClosedInterval(energy, energy)
+        },
         powerLimits = ClosedInterval(minPower, maxPower),
       )
     }

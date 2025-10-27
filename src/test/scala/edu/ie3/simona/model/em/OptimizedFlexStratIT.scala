@@ -40,8 +40,7 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
       val pvUUID = UUID.fromString("0-0-0-0-1")
       val pvFlex = EnergyBoundariesFlexOptions(
         ParticipantEnergyBoundaries(
-          Seq(0, -6, -8, -7, -12, 0, 0, 0, 0, 0, 0, 0).toPowerMap,
-          sampleTime,
+          Seq(0, -6, -8, -7, -12, 0, 0, 0, 0, 0, 0, 0).toPowerMap
         )
       )
 
@@ -49,8 +48,7 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
       val loadUUID = UUID.fromString("0-0-0-0-2")
       val loadFlex = EnergyBoundariesFlexOptions(
         ParticipantEnergyBoundaries(
-          Seq(0, 0, 0, 0, 0, 0, 5, 10, 3, 7, 6, 0).toPowerMap,
-          sampleTime,
+          Seq(0, 0, 0, 0, 0, 0, 5, 10, 3, 7, 6, 0).toPowerMap
         )
       )
 
@@ -92,7 +90,6 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
         val objectiveContainer = OptimizedFlexStrat.buildObjective(
           assetVars,
           Kilowatts(0),
-          Hours(1),
           MinAbsPowerObjectiveFactory,
         )
 
@@ -167,7 +164,6 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
         val objectiveContainer = OptimizedFlexStrat.buildObjective(
           assetVars,
           Kilowatts(0),
-          Hours(1),
           LinearizedQuadraticPowerObjectiveFactory(
             segmentCount = 10,
             lastSegment = 10d, // 10 kW
