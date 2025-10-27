@@ -14,6 +14,7 @@ import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.SoftConstraint
 import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import optimus.algebra.{Const, Double2Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
@@ -184,120 +185,111 @@ object OptimizedFlexStrat {
         limits
       }
 
-    formerEnergyLimits match {
-      case Some(formerLimits)
-          if energyLimits.getUpper == energyLimits.getLower &&
-            formerLimits.getLower == formerLimits.getUpper =>
-        // there is no flexibility at all, thus we don't need any state to keep track of
+    if energyLimits.getUpper == energyLimits.getLower &&
+      formerEnergyLimits.forall(limits => limits.getLower == limits.getUpper)
+    then {
+      // there is no flexibility at all, thus we don't need any state to keep track of
 
-        // todo this doesn't work that well... power time series class?
-        // or, base on previous step as well
-        val formerEnergy = formerLimits.getUpper
-        val currentEnergy = energyLimits.getUpper
+      val formerEnergy = formerEnergyLimits.map(_.getUpper).getOrElse(zeroKWh)
+      val currentEnergy = energyLimits.getUpper
 
-        val fixedPower = (currentEnergy - formerEnergy) / duration
-        StepResults(None, Const(fixedPower.toKilowatts), None)
-      case _ =>
-        // we do have some flexibility at this point in time, model it
+      val fixedPower = (currentEnergy - formerEnergy) / duration
+      StepResults(None, Const(fixedPower.toKilowatts), None)
+    } else {
+      // we do have some flexibility at this point in time, model it
 
-        // we use charging efficiency for both charging and discharging,
-        // since we use the adapted storage model here
-        val eta = energyBoundaries.etaCharge
+      // we use charging efficiency for both charging and discharging,
+      // since we use the adapted storage model here
+      val eta = energyBoundaries.etaCharge
 
-        // determining a previous state
-        val previousState = lastState.getOrElse {
+      // determining a previous state
+      val previousState = lastState.getOrElse {
 
-          // we have been given no former state as a parameter. Either...
-          formerEnergyLimits
-            .map { limits =>
-              if limits.getLower == limits.getUpper then
-                // ... there was no flexibility in the last step, thus we use the last energy value
-                Const(limits.getUpper.toKilowattHours)
-              else
-                throw new CriticalFailureException(
-                  "No former state was given, although there was flexibility in the last step"
-                )
-            }
-            // ... or this is the initial step, thus we start at 0
-            .getOrElse(Const(0d))
-        }
+        // we have been given no former state as a parameter. Either...
+        formerEnergyLimits
+          // ... there was no flexibility in the last step, thus we use the last energy value
+          .filter(limits => limits.getLower == limits.getUpper)
+          .map { limits => Const(limits.getUpper.toKilowattHours) }
+          // ... or this is the initial step, thus we start at 0
+          .getOrElse(Const(0d))
+      }
 
-        // modeling the operating point (power),
-        // valid between that previous and new state
-        val p = MPFloatVar(
-          "p",
-          energyBoundaries.powerLimits.getLower.toKilowatts,
-          energyBoundaries.powerLimits.getUpper.toKilowatts,
-        )
+      // modeling the operating point (power),
+      // valid between that previous and new state
+      val p = MPFloatVar(
+        "p",
+        energyBoundaries.powerLimits.getLower.toKilowatts,
+        energyBoundaries.powerLimits.getUpper.toKilowatts,
+      )
 
-        // todo new state could also be constant, if upper == lower
-        // modeling the new state (stored energy)
-        val newState = MPFloatVar(
-          "state",
-          energyLimits.getLower.toKilowattHours,
-          energyLimits.getUpper.toKilowattHours,
-        )
+      // todo new state could also be constant, if upper == lower
+      // modeling the new state (stored energy)
+      val newState = MPFloatVar(
+        "state",
+        energyLimits.getLower.toKilowattHours,
+        energyLimits.getUpper.toKilowattHours,
+      )
 
-        val softConstraint =
-          if eta == Each(1) then {
-            // there are no charging/discharging losses, we can keep it simple
+      val softConstraint =
+        if eta == Each(1) then {
+          // there are no charging/discharging losses, we can keep it simple
 
-            model.add(newState := previousState + p * duration.toHours)
-            None
-          } else {
-            // there are charging/discharging losses, thus use the full model
+          model.add(newState := previousState + p * duration.toHours)
+          None
+        } else {
+          // there are charging/discharging losses, thus use the full model
 
-            val pAbsMax = energyBoundaries.powerLimits.getUpper.max(
-              -energyBoundaries.powerLimits.getLower
+          val pAbsMax = energyBoundaries.powerLimits.getUpper.max(
+            -energyBoundaries.powerLimits.getLower
+          )
+
+          val pAbs =
+            MPFloatVar(
+              "pAbs",
+              0,
+              pAbsMax.toKilowatts,
             )
 
-            val pAbs =
-              MPFloatVar(
-                "pAbs",
-                0,
-                pAbsMax.toKilowatts,
+          model.add(pAbs >:= p)
+          model.add(pAbs >:= -p)
+
+          model.add(
+            newState := previousState + (p - pAbs * (1 - eta.toEach)) * duration.toHours
+          )
+
+          Some(new SoftConstraint {
+
+            override def getExpression: Expression = {
+              // Total penalty is slightly larger than the losses
+              // calculated by StorageMathFlexOptions. Thus, the
+              // value of pAbs should be pushed down to the absolute
+              // of p.
+              val epsilon = 1e-6
+              pAbs * (1 - eta.toEach + epsilon) * duration.toHours
+            }
+
+            override def getError: Double = {
+              val (pValue, pAbsValue) = getVals
+              math.abs(math.abs(pValue) - pAbsValue)
+            }
+
+            override def getWarningMessage: String = {
+              val (pValue, pAbsValue) = getVals
+              s"Soft constraint for storage: Approximated absolute power value $pAbsValue and absolute power value |$pValue| are $getError apart."
+            }
+
+            private def getVals: (Double, Double) = p.value
+              .zip(pAbs.value)
+              .getOrElse(
+                throw new CriticalFailureException(
+                  "Solution are expected to be determined at this point!"
+                )
               )
 
-            model.add(pAbs >:= p)
-            model.add(pAbs >:= -p)
+          })
+        }
 
-            model.add(
-              newState := previousState + (p - pAbs * (1 - eta.toEach)) * duration.toHours
-            )
-
-            Some(new SoftConstraint {
-
-              override def getExpression: Expression = {
-                // Total penalty is slightly larger than the losses
-                // calculated by StorageMathFlexOptions. Thus, the
-                // value of pAbs should be pushed down to the absolute
-                // of p.
-                val epsilon = 1e-6
-                pAbs * (1 - eta.toEach + epsilon) * duration.toHours
-              }
-
-              override def getError: Double = {
-                val (pValue, pAbsValue) = getVals
-                math.abs(math.abs(pValue) - pAbsValue)
-              }
-
-              override def getWarningMessage: String = {
-                val (pValue, pAbsValue) = getVals
-                s"Soft constraint for storage: Approximated absolute power value $pAbsValue and absolute power value |$pValue| are $getError apart."
-              }
-
-              private def getVals: (Double, Double) = p.value
-                .zip(pAbs.value)
-                .getOrElse(
-                  throw new CriticalFailureException(
-                    "Solution are expected to be determined at this point!"
-                  )
-                )
-
-            })
-          }
-
-        StepResults(Some(newState), p, softConstraint)
+      StepResults(Some(newState), p, softConstraint)
     }
 
   }
