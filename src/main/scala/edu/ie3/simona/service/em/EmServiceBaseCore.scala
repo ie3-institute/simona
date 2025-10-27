@@ -246,6 +246,8 @@ final case class EmServiceBaseCore(
           }
 
         } else {
+          log.warn(s"Missing flex options for: ${updated.getExpectedKeys}")
+
           (
             copy(
               flexOptions = updated,
@@ -331,11 +333,15 @@ final case class EmServiceBaseCore(
       )
 
       if flexOptions.expects(modelUuid) then {
+        println(s"Received expected: $modelUuid")
+
         (
           flexOptions.addData(modelUuid, result),
-          allFlexOptions,
+          allFlexOptions.updated(modelUuid, result),
         )
       } else {
+        println(s"Received unexpected: $modelUuid")
+
         (
           flexOptions,
           allFlexOptions.updated(modelUuid, result),
