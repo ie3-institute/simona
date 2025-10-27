@@ -87,6 +87,29 @@ object EnergyBoundariesFlexOptions {
       )
     }
 
+    /** Creating energy boundaries for a storage model with symmetrical maximum
+      * power.
+      */
+    def apply(
+        eStorage: Energy,
+        currentEnergy: Energy,
+        pMax: Power,
+        etaCharge: Dimensionless,
+        etaDischarge: Dimensionless,
+        currentTick: Long,
+    ): ParticipantEnergyBoundaries =
+      ParticipantEnergyBoundaries(
+        energyLimits = SortedMap(
+          currentTick -> new ClosedInterval(
+            -currentEnergy,
+            eStorage - currentEnergy,
+          )
+        ),
+        powerLimits = new ClosedInterval(-pMax, pMax),
+        etaCharge = etaCharge,
+        etaDischarge = etaDischarge,
+      )
+
   }
 
 }

@@ -294,9 +294,12 @@ object OptimizedFlexStrat {
 
   }
 
+  /** @param boundaries
+    * @return
+    */
   def adaptEnergyBoundaries(
       boundaries: ParticipantEnergyBoundaries
-  ) = {
+  ): ParticipantEnergyBoundaries = {
     val etaCh = boundaries.etaCharge.toEach
     val etaDis = boundaries.etaDischarge.toEach
 

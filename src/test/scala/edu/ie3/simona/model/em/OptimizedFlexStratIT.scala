@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.em
 
+import edu.ie3.simona.model.em.OptimizedFlexStratIT.*
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.simona.model.em.opt.OptimizedFlexStrat
 import edu.ie3.simona.model.em.opt.PowerObjectiveFactory.{
@@ -15,10 +16,12 @@ import edu.ie3.simona.model.em.opt.PowerObjectiveFactory.{
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
 import edu.ie3.simona.test.common.{MathFlexTestLike, UnitSpec}
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
-import squants.Each
-import squants.energy.{KilowattHours, Kilowatts}
+import org.scalatest.OptionValues
+import squants.{Dimensionless, Each, Power, Time}
+import squants.energy.{Energy, KilowattHours, Kilowatts, WattHours}
 import squants.time.Hours
 
 import java.util.UUID
@@ -28,9 +31,84 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
 
   // Testing tolerances
   given Double = 1e-6
+  given Energy = WattHours(1e-9)
   val constraintTolerance = 1e-3
 
   "An optimized flex strat" when {
+
+    "provided with a flex energy model to adapt" should {
+
+      "create an adapted model correctly" in {
+
+        val currentEnergy = KilowattHours(10)
+        val eStorage = KilowattHours(20)
+        val pMax = Kilowatts(10)
+
+        val etas = Seq(.6, .65, .7, .75, .8, .85, 0.9, .92, .95, .98, 1)
+
+        forEvery(Table("etaCharging", etas*)) { etaCharging =>
+          forEvery(Table("etaDischarging", etas*)) { etaDischarging =>
+
+            val classic = ClassicModel(
+              currentEnergy = currentEnergy,
+              eStorage = eStorage,
+              pMax = pMax,
+              etaCharging = Each(etaCharging),
+              etaDischarging = Each(etaDischarging),
+            )
+
+            // using the implementation to derive an adapted model
+            val adaptedFlexOptions = OptimizedFlexStrat.adaptEnergyBoundaries(
+              ParticipantEnergyBoundaries(
+                eStorage = eStorage,
+                currentEnergy = currentEnergy,
+                pMax = pMax,
+                etaCharge = Each(etaCharging),
+                etaDischarge = Each(etaDischarging),
+                0L,
+              )
+            )
+            val adaptedLimits = adaptedFlexOptions.energyLimits(0)
+
+            val adapted = AdaptedModel(
+              currentEnergy = -adaptedLimits.getLower,
+              eStorage = adaptedLimits.getUpper - adaptedLimits.getLower,
+              pMax = adaptedFlexOptions.powerLimits.getUpper,
+              etaAvg = adaptedFlexOptions.etaCharge,
+            )
+
+            // charging until full, with maximum power
+            val power1 = pMax
+            val duration1 = (eStorage - currentEnergy) / (power1 * etaCharging)
+            // discharging three quarters, with half power
+            val power2 = -pMax / 2
+            val duration2 = eStorage * 0.75 / (-power2 * 1 / etaDischarging)
+            // charging until half, with quarter power
+            val power3 = pMax / 4
+            val duration3 = eStorage / 4 / (power3 * etaCharging)
+            // discharging until empty, with maximum power
+            val power4 = -pMax
+            val duration4 = eStorage / 2 / (-power4 * 1 / etaDischarging)
+
+            val results = IndexedSeq(classic, adapted).map(
+              _.charge(power1, duration1)
+                .charge(power2, duration2)
+                .charge(power3, duration3)
+                .charge(power4, duration4)
+                .currentEnergy
+            )
+
+            // comparing both models:
+            // battery should be exactly empty
+            results(0) should approximate(zeroKWh)
+            results(1) should approximate(zeroKWh)
+
+          }
+        }
+      }
+
+    }
+
     "provided with battery and constant constraints" should {
 
       given ticks: Seq[Long] = Range.Long.inclusive(0, 12 * 3600, 3600)
@@ -262,6 +340,46 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
         model.release()
 
       }
+    }
+  }
+
+}
+
+object OptimizedFlexStratIT extends OptionValues {
+
+  trait BatteryTesting {
+    val currentEnergy: Energy
+
+    def charge(power: Power, duration: Time): BatteryTesting
+  }
+
+  final case class ClassicModel(
+      override val currentEnergy: Energy,
+      eStorage: Energy,
+      pMax: Power,
+      etaCharging: Dimensionless,
+      etaDischarging: Dimensionless,
+  ) extends BatteryTesting {
+    def charge(power: Power, duration: Time): BatteryTesting = {
+      val netPower =
+        if power > zeroKW then power * etaCharging.toEach
+        else power * 1 / etaDischarging.toEach
+
+      copy(currentEnergy = currentEnergy + netPower * duration)
+    }
+  }
+
+  final case class AdaptedModel(
+      override val currentEnergy: Energy,
+      eStorage: Energy,
+      pMax: Power,
+      etaAvg: Dimensionless,
+  ) extends BatteryTesting {
+    def charge(power: Power, duration: Time): BatteryTesting = {
+      val newEnergy =
+        currentEnergy + (power - power.abs * (1 - etaAvg.toEach)) * duration
+
+      copy(currentEnergy = newEnergy)
     }
   }
 
