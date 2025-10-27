@@ -370,8 +370,8 @@ object OptimizedFlexStrat {
 
     val (objectiveResult, softConstraintsResult) =
       Range(0, timeSteps)
-        .flatMap { timeStep =>
-          assetVars.map {
+        .map { timeStep =>
+          assetVars.flatMap {
             _.results.map(_(timeStep))
           }
         }
