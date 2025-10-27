@@ -76,7 +76,7 @@ trait MathFlexTestLike {
           s"\n\t\tTrajectory: ${res
               .map(step =>
                 step.getOperationResult.toString +
-                  step.state.map(energy => s" ( -> ${KilowattHours(energy.value.value).toString})").getOrElse("")
+                  step.state.map(_ => s" ( -> ${KilowattHours(step.energyVal).toString})").getOrElse("")
               )
               .mkString(", ")}"
         }
