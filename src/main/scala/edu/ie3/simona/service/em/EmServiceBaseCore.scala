@@ -64,6 +64,7 @@ final case class EmServiceBaseCore(
     sendOptionsToExt: Boolean = false,
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[ProvideEmSetPointData] = None,
+    nextActivation: Map[UUID, Long] = Map.empty,
 ) extends EmServiceCore {
 
   override def handleRegistration(
@@ -96,6 +97,7 @@ final case class EmServiceBaseCore(
       uuidToAgent = uuidToAgent + (modelUuid -> ref),
       completions = completions.addExpectedKeys(Set(modelUuid)),
       structure = updatedStructure ++ Map(modelUuid -> Set.empty[UUID]),
+      nextActivation = nextActivation.updated(modelUuid, 0),
     )
   }
 
@@ -266,23 +268,44 @@ final case class EmServiceBaseCore(
               (this, None)
           }
         } else {
-          val (updated, extMsgOption, finished) =
+          val (updated, extMsgOption, nextTick, finished) =
             handleCompletion(tick, completion)
 
           if finished then {
+            // the next activations
+            val updatedNextActivation = nextActivation ++ updated.receivedData.flatMap {
+              case (uuid, msg) =>
+                msg.requestAtTick.map(uuid -> _)
+            }
+
+            val expectedCompletions = nextTick match {
+              case Some(t) =>
+                val keys = updatedNextActivation.filter { case (_, activation) => activation == t }.keySet
+                log.warn(s"Keys: $keys")
+                ReceiveDataMap[UUID, FlexCompletion](keys)
+              case None =>
+                updated
+            }
+
+            log.warn(s"$updated")
+
             (
               copy(
                 lastFinishedTick = tick,
-                completions = updated,
-                allFlexOptions = Map.empty,
+                completions = expectedCompletions,
                 disaggregated = Map.empty,
                 sendOptionsToExt = false,
                 canHandleSetPoints = false,
+                nextActivation = updatedNextActivation,
               ),
               extMsgOption,
             )
 
-          } else (copy(completions = updated), extMsgOption)
+          } else {
+            log.warn(s"$updated")
+
+            (copy(completions = updated), extMsgOption)
+          }
         }
 
       case _ =>

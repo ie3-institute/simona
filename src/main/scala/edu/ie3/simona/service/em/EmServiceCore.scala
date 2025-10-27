@@ -252,6 +252,7 @@ trait EmServiceCore {
   final def handleCompletion(tick: Long, completion: FlexCompletion): (
       ReceiveDataMap[UUID, FlexCompletion],
       Option[EmDataResponseMessageToExt],
+      Option[Long],
       Boolean,
   ) = {
     val updated = completions.addData(completion.modelUuid, completion)
@@ -259,27 +260,27 @@ trait EmServiceCore {
     if updated.isComplete then {
       val allKeys = updated.receivedData.keySet
 
-      val extMsgOption = if tick != INIT_SIM_TICK then {
+      val (extMsgOption, nextTickOption) = if tick != INIT_SIM_TICK then {
         // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
-        Some(new EmCompletion(getMaybeNextTick))
-      } else None
-
+        val option = getMaybeNextTick
+        
+        (Some(new EmCompletion(option.map(long2Long).toJava)), option)
+      } else (None, None)
+      
       // every em agent has sent a completion message
-      (ReceiveDataMap(allKeys), extMsgOption, true)
+      (updated, extMsgOption, nextTickOption, true)
 
-    } else (updated, None, false)
+    } else (updated, None, None, false)
   }
 
   /** Method to calculate the next tick option.
     * @return
     *   An option for the next activation tick.
     */
-  protected final def getMaybeNextTick: java.util.Optional[java.lang.Long] =
+  protected final def getMaybeNextTick: Option[Long] =
     completions.receivedData
       .flatMap { case (_, completion) =>
         completion.requestAtTick
       }
       .minOption
-      .map(long2Long)
-      .toJava
 }

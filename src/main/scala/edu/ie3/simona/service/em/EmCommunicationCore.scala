@@ -30,7 +30,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.RichOptional
+import scala.jdk.OptionConverters.{RichOptional, RichOption}
 import scala.math.max
 import scala.util.Try
 
@@ -179,7 +179,7 @@ case class EmCommunicationCore(
         val nextTick: java.util.Optional[java.lang.Long] =
           if activatedAgents.nonEmpty then {
             requestEmCompletion.maybeNextTick
-          } else getMaybeNextTick
+          } else getMaybeNextTick.map(long2Long).toJava
 
         (
           copy(lastFinishedTick = tick),
@@ -710,7 +710,7 @@ case class EmCommunicationCore(
                 expectDataFrom = ReceiveMultiDataMap.empty,
                 nextActivation = nextActivation ++ additionalActivation,
               ),
-              Some(new EmCompletion(getMaybeNextTick)),
+              Some(new EmCompletion(getMaybeNextTick.map(long2Long).toJava)),
             )
           } else {
             val msgToExt = getMsgToExtOption
