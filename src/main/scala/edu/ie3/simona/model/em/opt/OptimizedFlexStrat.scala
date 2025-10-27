@@ -319,6 +319,13 @@ object OptimizedFlexStrat {
 
   }
 
+  /** @param state
+    *   Optionally the state that follows the operating point.
+    * @param operation
+    *   The operating point between the previous state and [[state]].
+    * @param softConstraint
+    *   Optionally a soft constraint.
+    */
   final case class StepResults(
       state: Option[MPVar],
       operation: Const | MPVar,
