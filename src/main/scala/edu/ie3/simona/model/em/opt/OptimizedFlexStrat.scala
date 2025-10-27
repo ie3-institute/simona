@@ -129,7 +129,8 @@ object OptimizedFlexStrat {
     * @param flexOptions
     *   The flex options that all assets provided.
     * @param ticks
-    *   The ticks of the sample times to add constraints for.
+    *   The ticks (including current tick to last predicted tick) of the sample
+    *   times to add constraints for.
     * @param sampleTime
     * @param model
     *   The optimization model to use.
@@ -145,7 +146,7 @@ object OptimizedFlexStrat {
       val results = fo.energyBoundaries
         .map(adaptEnergyBoundaries)
         .map { boundaries =>
-          ticks.foldLeft[IndexedSeq[StepResults]](IndexedSeq.empty) {
+          ticks.tail.foldLeft[IndexedSeq[StepResults]](IndexedSeq.empty) {
             case (previousResults, tick) =>
               val previousState = previousResults.lastOption.flatMap(_.state)
 
