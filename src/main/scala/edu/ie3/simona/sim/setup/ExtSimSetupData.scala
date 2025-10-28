@@ -26,10 +26,10 @@ import org.apache.pekko.actor.typed.ActorRef
   *   Option for an external em data service.
   * @param evDataService
   *   Option for an external ev data service.
- * @param resultListeners
- *   Seq: external result listeners.
- * @param resultProviders
- *   Seq: external result providers.
+  * @param resultListeners
+  *   Seq: external result listeners.
+  * @param resultProviders
+  *   Seq: external result providers.
   */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
@@ -67,8 +67,13 @@ final case class ExtSimSetupData(
           serviceRef: ActorRef[ExtEvDataService.Message],
         ) =>
       copy(evDataService = Some(serviceRef))
-    case (_: ExtResultDataConnection, serviceRef: ActorRef[ServiceMessage]) =>
-      copy(extResultListeners = extResultListeners ++ Seq(serviceRef))
+    case (_: ExtResultListener, serviceRef: ActorRef[ResultListener.Message]) =>
+      copy(resultListeners = resultListeners ++ Seq(serviceRef))
+    case (
+          _: ExtResultDataConnection,
+          serviceRef: ActorRef[ExtResultProvider.Message],
+        ) =>
+      copy(resultProviders = resultProviders ++ Seq(serviceRef))
     case (_, _) =>
       this
   }
@@ -87,7 +92,8 @@ final case class ExtSimSetupData(
     Seq(
       emDataService,
       evDataService,
-    ).flatten ++ extResultListeners ++ resultProviders ++ primaryDataServices.map(_._2)
+    ).flatten ++ resultListeners ++ resultProviders ++ primaryDataServices
+      .map(_._2)
 }
 
 object ExtSimSetupData {

@@ -141,7 +141,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.emDataService shouldBe None
       updated.evDataService shouldBe None
       updated.resultListeners shouldBe empty
-      updated.resultProviders shouldBe Seq(resultRef)
+      updated.resultProviders shouldBe Seq(resultServiceProxyRef)
     }
 
     "be updated with multiple different connections correctly" in {
@@ -177,7 +177,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.emDataService shouldBe Some(emRef)
       updated.evDataService shouldBe Some(evRef)
       updated.resultListeners shouldBe empty
-      updated.resultProviders shouldBe Seq(resultRef)
+      updated.resultProviders shouldBe Seq(resultServiceProxyRef)
     }
 
     "return evDataService correctly" in {

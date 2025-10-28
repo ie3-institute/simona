@@ -63,7 +63,7 @@ object EmAgent {
     *   agent is em-controlled, or a [[Left]] with a reference to the scheduler
     *   that is activating this agent.
     * @param listener
-   *   A listener for result events.
+    *   A listener for result events.
     * @param emDataService
     *   An energy management service.
     */
@@ -74,7 +74,7 @@ object EmAgent {
       modelStrategy: String,
       simulationStartDate: ZonedDateTime,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
-      listener: Iterable[ActorRef[ResultEvent]],
+      listener: ActorRef[ResultEvent],
       emDataService: Option[ActorRef[ExtEmDataService.Message]] = None,
   ): Behavior[Message] = Behaviors.setup[Message] { ctx =>
 
