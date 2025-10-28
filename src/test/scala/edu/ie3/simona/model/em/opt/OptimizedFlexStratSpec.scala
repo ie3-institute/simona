@@ -4,11 +4,9 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.em
+package edu.ie3.simona.model.em.opt
 
-import edu.ie3.simona.model.em.OptimizedFlexStratIT.*
-import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.simona.model.em.opt.OptimizedFlexStrat
+import edu.ie3.simona.model.em.opt.OptimizedFlexStratSpec.*
 import edu.ie3.simona.model.em.opt.PowerObjectiveFactory.{
   LinearizedQuadraticPowerObjectiveFactory,
   MinAbsPowerObjectiveFactory,
@@ -20,19 +18,25 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import org.scalatest.OptionValues
-import squants.{Dimensionless, Each, Power, Time}
 import squants.energy.{Energy, KilowattHours, Kilowatts, WattHours}
 import squants.time.Hours
+import squants.{Dimensionless, Each, Power, Time}
 
 import java.util.UUID
-import scala.collection.immutable.SortedMap
 
-class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
+class OptimizedFlexStratSpec extends UnitSpec with MathFlexTestLike {
+
+  private val pvUUID = UUID.fromString("0-0-0-0-1")
+  private val loadUUID = UUID.fromString("0-0-0-0-2")
+  private val batUUID = UUID.fromString("0-0-0-0-3")
+
+  private val sampleTime = Hours(1)
+  private val sampleTicks = sampleTime.toSeconds.toLong
 
   // Testing tolerances
   given Double = 1e-6
   given Energy = WattHours(1e-9)
-  val constraintTolerance = 1e-3
+  private val constraintTolerance = 1e-3
 
   "An optimized flex strat" when {
 
@@ -109,13 +113,114 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
 
     }
 
-    "provided with battery and constant constraints" should {
+    "provided with simple battery flex options" should {
 
-      given ticks: Seq[Long] = Range.Long.inclusive(0, 12 * 3600, 3600)
-      val sampleTime = Hours(1)
+      given ticks: Seq[Long] =
+        Range.Long.inclusive(0, 4 * sampleTicks, sampleTicks)
+
+      // low efficiency for simplicity of the test
+      val batFlex = EnergyBoundariesFlexOptions(
+        ParticipantEnergyBoundaries(
+          eStorage = KilowattHours(100),
+          currentEnergy = KilowattHours(50),
+          pMax = Kilowatts(10),
+          etaCharge = Each(0.8),
+          etaDischarge = Each(0.8),
+          currentTick = 0L,
+        )
+      )
+
+      // since energy values have been adapted, we need this
+      // factor to convert back to "real" values
+      given EnergyConversionFactor =
+        EnergyConversionFactor(
+          batFlex.energyBoundaries.headOption.value.etaCharge,
+          OptimizedFlexStrat
+            .adaptEnergyBoundaries(batFlex.energyBoundaries.headOption.value)
+            .etaCharge,
+        )
+
+      "balance out additional power with zero excess" in {
+
+        given model: MPModel = MPModel(SolverLib.oJSolver)
+
+        val constFlex = EnergyBoundariesFlexOptions(
+          ParticipantEnergyBoundaries(
+            Seq(5, -10, 10, -2).toPowerMap
+          )
+        )
+
+        val flexOptions = Map(
+          loadUUID -> constFlex,
+          batUUID -> batFlex,
+        )
+
+        val assetVars =
+          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
+
+        assetVars.toSeq should have length 2
+        assetVars.foreach(_.results should have length 1)
+        assetVars.foreach(_.results.foreach(_ should have length 4))
+
+        val objectiveContainer = OptimizedFlexStrat.buildObjective(
+          assetVars,
+          Kilowatts(0),
+          MinAbsPowerObjectiveFactory,
+        )
+
+        model.minimize(objectiveContainer.objective)
+        model.start(timeLimit = 10000)
+
+        model.getStatus shouldBe SolutionStatus.OPTIMAL
+
+        /*
+          EXPECTED RESULTS
+          Battery should be able to fully cover the additional power
+         */
+
+        val batVars = assetVars
+          .find(_.assetUuid == batUUID)
+          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
+
+        val batRes = batVars.results.headOption
+          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+
+        {
+          objectiveContainer.softConstraints.foreach { constraint =>
+            withClue(constraint.getWarningMessage) {
+              constraint.getError should be < constraintTolerance
+            }
+          }
+
+          // discharging 5 kWh plus 1.25 kWh losses
+          batRes(0).pVal should approximate(-5)
+          batRes(0).energyVal should approximate(-6.25)
+
+          // charging 10 kWh minus 2 kWh losses
+          batRes(1).pVal should approximate(10)
+          batRes(1).energyVal should approximate(1.75)
+
+          // discharging 10 kWh plus 2.5 kWh losses
+          batRes(2).pVal should approximate(-10)
+          batRes(2).energyVal should approximate(-10.75)
+
+          // charging 2 kWh minus 0.4 kWh losses
+          batRes(3).pVal should approximate(2)
+          batRes(3).energyVal should approximate(-9.15)
+
+        } withClue buildDebugString(batVars)
+
+        model.release()
+      }
+
+    }
+
+    "provided with energy boundary flex options and an objective factory" should {
+
+      given ticks: Seq[Long] =
+        Range.Long.inclusive(0, 12 * sampleTicks, sampleTicks)
 
       // 33 kWh of feed-in in total, more than battery can store
-      val pvUUID = UUID.fromString("0-0-0-0-1")
       val pvFlex = EnergyBoundariesFlexOptions(
         ParticipantEnergyBoundaries(
           Seq(0, -6, -8, -7, -12, 0, 0, 0, 0, 0, 0, 0).toPowerMap
@@ -123,22 +228,21 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
       )
 
       // 31 kWh of load in total, more than battery can provide
-      val loadUUID = UUID.fromString("0-0-0-0-2")
       val loadFlex = EnergyBoundariesFlexOptions(
         ParticipantEnergyBoundaries(
           Seq(0, 0, 0, 0, 0, 0, 5, 10, 3, 7, 6, 0).toPowerMap
         )
       )
 
-      val batUUID = UUID.fromString("0-0-0-0-3")
+      // low efficiency for simplicity of the test
       val batFlex = EnergyBoundariesFlexOptions(
         ParticipantEnergyBoundaries(
-          energyLimits = SortedMap(
-            0L -> ClosedInterval(KilowattHours(0), KilowattHours(20))
-          ),
-          powerLimits = ClosedInterval(Kilowatts(-10), Kilowatts(10)),
+          eStorage = KilowattHours(20),
+          currentEnergy = KilowattHours(0),
+          pMax = Kilowatts(10),
           etaCharge = Each(0.8),
           etaDischarge = Each(0.8),
+          currentTick = 0L,
         )
       )
 
@@ -152,13 +256,13 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
       // factor to convert back to "real" values
       given EnergyConversionFactor =
         EnergyConversionFactor(
-          Each(0.8),
+          batFlex.energyBoundaries.headOption.value.etaCharge,
           OptimizedFlexStrat
             .adaptEnergyBoundaries(batFlex.energyBoundaries.headOption.value)
             .etaCharge,
         )
 
-      "compensate the load and feed-in with battery flexibility" in {
+      "compensate fixed powers when using linear objective" in {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
@@ -232,7 +336,7 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
 
       }
 
-      "minimize peaks" in {
+      "minimize peaks when using quadratic objective" in {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
@@ -345,7 +449,7 @@ class OptimizedFlexStratIT extends UnitSpec with MathFlexTestLike {
 
 }
 
-object OptimizedFlexStratIT extends OptionValues {
+object OptimizedFlexStratSpec extends OptionValues {
 
   trait BatteryTesting {
     val currentEnergy: Energy
