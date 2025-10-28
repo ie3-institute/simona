@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent.Message
 import edu.ie3.simona.api.data.model.em
-import edu.ie3.simona.api.data.model.em.{EmCommunicationMessage, EmData, EmSetPoint, ExtendedFlexOptionsResult, FlexOptionRequest, FlexOptions, GeneralFlexOptions}
+import edu.ie3.simona.api.data.model.em.*
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
@@ -19,18 +19,16 @@ import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, Powe
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
-import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 import squants.Power
 
-import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.{RichOptional, RichOption}
+import scala.jdk.OptionConverters.{RichOption, RichOptional}
 import scala.math.max
 import scala.util.Try
 
@@ -187,145 +185,15 @@ case class EmCommunicationCore(
         )
       }
 
-    /*
+
     case provideEmData: ProvideEmData =>
       log.warn(s"Handling ext message: $provideEmData")
-
-      // provide em data
       val extTick = provideEmData.tick
 
-      if extTick != tick then {
-        throw new CriticalFailureException(
-          s"Received request for tick '$extTick', while being in tick '$tick'."
-        )
-      } else {
-        // handle flex requests
-        val requests = provideEmData.flexRequests.asScala
-        val activated = requests.flatMap {
-          case (uuid, _) if emStates(uuid).isWaitingForActivation =>
-            uuidToAgent.get(uuid).map { agent =>
-              // update the em state
-              emStates(uuid).setReceivedRequest()
+      // handling of requests
+      val flexRequest = provideEmData.flexRequests.asScala
 
-              agent ! FlexShiftActivation(
-                tick,
-                requestedFlexType.getOrElse(uuid, FlexType.PowerLimit),
-              )
-
-              val count = max(
-                Try {
-                  uuidToInferior(uuid).count { id =>
-                    nextActivation(id) <= tick
-                  }
-                }.getOrElse(1),
-                1,
-              )
-
-              // uuid -> number of sent flex requests
-              uuid -> count
-            }
-          case _ =>
-            None
-        }.toMap
-
-        val updatedDisaggregated = disaggregated ++ requests.map {
-          case (uuid, request) => uuid -> request.disaggregated
-        }
-
-        // handle flex options
-        val expectFlexOptions = provideEmData.flexOptions.asScala.flatMap {
-          case (receiver, options) if emStates(receiver).isWaitingForExtern =>
-            val agent = uuidToAgent(receiver)
-
-            val emState = emStates(receiver)
-
-            // send flex options to agent
-            options.asScala.foreach { option =>
-              val sender = option.sender
-
-              // update the em state
-              emState.handleReceivedFlexOption(sender)
-
-              agent ! ProvideFlexOptions(
-                sender,
-                PowerLimitFlexOptions(
-                  option.pRef.toSquants,
-                  option.pMin.toSquants,
-                  option.pMax.toSquants,
-                ),
-              )
-            }
-
-            // receiver -> number of received flex options
-            Some(receiver -> 1)
-          case _ => None
-        }.toMap
-
-        // handle set points
-        val expectedSetPoints = provideEmData
-          .setPoints()
-          .asScala
-          .flatMap {
-            case (uuid, setPoint) if emStates(uuid).isWaitingForSetPoint =>
-              val agent = uuidToAgent(uuid)
-              log.warn(s"Receiver of set point: $agent")
-
-              // updates the em state
-              emStates(uuid).setReceivedSetPoint()
-
-              setPoint.power.toScala.flatMap(
-                _.getP.toScala.map(_.toSquants)
-              ) match {
-                case Some(power) =>
-                  agent ! IssuePowerControl(extTick, power)
-
-                case None =>
-                  agent ! IssueNoControl(extTick)
-              }
-
-              val count = Try {
-                uuidToInferior(uuid).count { id => emStates(id).isActivated }
-              }.getOrElse(0)
-
-              // sender -> number of set points to send
-              Some(uuid -> count)
-            case _ => None
-          }
-          .toMap
-
-        // check if we need to wait for internal answers
-        val msgToExt = getMsgToExtOption
-
-        val activatedKeys = activated.keySet
-
-        val updatedExpectDataFrom = expectDataFrom
-          .addExpectedKeys(activated)
-          .addExpectedKeys(expectFlexOptions)
-          .addExpectedKeys(expectedSetPoints)
-        log.warn(
-          s"ExpectDataFrom: $updatedExpectDataFrom, Request: $activated, FlexOption: $expectFlexOptions, SetPoint: $expectedSetPoints"
-        )
-
-        // update state data
-        val newState = copy(
-          disaggregated = updatedDisaggregated,
-          activatedAgents = activatedAgents ++ activatedKeys,
-          expectDataFrom = updatedExpectDataFrom,
-          completions = completions.addExpectedKeys(activatedKeys),
-        )
-
-        log.warn(s"Activated: ${newState.activatedAgents}")
-        log.warn(s"EmStates: ${newState.emStates}")
-        log.warn(s"Message to ext: $msgToExt")
-
-        (newState, msgToExt)
-      }
-     */
-    case flexRequest: RequestEmFlexResults =>
-      val disagg = flexRequest.disaggregated
-      val entities = flexRequest.emEntities.asScala
-
-      val mapping = entities.flatMap { uuid =>
+      val requestMapping = flexRequest.keys.flatMap { uuid =>
         if emStates(uuid).isWaitingForActivation then {
 
           uuidToAgent.get(uuid).map { agent =>
@@ -352,12 +220,42 @@ case class EmCommunicationCore(
         } else None
       }.toMap
 
-      val updatedDisaggregated =
-        disaggregated ++ entities.map(uuid => uuid -> disagg).toMap
+      val updatedDisaggregated = disaggregated ++ flexRequest.map { case (uuid, request) => uuid -> request.disaggregated }.toMap
+
+      // handling of set points
+      val setPointMapping = provideEmData.setPoints()
+        .asScala
+        .flatMap { case (receiver, setPoint) =>
+          val agent = uuidToAgent(receiver)
+          log.warn(s"Receiver of set point: $agent")
+
+          // updates the em state
+          emStates(receiver).setReceivedSetPoint()
+
+          setPoint.power.toScala.flatMap(
+            _.getP.toScala.map(_.toSquants)
+          ) match {
+            case Some(power) =>
+              agent ! IssuePowerControl(extTick, power)
+
+            case None =>
+              agent ! IssueNoControl(extTick)
+          }
+
+          val count = Try {
+            uuidToInferior(receiver).count { id => emStates(id).isActivated }
+          }.getOrElse(0)
+
+          // sender -> number of set points to send
+          Some(receiver -> count)
+        }
+        .toMap
+
+      /* update internal state */
+      val mapping = requestMapping ++ setPointMapping
 
       val updatedExpectDataFrom = expectDataFrom.addExpectedKeys(mapping)
-
-      log.warn(s"ExpectDataFrom: $updatedExpectDataFrom, Changes: $mapping")
+      log.warn(s"ExpectDataFrom: $updatedExpectDataFrom")
 
       // check if we need to wait for internal answers
       val msgToExt = getMsgToExtOption
@@ -385,7 +283,7 @@ case class EmCommunicationCore(
         val sender = msg.sender
 
         msg.content match {
-          case flexRequest: FlexOptionRequest =>
+          case _: FlexOptionRequest =>
             uuidToAgent.get(receiver) match {
               case Some(agent) =>
                 // update the em state
@@ -503,56 +401,6 @@ case class EmCommunicationCore(
 
       (newState, msgToExt)
 
-    case provideEmSetPoints: ProvideEmSetPointData =>
-      val extTick = provideEmSetPoints.tick
-
-      val mapping = provideEmSetPoints
-        .emSetPoints()
-        .asScala
-        .flatMap { case (receiver, setPoint) =>
-          val agent = uuidToAgent(receiver)
-          log.warn(s"Receiver of set point: $agent")
-
-          // updates the em state
-          emStates(receiver).setReceivedSetPoint()
-
-          setPoint.power.toScala.flatMap(
-            _.getP.toScala.map(_.toSquants)
-          ) match {
-            case Some(power) =>
-              agent ! IssuePowerControl(extTick, power)
-
-            case None =>
-              agent ! IssueNoControl(extTick)
-          }
-
-          val count = Try {
-            uuidToInferior(receiver).count { id => emStates(id).isActivated }
-          }.getOrElse(0)
-
-          // sender -> number of set points to send
-          Some(receiver -> count)
-        }
-        .toMap
-
-      val updatedExpectDataFrom = expectDataFrom.addExpectedKeys(mapping)
-
-      log.warn(s"ExpectDataFrom: $updatedExpectDataFrom, Changes: $mapping")
-
-      // check if we need to wait for internal answers
-      val msgToExt = getMsgToExtOption
-
-      // update state data
-      val newState = copy(
-        expectDataFrom = updatedExpectDataFrom,
-        completions = completions.addExpectedKeys(mapping.keySet),
-      )
-
-      log.warn(s"EmStates: ${newState.emStates}")
-      log.warn(s"Message to ext: $msgToExt")
-
-      (newState, msgToExt)
-
     case other =>
       log.warn(s"Deprecated message received! Message: $other")
 
@@ -563,10 +411,7 @@ case class EmCommunicationCore(
       tick: Long,
       flexResponse: FlexResponse,
       receiver: Either[UUID, ActorRef[FlexResponse]],
-  )(using
-      startTime: ZonedDateTime,
-      log: Logger,
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
+  )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
     val receiverUuid = receiver match {
       case Left(value) =>
         value
@@ -603,8 +448,8 @@ case class EmCommunicationCore(
           // flex option to ext
           val (resultToExt, pRef) = flexOptions match {
             case PowerLimitFlexOptions(ref, min, max) =>
-              val flexOptionResult = new ExtendedFlexOptionsResult(
-                tick.toDateTime(using startTime),
+              val flexOptionResult = new em.PowerLimitFlexOptions(
+                receiverUuid,
                 sender,
                 ref.toQuantity,
                 min.toQuantity,
@@ -616,8 +461,6 @@ case class EmCommunicationCore(
                   .flatMap(allFlexOptions.get)
                   .foreach { result =>
                     val model = result match {
-                      case result: ExtendedFlexOptionsResult =>
-                        result.getInputModel
                       case options: GeneralFlexOptions =>
                         options.model
                       case options: em.PowerLimitFlexOptions =>
@@ -733,10 +576,7 @@ case class EmCommunicationCore(
   override def handleFlexRequest(
       flexRequest: FlexRequest,
       receiver: ActorRef[FlexRequest],
-  )(using
-      startTime: ZonedDateTime,
-      log: Logger,
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
+  )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
     val receiverUuid = refToUuid(receiver) // the controlled em
     val sender = uuidToParent(receiverUuid) // the controlling em
 
@@ -766,17 +606,13 @@ case class EmCommunicationCore(
           s"Receiver $receiverUuid got flex control message from $sender"
         )
 
-        val (_, power) = control match {
+        val power = control match {
           case IssueNoControl(tick) =>
             log.warn(s"Set points: $currentSetPoint")
-
-            (
-              tick.toDateTime,
-              new PValue(currentSetPoint(receiverUuid).toQuantity),
-            )
+            new PValue(currentSetPoint(receiverUuid).toQuantity)
 
           case IssuePowerControl(tick, setPower) =>
-            (tick.toDateTime, new PValue(setPower.toQuantity))
+            new PValue(setPower.toQuantity)
 
           case other =>
             throw new CriticalFailureException(

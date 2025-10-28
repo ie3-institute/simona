@@ -9,7 +9,7 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.model.em.{ExtendedFlexOptionsResult, FlexOptions}
+import edu.ie3.simona.api.data.model.em.{EmSetPoint, ExtendedFlexOptionsResult, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.ontology.messages.ServiceMessage.{EmFlexMessage, EmServiceRegistration, ServiceResponseMessage}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
@@ -140,20 +140,19 @@ trait EmServiceCore {
   /** Method to handle the set points provided by the external simulation.
     * @param tick
     *   Current tick of the service.
-    * @param provideEmSetPoints
+    * @param setPoints
     *   The set points to handle.
     * @param log
     *   Logger for logging messages.
     */
   final def handleSetPoint(
-      tick: Long,
-      provideEmSetPoints: ProvideEmSetPointData,
-      log: Logger,
+                            tick: Long,
+                            setPoints: Map[UUID, EmSetPoint],
+                            log: Logger,
   ): Unit = {
-    log.info(s"Handling of: $provideEmSetPoints")
+    log.info(s"Handling of set points: $setPoints")
 
-    provideEmSetPoints.emSetPoints.asScala
-      .foreach { case (agent, setPoint) =>
+    setPoints.foreach { case (agent, setPoint) =>
         uuidToAgent.get(agent) match {
           case Some(receiver) =>
             val (pOption, qOption) = setPoint.power.toScala match {
@@ -186,8 +185,6 @@ trait EmServiceCore {
     *   From the agent to handle.
     * @param receiver
     *   The receiver of the agent.
-    * @param startTime
-    *   The start time of the simulation.
     * @param log
     *   Logger for logging messages.
     * @return
@@ -198,18 +195,13 @@ trait EmServiceCore {
       tick: Long,
       flexResponse: FlexResponse,
       receiver: Either[UUID, ActorRef[FlexResponse]],
-  )(using
-      startTime: ZonedDateTime,
-      log: Logger,
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt])
+  )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
   /** Method to handle flex requests to the em agents.
     * @param flexRequest
     *   That is sent to an agents.
     * @param receiver
     *   Of the flex request.
-    * @param startTime
-    *   The start time of the simulation.
     * @param log
     *   Logger for logging messages.
     * @return
@@ -219,10 +211,7 @@ trait EmServiceCore {
   def handleFlexRequest(
       flexRequest: FlexRequest,
       receiver: ActorRef[FlexRequest],
-  )(using
-      startTime: ZonedDateTime,
-      log: Logger,
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt])
+  )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
   /** Method to add disaggregated flex options to given data.
     * @param flexOption
@@ -231,7 +220,7 @@ trait EmServiceCore {
     *   To derive the needed disaggregated data.
     */
   final def addDisaggregatingFlexOptions(
-      flexOption: ExtendedFlexOptionsResult,
+      flexOption: FlexOptions,
       inferiorAgents: Set[UUID],
   ): Unit = {
     inferiorAgents.foreach { inferior =>
