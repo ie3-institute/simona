@@ -6,10 +6,13 @@
 
 package edu.ie3.simona.sim.setup
 
+import com.typesafe.config.Config
+import edu.ie3.datamodel.models.input.container.JointGridContainer
+import edu.ie3.simona.api.data.ExtSimAdapterData
 import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
-import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
+import edu.ie3.simona.api.simulation.ExtSimulation
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.exceptions.ServiceException
@@ -17,6 +20,8 @@ import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
+import edu.ie3.simona.service.em.ExtEmDataService
+import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.results.ExtResultProvider
@@ -40,6 +45,10 @@ object ExtSimSetup {
     *   Interfaces that hold information regarding external simulations.
     * @param args
     *   The main args the simulation is started with.
+    * @param config
+    *   The simona config.
+    * @param grid
+    *   The electrical grid.
     * @param context
     *   The actor context of this actor system.
     * @param scheduler
@@ -56,6 +65,8 @@ object ExtSimSetup {
   def setupExtSim(
       extLinks: List[ExtLinkInterface],
       args: Array[String],
+      config: Config,
+      grid: JointGridContainer,
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
@@ -71,7 +82,7 @@ object ExtSimSetup {
 
       // creating the adapter data
       given extSimAdapterData: ExtSimAdapterData =
-        new ExtSimAdapterData(extSimAdapter, args)
+        new ExtSimAdapterData(extSimAdapter, args, config, grid)
 
       Try {
         // sets up the external simulation
@@ -145,6 +156,33 @@ object ExtSimSetup {
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
       case (setupData, connection) =>
         connection match {
+          case extEmDataConnection: ExtEmDataConnection =>
+            if setupData.emDataService.nonEmpty then {
+              throw ServiceException(
+                s"Trying to connect another EmDataConnection. Currently only one is allowed."
+              )
+            }
+
+            if extEmDataConnection.getControlledEms.isEmpty then {
+              log.warn(
+                s"External em connection $extEmDataConnection is not used, because there are no controlled ems present!"
+              )
+              setupData
+            } else {
+              val serviceRef = context.spawn(
+                ExtEmDataService(scheduler),
+                "ExtEmDataService",
+              )
+
+              setupService(
+                extEmDataConnection,
+                serviceRef,
+                InitExtEmData(_, startTime),
+              )
+
+              extSimSetupData.update(extEmDataConnection, serviceRef)
+            }
+
           case extEvDataConnection: ExtEvDataConnection =>
             if setupData.evDataService.nonEmpty then {
               throw ServiceException(

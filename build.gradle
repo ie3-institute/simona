@@ -3,12 +3,12 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '7.2.1' // code format
-  id "com.github.ben-manes.versions" version '0.52.0'
+  id 'com.diffplug.spotless' version '8.0.0' // code format
+  id "com.github.ben-manes.versions" version '0.53.0'
   id "de.undercouch.download" version "5.6.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
-  id 'com.gradleup.shadow' version '9.1.0' // fat jar
-  id "org.sonarqube" version "6.3.1.5724" // sonarqube
+  id 'com.gradleup.shadow' version '9.2.2' // fat jar
+  id "org.sonarqube" version "7.0.1.6134" // sonarqube
   id "org.scoverage" version "8.1" // scala code coverage scoverage
   id 'org.hidetake.ssh' version '2.12.0'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
@@ -21,13 +21,13 @@ ext {
 
   scalaVersion = '3'
   scalaBinaryVersion = '3.7.0'
-  pekkoVersion = '1.2.0'
+  pekkoVersion = '1.2.1'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.9.0'
   scapegoatVersion = '3.1.9'
 
-  junitVersion = '1.13.4'
-  testContainerVersion = '0.43.0'
+  junitVersion = '6.0.0'
+  testContainerVersion = '0.43.6'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 
@@ -92,7 +92,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.10.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.11.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -101,7 +101,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.18"
+  implementation "ch.qos.logback:logback-classic:1.5.20"
 
   /* testing */
   // scalatest & junit
@@ -191,6 +191,9 @@ application {
 // see https://pekko.apache.org/docs/pekko/current/additional/packaging.html#gradle-the-jar-task-from-the-java-plugin
 //////////////////////////////////////////////////////////////////////
 tasks.shadowJar {
+  filesMatching('reference.conf') {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+  }
   append 'reference.conf'
   zip64 = true
   archiveBaseName = 'simona'

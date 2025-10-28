@@ -10,6 +10,7 @@ import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.results.ExtResultProvider
 import org.apache.pekko.actor.typed.ActorRef
@@ -21,18 +22,21 @@ import org.apache.pekko.actor.typed.ActorRef
   *   All adapters to external simulations.
   * @param primaryDataServices
   *   Seq: external primary data connections to service references.
+  * @param emDataService
+  *   Option for an external em data service.
   * @param evDataService
   *   Option for an external ev data service.
-  * @param resultListeners
-  *   Seq: external result listeners.
-  * @param resultProviders
-  *   Seq: external result providers.
+ * @param resultListeners
+ *   Seq: external result listeners.
+ * @param resultProviders
+ *   Seq: external result providers.
   */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
     primaryDataServices: Seq[
       (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
     ],
+    emDataService: Option[ActorRef[ExtEmDataService.Message]],
     evDataService: Option[ActorRef[ExtEvDataService.Message]],
     resultListeners: Seq[ActorRef[ResultListener.Message]],
     resultProviders: Seq[ActorRef[ExtResultProvider.Message]],
@@ -54,20 +58,17 @@ final case class ExtSimSetupData(
         ) =>
       update(primaryConnection, serviceRef)
     case (
+          _: ExtEmDataConnection,
+          serviceRef: ActorRef[ExtEmDataService.Message],
+        ) =>
+      copy(emDataService = Some(serviceRef))
+    case (
           _: ExtEvDataConnection,
           serviceRef: ActorRef[ExtEvDataService.Message],
         ) =>
       copy(evDataService = Some(serviceRef))
-    case (
-          _: ExtResultDataConnection,
-          providerRef: ActorRef[ExtResultProvider.Message],
-        ) =>
-      copy(resultProviders = resultProviders ++ Seq(providerRef))
-    case (
-          _: ExtResultListener,
-          listenerRef: ActorRef[ResultListener.Message],
-        ) =>
-      copy(resultListeners = resultListeners ++ Seq(listenerRef))
+    case (_: ExtResultDataConnection, serviceRef: ActorRef[ServiceMessage]) =>
+      copy(extResultListeners = extResultListeners ++ Seq(serviceRef))
     case (_, _) =>
       this
   }
@@ -83,9 +84,10 @@ final case class ExtSimSetupData(
     }
 
   def allServiceRefs: Iterable[ActorRef[?]] =
-    primaryDataServices.map(_._2) ++ Seq(
-      evDataService
-    ).flatten ++ resultListeners ++ resultProviders
+    Seq(
+      emDataService,
+      evDataService,
+    ).flatten ++ extResultListeners ++ resultProviders ++ primaryDataServices.map(_._2)
 }
 
 object ExtSimSetupData {
@@ -95,6 +97,7 @@ object ExtSimSetupData {
   def apply: ExtSimSetupData = ExtSimSetupData(
     Iterable.empty,
     Seq.empty,
+    None,
     None,
     Seq.empty,
     Seq.empty,

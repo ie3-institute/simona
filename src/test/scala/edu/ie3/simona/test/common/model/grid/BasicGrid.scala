@@ -14,7 +14,7 @@ import edu.ie3.simona.model.grid.{
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.{ApparentPower, Megavoltamperes}
-import squants.{Amperes, Each}
+import squants.{Amperes, Each, Percent}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.*
@@ -104,7 +104,7 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
   // / transformer tapping model
   protected val transformerTappingModel: TransformerTappingModel =
     TransformerTappingModel(
-      Quantities.getQuantity(1.5, PERCENT),
+      Percent(1.5),
       0,
       13,
       -13,

@@ -31,6 +31,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -78,7 +79,10 @@ object GridAgentBuilder {
       _.getControllingEm.toScala.map(em => em.getUuid -> em)
     }.toMap
 
-    val allEms = buildEmsRecursively(firstLevelEms)
+    val allEms = buildEmsRecursively(
+      firstLevelEms,
+      emDataService = constantData.environmentRefs.emDataService,
+    )
 
     /* Browse through all system participants, build actors and map their node's UUID to the actor references */
     buildParticipantToActorRef(
@@ -204,64 +208,77 @@ object GridAgentBuilder {
     *   higher levels.
     * @param previousLevelEms
     *   EMs that have been built by the previous recursion level.
+    * @param emDataService
+    *   An energy management service.
     * @return
     *   Map from model UUID to EmAgent ActorRef.
     */
   private def buildEmsRecursively(
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
+      emDataService: Option[ActorRef[ExtEmDataService.Message]],
   )(using
       constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Message],
   ): Map[UUID, ActorRef[FlexResponse]] = {
     // For the current level, split controlled and uncontrolled EMs.
+    val (controlledEmInputs, uncontrolledEms) = emInputs.partition {
+      case (_, emInput) => emInput.getControllingEm.isPresent
+    }
+
     // Uncontrolled EMs can be built right away.
-    val (controlledEmInputs, uncontrolledEms) = emInputs
-      .partitionMap { case (uuid, emInput) =>
-        if emInput.getControllingEm.isPresent then Left(uuid -> emInput)
-        else {
-          val actor = buildEm(
-            emInput,
-            maybeControllingEm = None,
-          )
-          Right(uuid -> actor)
-        }
-      }
+    val uncontrolledEmAgents = uncontrolledEms.flatMap {
+      case (uuid, emInput) if !previousLevelEms.contains(uuid) =>
+        val actor = buildEm(
+          emInput,
+          maybeControllingEm = None,
+          emDataService,
+        )
+        Some(uuid -> actor)
+      case (uuid, _) =>
+        gridAgentContext.log.warn(s"Agent with uuid '$uuid' was already built!")
+        None
+    }
 
     val previousLevelAndUncontrolledEms =
-      previousLevelEms ++ uncontrolledEms.toMap
+      previousLevelEms ++ uncontrolledEmAgents
 
     if controlledEmInputs.nonEmpty then {
       // For controlled EMs at the current level, more EMs
       // might need to be built at the next recursion level.
-      val controllingEms = controlledEmInputs.toMap.flatMap {
-        case (_, emInput) =>
-          emInput.getControllingEm.toScala.map(em => em.getUuid -> em)
+      val controllingEms = controlledEmInputs.flatMap { case (_, emInput) =>
+        emInput.getControllingEm.toScala.map(em => em.getUuid -> em)
       }
 
       // Return value includes previous level and uncontrolled EMs of this level
       val recursiveEms = buildEmsRecursively(
         controllingEms,
         previousLevelAndUncontrolledEms,
+        emDataService,
       )
 
-      val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
-        val controllingEm = emInput.getControllingEm.toScala
-          .map(_.getUuid)
-          .map(uuid =>
-            recursiveEms.getOrElse(
-              uuid,
-              throw new CriticalFailureException(
-                s"Actor for EM $uuid not found."
-              ),
+      val controlledEms = controlledEmInputs.flatMap {
+        case (uuid, emInput) if !recursiveEms.contains(uuid) =>
+          val controllingEm = emInput.getControllingEm.toScala
+            .map(_.getUuid)
+            .map(uuid =>
+              recursiveEms.getOrElse(
+                uuid,
+                throw new CriticalFailureException(
+                  s"Actor for EM $uuid not found."
+                ),
+              )
+            )
+
+          Some(
+            uuid -> buildEm(
+              emInput,
+              maybeControllingEm = controllingEm,
+              emDataService,
             )
           )
-
-        uuid -> buildEm(
-          emInput,
-          maybeControllingEm = controllingEm,
-        )
-      }.toMap
+        case _ => None
+      }
 
       recursiveEms ++ controlledEms
     } else {
@@ -448,12 +465,15 @@ object GridAgentBuilder {
     *   The input model
     * @param maybeControllingEm
     *   The parent EmAgent, if applicable
+    * @param emDataService
+    *   An energy management service.
     * @return
     *   The [[EmAgent]] 's [[ActorRef]]
     */
   private def buildEm(
       emInput: EmInput,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
+      emDataService: Option[ActorRef[ExtEmDataService.Message]],
   )(using
       constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Message],
@@ -469,6 +489,7 @@ object GridAgentBuilder {
           constantData.environmentRefs.scheduler
         ),
         constantData.environmentRefs.resultProxy,
+        emDataService,
       ),
       actorName(classOf[EmAgent.type], emInput.getId),
     )

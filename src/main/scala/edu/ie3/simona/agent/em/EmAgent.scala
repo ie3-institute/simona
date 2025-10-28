@@ -21,18 +21,21 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
+import edu.ie3.simona.ontology.messages.flex.FlexOptions
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.time.ZonedDateTime
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Try}
-import edu.ie3.simona.ontology.messages.flex.FlexOptions
 
 /** Energy management agent that receives flex options from and issues control
   * messages to connected agents
@@ -60,7 +63,9 @@ object EmAgent {
     *   agent is em-controlled, or a [[Left]] with a reference to the scheduler
     *   that is activating this agent.
     * @param listener
-    *   A listener for result events.
+   *   A listener for result events.
+    * @param emDataService
+    *   An energy management service.
     */
   def apply(
       inputModel: EmInput,
@@ -69,20 +74,67 @@ object EmAgent {
       modelStrategy: String,
       simulationStartDate: ZonedDateTime,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
-      listener: ActorRef[ResultEvent],
+      listener: Iterable[ActorRef[ResultEvent]],
+      emDataService: Option[ActorRef[ExtEmDataService.Message]] = None,
   ): Behavior[Message] = Behaviors.setup[Message] { ctx =>
 
-    parent.map {
-      _ ! RegisterControlledAsset(
-        ctx.self,
-        inputModel,
-      )
+    val parentData = emDataService match {
+      case Some(service) =>
+        // since we have a service, it will replace the default agent communication
+        given ActorContext[Message] = ctx
+
+        val uuid = inputModel.getUuid
+
+        service ! EmServiceRegistration(
+          ctx.self,
+          uuid,
+          parent.toOption,
+          inputModel.getControllingEm.toScala.map(_.getUuid),
+        )
+
+        // given to the parent
+        val requestAdapter = ExtEmDataService.emServiceRequestAdapter(
+          service,
+          ctx.self,
+        )
+
+        val adaptedParent = parent match {
+          case Left(_) =>
+            uuid
+          case Right(value) =>
+            value
+        }
+
+        // used by this agent
+        val responseAdapter = ExtEmDataService.emServiceResponseAdapter(
+          service,
+          adaptedParent,
+        )
+
+        parent.map {
+          _ ! RegisterControlledAsset(
+            requestAdapter,
+            inputModel,
+          )
+        }
+
+        Right(responseAdapter)
+
+      case None =>
+        parent.map {
+          _ ! RegisterControlledAsset(
+            ctx.self,
+            inputModel,
+          )
+        }
+
+        parent
     }
 
     val constantData = EmData(
       outputConfig,
       simulationStartDate,
-      parent,
+      parentData,
       listener,
     )
 

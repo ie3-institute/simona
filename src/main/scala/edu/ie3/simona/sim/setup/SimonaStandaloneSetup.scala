@@ -18,7 +18,6 @@ import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.ResultMessage.{
   RequestResult,
@@ -71,15 +70,7 @@ class SimonaStandaloneSetup(
   ): Iterable[ActorRef[GridAgent.Message]] = {
 
     /* get the grid */
-    val subGridTopologyGraph = GridProvider
-      .gridFromConfig(
-        simonaConfig.simona.simulationName,
-        simonaConfig.simona.input.grid.datasource,
-      )
-      .getSubGridTopologyGraph
-    val thermalGridsByThermalBus = GridProvider.getThermalGridsFromConfig(
-      simonaConfig.simona.input.grid.datasource
-    )
+    val subGridTopologyGraph = grid.getSubGridTopologyGraph
 
     /* extract and prepare refSystem information from config */
     val (configRefSystems, configVoltageLimits) =
@@ -231,7 +222,7 @@ class SimonaStandaloneSetup(
     val jars = ExtSimLoader.scanInputFolder(extSimPath)
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
 
-    setupExtSim(extLinks, args)(using
+    setupExtSim(extLinks, args, typeSafeConfig, grid)(using
       context,
       scheduler,
       resultProxy,
