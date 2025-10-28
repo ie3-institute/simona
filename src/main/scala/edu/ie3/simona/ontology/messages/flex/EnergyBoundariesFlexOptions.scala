@@ -45,10 +45,12 @@ object EnergyBoundariesFlexOptions {
 
   object ParticipantEnergyBoundaries {
 
-    /** Creating energy boundaries for a fixed power time series.
+    /** Creating energy boundaries for a fixed power time series. Assumes
+      * equidistant power series entries - otherwise, results are not defined!
       *
       * @param powerSeries
-      *   The power time series.
+      *   The power time series (at equidistant ticks). Has to have at least two
+      *   entries.
       * @return
       */
     def apply(
@@ -59,22 +61,42 @@ object EnergyBoundariesFlexOptions {
         throw new CriticalFailureException("Empty power time series!")
       )
 
-      val (energySeries, _) =
-        powerSeries.tail.foldLeft(
-          (SortedMap(firstTick -> zeroKWh), firstPower)
-        ) { case ((previousSeries, lastPower), (tick, power)) =>
-          val (lastTick, lastEnergy) = previousSeries
-            .maxBefore(tick)
-            .getOrElse(
-              throw new CriticalFailureException(
-                s"No value before $tick in previous values $previousSeries"
-              )
-            )
+      // adding a dummy tick at the end, so that the last actual power entry
+      // in the power time series is used
+      val lastSeriesTick = powerSeries.lastOption
+        .map { case (tick, _) => tick }
+        .getOrElse(
+          throw new CriticalFailureException("Empty power time series!")
+        )
+      // dummy tick is the next logical tick of the tick series
+      // (e.g. (5, 10, 15, 20) -> 25)
+      val dummyTick =
+        lastSeriesTick + (lastSeriesTick - firstTick) / (powerSeries.size - 1)
 
-          val addedEnergy = lastPower * Seconds(tick - lastTick)
-          val tickEnergy = lastEnergy + addedEnergy
-          (previousSeries.updated(tick, tickEnergy), power)
-        }
+      val (energySeries, _) =
+        powerSeries
+          // excluding first data, which we already extracted above
+          .tail
+          // adding dummy tick so that last actual power entry is recognized
+          .updated(dummyTick, zeroKW)
+          .foldLeft(
+            (SortedMap(firstTick -> zeroKWh), firstPower)
+          ) { case ((previousSeries, previousPower), (tick, power)) =>
+            val (lastTick, lastEnergy) = previousSeries
+              .maxBefore(tick)
+              .getOrElse(
+                throw new CriticalFailureException(
+                  s"No value before $tick in previous values $previousSeries"
+                )
+              )
+
+            // added energy from last to current tick
+            val addedEnergy = previousPower * Seconds(tick - lastTick)
+            // total current energy
+            val tickEnergy = lastEnergy + addedEnergy
+
+            (previousSeries.updated(tick, tickEnergy), power)
+          }
 
       val minPower = powerSeries.values.minOption.getOrElse(zeroKW)
       val maxPower = powerSeries.values.maxOption.getOrElse(zeroKW)
