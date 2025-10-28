@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.datamodel.models.value.{PValue, Value}
+import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.api.data.connection.{
   ExtEvDataConnection,
   ExtPrimaryDataConnection,

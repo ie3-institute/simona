@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhancing `QuantityConversionUtilsSpec` with more tests [#1400](https://github.com/ie3-institute/simona/issues/1400)
 - Prepare ThermalHouse for changes by including tap water [#1547](https://github.com/ie3-institute/simona/issues/1547)
 - Updated docker documentation [#488](https://github.com/ie3-institute/simona/issues/488)
+- Added support classes for transformer tap position calculation [#1543](https://github.com/ie3-institute/simona/issues/1543)
+- Added basic external em service [#1566](https://github.com/ie3-institute/simona/issues/1566)
 - Added external primary service worker [#1545](https://github.com/ie3-institute/simona/issues/1545)
 
 ### Changed
@@ -68,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed compiler warnings related to import and scala3 syntax [#1383](https://github.com/ie3-institute/simona/issues/1383)
 - Cleaned up dependencies [#1539](https://github.com/ie3-institute/simona/issues/1539)
 - Fixed consideration of `ThermalStorage` maximum thermal power [#1562](https://github.com/ie3-institute/simona/issues/1562)
+- Fixed shadowJar reference.conf not being merged [#1575](https://github.com/ie3-institute/simona/issues/1575)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
@@ -77,6 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Updates
 - Updated gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)
+- Update simonaAPI to version 0.11.0 [#1573](https://github.com/ie3-institute/simona/issues/1573)
 
 ## [4.0.0] - 2025-05-09
 

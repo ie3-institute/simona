@@ -7,7 +7,7 @@
 package edu.ie3.simona.api
 
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
-import edu.ie3.simona.api.simulation.ExtSimAdapterData
+import edu.ie3.simona.api.data.ExtSimAdapterData
 import edu.ie3.simona.api.ontology.simulation.{
   ActivationMessage,
   ControlResponseMessageFromExt,

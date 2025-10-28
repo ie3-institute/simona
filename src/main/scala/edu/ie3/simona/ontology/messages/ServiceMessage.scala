@@ -6,10 +6,15 @@
 
 package edu.ie3.simona.ontology.messages
 
+import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexRequest,
+  FlexResponse,
+}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import org.apache.pekko.actor.typed.ActorRef
@@ -48,6 +53,24 @@ object ServiceMessage {
   final case class SecondaryServiceRegistrationMessage(
       requestingActor: ActorRef[ParticipantAgent.Request],
       data: Any,
+  ) extends ServiceRegistrationMessage
+
+  /** Message to register an energy management agent with an energy management
+    * service.
+    * @param requestingActor
+    *   The actor to register.
+    * @param inputUuid
+    *   The uuid of the actor.
+    * @param parentEm
+    *   An option for the parent actor of the requesting actor.
+    * @param parentUuid
+    *   An option for the uuid of the parent actor.
+    */
+  final case class EmServiceRegistration(
+      requestingActor: ActorRef[EmAgent.Message],
+      inputUuid: UUID,
+      parentEm: Option[ActorRef[FlexResponse]],
+      parentUuid: Option[UUID],
   ) extends ServiceRegistrationMessage
 
   /** Message to register with a primary data service.
@@ -141,4 +164,15 @@ object ServiceMessage {
       evModels: Seq[EvModelWrapper],
   ) extends ServiceResponseMessage
 
+  /** A message that is sent to an energy management service by an energy
+    * management agent.
+    * @param message
+    *   The actual flex message that is sent by the agent.
+    * @param receiver
+    *   The receiver of the message.
+    */
+  final case class EmFlexMessage(
+      message: FlexRequest | FlexResponse,
+      receiver: UUID | ActorRef[FlexResponse] | ActorRef[EmAgent.Message],
+  ) extends ServiceResponseMessage
 }
