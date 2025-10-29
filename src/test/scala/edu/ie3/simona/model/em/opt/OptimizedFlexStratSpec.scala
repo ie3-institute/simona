@@ -121,8 +121,8 @@ class OptimizedFlexStratSpec extends UnitSpec with MathFlexTestLike {
       // low efficiency for simplicity of the test
       val batFlex = EnergyBoundariesFlexOptions(
         ParticipantEnergyBoundaries(
-          eStorage = KilowattHours(100),
-          currentEnergy = KilowattHours(50),
+          eStorage = KilowattHours(24),
+          currentEnergy = KilowattHours(12),
           pMax = Kilowatts(10),
           etaCharge = Each(0.8),
           etaDischarge = Each(0.8),
@@ -140,7 +140,7 @@ class OptimizedFlexStratSpec extends UnitSpec with MathFlexTestLike {
             .etaCharge,
         )
 
-      "balance out additional power with zero excess" in {
+      "balance out additional power within maximum battery power" in {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
@@ -164,7 +164,7 @@ class OptimizedFlexStratSpec extends UnitSpec with MathFlexTestLike {
 
         val objectiveContainer = OptimizedFlexStrat.buildObjective(
           assetVars,
-          Kilowatts(0),
+          zeroKW,
           MinAbsPowerObjectiveFactory,
         )
 
@@ -213,6 +213,251 @@ class OptimizedFlexStratSpec extends UnitSpec with MathFlexTestLike {
         model.release()
       }
 
+      "balance out additional power exceeding maximum battery power" in {
+
+        given model: MPModel = MPModel(SolverLib.oJSolver)
+
+        val constFlex = EnergyBoundariesFlexOptions(
+          ParticipantEnergyBoundaries(
+            Seq(5, -60, 110, -2).toPowerMap
+          )
+        )
+
+        val flexOptions = Map(
+          loadUUID -> constFlex,
+          batUUID -> batFlex,
+        )
+
+        val assetVars =
+          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
+
+        assetVars.toSeq should have length 2
+        assetVars.foreach(_.results should have length 1)
+        assetVars.foreach(_.results.foreach(_ should have length 4))
+
+        val objectiveContainer = OptimizedFlexStrat.buildObjective(
+          assetVars,
+          zeroKW,
+          MinAbsPowerObjectiveFactory,
+        )
+
+        model.minimize(objectiveContainer.objective)
+        model.start(timeLimit = 10000)
+
+        model.getStatus shouldBe SolutionStatus.OPTIMAL
+
+        /*
+          EXPECTED RESULTS
+          Battery should be able to cover the additional power
+          up to its maximum power
+         */
+
+        val batVars = assetVars
+          .find(_.assetUuid == batUUID)
+          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
+
+        val batRes = batVars.results.headOption
+          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+
+        {
+          objectiveContainer.softConstraints.foreach { constraint =>
+            withClue(constraint.getWarningMessage) {
+              constraint.getError should be < constraintTolerance
+            }
+          }
+
+          // discharging 5 kWh plus 1.25 kWh losses
+          batRes(0).pVal should approximate(-5)
+          batRes(0).energyVal should approximate(-6.25)
+
+          // charging 10 kWh minus 2 kWh losses
+          batRes(1).pVal should approximate(10)
+          batRes(1).energyVal should approximate(1.75)
+
+          // discharging 10 kWh plus 2.5 kWh losses
+          batRes(2).pVal should approximate(-10)
+          batRes(2).energyVal should approximate(-10.75)
+
+          // charging 2 kWh minus 0.4 kWh losses
+          batRes(3).pVal should approximate(2)
+          batRes(3).energyVal should approximate(-9.15)
+
+        } withClue buildDebugString(batVars)
+
+        model.release()
+      }
+
+      "balance out additional power exceeding energy storage capacity" in {
+
+        given model: MPModel = MPModel(SolverLib.oJSolver)
+
+        val constFlex = EnergyBoundariesFlexOptions(
+          ParticipantEnergyBoundaries(
+            Seq(-5, -10, 10, 10).toPowerMap
+          )
+        )
+
+        val flexOptions = Map(
+          loadUUID -> constFlex,
+          batUUID -> batFlex,
+        )
+
+        val assetVars =
+          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
+
+        assetVars.toSeq should have length 2
+        assetVars.foreach(_.results should have length 1)
+        assetVars.foreach(_.results.foreach(_ should have length 4))
+
+        val objectiveContainer = OptimizedFlexStrat.buildObjective(
+          assetVars,
+          zeroKW,
+          MinAbsPowerObjectiveFactory,
+        )
+
+        model.minimize(objectiveContainer.objective)
+        model.start(timeLimit = 10000)
+
+        model.getStatus shouldBe SolutionStatus.OPTIMAL
+
+        /*
+          EXPECTED RESULTS
+          Since excess power costs the same at all points in time and
+          at all magnitudes, there are many optimal solutions.
+          Thus, we only test for things that are true for every optimal
+          solution: We know when the battery should be definitely
+          full/empty and how much energy was charged/discharged.
+         */
+
+        val batVars = assetVars
+          .find(_.assetUuid == batUUID)
+          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
+
+        val batRes = batVars.results.headOption
+          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+
+        {
+          objectiveContainer.softConstraints.foreach { constraint =>
+            withClue(constraint.getWarningMessage) {
+              constraint.getError should be < constraintTolerance
+            }
+          }
+
+          // possibly charging
+          batRes(0).pVal should be >= 0d
+          batRes(0).energyVal should (be >= 0d and be <= 12d)
+
+          // possibly charging, now we should have reached 24 kWh
+          // (12 kWh above starting energy)
+          batRes(1).pVal should be >= 0d
+          batRes(1).energyVal should approximate(12d)
+
+          // we should've charged 12 kWh plus 3 kWh losses
+          batRes(0).pVal + batRes(1).pVal should approximate(15d)
+
+          // possibly discharging
+          batRes(2).pVal should be <= 0d
+          batRes(2).energyVal should (be >= -12d and be <= 12d)
+
+          // possibly discharging, now we should have reached 0 kWh
+          // (12 kWh below starting energy)
+          batRes(3).pVal should be <= 0d
+          batRes(3).energyVal should approximate(-12d)
+
+          // we should've discharged 24 kWh minus 4.8 kWh losses
+          batRes(2).pVal + batRes(3).pVal should approximate(-19.2d)
+
+        } withClue buildDebugString(batVars)
+
+        model.release()
+
+      }
+
+      "balance out additional power exceeding maximum battery power and energy storage capacity" in {
+
+        given model: MPModel = MPModel(SolverLib.oJSolver)
+
+        val constFlex = EnergyBoundariesFlexOptions(
+          ParticipantEnergyBoundaries(
+            Seq(-5, -50, 20, 30).toPowerMap
+          )
+        )
+
+        val flexOptions = Map(
+          loadUUID -> constFlex,
+          batUUID -> batFlex,
+        )
+
+        val assetVars =
+          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
+
+        assetVars.toSeq should have length 2
+        assetVars.foreach(_.results should have length 1)
+        assetVars.foreach(_.results.foreach(_ should have length 4))
+
+        val objectiveContainer = OptimizedFlexStrat.buildObjective(
+          assetVars,
+          zeroKW,
+          MinAbsPowerObjectiveFactory,
+        )
+
+        model.minimize(objectiveContainer.objective)
+        model.start(timeLimit = 10000)
+
+        model.getStatus shouldBe SolutionStatus.OPTIMAL
+
+        /*
+          EXPECTED RESULTS
+          Since excess power costs the same at all points in time and
+          at all magnitudes, there are many optimal solutions.
+          Thus, we only test for things that are true for every optimal
+          solution: We know when the battery should be definitely
+          full/empty and how much energy was charged/discharged.
+         */
+
+        val batVars = assetVars
+          .find(_.assetUuid == batUUID)
+          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
+
+        val batRes = batVars.results.headOption
+          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+
+        {
+          objectiveContainer.softConstraints.foreach { constraint =>
+            withClue(constraint.getWarningMessage) {
+              constraint.getError should be < constraintTolerance
+            }
+          }
+
+          // possibly charging
+          batRes(0).pVal should be >= 0d
+          batRes(0).energyVal should (be >= 0d and be <= 12d)
+
+          // possibly charging, now we should have reached 24 kWh
+          // (12 kWh above starting energy)
+          batRes(1).pVal should be >= 0d
+          batRes(1).energyVal should approximate(12d)
+
+          // we should've charged 12 kWh plus 3 kWh losses
+          batRes(0).pVal + batRes(1).pVal should approximate(15d)
+
+          // possibly discharging
+          batRes(2).pVal should be <= 0d
+          batRes(2).energyVal should (be >= -12d and be <= 12d)
+
+          // possibly discharging, now we should have reached 0 kWh
+          // (12 kWh below starting energy)
+          batRes(3).pVal should be <= 0d
+          batRes(3).energyVal should approximate(-12d)
+
+          // we should've discharged 24 kWh minus 4.8 kWh losses
+          batRes(2).pVal + batRes(3).pVal should approximate(-19.2d)
+
+        } withClue buildDebugString(batVars)
+
+        model.release()
+
+      }
     }
 
     "provided with energy boundary flex options and an objective factory" should {
@@ -271,7 +516,7 @@ class OptimizedFlexStratSpec extends UnitSpec with MathFlexTestLike {
 
         val objectiveContainer = OptimizedFlexStrat.buildObjective(
           assetVars,
-          Kilowatts(0),
+          zeroKW,
           MinAbsPowerObjectiveFactory,
         )
 
@@ -345,7 +590,7 @@ class OptimizedFlexStratSpec extends UnitSpec with MathFlexTestLike {
 
         val objectiveContainer = OptimizedFlexStrat.buildObjective(
           assetVars,
-          Kilowatts(0),
+          zeroKW,
           LinearizedQuadraticPowerObjectiveFactory(
             segmentCount = 10,
             lastSegment = 10d, // 10 kW
