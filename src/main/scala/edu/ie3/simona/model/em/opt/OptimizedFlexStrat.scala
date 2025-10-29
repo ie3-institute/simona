@@ -192,7 +192,7 @@ object OptimizedFlexStrat {
       energyBoundaries: AssetEnergyBoundaries,
       tick: Long,
       sampleTime: Time,
-      maybePreviousState: Option[MPVar],
+      maybePreviousState: Option[Expression],
   )(using model: MPModel): StepResults = {
 
     val energyLimits = energyBoundaries.energyLimits
@@ -207,7 +207,7 @@ object OptimizedFlexStrat {
         limits
       }
 
-    if energyLimits.getUpper == energyLimits.getLower &&
+    if energyLimits.getLower == energyLimits.getUpper &&
       formerEnergyLimits.forall(limits => limits.getLower == limits.getUpper)
     then {
       // there is no flexibility at all, thus we don't need any state to keep track of
@@ -244,13 +244,16 @@ object OptimizedFlexStrat {
         upperBound = energyBoundaries.powerLimits.getUpper.toKilowatts,
       )
 
-      // todo new state could also be constant, if upper == lower
       // modeling the new state (stored energy)
-      val newState = MPFloatVar(
-        symbol = "state",
-        lowerBound = energyLimits.getLower.toKilowattHours,
-        upperBound = energyLimits.getUpper.toKilowattHours,
-      )
+      val newState =
+        if energyLimits.getLower == energyLimits.getUpper then
+          Const(energyLimits.getUpper.toKilowattHours)
+        else
+          MPFloatVar(
+            symbol = "state",
+            lowerBound = energyLimits.getLower.toKilowattHours,
+            upperBound = energyLimits.getUpper.toKilowattHours,
+          )
 
       val softConstraint =
         if eta == Each(1) then {
@@ -261,9 +264,10 @@ object OptimizedFlexStrat {
         } else {
           // there are charging/discharging losses, thus use the full model
 
-          val pAbsMax = energyBoundaries.powerLimits.getUpper.max(
-            -energyBoundaries.powerLimits.getLower
-          )
+          val pAbsMax =
+            energyBoundaries.powerLimits.getUpper.max(
+              -energyBoundaries.powerLimits.getLower
+            )
 
           val pAbs = MPFloatVar(
             symbol = "pAbs",
@@ -405,7 +409,7 @@ object OptimizedFlexStrat {
     */
   final case class StepResults(
       operation: Const | MPVar,
-      state: Option[MPVar],
+      state: Option[Expression],
       softConstraint: Option[SoftConstraint],
   ) {
 

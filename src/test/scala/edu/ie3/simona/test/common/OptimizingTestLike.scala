@@ -10,6 +10,8 @@ import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
   AssetVarContainer,
   StepResults,
 }
+import optimus.algebra.Const
+import optimus.optimization.model.MPVar
 import org.scalatest.Assertions.fail
 import org.scalatest.OptionValues.convertOptionToValuable
 import squants.{Dimensionless, Power}
@@ -26,9 +28,13 @@ trait OptimizingTestLike {
   extension (res: StepResults)
     def energyVal(using conversion: EnergyConversionFactor): Double = {
       val solution = res.state
-        .getOrElse(fail("No state provided in StepResults!"))
-        .value
-        .value
+        .getOrElse(fail("No state provided in StepResults!")) match {
+        case variable: MPVar =>
+          variable.value.value
+        case const: Const =>
+          const.value
+      }
+
       solution * conversion.factor
     }
 
