@@ -25,16 +25,16 @@ import squants.{Dimensionless, Each, Power, Time}
 import java.util.UUID
 
 /** Flex strategy that optimizes over a fixed amount of time steps into the
-  * future. Works with [[EnergyBoundariesFlexOptions]], which describe
-  * constraints on present and future behavior of a participant.
+  * future. Works with [[EnergyBoundariesFlexOptions]], which provide the
+  * required data for constraints concerning the assets.
   *
   * @param sampleTime
   *   The amount of time between the steps.
   * @param predictionHorizon
   *   The amount of time that is predicted into the future, i.e. the last step
-  *   is this amount of time away from now.
+  *   is this amount of time away from the current point in simulation time.
   * @param powerObjectiveFactory
-  *   The objective to optimize for.
+  *   A factory creating the objective to optimize for.
   * @param logger
   *   The logger to use.
   */
@@ -113,6 +113,7 @@ final case class OptimizedFlexStrat(
       assetInput: AssetInput,
       flexOptions: EnergyBoundariesFlexOptions,
   ): EnergyBoundariesFlexOptions = flexOptions
+
 }
 
 object OptimizedFlexStrat {
@@ -128,10 +129,11 @@ object OptimizedFlexStrat {
     *
     * @param flexOptions
     *   The flex options that all assets provided.
+    * @param sampleTime
+    *   The amount of time between the steps.
     * @param ticks
     *   The ticks (including current tick to last predicted tick) of the sample
     *   times to add constraints for.
-    * @param sampleTime
     * @param model
     *   The optimization model to use.
     * @return
@@ -372,14 +374,13 @@ object OptimizedFlexStrat {
     ObjectiveContainer(objectiveResult, softConstraintsResult)
   }
 
-  /** Container holding all variables for one asset.
+  /** Container holding all optimization steps (including variables and soft
+    * constraints) for one asset.
     *
     * @param assetUuid
     *   The UUID of the asset.
-    * @param states
-    *   All state variables of the asset.
-    * @param operationVars
-    *   The operation variables of the asset.
+    * @param results
+    *   All step results of the asset, including state and operation variables.
     */
   final case class AssetVarContainer(
       assetUuid: UUID,
