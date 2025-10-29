@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat
 import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
+import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
 import edu.ie3.util.interval.ClosedInterval
@@ -20,7 +21,7 @@ import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.{MPFloatVar, MPVar}
 import org.slf4j.Logger
 import squants.energy.Kilowatts
-import squants.{Dimensionless, Each, Power, Time}
+import squants.{Each, Power, Time}
 
 import java.util.UUID
 
@@ -257,7 +258,7 @@ object OptimizedFlexStrat {
             newState := previousState + (p - pAbs * (1 - eta.toEach)) * duration.toHours
           )
 
-          Some(AbsPowerSoftConstraint(p, pAbs, eta, duration))
+          Some(AbsValueSoftConstraint(p, pAbs, eta, duration))
         }
 
       StepResults(Some(newState), p, softConstraint)
@@ -399,85 +400,5 @@ object OptimizedFlexStrat {
       objective: Expression,
       softConstraints: Iterable[SoftConstraint],
   )
-
-  /** Trait to be extended by classes detailing a soft constraint as part of the
-    * optimization objective and possible error handling.
-    */
-  trait SoftConstraint {
-
-    /** The soft constraint expression to be included in the objective to be
-      * minimized.
-      *
-      * @return
-      *   The soft constraint expression.
-      */
-    def getExpression: Expression
-
-    /** Returns the amount of error stemming from the soft constraint. Only call
-      * this if you're sure that a solution has been determined! A
-      * [[edu.ie3.simona.exceptions.CriticalFailureException]] will be thrown
-      * otherwise.
-      *
-      * @return
-      *   The amount of error.
-      */
-    def getError: Double
-
-    /** A warning message explaining what was expected and what happened
-      * instead. Only makes sense if the error is larger than expected.
-      *
-      * @return
-      *   The warning message.
-      */
-    def getWarningMessage: String
-
-  }
-
-  final case class AbsPowerSoftConstraint(
-      p: MPFloatVar,
-      pAbs: MPFloatVar,
-      penalty: Double,
-  ) extends SoftConstraint {
-
-    override def getExpression: Expression =
-      pAbs * penalty
-
-    override def getError: Double = {
-      val (pValue, pAbsValue) = getVals
-      math.abs(math.abs(pValue) - pAbsValue)
-    }
-
-    override def getWarningMessage: String = {
-      val (pValue, pAbsValue) = getVals
-      s"Soft constraint for storage: Approximated absolute power value $pAbsValue and absolute power value |$pValue| are $getError apart."
-    }
-
-    private def getVals: (Double, Double) = p.value
-      .zip(pAbs.value)
-      .getOrElse(
-        throw new CriticalFailureException(
-          "Solution are expected to be determined at this point!"
-        )
-      )
-
-  }
-
-  object AbsPowerSoftConstraint {
-    def apply(
-        p: MPFloatVar,
-        pAbs: MPFloatVar,
-        eta: Dimensionless,
-        duration: Time,
-    ): AbsPowerSoftConstraint = {
-      // Total penalty is slightly larger than the model losses.
-      // Thus, the value of pAbs should be pushed down to the
-      // absolute of p.
-      val epsilon = 1e-6
-
-      val penalty = (1 - eta.toEach + epsilon) * duration.toHours
-
-      AbsPowerSoftConstraint(p, pAbs, penalty)
-    }
-  }
 
 }
