@@ -13,7 +13,7 @@ import edu.ie3.simona.model.em.opt.PowerObjectiveFactory.{
 }
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
-import edu.ie3.simona.test.common.{MathFlexTestLike, UnitSpec}
+import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
@@ -24,7 +24,7 @@ import squants.{Dimensionless, Each, Power, Time}
 
 import java.util.UUID
 
-class OptimizedFlexStratSpec extends UnitSpec with MathFlexTestLike {
+class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
   private val pvUUID = UUID.fromString("0-0-0-0-1")
   private val loadUUID = UUID.fromString("0-0-0-0-2")

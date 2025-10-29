@@ -4,9 +4,10 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant
+package edu.ie3.simona.model.participant.flex
 
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
+import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   PowerLimitFlexOptions,

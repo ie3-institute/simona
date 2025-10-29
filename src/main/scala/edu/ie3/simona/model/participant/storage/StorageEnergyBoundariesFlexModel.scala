@@ -17,7 +17,7 @@ import edu.ie3.util.interval.ClosedInterval
 
 import scala.collection.immutable.SortedMap
 
-class StorageEnergyLimitFlexModel(private val model: StorageModel)
+class StorageEnergyBoundariesFlexModel(private val model: StorageModel)
     extends ParticipantFlexModel[
       StorageState
     ] {

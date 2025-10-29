@@ -12,7 +12,6 @@ import edu.ie3.simona.model.em.EmModelStrat
 import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
-import edu.ie3.simona.ontology.messages.flex.MathFlexOptions.SoftConstraint
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import optimus.algebra.{Const, Double2Const, Expression, Zero}
@@ -260,10 +259,9 @@ object OptimizedFlexStrat {
           Some(new SoftConstraint {
 
             override def getExpression: Expression = {
-              // Total penalty is slightly larger than the losses
-              // calculated by StorageMathFlexOptions. Thus, the
-              // value of pAbs should be pushed down to the absolute
-              // of p.
+              // Total penalty is slightly larger than the model losses.
+              // Thus, the value of pAbs should be pushed down to the
+              // absolute of p.
               val epsilon = 1e-6
               pAbs * (1 - eta.toEach + epsilon) * duration.toHours
             }
@@ -430,4 +428,36 @@ object OptimizedFlexStrat {
       softConstraints: Iterable[SoftConstraint],
   )
 
+  /** Trait to be extended by classes detailing a soft constraint as part of the
+    * optimization objective and possible error handling.
+    */
+  trait SoftConstraint {
+
+    /** The soft constraint expression to be included in the objective to be
+      * minimized.
+      *
+      * @return
+      *   The soft constraint expression.
+      */
+    def getExpression: Expression
+
+    /** Returns the amount of error stemming from the soft constraint. Only call
+      * this if you're sure that a solution has been determined! A
+      * [[edu.ie3.simona.exceptions.CriticalFailureException]] will be thrown
+      * otherwise.
+      *
+      * @return
+      *   The amount of error.
+      */
+    def getError: Double
+
+    /** A warning message explaining what was expected and what happened
+      * instead. Only makes sense if the error is larger than expected.
+      *
+      * @return
+      *   The warning message.
+      */
+    def getWarningMessage: String
+
+  }
 }

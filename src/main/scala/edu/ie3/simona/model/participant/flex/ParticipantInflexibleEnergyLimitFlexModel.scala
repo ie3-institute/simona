@@ -6,21 +6,21 @@
 
 package edu.ie3.simona.model.participant.flex
 
-import edu.ie3.simona.model.participant.{
-  ParticipantFlexModel,
-  ParticipantModel,
-  PowerSeriesMathFlexOptions,
-}
+import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexOptions
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
+import edu.ie3.simona.ontology.messages.flex.{
+  EnergyBoundariesFlexOptions,
+  FlexOptions,
+}
 
 import scala.collection.immutable.SortedMap
 
 /** Flex model implementation for [[ParticipantModel]]s producing
-  * [[PowerSeriesMathFlexOptions]] based on a forecast of power values.
+  * [[EnergyBoundariesFlexOptions]] based on a forecast of power values.
   *
   * @param model
   *   The participant model to create forecast series for.
@@ -30,7 +30,7 @@ import scala.collection.immutable.SortedMap
   * @tparam S
   *   The type of state of the participant model.
   */
-class PowerSeriesMathFlexModel[S <: ModelState](
+class ParticipantInflexibleEnergyLimitFlexModel[S <: ModelState](
     model: ParticipantModel[?, S],
     determineStates: S => SortedMap[Long, S],
 ) extends ParticipantFlexModel[S] {
@@ -42,7 +42,7 @@ class PowerSeriesMathFlexModel[S <: ModelState](
       tick -> op.activePower
     }
 
-    PowerSeriesMathFlexOptions(powerMap)
+    EnergyBoundariesFlexOptions(ParticipantEnergyBoundaries(powerMap))
   }
 
 }

@@ -10,12 +10,6 @@ import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
   AssetVarContainer,
   StepResults,
 }
-import edu.ie3.simona.model.participant.storage.StorageMathFlexModel.{
-  StorageOperationVars,
-  StorageStateVars,
-}
-import optimus.algebra.Const
-import optimus.optimization.model.MPVar
 import org.scalatest.Assertions.fail
 import org.scalatest.OptionValues.convertOptionToValuable
 import squants.{Dimensionless, Power}
@@ -23,22 +17,11 @@ import squants.energy.{KilowattHours, Kilowatts}
 
 import scala.collection.immutable.SortedMap
 
-/** todo rename
-  */
-trait MathFlexTestLike {
+trait OptimizingTestLike {
 
   extension (seq: Seq[Int])
     def toPowerMap(using ticks: Seq[Long]): SortedMap[Long, Power] =
       SortedMap.from(ticks.zip(seq.map(Kilowatts.apply)))
-
-  extension (state: StorageStateVars)
-    def energyVal(using conversion: EnergyConversionFactor): Double = {
-      val solution = state.storedEnergy match {
-        case constant: Const => constant.value
-        case mpVar: MPVar    => mpVar.value.value
-      }
-      solution * conversion.factor
-    }
 
   extension (res: StepResults)
     def energyVal(using conversion: EnergyConversionFactor): Double = {
@@ -49,11 +32,6 @@ trait MathFlexTestLike {
       solution * conversion.factor
     }
 
-  extension (state: StorageOperationVars)
-    def pVal: Double =
-      state.p.value.value
-
-  extension (res: StepResults)
     def pVal: Double =
       res.getOperationResult.toKilowatts
 
