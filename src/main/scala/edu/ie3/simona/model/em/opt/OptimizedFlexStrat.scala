@@ -20,7 +20,7 @@ import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.{MPFloatVar, MPVar}
 import org.slf4j.Logger
 import squants.energy.Kilowatts
-import squants.{Each, Power, Time}
+import squants.{Dimensionless, Each, Power, Time}
 
 import java.util.UUID
 
@@ -256,35 +256,7 @@ object OptimizedFlexStrat {
             newState := previousState + (p - pAbs * (1 - eta.toEach)) * duration.toHours
           )
 
-          Some(new SoftConstraint {
-
-            override def getExpression: Expression = {
-              // Total penalty is slightly larger than the model losses.
-              // Thus, the value of pAbs should be pushed down to the
-              // absolute of p.
-              val epsilon = 1e-6
-              pAbs * (1 - eta.toEach + epsilon) * duration.toHours
-            }
-
-            override def getError: Double = {
-              val (pValue, pAbsValue) = getVals
-              math.abs(math.abs(pValue) - pAbsValue)
-            }
-
-            override def getWarningMessage: String = {
-              val (pValue, pAbsValue) = getVals
-              s"Soft constraint for storage: Approximated absolute power value $pAbsValue and absolute power value |$pValue| are $getError apart."
-            }
-
-            private def getVals: (Double, Double) = p.value
-              .zip(pAbs.value)
-              .getOrElse(
-                throw new CriticalFailureException(
-                  "Solution are expected to be determined at this point!"
-                )
-              )
-
-          })
+          Some(AbsPowerSoftConstraint(p, pAbs, eta, duration))
         }
 
       StepResults(Some(newState), p, softConstraint)
@@ -460,4 +432,52 @@ object OptimizedFlexStrat {
     def getWarningMessage: String
 
   }
+
+  final case class AbsPowerSoftConstraint(
+      p: MPFloatVar,
+      pAbs: MPFloatVar,
+      penalty: Double,
+  ) extends SoftConstraint {
+
+    override def getExpression: Expression =
+      pAbs * penalty
+
+    override def getError: Double = {
+      val (pValue, pAbsValue) = getVals
+      math.abs(math.abs(pValue) - pAbsValue)
+    }
+
+    override def getWarningMessage: String = {
+      val (pValue, pAbsValue) = getVals
+      s"Soft constraint for storage: Approximated absolute power value $pAbsValue and absolute power value |$pValue| are $getError apart."
+    }
+
+    private def getVals: (Double, Double) = p.value
+      .zip(pAbs.value)
+      .getOrElse(
+        throw new CriticalFailureException(
+          "Solution are expected to be determined at this point!"
+        )
+      )
+
+  }
+
+  object AbsPowerSoftConstraint {
+    def apply(
+        p: MPFloatVar,
+        pAbs: MPFloatVar,
+        eta: Dimensionless,
+        duration: Time,
+    ): AbsPowerSoftConstraint = {
+      // Total penalty is slightly larger than the model losses.
+      // Thus, the value of pAbs should be pushed down to the
+      // absolute of p.
+      val epsilon = 1e-6
+
+      val penalty = (1 - eta.toEach + epsilon) * duration.toHours
+
+      AbsPowerSoftConstraint(p, pAbs, penalty)
+    }
+  }
+
 }
