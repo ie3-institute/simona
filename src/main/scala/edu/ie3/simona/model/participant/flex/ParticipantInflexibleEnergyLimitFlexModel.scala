@@ -11,7 +11,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
 }
-import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
   FlexOptions,
@@ -42,7 +42,7 @@ class ParticipantInflexibleEnergyLimitFlexModel[S <: ModelState](
       tick -> op.activePower
     }
 
-    EnergyBoundariesFlexOptions(ParticipantEnergyBoundaries(powerMap))
+    EnergyBoundariesFlexOptions(AssetEnergyBoundaries(powerMap))
   }
 
 }

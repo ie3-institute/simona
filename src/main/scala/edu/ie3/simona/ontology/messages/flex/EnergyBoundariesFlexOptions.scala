@@ -7,35 +7,58 @@
 package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.time.Seconds
-import squants.{Dimensionless, Each, Energy, Power, Time}
+import squants.{Dimensionless, Each, Energy, Power}
 
 import scala.collection.immutable.SortedMap
 
+/** Energy boundaries for one or several assets. See [[AssetEnergyBoundaries]]
+  * for more details.
+  *
+  * @param energyBoundaries
+  *   The energy boundaries.
+  */
 final case class EnergyBoundariesFlexOptions(
-    energyBoundaries: Seq[ParticipantEnergyBoundaries]
+    energyBoundaries: Seq[AssetEnergyBoundaries]
 ) extends FlexOptions
 
 object EnergyBoundariesFlexOptions {
 
+  /** Creates energy boundaries with a single [[AssetEnergyBoundaries]].
+    *
+    * @param singleBoundaries
+    *   The [[AssetEnergyBoundaries]].
+    * @return
+    */
   def apply(
-      singleBoundaries: ParticipantEnergyBoundaries
+      singleBoundaries: AssetEnergyBoundaries
   ): EnergyBoundariesFlexOptions =
     EnergyBoundariesFlexOptions(Seq(singleBoundaries))
 
-  /** @param energyLimits
-    *   Energy potential upwards and downwards
+  /** Energy boundaries for an asset. The energy limits (valid for one tick
+    * each) constitute the boundaries between which flexibility can be used.
+    *
+    * @param energyLimits
+    *   Energy limits that signify the potential upwards and downwards
+    *   flexibility potential for the respective tick. All energy limits relate
+    *   to the energy potential at the current tick (which is defined to be
+    *   zero).
     * @param powerLimits
-    *   If energy limits (upper and lower) are the same, this is ignored for the
-    *   relevant time steps.
+    *   The power limits, which limit the power of the complete asset for all
+    *   time steps. If energy limits (upper and lower) are the same, this is
+    *   ignored for the relevant time steps.
     * @param etaCharge
+    *   The charging efficiency.
     * @param etaDischarge
+    *   The discharging efficiency.
     * @param tickDisconnect
+    *   Optionally, the tick at which the storage will be disconnected, thus the
+    *   upward or downward energy potential can not be used beyond this tick.
     */
-  final case class ParticipantEnergyBoundaries(
+  final case class AssetEnergyBoundaries(
       energyLimits: SortedMap[Long, ClosedInterval[Energy]],
       powerLimits: ClosedInterval[Power],
       etaCharge: Dimensionless = Each(1),
@@ -43,7 +66,7 @@ object EnergyBoundariesFlexOptions {
       tickDisconnect: Option[Long] = None,
   )
 
-  object ParticipantEnergyBoundaries {
+  object AssetEnergyBoundaries {
 
     /** Creating energy boundaries for a fixed power time series. Assumes
       * equidistant power series entries - otherwise, results are not defined!
@@ -52,10 +75,11 @@ object EnergyBoundariesFlexOptions {
       *   The power time series (at equidistant ticks). Has to have at least two
       *   entries.
       * @return
+      *   The [[AssetEnergyBoundaries]].
       */
     def apply(
         powerSeries: SortedMap[Long, Power]
-    ): ParticipantEnergyBoundaries = {
+    ): AssetEnergyBoundaries = {
 
       val (firstTick, firstPower) = powerSeries.headOption.getOrElse(
         throw new CriticalFailureException("Empty power time series!")
@@ -101,7 +125,7 @@ object EnergyBoundariesFlexOptions {
       val minPower = powerSeries.values.minOption.getOrElse(zeroKW)
       val maxPower = powerSeries.values.maxOption.getOrElse(zeroKW)
 
-      ParticipantEnergyBoundaries(
+      AssetEnergyBoundaries(
         energyLimits = energySeries.map { case (tick, energy) =>
           tick -> ClosedInterval(energy, energy)
         },
@@ -111,6 +135,21 @@ object EnergyBoundariesFlexOptions {
 
     /** Creating energy boundaries for a storage model with symmetrical maximum
       * power.
+      *
+      * @param eStorage
+      *   The storage capacity.
+      * @param currentEnergy
+      *   The currently stored energy.
+      * @param pMax
+      *   Maximum permissible active power.
+      * @param etaCharge
+      *   Efficiency of the charging process.
+      * @param etaDischarge
+      *   Efficiency of the discharging process.
+      * @param currentTick
+      *   The current tick.
+      * @return
+      *   [[AssetEnergyBoundaries]] for the storage model.
       */
     def apply(
         eStorage: Energy,
@@ -119,8 +158,8 @@ object EnergyBoundariesFlexOptions {
         etaCharge: Dimensionless,
         etaDischarge: Dimensionless,
         currentTick: Long,
-    ): ParticipantEnergyBoundaries =
-      ParticipantEnergyBoundaries(
+    ): AssetEnergyBoundaries =
+      AssetEnergyBoundaries(
         energyLimits = SortedMap(
           currentTick -> new ClosedInterval(
             -currentEnergy,

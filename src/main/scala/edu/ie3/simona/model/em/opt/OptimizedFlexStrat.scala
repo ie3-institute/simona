@@ -12,7 +12,7 @@ import edu.ie3.simona.model.em.EmModelStrat
 import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
 import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
-import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import optimus.algebra.{Const, Double2Const, Expression, Zero}
@@ -169,7 +169,7 @@ object OptimizedFlexStrat {
   }
 
   private def addAssetStep(
-      energyBoundaries: ParticipantEnergyBoundaries,
+      energyBoundaries: AssetEnergyBoundaries,
       tick: Long,
       duration: Time,
       lastState: Option[Expression],
@@ -211,7 +211,7 @@ object OptimizedFlexStrat {
         formerEnergyLimits
           // ... there was no flexibility in the last step, thus we use the last energy value
           .filter(limits => limits.getLower == limits.getUpper)
-          .map { limits => Const(limits.getUpper.toKilowattHours) }
+          .map(limits => Const(limits.getUpper.toKilowattHours))
           // ... or this is the initial step, thus we start at 0
           .getOrElse(Const(0d))
       }
@@ -270,8 +270,8 @@ object OptimizedFlexStrat {
     * @return
     */
   def adaptEnergyBoundaries(
-      boundaries: ParticipantEnergyBoundaries
-  ): ParticipantEnergyBoundaries = {
+      boundaries: AssetEnergyBoundaries
+  ): AssetEnergyBoundaries = {
     val etaCh = boundaries.etaCharge.toEach
     val etaDis = boundaries.etaDischarge.toEach
 

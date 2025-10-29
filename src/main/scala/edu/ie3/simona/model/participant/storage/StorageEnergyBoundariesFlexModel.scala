@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant.storage
 
 import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
-import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
   FlexOptions,
@@ -24,7 +24,7 @@ class StorageEnergyBoundariesFlexModel(private val model: StorageModel)
 
   override def determineFlexOptions(state: StorageState): FlexOptions =
     EnergyBoundariesFlexOptions(
-      ParticipantEnergyBoundaries(
+      AssetEnergyBoundaries(
         energyLimits = SortedMap(
           state.tick -> ClosedInterval(
             -state.storedEnergy,

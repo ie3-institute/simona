@@ -12,7 +12,7 @@ import edu.ie3.simona.model.em.opt.PowerObjectiveFactory.{
   MinAbsPowerObjectiveFactory,
 }
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
-import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.ParticipantEnergyBoundaries
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import optimus.optimization.MPModel
@@ -63,7 +63,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
             // using the implementation to derive an adapted model
             val adaptedFlexOptions = OptimizedFlexStrat.adaptEnergyBoundaries(
-              ParticipantEnergyBoundaries(
+              AssetEnergyBoundaries(
                 eStorage = eStorage,
                 currentEnergy = currentEnergy,
                 pMax = pMax,
@@ -120,7 +120,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
       // low efficiency for simplicity of the test
       val batFlex = EnergyBoundariesFlexOptions(
-        ParticipantEnergyBoundaries(
+        AssetEnergyBoundaries(
           eStorage = KilowattHours(24),
           currentEnergy = KilowattHours(12),
           pMax = Kilowatts(10),
@@ -145,7 +145,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
         val constFlex = EnergyBoundariesFlexOptions(
-          ParticipantEnergyBoundaries(
+          AssetEnergyBoundaries(
             Seq(5, -10, 10, -2).toPowerMap
           )
         )
@@ -218,7 +218,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
         val constFlex = EnergyBoundariesFlexOptions(
-          ParticipantEnergyBoundaries(
+          AssetEnergyBoundaries(
             Seq(5, -60, 110, -2).toPowerMap
           )
         )
@@ -292,7 +292,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
         val constFlex = EnergyBoundariesFlexOptions(
-          ParticipantEnergyBoundaries(
+          AssetEnergyBoundaries(
             Seq(-5, -10, 10, 10).toPowerMap
           )
         )
@@ -378,7 +378,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
         val constFlex = EnergyBoundariesFlexOptions(
-          ParticipantEnergyBoundaries(
+          AssetEnergyBoundaries(
             Seq(-5, -50, 20, 30).toPowerMap
           )
         )
@@ -467,21 +467,21 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
       // 33 kWh of feed-in in total, more than battery can store
       val pvFlex = EnergyBoundariesFlexOptions(
-        ParticipantEnergyBoundaries(
+        AssetEnergyBoundaries(
           Seq(0, -6, -8, -7, -12, 0, 0, 0, 0, 0, 0, 0).toPowerMap
         )
       )
 
       // 31 kWh of load in total, more than battery can provide
       val loadFlex = EnergyBoundariesFlexOptions(
-        ParticipantEnergyBoundaries(
+        AssetEnergyBoundaries(
           Seq(0, 0, 0, 0, 0, 0, 5, 10, 3, 7, 6, 0).toPowerMap
         )
       )
 
       // low efficiency for simplicity of the test
       val batFlex = EnergyBoundariesFlexOptions(
-        ParticipantEnergyBoundaries(
+        AssetEnergyBoundaries(
           eStorage = KilowattHours(20),
           currentEnergy = KilowattHours(0),
           pMax = Kilowatts(10),
