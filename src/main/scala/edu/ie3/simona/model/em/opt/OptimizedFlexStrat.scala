@@ -88,12 +88,14 @@ final case class OptimizedFlexStrat(
       case AssetVarContainer(assetUuid, results) =>
         val setPoint = results
           .map {
+            // Taking only the first result for set points
             _.headOption
               .getOrElse(
                 throw new CriticalFailureException(
                   s"Empty results for asset $assetUuid"
                 )
               )
+              // Operating point of first result
               .getOperationResult
           }
           .reduceOption(_ + _)
@@ -124,12 +126,12 @@ object OptimizedFlexStrat {
     */
   private val softConstraintThreshold: Double = 1e-3
 
-  /** Creates and adds constraints for the given assets for all given sample
+  /** Creates and adds constraints for the given flex options for given sample
     * times. States and operating points are strung together according to the
     * sample times.
     *
     * @param flexOptions
-    *   The flex options that all assets provided.
+    *   The flex options that connected assets provided.
     * @param sampleTime
     *   The amount of time between the steps.
     * @param ticks
@@ -138,7 +140,8 @@ object OptimizedFlexStrat {
     * @param model
     *   The optimization model to use.
     * @return
-    *   A container that holds all state and operation variables.
+    *   Containers that holds all results, including state and operation
+    *   variables.
     */
   def addAssetConstraints(
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
@@ -168,11 +171,28 @@ object OptimizedFlexStrat {
     }
   }
 
+  /** Creates and adds constraints for a single asset and time step. Relevant
+    * variables and soft constraints are returned in a [[StepResults]]
+    * container.
+    *
+    * @param energyBoundaries
+    *   The asset energy boundaries to use.
+    * @param tick
+    *   The tick to add constraints for.
+    * @param sampleTime
+    *   The amount of time between the steps.
+    * @param maybePreviousState
+    *   Optionally, the previous state variable.
+    * @param model
+    *   The optimization model to use.
+    * @return
+    *   The results for this asset and time step.
+    */
   private def addAssetStep(
       energyBoundaries: AssetEnergyBoundaries,
       tick: Long,
-      duration: Time,
-      lastState: Option[Expression],
+      sampleTime: Time,
+      maybePreviousState: Option[MPVar],
   )(using model: MPModel): StepResults = {
 
     val energyLimits = energyBoundaries.energyLimits
@@ -195,7 +215,7 @@ object OptimizedFlexStrat {
       val formerEnergy = formerEnergyLimits.map(_.getUpper).getOrElse(zeroKWh)
       val currentEnergy = energyLimits.getUpper
 
-      val fixedPower = (currentEnergy - formerEnergy) / duration
+      val fixedPower = (currentEnergy - formerEnergy) / sampleTime
       StepResults(None, Const(fixedPower.toKilowatts), None)
     } else {
       // we do have some flexibility at this point in time, model it
@@ -205,7 +225,7 @@ object OptimizedFlexStrat {
       val eta = energyBoundaries.etaCharge
 
       // determining a previous state
-      val previousState = lastState.getOrElse {
+      val previousState = maybePreviousState.getOrElse {
 
         // we have been given no former state as a parameter. Either...
         formerEnergyLimits
@@ -236,7 +256,7 @@ object OptimizedFlexStrat {
         if eta == Each(1) then {
           // there are no charging/discharging losses, we can keep it simple
 
-          model.add(newState := previousState + p * duration.toHours)
+          model.add(newState := previousState + p * sampleTime.toHours)
           None
         } else {
           // there are charging/discharging losses, thus use the full model
@@ -255,10 +275,10 @@ object OptimizedFlexStrat {
           model.add(pAbs >:= -p)
 
           model.add(
-            newState := previousState + (p - pAbs * (1 - eta.toEach)) * duration.toHours
+            newState := previousState + (p - pAbs * (1 - eta.toEach)) * sampleTime.toHours
           )
 
-          Some(AbsValueSoftConstraint(p, pAbs, eta, duration))
+          Some(AbsValueSoftConstraint(p, pAbs, eta, sampleTime))
         }
 
       StepResults(Some(newState), p, softConstraint)
@@ -266,8 +286,17 @@ object OptimizedFlexStrat {
 
   }
 
-  /** @param boundaries
+  /** Creates flex options that are equivalent to the original with regard to
+    * optimization, which are able to optimized with a linear model though. In
+    * order to achieve this, a common efficiency needs to be calculated for
+    * charging and discharging operations, eliminating the need to distinguish
+    * between charging and discharging within the state constraint. Furthermore,
+    * energy limits need to be adapted.
+    *
+    * @param boundaries
+    *   The energy boundaries to be adapted.
     * @return
+    *   The adapted energy boundaries.
     */
   def adaptEnergyBoundaries(
       boundaries: AssetEnergyBoundaries
@@ -292,30 +321,6 @@ object OptimizedFlexStrat {
       etaDischarge = etaAvgEach,
     )
 
-  }
-
-  /** @param state
-    *   Optionally the state that follows the operating point.
-    * @param operation
-    *   The operating point between the previous state and [[state]].
-    * @param softConstraint
-    *   Optionally a soft constraint.
-    */
-  final case class StepResults(
-      state: Option[MPVar],
-      operation: Const | MPVar,
-      softConstraint: Option[SoftConstraint],
-  ) {
-
-    def getOperationResult: Power = Kilowatts(operation match {
-      case const: Const => const.value
-      case variable: MPVar =>
-        variable.value.getOrElse(
-          throw new CriticalFailureException(
-            s"No result present for variable $variable"
-          )
-        )
-    })
   }
 
   /** Builds an objective to minimize given the asset variables and an objective
@@ -387,6 +392,34 @@ object OptimizedFlexStrat {
       assetUuid: UUID,
       results: Seq[IndexedSeq[StepResults]],
   )
+
+  /** Container holding the relevant variables and potentially a soft constraint
+    * for a specific asset and optimization time step.
+    *
+    * @param state
+    *   Optionally the state that follows the operating point.
+    * @param operation
+    *   The operating point between the previous state and [[state]].
+    * @param softConstraint
+    *   Optionally a soft constraint.
+    */
+  final case class StepResults(
+      state: Option[MPVar],
+      operation: Const | MPVar,
+      softConstraint: Option[SoftConstraint],
+  ) {
+
+    def getOperationResult: Power = Kilowatts(operation match {
+      case const: Const => const.value
+      case variable: MPVar =>
+        variable.value.getOrElse(
+          throw new CriticalFailureException(
+            s"No result present for variable $variable"
+          )
+        )
+    })
+
+  }
 
   /** Container holding the complete objective to minimize and relevant soft
     * constraints.
