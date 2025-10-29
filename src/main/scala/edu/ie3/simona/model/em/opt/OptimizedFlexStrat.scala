@@ -216,17 +216,17 @@ object OptimizedFlexStrat {
       // modeling the operating point (power),
       // valid between that previous and new state
       val p = MPFloatVar(
-        "p",
-        energyBoundaries.powerLimits.getLower.toKilowatts,
-        energyBoundaries.powerLimits.getUpper.toKilowatts,
+        symbol = "p",
+        lowerBound = energyBoundaries.powerLimits.getLower.toKilowatts,
+        upperBound = energyBoundaries.powerLimits.getUpper.toKilowatts,
       )
 
       // todo new state could also be constant, if upper == lower
       // modeling the new state (stored energy)
       val newState = MPFloatVar(
-        "state",
-        energyLimits.getLower.toKilowattHours,
-        energyLimits.getUpper.toKilowattHours,
+        symbol = "state",
+        lowerBound = energyLimits.getLower.toKilowattHours,
+        upperBound = energyLimits.getUpper.toKilowattHours,
       )
 
       val softConstraint =
@@ -242,12 +242,11 @@ object OptimizedFlexStrat {
             -energyBoundaries.powerLimits.getLower
           )
 
-          val pAbs =
-            MPFloatVar(
-              "pAbs",
-              0,
-              pAbsMax.toKilowatts,
-            )
+          val pAbs = MPFloatVar(
+            symbol = "pAbs",
+            lowerBound = 0,
+            upperBound = pAbsMax.toKilowatts,
+          )
 
           model.add(pAbs >:= p)
           model.add(pAbs >:= -p)
