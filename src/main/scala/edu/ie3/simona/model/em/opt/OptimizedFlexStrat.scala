@@ -216,7 +216,7 @@ object OptimizedFlexStrat {
       val currentEnergy = energyLimits.getUpper
 
       val fixedPower = (currentEnergy - formerEnergy) / sampleTime
-      StepResults(None, Const(fixedPower.toKilowatts), None)
+      StepResults(Const(fixedPower.toKilowatts), None, None)
     } else {
       // we do have some flexibility at this point in time, model it
 
@@ -281,7 +281,7 @@ object OptimizedFlexStrat {
           Some(AbsValueSoftConstraint(p, pAbs, eta, sampleTime))
         }
 
-      StepResults(Some(newState), p, softConstraint)
+      StepResults(p, Some(newState), softConstraint)
     }
 
   }
@@ -396,16 +396,16 @@ object OptimizedFlexStrat {
   /** Container holding the relevant variables and potentially a soft constraint
     * for a specific asset and optimization time step.
     *
-    * @param state
-    *   Optionally the state that follows the operating point.
     * @param operation
     *   The operating point between the previous state and [[state]].
+    * @param state
+    *   Optionally the state that follows the operating point.
     * @param softConstraint
     *   Optionally a soft constraint.
     */
   final case class StepResults(
-      state: Option[MPVar],
       operation: Const | MPVar,
+      state: Option[MPVar],
       softConstraint: Option[SoftConstraint],
   ) {
 
