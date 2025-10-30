@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.control
 
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
-import edu.ie3.simona.agent.grid.congestion.VoltageRange
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.congestion.VoltageRange
 import edu.ie3.simona.exceptions.GridInconsistencyException
@@ -17,18 +16,9 @@ import edu.ie3.simona.model.grid.{
   TransformerModel,
   TransformerTapping,
 }
-import edu.ie3.util.quantities.QuantityUtils.asPu
-import edu.ie3.util.scala.quantities.DefaultQuantities
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toQuantity,
-  toSquants,
-}
 import org.apache.pekko.actor.typed.ActorRef
 import squants.{Dimensionless, Each}
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Dimensionless
 
 /** A group of [[TransformerTapping]] with all associated [[ActorRef]]s.
   * @param refs
@@ -79,10 +69,6 @@ final case class TappingGroupModel(
         // no change, do nothing
       }
     }
-
-    log.debug(
-      s"For inferior grids $refs, suggestion: $suggestion, delta: $deltaV"
-    )
 
     deltaV
   } else zeroPU

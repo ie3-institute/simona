@@ -36,9 +36,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Dimensionless
+import squants.{Dimensionless, Each}
 
 class TransformerTagChangeSpec
     extends ScalaTestWithActorTestKit
@@ -48,7 +46,7 @@ class TransformerTagChangeSpec
     with QuantityMatchers
     with GridComponentsMokka {
 
-  protected given puTolerance: ComparableQuantity[Dimensionless] = 1e-3.asPu
+  protected given puTolerance: Dimensionless = Each(1e-3)
 
   private type AwaitedData = (VoltageRange, Set[TransformerTapping])
 
@@ -117,9 +115,9 @@ class TransformerTagChangeSpec
       val (voltageRange, actualTransformers) =
         superiorAgent.expectMessageType[VoltageRangeResponse].value
 
-      voltageRange.deltaPlus should equalWithTolerance(-0.01.asPu)
-      voltageRange.deltaMinus should equalWithTolerance(-0.01.asPu)
-      voltageRange.suggestion should equalWithTolerance(-0.011.asPu)
+      voltageRange.deltaPlus should approximate(Each(-0.01))
+      voltageRange.deltaMinus should approximate(Each(-0.01))
+      voltageRange.suggestion should approximate(Each(-0.011))
 
       actualTransformers shouldBe transformers
     }
@@ -165,7 +163,7 @@ class TransformerTagChangeSpec
           (
             inferiorAgent.ref,
             (
-              VoltageRange(0.04.asPu, -0.05.asPu),
+              VoltageRange(Each(0.04), Each(-0.05)),
               Set(mockedMvLvTappingModel),
             ),
           )
@@ -175,9 +173,9 @@ class TransformerTagChangeSpec
       val (voltageRange, actualTransformers) =
         superiorAgent.expectMessageType[VoltageRangeResponse].value
 
-      voltageRange.deltaPlus should equalWithTolerance(0.04.asPu)
-      voltageRange.deltaMinus should equalWithTolerance(0.01.asPu)
-      voltageRange.suggestion should equalWithTolerance(0.026.asPu)
+      voltageRange.deltaPlus should approximate(Each(0.04))
+      voltageRange.deltaMinus should approximate(Each(0.01))
+      voltageRange.suggestion should approximate(Each(0.026))
 
       actualTransformers shouldBe transformers
 

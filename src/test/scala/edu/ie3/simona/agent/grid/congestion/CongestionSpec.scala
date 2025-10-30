@@ -12,16 +12,9 @@ import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   Transformer2WResult,
 }
-import edu.ie3.simona.agent.grid.congestion.VoltageRange.calculatePossibleVoltageDeltaForLines
-import edu.ie3.simona.agent.grid.congestion.{Congestions, VoltageRange}
+import edu.ie3.simona.agent.grid.congestion.Congestions
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import edu.ie3.simona.model.grid.GridModel.GridComponents
-import edu.ie3.simona.model.grid.{
-  GridModel,
-  RefSystem,
-  TransformerTapping,
-  VoltageLimits,
-}
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.test.common.model.grid.{
   DbfsTestGrid,
   GridComponentsMokka,
@@ -30,11 +23,8 @@ import edu.ie3.simona.test.common.model.grid.{
 import edu.ie3.simona.test.common.result.ResultMokka
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import edu.ie3.util.quantities.QuantityUtils.{asPu, asDegreeGeom}
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
+import edu.ie3.util.quantities.QuantityUtils.{asDegreeGeom, asPu}
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import squants.electro.Kilovolts
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities

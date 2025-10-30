@@ -15,9 +15,7 @@ import edu.ie3.simona.agent.grid.GridAgent.{
 import edu.ie3.simona.agent.grid.congestion.VoltageRange
 import edu.ie3.simona.model.grid.TransformerTapping
 import org.apache.pekko.actor.typed.ActorRef
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Dimensionless
+import squants.Dimensionless
 
 object TappingMessages {
 
@@ -61,7 +59,7 @@ object TappingMessages {
     *   Voltage change.
     */
   final case class VoltageDeltaResponse(
-      delta: ComparableQuantity[Dimensionless]
+      delta: Dimensionless
   ) extends InternalReply
 
 }

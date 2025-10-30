@@ -23,7 +23,6 @@ import org.apache.pekko.actor.typed.ActorRef
 import squants.{Dimensionless, Each}
 
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
 
 /** Object that contains information about possible voltage changes. <p> If the
   * delta plus is negative -> upper voltage violation <p> If the delta minus is
@@ -125,9 +124,6 @@ object VoltageRange {
   ): VoltageRange = {
     val plus = deltaPlus.toEach
     val minus = deltaMinus.toEach
-
-    val plus = deltaPlus.getValue.doubleValue()
-    val minus = deltaMinus.getValue.doubleValue()
 
     val value = if plus > minus then {
       // we could have a voltage violation of one limit

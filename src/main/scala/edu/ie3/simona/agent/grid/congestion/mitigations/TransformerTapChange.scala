@@ -26,16 +26,17 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseC,
 }
 import edu.ie3.simona.model.grid.TransformerTapping
+import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.QuantityUtils.asPu
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
+import edu.ie3.util.scala.quantities.{DefaultQuantities, SquantsUtils}
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
   StashBuffer,
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Dimensionless
+import squants.Dimensionless
 
 trait TransformerTapChange {
 
@@ -178,7 +179,7 @@ trait TransformerTapChange {
       // there should be no voltage change in the superior grid,
       // because the slack grid should always have 1 pu
 
-      ctx.self ! VoltageDeltaResponse(0.asPu)
+      ctx.self ! VoltageDeltaResponse(zeroPU)
       updateTransformerTapping(stateData, updatedData)
     } else {
       // un-stash all messages
@@ -189,7 +190,7 @@ trait TransformerTapChange {
   private def handleUpdatedDataFromSuperior(
       stateData: CongestionManagementData,
       awaitingData: AwaitingData[(VoltageRange, Set[TransformerTapping])],
-      delta: ComparableQuantity[Dimensionless],
+      delta: Dimensionless,
       ctx: ActorContext[GridAgent.Message],
   )(using
       constantData: GridAgentConstantData,
@@ -225,8 +226,8 @@ trait TransformerTapChange {
           stateData.gridAgentBaseData.gridEnv.gridModel.gridComponents.transformers3w,
         )
         .foreach { group =>
-          val deltaV = group.updateTapPositions(delta, refMap, ctx.log)
-          group.refs.foreach(_ ! VoltageDeltaResponse(deltaV.add(delta)))
+          val deltaV = group.updateTapPositions(delta, refMap)
+          group.refs.foreach(_ ! VoltageDeltaResponse(deltaV + delta))
         }
     }
 
