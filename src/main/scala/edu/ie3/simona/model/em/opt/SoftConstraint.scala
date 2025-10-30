@@ -12,7 +12,7 @@ import optimus.optimization.model.MPFloatVar
 import squants.{Dimensionless, Time}
 
 /** Trait to be extended by classes detailing a soft constraint as part of the
-  * optimization objective and possible error handling.
+  * optimization objective, including possible error handling.
   */
 trait SoftConstraint {
 
@@ -35,7 +35,8 @@ trait SoftConstraint {
   def getError: Double
 
   /** A warning message explaining what was expected and what happened instead.
-    * The message only makes sense if the error is larger than expected.
+    * The message only makes sense if the error is actually larger than
+    * expected.
     *
     * @return
     *   The warning message.

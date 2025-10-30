@@ -25,17 +25,19 @@ import squants.{Each, Power, Time}
 
 import java.util.UUID
 
-/** Flex strategy that optimizes over a fixed amount of time steps into the
-  * future. Works with [[EnergyBoundariesFlexOptions]], which provide the
-  * required data for constraints concerning the assets.
+/** Energy management strategy that optimizes flexibility usage over a fixed
+  * amount of time steps into the future. Takes [[EnergyBoundariesFlexOptions]]
+  * as inputs, which provide the required energy boundaries and power limits for
+  * constraining asset operation.
   *
   * @param sampleTime
   *   The amount of time between the steps.
   * @param predictionHorizon
   *   The amount of time that is predicted into the future, i.e. the last step
   *   is this amount of time away from the current point in simulation time.
+  *   Should be a multiple of [[sampleTime]].
   * @param powerObjectiveFactory
-  *   A factory creating the objective to optimize for.
+  *   A factory creating the optimization objective to use.
   * @param logger
   *   The logger to use.
   */
@@ -127,18 +129,18 @@ object OptimizedFlexStrat {
   private val softConstraintThreshold: Double = 1e-3
 
   /** Creates and adds constraints for the given flex options for given sample
-    * times. States and operating points are strung together according to the
-    * sample times.
+    * times. States and operating points are linked according to the time steps.
     *
     * @param flexOptions
     *   The flex options that connected assets provided.
     * @param sampleTime
     *   The amount of time between the steps.
     * @param ticks
-    *   The ticks (including current tick to last predicted tick) of the sample
-    *   times to add constraints for.
+    *   The ticks (including current tick to last predicted tick) of the time
+    *   steps to add constraints for. Should all be sample time duration apart
+    *   from each other.
     * @param model
-    *   The optimization model to use.
+    *   The optimization model to add variables and constraints to.
     * @return
     *   Containers that holds all results, including state and operation
     *   variables.
@@ -184,7 +186,7 @@ object OptimizedFlexStrat {
     * @param maybePreviousState
     *   Optionally, the previous state variable.
     * @param model
-    *   The optimization model to use.
+    *   The optimization model to add variables and constraints to.
     * @return
     *   The results for this asset and time step.
     */
@@ -291,11 +293,12 @@ object OptimizedFlexStrat {
   }
 
   /** Creates flex options that are equivalent to the original with regard to
-    * optimization, which are able to optimized with a linear model though. In
-    * order to achieve this, a common efficiency needs to be calculated for
+    * optimization, which are able to be optimized with a linear model though.
+    * In order to achieve this, a common efficiency needs to be calculated for
     * charging and discharging operations, eliminating the need to distinguish
-    * between charging and discharging within the state constraint. Furthermore,
-    * energy limits need to be adapted.
+    * between charging and discharging when formulating the state constraint.
+    * Furthermore, energy limits are adapted to work with the adapted
+    * efficiency.
     *
     * @param boundaries
     *   The energy boundaries to be adapted.
@@ -337,7 +340,7 @@ object OptimizedFlexStrat {
     * @param powerObjectiveFactory
     *   The factor for the objective to optimize at every time step.
     * @param model
-    *   The optimization model to use.
+    *   The optimization model to add variables and constraints to.
     * @return
     *   An [[ObjectiveContainer]] holding the objective and soft constraints.
     */
@@ -354,11 +357,13 @@ object OptimizedFlexStrat {
 
     val (objectiveResult, softConstraintsResult) =
       Range(0, timeSteps)
+        // first, sort all results by time step
         .map { timeStep =>
           assetVars.flatMap {
             _.results.map(_(timeStep))
           }
         }
+        // then, build objective for every time step and combine them
         .foldLeft[(Expression, Seq[SoftConstraint])](Zero, Seq.empty) {
           case ((objective, allConstraints), results) =>
             val difference = results.foldLeft[Expression](Zero) {

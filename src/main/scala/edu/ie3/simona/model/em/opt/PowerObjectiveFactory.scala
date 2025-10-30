@@ -15,12 +15,13 @@ import optimus.optimization.model.MPFloatVar
   */
 trait PowerObjectiveFactory {
 
-  /** Creates an objective for a single time step involving the sum of power.
+  /** Creates an objective expression involving the sum of power for a single
+    * time step.
     *
     * @param totalPower
     *   The sum of power of all assets for a time step.
     * @param model
-    *   The optimization model to use.
+    *   The optimization model to add variables and constraints to.
     * @return
     *   The objective as an expression.
     */
@@ -55,12 +56,13 @@ object PowerObjectiveFactory {
     * (secant lines) up until given last segment.
     *
     * @param segmentCount
-    *   The number of segments (secant lines) to create. A high number of
-    *   segments might impact efficiency.
+    *   The number of segments (secant lines) to create. Increasing the number
+    *   of segments improves the accuracy of the approximation, but might impact
+    *   efficiency.
     * @param lastSegment
     *   The value of the last segment boundary. This should be set close to the
     *   maximum value that is to be expected, otherwise the approximation
-    *   becomes inaccurate.
+    *   becomes inaccurate beyond this value.
     */
   class LinearizedQuadraticPowerObjectiveFactory(
       segmentCount: Int,

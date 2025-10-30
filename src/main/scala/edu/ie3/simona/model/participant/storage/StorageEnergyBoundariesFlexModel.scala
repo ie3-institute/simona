@@ -13,9 +13,6 @@ import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
   FlexOptions,
 }
-import edu.ie3.util.interval.ClosedInterval
-
-import scala.collection.immutable.SortedMap
 
 class StorageEnergyBoundariesFlexModel(private val model: StorageModel)
     extends ParticipantFlexModel[
@@ -25,15 +22,12 @@ class StorageEnergyBoundariesFlexModel(private val model: StorageModel)
   override def determineFlexOptions(state: StorageState): FlexOptions =
     EnergyBoundariesFlexOptions(
       AssetEnergyBoundaries(
-        energyLimits = SortedMap(
-          state.tick -> ClosedInterval(
-            -state.storedEnergy,
-            model.eStorage - state.storedEnergy,
-          )
-        ),
-        powerLimits = ClosedInterval(-model.pMax, model.pMax),
+        eStorage = model.eStorage,
+        currentEnergy = state.storedEnergy,
+        pMax = model.pMax,
         etaCharge = model.eta,
         etaDischarge = model.eta,
+        currentTick = state.tick,
       )
     )
 
