@@ -17,13 +17,18 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
+import org.scalatest.prop.TableFor3
+import squants.{Dimensionless, Each, Percent}
+import tech.units.indriya.ComparableQuantity
 
 class TappingGroupModelSpec
     extends ScalaTestWithActorTestKit
     with UnitSpec
     with GridComponentsMokka {
 
-  val voltageTolerance = 1e-3
+  private given Conversion[Double, Dimensionless] = (d: Double) => Each(d)
+
+  private given Dimensionless = Each(1e-3)
 
   val inferior1: TestProbe[GridAgent.Message] =
     TestProbe[GridAgent.Message]("inferior1")
@@ -35,23 +40,24 @@ class TappingGroupModelSpec
     "group transformers correctly" in {
       val (transformer3wA, transformer3wB, transformer3wC) =
         mockTransformer3wModel()
-      val transformer1 = mockTransformerModel()
+      val transformer1: TransformerTapping = mockTransformerModel()
       val ref1 = TestProbe[GridAgent.Message]("ref1").ref
       val ref2 = TestProbe[GridAgent.Message]("ref2").ref
 
       val ref3 = TestProbe[GridAgent.Message]("ref3").ref
-      val transformer3 = mockTransformerModel(hasAutoTap = true)
+      val transformer3: TransformerTapping =
+        mockTransformerModel(hasAutoTap = true)
 
       val ref4 = TestProbe[GridAgent.Message]("ref4").ref
-      val transformer4a = mockTransformerModel(hasAutoTap = true)
-      val transformer4b = mockTransformerModel()
+      val transformer4a: TransformerTapping =
+        mockTransformerModel(hasAutoTap = true)
+      val transformer4b: TransformerTapping = mockTransformerModel()
 
       // grid 1 is connected via a transformer2w and one port of a transformer3w
       // grid 2 is connected via one port of a transformer3w
       // grid 3 is connected via a transformer2w
       // grid 4 is connected via two transformer2ws
-      val receivedData
-          : Map[ActorRef[GridAgent.Message], Set[TransformerTapping]] = Map(
+      val receivedData = Map(
         ref1 -> Set(
           transformer1,
           transformer3wB,
@@ -102,50 +108,33 @@ class TappingGroupModelSpec
       )
 
       val cases = Table(
-        ("range", "expectedTap", "expectedDelta"),
-        (VoltageRange(0.025.asPu, 0.015.asPu, 0.02.asPu), -1, 0.015.asPu),
-        (
-          VoltageRange(-0.015.asPu, -0.025.asPu, -0.02.asPu),
-          1,
-          -0.015.asPu,
-        ),
-        (VoltageRange(0.041.asPu, 0.021.asPu, 0.031.asPu), -2, 0.03.asPu),
-        (VoltageRange(0.05.asPu, 0.03.asPu, 0.05.asPu), -3, 0.045.asPu),
-        (
-          VoltageRange(0.asPu, -0.2.asPu, -0.1.asPu),
-          4,
-          -0.06.asPu,
-        ), // max tap increase
-        (
-          VoltageRange(0.2.asPu, 0.asPu, 0.1.asPu),
-          -6,
-          0.09.asPu,
-        ), // max tap decrease
-        (
-          VoltageRange(0.015.asPu, 0.03.asPu, 0.15.asPu),
-          -1,
-          0.015.asPu,
-        ),
-        (
-          VoltageRange(-0.04.asPu, -0.03.asPu, -0.03.asPu),
-          2,
-          -0.03.asPu,
-        ),
+        ("range", "expectedTapPositionChange", "expectedDelta"),
+        (VoltageRange(0d, 0d, 0d), 0, 0d),
+        (VoltageRange(0.025, 0.015, 0.02), -1, 0.015),
+        (VoltageRange(-0.015, -0.025, -0.02), 1, -0.015),
+        (VoltageRange(0.041, 0.021, 0.031), -2, 0.03),
+        (VoltageRange(0.05, 0.03, 0.05), -3, 0.045),
+        (VoltageRange(0d, -0.2, -0.1), 4, -0.06), // max tap increase
+        (VoltageRange(0.2, 0d, 0.1), -6, 0.09), // max tap decrease
+        (VoltageRange(0.015, 0.03, 0.15), -1, 0.015),
+        (VoltageRange(-0.04, -0.03, -0.03), 2, -0.03),
       )
 
-      forAll(cases) { (range, expectedTap, expectedDelta) =>
-        val (actualTap, actualDelta) =
+      forAll(cases) { (range, expectedTapPositionChange, expectedDelta) =>
+        val (actualTapPositionChange, actualDelta) =
           group.calculateTapAndVoltage(range)
 
-        actualTap shouldBe Map(tapping -> expectedTap)
-        actualDelta should equalWithTolerance(expectedDelta)
+        actualTapPositionChange shouldBe Map(
+          tapping -> expectedTapPositionChange
+        )
+        actualDelta should approximate(Each(expectedDelta))
       }
     }
 
     "calculate the tap and voltage change for multiple transformers" in {
       val tappingModel1 = dummyTappingModel()
       val tappingModel2 = dummyTappingModel(
-        deltaV = 1.2.asPercent,
+        deltaV = Percent(1.2),
         tapMin = -3,
         currentTapPos = 0,
       )
@@ -170,72 +159,72 @@ class TappingGroupModelSpec
       val modelCase3 = Set(transformer31, transformer32)
 
       val cases = Table(
-        ("suggestion", "models", "expectedTaps", "expectedDelta"),
+        ("range", "models", "expectedTaps", "expectedDelta"),
         (
-          VoltageRange(0.1.asPu, -0.1.asPu, 0.02.asPu),
+          VoltageRange(0.1, -0.1, 0.02),
           modelCase1,
           Map(transformer11 -> -1, transformer12 -> -1),
-          0.015.asPu,
+          0.015,
         ),
         (
-          VoltageRange(0.1.asPu, -0.1.asPu, 0.038.asPu),
+          VoltageRange(0.1, -0.1, 0.038),
           modelCase1,
           Map(transformer11 -> -3, transformer12 -> -3),
-          0.045.asPu,
+          0.045,
         ),
         (
-          VoltageRange(0.1.asPu, -0.1.asPu, -0.06.asPu),
+          VoltageRange(0.1, -0.1, -0.06),
           modelCase1,
           Map(transformer11 -> 4, transformer12 -> 4),
-          -0.06.asPu,
+          -0.06,
         ),
         (
-          VoltageRange(0.1.asPu, -0.1.asPu, 0.02.asPu),
+          VoltageRange(0.1, -0.1, 0.02),
           modelCase2,
           Map(transformer21 -> -2, transformer22 -> -2),
-          0.024.asPu,
+          0.024,
         ),
         (
-          VoltageRange(0.1.asPu, -0.1.asPu, 0.038.asPu),
+          VoltageRange(0.1, -0.1, 0.038),
           modelCase2,
           Map(transformer21 -> -3, transformer22 -> -3),
-          0.036.asPu,
+          0.036,
         ),
         (
-          VoltageRange(0.1.asPu, -0.1.asPu, -0.06.asPu),
+          VoltageRange(0.1, -0.1, -0.06),
           modelCase2,
           Map(transformer21 -> 5, transformer22 -> 5),
-          -0.06.asPu,
+          -0.06,
         ),
         (
-          VoltageRange(0.1.asPu, -0.1.asPu, 0.02.asPu),
+          VoltageRange(0.1, -0.1, 0.02),
           modelCase3,
           Map(transformer31 -> 0, transformer32 -> 0),
-          0.asPu,
+          0d,
         ),
         (
-          VoltageRange(0.1.asPu, -0.1.asPu, 0.038.asPu),
+          VoltageRange(0.1, -0.1, 0.038),
           modelCase3,
           Map(transformer31 -> 0, transformer32 -> 0),
-          0.asPu,
+          0d,
         ),
         (
-          VoltageRange(0.1.asPu, -0.1.asPu, -0.06.asPu),
+          VoltageRange(0.1, -0.1, -0.06),
           modelCase3,
           Map(transformer31 -> 4, transformer32 -> 5),
-          -0.06.asPu,
+          -0.06,
         ),
         (
-          VoltageRange(0.015.asPu, 0.05.asPu, 0.015.asPu),
+          VoltageRange(0.015, 0.05, 0.015),
           modelCase1,
           Map(transformer11 -> -1, transformer12 -> -1),
-          0.015.asPu,
+          0.015,
         ),
         (
-          VoltageRange(-0.05.asPu, -0.03.asPu, -0.03.asPu),
+          VoltageRange(-0.05, -0.03, -0.03),
           modelCase1,
           Map(transformer11 -> 2, transformer12 -> 2),
-          -0.03.asPu,
+          -0.03,
         ),
       )
 
@@ -248,7 +237,7 @@ class TappingGroupModelSpec
         val (tapChanges, delta) = group.calculateTapAndVoltage(range)
 
         tapChanges shouldBe expectedTaps
-        delta should equalWithTolerance(expectedDelta)
+        delta should approximate(Each(expectedDelta))
       }
 
     }
@@ -259,55 +248,22 @@ class TappingGroupModelSpec
 
       val cases = Table(
         ("suggestion", "possibleDeltas", "expected"),
-        (0.015.asPu, Set(List(0.03.asPu, 0.015.asPu, 0.asPu)), 0.015.asPu),
-        (
-          0.012.asPu,
-          Set(List(0.03.asPu, 0.02.asPu, 0.01.asPu, 0.asPu)),
-          0.01.asPu,
-        ),
-        (0.006.asPu, Set(List(0.03.asPu, 0.015.asPu, 0.asPu)), 0.asPu),
-        (
-          0.03.asPu,
-          Set(
-            List(0.06.asPu, 0.03.asPu, 0.asPu),
-            List(0.045.asPu, 0.03.asPu, 0.015.asPu, 0.asPu),
-          ),
-          0.03.asPu,
-        ),
-        (
-          0.03.asPu,
-          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
-          0.03.asPu,
-        ),
-        (
-          0.035.asPu,
-          Set(
-            List(0.06.asPu, 0.03.asPu, 0.asPu),
-            List(0.045.asPu, 0.03.asPu, 0.015.asPu, 0.asPu),
-          ),
-          0.03.asPu,
-        ),
-        (
-          0.02.asPu,
-          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
-          0.03.asPu,
-        ),
-        (
-          0.06.asPu,
-          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
-          0.asPu,
-        ),
-        (
-          -0.02.asPu,
-          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
-          0.asPu,
-        ),
+        (0.015, Set(List(0.03, 0.015, 0d)), 0.015),
+        (0.012, Set(List(0.03, 0.02, 0.01, 0)), 0.01),
+        (0.006, Set(List(0.03, 0.015, 0d)), 0d),
+        (0.03, Set(List(0.06, 0.03, 0d), List(0.045, 0.03, 0.015, 0)), 0.03),
+        (0.03, Set(List(0.06, 0.03), List(0.03, 0.015)), 0.03),
+        (0.035, Set(List(0.06, 0.03, 0d), List(0.045, 0.03, 0.015, 0)), 0.03),
+        (0.02, Set(List(0.06, 0.03), List(0.03, 0.015)), 0.03),
+        (0.06, Set(List(0.06, 0.03), List(0.03, 0.015)), 0d),
+        (-0.02, Set(List(0.06, 0.03), List(0.03, 0.015)), 0d),
       )
 
       forAll(cases) { (suggestion, possibleDeltas, expected) =>
-        val delta = dummyGroup.findCommonDelta(suggestion, possibleDeltas)
+        val possible = possibleDeltas.map(_.map(Each(_)))
+        val delta = dummyGroup.findCommonDelta(suggestion, possible)
 
-        delta should equalWithTolerance(expected)
+        delta should approximate(Each(expected))
       }
     }
 

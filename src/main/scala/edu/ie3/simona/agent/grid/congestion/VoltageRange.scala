@@ -17,10 +17,10 @@ import edu.ie3.simona.model.grid.{
   TransformerTappingModel,
   VoltageLimits,
 }
-import edu.ie3.util.quantities.QuantityUtils.asPu
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import org.apache.pekko.actor.typed.ActorRef
-import tech.units.indriya.ComparableQuantity
+import squants.{Dimensionless, Each}
 
 import java.util.UUID
 import javax.measure.quantity.Dimensionless
@@ -39,32 +39,34 @@ import javax.measure.quantity.Dimensionless
   *   For voltage change.
   */
 final case class VoltageRange(
-    deltaPlus: ComparableQuantity[Dimensionless],
-    deltaMinus: ComparableQuantity[Dimensionless],
-    suggestion: ComparableQuantity[Dimensionless],
+    deltaPlus: Dimensionless,
+    deltaMinus: Dimensionless,
+    suggestion: Dimensionless,
 ) {
 
-  /** Method to update this voltage range with line voltage delta.
+  /** Method to update this voltage range with voltage delta.
     *
     * @param deltaV
-    *   To consider.
+    *   The voltage difference to consider for the range limits.
     * @return
     *   A new [[VoltageRange]].
     */
-  def updateWithLineDelta(
-      deltaV: ComparableQuantity[Dimensionless]
+  def updateWithVoltageDelta(
+      deltaV: Dimensionless
   ): VoltageRange = {
-    val (plus, minus) = (
-      deltaV.isGreaterThan(deltaPlus),
-      deltaV.isGreaterThan(deltaMinus),
-    ) match {
+
+    val (plus, minus) = (deltaV < deltaPlus, deltaV > deltaMinus) match {
       case (true, true) =>
-        (deltaPlus, deltaPlus)
-      case (false, true) =>
-        (deltaPlus, deltaV)
+        // between both range limits => set upper limit to deltaV, lower limit is unchanged
+        (deltaV, deltaMinus)
       case (true, false) =>
-        (deltaPlus, deltaPlus)
+        // smaller than both range limits => set limits to minimum
+        (deltaMinus, deltaMinus)
+      case (false, true) =>
+        // greater than both range limits => limits are unchanged
+        (deltaPlus, deltaMinus)
       case (false, false) =>
+        // should only be possible, if deltaMinus > deltaPlus => limits are unchanged
         (deltaPlus, deltaMinus)
     }
 
@@ -83,43 +85,46 @@ final case class VoltageRange(
         GridAgent.Message
       ], (VoltageRange, Set[TransformerTapping])]
   ): VoltageRange = {
-    inferiorData.foldLeft(this) { case (range, (_, (infRange, tappings))) =>
-      // get tapping options
-      val (possiblePlus, possibleMinus) = getTappingOptions(tappings)
+    inferiorData.foldLeft(this) {
+      case (range, (_, (inferiorRange, tappings))) =>
+        // get tapping options
+        val (possiblePlus, possibleMinus) = getTappingOptions(tappings)
 
-      val increase = range.deltaPlus
-        .add(possibleMinus)
-        .isLessThanOrEqualTo(infRange.deltaPlus)
-      val decrease = range.deltaMinus
-        .add(possiblePlus)
-        .isGreaterThanOrEqualTo(infRange.deltaMinus)
+        val increase =
+          range.deltaPlus + possibleMinus <= inferiorRange.deltaPlus
+        val decrease =
+          range.deltaMinus + possiblePlus >= inferiorRange.deltaMinus
 
-      (increase, decrease) match {
-        case (true, true) =>
-          VoltageRange(range.deltaPlus, range.deltaMinus)
-        case (true, false) =>
-          VoltageRange(
-            range.deltaPlus,
-            infRange.deltaMinus.subtract(possiblePlus),
-          )
-        case (false, true) =>
-          VoltageRange(
-            infRange.deltaPlus.subtract(possibleMinus),
-            range.deltaMinus,
-          )
-        case (false, false) =>
-          VoltageRange(infRange.deltaPlus, infRange.deltaMinus)
-      }
+        (increase, decrease) match {
+          case (true, true) =>
+            VoltageRange(range.deltaPlus, range.deltaMinus)
+          case (true, false) =>
+            VoltageRange(
+              range.deltaPlus,
+              inferiorRange.deltaMinus - possiblePlus,
+            )
+          case (false, true) =>
+            VoltageRange(
+              inferiorRange.deltaPlus - possibleMinus,
+              range.deltaMinus,
+            )
+          case (false, false) =>
+            VoltageRange(inferiorRange.deltaPlus, inferiorRange.deltaMinus)
+        }
     }
   }
 }
 
 object VoltageRange {
 
+  private given Dimensionless = Each(1e-3)
+
   def apply(
-      deltaPlus: ComparableQuantity[Dimensionless],
-      deltaMinus: ComparableQuantity[Dimensionless],
+      deltaPlus: Dimensionless,
+      deltaMinus: Dimensionless,
   ): VoltageRange = {
+    val plus = deltaPlus.toEach
+    val minus = deltaMinus.toEach
 
     val plus = deltaPlus.getValue.doubleValue()
     val minus = deltaMinus.getValue.doubleValue()
@@ -156,14 +161,14 @@ object VoltageRange {
       VoltageRange(
         deltaPlus,
         deltaMinus,
-        suggestion.asPu,
+        Each(suggestion),
       )
     } else {
       // the voltage in this range is fine, set the suggested voltage change to zero
       VoltageRange(
         deltaPlus,
         deltaMinus,
-        0.asPu,
+        zeroPU,
       )
     }
   }
@@ -197,28 +202,28 @@ object VoltageRange {
     // calculate voltage range
     val nodeResMap = powerFlowResultEvent.nodeResults
       .filter(res => nodesInSubnet.contains(res.getInputModel))
-      .map(res => res.getInputModel -> res.getvMag())
+      .map(res => res.getInputModel -> res.getvMag.toSquants)
       .toMap
     val minVoltage = nodeResMap
-      .minByOption(_._2)
+      .minByOption(_._2.toEach)
       .getOrElse(throw new CriticalFailureException(s"No node result found!"))
     val maxVoltage = nodeResMap
-      .maxByOption(_._2)
+      .maxByOption(_._2.toEach)
       .getOrElse(throw new CriticalFailureException(s"No node result found!"))
 
     // build initial range
     val range = VoltageRange(
-      voltageLimits.vMax.subtract(maxVoltage._2),
-      voltageLimits.vMin.subtract(minVoltage._2),
+      voltageLimits.vMax.toSquants - maxVoltage._2,
+      voltageLimits.vMin.toSquants - minVoltage._2,
     )
 
-    // updating the voltage range prevent or cure line congestions
-    val deltaV = calculatePossibleVoltageDeltaForLines(
+    // updating the voltage range prevent or heal line congestions
+    val deltaV = calculateVoltageDeltaFromLineCurrent(
       nodeResMap,
       powerFlowResultEvent.lineResults,
       gridComponents,
     )
-    val updatedRange = range.updateWithLineDelta(deltaV)
+    val updatedRange = range.updateWithVoltageDelta(deltaV)
 
     if inferiorData.isEmpty then {
       // if there are no inferior grids, return the voltage range
@@ -229,7 +234,7 @@ object VoltageRange {
     }
   }
 
-  /** Method to calculate a voltage delta for the given line currents. <p> - If
+  /** Method to calculate a voltage delta from given line currents. <p> - If
     * there is a line congestion, increasing the voltage by the returned delta
     * should mitigate them. <p> - If there is no line congestion, the returned
     * voltage shows the possible voltage decrease. <p> - Formula: V * I = (V +
@@ -244,11 +249,11 @@ object VoltageRange {
     * @return
     *   A voltage delta.
     */
-  def calculatePossibleVoltageDeltaForLines(
-      nodeResults: Map[UUID, ComparableQuantity[Dimensionless]],
+  def calculateVoltageDeltaFromLineCurrent(
+      nodeResults: Map[UUID, Dimensionless],
       lineResults: Iterable[LineResult],
       gridComponents: GridComponents,
-  ): ComparableQuantity[Dimensionless] = {
+  ): Dimensionless = {
     val lineMap = gridComponents.lines.map(line => line.uuid -> line).toMap
 
     // calculate the voltage change that ensures there is no line congestion
@@ -257,31 +262,31 @@ object VoltageRange {
         val line = lineMap(uuid)
 
         // calculate the voltage and the current change at the end of the line that sees the highest current
-        val (voltage, deltaI) =
+        val (current, node) =
           if res.getiAMag().isGreaterThan(res.getiBMag()) then {
-            (
-              nodeResults(line.nodeAUuid).toSquants,
-              line.iNom - res.getiAMag().toSquants,
-            )
+            (res.getiAMag(), line.nodeAUuid)
           } else {
-            (
-              nodeResults(line.nodeBUuid).toSquants,
-              line.iNom - res.getiBMag().toSquants,
-            )
+            (res.getiBMag(), line.nodeBUuid)
           }
 
+        val voltage = nodeResults(node)
+        val deltaI = line.iNom - current.toSquants
+
         // calculate the voltage change
-        (voltage * deltaI) / line.iNom * -1
+        val currentInfluence = deltaI / line.iNom
+        voltage * -1 * currentInfluence
       }
 
     // determine the actual possible voltage change
-    val change = voltageChanges.maxOption.getOrElse(
-      throw new CriticalFailureException(s"No line result found!")
-    )
+    val change = voltageChanges
+      .maxByOption(_.value)
+      .getOrElse(
+        throw new CriticalFailureException(s"No line result found!")
+      )
 
     // change < 0 => tapping down possible
     // change > 0 => tapping up is necessary
-    change.asPu
+    change
   }
 
   /** Combines the given [[VoltageRange]]s and adds the given offset.
@@ -294,25 +299,28 @@ object VoltageRange {
     */
   def combineAndUpdate(
       ranges: Iterable[VoltageRange],
-      offset: ComparableQuantity[Dimensionless],
+      offset: Dimensionless,
   ): VoltageRange = {
-    // finds the minimal increase
+    // finds the minimal voltage increase
     val minPlus = ranges.minByOption(_.deltaPlus).map(_.deltaPlus)
 
-    // finds the maximal decrease
+    // finds the maximal voltage decrease
     val maxMinus = ranges.maxByOption(_.deltaMinus).map(_.deltaMinus)
 
     (minPlus, maxMinus) match {
-      case (Some(plus), Some(minus)) if offset.isEquivalentTo(0.asPu) =>
+      case (Some(plus), Some(minus)) if offset ~= zeroPU =>
         VoltageRange(plus, minus)
       case (Some(plus), Some(minus)) =>
+        // multiply -1 to get the needed compensation
+        val offsetCompensation = offset * -1
+
         VoltageRange(
-          plus.subtract(offset),
-          minus.subtract(offset),
-          offset.multiply(-1),
+          plus - offset,
+          minus - offset,
+          offsetCompensation,
         )
       case _ =>
-        VoltageRange(0.asPu, 0.asPu)
+        VoltageRange(zeroPU, zeroPU)
     }
   }
 }

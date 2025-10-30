@@ -20,6 +20,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
+import squants.{Dimensionless, Each, Percent}
 
 class TransformerTappingSupportSpec
     extends ScalaTestWithActorTestKit
@@ -30,7 +31,7 @@ class TransformerTappingSupportSpec
     with DbfsTestGrid
     with ConfigTestData {
 
-  val voltageTolerance = 1e-3
+  private given Dimensionless = Each(1e-3)
 
   protected val inferior1: TestProbe[GridAgent.Message] =
     TestProbe[GridAgent.Message]("inferior1")
@@ -44,7 +45,7 @@ class TransformerTappingSupportSpec
         autoTap = true,
         currentTapPos = 3,
         tapMax = 4,
-        deltaV = 1.asPu,
+        deltaV = Percent(1),
       )
 
       val tappingModel2: TransformerTapping = mockTransformerTapping(
@@ -52,21 +53,21 @@ class TransformerTappingSupportSpec
         currentTapPos = 1,
         tapMax = 3,
         tapMin = -2,
-        deltaV = 1.asPu,
+        deltaV = Percent(1),
       )
 
       val cases = Table(
         ("tappings", "expectedPlus", "expectedMinus"),
-        (Set(tappingModel1), 0.08.asPu, -0.01.asPu),
-        (Set(tappingModel2), 0.03.asPu, -0.02.asPu),
-        (Set(tappingModel1, tappingModel2), 0.03.asPu, -0.01.asPu),
+        (Set(tappingModel1), 0.08, -0.01),
+        (Set(tappingModel2), 0.03, -0.02),
+        (Set(tappingModel1, tappingModel2), 0.03, -0.01),
       )
 
       forAll(cases) { (tappings, expectedPlus, expectedMinus) =>
         val (actualPlus, actualMinus) = getTappingOptions(tappings)
 
-        actualPlus shouldBe expectedPlus
-        actualMinus shouldBe expectedMinus
+        actualPlus should approximate(Each(expectedPlus))
+        actualMinus should approximate(Each(expectedMinus))
       }
     }
   }

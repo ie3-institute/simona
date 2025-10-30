@@ -29,7 +29,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.*
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
@@ -49,7 +48,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val resultListener =
           TestProbe[ResultEventListener.Request]("resultEventListener")
         val timeAdvancer = TestProbe[TimeAdvancer.Request]("timeAdvancer")
-        val extSimAdapter = TestProbe[ExtSimAdapter.Stop]("extSimAdapter")
+        val extSimAdapter = TestProbe[ExtSimAdapter.Request]("extSimAdapter")
 
         val simonaSim = spawn(
           SimonaSim(
@@ -70,9 +69,10 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   uniqueName("extSimAdapterForwarder"),
                 )
                 ExtSimSetupData(
-                  Iterable(extSim.toClassic),
+                  Iterable(extSim),
                   Seq.empty,
-                  Seq.empty,
+                  None,
+                  None,
                   Seq.empty,
                 )
               }
@@ -380,21 +380,21 @@ object SimonaSimSpec {
     "This is an exception for test purposes. It is expected to be thrown."
   )
 
-  /** Makes the given actor name unique by appending a random UUID */
+  /** Makes the given actor name unique by appending a random UUID. */
   def uniqueName(name: String): String =
     s"${name}_${UUID.randomUUID()}"
 
-  /** Mock implementation of [[SimonaSetup]]
+  /** Mock implementation of [[SimonaSetup]].
     *
     * @param runtimeEventProbe
     *   Optional ActorRef that messages received by RuntimeEventListener are
-    *   forwarded to
+    *   forwarded to.
     * @param resultEventProbe
     *   Optional ActorRef that messages received by ResultEventListener are
-    *   forwarded to
+    *   forwarded to.
     * @param timeAdvancerProbe
     *   Optional ActorRef that messages received by TimeAdvancer are forwarded
-    *   to
+    *   to.
     */
   class MockSetup(
       runtimeEventProbe: Option[ActorRef[RuntimeEventListener.Request]] = None,

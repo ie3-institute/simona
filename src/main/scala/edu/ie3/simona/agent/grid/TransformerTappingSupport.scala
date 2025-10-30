@@ -7,10 +7,8 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.model.grid.TransformerTapping
-import edu.ie3.util.quantities.QuantityUtils.asPu
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Dimensionless
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
+import squants.Dimensionless
 
 object TransformerTappingSupport {
 
@@ -22,35 +20,38 @@ object TransformerTappingSupport {
     *   The possible voltage increase and decrease.
     */
   def getTappingOptions(tappings: Set[TransformerTapping]): (
-      ComparableQuantity[Dimensionless],
-      ComparableQuantity[Dimensionless],
+      Dimensionless,
+      Dimensionless,
   ) = {
     // allow tapping only if all transformers support tapping
     if tappings.forall(_.hasAutoTap) then {
 
       val tappingRanges = tappings.map { tapping =>
         val currentPos = tapping.currentTapPos
-        val deltaV = tapping.deltaV.divide(-100)
-        val increase = deltaV.multiply(tapping.tapMin - currentPos)
-        val decrease = deltaV.multiply(tapping.tapMax - currentPos)
+        val deltaV = tapping.deltaV / -1
+        val increase = deltaV * (tapping.tapMin - currentPos)
+        val decrease = deltaV * (tapping.tapMax - currentPos)
 
         (increase, decrease)
-      }.toSeq
+      }.toList
 
-      if tappings.size == 1 then {
-        tappingRanges(0)
-      } else {
-        // check for possible increase and decrease that can be applied to all transformers
+      tappingRanges.size match {
+        case 1 =>
+          tappingRanges(0)
+        case _ =>
+          // check for possible increase and decrease that can be applied to all transformers
 
-        // TODO: Enhance this, to support transformer combinations with different tap deltas
-        (
-          tappingRanges.map(_._1).minOption.getOrElse(0.asPu),
-          tappingRanges.map(_._2).maxOption.getOrElse(0.asPu),
-        )
+          // TODO #1553: Enhance this, to support transformer combinations with different tap deltas
+          val (increases, decreases) = tappingRanges.unzip
+          (
+            increases.minByOption(_.toEach).getOrElse(zeroPU),
+            decreases.maxByOption(_.toEach).getOrElse(zeroPU),
+          )
       }
+
     } else {
       // no tapping possible
-      (0.asPu, 0.asPu)
+      (zeroPU, zeroPU)
     }
   }
 

@@ -9,6 +9,7 @@ package edu.ie3.simona.model.control
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.agent.grid.congestion.VoltageRange
 import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.congestion.VoltageRange
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.PowerFlowCaseA
 import edu.ie3.simona.model.grid.{
@@ -17,34 +18,50 @@ import edu.ie3.simona.model.grid.{
   TransformerTapping,
 }
 import edu.ie3.util.quantities.QuantityUtils.asPu
+import edu.ie3.util.scala.quantities.DefaultQuantities
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toQuantity,
+  toSquants,
+}
 import org.apache.pekko.actor.typed.ActorRef
-import org.slf4j.Logger
+import squants.{Dimensionless, Each}
 import tech.units.indriya.ComparableQuantity
 
 import javax.measure.quantity.Dimensionless
 
 /** A group of [[TransformerTapping]] with all associated [[ActorRef]]s.
   * @param refs
-  *   a set of [[ActorRef]]s
+  *   A set of [[ActorRef]]s.
   * @param tappings
-  *   a set of [[TransformerTapping]]s
+  *   A set of [[TransformerTapping]]s.
+  * @param hasAutoTap
+  *   Defines whether the transformers of this group can change their tap
+  *   position.
   */
 final case class TappingGroupModel(
     tappings: Set[TransformerTapping],
     refs: Set[ActorRef[GridAgent.Message]],
     hasAutoTap: Boolean,
 ) {
+  private given Dimensionless = Each(1e-3)
 
+  /** Method to update the tap position of the transformer models in this group.
+    * @param delta
+    *   The voltage magnitude change that should be applied.
+    * @param refMap
+    *   Map: grid agent reference to possible voltage range.
+    * @return
+    *   The actual magnitude change that was achieved.
+    */
   def updateTapPositions(
-      delta: ComparableQuantity[Dimensionless],
+      delta: Dimensionless,
       refMap: Map[ActorRef[GridAgent.Message], VoltageRange],
-      log: Logger,
-  ): ComparableQuantity[Dimensionless] = if hasAutoTap then {
+  ): Dimensionless = if hasAutoTap then {
     // get all possible voltage ranges of the inferior grids
     val inferiorRanges = refs.map(refMap)
 
-    val suggestion =
-      VoltageRange.combineAndUpdate(inferiorRanges, delta)
+    val suggestion = VoltageRange.combineAndUpdate(inferiorRanges, delta)
 
     // calculating the tap changes for all transformers and the resulting voltage delta
     val (tapChange, deltaV) = calculateTapAndVoltage(suggestion)
@@ -68,23 +85,23 @@ final case class TappingGroupModel(
     )
 
     deltaV
-  } else 0.asPu
+  } else zeroPU
 
   /** Method for calculating the tap pos changes for all given transformers and
     * the voltage delta.
     *
     * @param range
-    *   given voltage range
+    *   Given voltage range.
     * @return
-    *   a map: model to tap pos change and resulting voltage delta
+    *   A map: model to tap pos change and resulting voltage delta.
     */
   def calculateTapAndVoltage(
       range: VoltageRange
-  ): (Map[TransformerTapping, Int], ComparableQuantity[Dimensionless]) = {
-    val noTapping = (tappings.map(t => t -> 0).toMap, 0.asPu)
+  ): (Map[TransformerTapping, Int], Dimensionless) = {
+    val noTapping = (tappings.map(t => t -> 0).toMap, zeroPU)
     val suggestion = range.suggestion
 
-    if suggestion.isEquivalentTo(0.asPu) then {
+    if suggestion ~= zeroPU then {
       return noTapping
     }
 
@@ -123,7 +140,7 @@ final case class TappingGroupModel(
             deltas
               .map { case (_, (_, delta)) => delta }
               .headOption
-              .getOrElse(0.asPu)
+              .getOrElse(zeroPU)
 
           (taps, actualDelta)
         case None =>
@@ -137,41 +154,41 @@ final case class TappingGroupModel(
 
   /** Method for finding a common delta that can be applied to all transformers.
     * @param suggestion
-    *   the given suggestion
+    *   the given suggestion.
     * @param possibleDeltas
-    *   the possible deltas for each transformer
+    *   The possible deltas for each transformer.
     * @return
-    *   either a common delta or zero
+    *   Either a common delta or zero.
     */
   def findCommonDelta(
-      suggestion: ComparableQuantity[Dimensionless],
-      possibleDeltas: Set[List[ComparableQuantity[Dimensionless]]],
-  ): ComparableQuantity[Dimensionless] = {
+      suggestion: Dimensionless,
+      possibleDeltas: Set[List[Dimensionless]],
+  ): Dimensionless = {
     val expectedSize = possibleDeltas.size
+
     // reduce and filter the possible options
-    val filteredOptions: Set[ComparableQuantity[Dimensionless]] =
-      getReducedOptions(suggestion, possibleDeltas)
-        .groupBy(identity)
-        .filter { case (_, seq) => seq.size == expectedSize }
-        .keySet
+    val filteredOptions = getReducedOptions(suggestion, possibleDeltas)
+      .groupBy(identity)
+      .filter { case (_, seq) => seq.size == expectedSize }
+      .keySet
 
     // find the best suitable delta
     filteredOptions.size match {
-      case 0 => 0.asPu
-      case 1 => filteredOptions.headOption.getOrElse(0.asPu)
-      case _ if filteredOptions.exists(_.isEquivalentTo(suggestion)) =>
+      case 0 => zeroPU
+      case 1 => filteredOptions.headOption.getOrElse(zeroPU)
+      case _ if filteredOptions.exists(_ ~= suggestion) =>
         suggestion
       case _ => // get the minimal and maximal option
         val minOption =
-          filteredOptions.filter(_.isLessThan(suggestion)).lastOption
-        val maxOption = filteredOptions.find(_.isGreaterThan(suggestion))
+          filteredOptions.filter(_ < suggestion).maxOption
+
+        val maxOption =
+          filteredOptions.filter(_ > suggestion).minOption
 
         (minOption, maxOption) match {
           case (Some(min), Some(max)) =>
-            val minDiff =
-              Math.abs(suggestion.subtract(min).getValue.doubleValue())
-            val maxDiff =
-              Math.abs(suggestion.subtract(max).getValue.doubleValue())
+            val minDiff = Math.abs((suggestion - min).toEach)
+            val maxDiff = Math.abs((suggestion - max).toEach)
 
             // find the difference that is smaller
             if minDiff < maxDiff then {
@@ -180,30 +197,30 @@ final case class TappingGroupModel(
 
           case (Some(min), _) => min // only minimal option found
           case (_, Some(max)) => max // only maximal option found
-          case _ => 0.asPu // no option found -> therefore no change
+          case _ => zeroPU // no option found -> therefore no change
         }
     }
   }
 
-  /** Method to reduce the possible deltas.
+  /** Method to reduce the possible voltage deltas.
     * @param suggestion
-    *   to compare to
+    *   To compare to.
     * @param possibleDeltas
-    *   the possible deltas
+    *   The possible deltas.
     * @return
-    *   a reduced sequence
+    *   A reduced sequence.
     */
   private def getReducedOptions(
-      suggestion: ComparableQuantity[Dimensionless],
-      possibleDeltas: Set[List[ComparableQuantity[Dimensionless]]],
-  ): Seq[ComparableQuantity[Dimensionless]] = possibleDeltas.toSeq.flatMap {
-    deltas =>
-      if deltas.exists(_.isEquivalentTo(suggestion)) then {
+      suggestion: Dimensionless,
+      possibleDeltas: Set[List[Dimensionless]],
+  )(using tolerance: Dimensionless): Seq[Dimensionless] =
+    possibleDeltas.toSeq.flatMap { deltas =>
+      if deltas.exists(_ ~= suggestion) then {
         List(suggestion)
       } else {
         val minOption =
-          deltas.filter(_.isLessThan(suggestion)).sorted.lastOption
-        val maxOption = deltas.sorted.find(_.isGreaterThan(suggestion))
+          deltas.filter(_ < suggestion).sorted.lastOption
+        val maxOption = deltas.sorted.find(_ > suggestion)
 
         // check possible deltas
         (minOption, maxOption) match {
@@ -213,7 +230,7 @@ final case class TappingGroupModel(
           case _                      => List()
         }
       }
-  }
+    }
 
 }
 
@@ -237,7 +254,7 @@ object TappingGroupModel {
     * only the model with [[PowerFlowCaseA]] is inside the returned map, due to
     * the way the tapping works. Because the tapping also effects the other port
     * of the [[Transformer3wModel]], the [[ActorRef]] of that grid needs to be
-    * in the same group and also all of its other connecting transformers,
+    * in the same group and also all of its other connecting transformers.
     *
     * <p> Examples: <p> - grid 0 -> grid 1: [[TransformerModel]] <p> - grid 0 ->
     * grid 1: [[Transformer3wModel]] port B <p> - grid 0 -> grid 2:
@@ -250,11 +267,11 @@ object TappingGroupModel {
     * [[TransformerModel]] to [[ActorRef]] of grid 4
     *
     * @param receivedData
-    *   map: actor ref to connecting transformers
+    *   Map: actor ref to connecting transformers.
     * @param transformer3ws
-    *   set of [[Transformer3wModel]] with [[PowerFlowCaseA]]
+    *   Set of [[Transformer3wModel]] with [[PowerFlowCaseA]].
     * @return
-    *   a set of [[TappingGroupModel]]s
+    *   A set of [[TappingGroupModel]]s.
     */
   def buildModels(
       receivedData: Map[ActorRef[GridAgent.Message], Set[TransformerTapping]],

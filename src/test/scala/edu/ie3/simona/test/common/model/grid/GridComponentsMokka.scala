@@ -14,7 +14,7 @@ import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Voltamperes
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import squants.{Amperes, Each}
+import squants.{Amperes, Each, Percent}
 import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
@@ -50,7 +50,7 @@ trait GridComponentsMokka extends MockitoSugar {
   }
 
   protected def dummyTappingModel(
-      deltaV: ComparableQuantity[Dimensionless] = 1.5.asPercent,
+      deltaV: squants.Dimensionless = Percent(1.5),
       currentTapPos: Int = 1,
       tapMax: Int = 5,
       tapMin: Int = -5,
@@ -117,7 +117,7 @@ trait GridComponentsMokka extends MockitoSugar {
       tapMax: Int = 5,
       tapMin: Int = -5,
       currentTapPos: Int = 0,
-      deltaV: ComparableQuantity[Dimensionless] = 1d.asPercent,
+      deltaV: squants.Dimensionless = Percent(1d),
   ): TransformerModel = {
     val transformer = mock[TransformerModel]
     when(transformer.uuid).thenReturn(uuid)
