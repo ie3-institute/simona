@@ -113,7 +113,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
     }
 
-    "provided with simple battery flex options" should {
+    "provided with simple battery flex options with losses" should {
 
       given ticks: Seq[Long] =
         Range.Long.inclusive(0, 4 * sampleTicks, sampleTicks)
@@ -458,6 +458,102 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
         model.release()
 
       }
+    }
+
+    "provided with battery flex options without losses" should {
+
+      given ticks: Seq[Long] =
+        Range.Long.inclusive(0, 4 * sampleTicks, sampleTicks)
+
+      // low efficiency for simplicity of the test
+      val batFlex = EnergyBoundariesFlexOptions(
+        AssetEnergyBoundaries(
+          eStorage = KilowattHours(24),
+          currentEnergy = KilowattHours(12),
+          pMax = Kilowatts(10),
+          etaCharge = Each(1),
+          etaDischarge = Each(1),
+          currentTick = 0L,
+        )
+      )
+
+      // dummy energy conversion factor
+      given EnergyConversionFactor =
+        EnergyConversionFactor(
+          batFlex.energyBoundaries.headOption.value.etaCharge,
+          Each(1),
+        )
+
+      "balance out additional power within maximum battery power" in {
+
+        given model: MPModel = MPModel(SolverLib.oJSolver)
+
+        val constFlex = EnergyBoundariesFlexOptions(
+          AssetEnergyBoundaries(
+            Seq(5, -10, 10, -2).toPowerMap
+          )
+        )
+
+        val flexOptions = Map(
+          loadUUID -> constFlex,
+          batUUID -> batFlex,
+        )
+
+        val assetVars =
+          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
+
+        val objectiveContainer = OptimizedFlexStrat.buildObjective(
+          assetVars,
+          zeroKW,
+          MinAbsPowerObjectiveFactory,
+        )
+
+        model.minimize(objectiveContainer.objective)
+        model.start(timeLimit = 10000)
+
+        model.getStatus shouldBe SolutionStatus.OPTIMAL
+
+        /*
+          EXPECTED RESULTS
+          Battery should be able to fully cover the additional power.
+          No losses should be subtracted.
+         */
+
+        val batVars = assetVars
+          .find(_.assetUuid == batUUID)
+          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
+
+        val batRes = batVars.results.headOption
+          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+
+        {
+          objectiveContainer.softConstraints.foreach { constraint =>
+            withClue(constraint.getWarningMessage) {
+              constraint.getError should be < constraintTolerance
+            }
+          }
+
+          // discharging 5 kWh
+          batRes(0).pVal should approximate(-5)
+          batRes(0).energyVal should approximate(-5)
+
+          // charging 10 kWh
+          batRes(1).pVal should approximate(10)
+          batRes(1).energyVal should approximate(5)
+
+          // discharging 10 kWh
+          batRes(2).pVal should approximate(-10)
+          batRes(2).energyVal should approximate(-5)
+
+          // charging 2 kWh
+          batRes(3).pVal should approximate(2)
+          batRes(3).energyVal should approximate(-3)
+
+        } withClue buildDebugString(batVars)
+
+        model.release()
+      }
+
     }
 
     "provided with energy boundary flex options and an objective factory" should {
