@@ -293,7 +293,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(-5, -10, 10, 10).toPowerMap
+            Seq(-10, -10, 10, 10).toPowerMap
           )
         )
 
@@ -327,6 +327,10 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           Thus, we only test for things that are true for every optimal
           solution: We know when the battery should be definitely
           full/empty and how much energy was charged/discharged.
+
+          The soft constraints are vital here. Without them,
+          optimization would overestimate the losses in the first half
+          in order to achieve total power closer to zero.
          */
 
         val batVars = assetVars
@@ -379,7 +383,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(-5, -50, 20, 30).toPowerMap
+            Seq(-10, -50, 20, 30).toPowerMap
           )
         )
 
@@ -413,6 +417,10 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           Thus, we only test for things that are true for every optimal
           solution: We know when the battery should be definitely
           full/empty and how much energy was charged/discharged.
+
+          The soft constraints are vital here. Without them,
+          optimization would overestimate the losses in the first half
+          in order to achieve total power closer to zero.
          */
 
         val batVars = assetVars
@@ -628,6 +636,10 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           Thus, we only test for things that are true for every optimal
           solution: We know when the battery should be definitely
           full/empty and how much energy was charged/discharged.
+
+          The soft constraints are vital here. Without them,
+          optimization would overestimate the losses in the first half
+          in order to achieve total power closer to zero.
          */
 
         val batVars = assetVars
@@ -707,6 +719,10 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           time step. During the second phase (discharging), there's
           exactly enough energy available to go down to 3 kW at
           every time step.
+
+          The soft constraints are vital here. Without them,
+          optimization would overestimate the losses in the first half
+          in order to achieve total power closer to zero.
          */
 
         val batVars = assetVars
