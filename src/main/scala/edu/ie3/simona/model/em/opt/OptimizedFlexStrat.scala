@@ -369,7 +369,8 @@ object OptimizedFlexStrat {
             val difference = results
               .map(_.operation)
               .reduceOption[Expression](_ + _)
-              .getOrElse(Zero) - target.toKilowatts
+              .getOrElse(Zero)
+            val powerObjective = powerObjectiveFactory.build(difference, target)
 
             val constraints =
               results.flatMap(_.softConstraint)
@@ -377,8 +378,6 @@ object OptimizedFlexStrat {
               .map(_.getExpression)
               .reduceLeftOption(_ + _)
               .getOrElse(Zero)
-
-            val powerObjective = powerObjectiveFactory.build(difference)
 
             (
               objective + constraintsExpression + powerObjective,

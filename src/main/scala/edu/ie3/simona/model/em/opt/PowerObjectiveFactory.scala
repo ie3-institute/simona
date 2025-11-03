@@ -8,7 +8,8 @@ package edu.ie3.simona.model.em.opt
 
 import optimus.algebra.{Double2Const, Expression}
 import optimus.optimization.MPModel
-import optimus.optimization.model.MPFloatVar
+import optimus.optimization.model.{MPFloatVar, MPVar}
+import squants.Power
 
 /** Trait for factories of power objectives. An objective is created for the sum
   * of power of a single time step.
@@ -25,7 +26,9 @@ trait PowerObjectiveFactory {
     * @return
     *   The objective as an expression.
     */
-  def build(totalPower: Expression)(using model: MPModel): Expression
+  def build(totalPower: Expression, target: Power)(using
+      model: MPModel
+  ): Expression
 }
 
 object PowerObjectiveFactory {
@@ -36,13 +39,12 @@ object PowerObjectiveFactory {
   object MinAbsPowerObjectiveFactory extends PowerObjectiveFactory {
 
     override def build(
-        totalPower: Expression
+        totalPower: Expression,
+        target: Power,
     )(using model: MPModel): Expression = {
-      val d = MPFloatVar.positive("d")
-      model.add(d >:= totalPower)
-      model.add(d >:= -totalPower)
+      val difference = totalPower - target.toKilowatts
 
-      d
+      absoluteValue(difference, "differenceAbs")
     }
 
   }
@@ -70,12 +72,12 @@ object PowerObjectiveFactory {
   ) extends PowerObjectiveFactory {
 
     override def build(
-        totalPower: Expression
+        totalPower: Expression,
+        target: Power,
     )(using model: MPModel): Expression = {
+      val difference = totalPower - target.toKilowatts
 
-      val powerAbs = MPFloatVar.positive("powerAbs")
-      model.add(powerAbs >:= totalPower)
-      model.add(powerAbs >:= -totalPower)
+      val differenceAbs = absoluteValue(difference, "differenceAbs")
 
       val segmentSize = lastSegment / segmentCount
 
@@ -86,7 +88,7 @@ object PowerObjectiveFactory {
           val m = uCurrent + uNext
           val b = -uCurrent * uNext
 
-          model.add(t >:= m * powerAbs + b)
+          model.add(t >:= m * differenceAbs + b)
       }
 
       // normalize the final value so that it maximizes
@@ -97,4 +99,14 @@ object PowerObjectiveFactory {
     }
 
   }
+
+  private def absoluteValue(value: Expression, name: String)(using
+      model: MPModel
+  ): MPVar = {
+    val valueAbs = MPFloatVar.positive(name)
+    model.add(valueAbs >:= value)
+    model.add(valueAbs >:= -value)
+    valueAbs
+  }
+
 }
