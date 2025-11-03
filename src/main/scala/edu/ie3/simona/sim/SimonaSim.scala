@@ -106,6 +106,7 @@ object SimonaSim {
           primaryServiceProxy,
           weatherService,
           loadProfileService,
+          extSimulationData.emDataService,
           extSimulationData.evDataService,
         )
 
@@ -122,17 +123,13 @@ object SimonaSim {
           primaryServiceProxy,
           weatherService,
         ) ++
-          gridAgents ++
-          extSimulationData.extDataServices.map(_._2)
+          gridAgents ++ extSimulationData.allServiceRefs
 
         /* watch all actors */
         resultEventListeners.foreach(ctx.watch)
         ctx.watch(runtimeEventListener)
-        extSimulationData.extResultListeners.foreach { case (_, ref) =>
-          ctx.watch(ref)
-        }
-        extSimulationData.extSimAdapters.foreach(ctx.watch)
         otherActors.foreach(ctx.watch)
+        extSimulationData.extSimAdapters.foreach(ctx.watch)
 
         // End pre-initialization phase
         preInitKey.unlock()
@@ -141,10 +138,6 @@ object SimonaSim {
         timeAdvancer ! TimeAdvancer.Start
 
         val delayedActors = resultEventListeners.appended(runtimeEventListener)
-
-        extSimulationData.extResultListeners.foreach(ref =>
-          delayedActors.appended(ref)
-        )
 
         idle(
           ActorData(

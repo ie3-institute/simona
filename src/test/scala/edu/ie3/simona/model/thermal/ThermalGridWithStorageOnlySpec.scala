@@ -31,9 +31,9 @@ class ThermalGridWithStorageOnlySpec
     with ThermalStorageTestData
     with DefaultTestData {
 
-  implicit val tempTolerance: Temperature = Celsius(1e-3)
-  implicit val powerTolerance: Power = Watts(1e-3)
-  implicit val energyTolerance: Energy = WattHours(1e-3)
+  protected given tempTolerance: Temperature = Celsius(1e-3)
+  protected given powerTolerance: Power = Watts(1e-3)
+  protected given energyTolerance: Energy = WattHours(1e-3)
   "Testing thermal grid generation with only a storage" should {
     "instantiating correctly from input data" in new ThermalStorageTestData {
       val thermalGridInput =
@@ -66,6 +66,7 @@ class ThermalGridWithStorageOnlySpec
       ThermalGrid.startingState(thermalGrid, testGridAmbientTemperature)
     val initialHpState = HpState(
       0L,
+      defaultSimulationStart,
       initialGridState,
       HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
       onlyThermalDemandOfHeatStorage,

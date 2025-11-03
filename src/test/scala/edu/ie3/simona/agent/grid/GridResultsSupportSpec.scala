@@ -46,10 +46,10 @@ import edu.ie3.util.scala.quantities.{
   QuantityUtil as ScalaQuantityUtil,
 }
 import org.scalatest.prop.TableDrivenPropertyChecks
-import squants.Each
 import squants.electro.{Amperes, Volts}
 import squants.energy.Kilowatts
 import squants.space.Degrees
+import squants.{Each, Percent}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 import tech.units.indriya.unit.Units.AMPERE
@@ -437,7 +437,7 @@ class GridResultsSupportSpec
         nodeInternal,
         BigDecimal("1"),
         TransformerTappingModel(
-          Quantities.getQuantity(1.5, StandardUnits.DV_TAP),
+          Percent(1.5),
           5,
           10,
           -10,
