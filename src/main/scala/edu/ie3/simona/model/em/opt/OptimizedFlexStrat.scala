@@ -366,10 +366,10 @@ object OptimizedFlexStrat {
         // then, build objective for every time step and combine them
         .foldLeft[(Expression, Seq[SoftConstraint])](Zero, Seq.empty) {
           case ((objective, allConstraints), results) =>
-            val difference = results.foldLeft[Expression](Zero) {
-              case (powers, res) =>
-                powers + res.operation
-            } - target.toKilowatts
+            val difference = results
+              .map(_.operation)
+              .reduceOption[Expression](_ + _)
+              .getOrElse(Zero) - target.toKilowatts
 
             val constraints =
               results.flatMap(_.softConstraint)
