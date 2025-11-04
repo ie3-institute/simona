@@ -461,7 +461,7 @@ case class EmCommunicationCore(
                   .flatMap(allFlexOptions.get)
                   .foreach { result =>
                     val model = result match {
-                      case options: GeneralFlexOptions =>
+                      case options: em.EnergyBoundariesFlexOptions =>
                         options.model
                       case options: em.PowerLimitFlexOptions =>
                         options.model
