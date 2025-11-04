@@ -7,7 +7,6 @@
 package edu.ie3.util.quantities
 
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.DoubleUtils.~=
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
@@ -48,11 +47,14 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       val temperatureQuantityKelvin = Quantities.getQuantity(100, KELVIN)
 
       temperatureQuantityKelvin.toSquants should approximate(Celsius(-173.15))
-      (temperatureQuantityKelvin.toSquants.value ~= -173.15) shouldBe true
-      (temperatureQuantityKelvin.toSquants.toCelsiusDegrees ~= -173.15) shouldBe true
-      (temperatureQuantityKelvin.toSquants.toCelsiusScale ~= -173.15) shouldBe true
-      (temperatureQuantityKelvin.toSquants.toKelvinDegrees ~= -173.15) shouldBe true
-      (temperatureQuantityKelvin.toSquants.toKelvinScale ~= 100d) shouldBe true
+      temperatureQuantityKelvin.toSquants.value should approximate(-173.15)
+      temperatureQuantityKelvin.toSquants.toCelsiusDegrees should
+        approximate(-173.15)
+      temperatureQuantityKelvin.toSquants.toCelsiusScale should
+        approximate(-173.15)
+      temperatureQuantityKelvin.toSquants.toKelvinDegrees should
+        approximate(-173.15)
+      temperatureQuantityKelvin.toSquants.toKelvinScale should approximate(100d)
     }
 
     "properly convert dimensionless quantities" in {
