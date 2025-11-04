@@ -6,8 +6,7 @@
 
 package edu.ie3.util.quantities
 
-import edu.ie3.simona.test.matchers.SquantsMatchers
-import edu.ie3.util.DoubleUtils.~=
+import edu.ie3.simona.test.matchers.{DoubleMatchers, SquantsMatchers}
 import edu.ie3.util.scala.quantities.{
   EuroPerKilowattHour,
   EuroPerMegawattHour,
@@ -18,7 +17,11 @@ import org.scalatest.matchers.should.Matchers
 import squants.energy.{KilowattHours, WattHours}
 import squants.market.{EUR, Money}
 
-class EnergyPriceSpec extends AnyFlatSpec with Matchers with SquantsMatchers {
+class EnergyPriceSpec
+    extends AnyFlatSpec
+    with Matchers
+    with DoubleMatchers
+    with SquantsMatchers {
 
   // testing tolerances
   given Double = 1e-10
@@ -42,8 +45,8 @@ class EnergyPriceSpec extends AnyFlatSpec with Matchers with SquantsMatchers {
     val x = EuroPerKilowattHour(1)
 
     x.toEuroPerKilowattHour should be(1)
-    (x.toEuroPerWattHour ~= 1e-3) shouldBe true
-    (x.toEuroPerMegawattHour ~= 1e3) shouldBe true
+    x.toEuroPerWattHour should approximate(1e-3)
+    x.toEuroPerMegawattHour should approximate(1e3)
   }
 
   it should "return properly formatted strings for all supported Units of Measure" in {
@@ -60,7 +63,7 @@ class EnergyPriceSpec extends AnyFlatSpec with Matchers with SquantsMatchers {
     ) should be("1.0 €/MWh")
   }
 
-  it should "return Euro when multiplied by Kilowatthour" in {
+  it should "return Euro when multiplied with power" in {
     EuroPerKilowattHour(1) * KilowattHours(10) should
       approximate(EUR(10))
 
