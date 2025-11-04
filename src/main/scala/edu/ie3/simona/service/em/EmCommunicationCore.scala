@@ -15,7 +15,11 @@ import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexType,
+  FlexibilityMessage,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -185,7 +189,6 @@ case class EmCommunicationCore(
         )
       }
 
-
     case provideEmData: ProvideEmData =>
       log.warn(s"Handling ext message: $provideEmData")
       val extTick = provideEmData.tick
@@ -220,10 +223,13 @@ case class EmCommunicationCore(
         } else None
       }.toMap
 
-      val updatedDisaggregated = disaggregated ++ flexRequest.map { case (uuid, request) => uuid -> request.disaggregated }.toMap
+      val updatedDisaggregated = disaggregated ++ flexRequest.map {
+        case (uuid, request) => uuid -> request.disaggregated
+      }.toMap
 
       // handling of set points
-      val setPointMapping = provideEmData.setPoints()
+      val setPointMapping = provideEmData
+        .setPoints()
         .asScala
         .flatMap { case (receiver, setPoint) =>
           val agent = uuidToAgent(receiver)

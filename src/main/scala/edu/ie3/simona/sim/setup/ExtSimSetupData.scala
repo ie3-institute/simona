@@ -92,7 +92,9 @@ final case class ExtSimSetupData(
     Seq(
       emDataService,
       evDataService,
-    ).flatten ++ resultListeners ++ resultProviders ++ primaryDataServices.map(_._2)
+    ).flatten ++ resultListeners ++ resultProviders ++ primaryDataServices.map(
+      _._2
+    )
 }
 
 object ExtSimSetupData {

@@ -147,7 +147,7 @@ object ExtPrimaryDataService extends SimonaService with ExtDataSupport {
     *   the current state data of this service
     * @return
     *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is send
+    *   with updated values) together with the completion message that is sent
     *   in response to the trigger that was sent to start this announcement
     */
   override protected def announceInformation(

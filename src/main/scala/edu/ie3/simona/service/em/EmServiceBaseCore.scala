@@ -8,7 +8,11 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.model.em
-import edu.ie3.simona.api.data.model.em.{EmSetPoint, ExtendedFlexOptionsResult, FlexOptions}
+import edu.ie3.simona.api.data.model.em.{
+  EmSetPoint,
+  ExtendedFlexOptionsResult,
+  FlexOptions,
+}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
@@ -24,15 +28,20 @@ import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SetHasAsScala}
+import scala.jdk.CollectionConverters.{
+  ListHasAsScala,
+  MapHasAsJava,
+  MapHasAsScala,
+  SetHasAsScala,
+}
 
 /** Basic service core for an [[ExtEmDataService]].
   * @param lastFinishedTick
   *   The last tick that was completed.
   * @param uuidToAgent
   *   Map: uuid to em agent reference.
- * @param agentToUuid
- * Map: em agent reference to uuid.
+  * @param agentToUuid
+  *   Map: em agent reference to uuid.
   * @param flexOptions
   *   ReceiveDataMap: uuid to flex option result.
   * @param allFlexOptions
@@ -55,21 +64,20 @@ import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsSca
   *   Option for em set points that needs to be handled at a later time.
   */
 final case class EmServiceBaseCore(
-                                    override val lastFinishedTick: Long = PRE_INIT_TICK,
-                                    override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
-                                    agentToUuid: Map[ActorRef[EmAgent.Message] | ActorRef[FlexResponse], UUID] = Map.empty,
-                                    flexOptions: ReceiveDataMap[UUID, FlexOptions] =
-      ReceiveDataMap.empty,
-                                    override val allFlexOptions: Map[UUID, FlexOptions] =
+    override val lastFinishedTick: Long = PRE_INIT_TICK,
+    override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
+    agentToUuid: Map[ActorRef[EmAgent.Message] | ActorRef[FlexResponse], UUID] =
       Map.empty,
-                                    override val completions: ReceiveDataMap[UUID, FlexCompletion] =
+    flexOptions: ReceiveDataMap[UUID, FlexOptions] = ReceiveDataMap.empty,
+    override val allFlexOptions: Map[UUID, FlexOptions] = Map.empty,
+    override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
-                                    structure: Map[UUID, Set[UUID]] = Map.empty,
-                                    disaggregated: Map[UUID, Boolean] = Map.empty,
-                                    sendOptionsToExt: Boolean = false,
-                                    canHandleSetPoints: Boolean = false,
-                                    setPointOption: Option[Map[UUID, EmSetPoint]] = None,
-                                    nextActivation: Map[UUID, Long] = Map.empty,
+    structure: Map[UUID, Set[UUID]] = Map.empty,
+    disaggregated: Map[UUID, Boolean] = Map.empty,
+    sendOptionsToExt: Boolean = false,
+    canHandleSetPoints: Boolean = false,
+    setPointOption: Option[Map[UUID, EmSetPoint]] = None,
+    nextActivation: Map[UUID, Long] = Map.empty,
 ) extends EmServiceCore {
 
   override def handleRegistration(
@@ -111,7 +119,11 @@ final case class EmServiceBaseCore(
       log: Logger
   ): (EmServiceBaseCore, Option[EmDataResponseMessageToExt]) = extMsg match {
     case provideEmData: ProvideEmData =>
-      if !provideEmData.flexOptions.isEmpty then { log.warn(s"We received the following data '$provideEmData'. The base service can currently not handle the provided flex options.") }
+      if !provideEmData.flexOptions.isEmpty then {
+        log.warn(
+          s"We received the following data '$provideEmData'. The base service can currently not handle the provided flex options."
+        )
+      }
 
       val tick = provideEmData.tick
       val flexRequests = provideEmData.flexRequests.asScala.flatMap {
@@ -173,7 +185,9 @@ final case class EmServiceBaseCore(
       tick: Long,
       flexResponse: FlexResponse,
       receiver: Either[UUID, ActorRef[FlexResponse]],
-  )(using log: Logger): (EmServiceBaseCore, Option[EmDataResponseMessageToExt]) = {
+  )(using
+      log: Logger
+  ): (EmServiceBaseCore, Option[EmDataResponseMessageToExt]) = {
 
     val receiverUuid = receiver match {
       case Right(ref) =>
@@ -256,14 +270,17 @@ final case class EmServiceBaseCore(
 
           if finished then {
             // the next activations
-            val updatedNextActivation = nextActivation ++ updated.receivedData.flatMap {
-              case (uuid, msg) =>
-                msg.requestAtTick.map(uuid -> _)
-            }
+            val updatedNextActivation =
+              nextActivation ++ updated.receivedData.flatMap {
+                case (uuid, msg) =>
+                  msg.requestAtTick.map(uuid -> _)
+              }
 
             val expectedCompletions = nextTick match {
               case Some(t) =>
-                val keys = updatedNextActivation.filter { case (_, activation) => activation == t }.keySet
+                val keys = updatedNextActivation.filter {
+                  case (_, activation) => activation == t
+                }.keySet
                 log.warn(s"Keys: $keys")
                 ReceiveDataMap[UUID, FlexCompletion](keys)
               case None =>
@@ -299,7 +316,9 @@ final case class EmServiceBaseCore(
   override def handleFlexRequest(
       flexRequest: FlexRequest,
       receiver: ActorRef[FlexRequest],
-  )(using log: Logger): (EmServiceBaseCore, Option[EmDataResponseMessageToExt]) = {
+  )(using
+      log: Logger
+  ): (EmServiceBaseCore, Option[EmDataResponseMessageToExt]) = {
     log.debug(s"$receiver: $flexRequest")
     receiver ! flexRequest
 
@@ -309,8 +328,8 @@ final case class EmServiceBaseCore(
   /** Method to handle flex options.
     * @param tick
     *   Current tick of the service.
-   * @param receiver
-   * The receiver of the flex options.
+    * @param receiver
+    *   The receiver of the flex options.
     * @param provideFlexOptions
     *   The provided flex options.
     * @return

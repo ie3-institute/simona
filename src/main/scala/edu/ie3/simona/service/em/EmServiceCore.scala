@@ -9,9 +9,17 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.model.em.{EmSetPoint, ExtendedFlexOptionsResult, FlexOptions}
+import edu.ie3.simona.api.data.model.em.{
+  EmSetPoint,
+  ExtendedFlexOptionsResult,
+  FlexOptions,
+}
 import edu.ie3.simona.api.ontology.em.*
-import edu.ie3.simona.ontology.messages.ServiceMessage.{EmFlexMessage, EmServiceRegistration, ServiceResponseMessage}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  EmFlexMessage,
+  EmServiceRegistration,
+  ServiceResponseMessage,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -31,6 +39,7 @@ import scala.jdk.OptionConverters.{RichOption, RichOptional}
 /** Trait for all em service cores.
   */
 trait EmServiceCore {
+
   /** The last tick that was completed.
     */
   val lastFinishedTick: Long
@@ -146,36 +155,36 @@ trait EmServiceCore {
     *   Logger for logging messages.
     */
   final def handleSetPoint(
-                            tick: Long,
-                            setPoints: Map[UUID, EmSetPoint],
-                            log: Logger,
+      tick: Long,
+      setPoints: Map[UUID, EmSetPoint],
+      log: Logger,
   ): Unit = {
     log.info(s"Handling of set points: $setPoints")
 
     setPoints.foreach { case (agent, setPoint) =>
-        uuidToAgent.get(agent) match {
-          case Some(receiver) =>
-            val (pOption, qOption) = setPoint.power.toScala match {
-              case Some(sValue: SValue) =>
-                (sValue.getP.toScala, sValue.getQ.toScala)
-              case Some(pValue: PValue) =>
-                (pValue.getP.toScala, None)
-              case None =>
-                (None, None)
-            }
+      uuidToAgent.get(agent) match {
+        case Some(receiver) =>
+          val (pOption, qOption) = setPoint.power.toScala match {
+            case Some(sValue: SValue) =>
+              (sValue.getP.toScala, sValue.getQ.toScala)
+            case Some(pValue: PValue) =>
+              (pValue.getP.toScala, None)
+            case None =>
+              (None, None)
+          }
 
-            (pOption, qOption) match {
-              case (Some(activePower), _) =>
-                receiver ! IssuePowerControl(tick, activePower.toSquants)
+          (pOption, qOption) match {
+            case (Some(activePower), _) =>
+              receiver ! IssuePowerControl(tick, activePower.toSquants)
 
-              case (None, _) =>
-                receiver ! IssueNoControl(tick)
-            }
+            case (None, _) =>
+              receiver ! IssueNoControl(tick)
+          }
 
-          case None =>
-            log.warn(s"No em agent with uuid '$agent' registered!")
-        }
+        case None =>
+          log.warn(s"No em agent with uuid '$agent' registered!")
       }
+    }
   }
 
   /** Method to handle flex responses from the em agents.
@@ -252,10 +261,10 @@ trait EmServiceCore {
       val (extMsgOption, nextTickOption) = if tick != INIT_SIM_TICK then {
         // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
         val option = getMaybeNextTick
-        
+
         (Some(new EmCompletion(option.map(long2Long).toJava)), option)
       } else (None, None)
-      
+
       // every em agent has sent a completion message
       (updated, extMsgOption, nextTickOption, true)
 
@@ -267,9 +276,7 @@ trait EmServiceCore {
     *   An option for the next activation tick.
     */
   protected final def getMaybeNextTick: Option[Long] =
-    completions.receivedData
-      .flatMap { case (_, completion) =>
-        completion.requestAtTick
-      }
-      .minOption
+    completions.receivedData.flatMap { case (_, completion) =>
+      completion.requestAtTick
+    }.minOption
 }
