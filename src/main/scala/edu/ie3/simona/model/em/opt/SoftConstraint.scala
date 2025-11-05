@@ -74,7 +74,8 @@ object SoftConstraint {
 
     override def getWarningMessage: String = {
       val (value, absoluteValue) = getVals
-      s"Soft constraint for storage: Approximated absolute value $absoluteValue and absolute value |$value| are $getError apart."
+      s"Soft constraint for storage: Approximated absolute value $absoluteValue " +
+        s"and actual absolute value ${math.abs(value)} are $getError apart."
     }
 
     private def getVals: (Double, Double) =
