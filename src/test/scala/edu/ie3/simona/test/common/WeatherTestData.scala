@@ -8,7 +8,7 @@ package edu.ie3.simona.test.common
 
 import edu.ie3.simona.service.Data.SecondaryData.{
   WeatherData,
-  WeatherSeriesData,
+  SecondarySeriesData,
 }
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import squants.motion.KilometersPerHour
@@ -25,7 +25,7 @@ trait WeatherTestData {
     windVel = KilometersPerHour(10),
   )
 
-  protected val weatherSeriesData = WeatherSeriesData(
+  protected val weatherSeriesData = SecondarySeriesData(
     series = SortedMap(
       0L -> weatherData,
       3600L -> WeatherData(
