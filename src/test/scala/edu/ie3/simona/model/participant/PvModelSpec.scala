@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.participant.PvModel.{PvState, RadiationData}
 import edu.ie3.simona.ontology.messages.flex.FlexType
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.{
@@ -118,7 +119,7 @@ class PvModelSpec
       actualState.tick shouldEqual oldState.tick
       actualState.dateTime shouldEqual defaultSimulationStart
       actualState.radiationData shouldEqual weatherSeriesData.series.map {
-        case (tick, data) =>
+        case (tick, data: WeatherData) =>
           tick -> RadiationData(data)
       }
     }
