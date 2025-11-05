@@ -12,7 +12,7 @@ import squants.{Dimension, PrimaryUnit, SiUnit, UnitConverter, UnitOfMeasure}
 
 import scala.util.Try
 
-/** Represents the price of energy per EURO
+/** Represents the price of energy in currency EURO
   */
 final class EnergyPrice private (
     override val value: Double,
