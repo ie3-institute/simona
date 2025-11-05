@@ -100,7 +100,7 @@ object QuantityConversionUtils {
     */
   extension (quantity: ComparableQuantity[EnergyPrice]) {
 
-    def toSquants: quantities.EnergyPrice = EuroPerKilowatthour(
+    def toSquants: quantities.EnergyPrice = EuroPerKilowattHour(
       quantity.to(EURO_PER_KILOWATTHOUR).getValue.doubleValue
     )
   }
