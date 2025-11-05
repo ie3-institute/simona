@@ -466,6 +466,88 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
         model.release()
 
       }
+
+      "balance out additional power exceeding energy storage capacity when discharging first" in {
+
+        given model: MPModel = MPModel(SolverLib.oJSolver)
+
+        val constFlex = EnergyBoundariesFlexOptions(
+          AssetEnergyBoundaries(
+            Seq(1, 1, -10, -10).toPowerMap
+          )
+        )
+
+        val flexOptions = Map(
+          loadUUID -> constFlex,
+          batUUID -> batFlex,
+        )
+
+        val assetVars =
+          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
+
+        assetVars.toSeq should have length 2
+        assetVars.foreach(_.results should have length 1)
+        assetVars.foreach(_.results.foreach(_ should have length 4))
+
+        val objectiveContainer = OptimizedFlexStrat.buildObjective(
+          assetVars,
+          zeroKW,
+          MinAbsPowerObjectiveFactory,
+        )
+
+        model.minimize(objectiveContainer.objective)
+        model.start(timeLimit = 10000)
+
+        model.getStatus shouldBe SolutionStatus.OPTIMAL
+
+        /*
+          EXPECTED RESULTS
+          The soft constraints are vital here. Without them,
+          optimization would overestimate the losses of discharging
+          in the first half in order allow for more charging in the
+          second half.
+         */
+
+        val batVars = assetVars
+          .find(_.assetUuid == batUUID)
+          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
+
+        val batRes = batVars.results.headOption
+          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+
+        {
+          objectiveContainer.softConstraints.foreach { constraint =>
+            withClue(constraint.getWarningMessage) {
+              constraint.getError should be < constraintTolerance
+            }
+          }
+
+          // discharging 1 kWh plus 0.25 kWh losses
+          batRes(0).pVal should approximate(-1d)
+          batRes(0).energyVal should approximate(-1.25d)
+
+          // discharging 1 kWh plus 0.25 kWh losses
+          batRes(1).pVal should approximate(-1d)
+          batRes(1).energyVal should approximate(-2.5d)
+
+          // possibly charging
+          batRes(2).pVal should be >= 0d
+          batRes(2).energyVal should (be >= -2.5d and be <= 12d)
+
+          // possibly charging, now we should have reached 24 kWh
+          // (12 kWh above starting energy)
+          batRes(3).pVal should be >= 0d
+          batRes(3).energyVal should approximate(12d)
+
+          // we should've charged 14.5 kWh plus 3.625 kWh losses
+          batRes(2).pVal + batRes(3).pVal should approximate(18.125d)
+
+        } withClue buildDebugString(batVars)
+
+        model.release()
+
+      }
+
     }
 
     "provided with battery flex options without losses" should {
