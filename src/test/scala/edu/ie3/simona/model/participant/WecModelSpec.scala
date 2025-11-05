@@ -20,6 +20,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
   FlexType,
 }
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
@@ -124,7 +125,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
 
       actualState.tick shouldEqual oldState.tick
       actualState.weatherData shouldEqual weatherSeriesData.series.map {
-        case (tick, data) =>
+        case (tick, data: WeatherData) =>
           tick -> AirWeatherData(data)
       }
     }
