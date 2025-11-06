@@ -64,14 +64,14 @@ object PowerObjectiveFactory {
     *   The number of segments (secant lines) to create. Increasing the number
     *   of segments improves the accuracy of the approximation, but might impact
     *   efficiency.
-    * @param lastSegment
-    *   The value of the last segment boundary. This should be set close to the
-    *   maximum value that is to be expected, otherwise the approximation
-    *   becomes inaccurate beyond this value.
+    * @param maximumExpectedPower
+    *   The maximum expected value and thus the value of the last segment
+    *   boundary. If this is not set accurately, the approximation becomes
+    *   inaccurate.
     */
   class LinearizedQuadraticPowerObjectiveFactory(
       segmentCount: Int,
-      lastSegment: Double,
+      maximumExpectedPower: Power,
   ) extends PowerObjectiveFactory {
 
     override def build(
@@ -82,7 +82,7 @@ object PowerObjectiveFactory {
 
       val differenceAbs = absoluteValue(difference, "differenceAbs")
 
-      val segmentSize = lastSegment / segmentCount
+      val segmentSize = maximumExpectedPower.toKilowatts / segmentCount
 
       val t = MPFloatVar.positive("t")
 
@@ -96,7 +96,7 @@ object PowerObjectiveFactory {
 
       // normalize the final value so that it maximizes
       // somewhat close to the absolute value
-      val normalizationFactor = 1 / lastSegment
+      val normalizationFactor = 1 / maximumExpectedPower.toKilowatts
 
       t * normalizationFactor
     }

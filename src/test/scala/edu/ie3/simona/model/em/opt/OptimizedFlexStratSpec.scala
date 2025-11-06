@@ -789,7 +789,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           zeroKW,
           LinearizedQuadraticPowerObjectiveFactory(
             segmentCount = 10,
-            lastSegment = 10d, // 10 kW
+            maximumExpectedPower = Kilowatts(10),
           ),
         )
 
