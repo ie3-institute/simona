@@ -59,7 +59,8 @@ final case class OptimizedFlexStrat(
     val sampleTicks = sampleTime.toSeconds.toLong
     val lastPredictedTick = currentTick + predictionHorizon.toSeconds.toLong
 
-    val ticks = Range.Long(currentTick, lastPredictedTick, sampleTicks)
+    val ticks =
+      Range.Long.inclusive(currentTick, lastPredictedTick, sampleTicks)
 
     val assetVars = addAssetConstraints(
       flexOptions.map { case (asset: AssetInput, fo) => asset.getUuid -> fo },
