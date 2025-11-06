@@ -21,6 +21,9 @@ trait PowerObjectiveFactory {
     *
     * @param totalPower
     *   The sum of power of all assets for a time step.
+    * @param target
+    *   The target power that optimization should strive for. Does not have to
+    *   be recognized by all objective factories.
     * @param model
     *   The optimization model to add variables and constraints to.
     * @return
