@@ -558,7 +558,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
       given ticks: Seq[Long] =
         Range.Long.inclusive(0, 4 * sampleTicks, sampleTicks)
 
-      // low efficiency for simplicity of the test
+      // no losses, thus efficiency = 1
       val batFlex = EnergyBoundariesFlexOptions(
         AssetEnergyBoundaries(
           eStorage = KilowattHours(24),
