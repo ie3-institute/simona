@@ -294,7 +294,7 @@ object OptimizedFlexStrat {
   }
 
   /** Creates flex options that are equivalent to the original with regard to
-    * optimization, which are able to be optimized with a linear model though.
+    * optimization, but these can be optimized with a linear model.
     * In order to achieve this, a common efficiency needs to be calculated for
     * charging and discharging operations, eliminating the need to distinguish
     * between charging and discharging when formulating the state constraint.
