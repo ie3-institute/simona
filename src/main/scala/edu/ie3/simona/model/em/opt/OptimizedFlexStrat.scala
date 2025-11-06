@@ -408,7 +408,10 @@ object OptimizedFlexStrat {
     * @param operation
     *   The operating point between the previous state and [[state]].
     * @param state
-    *   Optionally the state that follows the operating point.
+    *   Optionally the state that follows the operating point. It holds an
+    *   energy value that signify the upwards and downwards change of energy,
+    *   relating to the energy potential at the starting tick (which is defined
+    *   to be zero).
     * @param softConstraint
     *   Optionally a soft constraint.
     */
