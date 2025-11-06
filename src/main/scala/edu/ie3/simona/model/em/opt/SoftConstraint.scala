@@ -100,8 +100,6 @@ object SoftConstraint {
       *   The variable that is supposed to hold the absolute value of the power.
       * @param eta
       *   The charging/discharging efficiency.
-      * @param duration
-      *   The duration for which the power is applied.
       * @return
       *   The soft constraint.
       */
@@ -109,14 +107,13 @@ object SoftConstraint {
         p: MPFloatVar,
         pAbs: MPFloatVar,
         eta: Dimensionless,
-        duration: Time,
     ): AbsValueSoftConstraint = {
       // Total penalty is slightly larger than the model losses.
       // Thus, the value of pAbs should be pushed down to the
       // absolute of p.
       val epsilon = 1e-6
 
-      val penalty = (1 - eta.toEach + epsilon) * duration.toHours
+      val penalty = 1 - eta.toEach + epsilon
 
       AbsValueSoftConstraint(p, pAbs, penalty)
     }

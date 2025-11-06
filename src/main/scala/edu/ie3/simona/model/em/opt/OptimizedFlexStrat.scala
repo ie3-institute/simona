@@ -285,7 +285,7 @@ object OptimizedFlexStrat {
             newState := previousState + (p - pAbs * (1 - eta.toEach)) * sampleTime.toHours
           )
 
-          Some(AbsValueSoftConstraint(p, pAbs, eta, sampleTime))
+          Some(AbsValueSoftConstraint(p, pAbs, eta))
         }
 
       StepResults(p, Some(newState), softConstraint)
