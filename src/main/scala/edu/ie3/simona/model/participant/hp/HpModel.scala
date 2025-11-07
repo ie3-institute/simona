@@ -267,9 +267,9 @@ class HpModel private (
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && noHeatStorageOrEmpty) ||
-        (demandHouse.hasPossibleDemand && wasRunningLastPeriod ||
-          demandHeatStorage.hasRequiredDemand ||
-          (demandHeatStorage.hasPossibleDemand && wasRunningLastPeriod)) ||
+        (demandHouse.hasPossibleDemand && wasRunningLastPeriod) ||
+        demandHeatStorage.hasRequiredDemand ||
+        (demandHeatStorage.hasPossibleDemand && wasRunningLastPeriod) ||
         demandDomesticHotWaterStorage.hasRequiredDemand
 
     val canOperate =
