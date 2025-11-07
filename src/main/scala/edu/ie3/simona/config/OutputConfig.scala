@@ -9,6 +9,7 @@ package edu.ie3.simona.config
 import edu.ie3.simona.config.ConfigParams.{
   BaseInfluxDb1xParams,
   PsdmSinkCsvParams,
+  ResultKafkaJsonParams,
   ResultKafkaParams,
 }
 import edu.ie3.simona.config.OutputConfig.*
@@ -170,5 +171,6 @@ object OutputConfig {
       csv: Option[PsdmSinkCsvParams] = None,
       influxDb1x: Option[BaseInfluxDb1xParams] = None,
       kafka: Option[ResultKafkaParams] = None,
+      kafkaJson: Option[ResultKafkaJsonParams] = None,
   ) derives ConfigConvert
 }

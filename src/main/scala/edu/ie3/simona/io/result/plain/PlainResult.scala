@@ -13,7 +13,12 @@ import java.util.UUID
   * attribute types and naming, and they include sim run id. Plain result
   * objects can be created by [[PlainWriter]].
   */
-sealed trait PlainResult
+sealed trait PlainResult extends Product {
+  val inputModel: UUID
+  val simRunId: UUID
+
+  def asMap: Map[String, String]
+}
 
 object PlainResult {
 
@@ -38,5 +43,29 @@ object PlainResult {
       inputModel: UUID,
       vMag: Double,
       vAng: Double,
-  ) extends PlainResult
+  ) extends PlainResult {
+    override def asMap: Map[String, String] = Map(
+      "time" -> time,
+      "vMag" -> vMag.toString,
+      "vAng" -> vAng.toString,
+    )
+  }
+
+  final case class PlainLineResult(
+      simRunId: UUID,
+      time: String,
+      inputModel: UUID,
+      iAMag: Double,
+      iAAng: Double,
+      iBMag: Double,
+      iBAng: Double,
+  ) extends PlainResult {
+    override def asMap: Map[String, String] = Map(
+      "time" -> time,
+      "iAMag" -> iAMag.toString,
+      "IAAng" -> iAAng.toString,
+      "iBMag" -> iBMag.toString,
+      "iBAng" -> iBAng.toString,
+    )
+  }
 }

@@ -6,10 +6,15 @@
 
 package edu.ie3.simona.io.result.plain
 
+import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
+import edu.ie3.simona.io.result.plain.PlainResult.{
+  PlainLineResult,
+  PlainNodeResult,
+}
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -70,6 +75,30 @@ object PlainWriter {
         Quantities.getQuantity(plain.vAng, PowerSystemUnits.DEGREE_GEOM),
       )
     }
+  }
+
+  final case class LineResultWriter(simRunId: UUID)
+      extends PlainWriter[LineResult, PlainLineResult] {
+    override def writePlain(full: LineResult): PlainLineResult =
+      PlainLineResult(
+        simRunId,
+        createSimpleTimeStamp(full.getTime),
+        full.getInputModel,
+        full.getiAMag.getValue.doubleValue,
+        full.getiAAng.getValue.doubleValue,
+        full.getiBMag.getValue.doubleValue,
+        full.getiBAng.getValue.doubleValue,
+      )
+
+    override def createFull(plain: PlainLineResult): LineResult =
+      new LineResult(
+        ZonedDateTime.parse(plain.time, timeFormatter),
+        plain.inputModel,
+        Quantities.getQuantity(plain.iAMag, Units.AMPERE),
+        Quantities.getQuantity(plain.iAAng, PowerSystemUnits.DEGREE_GEOM),
+        Quantities.getQuantity(plain.iBMag, Units.AMPERE),
+        Quantities.getQuantity(plain.iBAng, PowerSystemUnits.DEGREE_GEOM),
+      )
   }
 
   def createSimpleTimeStamp(dateTime: ZonedDateTime): String =

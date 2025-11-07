@@ -238,6 +238,16 @@ object ConfigParams {
   ) extends KafkaParams
       derives ConfigConvert
 
+  final case class ResultKafkaJsonParams(
+      override val bootstrapServers: String,
+      override val linger: Int,
+      override val runId: String,
+      override val schemaRegistryUrl: String,
+      topicNodeRes: String,
+      jsonConfig: Map[String, Map[String, Map[String, String]]] = Map.empty,
+  ) extends KafkaParams
+      derives ConfigConvert
+
   /** Kafka runtime parameters.
     */
   final case class RuntimeKafkaParams(

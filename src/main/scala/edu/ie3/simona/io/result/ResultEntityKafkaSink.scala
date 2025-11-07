@@ -6,11 +6,21 @@
 
 package edu.ie3.simona.io.result
 
+import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
-import edu.ie3.simona.io.result.plain.PlainWriter.NodeResultWriter
+import edu.ie3.simona.io.result.plain.PlainResult.{
+  PlainLineResult,
+  PlainNodeResult,
+}
+import edu.ie3.simona.io.result.plain.PlainWriter.{
+  LineResultWriter,
+  NodeResultWriter,
+}
 import edu.ie3.simona.io.result.plain.{PlainResult, PlainWriter}
-import edu.ie3.util.scala.io.ScalaReflectionSerde.reflectionSerializer4S
+import edu.ie3.util.scala.io.ScalaReflectionSerde.{
+  genericPlainResultJsonSerializer,
+  reflectionSerializer4S,
+}
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
 import org.apache.kafka.clients.producer.{
   KafkaProducer,
@@ -30,13 +40,16 @@ final case class ResultEntityKafkaSink[
     producer: KafkaProducer[String, P],
     plainWriter: PlainWriter[V, P],
     topic: String,
+    filter: Set[UUID] = Set.empty,
 ) extends ResultEntitySink {
 
   override def handleResultEntity(resultEntity: ResultEntity): Unit = {
-    val plainEntity = plainWriter.writePlain(resultEntity.asInstanceOf[V])
-    producer.send(
-      new ProducerRecord[String, P](topic, plainEntity)
-    )
+    if filter.isEmpty || filter.contains(resultEntity.getInputModel) then {
+      val plainEntity = plainWriter.writePlain(resultEntity.asInstanceOf[V])
+      producer.send(
+        new ProducerRecord[String, P](topic, plainEntity)
+      )
+    }
   }
 
   override def close(): Unit = {
@@ -53,7 +66,42 @@ object ResultEntityKafkaSink {
       bootstrapServers: String,
       schemaRegistryUrl: String,
       linger: Int,
-  )(implicit
+      modelConfig: Map[UUID, Map[String, UUID]],
+  )(using
+      tag: ClassTag[R]
+  ): ResultEntityKafkaSink[? <: ResultEntity, ? <: PlainResult] = {
+    val props = new Properties()
+    props.put(ProducerConfig.LINGER_MS_CONFIG, linger)
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+    props.put(
+      ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,
+      true,
+    ) // exactly once delivery
+
+    val Node = classOf[NodeResult]
+    val Line = classOf[LineResult]
+
+    given Set[UUID] = modelConfig.keySet
+
+    tag.runtimeClass match {
+      case Node =>
+        given Serializer[PlainNodeResult] =
+          genericPlainResultJsonSerializer[PlainNodeResult](modelConfig)
+        createSink(schemaRegistryUrl, props, topic, NodeResultWriter(simRunId))
+      case Line =>
+        given Serializer[PlainLineResult] =
+          genericPlainResultJsonSerializer[PlainLineResult](modelConfig)
+        createSink(schemaRegistryUrl, props, topic, LineResultWriter(simRunId))
+    }
+  }
+
+  def apply[R](
+      topic: String,
+      simRunId: UUID,
+      bootstrapServers: String,
+      schemaRegistryUrl: String,
+      linger: Int,
+  )(using
       tag: ClassTag[R]
   ): ResultEntityKafkaSink[? <: ResultEntity, ? <: PlainResult] = {
     val props = new Properties()
@@ -68,7 +116,7 @@ object ResultEntityKafkaSink {
 
     tag.runtimeClass match {
       case NodeResClass =>
-        implicit val valueSerializer: Serializer[PlainNodeResult] =
+        given Serializer[PlainNodeResult] =
           reflectionSerializer4S[PlainNodeResult]
         createSink(schemaRegistryUrl, props, topic, NodeResultWriter(simRunId))
     }
@@ -79,7 +127,10 @@ object ResultEntityKafkaSink {
       props: Properties,
       topic: String,
       writer: PlainWriter[F, P],
-  )(implicit valueSerializer: Serializer[P]): ResultEntityKafkaSink[F, P] = {
+  )(using
+      valueSerializer: Serializer[P],
+      filter: Set[UUID] = Set.empty,
+  ): ResultEntityKafkaSink[F, P] = {
     val keySerializer = Serdes.String().serializer()
 
     valueSerializer.configure(
@@ -95,6 +146,7 @@ object ResultEntityKafkaSink {
       ),
       writer,
       topic,
+      filter,
     )
   }
 }

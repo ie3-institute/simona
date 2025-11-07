@@ -6,9 +6,11 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
+import edu.ie3.datamodel.models.result.connector.{
+  LineResult,
+  Transformer2WResult,
+}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.ResultEvent.{
@@ -22,9 +24,13 @@ import edu.ie3.simona.exceptions.{
   ProcessResultEventException,
 }
 import edu.ie3.simona.io.result.*
+import edu.ie3.simona.io.result.plain.PlainResult
 import edu.ie3.simona.util.ResultFileHierarchy
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import org.slf4j.Logger
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
@@ -144,6 +150,48 @@ object ResultEventListener extends Transformer3wResultSupport {
             )
           )
         )
+
+      case ResultSinkType.KafkaJson(
+            topicNodeRes,
+            runId,
+            bootstrapServers,
+            schemaRegistryUrl,
+            linger,
+            jsonConfig,
+          ) =>
+        jsonConfig.filter(_._2.nonEmpty).map { case (resultType, modelConfig) =>
+          resultType match {
+            case "node" =>
+              Future.successful(
+                classOf[NodeResult],
+                ResultEntityKafkaSink[NodeResult](
+                  topicNodeRes,
+                  runId,
+                  bootstrapServers,
+                  schemaRegistryUrl,
+                  linger,
+                  modelConfig,
+                ),
+              )
+
+            case "line" =>
+              Future.successful(
+                classOf[LineResult],
+                ResultEntityKafkaSink[LineResult](
+                  topicNodeRes,
+                  runId,
+                  bootstrapServers,
+                  schemaRegistryUrl,
+                  linger,
+                  modelConfig,
+                ),
+              )
+            case other =>
+              throw new IllegalArgumentException(
+                s"Received unknown type: $other"
+              )
+          }
+        }
     }
   }
 

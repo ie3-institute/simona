@@ -37,12 +37,26 @@ object ResultSinkType {
       linger: Int,
   ) extends ResultSinkType
 
+  final case class KafkaJson(
+      topicNodeRes: String,
+      runId: UUID,
+      bootstrapServers: String,
+      schemaRegistryUrl: String,
+      linger: Int,
+      jsonConfig: Map[String, Map[UUID, Map[String, UUID]]],
+  ) extends ResultSinkType
+
   def apply(
       sinkConfig: OutputConfig.Sink,
       runName: String,
   ): ResultSinkType = {
     val sink: Seq[Any] =
-      Seq(sinkConfig.csv, sinkConfig.influxDb1x, sinkConfig.kafka).flatten
+      Seq(
+        sinkConfig.csv,
+        sinkConfig.influxDb1x,
+        sinkConfig.kafka,
+        sinkConfig.kafkaJson,
+      ).flatten
 
     if sink.size > 1 then
       throw new IllegalArgumentException(
@@ -68,6 +82,27 @@ object ResultSinkType {
           params.schemaRegistryUrl,
           params.linger,
         )
+      case Some(params: ResultKafkaJsonParams) =>
+        val convertedMap = params.jsonConfig.map {
+          case (resultType, modelConfig) =>
+            resultType -> modelConfig.map { case (model, parameterConfig) =>
+              val modelUuid = UUID.fromString(model)
+
+              modelUuid -> parameterConfig.map { case (parameter, mRID) =>
+                parameter -> UUID.fromString(mRID)
+              }
+            }
+        }
+
+        KafkaJson(
+          params.topicNodeRes,
+          UUID.fromString(params.runId),
+          params.bootstrapServers,
+          params.schemaRegistryUrl,
+          params.linger,
+          convertedMap,
+        )
+
       case None =>
         throw new IllegalArgumentException(
           s"No sinks defined! Cannot determine the sink type!"

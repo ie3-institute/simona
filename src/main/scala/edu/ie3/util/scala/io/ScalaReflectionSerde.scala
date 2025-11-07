@@ -6,14 +6,8 @@
 
 package edu.ie3.util.scala.io
 
-import com.sksamuel.avro4s.{
-  AvroSchema,
-  Decoder,
-  Encoder,
-  FromRecord,
-  SchemaFor,
-  ToRecord,
-}
+import com.sksamuel.avro4s.*
+import edu.ie3.simona.io.result.plain.PlainResult
 import io.confluent.kafka.streams.serdes.avro.{
   GenericAvroDeserializer,
   GenericAvroSerializer,
@@ -21,10 +15,48 @@ import io.confluent.kafka.streams.serdes.avro.{
 import org.apache.avro.Schema
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 
+import java.util.UUID
+
 /** As seen at
   * https://kafka-tutorials.confluent.io/produce-consume-lang/scala.html
   */
 object ScalaReflectionSerde {
+
+  def genericPlainResultJsonSerializer[P <: PlainResult](
+      modelConfig: Map[UUID, Map[String, UUID]]
+  ): Serializer[P] = (topic: String, data: P) => {
+    val inputModel = data.inputModel
+
+    if modelConfig.isEmpty then {
+      val builder = new StringBuilder(
+        s"simRunId: \"${data.simRunId}\", inputModel: \"$inputModel\""
+      )
+
+      data.asMap.foreach { case (key, value) =>
+        builder.append(s", $key: \"$value\"")
+      }
+
+      builder.toString.getBytes
+
+    } else {
+      modelConfig
+        .get(inputModel)
+        .map { config =>
+          val builder = new StringBuilder(
+            s"simRunId: \"${data.simRunId}\", inputModel: \"$inputModel\""
+          )
+
+          data.asMap.filter(m => config.contains(m._1)).foreach {
+            case (key, value) =>
+              val mRID = config(key)
+              builder.append(s", $mRID: \"$value\"")
+          }
+
+          builder.toString.getBytes
+        }
+        .getOrElse(Array.emptyByteArray)
+    }
+  }
 
   def reflectionSerializer4S[T >: Null: SchemaFor: Encoder]: Serializer[T] =
     new Serializer[T] {

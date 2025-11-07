@@ -180,7 +180,7 @@ object ConfigFailFast extends LazyLogging {
     */
   private def checkDataSink(sink: OutputConfig.Sink): Unit = {
     // ensures failure if new output sinks are added to enforce adaptions of the check sink method as well
-    val supportedSinks = Set("influxdb1x", "csv", "kafka")
+    val supportedSinks = Set("influxdb1x", "csv", "kafka", "kafkajson")
     if !sink.productElementNames
         .map(_.trim.toLowerCase)
         .toSet
