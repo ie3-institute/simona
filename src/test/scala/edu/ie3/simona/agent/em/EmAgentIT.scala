@@ -535,10 +535,10 @@ class EmAgentIT
         /* TICK 3600
         DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
         LOAD: 0.269 kW (unchanged)
-        PV:  -5.842 kW FIXME
+        PV:  -3.715 kW
         Heat pump: running (turned on from last request), can also be turned off
         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-        -> remaining -0.723 kW
+        -> remaining ~0.0 kW
          */
         emAgentActivation ! Activation(3600)
 

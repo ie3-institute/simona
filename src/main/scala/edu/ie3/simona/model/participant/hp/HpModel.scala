@@ -357,8 +357,8 @@ object HpModel {
     *   [[edu.ie3.simona.model.thermal.ThermalStorage]] used for heat storage.
     * @param qDotDomesticHotWaterStorage
     *   The thermal power input of the
-    *   [[edu.ie3.simona.model.thermal.ThermalHouse]] used for domestic hot
-    *   water / tap water.
+    *   [[edu.ie3.simona.model.thermal.DomesticHotWaterStorage]] used for
+    *   domestic hot water / tap water.
     */
   final case class ThermalGridOperatingPoint(
       qDotHp: Power,
