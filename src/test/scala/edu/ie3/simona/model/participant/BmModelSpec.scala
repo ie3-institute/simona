@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.simona.model.participant.BmModel.BmState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.scala.quantities.{EuroPerKilowatthour, Kilovoltamperes}
+import edu.ie3.util.scala.quantities.{EuroPerKilowattHour, Kilovoltamperes}
 import squants.energy.{Kilowatts, Megawatts}
 import squants.thermal.Celsius
 import squants.{Power, Temperature}
@@ -36,8 +36,8 @@ class BmModelSpec extends UnitSpec {
     1d,
     QControl(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
     isCostControlled = true,
-    EuroPerKilowatthour(0.05),
-    EuroPerKilowatthour(0.129),
+    EuroPerKilowattHour(0.05),
+    EuroPerKilowattHour(0.129),
     0.05,
   )
 
@@ -145,7 +145,7 @@ class BmModelSpec extends UnitSpec {
 
       testCases.foreach { case (feedInTariff, usage, eff, pElSol) =>
         val caseModel =
-          bmModel.copy(feedInTariff = EuroPerKilowatthour(feedInTariff))
+          bmModel.copy(feedInTariff = EuroPerKilowattHour(feedInTariff))
 
         val pElCalc = caseModel.calculateElOutput(usage, eff)
         pElCalc should approximate(Kilowatts(pElSol))
@@ -270,7 +270,7 @@ class BmModelSpec extends UnitSpec {
         ) =>
           val caseModel = bmModel.copy(
             isCostControlled = costControlled,
-            feedInTariff = EuroPerKilowatthour(0.051d),
+            feedInTariff = EuroPerKilowattHour(0.051d),
           )
 
           val dateTime = ZonedDateTime.parse(time)

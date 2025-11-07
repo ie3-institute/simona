@@ -7,21 +7,18 @@
 package edu.ie3.util.quantities
 
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.DoubleUtils.~=
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
 import edu.ie3.util.scala.quantities.{
-  ApparentPower,
-  EuroPerKilowatthour,
+  EuroPerKilowattHour,
   Kilovoltamperes,
   KilowattHoursPerKelvinCubicMeters,
 }
 import squants.electro.*
-import squants.energy.{Energy, Kilowatts}
-import squants.energy.{KilowattHours, Energy as SquantsEnergy}
+import squants.energy.{Energy, KilowattHours, Kilowatts}
 import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.{Amperes, Each, Radians, Temperature}
@@ -34,7 +31,7 @@ import javax.measure.quantity.*
 class QuantityConversionUtilsSpec extends UnitSpec {
   implicit val doubleTolerance: Double = 1e-10
   implicit val temperatureTolerance: Temperature = Celsius(1e-10)
-  implicit val energyTolerance: SquantsEnergy = KilowattHours(1e-9)
+  implicit val energyTolerance: Energy = KilowattHours(1e-9)
 
   "QuantityConversionUtils" should {
     "properly convert from ComparableQuantity[Temperature] to squants temperatures and its double values" in {
@@ -50,11 +47,14 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       val temperatureQuantityKelvin = Quantities.getQuantity(100, KELVIN)
 
       temperatureQuantityKelvin.toSquants should approximate(Celsius(-173.15))
-      (temperatureQuantityKelvin.toSquants.value ~= -173.15) shouldBe true
-      (temperatureQuantityKelvin.toSquants.toCelsiusDegrees ~= -173.15) shouldBe true
-      (temperatureQuantityKelvin.toSquants.toCelsiusScale ~= -173.15) shouldBe true
-      (temperatureQuantityKelvin.toSquants.toKelvinDegrees ~= -173.15) shouldBe true
-      (temperatureQuantityKelvin.toSquants.toKelvinScale ~= 100d) shouldBe true
+      temperatureQuantityKelvin.toSquants.value should approximate(-173.15)
+      temperatureQuantityKelvin.toSquants.toCelsiusDegrees should
+        approximate(-173.15)
+      temperatureQuantityKelvin.toSquants.toCelsiusScale should
+        approximate(-173.15)
+      temperatureQuantityKelvin.toSquants.toKelvinDegrees should
+        approximate(-173.15)
+      temperatureQuantityKelvin.toSquants.toKelvinScale should approximate(100d)
     }
 
     "properly convert dimensionless quantities" in {
@@ -99,7 +99,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
 
     "properly convert energy price quantities" in {
       val price = Quantities.getQuantity(0.25, EURO_PER_KILOWATTHOUR)
-      price.toSquants shouldBe EuroPerKilowatthour(0.25)
+      price.toSquants shouldBe EuroPerKilowattHour(0.25)
     }
 
     "properly convert electrical resistance quantities from different units" in {
