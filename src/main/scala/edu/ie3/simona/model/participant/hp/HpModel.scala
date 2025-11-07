@@ -81,15 +81,13 @@ class HpModel private (
         operatingPoint,
       )
 
-    val hoursWaterDemandToDetermine = thermalGrid.house match {
-      case Some(house) =>
-        house.checkIfNeedToDetermineDomesticHotWaterDemand(
-          tick,
-          simulationTime,
-          lastState,
-        )
-      case None => None
-    }
+    val hoursWaterDemandToDetermine = thermalGrid.house.flatMap(
+      _.checkIfNeedToDetermineDomesticHotWaterDemand(
+        tick,
+        simulationTime,
+        lastState,
+      )
+    )
 
     val thermalDemands =
       thermalGrid.determineEnergyDemand(
