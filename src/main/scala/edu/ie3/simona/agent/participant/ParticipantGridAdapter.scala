@@ -17,7 +17,7 @@ import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 import squants.energy.Megawatts
-import squants.{Dimensionless, Each, Energy, Power}
+import squants.{Dimensionless, Each, Energy, Power, UnitOfMeasure}
 
 import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success}
@@ -259,6 +259,8 @@ object ParticipantGridAdapter {
       ],
       log: Logger,
   ): ComplexPower = {
+    given UnitOfMeasure[Power] = Megawatts
+
     val p = QuantityUtil.average[Power, Energy](
       tickToPower.map { case (tick, pd) =>
         tick -> pd.p

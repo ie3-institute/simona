@@ -22,7 +22,10 @@ import edu.ie3.simona.service.ServiceStateData.{
   ServiceBaseStateData,
 }
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{
+  FIRST_TICK_IN_SIMULATION,
+  INIT_SIM_TICK,
+}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.slf4j.{Logger, LoggerFactory}
@@ -95,6 +98,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       startTime: ZonedDateTime,
       serviceCore: EmServiceCore,
       tick: Long = INIT_SIM_TICK,
+      simulateUntil: Long = FIRST_TICK_IN_SIMULATION,
       extEmDataMessage: Option[EmDataMessageFromExt] = None,
   ) extends ServiceBaseStateData
 
@@ -134,12 +138,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   )(using log: Logger): Try[(ExtEmDataStateData, Option[Long])] =
     initServiceData match {
       case InitExtEmData(extEmDataConnection, startTime) =>
-        val serviceCore = extEmDataConnection.mode match {
-          case EmMode.BASE =>
-            EmServiceBaseCore.empty
-          case EmMode.EM_COMMUNICATION =>
-            EmCommunicationCore()
-        }
+        val serviceCore = InternalCore(extEmDataConnection.mode)
 
         val emDataInitializedStateData =
           ExtEmDataStateData(extEmDataConnection, startTime, serviceCore)
@@ -165,8 +164,8 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   ): Try[ExtEmDataStateData] =
     registrationMessage match {
       case emServiceRegistration: EmServiceRegistration =>
-        val updatedCore =
-          serviceStateData.serviceCore.handleRegistration(emServiceRegistration)
+        val updatedCore = serviceStateData.serviceCore.toInternal
+          .handleRegistration(emServiceRegistration)
 
         if emServiceRegistration.parentEm.isEmpty then {
           emServiceRegistration.requestingActor ! FlexActivation(
@@ -210,27 +209,68 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       (updatedStateData, Some(tick))
 
     } else {
-      val extMsg = serviceStateData.extEmDataMessage.getOrElse(
-        throw ServiceException(
-          "ExtEmDataService was triggered without ExtEmDataMessage available"
-        )
-      )
+      log.warn(s"Tick ($tick): ServiceCore -> ${serviceStateData.serviceCore.getClass}, msg -> ${serviceStateData.extEmDataMessage}")
 
-      val (updatedCore, msgToExt) =
-        serviceStateData.serviceCore.handleExtMessage(tick, extMsg)(using
-          ctx.log
-        )
+      val ((updatedCore, msgToExt), until) = (
+        serviceStateData.extEmDataMessage,
+        serviceStateData.serviceCore,
+      ) match {
+        case (Some(simulationUntil: EmSimulationUntil), core) =>
+          ((core.toInternal, None), Some(simulationUntil.tick))
 
-      msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+        case (Some(extMsg), core: EmCommunicationCore) =>
+          (
+            core.handleExtMessage(tick, extMsg)(using ctx.log),
+            None,
+          )
 
-      (
-        serviceStateData.copy(
-          tick = tick,
-          serviceCore = updatedCore,
-          extEmDataMessage = None,
-        ),
-        None,
-      )
+        case (Some(extMsg), core: EmServiceBaseCore) =>
+          (
+            core.handleExtMessage(tick, extMsg)(using ctx.log),
+            None,
+          )
+
+        case (_, core: InternalCore) if serviceStateData.simulateUntil > tick =>
+          log.warn(s"Received external message with internal core!")
+
+          ((core, None), Some(serviceStateData.simulateUntil))
+
+        case (Some(extMsg), core) =>
+          (
+            core.toExternal.handleExtMessage(tick, extMsg)(using ctx.log),
+            None,
+          )
+
+        case (None, _) =>
+          throw ServiceException(
+            "ExtEmDataService was triggered without ExtEmDataMessage available"
+          )
+      }
+
+      until match {
+        case Some(lastInternalTick) =>
+          (
+            serviceStateData.copy(
+              tick = tick,
+              serviceCore = updatedCore,
+              simulateUntil = lastInternalTick,
+              extEmDataMessage = None,
+            ),
+            updatedCore.getMaybeNextTick,
+          )
+
+        case None =>
+          msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+
+          (
+            serviceStateData.copy(
+              tick = tick,
+              serviceCore = updatedCore,
+              extEmDataMessage = None,
+            ),
+            None,
+          )
+      }
     }
   }
 

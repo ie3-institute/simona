@@ -6,14 +6,10 @@
 
 package edu.ie3.simona.service.em
 
-import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.model.em.{
-  EmSetPoint,
-  ExtendedFlexOptionsResult,
-  FlexOptions,
-}
+import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
+import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
@@ -33,12 +29,13 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Power as PsdmPower
-import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 
 /** Trait for all em service cores.
   */
 trait EmServiceCore {
+
+  val mode: EmMode
 
   /** The last tick that was completed.
     */
@@ -48,6 +45,12 @@ trait EmServiceCore {
     */
   val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]]
 
+  val agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID]
+
+  val uuidToInferior: Map[UUID, Set[UUID]]
+
+  val uuidToParent: Map[UUID, UUID]
+
   /** Map: uuid to flex option result.
     */
   val allFlexOptions: Map[UUID, FlexOptions]
@@ -56,21 +59,20 @@ trait EmServiceCore {
     */
   val completions: ReceiveDataMap[UUID, FlexCompletion]
 
+  val nextActivation: Map[UUID, Long]
+
   /** Extension to convert a squants power value to a psdm power value.
     */
   extension (value: Power) {
     def toQuantity: ComparableQuantity[PsdmPower] = value.toMegawatts.asMegaWatt
   }
 
-  /** Method to handle a registration message.
-    * @param emServiceRegistration
-    *   The registration to handle.
-    * @return
-    *   An updated service core.
-    */
-  def handleRegistration(
-      emServiceRegistration: EmServiceRegistration
-  ): EmServiceCore
+  def toInternal: InternalCore = InternalCore(this)
+
+  def toExternal: EmServiceCore = mode match {
+    case EmMode.BASE             => EmServiceBaseCore(this)
+    case EmMode.EM_COMMUNICATION => EmCommunicationCore(this)
+  }
 
   /** Method to handle the received message from the external simulation.
     * @param tick
@@ -275,7 +277,7 @@ trait EmServiceCore {
     * @return
     *   An option for the next activation tick.
     */
-  protected final def getMaybeNextTick: Option[Long] =
+  final def getMaybeNextTick: Option[Long] =
     completions.receivedData.flatMap { case (_, completion) =>
       completion.requestAtTick
     }.minOption
