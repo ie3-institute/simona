@@ -219,16 +219,10 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
           ((core.toInternal, None), Some(simulationUntil.tick))
 
         case (Some(extMsg), core: EmCommunicationCore) =>
-          (
-            core.handleExtMessage(tick, extMsg)(using ctx.log),
-            None,
-          )
+          (core.handleExtMessage(tick, extMsg), None)
 
         case (Some(extMsg), core: EmServiceBaseCore) =>
-          (
-            core.handleExtMessage(tick, extMsg)(using ctx.log),
-            None,
-          )
+          (core.handleExtMessage(tick, extMsg), None)
 
         case (_, core: InternalCore) if serviceStateData.simulateUntil > tick =>
           log.warn(s"Received external message with internal core!")
@@ -236,10 +230,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
           ((core, None), Some(serviceStateData.simulateUntil))
 
         case (Some(extMsg), core) =>
-          (
-            core.toExternal.handleExtMessage(tick, extMsg)(using ctx.log),
-            None,
-          )
+          (core.toExternal.handleExtMessage(tick, extMsg), None)
 
         case (None, _) =>
           throw ServiceException(
