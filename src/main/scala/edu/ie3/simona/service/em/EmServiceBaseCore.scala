@@ -66,6 +66,7 @@ final case class EmServiceBaseCore(
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
       UUID,
     ] = Map.empty,
+    override val uncontrolled: Set[UUID] = Set.empty,
     override val uuidToInferior: Map[UUID, Set[UUID]] = Map.empty,
     override val uuidToParent: Map[UUID, UUID] = Map.empty,
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
@@ -338,6 +339,7 @@ object EmServiceBaseCore {
     core.lastFinishedTick,
     core.uuidToAgent,
     core.agentToUuid,
+    core.uncontrolled,
     core.uuidToInferior,
     core.uuidToParent,
     core.completions,

@@ -15,7 +15,11 @@ import edu.ie3.simona.api.data.model.em.*
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexType,
+  FlexibilityMessage,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
@@ -42,6 +46,7 @@ object EmCommunicationCore {
       core.lastFinishedTick,
       uuidToAgent,
       core.agentToUuid,
+      core.uncontrolled,
       core.uuidToInferior,
       core.uuidToParent,
       core.completions,
@@ -143,6 +148,7 @@ case class EmCommunicationCore(
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
       UUID,
     ] = Map.empty,
+    override val uncontrolled: Set[UUID] = Set.empty,
     override val uuidToInferior: Map[UUID, Set[UUID]] = Map.empty,
     override val uuidToParent: Map[UUID, UUID] = Map.empty,
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
@@ -440,11 +446,11 @@ case class EmCommunicationCore(
     }
 
     flexResponse match {
-      case scheduleFlexActivation@ScheduleFlexActivation(
-      modelUuid,
-      _,
-      scheduleKey,
-      ) =>
+      case scheduleFlexActivation @ ScheduleFlexActivation(
+            modelUuid,
+            _,
+            scheduleKey,
+          ) =>
         log.warn(s"$scheduleFlexActivation not handled!")
         (this, None)
 
@@ -516,12 +522,11 @@ case class EmCommunicationCore(
           )
         }
 
-
-      case completion@FlexCompletion(
-      sender,
-      requestAtNextActivation,
-      requestAtTick,
-      ) =>
+      case completion @ FlexCompletion(
+            sender,
+            requestAtNextActivation,
+            requestAtTick,
+          ) =>
         // the completion can be sent directly to the receiver, since it's not used by the external communication
         uuidToAgent(receiverUuid) ! completion
         emStates(sender).setWaitingForInternal(false)
@@ -558,7 +563,6 @@ case class EmCommunicationCore(
 
           (copy(completions = updatedData), msgToExt)
         }
-
 
       // not supported
       case other =>

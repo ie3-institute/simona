@@ -14,13 +14,9 @@ import edu.ie3.simona.api.ontology.em.{
   EmDataResponseMessageToExt,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
+import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexCompletion,
-  FlexRequest,
-  FlexResponse,
-  IssueNoControl,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -36,6 +32,7 @@ case class InternalCore(
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
       UUID,
     ] = Map.empty,
+    override val uncontrolled: Set[UUID] = Set.empty,
     override val uuidToInferior: Map[UUID, Set[UUID]] = Map.empty,
     override val uuidToParent: Map[UUID, UUID] = Map.empty,
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
@@ -62,7 +59,7 @@ case class InternalCore(
     val uuid = emServiceRegistration.inputUuid
     val ref = emServiceRegistration.requestingActor
 
-    val (updatedInferior, updatedUuidToParent) =
+    val (updatedUncontrolled, updatedInferior, updatedUuidToParent) =
       emServiceRegistration.parentUuid match {
         case Some(parent) =>
           val inferior = uuidToInferior.get(parent) match {
@@ -73,16 +70,18 @@ case class InternalCore(
           }
 
           (
+            uncontrolled,
             uuidToInferior.updated(parent, inferior),
             uuidToParent.updated(uuid, parent),
           )
         case None =>
-          (uuidToInferior, uuidToParent)
+          (uncontrolled + uuid, uuidToInferior, uuidToParent)
       }
 
     copy(
       uuidToAgent = uuidToAgent.updated(uuid, ref),
       agentToUuid = agentToUuid.updated(ref, uuid),
+      uncontrolled = updatedUncontrolled,
       uuidToInferior = updatedInferior,
       uuidToParent = updatedUuidToParent,
       nextActivation = nextActivation.updated(uuid, 0),
@@ -95,6 +94,14 @@ case class InternalCore(
     log.warn("Handling of external message not possible!")
 
     (this, None)
+  }
+
+  def sendActivations(tick: Long): InternalCore = {
+    uncontrolled.filter(nextActivation(_) == tick).foreach {
+      uuidToAgent(_) ! FlexActivation(tick, PowerLimit)
+    }
+
+    this
   }
 
   override def handleFlexResponse(
@@ -157,12 +164,13 @@ object InternalCore {
   def apply(core: EmServiceCore): InternalCore = core match {
     case internal: InternalCore =>
       internal
-    case external =>
+    case _ =>
       InternalCore(
         core.mode,
         core.lastFinishedTick,
         core.uuidToAgent,
         core.agentToUuid,
+        core.uncontrolled,
         core.uuidToInferior,
         core.uuidToParent,
         core.completions,

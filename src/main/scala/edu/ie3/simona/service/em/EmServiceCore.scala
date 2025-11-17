@@ -47,6 +47,8 @@ trait EmServiceCore {
 
   val agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID]
 
+  val uncontrolled: Set[UUID]
+
   val uuidToInferior: Map[UUID, Set[UUID]]
 
   val uuidToParent: Map[UUID, UUID]

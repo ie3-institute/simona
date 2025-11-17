@@ -209,7 +209,9 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       (updatedStateData, Some(tick))
 
     } else {
-      log.warn(s"Tick ($tick): ServiceCore -> ${serviceStateData.serviceCore.getClass}, msg -> ${serviceStateData.extEmDataMessage}")
+      log.warn(
+        s"Tick ($tick): ServiceCore -> ${serviceStateData.serviceCore.getClass}, msg -> ${serviceStateData.extEmDataMessage}"
+      )
 
       val ((updatedCore, msgToExt), until) = (
         serviceStateData.extEmDataMessage,
@@ -218,16 +220,16 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         case (Some(simulationUntil: EmSimulationUntil), core) =>
           ((core.toInternal, None), Some(simulationUntil.tick))
 
-        case (Some(extMsg), core: EmCommunicationCore) =>
-          (core.handleExtMessage(tick, extMsg), None)
-
-        case (Some(extMsg), core: EmServiceBaseCore) =>
+        case (Some(extMsg), core: (EmCommunicationCore | EmServiceBaseCore)) =>
           (core.handleExtMessage(tick, extMsg), None)
 
         case (_, core: InternalCore) if serviceStateData.simulateUntil > tick =>
           log.warn(s"Received external message with internal core!")
 
-          ((core, None), Some(serviceStateData.simulateUntil))
+          (
+            (core.sendActivations(tick), None),
+            Some(serviceStateData.simulateUntil),
+          )
 
         case (Some(extMsg), core) =>
           (core.toExternal.handleExtMessage(tick, extMsg), None)
@@ -251,7 +253,9 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
           )
 
         case None =>
-          msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+          msgToExt.foreach(
+            serviceStateData.extEmDataConnection.queueExtResponseMsg
+          )
 
           (
             serviceStateData.copy(
