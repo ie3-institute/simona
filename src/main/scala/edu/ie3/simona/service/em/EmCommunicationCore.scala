@@ -84,19 +84,21 @@ object EmCommunicationCore {
 
     def handleReceivedFlexOption(flexOption: UUID): Unit = {
       awaitedFlexOptions.remove(flexOption)
-      waitingForInternal = false
 
       if awaitedFlexOptions.isEmpty then {
         waitingForInternal = true
+      } else {
+        waitingForInternal = false
       }
     }
 
     def handleReceivedFlexOptions(flexOptions: Seq[UUID]): Unit = {
       flexOptions.foreach(awaitedFlexOptions.remove)
-      waitingForInternal = false
 
       if awaitedFlexOptions.isEmpty then {
         waitingForInternal = true
+      } else {
+        waitingForInternal = false
       }
     }
 
@@ -151,7 +153,6 @@ case class EmCommunicationCore(
     disaggregated: Map[UUID, Boolean] = Map.empty,
     requestedFlexType: Map[UUID, FlexType] = Map.empty,
     currentSetPoint: Map[UUID, Power] = Map.empty,
-    activatedAgents: Set[UUID] = Set.empty,
     expectDataFrom: ReceiveMultiDataMap[UUID, EmData] =
       ReceiveMultiDataMap.empty,
 ) extends EmServiceCore {
@@ -174,7 +175,7 @@ case class EmCommunicationCore(
         // activatedAgents.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
 
         val nextTick: java.util.Optional[java.lang.Long] =
-          if activatedAgents.nonEmpty then {
+          if emStates.exists(_._2.isActivated) then {
             requestEmCompletion.maybeNextTick
           } else getMaybeNextTick.map(long2Long).toJava
 
@@ -544,7 +545,6 @@ case class EmCommunicationCore(
               requestedFlexType = Map.empty,
               allFlexOptions = Map.empty,
               currentSetPoint = Map.empty,
-              activatedAgents = Set.empty,
               expectDataFrom = ReceiveMultiDataMap.empty,
               nextActivation = nextActivation ++ additionalActivation,
             ),

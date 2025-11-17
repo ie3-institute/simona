@@ -35,7 +35,7 @@ final case class EvModelWrapper(
   def uuid: UUID = original.getUuid
   def id: String = original.getId
 
-  lazy val pRatedAc: Power = original.getPRatedAC.toSquants
+  lazy val pRatedAc: Power = original.getSRatedAC.toSquants
   lazy val pRatedDc: Power = original.getPRatedDC.toSquants
   lazy val eStorage: Energy = original.getEStorage.toSquants
 
