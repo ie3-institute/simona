@@ -17,6 +17,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.participant.WecModel.{AirWeatherData, WecState}
 import edu.ie3.simona.ontology.messages.flex.FlexType
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits
 import squants.energy.{Power, Watts}
@@ -117,7 +118,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
 
       actualState.tick shouldEqual oldState.tick
       actualState.weatherData shouldEqual weatherSeriesData.series.map {
-        case (tick, data) =>
+        case (tick, data: WeatherData) =>
           tick -> AirWeatherData(data)
       }
     }

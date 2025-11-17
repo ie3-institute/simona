@@ -32,7 +32,7 @@ import edu.ie3.simona.service.Data.PrimaryData.{
 }
 import edu.ie3.simona.service.Data.SecondaryData.{
   WeatherData,
-  WeatherSeriesData,
+  SecondarySeriesData,
 }
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.PowerSystemUnits.PU
@@ -94,9 +94,14 @@ class WecModel private (
       .collectFirst {
         case weatherData: WeatherData =>
           SortedMap(state.tick -> AirWeatherData(weatherData))
-        case WeatherSeriesData(series) =>
-          series.map { case (tick, weatherData) =>
-            tick -> AirWeatherData(weatherData)
+        case SecondarySeriesData(series) =>
+          series.map {
+            case (tick, weatherData: WeatherData) =>
+              tick -> AirWeatherData(weatherData)
+            case (_, unexpectedData) =>
+              throw new CriticalFailureException(
+                s"Unexpected secondary data $unexpectedData"
+              )
           }
       }
       .map(newData => state.copy(weatherData = newData))
