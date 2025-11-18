@@ -26,6 +26,16 @@ trait OptimizingTestLike {
       SortedMap.from(ticks.zip(seq.map(Kilowatts.apply)))
 
   extension (res: StepResults)
+
+    /** Energy value related to the start of the optimization, which is always
+      * set to 0 kWh. The value is converted back to the physical model from the
+      * adapted model that was used for optimization.
+      *
+      * @param conversion
+      *   The conversion factor.
+      * @return
+      *   The energy value in kWh.
+      */
     def energyVal(using conversion: EnergyConversionFactor): Double = {
       val solution = res.state
         .getOrElse(fail("No state provided in StepResults!")) match {
@@ -38,6 +48,11 @@ trait OptimizingTestLike {
       solution * conversion.factor
     }
 
+    /** Power value in kW.
+      *
+      * @return
+      *   The power value in kW.
+      */
     def pVal: Double =
       res.getOperationResult.toKilowatts
 

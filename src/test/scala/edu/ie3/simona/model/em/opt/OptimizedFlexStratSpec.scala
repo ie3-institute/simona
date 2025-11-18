@@ -72,7 +72,9 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
             val adaptedLimits = adaptedFlexOptions.energyLimits(0)
 
             val adapted = AdaptedModel(
+              // currently stored energy is the difference of 0 to the lower energy boundary
               currentEnergy = -adaptedLimits.getLower,
+              // the total storage capacity is the difference between upper and lower boundary
               eStorage = adaptedLimits.getUpper - adaptedLimits.getLower,
               pMax = adaptedFlexOptions.powerLimits.getUpper,
               etaAvg = adaptedFlexOptions.etaCharge,
@@ -144,6 +146,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
             Seq(5, -10, 10, -2).toPowerMap
@@ -217,6 +220,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
             Seq(5, -60, 110, -2).toPowerMap
@@ -291,6 +295,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
             Seq(-10, -10, 10, 10).toPowerMap
@@ -381,6 +386,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
             Seq(-10, -50, 20, 30).toPowerMap
@@ -471,6 +477,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
             Seq(1, 1, -10, -10).toPowerMap
@@ -581,6 +588,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
             Seq(5, -10, 10, -2).toPowerMap
