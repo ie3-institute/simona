@@ -23,6 +23,7 @@ import org.slf4j.Logger
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.OptionConverters.RichOption
 
 /** Basic service core for an [[ExtEmDataService]].
   * @param mode
@@ -102,6 +103,7 @@ final case class EmServiceBaseCore(
 
       val updatedState = copy(
         flexOptions = ReceiveDataMap(flexRequests.keySet),
+        completions = completions.addExpectedKeys(flexRequests.keySet),
         disaggregated = disaggregated ++ flexRequests,
         sendOptionsToExt = true,
       )
@@ -139,6 +141,28 @@ final case class EmServiceBaseCore(
         }
 
       } else (updatedState, None)
+
+    case requestEmCompletion: RequestEmCompletion =>
+      // finish tick and return next tick
+      val extTick = requestEmCompletion.tick
+
+      if extTick != tick then {
+        throw new CriticalFailureException(
+          s"Received completion request for tick '$extTick', while being in tick '$tick'."
+        )
+      } else {
+        log.info(s"Request to finish for tick '$tick' received.")
+
+        // deactivate agents by sending an IssueNoControl message
+        // activatedAgents.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
+
+        val nextTick = getMaybeNextTick.map(long2Long).toJava
+
+        (
+          copy(lastFinishedTick = tick),
+          Some(new EmCompletion(nextTick)),
+        )
+      }
 
     case _ =>
       throw new CriticalFailureException(
@@ -277,7 +301,8 @@ final case class EmServiceBaseCore(
     log.debug(s"$receiver: $flexRequest")
     receiver ! flexRequest
 
-    (this, None)
+    val uuid = agentToUuid(receiver)
+    (copy(completions = completions.addExpectedKey(uuid)), None)
   }
 
   /** Method to handle flex options.
