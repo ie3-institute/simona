@@ -101,7 +101,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.20"
+  implementation "ch.qos.logback:logback-classic:1.5.21"
 
   /* testing */
   // scalatest & junit
@@ -154,7 +154,7 @@ dependencies {
   implementation "io.confluent:kafka-streams-avro-serde:${confluentKafkaVersion}"
   implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:5.0.14"
 
-  implementation 'commons-io:commons-io:2.20.0' // used for FilenameUtils
+  implementation 'commons-io:commons-io:2.21.0' // used for FilenameUtils
   implementation 'javax.measure:unit-api:2.2'
   implementation 'tech.units:indriya:2.2.3' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
