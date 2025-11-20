@@ -146,6 +146,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
@@ -220,6 +221,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
@@ -295,6 +297,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
@@ -386,6 +389,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
@@ -477,6 +481,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
@@ -588,6 +593,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
+        // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
