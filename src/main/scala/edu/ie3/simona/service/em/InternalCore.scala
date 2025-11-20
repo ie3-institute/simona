@@ -10,6 +10,7 @@ import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
 import edu.ie3.simona.api.ontology.em.{
+  EmCompletion,
   EmDataMessageFromExt,
   EmDataResponseMessageToExt,
 }
@@ -126,11 +127,14 @@ case class InternalCore(
                 lastFinishedTick = tick,
                 nextActivation = nextActivation.updated(modelUuid, nextTick),
               ),
-              None,
+              Some(new EmCompletion(getMaybeNextExtTick)),
             )
 
           case (Left(_), None) =>
-            (copy(lastFinishedTick = tick), None)
+            (
+              copy(lastFinishedTick = tick),
+              Some(new EmCompletion(getMaybeNextExtTick)),
+            )
 
           case (Right(ref), Some(nextTick)) =>
             ref ! flexResponse
@@ -147,6 +151,10 @@ case class InternalCore(
 
             (this, None)
         }
+
+      case other =>
+        log.warn(s"Cannot handle: $other")
+        (this, None)
     }
   }
 

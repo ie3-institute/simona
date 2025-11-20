@@ -13,7 +13,8 @@ import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
@@ -33,6 +34,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
+import scala.jdk.OptionConverters.RichOptional
 
 object ExtEmDataService extends SimonaService with ExtDataSupport {
 
@@ -98,8 +100,10 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       startTime: ZonedDateTime,
       serviceCore: EmServiceCore,
       tick: Long = INIT_SIM_TICK,
+      simulateFrom: Long = FIRST_TICK_IN_SIMULATION,
       simulateUntil: Long = FIRST_TICK_IN_SIMULATION,
       extEmDataMessage: Option[EmDataMessageFromExt] = None,
+      scheduler: Option[ActorRef[SchedulerMessage]] = None,
   ) extends ServiceBaseStateData
 
   case class InitExtEmData(
@@ -183,6 +187,23 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         )
     }
 
+  override protected def finishActivation(
+      stateData: ExtEmDataStateData,
+      scheduler: ActorRef[SchedulerMessage],
+      maybeNextTick: Option[Long],
+      ctx: ActorContext[ExtEmDataService.Message],
+  ): Option[ExtEmDataStateData] = {
+    val tick = stateData.tick
+    val nextExtTick = stateData.simulateUntil
+
+    if nextExtTick > tick && stateData.simulateFrom < tick then {
+      Some(stateData.copy(scheduler = Some(scheduler)))
+    } else {
+      scheduler ! Completion(ctx.self, maybeNextTick.filter(_ < nextExtTick))
+      None
+    }
+  }
+
   override protected def announceInformation(tick: Long)(using
       serviceStateData: ExtEmDataStateData,
       ctx: ActorContext[Message],
@@ -223,16 +244,16 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         case (Some(extMsg), core: (EmCommunicationCore | EmServiceBaseCore)) =>
           (core.handleExtMessage(tick, extMsg), None)
 
-        case (_, core: InternalCore) if serviceStateData.simulateUntil > tick =>
-          log.warn(s"Received external message with internal core!")
-
-          (
-            (core.sendActivations(tick), None),
-            Some(serviceStateData.simulateUntil),
-          )
-
         case (Some(extMsg), core) =>
           (core.toExternal.handleExtMessage(tick, extMsg), None)
+
+        case (extMsg, core: InternalCore)
+            if serviceStateData.simulateUntil > tick =>
+          extMsg.foreach(_ =>
+            log.warn(s"Received external message with internal core!")
+          )
+
+          ((core.sendActivations(tick), None), None)
 
         case (None, _) =>
           throw ServiceException(
@@ -241,18 +262,21 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       }
 
       until match {
-        case Some(lastInternalTick) =>
+        case Some(nextExternalTick) =>
+          log.warn(s"Simulate until tick $nextExternalTick.")
+
           (
             serviceStateData.copy(
               tick = tick,
               serviceCore = updatedCore,
-              simulateUntil = lastInternalTick,
+              simulateFrom = tick,
+              simulateUntil = nextExternalTick,
               extEmDataMessage = None,
             ),
-            updatedCore.getMaybeNextTick,
+            updatedCore.nextActivation.values.minOption,
           )
 
-        case None =>
+        case _ =>
           msgToExt.foreach(
             serviceStateData.extEmDataConnection.queueExtResponseMsg
           )
@@ -283,7 +307,8 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   }
 
   override protected def handleDataResponseMessage(
-      extResponseMsg: ServiceResponseMessage
+      extResponseMsg: ServiceResponseMessage,
+      ctx: ActorContext[Message],
   )(using
       serviceStateData: ExtEmDataStateData
   ): ExtEmDataStateData = {
@@ -294,8 +319,58 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         extResponseMsg,
       )(using serviceStateData.startTime, log)
 
-    extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+    (serviceStateData.scheduler, serviceStateData.simulateUntil) match {
+      case (Some(scheduler), nextExternalTick)
+          if nextExternalTick > serviceStateData.tick =>
+        ctx.log.warn(s"Still activated!")
+        // service is still activated
 
-    serviceStateData.copy(serviceCore = updatedCore)
+        extMsg match {
+          case Some(_: EmCompletion) =>
+            // every em agent is finished for this tick
+            // go to next activation
+            val nextTick = updatedCore.nextActivation.values.minOption
+              .filter(_ < nextExternalTick)
+
+            log.warn(s"Next tick option: $nextTick")
+
+            scheduler ! Completion(
+              ctx.self,
+              nextTick,
+            )
+
+            serviceStateData.copy(
+              serviceCore = updatedCore,
+              scheduler = None,
+            )
+
+          case _ =>
+            // we are not finished yet
+            serviceStateData.copy(serviceCore = updatedCore)
+        }
+
+      case (Some(scheduler), _) =>
+        ctx.log.warn(s"Still activated!")
+
+        // service is still activated, but every em agent is finished
+
+        log.warn(s"Next tick option: None")
+
+        scheduler ! Completion(
+          ctx.self,
+          None,
+        )
+
+        serviceStateData.copy(
+          serviceCore = updatedCore,
+          scheduler = None,
+        )
+
+      case _ =>
+        ctx.log.warn(s"Deactivated!")
+        extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+
+        serviceStateData.copy(serviceCore = updatedCore)
+    }
   }
 }

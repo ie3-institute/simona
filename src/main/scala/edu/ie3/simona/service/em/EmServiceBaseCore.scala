@@ -105,7 +105,7 @@ final case class EmServiceBaseCore(
         flexOptions = ReceiveDataMap(flexRequests.keySet),
         completions = completions.addExpectedKeys(flexRequests.keySet),
         disaggregated = disaggregated ++ flexRequests,
-        sendOptionsToExt = true,
+        sendOptionsToExt = flexRequests.nonEmpty,
       )
 
       // handle set points
@@ -134,6 +134,7 @@ final case class EmServiceBaseCore(
           (
             updatedState.copy(
               flexOptions = updatedState.flexOptions.addExpectedKeys(entities),
+              completions = updatedState.completions.addExpectedKeys(entities),
               setPointOption = Some(setPoints),
             ),
             None,
@@ -156,7 +157,7 @@ final case class EmServiceBaseCore(
         // deactivate agents by sending an IssueNoControl message
         // activatedAgents.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
 
-        val nextTick = getMaybeNextTick.map(long2Long).toJava
+        val nextTick = getMaybeNextExtTick
 
         (
           copy(lastFinishedTick = tick),
@@ -221,6 +222,7 @@ final case class EmServiceBaseCore(
             (updatedCore, Some(new FlexOptionsResponse(dataToSend.asJava)))
 
           } else {
+
             setPointOption match {
               case Some(setPoints) =>
                 // we have received new set points, that are not handled yet => we will handle them now
@@ -234,7 +236,7 @@ final case class EmServiceBaseCore(
           }
 
         } else {
-          log.warn(s"Missing flex options for: ${updated.getExpectedKeys}")
+          log.debug(s"Missing flex options for: ${updated.getExpectedKeys}")
 
           (
             copy(

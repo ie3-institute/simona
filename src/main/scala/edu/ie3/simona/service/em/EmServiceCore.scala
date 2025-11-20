@@ -27,7 +27,7 @@ import squants.Power
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.{Optional, UUID}
 import javax.measure.quantity.Power as PsdmPower
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 
@@ -283,4 +283,7 @@ trait EmServiceCore {
     completions.receivedData.flatMap { case (_, completion) =>
       completion.requestAtTick
     }.minOption
+
+  final def getMaybeNextExtTick: Optional[java.lang.Long] =
+    getMaybeNextTick.map(long2Long).toJava
 }

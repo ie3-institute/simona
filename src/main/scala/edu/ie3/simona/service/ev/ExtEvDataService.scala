@@ -29,6 +29,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
+import edu.ie3.simona.service.em.ExtEmDataService.Message
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -333,7 +334,8 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
     }
 
   override protected def handleDataResponseMessage(
-      extResponseMsg: ServiceResponseMessage
+      extResponseMsg: ServiceResponseMessage,
+      ctx: ActorContext[Message],
   )(using serviceStateData: ExtEvStateData): ExtEvStateData = {
     extResponseMsg match {
       case DepartingEvsResponse(evcs, evModels) =>

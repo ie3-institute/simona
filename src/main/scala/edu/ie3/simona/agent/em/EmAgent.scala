@@ -226,6 +226,8 @@ object EmAgent {
 
       awaitingFlexCtrl(emData, modelShell, flexOptionsCore)
 
+    case (_, x) =>
+      throw new CriticalFailureException(s"Inactive: Could not handle $x")
   }
 
   private def activate(
@@ -325,6 +327,10 @@ object EmAgent {
        can schedule themselves with their completions and inactive agents should
        be sleeping right now
      */
+    case x =>
+      throw new CriticalFailureException(
+        s"AwaitingFlexOptions: Could not handle $x"
+      )
   }
 
   /** Behavior of an [[EmAgent]] waiting for a flex control message to be
@@ -369,6 +375,11 @@ object EmAgent {
       }
 
       awaitingCompletions(emData, modelShell, newCore)
+
+    case x =>
+      throw new CriticalFailureException(
+        s"AwaitingFlexControl: Could not handle $x"
+      )
   }
 
   /** Behavior of an [[EmAgent]] waiting for completions messages to be received
@@ -416,6 +427,10 @@ object EmAgent {
           )
         }
 
+    case (_, x) =>
+      throw new CriticalFailureException(
+        s"AwaitingCompletion: Could not handle $x"
+      )
   }
 
   /** Completions have all been received, possibly send results and report to

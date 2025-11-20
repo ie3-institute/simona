@@ -30,6 +30,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
+import edu.ie3.simona.service.em.ExtEmDataService.Message
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -237,7 +238,8 @@ object ExtPrimaryDataService extends SimonaService with ExtDataSupport {
   }
 
   override protected def handleDataResponseMessage(
-      extResponseMsg: ServiceResponseMessage
+      extResponseMsg: ServiceResponseMessage,
+      ctx: ActorContext[Message],
   )(implicit
       serviceStateData: ExtPrimaryDataStateData
   ): ExtPrimaryDataStateData = serviceStateData
