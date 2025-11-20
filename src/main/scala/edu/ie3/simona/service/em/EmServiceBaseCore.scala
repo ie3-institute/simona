@@ -12,6 +12,7 @@ import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
@@ -60,7 +61,7 @@ import scala.jdk.OptionConverters.RichOption
   *   Option for em set points that needs to be handled at a later time.
   */
 final case class EmServiceBaseCore(
-    override val mode: EmMode,
+    override val mode: EmMode = EmMode.BASE,
     override val lastFinishedTick: Long = PRE_INIT_TICK,
     override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
     override val agentToUuid: Map[
@@ -80,6 +81,42 @@ final case class EmServiceBaseCore(
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[Map[UUID, EmSetPoint]] = None,
 ) extends EmServiceCore {
+
+  def handleRegistration(
+      emServiceRegistration: EmServiceRegistration
+  ): EmServiceCore = {
+    val uuid = emServiceRegistration.inputUuid
+    val ref = emServiceRegistration.requestingActor
+
+    val (updatedUncontrolled, updatedInferior, updatedUuidToParent) =
+      emServiceRegistration.parentUuid match {
+        case Some(parent) =>
+          val inferior = uuidToInferior.get(parent) match {
+            case Some(inferiorUuids) =>
+              inferiorUuids ++ Seq(uuid)
+            case None =>
+              Set(uuid)
+          }
+
+          (
+            uncontrolled,
+            uuidToInferior.updated(parent, inferior),
+            uuidToParent.updated(uuid, parent),
+          )
+        case None =>
+          (uncontrolled + uuid, uuidToInferior, uuidToParent)
+      }
+
+    copy(
+      uuidToAgent = uuidToAgent.updated(uuid, ref),
+      agentToUuid = agentToUuid.updated(ref, uuid),
+      uncontrolled = updatedUncontrolled,
+      uuidToInferior = updatedInferior,
+      uuidToParent = updatedUuidToParent,
+      completions = completions.addExpectedKey(uuid),
+      nextActivation = nextActivation.updated(uuid, -1),
+    )
+  }
 
   override def handleExtMessage(tick: Long, extMsg: EmDataMessageFromExt)(using
       log: Logger

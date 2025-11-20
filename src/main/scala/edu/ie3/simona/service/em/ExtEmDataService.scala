@@ -100,10 +100,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       startTime: ZonedDateTime,
       serviceCore: EmServiceCore,
       tick: Long = INIT_SIM_TICK,
-      simulateFrom: Long = FIRST_TICK_IN_SIMULATION,
-      simulateUntil: Long = FIRST_TICK_IN_SIMULATION,
       extEmDataMessage: Option[EmDataMessageFromExt] = None,
-      scheduler: Option[ActorRef[SchedulerMessage]] = None,
   ) extends ServiceBaseStateData
 
   case class InitExtEmData(
@@ -123,17 +120,13 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       log.debug(s"Received response message: $scheduleFlexActivation")
 
       receiver match {
-        case uuid: UUID =>
+        case _: UUID =>
           log.debug(s"Unlocking msg: $scheduleFlexActivation")
           scheduleFlexActivation.scheduleKey.foreach(_.unlock())
 
         case ref: ActorRef[EmAgent.Message] =>
           log.debug(s"Forwarding the message to: $ref")
           ref ! scheduleFlexActivation
-
-        case _ =>
-          // this should not happen
-          log.warn(s"No receiver found for msg: $serviceResponse")
       }
   }
 
@@ -142,7 +135,10 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   )(using log: Logger): Try[(ExtEmDataStateData, Option[Long])] =
     initServiceData match {
       case InitExtEmData(extEmDataConnection, startTime) =>
-        val serviceCore = InternalCore(extEmDataConnection.mode)
+        val serviceCore = extEmDataConnection.mode match {
+          case EmMode.BASE             => EmServiceBaseCore()
+          case EmMode.EM_COMMUNICATION => EmCommunicationCore()
+        }
 
         val emDataInitializedStateData =
           ExtEmDataStateData(extEmDataConnection, startTime, serviceCore)
@@ -168,8 +164,8 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   ): Try[ExtEmDataStateData] =
     registrationMessage match {
       case emServiceRegistration: EmServiceRegistration =>
-        val updatedCore = serviceStateData.serviceCore.toInternal
-          .handleRegistration(emServiceRegistration)
+        val updatedCore =
+          serviceStateData.serviceCore.handleRegistration(emServiceRegistration)
 
         if emServiceRegistration.parentEm.isEmpty then {
           emServiceRegistration.requestingActor ! FlexActivation(
@@ -186,23 +182,6 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
           )
         )
     }
-
-  override protected def finishActivation(
-      stateData: ExtEmDataStateData,
-      scheduler: ActorRef[SchedulerMessage],
-      maybeNextTick: Option[Long],
-      ctx: ActorContext[ExtEmDataService.Message],
-  ): Option[ExtEmDataStateData] = {
-    val tick = stateData.tick
-    val nextExtTick = stateData.simulateUntil
-
-    if nextExtTick > tick && stateData.simulateFrom < tick then {
-      Some(stateData.copy(scheduler = Some(scheduler)))
-    } else {
-      scheduler ! Completion(ctx.self, maybeNextTick.filter(_ < nextExtTick))
-      None
-    }
-  }
 
   override protected def announceInformation(tick: Long)(using
       serviceStateData: ExtEmDataStateData,
@@ -234,62 +213,25 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         s"Tick ($tick): ServiceCore -> ${serviceStateData.serviceCore.getClass}, msg -> ${serviceStateData.extEmDataMessage}"
       )
 
-      val ((updatedCore, msgToExt), until) = (
-        serviceStateData.extEmDataMessage,
-        serviceStateData.serviceCore,
-      ) match {
-        case (Some(simulationUntil: EmSimulationUntil), core) =>
-          ((core.toInternal, None), Some(simulationUntil.tick))
+      val extMsg = serviceStateData.extEmDataMessage.getOrElse(
+        throw ServiceException(
+          "ExtEmDataService was triggered without ExtEmDataMessage available"
+        )
+      )
 
-        case (Some(extMsg), core: (EmCommunicationCore | EmServiceBaseCore)) =>
-          (core.handleExtMessage(tick, extMsg), None)
+      val (updatedCore, msgToExt) =
+        serviceStateData.serviceCore.handleExtMessage(tick, extMsg)
 
-        case (Some(extMsg), core) =>
-          (core.toExternal.handleExtMessage(tick, extMsg), None)
+      msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
 
-        case (extMsg, core: InternalCore)
-            if serviceStateData.simulateUntil > tick =>
-          extMsg.foreach(_ =>
-            log.warn(s"Received external message with internal core!")
-          )
-
-          ((core.sendActivations(tick), None), None)
-
-        case (None, _) =>
-          throw ServiceException(
-            "ExtEmDataService was triggered without ExtEmDataMessage available"
-          )
-      }
-
-      until match {
-        case Some(nextExternalTick) =>
-          log.warn(s"Simulate until tick $nextExternalTick.")
-
-          (
-            serviceStateData.copy(
-              tick = tick,
-              serviceCore = updatedCore,
-              simulateFrom = tick,
-              simulateUntil = nextExternalTick,
-              extEmDataMessage = None,
-            ),
-            updatedCore.nextActivation.values.minOption,
-          )
-
-        case _ =>
-          msgToExt.foreach(
-            serviceStateData.extEmDataConnection.queueExtResponseMsg
-          )
-
-          (
-            serviceStateData.copy(
-              tick = tick,
-              serviceCore = updatedCore,
-              extEmDataMessage = None,
-            ),
-            None,
-          )
-      }
+      (
+        serviceStateData.copy(
+          tick = tick,
+          serviceCore = updatedCore,
+          extEmDataMessage = None,
+        ),
+        None,
+      )
     }
   }
 
@@ -312,61 +254,18 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   )(using
       serviceStateData: ExtEmDataStateData
   ): ExtEmDataStateData = {
+    val tick = serviceStateData.tick
 
     val (updatedCore, extMsg) =
       serviceStateData.serviceCore.handleDataResponseMessage(
-        serviceStateData.tick,
+        tick,
         extResponseMsg,
       )(using serviceStateData.startTime, log)
 
-    (serviceStateData.scheduler, serviceStateData.simulateUntil) match {
-      case (Some(scheduler), nextExternalTick)
-          if nextExternalTick > serviceStateData.tick =>
-        // service is still activated
-
-        extMsg match {
-          case Some(_: EmCompletion) =>
-            // every em agent is finished for this tick
-            // go to next activation
-            val nextTick = updatedCore.nextActivation.values.minOption
-              .filter(_ < nextExternalTick)
-
-            log.warn(s"Next tick option: $nextTick")
-
-            scheduler ! Completion(
-              ctx.self,
-              nextTick,
-            )
-
-            serviceStateData.copy(
-              serviceCore = updatedCore,
-              scheduler = None,
-            )
-
-          case _ =>
-            // we are not finished yet
-            serviceStateData.copy(serviceCore = updatedCore)
-        }
-
-      case (Some(scheduler), _) =>
-        // service is still activated, but every em agent is finished
-
-        log.warn(s"Next tick option: None")
-
-        scheduler ! Completion(
-          ctx.self,
-          None,
-        )
-
-        serviceStateData.copy(
-          serviceCore = updatedCore,
-          scheduler = None,
-        )
-
-      case _ =>
-        extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
-
-        serviceStateData.copy(serviceCore = updatedCore)
+    if tick >= FIRST_TICK_IN_SIMULATION then {
+      extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
     }
+
+    serviceStateData.copy(serviceCore = updatedCore)
   }
 }

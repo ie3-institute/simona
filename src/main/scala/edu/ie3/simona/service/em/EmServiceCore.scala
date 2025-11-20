@@ -69,12 +69,25 @@ trait EmServiceCore {
     def toQuantity: ComparableQuantity[PsdmPower] = value.toMegawatts.asMegaWatt
   }
 
+  @deprecated
   def toInternal: InternalCore = InternalCore(this)
 
+  @deprecated
   def toExternal: EmServiceCore = mode match {
     case EmMode.BASE             => EmServiceBaseCore(this)
     case EmMode.EM_COMMUNICATION => EmCommunicationCore(this)
   }
+
+  /** Method to handle a registration message.
+    *
+    * @param emServiceRegistration
+    *   The registration to handle.
+    * @return
+    *   An updated service core.
+    */
+  def handleRegistration(
+      emServiceRegistration: EmServiceRegistration
+  ): EmServiceCore
 
   /** Method to handle the received message from the external simulation.
     * @param tick

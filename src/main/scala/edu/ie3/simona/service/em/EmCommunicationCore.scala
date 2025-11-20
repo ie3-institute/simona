@@ -14,6 +14,7 @@ import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.api.data.model.em.*
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.{
   FlexType,
@@ -22,7 +23,7 @@ import edu.ie3.simona.ontology.messages.flex.{
 }
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
-import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import org.apache.pekko.actor.typed.ActorRef
@@ -32,7 +33,7 @@ import squants.Power
 import java.util.UUID
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.{RichOption, RichOptional}
+import scala.jdk.OptionConverters.RichOptional
 import scala.math.max
 import scala.util.Try
 
@@ -141,7 +142,7 @@ object EmCommunicationCore {
 }
 
 case class EmCommunicationCore(
-    override val mode: EmMode,
+    override val mode: EmMode = EmMode.EM_COMMUNICATION,
     override val lastFinishedTick: Long = PRE_INIT_TICK,
     override val uuidToAgent: Map[UUID, ActorRef[Message]] = Map.empty,
     override val agentToUuid: Map[
@@ -162,6 +163,42 @@ case class EmCommunicationCore(
     expectDataFrom: ReceiveMultiDataMap[UUID, EmData] =
       ReceiveMultiDataMap.empty,
 ) extends EmServiceCore {
+
+  def handleRegistration(
+      emServiceRegistration: EmServiceRegistration
+  ): EmServiceCore = {
+    val uuid = emServiceRegistration.inputUuid
+    val ref = emServiceRegistration.requestingActor
+
+    val (updatedUncontrolled, updatedInferior, updatedUuidToParent) =
+      emServiceRegistration.parentUuid match {
+        case Some(parent) =>
+          val inferior = uuidToInferior.get(parent) match {
+            case Some(inferiorUuids) =>
+              inferiorUuids ++ Seq(uuid)
+            case None =>
+              Set(uuid)
+          }
+
+          (
+            uncontrolled,
+            uuidToInferior.updated(parent, inferior),
+            uuidToParent.updated(uuid, parent),
+          )
+        case None =>
+          (uncontrolled + uuid, uuidToInferior, uuidToParent)
+      }
+
+    copy(
+      uuidToAgent = uuidToAgent.updated(uuid, ref),
+      agentToUuid = agentToUuid.updated(ref, uuid),
+      uncontrolled = updatedUncontrolled,
+      uuidToInferior = updatedInferior,
+      uuidToParent = updatedUuidToParent,
+      nextActivation = nextActivation.updated(uuid, 0),
+      emStates = emStates.updated(uuid, EmAgentState()),
+    )
+  }
 
   override def handleExtMessage(tick: Long, extMsg: EmDataMessageFromExt)(using
       log: Logger
@@ -526,7 +563,9 @@ case class EmCommunicationCore(
             sender,
             requestAtNextActivation,
             requestAtTick,
-          ) =>
+          ) if tick != INIT_SIM_TICK =>
+        log.warn(s"Em states: $emStates")
+
         // the completion can be sent directly to the receiver, since it's not used by the external communication
         uuidToAgent(receiverUuid) ! completion
         emStates(sender).setWaitingForInternal(false)
@@ -562,6 +601,17 @@ case class EmCommunicationCore(
           log.warn(s"Message to ext: $msgToExt")
 
           (copy(completions = updatedData), msgToExt)
+        }
+
+      case completion: FlexCompletion =>
+        receiver match {
+          case Left(_) =>
+            (copy(lastFinishedTick = tick), None)
+
+          case Right(ref) =>
+            ref ! completion
+
+            (this, None)
         }
 
       // not supported

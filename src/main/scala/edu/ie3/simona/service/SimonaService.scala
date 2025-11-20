@@ -188,7 +188,7 @@ abstract class SimonaService {
       val (updatedStateData, maybeNextTick) =
         announceInformation(tick)(using stateData, ctx)
 
-      val data = maybeNextTick match {
+      maybeNextTick match {
         case Some(nextTick) if nextTick == tick =>
           // we need to do an additional activation of this service
           ctx.self ! Activation(tick)
@@ -200,24 +200,13 @@ abstract class SimonaService {
           None
 
         case _ =>
-          finishActivation(updatedStateData, scheduler, maybeNextTick, ctx)
+          scheduler ! Completion(
+            ctx.self,
+            maybeNextTick,
+          )
       }
 
-      idle(using data.getOrElse(updatedStateData), scheduler)
-  }
-
-  protected def finishActivation(
-      stateData: S,
-      scheduler: ActorRef[SchedulerMessage],
-      maybeNextTick: Option[Long],
-      ctx: ActorContext[Message],
-  ): Option[S] = {
-    scheduler ! Completion(
-      ctx.self,
-      maybeNextTick,
-    )
-
-    None
+      idle(using updatedStateData, scheduler)
   }
 
   private def unhandled
