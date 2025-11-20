@@ -98,11 +98,13 @@ case class InternalCore(
   }
 
   def sendActivations(tick: Long): InternalCore = {
-    uncontrolled.filter(nextActivation(_) == tick).foreach {
-      uuidToAgent(_) ! FlexActivation(tick, PowerLimit)
+    val activated = uncontrolled.filter(nextActivation(_) == tick).map { uuid =>
+      uuidToAgent(uuid) ! FlexActivation(tick, PowerLimit)
+
+      uuid
     }
 
-    this
+    copy(nextActivation = nextActivation.removedAll(activated))
   }
 
   override def handleFlexResponse(

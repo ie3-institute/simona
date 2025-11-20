@@ -322,7 +322,6 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
     (serviceStateData.scheduler, serviceStateData.simulateUntil) match {
       case (Some(scheduler), nextExternalTick)
           if nextExternalTick > serviceStateData.tick =>
-        ctx.log.warn(s"Still activated!")
         // service is still activated
 
         extMsg match {
@@ -350,8 +349,6 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         }
 
       case (Some(scheduler), _) =>
-        ctx.log.warn(s"Still activated!")
-
         // service is still activated, but every em agent is finished
 
         log.warn(s"Next tick option: None")
@@ -367,7 +364,6 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         )
 
       case _ =>
-        ctx.log.warn(s"Deactivated!")
         extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
 
         serviceStateData.copy(serviceCore = updatedCore)
