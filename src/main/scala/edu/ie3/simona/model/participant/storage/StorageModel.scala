@@ -115,7 +115,7 @@ class StorageModel private (
   override val flexModels: Map[FlexType, ParticipantFlexModel[StorageState]] =
     Map(
       FlexType.PowerLimit -> StoragePowerLimitFlexModel(this),
-      FlexType.MathProgramming -> StorageMathFlexModel(this),
+      FlexType.EnergyBoundaries -> StorageEnergyBoundariesFlexModel(this),
     )
 
   override def determineState(
