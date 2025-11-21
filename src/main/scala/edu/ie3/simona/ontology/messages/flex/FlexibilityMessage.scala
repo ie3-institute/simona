@@ -79,8 +79,11 @@ object FlexibilityMessage {
     *   The flexibility type to calculate [[FlexOptions]] in. Unused during
     *   initialization.
     */
-  final case class FlexActivation(override val tick: Long, flexType: FlexType)
-      extends FlexRequest
+  final case class FlexActivation(
+      override val tick: Long,
+      flexType: FlexType,
+      force: Boolean = false,
+  ) extends FlexRequest
 
   object FlexActivation {
 
@@ -104,6 +107,7 @@ object FlexibilityMessage {
   }
 
   // shifts the activation for controlled asset agent to the given tick
+  @deprecated
   final case class FlexShiftActivation(
       override val tick: Long,
       flexType: FlexType,

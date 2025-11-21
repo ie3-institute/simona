@@ -258,9 +258,10 @@ case class EmCommunicationCore(
             // update the em state
             emStates(uuid).setReceivedRequest()
 
-            agent ! FlexShiftActivation(
+            agent ! FlexActivation(
               tick,
               requestedFlexType.getOrElse(uuid, FlexType.PowerLimit),
+              true,
             )
 
             log.warn(s"Inferior: ${uuidToInferior.get(uuid)}")
@@ -345,9 +346,10 @@ case class EmCommunicationCore(
                 // update the em state
                 emStates(receiver).setReceivedRequest()
 
-                agent ! FlexShiftActivation(
+                agent ! FlexActivation(
                   tick,
                   requestedFlexType.getOrElse(receiver, FlexType.PowerLimit),
+                  true,
                 )
 
                 val count = max(
@@ -623,7 +625,7 @@ case class EmCommunicationCore(
     val sender = uuidToParent(receiverUuid) // the controlling em
 
     val updated = flexRequest match {
-      case FlexActivation(tick, flexType) =>
+      case FlexActivation(tick, flexType, _) =>
         // update the em state => waiting for external flex option provision
         emStates(sender).addSendRequest(receiverUuid)
 

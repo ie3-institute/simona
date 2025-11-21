@@ -198,20 +198,12 @@ object EmAgent {
       inactive(emData, modelShell, newCore)
 
     case (_, msg: Activation) =>
-      activate(emData, modelShell, core, msg.tick)
+      activate(emData, modelShell, core, msg.tick, false)
 
     case (ctx, msg: FlexActivation) =>
       val tick = msg.tick
       ctx.log.info(s"EmAgent (${modelShell.uuid}) activated for tick $tick")
-
-      activate(emData, modelShell, core, tick)
-
-    case (ctx, msg: FlexShiftActivation) =>
-      val tick = msg.tick
-      ctx.log.info(
-        s"EmAgent (${modelShell.uuid}) activated by service for tick $tick"
-      )
-      activate(emData, modelShell, core.gotoTick(tick), tick)
+      activate(emData, modelShell, core, tick, msg.force)
 
     case (ctx, msg: IssueFlexControl) =>
       val flexOptionsCore = core.activate(msg.tick)
@@ -232,12 +224,15 @@ object EmAgent {
       modelShell: EmModelShell[?],
       core: EmDataCore.Inactive,
       tick: Long,
+      force: Boolean,
   ) = {
-    val flexOptionsCore = core.activate(tick)
+    val flexOptionsCore = if force then {
+      core.gotoTick(tick).activateAll(tick)
+    } else core.activate(tick)
 
     val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
     toActivate.foreach {
-      _ ! FlexActivation(tick, modelShell.getFlexType)
+      _ ! FlexActivation(tick, modelShell.getFlexType, force)
     }
 
     newCore.fold(
