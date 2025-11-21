@@ -265,14 +265,7 @@ case class EmCommunicationCore(
 
             log.warn(s"Inferior: ${uuidToInferior.get(uuid)}")
 
-            val count = max(
-              Try {
-                uuidToInferior(uuid).count { id =>
-                  nextActivation(id) <= tick
-                }
-              }.getOrElse(1),
-              1,
-            )
+            val count = uuidToInferior(uuid).size
 
             // uuid -> number of sent flex requests
             uuid -> count

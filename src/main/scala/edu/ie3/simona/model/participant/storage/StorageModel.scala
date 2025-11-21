@@ -213,8 +213,8 @@ class StorageModel private (
         (isEmpty(state.storedEnergy) && setPower < zeroKW) ||
         (isAtTarget && setPower != zeroKW)
 
-    val activateAtNextTick =
-      ((isEmptyOrFull || isAtTarget) && isChargingOrDischarging) || hasObsoleteFlexOptions
+    val activateAtNextTick = true
+//      ((isEmptyOrFull || isAtTarget) && isChargingOrDischarging) || hasObsoleteFlexOptions
 
     // when charging, calculate time until we're full or at target energy
     val chargingEnergyTarget = () =>
