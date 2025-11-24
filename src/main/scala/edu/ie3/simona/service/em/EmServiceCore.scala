@@ -26,6 +26,7 @@ import org.slf4j.Logger
 import squants.Power
 import tech.units.indriya.ComparableQuantity
 
+import java.lang
 import java.time.ZonedDateTime
 import java.util.{Optional, UUID}
 import javax.measure.quantity.Power as PsdmPower
@@ -69,14 +70,10 @@ trait EmServiceCore {
     def toQuantity: ComparableQuantity[PsdmPower] = value.toMegawatts.asMegaWatt
   }
 
-  @deprecated
-  def toInternal: InternalCore = InternalCore(this)
-
-  @deprecated
-  def toExternal: EmServiceCore = mode match {
-    case EmMode.BASE             => EmServiceBaseCore(this)
-    case EmMode.EM_COMMUNICATION => EmCommunicationCore(this)
-  }
+  given Conversion[Optional[java.lang.Long], Option[Long]] =
+    (x: Optional[java.lang.Long]) => x.toScala.map(Long2long)
+  given Conversion[Option[Long], Optional[java.lang.Long]] =
+    (x: Option[Long]) => x.map(long2Long).toJava
 
   /** Method to handle a registration message.
     *
@@ -296,7 +293,4 @@ trait EmServiceCore {
     completions.receivedData.flatMap { case (_, completion) =>
       completion.requestAtTick
     }.minOption
-
-  final def getMaybeNextExtTick: Optional[java.lang.Long] =
-    getMaybeNextTick.map(long2Long).toJava
 }

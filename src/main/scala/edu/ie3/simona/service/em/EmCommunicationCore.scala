@@ -220,7 +220,7 @@ case class EmCommunicationCore(
         val nextTick: java.util.Optional[java.lang.Long] =
           if emStates.exists(_._2.isActivated) then {
             requestEmCompletion.maybeNextTick
-          } else getMaybeNextExtTick
+          } else getMaybeNextTick
 
         (
           copy(lastFinishedTick = tick),
@@ -587,7 +587,7 @@ case class EmCommunicationCore(
               expectDataFrom = ReceiveMultiDataMap.empty,
               nextActivation = nextActivation ++ additionalActivation,
             ),
-            Some(new EmCompletion(getMaybeNextExtTick)),
+            Some(new EmCompletion(getMaybeNextTick)),
           )
         } else {
           val msgToExt = getMsgToExtOption

@@ -24,7 +24,6 @@ import org.slf4j.Logger
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.jdk.OptionConverters.RichOption
 
 /** Basic service core for an [[ExtEmDataService]].
   * @param mode
@@ -80,6 +79,7 @@ final case class EmServiceBaseCore(
     sendOptionsToExt: Boolean = false,
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[Map[UUID, EmSetPoint]] = None,
+    internal: Set[UUID] = Set.empty,
 ) extends EmServiceCore {
 
   def handleRegistration(
@@ -194,13 +194,33 @@ final case class EmServiceBaseCore(
         // deactivate agents by sending an IssueNoControl message
         // activatedAgents.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
 
-        val nextTick = getMaybeNextExtTick
+        val nextTick = getMaybeNextTick
 
         (
           copy(lastFinishedTick = tick),
           Some(new EmCompletion(nextTick)),
         )
       }
+
+    case internal: EmSimulationInternal =>
+      // the service should simulate the tick internal
+      val internalTick = internal.tick
+
+      val uuids = uncontrolled
+        .filter { uuid => nextActivation(uuid) == internalTick }
+        .map { uuid =>
+          uuidToAgent(uuid) ! FlexActivation(tick, PowerLimit)
+          uuid
+        }
+
+      (
+        copy(
+          completions = completions.addExpectedKeys(uuids),
+          flexOptions = flexOptions.addExpectedKeys(uuids),
+          internal = uuids,
+        ),
+        None,
+      )
 
     case _ =>
       throw new CriticalFailureException(
@@ -250,7 +270,12 @@ final case class EmServiceBaseCore(
             canHandleSetPoints = true,
           )
 
-          if sendOptionsToExt then {
+          if internal.nonEmpty then {
+            internal.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
+
+            (updatedCore, None)
+
+          } else if sendOptionsToExt then {
             val dataToSend = data.map { case (uuid, option) =>
               uuid -> List(option)
             }
@@ -308,6 +333,10 @@ final case class EmServiceBaseCore(
 
           log.warn(s"$updated")
 
+          val msgToExt = if internal.nonEmpty then {
+            Some(new EmCompletion(updatedNextActivation.values.minOption))
+          } else extMsgOption
+
           (
             copy(
               lastFinishedTick = tick,
@@ -316,8 +345,9 @@ final case class EmServiceBaseCore(
               sendOptionsToExt = false,
               canHandleSetPoints = false,
               nextActivation = updatedNextActivation,
+              internal = Set.empty,
             ),
-            extMsgOption,
+            msgToExt,
           )
 
         } else {
