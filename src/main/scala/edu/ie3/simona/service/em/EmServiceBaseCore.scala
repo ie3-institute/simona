@@ -18,7 +18,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.ReceiveDataMap
-import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
@@ -61,7 +61,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   */
 final case class EmServiceBaseCore(
     override val mode: EmMode = EmMode.BASE,
-    override val lastFinishedTick: Long = PRE_INIT_TICK,
+    override val lastFinishedTick: Long = INIT_SIM_TICK,
     override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
     override val agentToUuid: Map[
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
@@ -255,7 +255,7 @@ final case class EmServiceBaseCore(
           val data = updated.receivedData
 
           data.foreach { case (uuid, flexOption) =>
-            if disaggregated.contains(uuid) then {
+            if disaggregated(uuid) then {
               // we add the disaggregated flex options
               addDisaggregatingFlexOptions(
                 flexOption,
@@ -325,13 +325,10 @@ final case class EmServiceBaseCore(
               val keys = updatedNextActivation.filter { case (_, activation) =>
                 activation == t
               }.keySet
-              log.warn(s"Keys: $keys")
               ReceiveDataMap[UUID, FlexCompletion](keys)
             case None =>
               updated
           }
-
-          log.warn(s"$updated")
 
           val msgToExt = if internal.nonEmpty then {
             Some(new EmCompletion(updatedNextActivation.values.minOption))
@@ -351,7 +348,7 @@ final case class EmServiceBaseCore(
           )
 
         } else {
-          log.warn(s"$updated")
+          log.warn(s"Missing completion for: ${updated.getExpectedKeys}")
 
           (copy(completions = updated), extMsgOption)
         }
@@ -405,15 +402,11 @@ final case class EmServiceBaseCore(
       )
 
       if flexOptions.expects(modelUuid) then {
-        println(s"Received expected: $modelUuid")
-
         (
           flexOptions.addData(modelUuid, result),
           allFlexOptions.updated(modelUuid, result),
         )
       } else {
-        println(s"Received unexpected: $modelUuid")
-
         (
           flexOptions,
           allFlexOptions.updated(modelUuid, result),

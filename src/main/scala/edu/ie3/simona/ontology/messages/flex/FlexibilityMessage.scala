@@ -106,13 +106,6 @@ object FlexibilityMessage {
       FlexActivation(tick, flexType)
   }
 
-  // shifts the activation for controlled asset agent to the given tick
-  @deprecated
-  final case class FlexShiftActivation(
-      override val tick: Long,
-      flexType: FlexType,
-  ) extends FlexRequest
-
   /** Message that provides [[FlexOptions]] to an
     * [[edu.ie3.simona.agent.em.EmAgent]] after they have been requested via
     * [[FlexActivation]].

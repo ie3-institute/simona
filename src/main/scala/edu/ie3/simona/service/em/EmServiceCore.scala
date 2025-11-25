@@ -268,15 +268,14 @@ trait EmServiceCore {
       Boolean,
   ) = {
     val updated = completions.addData(completion.modelUuid, completion)
+    println(s"Added $completion")
 
     if updated.isComplete then {
-      val allKeys = updated.receivedData.keySet
-
       val (extMsgOption, nextTickOption) = if tick != INIT_SIM_TICK then {
         // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
         val option = getMaybeNextTick
 
-        (Some(new EmCompletion(option.map(long2Long).toJava)), option)
+        (Some(new EmCompletion(option)), option)
       } else (None, None)
 
       // every em agent has sent a completion message

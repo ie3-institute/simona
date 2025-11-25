@@ -36,7 +36,11 @@ object ResultServiceProxy {
   type Message = ResultEvent | RequestResult | ExpectResult |
     DelayedStopHelper.StoppingMsg
 
-  final case class ExpectResult(assets: UUID | Seq[UUID], tick: Long)
+  final case class ExpectResult(
+      assets: UUID | Seq[UUID],
+      tick: Long,
+      waitForSetPoint: Boolean = false,
+  )
 
   private final case class ResultServiceStateData(
       listeners: Seq[ActorRef[ResultResponse]],
@@ -49,6 +53,7 @@ object ResultServiceProxy {
       gridResults: Map[UUID, Iterable[ResultEntity]] = Map.empty,
       results: Map[UUID, Iterable[ResultEntity]] = Map.empty,
       waitingForResults: Map[UUID, Long] = Map.empty,
+      requiresSetPoint: Set[UUID] = Set.empty,
   ) extends ServiceBaseStateData {
     def notifyListener(results: Map[UUID, Iterable[ResultEntity]]): Unit =
       if results.nonEmpty then listeners.foreach(_ ! ResultResponse(results))
@@ -61,8 +66,9 @@ object ResultServiceProxy {
     def isWaiting(uuids: Iterable[UUID], tick: Long): Boolean = {
       uuids.exists { uuid =>
         waitingForResults.get(uuid) match {
-          case Some(nextTick) if nextTick <= tick => true
-          case _                                  => false
+          case Some(nextTick) =>
+            nextTick <= tick && !requiresSetPoint.contains(uuid)
+          case _ => false
         }
       }
     }
@@ -70,19 +76,29 @@ object ResultServiceProxy {
     def updateTick(tick: Long): ResultServiceStateData =
       copy(currentTick = tick)
 
-    def waitForResult(expectResult: ExpectResult): ResultServiceStateData =
+    def waitForResult(expectResult: ExpectResult): ResultServiceStateData = {
       expectResult.assets match {
         case uuid: UUID =>
-          copy(waitingForResults =
+          val updated = copy(waitingForResults =
             waitingForResults.updated(uuid, expectResult.tick)
           )
+
+          if expectResult.waitForSetPoint then {
+            updated.copy(requiresSetPoint = requiresSetPoint + uuid)
+          } else updated
+
         case uuids: Seq[UUID] =>
           val tick = expectResult.tick
 
-          copy(waitingForResults =
+          val updated = copy(waitingForResults =
             waitingForResults ++ uuids.map(uuid => uuid -> tick).toMap
           )
+
+          if expectResult.waitForSetPoint then {
+            updated.copy(requiresSetPoint = requiresSetPoint ++ uuids)
+          } else updated
       }
+    }
 
     def addResult(result: ResultEntity): ResultServiceStateData = {
       val uuid = result.getInputModel
@@ -110,6 +126,7 @@ object ResultServiceProxy {
       copy(
         results = updatedResults,
         waitingForResults = updatedWaitingForResults,
+        requiresSetPoint = requiresSetPoint.excl(uuid),
       )
     }
 

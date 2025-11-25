@@ -143,7 +143,7 @@ object EmCommunicationCore {
 
 case class EmCommunicationCore(
     override val mode: EmMode = EmMode.EM_COMMUNICATION,
-    override val lastFinishedTick: Long = PRE_INIT_TICK,
+    override val lastFinishedTick: Long = INIT_SIM_TICK,
     override val uuidToAgent: Map[UUID, ActorRef[Message]] = Map.empty,
     override val agentToUuid: Map[
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
@@ -498,7 +498,7 @@ case class EmCommunicationCore(
               max.toQuantity,
             )
 
-            if disaggregated.contains(receiverUuid) then {
+            if disaggregated(receiverUuid) then {
               uuidToInferior(receiverUuid)
                 .flatMap(allFlexOptions.get)
                 .foreach { result =>
