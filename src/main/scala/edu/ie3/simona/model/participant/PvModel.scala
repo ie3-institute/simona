@@ -19,10 +19,13 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   OperationChangeIndicator,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.PvModel.{PvState, RadiationData}
+import edu.ie3.simona.model.participant.PvModel.*
 import edu.ie3.simona.model.participant.SolarIrradiationCalculation.*
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.flex.PowerSeriesMathFlexModel
+import edu.ie3.simona.model.participant.flex.{
+  ParticipantInflexiblePowerLimitFlexModel,
+  ParticipantInflexibleEnergyLimitFlexModel,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
@@ -82,7 +85,7 @@ class PvModel private (
   override val flexModels: Map[FlexType, ParticipantFlexModel[PvState]] =
     Map(
       FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
-      FlexType.MathProgramming -> PowerSeriesMathFlexModel(
+      FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyLimitFlexModel(
         this,
         _.toStateSeries,
       ),
