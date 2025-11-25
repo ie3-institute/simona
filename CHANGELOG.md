@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated docker documentation [#488](https://github.com/ie3-institute/simona/issues/488)
 - Added support classes for transformer tap position calculation [#1543](https://github.com/ie3-institute/simona/issues/1543)
 - Added basic external em service [#1566](https://github.com/ie3-institute/simona/issues/1566)
+- Implement energy limit flex options and adapt optimization [#1572](https://github.com/ie3-institute/simona/issues/1572)
 - Added external result provider [#1530](https://github.com/ie3-institute/simona/issues/1530)
 
 ### Changed
