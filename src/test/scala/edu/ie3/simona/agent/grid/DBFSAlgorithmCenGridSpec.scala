@@ -155,10 +155,11 @@ class DBFSAlgorithmCenGridSpec
       centerGridAgent ! Activation(3600)
 
       resultProxy.expectMessageType[ExpectResult] match {
-        case ExpectResult(assets, tick) =>
+        case ExpectResult(assets, tick, waitForSetPoint) =>
           assets match {
             case uuids: Seq[UUID] =>
               uuids.toSet shouldBe assetsHv.toSet
+              waitForSetPoint shouldBe false
             case uuid: UUID =>
               fail(s"Received uuid $uuid, but expected grid asset uuids.")
           }

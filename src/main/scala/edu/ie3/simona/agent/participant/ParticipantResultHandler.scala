@@ -67,7 +67,11 @@ final case class ParticipantResultHandler(
       resultProxy ! FlexOptionsResultEvent(result)
     }
 
-  def informProxy(uuid: UUID, tick: Long): Unit =
-    resultProxy ! ExpectResult(uuid, tick)
+  def informProxy(
+      uuid: UUID,
+      tick: Long,
+      waitForSetPoint: Boolean = false,
+  ): Unit =
+    resultProxy ! ExpectResult(uuid, tick, waitForSetPoint)
 
 }

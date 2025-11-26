@@ -31,7 +31,6 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   SecondaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
@@ -235,6 +234,12 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(0)
 
+        // we receive a message for each agent that is not waiting for secondary data
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(storageInput.getUuid, 0, true),
+          ExpectResult(loadInput.getUuid, 0, true)
+        )
+
         pvAgent ! DataProvision(
           0,
           weatherService.ref,
@@ -245,6 +250,16 @@ class EmAgentIT
             MetersPerSecond(0d),
           ),
           Some(7200),
+        )
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(ExpectResult(pvInput.getUuid, 0, true))
+
+        // we receive update messages, since new set points were provided
+        resultServiceProxy.receiveMessages(3) should contain allOf (
+          ExpectResult(pvInput.getUuid, 0),
+          ExpectResult(storageInput.getUuid, 0),
+          ExpectResult(loadInput.getUuid, 0)
         )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
@@ -266,6 +281,11 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(7200)
 
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(storageInput.getUuid, 7200, true)
+        )
+
         pvAgent ! DataProvision(
           7200,
           weatherService.ref,
@@ -276,6 +296,17 @@ class EmAgentIT
             MetersPerSecond(0d),
           ),
           Some(14400),
+        )
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInput.getUuid, 7200, true)
+        )
+
+        // we receive update messages, since new set points were provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 7200),
+          ExpectResult(storageInput.getUuid, 7200)
         )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
@@ -296,6 +327,16 @@ class EmAgentIT
          -> remaining -3.447 kW
          */
         emAgentActivation ! Activation(13246)
+
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(storageInput.getUuid, 13246, true)
+        )
+
+        // we receive an update message, since a new set point were provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(storageInput.getUuid, 13246)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -330,6 +371,13 @@ class EmAgentIT
         )
 
         emAgentActivation ! Activation(14400)
+
+        // we receive update messages, since we received an activation and a new set point was provided
+        resultServiceProxy.receiveMessages(3) should contain allOf (
+          ExpectResult(pvInput.getUuid, 14400, true),
+          ExpectResult(pvInput.getUuid, 14400),
+          ExpectResult(storageInput.getUuid, 14400)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -492,6 +540,11 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(0)
 
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInput.getUuid, 0, true)
+        )
+
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             0,
@@ -505,6 +558,19 @@ class EmAgentIT
             Some(7200),
           )
         }
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 0, true),
+          ExpectResult(hpInputModel.getUuid, 0, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(3) should contain allOf (
+          ExpectResult(pvInput.getUuid, 0),
+          ExpectResult(hpInputModel.getUuid, 0),
+          ExpectResult(loadInput.getUuid, 0)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -539,6 +605,18 @@ class EmAgentIT
           )
         }
 
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 7200, true),
+          ExpectResult(hpInputModel.getUuid, 7200, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 7200),
+          ExpectResult(hpInputModel.getUuid, 7200)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -571,6 +649,18 @@ class EmAgentIT
             Some(11000),
           )
         }
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 10800, true),
+          ExpectResult(hpInputModel.getUuid, 10800, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 10800),
+          ExpectResult(hpInputModel.getUuid, 10800)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -607,6 +697,18 @@ class EmAgentIT
           )
         }
 
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11000, true),
+          ExpectResult(hpInputModel.getUuid, 11000, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11000),
+          ExpectResult(hpInputModel.getUuid, 11000)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -641,6 +743,18 @@ class EmAgentIT
             Some(28800),
           )
         }
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11500, true),
+          ExpectResult(hpInputModel.getUuid, 11500, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11500),
+          ExpectResult(hpInputModel.getUuid, 11500)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -788,6 +902,9 @@ class EmAgentIT
           )
         }
 
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.receiveMessages(3)
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -818,6 +935,9 @@ class EmAgentIT
             Some(7200),
           )
         }
+
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.receiveMessages(3)
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -850,6 +970,7 @@ class EmAgentIT
 
         emAgentActivation ! Activation(7200)
 
+        resultServiceProxy.receiveMessages(3)
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -866,6 +987,8 @@ class EmAgentIT
         -> expect P and Q values of PV
          */
         emAgentActivation ! Activation(10800)
+
+        resultServiceProxy.receiveMessages(2)
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -882,6 +1005,8 @@ class EmAgentIT
         -> expect P: 0 W Q: 0 var
          */
         emAgentActivation ! Activation(14400)
+
+        resultServiceProxy.receiveMessages(2)
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
