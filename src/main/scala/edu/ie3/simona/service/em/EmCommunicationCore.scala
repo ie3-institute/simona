@@ -233,25 +233,9 @@ case class EmCommunicationCore(
       val extTick = provideEmData.tick
 
       // handling of requests
-      val (flexRelease, flexRequest) =
-        provideEmData.flexRequests.asScala.partition { case (_, request) =>
-          request.releaseControl()
-        }
+      val flexRequests = provideEmData.flexRequests.asScala
 
-      flexRelease.keys.foreach { uuid =>
-        log.warn(s"Release control for: $uuid")
-
-        val inferior = uuidToInferior(uuid)
-
-        uuidToAgent.get(uuid).foreach { agent =>
-          // update the em states of the inferior
-          inferior.flatMap(emStates.get).foreach(_.setWaitingForRelease())
-
-          agent ! IssueNoControl(tick)
-        }
-      }
-
-      val requestMapping = flexRequest.keys.flatMap { uuid =>
+      val requestMapping = flexRequests.keys.flatMap { uuid =>
         if emStates(uuid).isWaitingForActivation then {
 
           uuidToAgent.get(uuid).map { agent =>
@@ -274,7 +258,7 @@ case class EmCommunicationCore(
         } else None
       }.toMap
 
-      val updatedDisaggregated = disaggregated ++ flexRequest.map {
+      val updatedDisaggregated = disaggregated ++ flexRequests.map {
         case (uuid, request) => uuid -> request.disaggregated.booleanValue
       }.toMap
 

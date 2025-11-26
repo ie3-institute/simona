@@ -255,7 +255,7 @@ final case class EmServiceBaseCore(
           val data = updated.receivedData
 
           data.foreach { case (uuid, flexOption) =>
-            if disaggregated(uuid) then {
+            if disaggregated.getOrElse(uuid, false) then {
               // we add the disaggregated flex options
               addDisaggregatingFlexOptions(
                 flexOption,
@@ -348,7 +348,7 @@ final case class EmServiceBaseCore(
           )
 
         } else {
-          log.warn(s"Missing completion for: ${updated.getExpectedKeys}")
+          log.debug(s"Missing completion for: ${updated.getExpectedKeys}")
 
           (copy(completions = updated), extMsgOption)
         }

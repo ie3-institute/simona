@@ -125,7 +125,7 @@ trait EmServiceCore {
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = responseMsg match {
     case EmFlexMessage(flexRequest: FlexRequest, receiver) =>
-      log.warn(s"$receiver <- $flexRequest")
+      log.debug(s"$receiver <- $flexRequest")
 
       receiver match {
         case ref: ActorRef[FlexRequest] =>
@@ -144,7 +144,7 @@ trait EmServiceCore {
       }
 
     case EmFlexMessage(flexResponse: FlexResponse, receiver) =>
-      log.warn(s"$receiver <- $flexResponse")
+      log.debug(s"$receiver <- $flexResponse")
 
       receiver match {
         case uuid: UUID =>
@@ -268,7 +268,6 @@ trait EmServiceCore {
       Boolean,
   ) = {
     val updated = completions.addData(completion.modelUuid, completion)
-    println(s"Added $completion")
 
     if updated.isComplete then {
       val (extMsgOption, nextTickOption) = if tick != INIT_SIM_TICK then {

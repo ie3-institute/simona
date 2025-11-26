@@ -202,7 +202,7 @@ object EmAgent {
 
     case (ctx, msg: FlexActivation) =>
       val tick = msg.tick
-      ctx.log.info(s"EmAgent (${modelShell.uuid}) activated for tick $tick")
+      // ctx.log.info(s"EmAgent (${modelShell.uuid}) activated for tick $tick")
       activate(emData, modelShell, core, tick, msg.force)
 
     case (ctx, msg: IssueFlexControl) =>
@@ -395,9 +395,7 @@ object EmAgent {
             lastActiveTick = updatedCore.activeTick,
           )(using ctx.self)
 
-          ctx.log.info(
-            s"${modelShell.uuid} -> inactive, next tick ${completion.requestAtTick}"
-          )
+          // ctx.log.info(s"${modelShell.uuid} -> inactive, next tick ${completion.requestAtTick}")
 
           inactive(emData, modelShell, inactiveCore)
         }
