@@ -230,6 +230,9 @@ class EvcsModelIT
 
       evcsActivation ! Activation(0)
 
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 0))
+
       resultProxy
         .receiveMessages(3)
         .map { case ParticipantResultEvent(result) =>
@@ -279,6 +282,9 @@ class EvcsModelIT
       // EVCS activation without arrivals
       evcsActivation ! Activation(1800)
 
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 1800))
+
       resultProxy
         .receiveMessages(2)
         .map { case ParticipantResultEvent(result) =>
@@ -305,6 +311,9 @@ class EvcsModelIT
       /* TICK 3600 */
 
       evcsActivation ! Activation(3600)
+
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 3600))
 
       resultProxy
         .receiveMessages(2)
@@ -377,7 +386,8 @@ class EvcsModelIT
 
       evcsActivation ! Activation(9000)
 
-      resultProxy.expectNoMessage()
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 9000))
 
       // Next data at 10800
       scheduler.expectMessage(Completion(evcsActivation, Some(10800)))
@@ -397,8 +407,6 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      resultProxy.expectNoMessage()
-
       // Send arrivals
       extEvData.provideArrivingEvs(
         Map(
@@ -416,6 +424,9 @@ class EvcsModelIT
       scheduler.expectMessage(Completion(evService, None))
 
       evcsActivation ! Activation(10800)
+
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 10800))
 
       resultProxy
         .receiveMessages(2)
@@ -458,6 +469,9 @@ class EvcsModelIT
 
       // EVCS activation
       evcsActivation ! Activation(12600)
+
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 12600))
 
       resultProxy
         .receiveMessages(2)
@@ -530,7 +544,8 @@ class EvcsModelIT
 
       evcsActivation ! Activation(14400)
 
-      resultProxy.expectNoMessage()
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 14400))
 
       // evB is departing at 18000
       scheduler.expectMessage(Completion(evcsActivation, Some(18000)))
@@ -583,7 +598,8 @@ class EvcsModelIT
 
       evcsActivation ! Activation(18000)
 
-      resultProxy.expectNoMessage()
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 18000))
 
       // No future arrivals planned, next activation: end of simulation
       scheduler.expectMessage(Completion(evcsActivation, Some(48 * 3600)))

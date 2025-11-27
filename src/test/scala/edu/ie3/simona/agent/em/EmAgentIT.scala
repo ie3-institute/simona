@@ -888,6 +888,11 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(0)
 
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 0, true)
+        )
+
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             0,
@@ -902,8 +907,10 @@ class EmAgentIT
           )
         }
 
-        // the result proxy will receive ExpectResult messages
-        resultServiceProxy.receiveMessages(3)
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 0)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -936,8 +943,15 @@ class EmAgentIT
           )
         }
 
-        // the result proxy will receive ExpectResult messages
-        resultServiceProxy.receiveMessages(3)
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 3600, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 3600)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -970,7 +984,16 @@ class EmAgentIT
 
         emAgentActivation ! Activation(7200)
 
-        resultServiceProxy.receiveMessages(3)
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 7200, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 7200)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -988,7 +1011,16 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(10800)
 
-        resultServiceProxy.receiveMessages(2)
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 10800, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 10800)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -1006,7 +1038,16 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(14400)
 
-        resultServiceProxy.receiveMessages(2)
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 14400, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 14400)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid

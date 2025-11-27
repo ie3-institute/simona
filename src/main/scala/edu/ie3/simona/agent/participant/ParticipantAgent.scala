@@ -351,7 +351,7 @@ object ParticipantAgent {
         case _                 => false
       }
 
-      // inform the result proxy that this grid agent will send new results
+      // inform the result proxy that this participant agent will send new results
       resultHandler.informProxy(
         modelShell.uuid,
         activation.tick,
