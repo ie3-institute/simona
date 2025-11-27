@@ -17,7 +17,11 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexType,
+  FlexibilityMessage,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -227,12 +231,14 @@ case class EmCommunicationCore(
 
     case internal: EmSimulationInternal =>
       // will be handled by an internal core
-      log.warn(s"Forwarding message to base core. This should only happen, if the simulation shall be finished.")
+      log.warn(
+        s"Forwarding message to base core. This should only happen, if the simulation shall be finished."
+      )
 
       EmServiceBaseCore(this).handleExtMessage(tick, internal)
 
     case provideEmData: ProvideEmData =>
-      log.warn(s"Handling ext message: $provideEmData")
+      log.debug(s"Handling ext message: $provideEmData")
       val extTick = provideEmData.tick
 
       // handling of requests
@@ -250,8 +256,6 @@ case class EmCommunicationCore(
               requestedFlexType.getOrElse(uuid, FlexType.PowerLimit),
               true,
             )
-
-            log.warn(s"Inferior: ${uuidToInferior.get(uuid)}")
 
             val count = uuidToInferior(uuid).size
 
@@ -271,7 +275,6 @@ case class EmCommunicationCore(
         .asScala
         .flatMap { case (receiver, setPoint) =>
           val agent = uuidToAgent(receiver)
-          log.warn(s"Receiver of set point: $agent")
 
           // updates the em state
           emStates(receiver).setReceivedSetPoint()
@@ -299,7 +302,6 @@ case class EmCommunicationCore(
       val mapping = requestMapping ++ setPointMapping
 
       val updatedExpectDataFrom = expectDataFrom.addExpectedKeys(mapping)
-      log.warn(s"ExpectDataFrom: $updatedExpectDataFrom")
 
       // check if we need to wait for internal answers
       val msgToExt = getMsgToExtOption
@@ -317,8 +319,6 @@ case class EmCommunicationCore(
       (newState, msgToExt)
 
     case comMsg: EmCommunicationMessages =>
-      log.warn(s"Handling ext message: $comMsg")
-
       val messages = comMsg.messages.asScala
       val extTick = comMsg.tick
 
@@ -404,7 +404,6 @@ case class EmCommunicationCore(
 
           case setPoint: EmSetPoint =>
             val agent = uuidToAgent(receiver)
-            log.warn(s"Receiver of set point: $agent")
 
             // updates the em state
             emStates(receiver).setReceivedSetPoint()
@@ -430,7 +429,7 @@ case class EmCommunicationCore(
 
       val updatedExpectDataFrom = expectDataFrom.addExpectedKeys(mapping)
 
-      log.warn(s"ExpectDataFrom: $updatedExpectDataFrom, Changes: $mapping")
+      // log.warn(s"ExpectDataFrom: $updatedExpectDataFrom, Changes: $mapping")
 
       // check if we need to wait for internal answers
       val msgToExt = getMsgToExtOption
@@ -447,7 +446,7 @@ case class EmCommunicationCore(
       (newState, msgToExt)
 
     case other =>
-      log.warn(s"Deprecated message received! Message: $other")
+      log.warn(s"Unsupported message received! Message: $other")
 
       (this, None)
   }
@@ -645,13 +644,8 @@ case class EmCommunicationCore(
           state.setWaitingForInternal(false)
 
           // send set point to ext
-          log.warn(
-            s"Receiver $receiverUuid got flex control message from $sender"
-          )
-
           val power = control match {
             case IssueNoControl(tick) =>
-              log.warn(s"Set points: $currentSetPoint")
               new PValue(currentSetPoint(receiverUuid).toQuantity)
 
             case IssuePowerControl(tick, setPower) =>

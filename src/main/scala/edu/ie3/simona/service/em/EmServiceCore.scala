@@ -173,8 +173,6 @@ trait EmServiceCore {
       setPoints: Map[UUID, EmSetPoint],
       log: Logger,
   ): Unit = {
-    log.info(s"Handling of set points: $setPoints")
-
     setPoints.foreach { case (agent, setPoint) =>
       uuidToAgent.get(agent) match {
         case Some(receiver) =>

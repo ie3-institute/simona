@@ -351,7 +351,7 @@ object ParticipantAgent {
       // we only wait if we received a flex activation
       val waitForSetPoint = activation match {
         case _: FlexActivation => true
-        case _ => false
+        case _                 => false
       }
 
       // inform the result proxy that this grid agent will send new results
@@ -360,7 +360,7 @@ object ParticipantAgent {
         activation.tick,
         waitForSetPoint,
       )
-      
+
       val (updatedShell, updatedGridAdapter) = Scope(modelShell)
         .map(
           _.updateInputData(
