@@ -15,12 +15,9 @@ import edu.ie3.simona.api.data.model.em.*
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
+import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{
-  FlexType,
-  FlexibilityMessage,
-  PowerLimitFlexOptions,
-}
+import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -227,6 +224,12 @@ case class EmCommunicationCore(
           Some(new EmCompletion(nextTick)),
         )
       }
+
+    case internal: EmSimulationInternal =>
+      // will be handled by an internal core
+      log.warn(s"Forwarding message to base core. This should only happen, if the simulation shall be finished.")
+
+      EmServiceBaseCore(this).handleExtMessage(tick, internal)
 
     case provideEmData: ProvideEmData =>
       log.warn(s"Handling ext message: $provideEmData")
