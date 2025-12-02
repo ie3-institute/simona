@@ -16,12 +16,18 @@ import edu.ie3.datamodel.models.input.system.characteristic.{
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.participant.WecModel.{AirWeatherData, WecState}
-import edu.ie3.simona.ontology.messages.flex.FlexType
+import edu.ie3.simona.ontology.messages.flex.{
+  EnergyBoundariesFlexOptions,
+  FlexType,
+}
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits
-import squants.energy.{Power, Watts}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import squants.energy.{Energy, Power, WattHours, Watts}
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
+import squants.time.Hours
 import squants.{Dimensionless, Each}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
@@ -31,9 +37,11 @@ import scala.collection.immutable.SortedMap
 
 class WecModelSpec extends UnitSpec with WeatherTestData {
 
-  protected given powerTolerance: Power = Watts(1e-6)
-  protected given dimensionlessTolerance: Dimensionless = Each(1e-12)
-  protected given doubleTolerance: Double = 1e-9
+  // testing tolerances
+  private given Power = Watts(1e-6)
+  private given Energy = WattHours(1e-6)
+  private given Dimensionless = Each(1e-12)
+  private given Double = 1e-9
 
   val nodeInput = new NodeInput(
     UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
@@ -117,7 +125,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
 
       actualState.tick shouldEqual oldState.tick
       actualState.weatherData shouldEqual weatherSeriesData.series.map {
-        case (tick, data) =>
+        case (tick, data: WeatherData) =>
           tick -> AirWeatherData(data)
       }
     }
@@ -203,15 +211,25 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
 
       val flexOptions =
         wecModel
-          .flexModels(FlexType.MathProgramming)
+          .flexModels(FlexType.EnergyBoundaries)
           .determineFlexOptions(state)
 
       flexOptions match {
-        case PowerSeriesMathFlexOptions(powerMap) =>
-          powerMap should have size expectedResults.size
-          expectedResults.foreach { case (tick, expectedResult) =>
-            powerMap(tick) should approximate(expectedResult)
-          }
+        case EnergyBoundariesFlexOptions(boundaries) =>
+          boundaries should have size 1
+
+          val energyLimits = boundaries.headOption.value.energyLimits
+          energyLimits should have size expectedResults.size + 1
+
+          expectedResults
+            // adding dummy value so that last energy is tested
+            .appended(43200L -> zeroKW)
+            .foldLeft(zeroKWh) { case (expectedEnergy, (tick, expectedPower)) =>
+              energyLimits(tick).getUpper should approximate(expectedEnergy)
+              energyLimits(tick).getLower should approximate(expectedEnergy)
+
+              expectedEnergy + expectedPower * Hours(1)
+            }
         case unexpected => fail(s"Received unexpected flex options $unexpected")
       }
 

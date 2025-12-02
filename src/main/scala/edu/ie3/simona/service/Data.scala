@@ -12,10 +12,9 @@ import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
-import edu.ie3.util.scala.quantities.Irradiance
-import squants.{Temperature, Velocity}
+import edu.ie3.util.scala.quantities.{Irradiance, Kilovars, ReactivePower}
 import squants.energy.{Kilowatts, Power}
+import squants.{Temperature, Velocity}
 import tech.units.indriya.ComparableQuantity
 
 import scala.collection.immutable.SortedMap
@@ -382,18 +381,17 @@ object Data {
         windVel: Velocity,
     ) extends SecondaryData
 
-    /** Container class for weather data series over some time interval for
-      * certain coordinate.
-      *
-      * @param series
-      *   The weather time series consisting of [[WeatherData]].
-      */
-    final case class WeatherSeriesData(
-        series: SortedMap[Long, WeatherData]
-    ) extends SecondaryData
-
     final case class WholesalePrice(price: ComparableQuantity[EnergyPrice])
         extends SecondaryData
+
+    /** Container class for secondary data series over some time interval.
+      *
+      * @param series
+      *   The time series consisting of [[SecondaryData]].
+      */
+    final case class SecondarySeriesData(
+        series: SortedMap[Long, SecondaryData]
+    ) extends SecondaryData
 
   }
 }

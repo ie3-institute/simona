@@ -20,7 +20,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   SecondaryServiceRegistrationMessage,
   ServiceRegistrationMessage,
 }
-import edu.ie3.simona.service.Data.SecondaryData.WeatherSeriesData
+import edu.ie3.simona.service.Data.SecondaryData.SecondarySeriesData
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
@@ -308,7 +308,7 @@ object WeatherService extends SimonaService {
               .map { case (time, data) =>
                 time.toTick -> data
               }
-            WeatherSeriesData(reduceTimeSeriesResolution(series, interval))
+            SecondarySeriesData(reduceTimeSeriesResolution(series, interval))
         }
 
         actors.foreach {

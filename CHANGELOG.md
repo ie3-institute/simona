@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated docker documentation [#488](https://github.com/ie3-institute/simona/issues/488)
 - Added support classes for transformer tap position calculation [#1543](https://github.com/ie3-institute/simona/issues/1543)
 - Added basic external em service [#1566](https://github.com/ie3-institute/simona/issues/1566)
+- Implement energy limit flex options and adapt optimization [#1572](https://github.com/ie3-institute/simona/issues/1572)
 - Added external result provider [#1530](https://github.com/ie3-institute/simona/issues/1530)
 
 ### Changed
@@ -55,6 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapt ThermalHouse and HP flexibility behaviour [#1391](https://github.com/ie3-institute/simona/issues/1391)
 - Use ThermalStorageTypes for type safety [#1556](https://github.com/ie3-institute/simona/issues/1556)
 - Refactored method to handle feed in within `ThermalGrid` [#1554](https://github.com/ie3-institute/simona/issues/1554)
+- Generalize `WeatherSeriesData` to `SecondarySeriesData` [#1584](https://github.com/ie3-institute/simona/issues/1584)
+- Enhance `EnergyPrice` squants [#1583](https://github.com/ie3-institute/simona/issues/1583)
+- Updated Ubuntu version to 24.04 and python version to 3.13 in readthedocs.yml [#1597](https://github.com/ie3-institute/simona/issues/1597)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

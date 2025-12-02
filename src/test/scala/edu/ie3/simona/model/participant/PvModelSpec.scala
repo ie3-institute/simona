@@ -12,9 +12,14 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.participant.PvModel.{PvState, RadiationData}
-import edu.ie3.simona.ontology.messages.flex.FlexType
+import edu.ie3.simona.ontology.messages.flex.{
+  EnergyBoundariesFlexOptions,
+  FlexType,
+}
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits.*
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
   Kilovoltamperes,
@@ -22,8 +27,9 @@ import edu.ie3.util.scala.quantities.{
 }
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
-import squants.Each
-import squants.energy.{Power, Watts}
+import squants.energy.{Power, WattHours, Watts}
+import squants.time.Hours
+import squants.{Each, Energy}
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units.*
 
@@ -39,6 +45,7 @@ class PvModelSpec
 
   // testing tolerances
   private given Power = Watts(1e-6)
+  private given Energy = WattHours(1e-6)
 
   // build the NodeInputModel (which defines the location of the pv input model)
   // the NodeInputModel needs a GeoReference for the Pv to work
@@ -118,7 +125,7 @@ class PvModelSpec
       actualState.tick shouldEqual oldState.tick
       actualState.dateTime shouldEqual defaultSimulationStart
       actualState.radiationData shouldEqual weatherSeriesData.series.map {
-        case (tick, data) =>
+        case (tick, data: WeatherData) =>
           tick -> RadiationData(data)
       }
     }
@@ -176,15 +183,25 @@ class PvModelSpec
 
       val flexOptions =
         pvModel
-          .flexModels(FlexType.MathProgramming)
+          .flexModels(FlexType.EnergyBoundaries)
           .determineFlexOptions(state)
 
       flexOptions match {
-        case PowerSeriesMathFlexOptions(powerMap) =>
-          powerMap should have size expectedResults.size
-          expectedResults.foreach { case (tick, expectedResult) =>
-            powerMap(tick) should approximate(expectedResult)
-          }
+        case EnergyBoundariesFlexOptions(boundaries) =>
+          boundaries should have size 1
+
+          val energyLimits = boundaries.headOption.value.energyLimits
+          energyLimits should have size expectedResults.size + 1
+
+          expectedResults
+            // adding dummy value so that last energy is tested
+            .appended(14400L -> zeroKW)
+            .foldLeft(zeroKWh) { case (expectedEnergy, (tick, expectedPower)) =>
+              energyLimits(tick).getUpper should approximate(expectedEnergy)
+              energyLimits(tick).getLower should approximate(expectedEnergy)
+
+              expectedEnergy + expectedPower * Hours(1)
+            }
         case unexpected => fail(s"Received unexpected flex options $unexpected")
       }
 
