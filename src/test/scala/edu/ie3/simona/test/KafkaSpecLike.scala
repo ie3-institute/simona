@@ -18,39 +18,41 @@ import scala.util.{Failure, Success, Try}
 
 trait KafkaSpecLike extends BeforeAndAfterAll { this: TestSuite =>
 
+  /** Topics that should exist in the test broker */
   protected val testTopics: Seq[Topic]
 
+  /** Kafka container definition; started in [[beforeAll]] */
   protected lazy val kafka: KafkaContainer =
     KafkaContainer(DockerImageName.parse("apache/kafka:3.7.0"))
 
-  protected lazy val admin: Try[Admin] =
-    if kafka.container.isRunning then
-      Success(
-        Admin.create(Map("bootstrap.servers" -> kafka.bootstrapServers).asJava)
-      )
-    else
-      Failure(
-        new IllegalStateException(
-          "Kafka container must be started before creating Admin client"
-        )
-      )
+  /** Create an Admin client once the container is running */
+  protected def createAdmin(): Admin =
+    Admin.create(Map("bootstrap.servers" -> kafka.bootstrapServers).asJava)
 
   override def beforeAll(): Unit = {
     super.beforeAll()
     kafka.start()
 
-    val result = admin.map(
-      _.createTopics(
-        testTopics
+    val result = Try {
+      val admin = createAdmin()
+      try {
+        val topics = testTopics
           .map(t => new NewTopic(t.name, t.partitions, t.replicationFactor))
           .asJava
-      )
-    )
-    result.map(_.all().get(15, TimeUnit.SECONDS))
+        admin.createTopics(topics).all().get(15, TimeUnit.SECONDS)
+      } finally {
+        admin.close()
+      }
+    }
+
+    result match {
+      case Success(_) =>
+      case Failure(ex) =>
+        throw new IllegalStateException("Failed to create Kafka topics", ex)
+    }
   }
 
   override def afterAll(): Unit = {
-    if admin != null then admin.map(_.close())
     kafka.stop()
     super.afterAll()
   }
