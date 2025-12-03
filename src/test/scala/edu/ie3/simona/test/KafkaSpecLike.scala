@@ -14,37 +14,44 @@ import org.testcontainers.utility.DockerImageName
 
 import java.util.concurrent.TimeUnit
 import scala.jdk.CollectionConverters.*
+import scala.util.{Failure, Success, Try}
 
 trait KafkaSpecLike extends BeforeAndAfterAll { this: TestSuite =>
 
   protected val testTopics: Seq[Topic]
 
-  private var kafka: KafkaContainer = _
-  private var admin: Admin = _
+  protected lazy val kafka: KafkaContainer =
+    KafkaContainer(DockerImageName.parse("apache/kafka:3.7.0"))
+
+  protected lazy val admin: Try[Admin] =
+    if kafka.container.isRunning then
+      Success(
+        Admin.create(Map("bootstrap.servers" -> kafka.bootstrapServers).asJava)
+      )
+    else
+      Failure(
+        new IllegalStateException(
+          "Kafka container must be started before creating Admin client"
+        )
+      )
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-
-    // create and start container here – not during trait init
-    kafka = KafkaContainer(DockerImageName.parse("apache/kafka:3.7.0"))
     kafka.start()
 
-    // now ports exist; safe to build Admin client
-    admin = Admin.create(
-      Map[String, AnyRef]("bootstrap.servers" -> kafka.bootstrapServers).asJava
+    val result = admin.map(
+      _.createTopics(
+        testTopics
+          .map(t => new NewTopic(t.name, t.partitions, t.replicationFactor))
+          .asJava
+      )
     )
-
-    val result = admin.createTopics(
-      testTopics
-        .map(t => new NewTopic(t.name, t.partitions, t.replicationFactor))
-        .asJava
-    )
-    result.all().get(1, TimeUnit.MINUTES)
+    result.map(_.all().get(15, TimeUnit.SECONDS))
   }
 
   override def afterAll(): Unit = {
-    if admin != null then admin.close()
-    if kafka != null then kafka.stop()
+    if admin != null then admin.map(_.close())
+    kafka.stop()
     super.afterAll()
   }
 }
