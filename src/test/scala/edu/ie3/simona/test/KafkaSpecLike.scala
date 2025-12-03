@@ -1,5 +1,5 @@
 /*
- * © 2025. TU Dortmund University,
+ * © 2021. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -16,6 +16,9 @@ import java.util.concurrent.TimeUnit
 import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
+/** Adapted from
+  * https://kafka-tutorials.confluent.io/produce-consume-lang/scala.html
+  */
 trait KafkaSpecLike extends BeforeAndAfterAll { this: TestSuite =>
 
   /** Topics that should exist in the test broker */
