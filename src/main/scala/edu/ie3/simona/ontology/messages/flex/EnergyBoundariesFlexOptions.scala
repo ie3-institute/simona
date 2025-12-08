@@ -1,0 +1,179 @@
+/*
+ * © 2025. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
+package edu.ie3.simona.ontology.messages.flex
+
+import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
+import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import squants.time.Seconds
+import squants.{Dimensionless, Each, Energy, Power}
+
+import scala.collection.immutable.SortedMap
+
+/** Energy boundaries for one or several assets. See [[AssetEnergyBoundaries]]
+  * for more details.
+  *
+  * @param energyBoundaries
+  *   The energy boundaries.
+  */
+final case class EnergyBoundariesFlexOptions(
+    energyBoundaries: Seq[AssetEnergyBoundaries]
+) extends FlexOptions
+
+object EnergyBoundariesFlexOptions {
+
+  /** Creates energy boundaries with a single [[AssetEnergyBoundaries]].
+    *
+    * @param singleBoundaries
+    *   The [[AssetEnergyBoundaries]].
+    * @return
+    */
+  def apply(
+      singleBoundaries: AssetEnergyBoundaries
+  ): EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(Seq(singleBoundaries))
+
+  /** Energy boundaries for an asset. The energy limits (valid for the interval
+    * from tick to the next) constitute the boundaries between which flexibility
+    * can be used.
+    *
+    * @param energyLimits
+    *   Energy limits that signify the potential upwards and downwards
+    *   flexibility potential for the respective tick. The energy limits for all
+    *   ticks relate to the energy potential at the current tick (which is
+    *   defined to be zero).
+    * @param powerLimits
+    *   The power limits, which limit the power of the complete asset for all
+    *   time steps. If energy limits (upper and lower) are the same at some time
+    *   step, power limits are ignored.
+    * @param etaCharge
+    *   The charging efficiency.
+    * @param etaDischarge
+    *   The discharging efficiency.
+    * @param tickDisconnect
+    *   Optionally, the tick at which the storage will be disconnected, thus the
+    *   upward or downward energy potential can not be used beyond this tick.
+    */
+  final case class AssetEnergyBoundaries(
+      energyLimits: SortedMap[Long, ClosedInterval[Energy]],
+      powerLimits: ClosedInterval[Power],
+      etaCharge: Dimensionless = Each(1),
+      etaDischarge: Dimensionless = Each(1),
+      tickDisconnect: Option[Long] = None,
+  )
+
+  object AssetEnergyBoundaries {
+
+    /** Creating energy boundaries for a fixed power time series. Assumes
+      * equidistant power series entries - otherwise, results are not defined!
+      *
+      * @param powerSeries
+      *   The power time series (at equidistant ticks). Has to consist of at
+      *   least two entries.
+      * @return
+      *   The [[AssetEnergyBoundaries]].
+      */
+    def apply(
+        powerSeries: SortedMap[Long, Power]
+    ): AssetEnergyBoundaries = {
+
+      val (firstTick, firstPower) = powerSeries.headOption.getOrElse(
+        throw new CriticalFailureException("Empty power time series!")
+      )
+
+      // adding a dummy tick at the end, so that the last actual power entry
+      // in the power time series is used
+      val lastSeriesTick = powerSeries.lastOption
+        .map { case (tick, _) => tick }
+        .getOrElse(
+          throw new CriticalFailureException("Empty power time series!")
+        )
+      // dummy tick is the next logical tick of the tick series
+      // (e.g. (5, 10, 15, 20) -> 25)
+      val dummyTick =
+        lastSeriesTick + (lastSeriesTick - firstTick) / (powerSeries.size - 1)
+
+      val (energySeries, _) =
+        powerSeries
+          // excluding first data, which we already extracted above
+          .tail
+          // adding dummy tick so that last actual power entry is recognized
+          .updated(dummyTick, zeroKW)
+          .foldLeft(
+            (SortedMap(firstTick -> zeroKWh), firstPower)
+          ) { case ((previousSeries, previousPower), (tick, power)) =>
+            val (lastTick, lastEnergy) = previousSeries
+              .maxBefore(tick)
+              .getOrElse(
+                throw new CriticalFailureException(
+                  s"No value before $tick in previous values $previousSeries"
+                )
+              )
+
+            // added energy from last to current tick
+            val addedEnergy = previousPower * Seconds(tick - lastTick)
+            // total current energy
+            val tickEnergy = lastEnergy + addedEnergy
+
+            (previousSeries.updated(tick, tickEnergy), power)
+          }
+
+      val minPower = powerSeries.values.minOption.getOrElse(zeroKW)
+      val maxPower = powerSeries.values.maxOption.getOrElse(zeroKW)
+
+      AssetEnergyBoundaries(
+        energyLimits = energySeries.map { case (tick, energy) =>
+          tick -> ClosedInterval(energy, energy)
+        },
+        powerLimits = ClosedInterval(minPower, maxPower),
+      )
+    }
+
+    /** Creating energy boundaries for a storage model with symmetrical maximum
+      * power.
+      *
+      * @param eStorage
+      *   The storage capacity.
+      * @param currentEnergy
+      *   The currently stored energy.
+      * @param pMax
+      *   Maximum permissible active power.
+      * @param etaCharge
+      *   Efficiency of the charging process.
+      * @param etaDischarge
+      *   Efficiency of the discharging process.
+      * @param currentTick
+      *   The current tick.
+      * @return
+      *   [[AssetEnergyBoundaries]] for the storage model.
+      */
+    def apply(
+        eStorage: Energy,
+        currentEnergy: Energy,
+        pMax: Power,
+        etaCharge: Dimensionless,
+        etaDischarge: Dimensionless,
+        currentTick: Long,
+    ): AssetEnergyBoundaries =
+      AssetEnergyBoundaries(
+        energyLimits = SortedMap(
+          currentTick -> new ClosedInterval(
+            // the downward energy potential is the currently stored energy
+            -currentEnergy,
+            // the upward energy potential is the energy to be stored until maximum capacity
+            eStorage - currentEnergy,
+          )
+        ),
+        powerLimits = new ClosedInterval(-pMax, pMax),
+        etaCharge = etaCharge,
+        etaDischarge = etaDischarge,
+      )
+
+  }
+
+}
