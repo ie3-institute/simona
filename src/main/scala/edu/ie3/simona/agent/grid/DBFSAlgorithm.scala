@@ -1132,7 +1132,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   case None =>
                     (
                       Each(1d),
-                      Each(0d),
+                      zeroPU,
                     )
                 }
 

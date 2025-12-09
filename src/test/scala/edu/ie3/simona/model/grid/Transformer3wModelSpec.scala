@@ -8,19 +8,12 @@ package edu.ie3.simona.model.grid
 
 import breeze.math.Complex
 import edu.ie3.simona.exceptions.InvalidActionRequestException
-import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
-  PowerFlowCaseA,
-  PowerFlowCaseB,
-  PowerFlowCaseC,
-}
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{PowerFlowCaseA, PowerFlowCaseB, PowerFlowCaseC}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.Transformer3wInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.scala.quantities.{
-  ApparentPower,
-  Megavoltamperes,
-  Voltamperes,
-}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
+import edu.ie3.util.scala.quantities.{ApparentPower, Megavoltamperes, Voltamperes}
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.{Dimensionless, Each}
 import tech.units.indriya.quantity.Quantities
@@ -173,8 +166,8 @@ class Transformer3wModelSpec
           sRated should approximate(Megavoltamperes(60))
           r should approximate(Each(240.9972299e-6))
           x should approximate(Each(24.99307479224e-3))
-          g should approximate(Each(0d))
-          b should approximate(Each(0d))
+          g should approximate(zeroPU)
+          b should approximate(zeroPU)
       }
 
       val yii: Complex = Transformer3wModel.y0(
@@ -250,8 +243,8 @@ class Transformer3wModelSpec
           sRated should approximate(Megavoltamperes(40))
           r should approximate(Each(3.185595567e-6))
           x should approximate(Each(556.0941828e-6))
-          g should approximate(Each(0d))
-          b should approximate(Each(0d))
+          g should approximate(zeroPU)
+          b should approximate(zeroPU)
       }
 
       val yii: Complex = Transformer3wModel.y0(

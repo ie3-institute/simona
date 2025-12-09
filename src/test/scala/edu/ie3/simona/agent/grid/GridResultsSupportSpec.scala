@@ -7,44 +7,24 @@
 package edu.ie3.simona.agent.grid
 
 import breeze.math.Complex
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.NodeResult
-import edu.ie3.datamodel.models.result.connector.{
-  LineResult,
-  SwitchResult,
-  Transformer2WResult,
-}
+import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult}
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
-  PowerFlowCaseA,
-  PowerFlowCaseB,
-  PowerFlowCaseC,
-}
-import edu.ie3.simona.model.grid.{
-  RefSystem,
-  Transformer3wModel,
-  TransformerModel,
-  TransformerTappingModel,
-}
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{PowerFlowCaseA, PowerFlowCaseB, PowerFlowCaseC}
+import edu.ie3.simona.model.grid.{RefSystem, Transformer3wModel, TransformerModel, TransformerTappingModel}
 import edu.ie3.simona.test.common.exceptions.InvalidTestDataException
 import edu.ie3.simona.test.common.input.GridInputTestData
-import edu.ie3.simona.test.common.model.grid.{
-  BasicGrid,
-  BasicGridWithSwitches,
-  TransformerTestData,
-}
+import edu.ie3.simona.test.common.model.grid.{BasicGrid, BasicGridWithSwitches, TransformerTestData}
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits.{DEGREE_GEOM, PU}
 import edu.ie3.util.quantities.QuantityUtil
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{
-  Voltamperes,
-  QuantityUtil as ScalaQuantityUtil,
-}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
+import edu.ie3.util.scala.quantities.{Voltamperes, QuantityUtil as ScalaQuantityUtil}
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.electro.{Amperes, Volts}
 import squants.energy.Kilowatts
@@ -455,13 +435,13 @@ class GridResultsSupportSpec
       transformerA.initTapping()
       val transformerB = transformerA.copy(
         powerFlowCase = PowerFlowCaseB,
-        g = Each(0d),
-        b = Each(0d),
+        g = zeroPU,
+        b = zeroPU,
       )
       val transformerC = transformerA.copy(
         powerFlowCase = PowerFlowCaseC,
-        g = Each(0d),
-        b = Each(0d),
+        g = zeroPU,
+        b = zeroPU,
       )
       val iNominal = Amperes(100d)
 
