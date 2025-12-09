@@ -188,7 +188,7 @@ class EvcsModelSpec
 
             actualEv.uuid shouldBe ev.uuid
             actualEv.id shouldBe ev.id
-            actualEv.pRatedAc shouldBe ev.pRatedAc
+            actualEv.sRatedAc shouldBe ev.sRatedAc
             actualEv.pRatedDc shouldBe ev.pRatedDc
             actualEv.eStorage shouldBe ev.eStorage
             actualEv.storedEnergy should approximate(

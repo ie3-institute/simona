@@ -259,7 +259,7 @@ class EvcsPowerLimitFlexModelSpec
               ) =>
             refPower should approximate(Kilowatts(5.0)) // one hour left
             minPower should approximate(Kilowatts(0d)) // no v2g allowed!
-            maxPower should approximate(ev1.pRatedAc)
+            maxPower should approximate(ev1.sRatedAc)
         }
 
       }

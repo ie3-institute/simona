@@ -9,9 +9,14 @@ package edu.ie3.simona.service.em
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
-import edu.ie3.simona.api.data.model.em.{EmSetPoint, ExtendedFlexOptionsResult}
+import edu.ie3.simona.api.data.model.em.{
+  EmSetPoint,
+  ExtendedFlexOptionsResult,
+  FlexOptionRequest,
+}
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.ontology.em.*
+import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -51,6 +56,7 @@ import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOption
+import edu.ie3.simona.util.CollectionUtils.asJava
 
 class ExtEmDataServiceSpec
     extends ScalaTestWithActorTestKit
@@ -264,10 +270,13 @@ class ExtEmDataServiceSpec
       // scheduler.expectMessage(Completion(emService))
 
       extEmDataConnection.sendExtMsg(
-        new RequestEmFlexResults(
-          0,
-          List(emAgent1UUID).asJava,
-          false,
+        new ProvideEmData(
+          0L,
+          Map(
+            emAgent1UUID -> new FlexOptionRequest(emAgent1UUID, false)
+          ).asJava,
+          Map.empty.asJava,
+          Map.empty.asJava,
         )
       )
 
@@ -303,12 +312,14 @@ class ExtEmDataServiceSpec
       extEmDataConnection.receiveTriggerQueue
         .take() shouldBe new FlexOptionsResponse(
         Map(
-          emAgent1UUID -> new ExtendedFlexOptionsResult(
-            simulationStart,
-            emAgent1UUID,
-            0.asMegaWatt,
-            0.005.asMegaWatt,
-            0.01.asMegaWatt,
+          emAgent1UUID -> List(
+            new em.PowerLimitFlexOptions(
+              emAgent1UUID,
+              emAgent1UUID,
+              0.asMegaWatt,
+              0.005.asMegaWatt,
+              0.01.asMegaWatt,
+            )
           )
         ).asJava
       )
@@ -373,8 +384,10 @@ class ExtEmDataServiceSpec
       )
 
       extEmDataConnection.sendExtMsg(
-        new ProvideEmSetPointData(
+        new ProvideEmData(
           0,
+          Map.empty.asJava,
+          Map.empty.asJava,
           Map(
             emAgent1UUID -> new EmSetPoint(
               emAgent1UUID,
@@ -385,7 +398,6 @@ class ExtEmDataServiceSpec
               0d.asKiloWatt,
             ),
           ).asJava,
-          None.toJava,
         )
       )
 
