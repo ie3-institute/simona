@@ -12,7 +12,10 @@ import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
-import edu.ie3.simona.model.control.TransformerControlGroupModel.{RegulationCriterion, harmonizeRegulationNeeds}
+import edu.ie3.simona.model.control.TransformerControlGroupModel.{
+  RegulationCriterion,
+  harmonizeRegulationNeeds,
+}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import squants.{Dimensionless, Each}
 

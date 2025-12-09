@@ -8,12 +8,20 @@ package edu.ie3.simona.model.grid
 
 import breeze.math.Complex
 import edu.ie3.simona.exceptions.InvalidActionRequestException
-import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{PowerFlowCaseA, PowerFlowCaseB, PowerFlowCaseC}
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
+  PowerFlowCaseA,
+  PowerFlowCaseB,
+  PowerFlowCaseC,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.Transformer3wInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
-import edu.ie3.util.scala.quantities.{ApparentPower, Megavoltamperes, Voltamperes}
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Megavoltamperes,
+  Voltamperes,
+}
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.{Dimensionless, Each}
 import tech.units.indriya.quantity.Quantities
