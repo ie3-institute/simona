@@ -576,8 +576,8 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           eStorage = KilowattHours(24),
           currentEnergy = KilowattHours(12),
           pMax = Kilowatts(10),
-          etaCharge = Each(1),
-          etaDischarge = Each(1),
+          etaCharge = onePU,
+          etaDischarge = onePU,
           currentTick = 0L,
         )
       )
@@ -586,7 +586,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
       given EnergyConversionFactor =
         EnergyConversionFactor(
           batFlex.energyBoundaries.headOption.value.etaCharge,
-          Each(1),
+          onePU,
         )
 
       "balance out additional power within maximum battery power" in {

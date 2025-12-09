@@ -9,16 +9,14 @@ package edu.ie3.simona.test.common.model.grid
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.model.grid.*
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.*
-import edu.ie3.util.quantities.QuantityUtils.asPercent
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities.onePU
 import edu.ie3.util.scala.quantities.Voltamperes
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import squants.{Amperes, Each, Percent}
-import tech.units.indriya.ComparableQuantity
+import squants.{Amperes, Percent}
 
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
 
 /** Hold my cup of coffee and let me mock you some models.
   */
@@ -83,10 +81,10 @@ trait GridComponentsMokka extends MockitoSugar {
       iNomHv = Amperes(1),
       iNomLv = Amperes(10),
       sRated = Voltamperes(1),
-      r = Each(1),
-      x = Each(1),
-      g = Each(1),
-      b = Each(1),
+      r = onePU,
+      x = onePU,
+      g = onePU,
+      b = onePU,
     )
 
   protected def dummyTransformer3wModel(
@@ -105,10 +103,10 @@ trait GridComponentsMokka extends MockitoSugar {
       amount = 1,
       powerFlowCase = PowerFlowCaseA,
       sRated = Voltamperes(1),
-      r = Each(1),
-      x = Each(1),
-      g = Each(1),
-      b = Each(1),
+      r = onePU,
+      x = onePU,
+      g = onePU,
+      b = onePU,
     )
 
   protected def mockTransformerTapping(
