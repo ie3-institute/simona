@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support classes for transformer tap position calculation [#1543](https://github.com/ie3-institute/simona/issues/1543)
 - Added basic external em service [#1566](https://github.com/ie3-institute/simona/issues/1566)
 - Implement energy limit flex options and adapt optimization [#1572](https://github.com/ie3-institute/simona/issues/1572)
+- Introducing `onePU` as default quantity [#1607](https://github.com/ie3-institute/simona/issues/1607)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
@@ -74,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaned up dependencies [#1539](https://github.com/ie3-institute/simona/issues/1539)
 - Fixed consideration of `ThermalStorage` maximum thermal power [#1562](https://github.com/ie3-institute/simona/issues/1562)
 - Fixed shadowJar reference.conf not being merged [#1575](https://github.com/ie3-institute/simona/issues/1575)
+- Fixed `CHANGELOG` entry for #1607 [#1609](https://github.com/ie3-institute/simona/issues/1609)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
