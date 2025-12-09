@@ -23,7 +23,7 @@ import edu.ie3.simona.ontology.messages.flex.{
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import squants.energy.{Energy, Power, WattHours, Watts}
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
@@ -105,7 +105,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
       val oldState = WecState(0L)
 
       val actualState =
-        wecModel.handleInput(oldState, Seq(weatherData), Each(1))
+        wecModel.handleInput(oldState, Seq(weatherData), onePU)
 
       actualState.tick shouldEqual oldState.tick
       actualState.weatherData shouldEqual SortedMap(
@@ -121,7 +121,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
       val oldState = WecState(0L)
 
       val actualState =
-        wecModel.handleInput(oldState, Seq(weatherSeriesData), Each(1))
+        wecModel.handleInput(oldState, Seq(weatherSeriesData), onePU)
 
       actualState.tick shouldEqual oldState.tick
       actualState.weatherData shouldEqual weatherSeriesData.series.map {
