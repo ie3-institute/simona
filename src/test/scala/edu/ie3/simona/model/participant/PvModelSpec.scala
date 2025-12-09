@@ -29,7 +29,7 @@ import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
 import squants.energy.{Power, WattHours, Watts}
 import squants.time.Hours
-import squants.{Each, Energy}
+import squants.Energy
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units.*
 
