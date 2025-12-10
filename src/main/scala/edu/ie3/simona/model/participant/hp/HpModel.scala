@@ -24,7 +24,10 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.model.thermal.ThermalGrid
-import edu.ie3.simona.model.thermal.ThermalGrid.*
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
+  ThermalGridState,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
@@ -78,7 +81,19 @@ class HpModel private (
         operatingPoint,
       )
 
-    val thermalDemands = thermalGrid.determineEnergyDemand(thermalGridState)
+    val hoursWaterDemandToDetermine = thermalGrid.house.flatMap(
+      _.checkIfNeedToDetermineDomesticHotWaterDemand(
+        tick,
+        simulationTime,
+        lastState,
+      )
+    )
+
+    val thermalDemands =
+      thermalGrid.determineEnergyDemand(
+        thermalGridState,
+        hoursWaterDemandToDetermine,
+      )
 
     lastState.copy(
       tick = tick,
@@ -231,7 +246,7 @@ class HpModel private (
     * @param thermalGridState
     *   State of the thermalGrid.
     * @param thermalDemands
-    *   ThermalEnergyDemand of the house and the thermal storage.
+    *   ThermalEnergyDemand of the house and the thermal storages.
     * @param wasRunningLastPeriod
     *   Indicates if the Hp was running till this tick.
     * @return
@@ -246,19 +261,23 @@ class HpModel private (
 
     val demandHouse = thermalDemands.houseDemand
     val demandHeatStorage = thermalDemands.heatStorageDemand
+    val demandDomesticHotWaterStorage =
+      thermalDemands.domesticHotWaterStorageDemand
     val noHeatStorageOrEmpty = thermalGridState.isHeatStorageEmpty
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && noHeatStorageOrEmpty) ||
-        (demandHouse.hasPossibleDemand && wasRunningLastPeriod ||
-          demandHeatStorage.hasRequiredDemand ||
-          (demandHeatStorage.hasPossibleDemand && wasRunningLastPeriod))
+        (demandHouse.hasPossibleDemand && wasRunningLastPeriod) ||
+        demandHeatStorage.hasRequiredDemand ||
+        (demandHeatStorage.hasPossibleDemand && wasRunningLastPeriod) ||
+        demandDomesticHotWaterStorage.hasRequiredDemand
 
     val canOperate =
       demandHouse.hasRequiredDemand || demandHouse.hasPossibleDemand ||
-        demandHeatStorage.hasRequiredDemand || demandHeatStorage.hasPossibleDemand
+        demandHeatStorage.hasRequiredDemand || demandHeatStorage.hasPossibleDemand ||
+        demandDomesticHotWaterStorage.hasRequiredDemand
     val canBeOutOfOperation =
-      !(demandHouse.hasRequiredDemand && noHeatStorageOrEmpty)
+      !(demandHouse.hasRequiredDemand && noHeatStorageOrEmpty) && !demandDomesticHotWaterStorage.hasRequiredDemand
 
     (
       turnHpOn,
@@ -333,16 +352,21 @@ object HpModel {
     *   [[edu.ie3.simona.model.thermal.ThermalHouse]] used for space heating.
     * @param qDotHeatStorage
     *   The thermal power input of the
-    *   [[edu.ie3.simona.model.thermal.ThermalStorage]].
+    *   [[edu.ie3.simona.model.thermal.ThermalStorage]] used for heat storage.
+    * @param qDotDomesticHotWaterStorage
+    *   The thermal power input of the
+    *   [[edu.ie3.simona.model.thermal.DomesticHotWaterStorage]] used for
+    *   domestic hot water / tap water.
     */
   final case class ThermalGridOperatingPoint(
       qDotHp: Power,
       qDotHouse: Power,
       qDotHeatStorage: Power,
+      qDotDomesticHotWaterStorage: Power,
   )
   object ThermalGridOperatingPoint {
     def zero: ThermalGridOperatingPoint =
-      ThermalGridOperatingPoint(zeroKW, zeroKW, zeroKW)
+      ThermalGridOperatingPoint(zeroKW, zeroKW, zeroKW, zeroKW)
   }
 
   /** Holds all relevant data for a hp model calculation.
@@ -381,7 +405,11 @@ object HpModel {
     ): HpState = {
       val therGrid = ThermalGrid(thermalGrid)
       val initialState = ThermalGrid.startingState(therGrid, zeroCelsius)
-      val thermalDemand = therGrid.determineEnergyDemand(initialState)
+      val thermalDemand =
+        therGrid.determineEnergyDemand(
+          initialState,
+          Some(Seq(simulationTime.getHour)),
+        )
 
       HpState(
         tick,

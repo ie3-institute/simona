@@ -14,7 +14,7 @@ import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKWh}
 import optimus.algebra.{Const, Double2Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
@@ -259,7 +259,7 @@ object OptimizedFlexStrat {
           )
 
       val softConstraint =
-        if eta == Each(1) then {
+        if eta == onePU then {
           // there are no charging/discharging losses, we can keep it simple
 
           model.add(newState := previousState + p * sampleTime.toHours)

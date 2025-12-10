@@ -12,7 +12,7 @@ import edu.ie3.simona.agent.participant.ParticipantGridAdapter.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroMVAr, zeroMW}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroMVAr, zeroMW}
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
@@ -214,7 +214,7 @@ object ParticipantGridAdapter {
   ): ParticipantGridAdapter =
     new ParticipantGridAdapter(
       gridAgent = gridAgentRef,
-      nodalVoltage = Each(1d),
+      nodalVoltage = onePU,
       expectedRequestTick = expectedRequestTick,
       tickToPower = SortedMap.empty,
       avgPowerResult = None,
