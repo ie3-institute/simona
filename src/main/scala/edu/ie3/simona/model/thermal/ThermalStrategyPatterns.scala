@@ -18,7 +18,8 @@ private sealed trait FeedInStrategy {
   def apply(
       qDot: Power,
       heatStorage: Option[CylindricalThermalStorage],
-  ): (Power, Power) // (house, heatStorage)
+      waterStorage: Option[DomesticHotWaterStorage],
+  ): (Power, Power, Power) // (house, heatStorage, waterStorage)
 
   /** Get maximum thermal power of a storage.
     *
@@ -55,22 +56,53 @@ private sealed trait FeedInStrategy {
     else (zeroKW, qDot)
 }
 
+private object SplitHouseWaterStrategy extends FeedInStrategy {
+  override def apply(
+      qDot: Power,
+      heatStorage: Option[CylindricalThermalStorage],
+      waterStorage: Option[DomesticHotWaterStorage],
+  ): (Power, Power, Power) = {
+    val maxWater = getMaxPower(waterStorage)
+    val halfQDot = qDot / 2
+
+    // Check if water storage can handle half of qDot
+    if halfQDot > maxWater then {
+      val remaining = qDot - maxWater
+      (remaining, zeroKW, maxWater)
+    } else (halfQDot, zeroKW, halfQDot)
+  }
+}
+
 private object HouseOnlyStrategy extends FeedInStrategy {
   override def apply(
       qDot: Power,
       heatStorage: Option[CylindricalThermalStorage],
-  ): (Power, Power) =
-    (qDot, zeroKW)
+      waterStorage: Option[DomesticHotWaterStorage],
+  ): (Power, Power, Power) =
+    (qDot, zeroKW, zeroKW)
+}
+
+private object WaterStorageFirstStrategy extends FeedInStrategy {
+  override def apply(
+      qDot: Power,
+      heatStorage: Option[CylindricalThermalStorage],
+      waterStorage: Option[DomesticHotWaterStorage],
+  ): (Power, Power, Power) = {
+    val maxWater = getMaxPower(waterStorage)
+    val (remaining, toWater) = distribute(qDot, maxWater)
+    (remaining, zeroKW, toWater)
+  }
 }
 
 private object HeatStorageFirstStrategy extends FeedInStrategy {
   override def apply(
       qDot: Power,
       heatStorage: Option[CylindricalThermalStorage],
-  ): (Power, Power) = {
+      waterStorage: Option[DomesticHotWaterStorage],
+  ): (Power, Power, Power) = {
     val maxHeat = getMaxPower(heatStorage)
     val (remaining, toHeat) = distribute(qDot, maxHeat)
-    (remaining, toHeat)
+    (remaining, toHeat, zeroKW)
   }
 }
 
@@ -78,6 +110,7 @@ private object NoOperationStrategy extends FeedInStrategy {
   override def apply(
       qDot: Power,
       heatStorage: Option[CylindricalThermalStorage],
-  ): (Power, Power) =
-    (zeroKW, zeroKW)
+      waterStorage: Option[DomesticHotWaterStorage],
+  ): (Power, Power, Power) =
+    (zeroKW, zeroKW, zeroKW)
 }

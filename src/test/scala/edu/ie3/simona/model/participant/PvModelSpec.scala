@@ -19,7 +19,7 @@ import edu.ie3.simona.ontology.messages.flex.{
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
   Kilovoltamperes,
@@ -29,7 +29,7 @@ import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
 import squants.energy.{Power, WattHours, Watts}
 import squants.time.Hours
-import squants.{Each, Energy}
+import squants.Energy
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units.*
 
@@ -104,7 +104,7 @@ class PvModelSpec
       val oldState = PvState(0L, defaultSimulationStart)
 
       val actualState =
-        pvModel.handleInput(oldState, Seq(weatherData), Each(1))
+        pvModel.handleInput(oldState, Seq(weatherData), onePU)
 
       actualState.tick shouldEqual oldState.tick
       actualState.dateTime shouldEqual defaultSimulationStart
@@ -120,7 +120,7 @@ class PvModelSpec
       val oldState = PvState(0L, defaultSimulationStart)
 
       val actualState =
-        pvModel.handleInput(oldState, Seq(weatherSeriesData), Each(1))
+        pvModel.handleInput(oldState, Seq(weatherSeriesData), onePU)
 
       actualState.tick shouldEqual oldState.tick
       actualState.dateTime shouldEqual defaultSimulationStart
