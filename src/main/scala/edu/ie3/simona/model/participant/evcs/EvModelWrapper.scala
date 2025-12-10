@@ -41,7 +41,7 @@ final case class EvModelWrapper(
 
   lazy val cosPhi: Double = original.getCosPhiRated
   lazy val sRatedAc: ApparentPower = original.getSRatedAC.toApparent
-  lazy val pRatedAc: Power = original.getPRatedDC.toSquants
+  lazy val pRatedAc: Power = sRatedAc.toActivePower(cosPhi)
   lazy val pRatedDc: Power = original.getPRatedDC.toSquants
   lazy val eStorage: Energy = original.getEStorage.toSquants
 
