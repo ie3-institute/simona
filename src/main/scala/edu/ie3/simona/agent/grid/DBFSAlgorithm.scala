@@ -236,7 +236,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                     uuid == nodeUuid && isSlack
                   }
                   .map(_.vTarget)
-                  .getOrElse(Each(1d))
+                  .getOrElse(onePU)
               val vSlack =
                 refSystem.nominalVoltage.multiplyWithDimensionless(vTarget)
 
@@ -1131,8 +1131,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                     )
                   case None =>
                     (
-                      Each(1d),
-                      Each(0d),
+                      onePU,
+                      zeroPU,
                     )
                 }
 

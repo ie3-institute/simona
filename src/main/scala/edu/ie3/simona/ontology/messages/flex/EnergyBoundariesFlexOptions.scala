@@ -9,9 +9,9 @@ package edu.ie3.simona.ontology.messages.flex
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import squants.time.Seconds
-import squants.{Dimensionless, Each, Energy, Power}
+import squants.{Dimensionless, Energy, Power}
 
 import scala.collection.immutable.SortedMap
 
@@ -62,8 +62,8 @@ object EnergyBoundariesFlexOptions {
   final case class AssetEnergyBoundaries(
       energyLimits: SortedMap[Long, ClosedInterval[Energy]],
       powerLimits: ClosedInterval[Power],
-      etaCharge: Dimensionless = Each(1),
-      etaDischarge: Dimensionless = Each(1),
+      etaCharge: Dimensionless = onePU,
+      etaDischarge: Dimensionless = onePU,
       tickDisconnect: Option[Long] = None,
   )
 

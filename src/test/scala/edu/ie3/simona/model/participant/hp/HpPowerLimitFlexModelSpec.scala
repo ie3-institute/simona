@@ -79,8 +79,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(demand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, demand, demand, noDemand),
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -102,8 +104,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(demand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, onlyAddDemand, demand, noDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -128,12 +132,19 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(demand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, demand, demand, noDemand),
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -155,12 +166,19 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(demand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, onlyAddDemand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -184,6 +202,7 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
@@ -191,9 +210,11 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                   Kilowatts(1),
                   Kilowatts(1),
                   zeroKW,
+                  zeroKW,
                 ),
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(onlyAddDemand, demand, noDemand, noDemand),
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -215,12 +236,14 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 zeroKW,
-                ThermalGridOperatingPoint(zeroKW, zeroKW, zeroKW),
+                ThermalGridOperatingPoint.zero,
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(onlyAddDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -242,13 +265,23 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands =
-                ThermalDemandWrapper(onlyAddDemand, onlyAddDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                onlyAddDemand,
+                demand,
+                noDemand,
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -272,8 +305,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(onlyAddDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -295,9 +330,14 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands =
-                ThermalDemandWrapper(onlyAddDemand, onlyAddDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                onlyAddDemand,
+                demand,
+                noDemand,
+              ),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -321,12 +361,19 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -348,12 +395,19 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, onlyAddDemand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -377,8 +431,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -400,8 +456,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, onlyAddDemand, demand, noDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -425,12 +483,19 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -452,12 +517,23 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands = ThermalDemandWrapper(
+                noDemand,
+                onlyAddDemand,
+                noDemand,
+                noDemand,
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -481,8 +557,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -504,8 +582,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, onlyAddDemand, demand, noDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -526,8 +606,14 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, noDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                noDemand,
+                noDemand,
+                noDemand,
+              ),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -548,12 +634,23 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, noDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                noDemand,
+                noDemand,
+                noDemand,
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
@@ -575,8 +672,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, noDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, noDemand, noDemand, noDemand),
             ),
             (0.0, 0.0, 0.0),
           ),
@@ -597,8 +696,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, noDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, noDemand, noDemand, noDemand),
             ),
             (0.0, 0.0, 0.0),
           ),
@@ -634,7 +735,5 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
           }
       }
     }
-
   }
-
 }
