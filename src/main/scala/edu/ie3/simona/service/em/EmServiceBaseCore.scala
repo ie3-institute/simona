@@ -41,9 +41,10 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   * @param nextActivation
   *   A map: uuid to next activation tick.
   * @param allFlexOptions
-  *   Map: uuid to flex option result.
+  *   Map: uuid to flex options. This map stores all flex options received for
+  *   the current tick.
   * @param flexOptions
-  *   ReceiveDataMap: uuid to flex option result.
+  *   ReceiveDataMap: uuid to flex option.
   * @param disaggregated
   *   A map: uuid of em agent to boolean. It defines for which em agent we
   *   should return disaggregated flex options.

@@ -75,6 +75,10 @@ public class MockEvModel implements EvModel {
     return sRatedAC;
   }
 
+  public ComparableQuantity<Power> getPRatedAC() {
+    return sRatedAC.multiply(cosPhi);
+  }
+
   @Override
   public ComparableQuantity<Power> getPRatedDC() {
     return sRatedDC;
