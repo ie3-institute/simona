@@ -592,6 +592,13 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(75)
 
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 75, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 75)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -612,6 +619,12 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(3600)
 
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 3600, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 3600)
+        )
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -631,6 +644,13 @@ class EmAgentIT
         -> remaining -0.723 kW
          */
         emAgentActivation ! Activation(3675)
+
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 3675, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 3675)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -655,6 +675,13 @@ class EmAgentIT
         -> remaining -0.723 kW
          */
         emAgentActivation ! Activation(6056)
+
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 6056, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 6056)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -721,6 +748,13 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(7278)
 
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 7278, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 7278)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -740,6 +774,13 @@ class EmAgentIT
          -> remaining 0 MW
          */
         emAgentActivation ! Activation(7981)
+
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 7981, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 7981)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -805,6 +846,13 @@ class EmAgentIT
          -> remaining 1.111 kW
          */
         emAgentActivation ! Activation(10879)
+
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 10879, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 10879)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>

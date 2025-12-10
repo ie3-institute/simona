@@ -162,6 +162,10 @@ class ThermalGridIT
         tickPairs.foreach { case (currentTick, nextTick) =>
           activationActor ! Activation(currentTick)
 
+          resultServiceProxy.expectMessage(
+            ExpectResult(typicalHpInputModel.getUuid, currentTick)
+          )
+
           Range(0, 2)
             .map { _ => resultServiceProxy.expectMessageType[ResultEvent] }
             .foreach {
@@ -299,6 +303,11 @@ class ThermalGridIT
       Heat pump: stays on to serve the heat storage demand
        */
       heatPumpAgent ! Activation(45)
+
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 45)
+      )
 
       Range(0, 2)
         .map { _ =>
@@ -454,6 +463,10 @@ class ThermalGridIT
       Heat pump: stays on - continue with same behaviour as before
        */
       heatPumpAgent ! Activation(3625)
+
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 3625)
+      )
 
       Range(0, 2)
         .map { _ =>
@@ -615,6 +628,11 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(21659)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 21659)
+      )
+
       Range(0, 2)
         .map { _ =>
           resultServiceProxy.expectMessageType[ResultEvent]
@@ -750,6 +768,11 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(25200)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 25200)
+      )
+
       Range(0, 2)
         .map { _ =>
           resultServiceProxy.expectMessageType[ResultEvent]
@@ -790,6 +813,11 @@ class ThermalGridIT
       Heat pump: stays off
        */
       heatPumpAgent ! Activation(25316)
+
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 25316)
+      )
 
       Range(0, 2)
         .map { _ =>
@@ -921,6 +949,11 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(28800)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 28800)
+      )
+
       Range(0, 2)
         .map { _ =>
           resultServiceProxy.expectMessageType[ResultEvent]
@@ -963,6 +996,11 @@ class ThermalGridIT
      Heat pump: stays on, qDot should be split between DomesticHotWaterStorage and House
        */
       heatPumpAgent ! Activation(28852)
+
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 28852)
+      )
 
       Range(0, 3)
         .map { _ =>
@@ -1015,6 +1053,11 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(29193)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 29193)
+      )
+
       Range(0, 3)
         .map { _ =>
           resultServiceProxy.expectMessageType[ResultEvent]
@@ -1066,8 +1109,9 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(32032)
 
+      // we receive update messages, since a new set point was provided
       resultServiceProxy.expectMessage(
-        ExpectResult(typicalHpInputModel.getUuid, 31837)
+        ExpectResult(typicalHpInputModel.getUuid, 32032)
       )
 
       Range(0, 3)
@@ -1120,6 +1164,11 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(32400)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 32400)
+      )
+
       Range(0, 2)
         .map { _ =>
           resultServiceProxy.expectMessageType[ResultEvent]
@@ -1160,6 +1209,11 @@ class ThermalGridIT
       Heat pump: stays on
        */
       heatPumpAgent ! Activation(32541)
+
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 32541)
+      )
 
       Range(0, 2)
         .map { _ =>
@@ -1202,8 +1256,9 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(35448)
 
+      // we receive update messages, since a new set point was provided
       resultServiceProxy.expectMessage(
-        ExpectResult(typicalHpInputModel.getUuid, 35253)
+        ExpectResult(typicalHpInputModel.getUuid, 35448)
       )
 
       Range(0, 3)
@@ -1256,8 +1311,9 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(35983)
 
+      // we receive update messages, since a new set point was provided
       resultServiceProxy.expectMessage(
-        ExpectResult(typicalHpInputModel.getUuid, 35788)
+        ExpectResult(typicalHpInputModel.getUuid, 35983)
       )
 
       Range(0, 2)
@@ -1378,6 +1434,13 @@ class ThermalGridIT
       ): Unit = {
         tickPairs.foreach { case (currentTick, nextTick) =>
           activationActor ! Activation(currentTick)
+
+          resultServiceProxy.receiveMessages(2) should contain allOf (
+            // we receive a message, since new data arrived
+            ExpectResult(typicalHpInputModel.getUuid, currentTick, true),
+            // we receive update messages, since a new set point was provided
+            ExpectResult(typicalHpInputModel.getUuid, currentTick)
+          )
 
           Range(0, 3)
             .map { _ => resultServiceProxy.expectMessageType[ResultEvent] }
@@ -1561,6 +1624,13 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(150)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 150, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 150)
+      )
+
       Range(0, 3)
         .map { _ =>
           resultServiceProxy.expectMessageType[ResultEvent]
@@ -1630,10 +1700,8 @@ class ThermalGridIT
       resultServiceProxy.receiveMessages(4) should contain allOf (
         // expect messages due to flex activation
         ExpectResult(typicalHpInputModel.getUuid, 1800, true),
-        ExpectResult(pvInput.getUuid, 1800, true),
         // expect messages due to new set point
-        ExpectResult(typicalHpInputModel.getUuid, 1800),
-        ExpectResult(pvInput.getUuid, 1800)
+        ExpectResult(typicalHpInputModel.getUuid, 1800)
       )
 
       Range(0, 3)
@@ -1685,6 +1753,13 @@ class ThermalGridIT
       Heat pump: stays on
        */
       emAgentActivation ! Activation(3600)
+
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 3600, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 3600)
+      )
 
       Range(0, 3)
         .map { _ =>
@@ -1739,6 +1814,13 @@ class ThermalGridIT
       can be used by hp to serve the reqDemand of ThermalStorage
        */
       emAgentActivation ! Activation(3750)
+
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 3750, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 3750)
+      )
 
       Range(0, 3)
         .map { _ =>
@@ -1998,6 +2080,13 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(7200)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 7200, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 7200)
+      )
+
       Range(0, 3)
         .map { _ =>
           resultServiceProxy.expectMessageType[ResultEvent]
@@ -2043,6 +2132,13 @@ class ThermalGridIT
       Heat pump: stays off
        */
       emAgentActivation ! Activation(7355)
+
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 7355, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 7355)
+      )
 
       Range(0, 3)
         .map { _ =>
@@ -2225,6 +2321,13 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(10800)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 10800, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 10800)
+      )
+
       Range(0, 3)
         .map { _ =>
           resultServiceProxy.expectMessageType[ResultEvent]
@@ -2274,6 +2377,13 @@ class ThermalGridIT
       Heat pump: stays on
        */
       emAgentActivation ! Activation(10958)
+
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 10958, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 10958)
+      )
 
       Range(0, 3)
         .map { _ =>
@@ -2523,14 +2633,11 @@ class ThermalGridIT
         )
       }
 
-      // expect messages due to flex activation
-      resultServiceProxy.receiveMessages(2) should contain allOf (
+      resultServiceProxy.receiveMessages(4) should contain allOf (
+        // expect messages due to flex activation
         ExpectResult(typicalHpInputModel.getUuid, 12500, true),
-        ExpectResult(pvInput.getUuid, 12500, true)
-      )
-
-      // expect messages due to new set point
-      resultServiceProxy.receiveMessages(2) should contain allOf (
+        ExpectResult(pvInput.getUuid, 12500, true),
+        // expect messages due to new set point
         ExpectResult(typicalHpInputModel.getUuid, 12500),
         ExpectResult(pvInput.getUuid, 12500)
       )
@@ -2729,6 +2836,13 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(25230)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 25230, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 25230)
+      )
+
       Range(0, 4)
         .map { _ =>
           resultServiceProxy.expectMessageType[ResultEvent]
@@ -2784,6 +2898,13 @@ class ThermalGridIT
       Heat pump: stays on - will continue heating the house only
        */
       emAgentActivation ! Activation(26210)
+
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 26210, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 26210)
+      )
 
       Range(0, 4)
         .map { _ =>
@@ -2904,9 +3025,9 @@ class ThermalGridIT
 
       resultServiceProxy.receiveMessages(2) should contain allOf (
         // expect messages due to flex activation
-        ExpectResult(typicalHpInputModel.getUuid, 30872, true),
+        ExpectResult(typicalHpInputModel.getUuid, 28800, true),
         // expect messages due to new set point
-        ExpectResult(typicalHpInputModel.getUuid, 30872)
+        ExpectResult(typicalHpInputModel.getUuid, 28800)
       )
 
       Range(0, 3)
@@ -2954,6 +3075,13 @@ class ThermalGridIT
       Heat pump: stays on
        */
       emAgentActivation ! Activation(28941)
+
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 28941, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 28941)
+      )
 
       Range(0, 3)
         .map { _ =>
@@ -3078,6 +3206,13 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(31762)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 31762, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 31762)
+      )
+
       Range(0, 4)
         .map { _ =>
           resultServiceProxy.expectMessageType[ResultEvent]
@@ -3154,9 +3289,9 @@ class ThermalGridIT
 
       resultServiceProxy.receiveMessages(2) should contain allOf (
         // expect messages due to flex activation
-        ExpectResult(typicalHpInputModel.getUuid, 40942, true),
+        ExpectResult(typicalHpInputModel.getUuid, 41762, true),
         // expect messages due to new set point
-        ExpectResult(typicalHpInputModel.getUuid, 40942)
+        ExpectResult(typicalHpInputModel.getUuid, 41762)
       )
 
       Range(0, 4)
@@ -3205,7 +3340,7 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(43200)))
 
       /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
-The results are checked implicitly through the state of stored energy at the next result check.
+         The results are checked implicitly through the state of stored energy at the next result check.
        */
       val thirdActivationTicksBlock =
         Seq(43200L, 43311L)
@@ -3229,6 +3364,13 @@ The results are checked implicitly through the state of stored energy at the nex
         Heat pump: stays off
        */
       emAgentActivation ! Activation(43311)
+
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 43311, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 43311)
+      )
 
       Range(0, 3)
         .map { _ =>
@@ -3281,9 +3423,9 @@ The results are checked implicitly through the state of stored energy at the nex
 
       resultServiceProxy.receiveMessages(2) should contain allOf (
         // expect messages due to flex activation
-        ExpectResult(typicalHpInputModel.getUuid, 43698, true),
+        ExpectResult(typicalHpInputModel.getUuid, 43628, true),
         // expect messages due to new set point
-        ExpectResult(typicalHpInputModel.getUuid, 43698)
+        ExpectResult(typicalHpInputModel.getUuid, 43628)
       )
 
       Range(0, 4)
@@ -3344,9 +3486,9 @@ The results are checked implicitly through the state of stored energy at the nex
 
       resultServiceProxy.receiveMessages(2) should contain allOf (
         // expect messages due to flex activation
-        ExpectResult(typicalHpInputModel.getUuid, 46631, true),
+        ExpectResult(typicalHpInputModel.getUuid, 45620, true),
         // expect messages due to new set point
-        ExpectResult(typicalHpInputModel.getUuid, 46631)
+        ExpectResult(typicalHpInputModel.getUuid, 45620)
       )
 
       Range(0, 3)
@@ -3408,6 +3550,15 @@ The results are checked implicitly through the state of stored energy at the nex
           Some(57600),
         )
       }
+
+      resultServiceProxy.receiveMessages(4) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 46800, true),
+        ExpectResult(pvInput.getUuid, 46800, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 46800),
+        ExpectResult(pvInput.getUuid, 46800)
+      )
 
       Range(0, 3)
         .map { _ =>
@@ -3474,9 +3625,9 @@ The results are checked implicitly through the state of stored energy at the nex
 
       resultServiceProxy.receiveMessages(2) should contain allOf (
         // expect messages due to flex activation
-        ExpectResult(typicalHpInputModel.getUuid, 56274, true),
+        ExpectResult(typicalHpInputModel.getUuid, 55263, true),
         // expect messages due to new set point
-        ExpectResult(typicalHpInputModel.getUuid, 56274)
+        ExpectResult(typicalHpInputModel.getUuid, 55263)
       )
 
       Range(0, 3)
