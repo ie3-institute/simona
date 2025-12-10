@@ -27,7 +27,7 @@ ext {
   scapegoatVersion = '3.2.3'
 
   junitVersion = '6.0.1'
-  testContainerVersion = '0.43.6'
+  testContainerVersion = '0.44.0'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 
