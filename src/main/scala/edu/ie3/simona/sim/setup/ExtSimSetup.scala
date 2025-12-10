@@ -8,13 +8,13 @@ package edu.ie3.simona.sim.setup
 
 import com.typesafe.config.Config
 import edu.ie3.datamodel.models.input.container.JointGridContainer
-import edu.ie3.simona.api.data.ExtSimAdapterData
+import edu.ie3.simona.api.data.SetupData
 import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.ExtSimulation
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
-import edu.ie3.simona.event.listener.{ExtResultEvent, ResultListener}
+import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
@@ -77,23 +77,27 @@ object ExtSimSetup {
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
       // external simulation always needs at least an ExtSimAdapter
-      val extSimAdapter = context.spawn(
-        ExtSimAdapter(scheduler),
-        s"ExtSimAdapter-$index",
-      )
+      implicit val extSimAdapter: ActorRef[ExtSimAdapter.Request] =
+        context.spawn(
+          ExtSimAdapter(scheduler),
+          s"ExtSimAdapter-$index",
+        )
 
-      // creating the adapter data
-      given extSimAdapterData: ExtSimAdapterData =
-        new ExtSimAdapterData(extSimAdapter, args, config, grid)
+      // creating the data connection
+      val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
+
+      val setUpData = new SetupData(args, config, grid)
 
       Try {
         // sets up the external simulation
-        extLink.setup(extSimAdapterData)
+        extLink.setup(setUpData)
         extLink.getExtSimulation
       }.map { extSimulation =>
+        extSimulation.setDataConnection(extSimDataConnection)
+
         // send init data right away, init activation is scheduled
         extSimAdapter ! ExtSimAdapter.Create(
-          extSimAdapterData,
+          extSimDataConnection,
           ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
         )
 
@@ -129,8 +133,8 @@ object ExtSimSetup {
     *   The actor context of this actor system.
     * @param scheduler
     *   The scheduler of simona.
-    * @param extSimAdapterData
-    *   The adapter data for the external simulation.
+    * @param extSimAdapter
+    *   The adapter for the external simulation.
     * @return
     *   An updated [[ExtSimSetupData]].
     */
@@ -141,13 +145,10 @@ object ExtSimSetup {
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      extSimAdapterData: ExtSimAdapterData,
+      extSimAdapter: ActorRef[ControlResponseMessageFromExt],
       resultProxy: ActorRef[RequestResult],
       startTime: ZonedDateTime,
   ): ExtSimSetupData = {
-    given extSimAdapter: ActorRef[ControlResponseMessageFromExt] =
-      extSimAdapterData.getAdapter
-
     // the data connections this external simulation provides
     val connections = extSimulation.getDataConnections.asScala
 

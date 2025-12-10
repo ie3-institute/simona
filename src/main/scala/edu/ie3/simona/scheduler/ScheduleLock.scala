@@ -186,7 +186,7 @@ object ScheduleLock {
       awaitedKeys: Set[UUID],
       expectedTick: Long,
   ): Behavior[Message] =
-    Behaviors.withStash(100) { buffer =>
+    Behaviors.withStash(100000) { buffer =>
       Behaviors.receivePartial {
         case (ctx, Activation(tick)) =>
           if tick == expectedTick then
