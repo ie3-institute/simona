@@ -12,8 +12,10 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 private case class ThermalDemandConditions(
     shouldContinueHouseHeating: Boolean,
     houseDemand: Boolean,
+    waterStorageDemand: Boolean,
     heatStorageDemand: Boolean,
     housePossible: Boolean,
+    waterStoragePossible: Boolean,
     heatStoragePossible: Boolean,
     houseHeatedLastState: Boolean,
 )
@@ -38,14 +40,19 @@ private object ThermalDemandConditions {
     ThermalDemandConditions(
       /* Consider the action in the last state
        * We can continue using the qDots from last operating point to keep continuity.
-       * If the house was heated in lastState and has still some demand.
-       */
+       * If the house was heated in lastState and has still some demand and the domestic
+       * hot water storage has no demand. */
       shouldContinueHouseHeating =
-        lastOperatingPoint.qDotHouse > zeroKW && houseDemand.hasPossibleDemand,
+        lastOperatingPoint.qDotHouse > zeroKW && houseDemand.hasPossibleDemand &&
+          !state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand,
       houseDemand = houseDemand.hasRequiredDemand,
+      waterStorageDemand =
+        state.thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand,
       heatStorageDemand =
         heatStorageDemand.hasRequiredDemand || heatStorageDemand.hasPossibleDemand,
       housePossible = houseDemand.hasPossibleDemand,
+      waterStoragePossible =
+        state.thermalDemands.domesticHotWaterStorageDemand.hasPossibleDemand,
       heatStoragePossible = heatStorageDemand.hasPossibleDemand,
       houseHeatedLastState = isHouseHeatedLastState,
     )
