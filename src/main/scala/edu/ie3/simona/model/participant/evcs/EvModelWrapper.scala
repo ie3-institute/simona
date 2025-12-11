@@ -36,7 +36,7 @@ final case class EvModelWrapper(
   def id: String = original.getId
 
   // lazy val pRatedAc: Power = original.getPRatedAC.toSquants
-  lazy val sRatedAc: Power = original.getPRatedAC.toSquants
+  lazy val sRatedAc: Power = original.getSRatedAC.toSquants
   // from cosphi() rated from simonaAPI EVModel
   lazy val cosPhiRated: Double = original.getCosPhiRated
   lazy val pRatedDc: Power = original.getPRatedDC.toSquants
