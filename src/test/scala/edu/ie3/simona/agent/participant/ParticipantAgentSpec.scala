@@ -161,7 +161,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 8 hours of 0 kW, 4 hours of 6 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(2))
             q should approximate(Kilovars(0.968644209676))
         }
@@ -175,7 +175,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
 
         gridAgent.expectMessageType[AssetPowerUnchangedMessage] match {
-          case AssetPowerUnchangedMessage(p, q) =>
+          case AssetPowerUnchangedMessage(_, p, q) =>
             p should approximate(Kilowatts(2))
             q should approximate(Kilovars(0.968644209676))
         }
@@ -189,7 +189,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
 
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(2))
             // not voltage dependent
             q should approximate(Kilovars(0.968644209676))
@@ -232,7 +232,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
 
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(4))
             q should approximate(Kilovars(1.93728841935))
         }
@@ -318,7 +318,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 8 hours of 0 kW, 4 hours of 6 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(2))
             q should approximate(Kilovars(0.968644209676))
         }
@@ -376,7 +376,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
 
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(4))
             q should approximate(Kilovars(1.93728841935))
         }
@@ -518,7 +518,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 8 hours of 0 kW, 4 hours of 6+3=9 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(3))
             q should approximate(Kilovars(1.4529663145))
         }
@@ -637,7 +637,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 6 hours of 6+6=12 kW, 2 hours of 6+9=15 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(8.5))
             q should approximate(Kilovars(4.116737891123))
         }
@@ -765,7 +765,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 8 hours of 0 kW, 4 hours of 3 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(1))
             q should approximate(Kilovars(0.48432210484))
         }
@@ -851,7 +851,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 6 hours of 6 kW, 2 hours of 3 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(3.5))
             q should approximate(Kilovars(1.695127366932))
         }
@@ -974,7 +974,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 8 hours of 0 kW, 4 hours of 3 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(1))
             q should approximate(Kilovars(0.48432210483))
         }
@@ -1038,7 +1038,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 8 hours of 3 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(2))
             q should approximate(Kilovars(0.96864420966))
         }
@@ -1156,7 +1156,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
 
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(1))
             q should approximate(Kilovars(0.48432210483))
         }
@@ -1269,7 +1269,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 8 hours of 1 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(0.6666666667))
             q should approximate(Kilovars(0.32288140322))
         }
@@ -1478,7 +1478,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 8 hours of 0 kW, 4 hours of 3 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(1))
             q should approximate(Kilovars(0.48432210483))
         }
@@ -1666,7 +1666,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 6 hours of 3 kW, 2 hours of 6 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(2.5))
             q should approximate(Kilovars(1.210805262))
         }
@@ -1858,7 +1858,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 8 hours of 0 kW, 4 hours of 3 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(1))
             q should approximate(Kilovars(0.48432210483))
         }
@@ -2036,7 +2036,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // 6 hours of 6 kW, 2 hours of 3 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
-          case AssetPowerChangedMessage(p, q) =>
+          case AssetPowerChangedMessage(_, p, q) =>
             p should approximate(Kilowatts(3.5))
             q should approximate(Kilovars(1.695127366932))
         }

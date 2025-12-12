@@ -81,32 +81,8 @@ object GridAgentMessages {
     */
   sealed trait ReceivedValues extends GridAgent.InternalReply
 
-  private type PowerRequestResponse[T] = (ActorRef[T], PowerResponse)
-
   private type SlackVoltageRequestResponse =
     (ActorRef[GridAgent.Message], SlackVoltageResponse)
-
-  sealed trait ReceivedPowerValues extends ReceivedValues {
-    def values: Vector[(ActorRef[?], PowerResponse)]
-  }
-
-  /** Wrapper for received asset power values (p, q)
-    *
-    * @param values
-    *   the asset power values and their senders
-    */
-  final case class ReceivedAssetPowerValues(
-      values: Vector[PowerRequestResponse[ParticipantAgent.Request]]
-  ) extends ReceivedPowerValues
-
-  /** Wrapper for received grid power values (p, q)
-    *
-    * @param values
-    *   the grid power values and their senders
-    */
-  final case class ReceivedGridPowerValues(
-      values: Vector[PowerRequestResponse[GridAgent.Message]]
-  ) extends ReceivedPowerValues
 
   /** Wrapper for received slack voltage values (v)
     *
@@ -140,7 +116,11 @@ object GridAgentMessages {
       sender: ActorRef[GridAgent.Message],
   ) extends GridAgent.InternalRequest
 
-  sealed trait PowerResponse extends GridAgent.InternalReply
+  sealed trait ReceivedValue extends GridAgent.InternalReply {
+    val sender: ActorRef[?]
+  }
+
+  sealed trait PowerResponse extends ReceivedValue
 
   sealed trait ProvidedPowerResponse extends PowerResponse {
     def p: Power
@@ -155,13 +135,15 @@ object GridAgentMessages {
     *   The complex powers of the shared nodes
     */
   final case class GridPowerResponse(
-      nodalResidualPower: Seq[ExchangePower]
+      override val sender: ActorRef[GridAgent.Message],
+      nodalResidualPower: Seq[ExchangePower],
   ) extends PowerResponse
 
   /** Indicate that the power flow calculation failed, as a reply to a
     * [[RequestGridPower]].
     */
-  case object FailedPowerFlow extends PowerResponse
+  case class FailedPowerFlow(override val sender: ActorRef[GridAgent.Message])
+      extends PowerResponse
 
   /** Provide power values as a reply to a
     * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
@@ -172,6 +154,7 @@ object GridAgentMessages {
     *   Unchanged reactive power
     */
   final case class AssetPowerChangedMessage(
+      override val sender: ActorRef[ParticipantAgent.Request],
       override val p: Power,
       override val q: ReactivePower,
   ) extends ProvidedPowerResponse
@@ -188,6 +171,7 @@ object GridAgentMessages {
     *   Reactive power from the previous request
     */
   final case class AssetPowerUnchangedMessage(
+      override val sender: ActorRef[ParticipantAgent.Request],
       override val p: Power,
       override val q: ReactivePower,
   ) extends ProvidedPowerResponse
@@ -213,9 +197,10 @@ object GridAgentMessages {
     *   The complex voltages of the shared nodes
     */
   final case class SlackVoltageResponse(
+      override val sender: ActorRef[GridAgent.Message],
       currentSweepNo: Int,
       nodalSlackVoltages: Seq[ExchangeVoltage],
-  ) extends GridAgent.InternalReply
+  ) extends ReceivedValue
 
   object Responses {
 
@@ -230,6 +215,7 @@ object GridAgentMessages {
       */
     final case class ExchangePower(
         nodeUuid: UUID,
+        override val sender: ActorRef[GridAgent.Message],
         override val p: Power,
         override val q: ReactivePower,
     ) extends ProvidedPowerResponse

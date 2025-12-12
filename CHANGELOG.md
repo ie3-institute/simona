@@ -83,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed dedicated `random` load model behaviour [#1436](https://github.com/ie3-institute/simona/issues/1436)
 - Removed some units from scalaDoc within `ThermalHouse` [#1495](https://github.com/ie3-institute/simona/issues/1495)
 - Removed unused code in test directory [#1533](https://github.com/ie3-institute/simona/issues/1533)
+- Removed message retrieval timeout from DBFS [#1422](https://github.com/ie3-institute/simona/issues/1422) 
 
 ### Updates
 - Updated gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)

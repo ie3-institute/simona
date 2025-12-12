@@ -18,6 +18,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   ProvidedPowerResponse,
   ReceivedSlackVoltageValues,
+  SlackVoltageResponse,
 }
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.*
@@ -220,7 +221,7 @@ trait PowerFlowSupport {
     *   slack node target voltages
     */
   protected def composeOperatingPointWithUpdatedSlackVoltages(
-      receivedSlackValues: ReceivedSlackVoltageValues,
+      receivedSlackValues: Seq[ExchangeVoltage],
       sweepDataValues: Vector[SweepValueStore.SweepValueStoreData],
       transformers2w: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
@@ -229,9 +230,7 @@ trait PowerFlowSupport {
     sweepDataValues.map { sweepValueStoreData =>
       val nodeStateData = sweepValueStoreData.stateData
       val targetVoltage = if nodeStateData.nodeType == NodeType.SL then {
-        val receivedSlackVoltage = receivedSlackValues.values
-          .map { case (_, slackVoltageMsg) => slackVoltageMsg }
-          .flatMap(_.nodalSlackVoltages)
+        val receivedSlackVoltage = receivedSlackValues
           .find(_.nodeUuid == sweepValueStoreData.nodeUuid)
           .getOrElse(
             throw new RuntimeException(

@@ -171,6 +171,7 @@ class DBFSAlgorithmParticipantSpec
       // we now answer the request of our gridAgentsWithParticipants
       // with a fake slack voltage message
       firstSlackVoltageRequestSender ! SlackVoltageResponse(
+        superiorGridAgent.ref,
         firstSweepNo,
         Seq(
           ExchangeVoltage(
@@ -195,6 +196,7 @@ class DBFSAlgorithmParticipantSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
+            gridAgentWithParticipants,
             Megawatts(135.90837346741768),
             Megavars(60.98643348675892),
           )
@@ -216,6 +218,7 @@ class DBFSAlgorithmParticipantSpec
 
       // the superior grid would answer with updated slack voltage values
       secondSlackAskSender ! SlackVoltageResponse(
+        superiorGridAgent.ref,
         secondSweepNo,
         Seq(
           ExchangeVoltage(
@@ -232,6 +235,7 @@ class DBFSAlgorithmParticipantSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
+            gridAgentWithParticipants,
             Megawatts(135.90837346741768),
             Megavars(60.98643348675892),
           )

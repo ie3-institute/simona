@@ -89,6 +89,7 @@ class PowerFlowSupportSpec
           actorRef -> Some(
             ExchangePower(
               node1.uuid,
+              actorRef,
               Megawatts(1d),
               Megavars(0d),
             )
@@ -348,7 +349,6 @@ class PowerFlowSupportSpec
       1e-5,
       Vector(1e-12),
       50,
-      30.minutes,
       stopOnFailure = true,
     )
 
