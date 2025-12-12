@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored method to handle feed in within `ThermalGrid` [#1554](https://github.com/ie3-institute/simona/issues/1554)
 - Generalize `WeatherSeriesData` to `SecondarySeriesData` [#1584](https://github.com/ie3-institute/simona/issues/1584)
 - Enhance `EnergyPrice` squants [#1583](https://github.com/ie3-institute/simona/issues/1583)
+- Chnaged reactive power of EVs in EvcsModel according to simonaAPI [#1250](https://github.com/ie3-institute/simona/issues/1250)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
