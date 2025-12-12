@@ -39,7 +39,7 @@ trait EvcsChargingProperties {
   ): Power = {
     val evPower = currentType match {
       case ElectricCurrentType.AC =>
-        ev.sRatedAc
+        ev.sRatedAc * ev.cosPhiRated
       case ElectricCurrentType.DC =>
         ev.pRatedDc
     }
