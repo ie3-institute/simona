@@ -94,6 +94,7 @@ object ExtSimSetup {
         extLink.getExtSimulation
       }.map { extSimulation =>
         extSimulation.setDataConnection(extSimDataConnection)
+        extSimulation.setSetupData(setUpData)
 
         // send init data right away, init activation is scheduled
         extSimAdapter ! ExtSimAdapter.Create(
