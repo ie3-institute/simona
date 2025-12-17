@@ -31,6 +31,8 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   *   Map: uuid to em agent reference.
   * @param agentToUuid
   *   Map: em agent reference to uuid.
+  * @param uncontrolled
+  *   A set of uuids of uncontrolled em models.
   * @param uuidToInferior
   *   A map that contains information about uuids of inferior em agents. This
   *   information is used to determine the disaggregated flex options.
@@ -56,6 +58,8 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   *   therefore able to process the send set points.
   * @param setPointOption
   *   Option for em set points that needs to be handled at a later time.
+  * @param internal
+  *   A set of uuids of models that simulated internally.
   */
 final case class EmServiceBaseCore(
     override val lastFinishedTick: Long = INIT_SIM_TICK,
@@ -224,7 +228,7 @@ final case class EmServiceBaseCore(
     flexResponse match {
       case provideFlexOptions: ProvideFlexOptions =>
         val (updated, updatedAdditional) =
-          handleFlexOptions(tick, receiverUuid, provideFlexOptions)
+          handleFlexOptions(receiverUuid, provideFlexOptions)
 
         if updated.isComplete then {
           // we received all flex options
@@ -349,8 +353,6 @@ final case class EmServiceBaseCore(
   }
 
   /** Method to handle flex options.
-    * @param tick
-    *   Current tick of the service.
     * @param receiver
     *   The receiver of the flex options.
     * @param provideFlexOptions
@@ -359,7 +361,6 @@ final case class EmServiceBaseCore(
     *   An updated service core and a map: uuid to flex options
     */
   private def handleFlexOptions(
-      tick: Long,
       receiver: UUID,
       provideFlexOptions: ProvideFlexOptions,
   ): (
@@ -394,19 +395,4 @@ final case class EmServiceBaseCore(
       (flexOptions, allFlexOptions)
   }
 
-}
-
-object EmServiceBaseCore {
-
-  def apply(core: EmServiceCore): EmServiceBaseCore = EmServiceBaseCore(
-    core.lastFinishedTick,
-    core.uuidToAgent,
-    core.agentToUuid,
-    core.uncontrolled,
-    core.uuidToInferior,
-    core.uuidToParent,
-    core.completions,
-    core.nextActivation,
-    core.allFlexOptions,
-  )
 }
