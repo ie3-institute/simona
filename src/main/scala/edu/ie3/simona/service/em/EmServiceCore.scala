@@ -11,11 +11,7 @@ import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  EmFlexMessage,
-  EmServiceRegistration,
-  ServiceResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{EmFlexMessage, EmServiceRegistration, ServiceResponseMessage}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -26,7 +22,6 @@ import org.slf4j.Logger
 import squants.Power
 import tech.units.indriya.ComparableQuantity
 
-import java.lang
 import java.time.ZonedDateTime
 import java.util.{Optional, UUID}
 import javax.measure.quantity.Power as PsdmPower
@@ -37,10 +32,6 @@ import scala.jdk.OptionConverters.{RichOption, RichOptional}
 trait EmServiceCore {
 
   val mode: EmMode
-
-  /** The last tick that was completed.
-    */
-  val lastFinishedTick: Long
 
   /** Map: uuid to em agent reference.
     */

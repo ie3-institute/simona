@@ -45,7 +45,6 @@ object EmCommunicationCore {
 
     EmCommunicationCore(
       core.mode,
-      core.lastFinishedTick,
       uuidToAgent,
       core.agentToUuid,
       core.uncontrolled,
@@ -144,7 +143,6 @@ object EmCommunicationCore {
 
 case class EmCommunicationCore(
     override val mode: EmMode = EmMode.EM_COMMUNICATION,
-    override val lastFinishedTick: Long = INIT_SIM_TICK,
     override val uuidToAgent: Map[UUID, ActorRef[Message]] = Map.empty,
     override val agentToUuid: Map[
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
@@ -224,7 +222,7 @@ case class EmCommunicationCore(
           } else getMaybeNextTick
 
         (
-          copy(lastFinishedTick = tick),
+          this,
           Some(new EmCompletion(nextTick)),
         )
       }
@@ -565,7 +563,6 @@ case class EmCommunicationCore(
 
           (
             copy(
-              lastFinishedTick = tick,
               completions = ReceiveDataMap.empty,
               requestedFlexType = Map.empty,
               allFlexOptions = Map.empty,
@@ -585,15 +582,8 @@ case class EmCommunicationCore(
         }
 
       case completion: FlexCompletion =>
-        receiver match {
-          case Left(_) =>
-            (copy(lastFinishedTick = tick), None)
-
-          case Right(ref) =>
-            ref ! completion
-
-            (this, None)
-        }
+        receiver.foreach(_ ! completion)
+        (this, None)
 
       // not supported
       case other =>

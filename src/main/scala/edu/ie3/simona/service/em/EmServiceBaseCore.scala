@@ -28,8 +28,6 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 /** Basic service core for an [[ExtEmDataService]].
   * @param mode
   *   The em mode of the data connection.
-  * @param lastFinishedTick
-  *   The last tick that was completed.
   * @param uuidToAgent
   *   Map: uuid to em agent reference.
   * @param agentToUuid
@@ -61,7 +59,6 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   */
 final case class EmServiceBaseCore(
     override val mode: EmMode = EmMode.BASE,
-    override val lastFinishedTick: Long = INIT_SIM_TICK,
     override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
     override val agentToUuid: Map[
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
@@ -197,7 +194,7 @@ final case class EmServiceBaseCore(
         val nextTick = getMaybeNextTick
 
         (
-          copy(lastFinishedTick = tick),
+          this,
           Some(new EmCompletion(nextTick)),
         )
       }
@@ -336,7 +333,6 @@ final case class EmServiceBaseCore(
 
           (
             copy(
-              lastFinishedTick = tick,
               completions = expectedCompletions,
               disaggregated = Map.empty,
               sendOptionsToExt = false,
@@ -423,7 +419,6 @@ object EmServiceBaseCore {
 
   def apply(core: EmServiceCore): EmServiceBaseCore = EmServiceBaseCore(
     core.mode,
-    core.lastFinishedTick,
     core.uuidToAgent,
     core.agentToUuid,
     core.uncontrolled,
