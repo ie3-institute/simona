@@ -25,8 +25,6 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /** Basic service core for an [[ExtEmDataService]].
-  * @param lastFinishedTick
-  *   The last tick that was completed.
   * @param uuidToAgent
   *   Map: uuid to em agent reference.
   * @param agentToUuid
@@ -62,7 +60,6 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   *   A set of uuids of models that simulated internally.
   */
 final case class EmServiceBaseCore(
-    override val lastFinishedTick: Long = INIT_SIM_TICK,
     override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
     override val agentToUuid: Map[
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
@@ -192,13 +189,10 @@ final case class EmServiceBaseCore(
       } else {
         log.info(s"Request to finish for tick '$tick' received.")
 
-        // deactivate agents by sending an IssueNoControl message
-        // activatedAgents.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
-
         val nextTick = getMaybeNextTick
 
         (
-          copy(lastFinishedTick = tick),
+          this,
           Some(new EmCompletion(nextTick)),
         )
       }
@@ -317,7 +311,6 @@ final case class EmServiceBaseCore(
 
           (
             copy(
-              lastFinishedTick = tick,
               completions = expectedCompletions,
               disaggregated = Map.empty,
               sendOptionsToExt = false,

@@ -34,10 +34,6 @@ import scala.jdk.OptionConverters.{RichOption, RichOptional}
   */
 trait EmServiceCore {
 
-  /** The last tick that was completed.
-    */
-  val lastFinishedTick: Long
-
   /** Map: uuid to em agent reference.
     */
   val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]]
