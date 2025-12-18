@@ -59,7 +59,6 @@ class EmServiceBaseCoreSpec
         EmServiceRegistration(emAgent, emUuid, None, None)
       )
 
-      updatedCore.lastFinishedTick shouldBe INIT_SIM_TICK
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent)
       updatedCore.flexOptions shouldBe ReceiveDataMap.empty
       updatedCore.allFlexOptions shouldBe empty
@@ -89,7 +88,6 @@ class EmServiceBaseCoreSpec
         )
       )
 
-      updatedCore.lastFinishedTick shouldBe INIT_SIM_TICK
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent)
       updatedCore.flexOptions shouldBe ReceiveDataMap.empty
       updatedCore.allFlexOptions shouldBe empty
@@ -105,7 +103,7 @@ class EmServiceBaseCoreSpec
       val emAgent = TestProbe[EmAgent.Message]("emAgent")
       val emUuid = UUID.randomUUID()
 
-      val core = EmServiceBaseCore(0L).handleRegistration(
+      val core = EmServiceBaseCore().handleRegistration(
         EmServiceRegistration(emAgent.ref, emUuid, None, None)
       )
 
@@ -125,7 +123,6 @@ class EmServiceBaseCoreSpec
       msgToExt shouldBe None
 
       // check updated state of the core
-      updatedCore.lastFinishedTick shouldBe 0L
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent.ref)
       updatedCore.flexOptions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.allFlexOptions shouldBe empty
@@ -143,7 +140,7 @@ class EmServiceBaseCoreSpec
       val emAgent = TestProbe[EmAgent.Message]("emAgent")
       val emUuid = UUID.randomUUID()
 
-      val core = EmServiceBaseCore(0L).handleRegistration(
+      val core = EmServiceBaseCore().handleRegistration(
         EmServiceRegistration(emAgent.ref, emUuid, None, None)
       )
 
@@ -166,7 +163,6 @@ class EmServiceBaseCoreSpec
       msgToExt shouldBe None
 
       // check updated state of the core
-      updatedCore.lastFinishedTick shouldBe 0L
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent.ref)
       updatedCore.flexOptions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.allFlexOptions shouldBe empty
@@ -201,7 +197,6 @@ class EmServiceBaseCoreSpec
       msgToExt shouldBe None
 
       // check updated state of the core
-      coreAfterFlexOptionProvision.lastFinishedTick shouldBe 0L
       coreAfterFlexOptionProvision.uuidToAgent shouldBe Map(
         emUuid -> emAgent.ref
       )

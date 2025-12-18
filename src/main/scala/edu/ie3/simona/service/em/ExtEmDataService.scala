@@ -182,47 +182,26 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       ctx: ActorContext[Message],
   ): (ExtEmDataStateData, Option[Long]) = {
     given Logger = ctx.log
-    val stateTick = serviceStateData.tick
 
-    if tick != stateTick then {
-      // we received an activation for the next tick
-
-      // check the last finished tick of the core
-      val lastFinishedTick = serviceStateData.serviceCore.lastFinishedTick
-
-      val updatedStateData = if lastFinishedTick == stateTick then {
-        // we finished the last tick and update the core with the requested tick
-        serviceStateData.copy(tick = tick)
-
-      } else {
-        // we are still waiting for data for the state data tick
-        serviceStateData
-      }
-
-      // we request a new activation for the same tick
-      (updatedStateData, Some(tick))
-
-    } else {
-      val extMsg = serviceStateData.extEmDataMessage.getOrElse(
-        throw ServiceException(
-          "ExtEmDataService was triggered without ExtEmDataMessage available"
-        )
+    val extMsg = serviceStateData.extEmDataMessage.getOrElse(
+      throw ServiceException(
+        "ExtEmDataService was triggered without ExtEmDataMessage available"
       )
+    )
 
-      val (updatedCore, msgToExt) =
-        serviceStateData.serviceCore.handleExtMessage(tick, extMsg)
+    val (updatedCore, msgToExt) =
+      serviceStateData.serviceCore.handleExtMessage(tick, extMsg)
 
-      msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+    msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
 
-      (
-        serviceStateData.copy(
-          tick = tick,
-          serviceCore = updatedCore,
-          extEmDataMessage = None,
-        ),
-        None,
-      )
-    }
+    (
+      serviceStateData.copy(
+        tick = tick,
+        serviceCore = updatedCore,
+        extEmDataMessage = None,
+      ),
+      None,
+    )
   }
 
   override protected def handleDataMessage(
