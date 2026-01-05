@@ -8,7 +8,6 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
-import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
@@ -22,7 +21,10 @@ import edu.ie3.simona.service.ServiceStateData.{
   ServiceBaseStateData,
 }
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{
+  FIRST_TICK_IN_SIMULATION,
+  INIT_SIM_TICK,
+}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.slf4j.{Logger, LoggerFactory}
@@ -115,17 +117,13 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       log.debug(s"Received response message: $scheduleFlexActivation")
 
       receiver match {
-        case uuid: UUID =>
+        case _: UUID =>
           log.debug(s"Unlocking msg: $scheduleFlexActivation")
           scheduleFlexActivation.scheduleKey.foreach(_.unlock())
 
         case ref: ActorRef[EmAgent.Message] =>
           log.debug(s"Forwarding the message to: $ref")
           ref ! scheduleFlexActivation
-
-        case _ =>
-          // this should not happen
-          log.warn(s"No receiver found for msg: $serviceResponse")
       }
   }
 
@@ -134,10 +132,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   )(using log: Logger): Try[(ExtEmDataStateData, Option[Long])] =
     initServiceData match {
       case InitExtEmData(extEmDataConnection, startTime) =>
-        val serviceCore = extEmDataConnection.mode match {
-          case EmMode.BASE =>
-            EmServiceBaseCore.empty
-        }
+        val serviceCore = EmServiceBaseCore()
 
         val emDataInitializedStateData =
           ExtEmDataStateData(extEmDataConnection, startTime, serviceCore)
@@ -187,49 +182,26 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       ctx: ActorContext[Message],
   ): (ExtEmDataStateData, Option[Long]) = {
     given Logger = ctx.log
-    val stateTick = serviceStateData.tick
 
-    if tick != stateTick then {
-      // we received an activation for the next tick
-
-      // check the last finished tick of the core
-      val lastFinishedTick = serviceStateData.serviceCore.lastFinishedTick
-
-      val updatedStateData = if lastFinishedTick == stateTick then {
-        // we finished the last tick and update the core with the requested tick
-        serviceStateData.copy(tick = tick)
-
-      } else {
-        // we are still waiting for data for the state data tick
-        serviceStateData
-      }
-
-      // we request a new activation for the same tick
-      (updatedStateData, Some(tick))
-
-    } else {
-      val extMsg = serviceStateData.extEmDataMessage.getOrElse(
-        throw ServiceException(
-          "ExtEmDataService was triggered without ExtEmDataMessage available"
-        )
+    val extMsg = serviceStateData.extEmDataMessage.getOrElse(
+      throw ServiceException(
+        "ExtEmDataService was triggered without ExtEmDataMessage available"
       )
+    )
 
-      val (updatedCore, msgToExt) =
-        serviceStateData.serviceCore.handleExtMessage(tick, extMsg)(using
-          ctx.log
-        )
+    val (updatedCore, msgToExt) =
+      serviceStateData.serviceCore.handleExtMessage(tick, extMsg)
 
-      msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+    msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
 
-      (
-        serviceStateData.copy(
-          tick = tick,
-          serviceCore = updatedCore,
-          extEmDataMessage = None,
-        ),
-        None,
-      )
-    }
+    (
+      serviceStateData.copy(
+        tick = tick,
+        serviceCore = updatedCore,
+        extEmDataMessage = None,
+      ),
+      None,
+    )
   }
 
   override protected def handleDataMessage(
@@ -246,18 +218,22 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   }
 
   override protected def handleDataResponseMessage(
-      extResponseMsg: ServiceResponseMessage
+      extResponseMsg: ServiceResponseMessage,
+      ctx: ActorContext[Message],
   )(using
       serviceStateData: ExtEmDataStateData
   ): ExtEmDataStateData = {
+    val tick = serviceStateData.tick
 
     val (updatedCore, extMsg) =
       serviceStateData.serviceCore.handleDataResponseMessage(
-        serviceStateData.tick,
+        tick,
         extResponseMsg,
       )(using serviceStateData.startTime, log)
 
-    extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+    if tick >= FIRST_TICK_IN_SIMULATION then {
+      extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+    }
 
     serviceStateData.copy(serviceCore = updatedCore)
   }

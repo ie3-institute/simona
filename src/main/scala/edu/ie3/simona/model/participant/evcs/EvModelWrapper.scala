@@ -9,7 +9,11 @@ package edu.ie3.simona.model.participant.evcs
 import edu.ie3.simona.api.data.model.ev.EvModel
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.QuantityUtils.asKiloWattHour
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toApparent,
+  toSquants,
+}
 import squants.Power
 import squants.energy.{Energy, KilowattHours}
 
@@ -35,7 +39,9 @@ final case class EvModelWrapper(
   def uuid: UUID = original.getUuid
   def id: String = original.getId
 
-  lazy val pRatedAc: Power = original.getPRatedAC.toSquants
+  lazy val cosPhi: Double = original.getCosPhiRated
+  lazy val sRatedAc: ApparentPower = original.getSRatedAC.toApparent
+  lazy val pRatedAc: Power = sRatedAc.toActivePower(cosPhi)
   lazy val pRatedDc: Power = original.getPRatedDC.toSquants
   lazy val eStorage: Energy = original.getEStorage.toSquants
 
