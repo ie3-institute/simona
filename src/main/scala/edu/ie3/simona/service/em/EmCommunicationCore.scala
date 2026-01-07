@@ -44,7 +44,6 @@ object EmCommunicationCore {
     val uuidToAgent = core.uuidToAgent
 
     EmCommunicationCore(
-      core.mode,
       uuidToAgent,
       core.agentToUuid,
       core.uncontrolled,
@@ -142,7 +141,6 @@ object EmCommunicationCore {
 }
 
 case class EmCommunicationCore(
-    override val mode: EmMode = EmMode.EM_COMMUNICATION,
     override val uuidToAgent: Map[UUID, ActorRef[Message]] = Map.empty,
     override val agentToUuid: Map[
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
