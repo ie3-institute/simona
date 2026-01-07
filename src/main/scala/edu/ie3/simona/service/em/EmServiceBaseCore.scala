@@ -417,7 +417,6 @@ final case class EmServiceBaseCore(
 object EmServiceBaseCore {
 
   def apply(core: EmServiceCore): EmServiceBaseCore = EmServiceBaseCore(
-    core.mode,
     core.uuidToAgent,
     core.agentToUuid,
     core.uncontrolled,
