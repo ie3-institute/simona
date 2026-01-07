@@ -7,7 +7,6 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
@@ -26,12 +25,12 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /** Basic service core for an [[ExtEmDataService]].
-  * @param mode
-  *   The em mode of the data connection.
   * @param uuidToAgent
   *   Map: uuid to em agent reference.
   * @param agentToUuid
   *   Map: em agent reference to uuid.
+  * @param uncontrolled
+  *   A set of uuids of uncontrolled em models.
   * @param uuidToInferior
   *   A map that contains information about uuids of inferior em agents. This
   *   information is used to determine the disaggregated flex options.
@@ -42,9 +41,10 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   * @param nextActivation
   *   A map: uuid to next activation tick.
   * @param allFlexOptions
-  *   Map: uuid to flex option result.
+  *   Map: uuid to flex options. This map stores all flex options received for
+  *   the current tick.
   * @param flexOptions
-  *   ReceiveDataMap: uuid to flex option result.
+  *   ReceiveDataMap: uuid to flex option.
   * @param disaggregated
   *   A map: uuid of em agent to boolean. It defines for which em agent we
   *   should return disaggregated flex options.
@@ -56,9 +56,10 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   *   therefore able to process the send set points.
   * @param setPointOption
   *   Option for em set points that needs to be handled at a later time.
+  * @param internal
+  *   A set of uuids of models that simulated internally.
   */
 final case class EmServiceBaseCore(
-    override val mode: EmMode = EmMode.BASE,
     override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
     override val agentToUuid: Map[
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
@@ -81,7 +82,7 @@ final case class EmServiceBaseCore(
 
   def handleRegistration(
       emServiceRegistration: EmServiceRegistration
-  ): EmServiceCore = {
+  ): EmServiceBaseCore = {
     val uuid = emServiceRegistration.inputUuid
     val ref = emServiceRegistration.requestingActor
 
@@ -193,9 +194,6 @@ final case class EmServiceBaseCore(
       } else {
         log.info(s"Request to finish for tick '$tick' received.")
 
-        // deactivate agents by sending an IssueNoControl message
-        // activatedAgents.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
-
         val nextTick = getMaybeNextTick
 
         (
@@ -223,7 +221,6 @@ final case class EmServiceBaseCore(
         ),
         None,
       )
-
     case _ =>
       throw new CriticalFailureException(
         s"The EmServiceBaseCore is not able to handle the message: $extMsg"
@@ -249,7 +246,7 @@ final case class EmServiceBaseCore(
     flexResponse match {
       case provideFlexOptions: ProvideFlexOptions =>
         val (updated, updatedAdditional) =
-          handleFlexOptions(tick, receiverUuid, provideFlexOptions)
+          handleFlexOptions(receiverUuid, provideFlexOptions)
 
         if updated.isComplete then {
           // we received all flex options
@@ -373,8 +370,6 @@ final case class EmServiceBaseCore(
   }
 
   /** Method to handle flex options.
-    * @param tick
-    *   Current tick of the service.
     * @param receiver
     *   The receiver of the flex options.
     * @param provideFlexOptions
@@ -383,7 +378,6 @@ final case class EmServiceBaseCore(
     *   An updated service core and a map: uuid to flex options
     */
   private def handleFlexOptions(
-      tick: Long,
       receiver: UUID,
       provideFlexOptions: ProvideFlexOptions,
   ): (

@@ -7,11 +7,8 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.model.em.EmSetPoint
-import edu.ie3.simona.api.ontology.em.{
-  ProvideEmSetPointData,
-  RequestEmFlexResults,
-}
+import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptionRequest}
+import edu.ie3.simona.api.ontology.em.ProvideEmData
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
@@ -26,19 +23,20 @@ import edu.ie3.simona.ontology.messages.flex.{
 }
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ReceiveDataMap
-import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
+import edu.ie3.simona.api.data.model.em
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
 import org.slf4j.{Logger, LoggerFactory}
-import edu.ie3.util.quantities.QuantityUtils.asKiloWatt
+import edu.ie3.util.quantities.QuantityUtils.{asKiloWatt, asMegaWatt}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.energy.{Kilowatts, Power, Watts}
 
 import java.time.ZonedDateTime
-import java.util.{Optional, UUID}
-import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
+import java.util.UUID
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class EmServiceBaseCoreSpec
     extends ScalaTestWithActorTestKit
@@ -52,7 +50,7 @@ class EmServiceBaseCoreSpec
     given Power = Watts(1e-3)
 
     "handle registration of parentless em agent correctly" in {
-      val emptyCore = EmServiceBaseCore.empty
+      val emptyCore = EmServiceBaseCore()
 
       val emAgent = TestProbe[EmAgent.Message]("emAgent").ref
       val emUuid = UUID.randomUUID()
@@ -61,12 +59,11 @@ class EmServiceBaseCoreSpec
         EmServiceRegistration(emAgent, emUuid, None, None)
       )
 
-      updatedCore.lastFinishedTick shouldBe PRE_INIT_TICK
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent)
       updatedCore.flexOptions shouldBe ReceiveDataMap.empty
       updatedCore.allFlexOptions shouldBe empty
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
-      updatedCore.structure shouldBe Map(emUuid -> Set.empty)
+      updatedCore.uuidToInferior shouldBe Map.empty
       updatedCore.disaggregated shouldBe Map.empty
       updatedCore.sendOptionsToExt shouldBe false
       updatedCore.canHandleSetPoints shouldBe false
@@ -74,7 +71,7 @@ class EmServiceBaseCoreSpec
     }
 
     "handle registration of em agent with parent correctly" in {
-      val emptyCore = EmServiceBaseCore.empty
+      val emptyCore = EmServiceBaseCore()
 
       val emAgent = TestProbe[EmAgent.Message]("emAgent").ref
       val emUuid = UUID.randomUUID()
@@ -91,15 +88,11 @@ class EmServiceBaseCoreSpec
         )
       )
 
-      updatedCore.lastFinishedTick shouldBe PRE_INIT_TICK
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent)
       updatedCore.flexOptions shouldBe ReceiveDataMap.empty
       updatedCore.allFlexOptions shouldBe empty
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
-      updatedCore.structure shouldBe Map(
-        emUuid -> Set.empty,
-        parentEmUuid -> Set(emUuid),
-      )
+      updatedCore.uuidToInferior shouldBe Map(parentEmUuid -> Set(emUuid))
       updatedCore.disaggregated shouldBe Map.empty
       updatedCore.sendOptionsToExt shouldBe false
       updatedCore.canHandleSetPoints shouldBe false
@@ -110,14 +103,18 @@ class EmServiceBaseCoreSpec
       val emAgent = TestProbe[EmAgent.Message]("emAgent")
       val emUuid = UUID.randomUUID()
 
-      val core = EmServiceBaseCore(0L).handleRegistration(
+      val core = EmServiceBaseCore().handleRegistration(
         EmServiceRegistration(emAgent.ref, emUuid, None, None)
       )
 
-      val (updatedCore, msgToExt) = core.handleExtMessage(
+      val flexRequests = new ProvideEmData(
         0L,
-        RequestEmFlexResults(0L, List(emUuid).asJava, true),
+        Map(emUuid -> new FlexOptionRequest(emUuid, true)).asJava,
+        Map.empty.asJava,
+        Map.empty.asJava,
       )
+
+      val (updatedCore, msgToExt) = core.handleExtMessage(0L, flexRequests)
 
       // the agent should receive a flex option request
       emAgent.expectMessage(FlexActivation(0L, PowerLimit))
@@ -126,12 +123,11 @@ class EmServiceBaseCoreSpec
       msgToExt shouldBe None
 
       // check updated state of the core
-      updatedCore.lastFinishedTick shouldBe 0L
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent.ref)
       updatedCore.flexOptions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.allFlexOptions shouldBe empty
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
-      updatedCore.structure shouldBe Map(emUuid -> Set.empty)
+      updatedCore.uuidToInferior shouldBe Map.empty
       updatedCore.disaggregated shouldBe Map(
         emUuid -> true
       ) // since we requested disaggregated flex options
@@ -144,14 +140,17 @@ class EmServiceBaseCoreSpec
       val emAgent = TestProbe[EmAgent.Message]("emAgent")
       val emUuid = UUID.randomUUID()
 
-      val core = EmServiceBaseCore(0L).handleRegistration(
+      val core = EmServiceBaseCore().handleRegistration(
         EmServiceRegistration(emAgent.ref, emUuid, None, None)
       )
 
-      val setPointData = ProvideEmSetPointData(
+      val setPoints = Map(emUuid -> new EmSetPoint(emUuid, 5.asKiloWatt))
+
+      val setPointData = new ProvideEmData(
         0L,
-        Map(emUuid -> new EmSetPoint(emUuid, 5.asKiloWatt)).asJava,
-        Optional.of(900L),
+        Map.empty.asJava,
+        Map.empty.asJava,
+        setPoints.asJava,
       )
 
       val (updatedCore, msgToExt) = core.handleExtMessage(0L, setPointData)
@@ -164,17 +163,16 @@ class EmServiceBaseCoreSpec
       msgToExt shouldBe None
 
       // check updated state of the core
-      updatedCore.lastFinishedTick shouldBe 0L
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent.ref)
       updatedCore.flexOptions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.allFlexOptions shouldBe empty
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
-      updatedCore.structure shouldBe Map(emUuid -> Set.empty)
+      updatedCore.uuidToInferior shouldBe Map.empty
       updatedCore.disaggregated shouldBe Map.empty
       updatedCore.sendOptionsToExt shouldBe false // since we didn't receive a flex option request
       updatedCore.canHandleSetPoints shouldBe false
       updatedCore.setPointOption shouldBe Some(
-        setPointData
+        setPoints
       ) // save the set point data until we can handle it
 
       // handle flex options
@@ -199,16 +197,23 @@ class EmServiceBaseCoreSpec
       msgToExt shouldBe None
 
       // check updated state of the core
-      coreAfterFlexOptionProvision.lastFinishedTick shouldBe 0L
       coreAfterFlexOptionProvision.uuidToAgent shouldBe Map(
         emUuid -> emAgent.ref
       )
       coreAfterFlexOptionProvision.flexOptions shouldBe ReceiveDataMap.empty // empty, since we received all flex options
-      coreAfterFlexOptionProvision.allFlexOptions shouldBe empty
+      coreAfterFlexOptionProvision.allFlexOptions shouldBe Map(
+        emUuid -> new em.PowerLimitFlexOptions(
+          emUuid,
+          emUuid,
+          0.asMegaWatt,
+          0.asMegaWatt,
+          0.asMegaWatt,
+        )
+      )
       coreAfterFlexOptionProvision.completions shouldBe ReceiveDataMap(
         Set(emUuid)
       )
-      coreAfterFlexOptionProvision.structure shouldBe Map(emUuid -> Set.empty)
+      coreAfterFlexOptionProvision.uuidToInferior shouldBe Map.empty
       coreAfterFlexOptionProvision.disaggregated shouldBe Map.empty
       coreAfterFlexOptionProvision.sendOptionsToExt shouldBe false // since we didn't receive a flex option request
       coreAfterFlexOptionProvision.canHandleSetPoints shouldBe true // since all agents have provided flex options
@@ -217,13 +222,18 @@ class EmServiceBaseCoreSpec
 
     "handle flex requests correctly" in {
       val emAgent = TestProbe[EmAgent.Message]("emAgent")
-      val core = EmServiceBaseCore.empty
+      val emUuid = UUID.randomUUID()
+      val core = EmServiceBaseCore().handleRegistration(
+        EmServiceRegistration(emAgent.ref, emUuid)
+      )
 
       val msg = IssueNoControl(0L)
       val (updatedCore, msgToExt) = core.handleFlexRequest(msg, emAgent.ref)
 
       // since we don't update the core
-      updatedCore shouldBe core
+      updatedCore shouldBe core.copy(completions =
+        core.completions.addExpectedKey(emUuid)
+      )
 
       // we should have no message for the external simulation
       msgToExt shouldBe None

@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
-import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
@@ -23,7 +20,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities.WattsPerKelvin
 import org.scalatest.prop.{TableFor2, TableFor3, TableFor4, TableFor7}
 import squants.energy.*
@@ -31,11 +28,8 @@ import squants.space.Litres
 import squants.thermal.*
 import squants.time.*
 import squants.{Energy, Temperature, Volume}
-import tech.units.indriya.quantity.Quantities.getQuantity
-import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
-import java.util.UUID
 
 class ThermalHouseSpec
     extends UnitSpec
@@ -394,6 +388,16 @@ class ThermalHouseSpec
 
           thresholdOption shouldBe expectedThreshold
       }
+    }
+
+    "return no next tick if house temperature is within tolerance margin" in {
+      val house = thermalHouse(19, 21)
+      val state = ThermalHouseState(900L, Celsius(0), Celsius(19.0001))
+
+      house.determineNextThreshold(
+        state,
+        zeroKW,
+      ) shouldBe None
     }
 
     "calculating thermal energy demand for heating water" should {

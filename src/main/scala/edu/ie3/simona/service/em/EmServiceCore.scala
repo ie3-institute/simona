@@ -8,7 +8,6 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
@@ -34,8 +33,6 @@ import scala.jdk.OptionConverters.{RichOption, RichOptional}
 /** Trait for all em service cores.
   */
 trait EmServiceCore {
-
-  val mode: EmMode
 
   /** Map: uuid to em agent reference.
     */
