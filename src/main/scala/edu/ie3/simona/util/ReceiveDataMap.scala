@@ -46,6 +46,9 @@ final case class ReceiveDataMap[K, V](
   def addExpectedKeys(keys: Set[K]): ReceiveDataMap[K, V] =
     copy(expectedKeys = expectedKeys ++ keys)
 
+  def addExpectedKey(key: K): ReceiveDataMap[K, V] =
+    copy(expectedKeys = expectedKeys + key)
+
   def getExpectedKeys: Set[K] = expectedKeys
 
 }

@@ -26,7 +26,7 @@ ext {
   confluentKafkaVersion = '7.9.0'
   scapegoatVersion = '3.2.3'
 
-  junitVersion = '6.0.1'
+  junitVersion = '6.0.2'
   testContainerVersion = '0.44.1'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
@@ -92,7 +92,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.11.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.12.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -101,7 +101,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.23"
+  implementation "ch.qos.logback:logback-classic:1.5.24"
 
   /* testing */
   // scalatest & junit
