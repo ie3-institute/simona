@@ -46,8 +46,8 @@ trait ExtDataSupport {
 
       idle(using updatedStateData, scheduler)
 
-    case (_, extResponseMsg: ServiceResponseMessage) =>
-      val updatedStateData = handleDataResponseMessage(extResponseMsg)
+    case (ctx, extResponseMsg: ServiceResponseMessage) =>
+      val updatedStateData = handleDataResponseMessage(extResponseMsg, ctx)
 
       idle(using updatedStateData, scheduler)
   }
@@ -75,6 +75,7 @@ trait ExtDataSupport {
     *   the updated state data
     */
   protected def handleDataResponseMessage(
-      extResponseMsg: ServiceResponseMessage
+      extResponseMsg: ServiceResponseMessage,
+      ctx: ActorContext[Message],
   )(using serviceStateData: S): S
 }

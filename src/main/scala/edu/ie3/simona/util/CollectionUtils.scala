@@ -15,6 +15,9 @@ import scala.jdk.CollectionConverters.{SeqHasAsJava, MapHasAsJava}
 
 object CollectionUtils {
 
+  /** Extension to convert a map with nested collection to java. The nested
+    * collection will be converted to lists.
+    */
   extension [K, V](scalaMap: Map[K, Iterable[V]]) {
     def asJava: java.util.Map[K, java.util.List[V]] = {
       scalaMap.map { case (key, value) =>
