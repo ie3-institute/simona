@@ -257,20 +257,24 @@ trait EmServiceCore {
       Option[Long],
       Boolean,
   ) = {
-    val updated = completions.addData(completion.modelUuid, completion)
+    val uuid = completion.modelUuid
 
-    if updated.isComplete then {
-      val (extMsgOption, nextTickOption) = if tick != INIT_SIM_TICK then {
-        // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
-        val option = getMaybeNextTick
+    if completions.expects(uuid) then {
+      val updated = completions.addData(uuid, completion)
 
-        (Some(new EmCompletion(option)), option)
-      } else (None, None)
+      if updated.isComplete then {
+        val (extMsgOption, nextTickOption) = if tick != INIT_SIM_TICK then {
+          // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
+          val option = getMaybeNextTick
 
-      // every em agent has sent a completion message
-      (updated, extMsgOption, nextTickOption, true)
+          (Some(new EmCompletion(option)), option)
+        } else (None, None)
 
-    } else (updated, None, None, false)
+        // every em agent has sent a completion message
+        (updated, extMsgOption, nextTickOption, true)
+
+      } else (updated, None, None, false)
+    } else (completions, None, None, false)
   }
 
   /** Method to calculate the next tick option.

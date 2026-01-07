@@ -17,7 +17,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.ReceiveDataMap
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
@@ -86,7 +85,12 @@ final case class EmServiceBaseCore(
     val uuid = emServiceRegistration.inputUuid
     val ref = emServiceRegistration.requestingActor
 
-    val (updatedUncontrolled, updatedInferior, updatedUuidToParent) =
+    val (
+      updatedUncontrolled,
+      updatedInferior,
+      updatedUuidToParent,
+      updatedCompletions,
+    ) =
       emServiceRegistration.parentUuid match {
         case Some(parent) =>
           val inferior = uuidToInferior.get(parent) match {
@@ -100,9 +104,10 @@ final case class EmServiceBaseCore(
             uncontrolled,
             uuidToInferior.updated(parent, inferior),
             uuidToParent.updated(uuid, parent),
+            completions.addExpectedKey(uuid),
           )
         case None =>
-          (uncontrolled + uuid, uuidToInferior, uuidToParent)
+          (uncontrolled + uuid, uuidToInferior, uuidToParent, completions)
       }
 
     copy(
@@ -111,7 +116,7 @@ final case class EmServiceBaseCore(
       uncontrolled = updatedUncontrolled,
       uuidToInferior = updatedInferior,
       uuidToParent = updatedUuidToParent,
-      completions = completions.addExpectedKey(uuid),
+      completions = updatedCompletions,
       nextActivation = nextActivation.updated(uuid, -1),
     )
   }
@@ -365,8 +370,7 @@ final case class EmServiceBaseCore(
     log.debug(s"$receiver: $flexRequest")
     receiver ! flexRequest
 
-    val uuid = agentToUuid(receiver)
-    (copy(completions = completions.addExpectedKey(uuid)), None)
+    (this, None)
   }
 
   /** Method to handle flex options.
