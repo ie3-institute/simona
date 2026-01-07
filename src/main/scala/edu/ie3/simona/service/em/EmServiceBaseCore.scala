@@ -125,13 +125,18 @@ final case class EmServiceBaseCore(
         )
       }
 
-      val tick = provideEmData.tick
+      val agents = if tick == 0 then {
+        uuidToAgent
+      } else {
+        uuidToAgent.filter { case (uuid, _) => nextActivation(uuid) == tick }
+      }
+
       val flexRequests = provideEmData.flexRequests.asScala.flatMap {
-        case (entity, request) =>
-          uuidToAgent.get(entity).map { ref =>
+        case (uuid, request) =>
+          agents.get(uuid).map { ref =>
             ref ! FlexActivation(tick, PowerLimit)
 
-            entity -> request.disaggregated
+            uuid -> request.disaggregated
           }
       }.toMap
 

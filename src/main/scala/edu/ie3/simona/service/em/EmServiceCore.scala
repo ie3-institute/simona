@@ -11,7 +11,11 @@ import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
-import edu.ie3.simona.ontology.messages.ServiceMessage.{EmFlexMessage, EmServiceRegistration, ServiceResponseMessage}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  EmFlexMessage,
+  EmServiceRegistration,
+  ServiceResponseMessage,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
