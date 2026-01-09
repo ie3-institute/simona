@@ -691,8 +691,9 @@ class CommonLossObjectiveFactorySpec
           target = zeroKW,
           receivedData = Seq.empty,
           objectiveFactory = LinearizedQuadraticPowerObjectiveFactory(
-            segmentCount = 10,
-            maximumExpectedPower = Kilowatts(10),
+            // absolute total power is 22 kW,
+            // thus pick segment count for 2 kW per segment
+            segmentCount = 11
           ),
         )
 
@@ -708,7 +709,7 @@ class CommonLossObjectiveFactorySpec
           solution exists: During the first phase (charging),
           battery power is utilized so that 2 kW remains at every
           time step. During the second phase (discharging), there's
-          exactly enough energy available to go down to 3 kW at
+          exactly enough energy available to go down to 4 kW at
           every time step.
 
           The soft constraints are vital here. Without them,
@@ -750,24 +751,24 @@ class CommonLossObjectiveFactorySpec
           batRes(5).pVal should approximate(0d)
           batRes(5).energyVal should approximate(10d)
 
-          // 5 kW of load to compensate, 3 kW remains
-          batRes(6).pVal should approximate(-2d)
-          batRes(6).energyVal should approximate(8.75d)
+          // 8 kW of load to compensate, 4 kW remains
+          batRes(6).pVal should approximate(-4d)
+          batRes(6).energyVal should approximate(7.5d)
 
-          // 10 kW of load to compensate, 3 kW remains
-          batRes(7).pVal should approximate(-7d)
-          batRes(7).energyVal should approximate(4.375d)
+          // 12 kW of load to compensate, 4 kW remains
+          batRes(7).pVal should approximate(-8d)
+          batRes(7).energyVal should approximate(2.5d)
 
-          // 3 kW of load to compensate, 3 kW remains
+          // 4 kW of load to compensate, 4 kW remains
           batRes(8).pVal should approximate(0d)
-          batRes(8).energyVal should approximate(4.375d)
+          batRes(8).energyVal should approximate(2.5d)
 
-          // 7 kW of load to compensate, 3 kW remains
-          batRes(9).pVal should approximate(-4d)
-          batRes(9).energyVal should approximate(1.875d)
+          // 7 kW of load to compensate, 4 kW remains
+          batRes(9).pVal should approximate(-3d)
+          batRes(9).energyVal should approximate(0.625d)
 
-          // 6 kW of load to compensate, 3 kW remains
-          batRes(10).pVal should approximate(-3d)
+          // 5 kW of load to compensate, 4 kW remains
+          batRes(10).pVal should approximate(-1d)
           batRes(10).energyVal should approximate(0d)
 
           // 0 kW to compensate

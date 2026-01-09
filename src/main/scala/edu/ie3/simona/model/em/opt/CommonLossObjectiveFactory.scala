@@ -15,7 +15,7 @@ import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
 }
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.Data
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
@@ -178,14 +178,9 @@ object CommonLossObjectiveFactory {
     *   The number of segments (secant lines) to create. Increasing the number
     *   of segments improves the accuracy of the approximation, but might impact
     *   efficiency.
-    * @param maximumExpectedPower
-    *   The maximum expected value and thus the value of the last segment
-    *   boundary. If this is not set accurately, the approximation becomes
-    *   inaccurate.
     */
   class LinearizedQuadraticPowerObjectiveFactory(
-      segmentCount: Int,
-      maximumExpectedPower: Power,
+      segmentCount: Int
   ) extends CommonLossObjectiveFactory {
 
     override def build(
@@ -206,9 +201,21 @@ object CommonLossObjectiveFactory {
         }
         .getOrElse(0d)
 
-      val maxPowerKW = maximumExpectedPower.toKilowatts
-      val segmentSize = maxPowerKW / segmentCount
-      val adaptFactor = (1d - lowerLimit) * (1d / maxPowerKW)
+      val (minTotalPower, maxTotalPower) = flexOptions
+        .flatMap { case (_, fo) =>
+          fo.energyBoundaries
+        }
+        .map { boundaries =>
+          (boundaries.powerLimits.getLower, boundaries.powerLimits.getUpper)
+        }
+        .reduceOption { case ((lower1, upper1), (lower2, upper2)) =>
+          (lower1 + lower2, upper1 + upper2)
+        }
+        .getOrElse((zeroKW, zeroKW))
+
+      val absTotalPowerKW = maxTotalPower.max(-minTotalPower).toKilowatts
+      val segmentSize = absTotalPowerKW / segmentCount
+      val adaptFactor = (1d - lowerLimit) * (1d / absTotalPowerKW)
 
       sortVarsByTick(assetVars)
         // create objective expression for every time step
@@ -226,7 +233,8 @@ object CommonLossObjectiveFactory {
             .sliding(2)
             .foreach { case Seq(uCurrent, uNext) =>
               val m = adaptFactor * (uCurrent + uNext)
-              val b = -adaptFactor * uCurrent * uNext + lowerLimit * maxPowerKW
+              val b =
+                -adaptFactor * uCurrent * uNext + lowerLimit * absTotalPowerKW
 
               model.add(epigraph >:= Const(m) * differenceAbs + Const(b))
             }

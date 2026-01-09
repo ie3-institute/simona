@@ -43,11 +43,11 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
       )
     )
 
-  // 15.5 kWh of load in total, more than battery can provide
+  // 18 kWh of load in total, more than battery can provide
   protected val loadFlexScenario1: EnergyBoundariesFlexOptions =
     EnergyBoundariesFlexOptions(
       AssetEnergyBoundaries(
-        Seq(0, 0, 0, 0, 0, 0, 5, 10, 3, 7, 6, 0).toPowerMap
+        Seq(0, 0, 0, 0, 0, 0, 8, 12, 4, 7, 5, 0).toPowerMap
       )
     )
 
