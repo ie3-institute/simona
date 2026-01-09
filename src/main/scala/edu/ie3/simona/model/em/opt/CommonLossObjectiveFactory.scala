@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.em.opt
 
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
 import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
@@ -16,6 +17,7 @@ import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.Data
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import edu.ie3.util.scala.quantities.EnergyPrice
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
@@ -246,6 +248,77 @@ object CommonLossObjectiveFactory {
         .getOrElse(Zero)
     }
 
+  }
+
+  /** Creates an objective based on the current and projected price of energy
+    * for the prediction horizon.
+    *
+    * Since we assume that the buying price is always higher than the selling
+    * price, we can use an epigraph to derive a linear objective.
+    */
+  class PriceObjectiveFactory extends CommonLossObjectiveFactory {
+
+    override def build(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetVars: Iterable[AssetVarContainer[SplitLossAssetStepVars]],
+        target: Power,
+        receivedData: Seq[Data.SecondaryData],
+    )(using model: MPModel): Expression = {
+
+      val priceSeries = extractPriceSeries(receivedData)
+
+      val maxPrice = priceSeries
+        .maxByOption { case (_, priceData) =>
+          priceData.priceBuy
+        }
+        .map { case (_, priceData) =>
+          priceData.priceBuy.toEuroPerKilowattHour
+        }
+        .getOrElse(
+          throw new CriticalFailureException(
+            s"No prices were given with secondary data $receivedData"
+          )
+        )
+
+      val upperLimit = 1d
+
+      val transformFunc = (price: EnergyPrice) =>
+        price.toEuroPerKilowattHour / maxPrice
+
+      sortVarsByTick(assetVars)
+        // create objective expression for every time step
+        .map { case (stepStartTick, tickAssetVars) =>
+          val totalPower = createPowerSum(tickAssetVars)
+
+          val priceData = priceSeries
+            .maxBefore(stepStartTick + 1)
+            .map { case (_, priceData) => priceData }
+            .getOrElse(
+              throw new CriticalFailureException(
+                s"No price data was given for tick $stepStartTick!"
+              )
+            )
+
+          // extract prices in EUR / kWh
+          val priceSell = transformFunc(priceData.priceSell)
+          val priceBuy = transformFunc(priceData.priceBuy)
+
+          if priceSell > priceBuy then
+            throw new CriticalFailureException(
+              s"Selling price $priceSell is higher than buying price $priceBuy. " +
+                "Objective factory does not know how to handle this."
+            )
+
+          // convex, since priceSell < priceBuy
+          createEpigraphVar(
+            Seq(Const(priceSell) * totalPower, Const(priceBuy) * totalPower),
+            s"cost_$stepStartTick",
+          )
+        }
+        // combine expressions of all time steps
+        .reduceOption[Expression](_ + _)
+        .getOrElse(Zero)
+    }
   }
 
   /** Container holding the relevant variables and potentially a soft constraint

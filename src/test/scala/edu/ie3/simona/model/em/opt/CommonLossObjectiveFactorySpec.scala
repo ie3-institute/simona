@@ -9,6 +9,7 @@ package edu.ie3.simona.model.em.opt
 import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
   LinearizedQuadraticPowerObjectiveFactory,
   MinAbsPowerObjectiveFactory,
+  PriceObjectiveFactory,
 }
 import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactorySpec.*
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
@@ -789,7 +790,367 @@ class CommonLossObjectiveFactorySpec
         model.release()
 
       }
+
+      "minimize peaks when using price-based objective" in {
+
+        given model: MPModel = MPModel(SolverLib.oJSolver)
+
+        val priceData =
+          (Seq.fill(2)((0.1d, 0.3d)) ++
+            Seq.fill(6)((-0.02d, 0.2d)) ++
+            Seq.fill(4)((0.1d, 0.3d))).toPriceData
+
+        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptionsScenario1,
+          sampleTime = halfHour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq(priceData),
+          objectiveFactory = PriceObjectiveFactory(),
+        )
+
+        model.minimize(objectiveContainer.objective)
+        model.start(timeLimit = 10000)
+
+        model.getStatus shouldBe SolutionStatus.OPTIMAL
+
+        /*
+          EXPECTED RESULTS
+          When using the price-based objective, the test is
+          designed in a way such that only one optimal solution
+          exists: First, selling prices are relatively high,
+          disincentivizing battery charging. Then, selling
+          prices are negative, thus battery charges.
+          In the second half, the additional load is covered by
+          the grid, since prices are relatively low. Later, when
+          prices are high, the battery is used instead.
+         */
+
+        val batVars = assetVars.vars(batUUID)
+        val batRes = assetVars.res(batUUID)
+
+        {
+          objectiveContainer.softConstraints.foreach { constraint =>
+            withClue(constraint.getWarningMessage) {
+              constraint.getError should be < constraintTolerance
+            }
+          }
+
+          // 0 kW to compensate
+          batRes(0).pVal should approximate(0d)
+          batRes(0).energyVal should approximate(0d)
+
+          // 0 kW: we're selling since prices are good
+          batRes(1).pVal should approximate(0d)
+          batRes(1).energyVal should approximate(0d)
+
+          // 8 kW charging: negative prices, we're charging battery instead
+          batRes(2).pVal should approximate(8d)
+          batRes(2).energyVal should approximate(3.2d)
+
+          // 7 kW charging: negative prices, we're charging battery instead
+          batRes(3).pVal should approximate(7d)
+          batRes(3).energyVal should approximate(6d)
+
+          // 10 kW charging: negative prices, we're charging battery instead
+          batRes(4).pVal should approximate(10d)
+          batRes(4).energyVal should approximate(10d)
+
+          // 0 kW to compensate
+          batRes(5).pVal should approximate(0d)
+          batRes(5).energyVal should approximate(10d)
+
+          // 0 kW: cheap prices, we're covering load with grid power
+          batRes(6).pVal should approximate(0d)
+          batRes(6).energyVal should approximate(10d)
+
+          // 0 kW: cheap prices, we're covering load with grid power
+          batRes(7).pVal should approximate(0d)
+          batRes(7).energyVal should approximate(10d)
+
+          // 3 kW discharging: expensive prices, we're discharging battery instead
+          batRes(8).pVal should approximate(-3d)
+          batRes(8).energyVal should approximate(8.125d)
+
+          // 7 kW discharging: expensive prices, we're discharging battery instead
+          batRes(9).pVal should approximate(-7d)
+          batRes(9).energyVal should approximate(3.75d)
+
+          // 6 kW discharging: expensive prices, we're discharging battery instead
+          batRes(10).pVal should approximate(-6d)
+          batRes(10).energyVal should approximate(0d)
+
+          // 0 kW to compensate
+          batRes(11).pVal should approximate(0d)
+          batRes(11).energyVal should approximate(0d)
+
+          // we should've charged with 20 kW plus 5 kW losses in total
+          val inputCharged = batRes.slice(0, 6).map(_.pVal).sum
+          inputCharged should approximate(25)
+
+          // we should've discharged with 20 kW minus 4 kW losses in total
+          val outputDischarged =
+            batRes.slice(6, 12).map(_.pVal).sum
+          outputDischarged should approximate(-16d)
+
+        } withClue buildDebugString(batVars)
+
+        model.release()
+
+      }
+
+      "not produce too small powers by impact of soft constraints" in {
+
+        given ticks: Seq[Long] = Seq(0L, halfHourTicks)
+
+        given model: MPModel = MPModel(SolverLib.oJSolver)
+
+        val loadFlex = EnergyBoundariesFlexOptions(
+          AssetEnergyBoundaries(
+            Seq(1, 0).toPowerMap
+          )
+        )
+
+        // low efficiency for simplicity of the test
+        val batFlex = EnergyBoundariesFlexOptions(
+          AssetEnergyBoundaries(
+            eStorage = KilowattHours(20),
+            currentEnergy = KilowattHours(20),
+            pMax = Kilowatts(10),
+            etaCharge = Each(0.8),
+            etaDischarge = Each(0.8),
+            currentTick = 0L,
+          )
+        )
+
+        val flexOptions = Map(
+          loadUUID -> loadFlex,
+          batUUID -> batFlex,
+        )
+
+        // adapted eta: ~0.781
+        val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData
+
+        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptions,
+          sampleTime = halfHour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq(priceData),
+          objectiveFactory = PriceObjectiveFactory(),
+        )
+
+        model.minimize(objectiveContainer.objective)
+        model.start(timeLimit = 10000)
+
+        model.getStatus shouldBe SolutionStatus.OPTIMAL
+
+        /*
+          EXPECTED RESULTS
+          The price-based objective with adapted charging
+          efficiency does not work properly with prices below
+          loss factor.
+         */
+
+        val batVars = assetVars.vars(batUUID)
+        val batRes = assetVars.res(batUUID)
+
+        {
+          objectiveContainer.softConstraints.foreach { constraint =>
+            withClue(constraint.getWarningMessage) {
+              constraint.getError should be < constraintTolerance
+            }
+          }
+
+          // 0 kW, since result is pushed down by soft constraint
+          batRes(0).pVal should approximate(0d)
+          batRes(0).energyVal should approximate(0d)
+
+        } withClue buildDebugString(batVars)
+
+        model.release()
+
+      }
     }
+  }
+
+  "provided with energy boundary flex options including two batteries" should {
+
+    // half hour resolution
+    given ticks: Seq[Long] = ticksScenario1
+
+    val constFlex = EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(4, 4, 4, 14, -1, -4, -1, -14, -9.625, -2, 14, 0).toPowerMap
+      )
+    )
+
+    // high storage capacity, low power
+    val bat1Flex = EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        eStorage = KilowattHours(10),
+        currentEnergy = KilowattHours(10),
+        pMax = Kilowatts(4),
+        etaCharge = Each(0.8),
+        etaDischarge = Each(0.8),
+        currentTick = 0L,
+      )
+    )
+
+    // low storage capacity, high power
+    val bat2Flex = EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        eStorage = KilowattHours(6.25),
+        currentEnergy = KilowattHours(6.25),
+        pMax = Kilowatts(10),
+        etaCharge = Each(0.8),
+        etaDischarge = Each(0.8),
+        currentTick = 0L,
+      )
+    )
+
+    val flexOptions = Map(
+      loadUUID -> constFlex,
+      batUUID -> bat1Flex,
+      bat2UUID -> bat2Flex,
+    )
+
+    "minimize peaks when using price-based objective" in {
+
+      given model: MPModel = MPModel(SolverLib.oJSolver)
+
+      val priceData =
+        (Seq.fill(4)((0.1d, 0.2d)) ++
+          Seq.fill(6)((-0.2d, -0.1)) ++
+          Seq.fill(2)((0.05d, 0.15d))).toPriceData
+
+      val (assetVars, objectiveContainer) =
+        OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptions,
+          sampleTime = halfHour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq(priceData),
+          objectiveFactory = PriceObjectiveFactory(),
+        )
+
+      model.minimize(objectiveContainer.objective)
+      model.start(timeLimit = 10000)
+
+      model.getStatus shouldBe SolutionStatus.OPTIMAL
+
+      /*
+        EXPECTED RESULTS
+        There are three phases that provide different incentives to the
+        battery optimization. The constant load/feed-in is modeled in a
+        way that allows only for one optimal solution. See detailed
+        explanations below.
+       */
+
+      val bat1Vars = assetVars.vars(batUUID)
+      val bat1Res = assetVars.res(batUUID)
+
+      val bat2Vars = assetVars.vars(bat2UUID)
+      val bat2Res = assetVars.res(bat2UUID)
+
+      {
+        objectiveContainer.softConstraints.foreach { constraint =>
+          withClue(constraint.getWarningMessage) {
+            constraint.getError should be < constraintTolerance
+          }
+        }
+
+        /*
+          First period (steps 0-3):
+          Prices are positive, so there is an overall incentive to sell energy.
+          However, we have loads that exactly drain the batteries to zero at
+          the end of this period.
+          Furthermore, the high load at the end (14 kW) require both
+          batteries to be discharging with maximum power.
+          Thus, the second battery (high power, low storage capacity) needs to
+          be spared to cover the high load and cannot contribute beforehand.
+         */
+        bat1Res(0).pVal should approximate(-4d)
+        bat1Res(0).energyVal should approximate(-2.5d)
+        bat2Res(0).pVal should approximate(0d)
+        bat2Res(0).energyVal should approximate(0d)
+
+        bat1Res(1).pVal should approximate(-4d)
+        bat1Res(1).energyVal should approximate(-5d)
+        bat2Res(1).pVal should approximate(0d)
+        bat2Res(1).energyVal should approximate(0d)
+
+        bat1Res(2).pVal should approximate(-4d)
+        bat1Res(2).energyVal should approximate(-7.5d)
+        bat2Res(2).pVal should approximate(0d)
+        bat2Res(2).energyVal should approximate(0d)
+
+        bat1Res(3).pVal should approximate(-4d)
+        bat1Res(3).energyVal should approximate(-10d)
+        bat2Res(3).pVal should approximate(-10d)
+        bat2Res(3).energyVal should approximate(-6.25d)
+
+        /*
+          Second period (steps 4-9):
+          Prices are negative, so there is an overall incentive to buy energy.
+          There is also some feed-in that fluctuates. Overall, the battery is
+          filled with both feed-in and bought energy.
+          During tick 7 and 8, there is a high feed-in that requires both
+          batteries to charge. The second battery can only be used in these
+          two steps, thus can't be used at other times during this period.
+         */
+        bat1Res(4).pVal should approximate(4d)
+        bat1Res(4).energyVal should approximate(-8.4d)
+        bat2Res(4).pVal should approximate(0d)
+        bat2Res(4).energyVal should approximate(-6.25d)
+
+        bat1Res(5).pVal should approximate(4d)
+        bat1Res(5).energyVal should approximate(-6.8d)
+        bat2Res(5).pVal should approximate(0d)
+        bat2Res(5).energyVal should approximate(-6.25d)
+
+        bat1Res(6).pVal should approximate(4d)
+        bat1Res(6).energyVal should approximate(-5.2d)
+        bat2Res(6).pVal should approximate(0d)
+        bat2Res(6).energyVal should approximate(-6.25d)
+
+        bat1Res(7).pVal should approximate(4d)
+        bat1Res(7).energyVal should approximate(-3.6d)
+        bat2Res(7).pVal should approximate(10d)
+        bat2Res(7).energyVal should approximate(-2.25d)
+
+        bat1Res(8).pVal should approximate(4d)
+        bat1Res(8).energyVal should approximate(-2d)
+        bat2Res(8).pVal should approximate(5.625d)
+        bat2Res(8).energyVal should approximate(0d)
+
+        bat1Res(9).pVal should approximate(4d)
+        bat1Res(9).energyVal should approximate(-0.4d)
+        bat2Res(9).pVal should approximate(0d)
+        bat2Res(9).energyVal should approximate(0d)
+
+        /*
+          Third period (steps 10-11):
+          Prices are positive again, so we generally want to sell again.
+          Period 10 has a high load again that uses the full storage
+          capacity of battery 2 (similar to end of phase 1).
+         */
+        bat1Res(10).pVal should approximate(-4d)
+        bat1Res(10).energyVal should approximate(-2.9d)
+        bat2Res(10).pVal should approximate(-10d)
+        bat2Res(10).energyVal should approximate(-6.25d)
+
+        bat1Res(11).pVal should approximate(-4d)
+        bat1Res(11).energyVal should approximate(-5.4d)
+        bat2Res(11).pVal should approximate(0d)
+        bat2Res(11).energyVal should approximate(-6.25d)
+
+      } withClue buildDebugString(bat1Vars, bat2Vars)
+
+      model.release()
+
+    }
+
   }
 
 }

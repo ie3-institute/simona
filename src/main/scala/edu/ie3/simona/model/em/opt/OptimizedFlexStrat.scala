@@ -13,6 +13,10 @@ import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.service.Data.SecondaryData
+import edu.ie3.simona.service.Data.SecondaryData.{
+  ProsumerPrice,
+  SecondarySeriesData,
+}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKWh}
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
@@ -517,6 +521,34 @@ object OptimizedFlexStrat {
         target: Power,
         receivedData: Seq[SecondaryData],
     )(using model: MPModel): Expression
+
+    /** Extracts a price series map (if available) from the given received
+      * secondary data. If no price series is available, an exception is thrown.
+      *
+      * @param receivedData
+      *   The received data to extract prices from.
+      * @return
+      *   A map from tick to price data.
+      */
+    protected def extractPriceSeries(
+        receivedData: Seq[SecondaryData]
+    ): SortedMap[Long, ProsumerPrice] =
+      receivedData
+        .collectFirst { case SecondarySeriesData(series) =>
+          series.map {
+            case (tick, priceData: ProsumerPrice) =>
+              tick -> priceData
+            case (_, unexpectedData) =>
+              throw new CriticalFailureException(
+                s"Unexpected secondary data $unexpectedData"
+              )
+          }
+        }
+        .getOrElse(
+          throw new CriticalFailureException(
+            s"No price series data was provided."
+          )
+        )
 
     /** Re-orders the [[AssetStepVars]] inside given [[AssetVarContainer]]s to
       * be grouped by their by tick.
