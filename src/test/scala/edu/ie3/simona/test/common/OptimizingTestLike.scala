@@ -12,7 +12,7 @@ import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
 }
 import org.scalatest.Assertions
 import squants.Power
-import squants.energy.Kilowatts
+import squants.energy.{KilowattHours, Kilowatts}
 
 import java.util.UUID
 import scala.collection.immutable.SortedMap
@@ -68,8 +68,8 @@ trait OptimizingTestLike extends Assertions {
               .map { sortedVars =>
                 s"\n\t\t\tTrajectory: ${sortedVars
                     .map { case (_, vars) =>
-                      vars.getOperationResult.toString +
-                        vars.stateVar.map(_ => s" ( -> ${vars.getStateResult.toString})").getOrElse("")
+                      vars.getOperationResult.in(Kilowatts).rounded(6).toString +
+                        vars.stateVar.map(_ => s" ( -> ${vars.getStateResult.in(KilowattHours).rounded(6).toString})").getOrElse("")
                     }
                     .mkString(", ")}"
               }
