@@ -868,16 +868,16 @@ class CommonLossObjectiveFactorySpec
           batRes(7).pVal should approximate(0d)
           batRes(7).energyVal should approximate(10d)
 
-          // 3 kW discharging: expensive prices, we're discharging battery instead
-          batRes(8).pVal should approximate(-3d)
-          batRes(8).energyVal should approximate(8.125d)
+          // 4 kW discharging: expensive prices, we're discharging battery instead
+          batRes(8).pVal should approximate(-4d)
+          batRes(8).energyVal should approximate(7.5d)
 
           // 7 kW discharging: expensive prices, we're discharging battery instead
           batRes(9).pVal should approximate(-7d)
-          batRes(9).energyVal should approximate(3.75d)
+          batRes(9).energyVal should approximate(3.125d)
 
-          // 6 kW discharging: expensive prices, we're discharging battery instead
-          batRes(10).pVal should approximate(-6d)
+          // 5 kW discharging: expensive prices, we're discharging battery instead
+          batRes(10).pVal should approximate(-5d)
           batRes(10).energyVal should approximate(0d)
 
           // 0 kW to compensate
