@@ -169,7 +169,12 @@ final case class EmModelShell[FO <: FlexOptions](
     }
 
     val setPoints =
-      modelStrategy.determineFlexControl(uuidToFlexOptions, target, currentTick)
+      modelStrategy.determineFlexControl(
+        uuidToFlexOptions,
+        target,
+        currentTick,
+        Seq.empty, // todo
+      )
 
     setPoints.map { case (model, power) =>
       val fo = typedFlexOptions.getOrElse(

@@ -161,6 +161,7 @@ class PrioritizedFlexStratSpec
               flexOptions,
               Kilowatts(target),
               currentTick = 0L,
+              Seq.empty,
             )
 
           actualResults should have size expectedResult.size withClue
@@ -271,6 +272,7 @@ class PrioritizedFlexStratSpec
               flexOptions,
               Kilowatts(0d),
               currentTick = 0L,
+              Seq.empty,
             )
 
           actualResults should have size expectedResult.size withClue

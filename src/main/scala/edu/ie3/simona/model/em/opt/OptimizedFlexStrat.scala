@@ -10,24 +10,23 @@ import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat
 import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
-import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
-import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKWh}
-import optimus.algebra.{Const, Double2Const, Expression, Zero}
+import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.{MPFloatVar, MPVar}
 import org.slf4j.Logger
-import squants.energy.Kilowatts
-import squants.{Each, Power, Time}
+import squants.{Dimensionless, Energy, Power, Time}
 
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 
 /** Energy management strategy that optimizes flexibility usage over a fixed
   * amount of time steps into the future. Takes [[EnergyBoundariesFlexOptions]]
-  * as inputs, which provide the required energy boundaries and power limits for
+  * as inputs, which provide the required energy and power limits for
   * constraining asset operation.
   *
   * @param sampleTime
@@ -37,21 +36,25 @@ import java.util.UUID
   *   is this amount of time away from the current point in simulation time.
   *   Should be a multiple of [[sampleTime]].
   * @param powerObjectiveFactory
-  *   A factory creating the optimization objective to use.
+  *   The factory creating asset variables and the optimization objective to
+  *   use.
   * @param logger
   *   The logger to use.
   */
 final case class OptimizedFlexStrat(
     sampleTime: Time,
     predictionHorizon: Time,
-    powerObjectiveFactory: PowerObjectiveFactory,
+    powerObjectiveFactory: ObjectiveFactory[? <: AssetStepVars],
     logger: Logger,
 ) extends EmModelStrat[EnergyBoundariesFlexOptions] {
 
+  /** The power target might not be considered by all types of objectives.
+    */
   override def determineFlexControl(
       flexOptions: Iterable[(? <: AssetInput, EnergyBoundariesFlexOptions)],
       target: Power,
       currentTick: Long,
+      receivedData: Seq[SecondaryData],
   ): Iterable[(UUID, Power)] = {
 
     given model: MPModel = MPModel(SolverLib.oJSolver)
@@ -62,14 +65,18 @@ final case class OptimizedFlexStrat(
     val ticks =
       Range.Long.inclusive(currentTick, lastPredictedTick, sampleTicks)
 
-    val assetVars = addAssetConstraints(
-      flexOptions.map { case (asset: AssetInput, fo) => asset.getUuid -> fo },
-      sampleTime,
-      ticks,
-    )
+    val flexOptionsById =
+      flexOptions.map { case (asset: AssetInput, fo) => asset.getUuid -> fo }
 
-    val objectiveContainer =
-      buildObjective(assetVars, target, powerObjectiveFactory)
+    val (assetVars, objectiveContainer) =
+      buildModel(
+        flexOptionsById,
+        sampleTime,
+        ticks,
+        target,
+        receivedData,
+        powerObjectiveFactory,
+      )
 
     model.minimize(objectiveContainer.objective)
 
@@ -88,8 +95,8 @@ final case class OptimizedFlexStrat(
 
     // we're only interested in the solutions for the current time step
     val assetCtrl = assetVars.map {
-      case AssetVarContainer(assetUuid, results) =>
-        val setPoint = results
+      case AssetVarContainer(assetUuid, assetVars) =>
+        val setPoint = assetVars
           .map {
             // Taking only the first result for set points
             _.headOption
@@ -97,10 +104,13 @@ final case class OptimizedFlexStrat(
                 throw new CriticalFailureException(
                   s"Empty results for asset $assetUuid"
                 )
-              )
-              // Operating point of first result
-              .getOperationResult
+              ) match {
+              case (_, res) =>
+                // Operating point of first result
+                res.getOperationResult
+            }
           }
+          // Add up solutions for all asset assigned to the same UUID
           .reduceOption(_ + _)
           .getOrElse(
             throw new CriticalFailureException(
@@ -129,85 +139,166 @@ object OptimizedFlexStrat {
     */
   private val softConstraintThreshold: Double = 1e-3
 
-  /** Creates and adds constraints for the given flex options for given sample
-    * times. States and operating points are linked according to the time steps.
+  /** Constructs the optimization model by creating the required variables and
+    * constraints and the objective. Asset variables and objective are created
+    * using the objective factory.
     *
     * @param flexOptions
-    *   The flex options that connected assets provided.
+    *   The [[EnergyBoundariesFlexOptions]] to base the optimization model on.
+    * @param sampleTime
+    *   The amount of time between steps.
+    * @param ticks
+    *   The ticks (including current tick and last predicted tick) of the time
+    *   steps to consider in the optimization. The ticks should all be exactly
+    *   the sample time duration (in seconds) apart from each other.
+    * @param target
+    *   The target power to aim for. This parameter might not be considered by
+    *   all objective factories.
+    * @param receivedData
+    *   The secondary data received by the EM agent. Empty if none was received.
+    * @param objectiveFactory
+    *   The factory creating asset variables and the optimization objective to
+    *   use.
+    * @param model
+    *   The optimization model to add variables and constraints to.
+    * @tparam AV
+    *   The type of asset variables that the objective factory returns.
+    * @return
+    *   The created asset variable containers and the objective container.
+    */
+  def buildModel[AV <: AssetStepVars](
+      flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+      sampleTime: Time,
+      ticks: Seq[Long],
+      target: Power,
+      receivedData: Seq[SecondaryData],
+      objectiveFactory: ObjectiveFactory[AV],
+  )(using
+      model: MPModel
+  ): (Iterable[AssetVarContainer[AV]], ObjectiveContainer) = {
+
+    val assetVars = addAssetConstraints(
+      flexOptions,
+      sampleTime,
+      ticks,
+      objectiveFactory,
+    )
+
+    val objective = objectiveFactory.build(
+      flexOptions,
+      assetVars,
+      target,
+      receivedData,
+    )
+
+    val allConstraints =
+      assetVars.flatMap(_.results.flatMap(_.values.flatMap(_.softConstraint)))
+
+    // combining soft constraints, to be added to objective
+    val constraintsExpression = allConstraints
+      .map(_.getExpression)
+      .reduceOption(_ + _)
+      .getOrElse(Zero)
+
+    (
+      assetVars,
+      ObjectiveContainer(objective + constraintsExpression, allConstraints),
+    )
+
+  }
+
+  /** Creates and adds constraints for the given flex options for given sample
+    * time. States and operating points are linked according to the time steps.
+    *
+    * @param flexOptions
+    *   The [[EnergyBoundariesFlexOptions]] to create asset variables from.
     * @param sampleTime
     *   The amount of time between the steps.
     * @param ticks
-    *   The ticks (including current tick to last predicted tick) of the time
-    *   steps to add constraints for. Should all be sample time duration apart
-    *   from each other.
+    *   The ticks (including current tick and last predicted tick) of the time
+    *   steps to consider in the optimization. The ticks should all be exactly
+    *   the sample time duration (in seconds) apart from each other.
+    * @param objectiveFactory
+    *   The factory that creates asset variables.
     * @param model
     *   The optimization model to add variables and constraints to.
     * @return
     *   Containers that holds all results, including state and operation
     *   variables.
     */
-  def addAssetConstraints(
+  private def addAssetConstraints[AV <: AssetStepVars](
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
       sampleTime: Time,
       ticks: Seq[Long],
-  )(using model: MPModel): Iterable[AssetVarContainer] = {
+      objectiveFactory: ObjectiveFactory[AV],
+  )(using model: MPModel): Iterable[AssetVarContainer[AV]] = {
     flexOptions.map { case (assetUUID, fo) =>
-      val results = fo.energyBoundaries
-        .map(adaptEnergyBoundaries)
+      val assetVars = fo.energyBoundaries
         .map { boundaries =>
-          ticks.tail.foldLeft[IndexedSeq[StepResults]](IndexedSeq.empty) {
-            case (previousResults, tick) =>
-              val previousState = previousResults.lastOption.flatMap(_.state)
+          ticks
+            .sliding(2)
+            .foldLeft[SortedMap[Long, AV]](SortedMap.empty) {
+              case (previousResults, Seq(stepStartTick, stepEndTick)) =>
+                val previousState = previousResults.lastOption.flatMap {
+                  case (_, res) => res.stateVar
+                }
 
-              val res = addAssetStep(
-                boundaries,
-                tick,
-                sampleTime,
-                previousState,
-              )
+                val assetStep = createAssetParameters(
+                  boundaries,
+                  stepEndTick,
+                  previousState,
+                )
 
-              previousResults.appended(res)
-          }
+                val res = objectiveFactory.createAssetVars(
+                  assetStep,
+                  stepStartTick,
+                  stepEndTick,
+                  sampleTime,
+                )
+
+                previousResults.updated(stepStartTick, res)
+            }
         }
 
-      AssetVarContainer(assetUUID, results)
+      AssetVarContainer(assetUUID, assetVars)
     }
   }
 
-  /** Creates and adds constraints for a single asset and time step. Relevant
-    * variables and soft constraints are returned in a [[StepResults]]
-    * container.
+  /** Creates [[AssetStepParameters]] from the given energy boundaries for the
+    * time interval with given ending tick.
     *
     * @param energyBoundaries
     *   The asset energy boundaries to use.
-    * @param tick
-    *   The tick to add constraints for.
-    * @param sampleTime
-    *   The amount of time between the steps.
+    * @param stepEndTick
+    *   The step ending tick.
     * @param maybePreviousState
-    *   Optionally, the previous state variable.
+    *   The previous state variable, if applicable.
     * @param model
     *   The optimization model to add variables and constraints to.
     * @return
     *   The results for this asset and time step.
     */
-  private def addAssetStep(
+  private def createAssetParameters(
       energyBoundaries: AssetEnergyBoundaries,
-      tick: Long,
-      sampleTime: Time,
+      stepEndTick: Long,
       maybePreviousState: Option[Expression],
-  )(using model: MPModel): StepResults = {
+  )(using model: MPModel): AssetStepParameters = {
 
+    // we are interested in the energy limits at the end of the step interval,
+    // since they tell us in which energy the power of this step interval may
+    // result in
     val energyLimits = energyBoundaries.energyLimits
-      .maxBefore(tick + 1)
+      .maxBefore(stepEndTick + 1)
       .map { case (_, limits) =>
         limits
       }
       .getOrElse(throw new CriticalFailureException("No energy limits found!"))
 
+    // the energy limits at the beginning of the interval can in some
+    // circumstances provide information on constraints
     val formerEnergyLimits =
-      energyBoundaries.energyLimits.maxBefore(tick).map { case (_, limits) =>
-        limits
+      energyBoundaries.energyLimits.maxBefore(stepEndTick).map {
+        case (_, limits) => limits
       }
 
     if energyLimits.getLower == energyLimits.getUpper &&
@@ -218,17 +309,14 @@ object OptimizedFlexStrat {
       val formerEnergy = formerEnergyLimits.map(_.getUpper).getOrElse(zeroKWh)
       val currentEnergy = energyLimits.getUpper
 
-      val fixedPower = (currentEnergy - formerEnergy) / sampleTime
-      StepResults(Const(fixedPower.toKilowatts), None, None)
+      val energyChange = currentEnergy - formerEnergy
+
+      FixedPowerStepParameters(energyChange = energyChange)
     } else {
       // we do have some flexibility at this point in time, model it
 
-      // we use charging efficiency for both charging and discharging,
-      // since we use the adapted storage model here
-      val eta = energyBoundaries.etaCharge
-
       // determining a previous state
-      val previousState = maybePreviousState.getOrElse {
+      val previousEnergy = maybePreviousState.getOrElse {
 
         // we have been given no former state as a parameter. Either...
         formerEnergyLimits
@@ -239,202 +327,131 @@ object OptimizedFlexStrat {
           .getOrElse(Const(0d))
       }
 
-      // modeling the operating point (power),
-      // valid between that previous and new state
-      val p = MPFloatVar(
-        symbol = "p",
-        lowerBound = energyBoundaries.powerLimits.getLower.toKilowatts,
-        upperBound = energyBoundaries.powerLimits.getUpper.toKilowatts,
+      VariablePowerStepParameters(
+        previousStateEnergy = previousEnergy,
+        pMin = energyBoundaries.powerLimits.getLower,
+        pMax = energyBoundaries.powerLimits.getUpper,
+        eMin = energyLimits.getLower,
+        eMax = energyLimits.getUpper,
+        etaCharge = energyBoundaries.etaCharge,
+        etaDischarge = energyBoundaries.etaDischarge,
       )
-
-      // modeling the new state (stored energy)
-      val newState =
-        if energyLimits.getLower == energyLimits.getUpper then
-          Const(energyLimits.getUpper.toKilowattHours)
-        else
-          MPFloatVar(
-            symbol = "state",
-            lowerBound = energyLimits.getLower.toKilowattHours,
-            upperBound = energyLimits.getUpper.toKilowattHours,
-          )
-
-      val softConstraint =
-        if eta == onePU then {
-          // there are no charging/discharging losses, we can keep it simple
-
-          model.add(newState := previousState + p * sampleTime.toHours)
-          None
-        } else {
-          // there are charging/discharging losses, thus use the full model
-
-          val pAbsMax =
-            energyBoundaries.powerLimits.getUpper.max(
-              -energyBoundaries.powerLimits.getLower
-            )
-
-          val pAbs = MPFloatVar(
-            symbol = "pAbs",
-            lowerBound = 0,
-            upperBound = pAbsMax.toKilowatts,
-          )
-
-          model.add(pAbs >:= p)
-          model.add(pAbs >:= -p)
-
-          model.add(
-            newState := previousState + (p - pAbs * (1 - eta.toEach)) * sampleTime.toHours
-          )
-
-          Some(AbsValueSoftConstraint(p, pAbs, eta))
-        }
-
-      StepResults(p, Some(newState), softConstraint)
     }
 
   }
 
-  /** Creates flex options that are equivalent to the original with regard to
-    * optimization, but these can be optimized with a linear model. In order to
-    * achieve this, a common efficiency needs to be calculated for charging and
-    * discharging operations, eliminating the need to distinguish between
-    * charging and discharging when formulating the state constraint.
-    * Furthermore, energy limits are adapted to work with the adapted
-    * efficiency.
-    *
-    * @param boundaries
-    *   The energy boundaries to be adapted.
-    * @return
-    *   The adapted energy boundaries.
+  /** Object that holds parameters for the optimization of an asset at some time
+    * step. Can be created from [[EnergyBoundariesFlexOptions]] and be used to
+    * create [[AssetStepVars]] depending on the objective factory.
     */
-  def adaptEnergyBoundaries(
-      boundaries: AssetEnergyBoundaries
-  ): AssetEnergyBoundaries = {
-    val etaCh = boundaries.etaCharge.toEach
-    val etaDis = boundaries.etaDischarge.toEach
+  abstract class AssetStepParameters
 
-    val etaAvg = (2 * etaCh * etaDis) / (1 + etaCh * etaDis)
+  /** Holds parameters for an asset that is not providing flexibility at the
+    * time step, but is requiring a fixed amount of energy to be added or
+    * subtracted from the state energy. This necessarily results in fixed amount
+    * of power at this time step.
+    *
+    * @param energyChange
+    *   The amount of energy change required at this time step.
+    */
+  final case class FixedPowerStepParameters(
+      energyChange: Energy
+  ) extends AssetStepParameters
 
-    val newEnergyLimits = boundaries.energyLimits.map { case (tick, limits) =>
-      val newLower = (limits.getLower / etaCh) * etaAvg
-      val newUpper = (limits.getUpper / etaCh) * etaAvg
-
-      tick -> ClosedInterval(newLower, newUpper)
-    }
-
-    val etaAvgEach = Each(etaAvg)
-
-    boundaries.copy(
-      energyLimits = newEnergyLimits,
-      etaCharge = etaAvgEach,
-      etaDischarge = etaAvgEach,
-    )
-
+  /** Holds parameters for an asset that is providing some flexibility at the
+    * time step, which is restricted by the given power and energy limits as
+    * well as charging and discharging efficiencies.
+    *
+    * @param previousStateEnergy
+    *   The previous energy state variable or constant.
+    * @param pMin
+    *   The minimum power allowed.
+    * @param pMax
+    *   The maximum power allowed.
+    * @param eMin
+    *   The minimum energy allowed at the end of this time step.
+    * @param eMax
+    *   The maximum energy allowed at the end of this time step.
+    * @param etaCharge
+    *   The charging efficiency.
+    * @param etaDischarge
+    *   The discharging efficiency.
+    */
+  final case class VariablePowerStepParameters(
+      previousStateEnergy: Expression,
+      pMin: Power,
+      pMax: Power,
+      eMin: Energy,
+      eMax: Energy,
+      etaCharge: Dimensionless,
+      etaDischarge: Dimensionless,
+  ) extends AssetStepParameters {
+    def isInefficient: Boolean =
+      etaCharge < onePU || etaDischarge < onePU
   }
 
-  /** Builds an objective to minimize given the asset variables and an objective
-    * factory.
-    *
-    * @param assetVars
-    *   The asset vars to optimize for.
-    * @param target
-    *   The target power for each time step.
-    * @param powerObjectiveFactory
-    *   The factor for the objective to optimize at every time step.
-    * @param model
-    *   The optimization model to add variables and constraints to.
-    * @return
-    *   An [[ObjectiveContainer]] holding the objective and soft constraints.
+  /** Class holding variables used in optimization for an asset at a single time
+    * step.
     */
-  def buildObjective(
-      assetVars: Iterable[AssetVarContainer],
-      target: Power,
-      powerObjectiveFactory: PowerObjectiveFactory,
-  )(using model: MPModel): ObjectiveContainer = {
-    // asset vars should all have the same amount of operation vars,
-    // since they should have all been created with the same sample time steps
-    val timeSteps = assetVars.headOption
-      .flatMap(_.results.headOption.map(_.size))
-      .getOrElse(0)
+  abstract class AssetStepVars {
 
-    val (objectiveResult, softConstraintsResult) =
-      Range(0, timeSteps)
-        // first, sort all results by time step
-        .map { timeStep =>
-          assetVars.flatMap {
-            _.results.map(_(timeStep))
-          }
-        }
-        // then, build objective for every time step and combine them
-        .foldLeft[(Expression, Seq[SoftConstraint])](Zero, Seq.empty) {
-          case ((objective, allConstraints), results) =>
-            val difference = results
-              .map(_.operation)
-              .reduceOption[Expression](_ + _)
-              .getOrElse(Zero)
-            val powerObjective = powerObjectiveFactory.build(difference, target)
+    /** The operation variable, describing the power in kW to get from the
+      * energy state at the start to the state at the end of the interval.
+      */
+    val operationVar: Const | MPVar
 
-            val constraints =
-              results.flatMap(_.softConstraint)
-            val constraintsExpression = constraints
-              .map(_.getExpression)
-              .reduceLeftOption(_ + _)
-              .getOrElse(Zero)
+    /** The state variable, describing the amount of energy in kWh at the end of
+      * the interval. Generally, the state energy signifies the upwards and
+      * downwards change of energy, compared to the energy potential (zero kWh)
+      * at the start of the prediction horizon (the current tick).
+      */
+    val stateVar: Option[Expression]
 
-            (
-              objective + constraintsExpression + powerObjective,
-              allConstraints.appendedAll(constraints),
-            )
-        }
+    /** The tick at the start of the interval, i.e. the tick at which the
+      * operation of the step starts.
+      */
+    val stepStartTick: Long
 
-    ObjectiveContainer(objectiveResult, softConstraintsResult)
+    /** The tick at the end of the interval, i.e. the tick at which the
+      * operation of the step ends (and a next step might start).
+      */
+    val stepEndTick: Long
+
+    /** Optionally, a soft constraint to be added to the objective.
+      */
+    val softConstraint: Option[SoftConstraint] = None
+
+    /** Returns the result of [[operationVar]] as a power. This only works after
+      * optimization has successfully completed.
+      */
+    def getOperationResult: Power
+
+    /** Returns the result of [[stateVar]] as an energy. This only works after
+      * optimization has successfully completed.
+      */
+    def getStateResult: Energy
   }
 
-  /** Container holding all optimization steps (including variables and soft
-    * constraints) for one asset.
+  /** Container holding all optimization variables and soft constraints (as
+    * [[AssetStepVars]]) for one or more assets referenced by a single UUID.
     *
     * @param assetUuid
-    *   The UUID of the asset.
+    *   The UUID of the assets.
     * @param results
-    *   All step results of the asset, including state and operation variables.
+    *   All [[AssetStepVars]] of the assets, including state and operation
+    *   variables. The step variables are referenced by stepStartTick within the
+    *   sorted map. The sequence contains one or more variable maps, similar to
+    *   how [[EnergyBoundariesFlexOptions]] can contain several asset
+    *   boundaries.
     */
-  final case class AssetVarContainer(
+  final case class AssetVarContainer[AV <: AssetStepVars](
       assetUuid: UUID,
-      results: Seq[IndexedSeq[StepResults]],
+      results: Seq[SortedMap[Long, AV]],
   )
 
-  /** Container holding the relevant variables and potentially a soft constraint
-    * for a specific asset and optimization time step.
-    *
-    * @param operation
-    *   The operating point between the previous state and [[state]].
-    * @param state
-    *   Optionally the state that follows the operating point. It holds an
-    *   energy value that signify the upwards and downwards change of energy,
-    *   relating to the energy potential at the starting tick (which is defined
-    *   to be zero).
-    * @param softConstraint
-    *   Optionally a soft constraint.
-    */
-  final case class StepResults(
-      operation: Const | MPVar,
-      state: Option[Expression],
-      softConstraint: Option[SoftConstraint],
-  ) {
-
-    def getOperationResult: Power = Kilowatts(operation match {
-      case const: Const => const.value
-      case variable: MPVar =>
-        variable.value.getOrElse(
-          throw new CriticalFailureException(
-            s"No result present for variable $variable"
-          )
-        )
-    })
-
-  }
-
-  /** Container holding the complete objective to minimize and relevant soft
-    * constraints.
+  /** Container holding the complete objective to minimize (which already
+    * includes the soft constraint expressions) and relevant soft constraint
+    * containers.
     *
     * @param objective
     *   The objective, including all soft constraint expressions.
@@ -445,5 +462,151 @@ object OptimizedFlexStrat {
       objective: Expression,
       softConstraints: Iterable[SoftConstraint],
   )
+
+  /** Trait to be implemented by factories of power objectives.
+    *
+    * @tparam AV
+    *   The type of [[AssetStepVars]] that the objective factory produces and
+    *   uses.
+    */
+  trait ObjectiveFactory[AV <: AssetStepVars] {
+
+    /** Creates asset variables of type [[AV]] from given
+      * [[AssetStepParameters]] according to the requirements of the objective
+      * factory.
+      *
+      * @param assetParams
+      *   The asset parameters to use for creating asset variables.
+      * @param stepStartTick
+      *   The tick at the start of the interval.
+      * @param stepEndTick
+      *   The tick at the end of the interval.
+      * @param sampleTime
+      *   The amount of time between start and end of the interval.
+      * @param model
+      *   The optimization model to add variables and constraints to.
+      * @return
+      *   The asset variables for the given asset and time step.
+      */
+    def createAssetVars(
+        assetParams: AssetStepParameters,
+        stepStartTick: Long,
+        stepEndTick: Long,
+        sampleTime: Time,
+    )(using model: MPModel): AV
+
+    /** Builds an objective to minimize given the asset variables and an
+      * objective factory.
+      *
+      * @param flexOptions
+      *   The flex options that connected assets provided.
+      * @param assetVars
+      *   The asset vars to optimize for.
+      * @param target
+      *   The target power for each time step.
+      * @param receivedData
+      *   The received secondary data.
+      * @param model
+      *   The optimization model to add variables and constraints to.
+      * @return
+      *   The full objective, excluding eventual soft constraints.
+      */
+    def build(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetVars: Iterable[AssetVarContainer[AV]],
+        target: Power,
+        receivedData: Seq[SecondaryData],
+    )(using model: MPModel): Expression
+
+    /** Re-orders the [[AssetStepVars]] inside given [[AssetVarContainer]]s to
+      * be grouped by their by tick.
+      *
+      * @param assetVars
+      *   The [[AssetVarContainer]]s to be reordered.
+      * @return
+      *   The [[AssetStepVars]] ordered by tick.
+      */
+    protected def sortVarsByTick(
+        assetVars: Iterable[AssetVarContainer[AV]]
+    ): SortedMap[Long, Iterable[AV]] = {
+      // asset vars should all have the same ticks,
+      // since they should have all been created with the same ticks
+      val ticks = assetVars.headOption
+        .flatMap(_.results.headOption.map(_.keys.toSeq))
+        .getOrElse(Seq.empty)
+
+      // sort all asset vars by tick
+      ticks
+        .map { stepStartTick =>
+          stepStartTick -> assetVars.flatMap {
+            _.results.flatMap(_.get(stepStartTick))
+          }
+        }
+        .to(SortedMap)
+    }
+
+    /** Creates an unbounded continuous variable that is constrained to be
+      * greater than all given expressions.
+      *
+      * @param segments
+      *   The segments to create the epigraph variable for.
+      * @param name
+      *   The name of the variable.
+      * @param model
+      *   The optimization model to add the variable and constraints to.
+      * @return
+      *   The new epigraph variable.
+      */
+    protected def createEpigraphVar(segments: Seq[Expression], name: String)(
+        using model: MPModel
+    ): MPFloatVar = {
+      val epigraph = MPFloatVar(name)
+      segments.foreach(segment => model.add(epigraph >:= segment))
+
+      epigraph
+    }
+
+    /** Creates a positive continuous variable that is constrained to be greater
+      * than both the positive and negative version of given value.
+      *
+      * @param value
+      *   The expression to create the absolute variable for.
+      * @param name
+      *   The name of the variable.
+      * @param model
+      *   The optimization model to add the variable and constraints to.
+      * @return
+      *   The new absolute variable.
+      */
+    protected def createAbsoluteVariable(value: Expression, name: String)(using
+        model: MPModel
+    ): MPFloatVar = {
+      val valueAbs = MPFloatVar.positive(name)
+      model.add(valueAbs >:= value)
+      model.add(valueAbs >:= -value)
+      valueAbs
+    }
+
+  }
+
+  extension (expr: MPVar | Const) {
+
+    /** Returns the set value for given variable or constant. For variables,
+      * optimization has to have found a solution before calling this.
+      *
+      * @return
+      *   The value of this expression
+      */
+    def getValue: Double =
+      expr match {
+        case const: Const => const.value
+        case variable: MPVar =>
+          variable.value.getOrElse(
+            throw new CriticalFailureException(
+              s"No result present for variable $variable"
+            )
+          )
+      }
+  }
 
 }
