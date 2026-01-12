@@ -23,7 +23,6 @@ import edu.ie3.simona.agent.grid.congestion.{
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
@@ -82,6 +81,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
     val agentValues = GridAgentConstantData(
       environmentRefs,
+      // caching the map so that it doesn't have to be re-created
+      environmentRefs.serviceMap,
       simonaConfig,
       resolution,
       simStartTime,

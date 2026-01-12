@@ -31,7 +31,7 @@ final case class EmModelShell[FO <: FlexOptions](
     id: String,
     modelStrategy: EmModelStrat[FO],
     aggregateFlex: EmAggregateFlex[FO],
-    private val modelToParticipantInput: Map[UUID, AssetInput] = Map.empty,
+    private val modelToAssetInput: Map[UUID, AssetInput] = Map.empty,
     private val flexOptions: Option[FO] = None,
     private val flexOptionsExtra: FlexOptionsExtra[FO],
 ) {
@@ -84,8 +84,7 @@ final case class EmModelShell[FO <: FlexOptions](
       assetInput: AssetInput,
   ): EmModelShell[FO] =
     copy(
-      modelToParticipantInput =
-        modelToParticipantInput.updated(modelUuid, assetInput)
+      modelToAssetInput = modelToAssetInput.updated(modelUuid, assetInput)
     )
 
   /** Updates the aggregated flex options of this EM.
@@ -102,10 +101,10 @@ final case class EmModelShell[FO <: FlexOptions](
   ): EmModelShell[FO] = {
     val updatedAllFlexOptions = allFlexOptions.map {
       case (modelUuid, flexOptions) =>
-        val assetInput = modelToParticipantInput.getOrElse(
+        val assetInput = modelToAssetInput.getOrElse(
           modelUuid,
           throw new CriticalFailureException(
-            s"Asset input for model with UUID $modelUuid was not found."
+            s"$identifier: Asset input for model with UUID $modelUuid was not found."
           ),
         )
 
@@ -159,10 +158,10 @@ final case class EmModelShell[FO <: FlexOptions](
         .toMap
 
     val uuidToFlexOptions = typedFlexOptions.map { case (modelUuid, fo) =>
-      val assetInput = modelToParticipantInput.getOrElse(
+      val assetInput = modelToAssetInput.getOrElse(
         modelUuid,
         throw new CriticalFailureException(
-          s"Asset input for model with UUID $modelUuid was not found."
+          s"$identifier: Asset input for model with UUID $modelUuid was not found."
         ),
       )
       assetInput -> fo
@@ -180,7 +179,7 @@ final case class EmModelShell[FO <: FlexOptions](
       val fo = typedFlexOptions.getOrElse(
         model,
         throw new CriticalFailureException(
-          s"Set point for model $model has been calculated by ${modelStrategy.getClass.getSimpleName}, which is not connected to this EM."
+          s"$identifier: Set point for model $model has been calculated by ${modelStrategy.getClass.getSimpleName}, which is not connected to this EM."
         ),
       )
 
@@ -190,7 +189,7 @@ final case class EmModelShell[FO <: FlexOptions](
       } catch {
         case fe: FlexException =>
           throw new CriticalFailureException(
-            s"Determining flex power failed for asset $model",
+            s"$identifier: Determining flex power failed for asset $model",
             fe,
           )
       }
