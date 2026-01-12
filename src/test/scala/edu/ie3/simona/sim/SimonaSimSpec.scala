@@ -66,7 +66,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
               override def extSimulations(
                   context: ActorContext[?],
                   scheduler: ActorRef[SchedulerMessage],
-                  resultProxy: ActorRef[RequestResult],
+                  resultProxy: ActorRef[ResultServiceProxy.Message],
                   extSimPath: Option[Path],
               ): ExtSimSetupData = {
                 // We cannot return a TestProbe ref here,
@@ -483,7 +483,7 @@ object SimonaSimSpec {
     override def extSimulations(
         context: ActorContext[?],
         scheduler: ActorRef[SchedulerMessage],
-        resultProxy: ActorRef[RequestResult],
+        resultProxy: ActorRef[ResultServiceProxy.Message],
         extSimPath: Option[Path],
     ): ExtSimSetupData =
       ExtSimSetupData.apply

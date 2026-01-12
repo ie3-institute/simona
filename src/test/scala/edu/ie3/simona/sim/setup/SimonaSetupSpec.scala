@@ -91,7 +91,7 @@ class SimonaSetupSpec
   override def extSimulations(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      resultProxy: ActorRef[RequestResult],
+      resultProxy: ActorRef[ResultServiceProxy.Message],
       extSimPath: Option[Path],
   ): ExtSimSetupData = throw new NotImplementedException(
     "This is a dummy setup"

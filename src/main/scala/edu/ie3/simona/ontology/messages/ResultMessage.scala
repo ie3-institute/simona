@@ -13,7 +13,7 @@ import java.util.UUID
 
 object ResultMessage {
 
-  /** Message to request results.
+  /** Message send to the [[ResultServiceProxy]] to request results.
     *
     * @param requestedResults
     *   The uuids of the input models.
@@ -25,17 +25,13 @@ object ResultMessage {
   final case class RequestResult(
       requestedResults: Seq[UUID],
       tick: Long,
-      replyTo: ActorRef[Response],
+      replyTo: ActorRef[ResultResponse],
   )
 
-  /** Trait that is extended by all responses to a [[RequestResult]].
-    */
-  sealed trait Response
-
-  /** Response message that contains the requested results.
+  /** Response message that is sent to a listener or [[ExtResultProvider]] as an
+    * answer to a [[RequestResult]].
     * @param results
     *   Map: uuid to results.
     */
   final case class ResultResponse(results: Map[UUID, Iterable[ResultEntity]])
-      extends Response
 }

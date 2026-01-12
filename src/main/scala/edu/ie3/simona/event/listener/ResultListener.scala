@@ -18,11 +18,11 @@ import edu.ie3.simona.exceptions.{
 import edu.ie3.simona.io.result.*
 import edu.ie3.simona.ontology.messages.ResultMessage
 import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
+import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import org.slf4j.Logger
-import edu.ie3.simona.util.CollectionUtils.asJava
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
@@ -33,7 +33,7 @@ object ResultListener {
 
   trait Request
 
-  type Message = Request | ResultMessage.Response
+  type Message = Request | ResultResponse
 
   private final case class SinkResponse(
       response: Map[Class[?], ResultEntitySink]

@@ -24,7 +24,8 @@ import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.service.results.ExtResultProvider
+import edu.ie3.simona.service.results.{ExtResultProvider, ResultServiceProxy}
+import edu.ie3.simona.service.results.ResultServiceProxy.AddListener
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -70,7 +71,7 @@ object ExtSimSetup {
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      resultProxy: ActorRef[RequestResult],
+      resultProxy: ActorRef[ResultServiceProxy.Message],
       startTime: ZonedDateTime,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
@@ -140,7 +141,7 @@ object ExtSimSetup {
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
-      resultProxy: ActorRef[RequestResult],
+      resultProxy: ActorRef[ResultServiceProxy.Message],
       startTime: ZonedDateTime,
   ): ExtSimSetupData = {
     given extSimAdapter: ActorRef[ControlResponseMessageFromExt] =
@@ -225,6 +226,9 @@ object ExtSimSetup {
               ResultListener.external(extResultListener),
               s"ExtResultListener_$index",
             )
+
+            // add the external listener to the proxy
+            resultProxy ! AddListener(extResultEventListener)
 
             extSimSetupData.update(extResultListener, extResultEventListener)
 

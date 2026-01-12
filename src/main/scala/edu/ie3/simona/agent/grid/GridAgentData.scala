@@ -18,6 +18,7 @@ import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil.{
@@ -320,11 +321,12 @@ object GridAgentData {
 
     val assets: Seq[UUID] = {
       val components = gridEnv.gridModel.gridComponents
-      components.nodes.map(_.uuid) ++ components.lines.map(
-        _.uuid
-      ) ++ components.switches.map(_.uuid) ++ components.transformers.map(
-        _.uuid
-      ) ++ components.transformers3w.map(_.uuid)
+
+      components.nodes.map(_.uuid)
+        ++ components.lines.map(_.uuid)
+        ++ components.switches.map(_.uuid)
+        ++ components.transformers.map(_.uuid)
+        ++ components.transformers3w.map(_.uuid)
     }
 
     override protected val subgridGates: Vector[SubGridGate] =
