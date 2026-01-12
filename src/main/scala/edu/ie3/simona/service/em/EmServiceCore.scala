@@ -6,10 +6,9 @@
 
 package edu.ie3.simona.service.em
 
-import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.model.em.ExtendedFlexOptionsResult
+import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
@@ -27,30 +26,35 @@ import squants.Power
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.{Optional, UUID}
 import javax.measure.quantity.Power as PsdmPower
-import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.OptionConverters.{RichOption, RichOptional}
 
 /** Trait for all em service cores.
   */
 trait EmServiceCore {
 
-  /** The last tick that was completed.
-    */
-  val lastFinishedTick: Long
-
   /** Map: uuid to em agent reference.
     */
   val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]]
 
+  val agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID]
+
+  val uncontrolled: Set[UUID]
+
+  val uuidToInferior: Map[UUID, Set[UUID]]
+
+  val uuidToParent: Map[UUID, UUID]
+
   /** Map: uuid to flex option result.
     */
-  val allFlexOptions: Map[UUID, FlexOptionsResult]
+  val allFlexOptions: Map[UUID, FlexOptions]
 
   /** ReceiveDataMap: uuid to completions.
     */
   val completions: ReceiveDataMap[UUID, FlexCompletion]
+
+  val nextActivation: Map[UUID, Long]
 
   /** Extension to convert a squants power value to a psdm power value.
     */
@@ -58,7 +62,13 @@ trait EmServiceCore {
     def toQuantity: ComparableQuantity[PsdmPower] = value.toMegawatts.asMegaWatt
   }
 
+  given Conversion[Optional[java.lang.Long], Option[Long]] =
+    (x: Optional[java.lang.Long]) => x.toScala.map(Long2long)
+  given Conversion[Option[Long], Optional[java.lang.Long]] =
+    (x: Option[Long]) => x.map(long2Long).toJava
+
   /** Method to handle a registration message.
+    *
     * @param emServiceRegistration
     *   The registration to handle.
     * @return
@@ -107,7 +117,7 @@ trait EmServiceCore {
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = responseMsg match {
     case EmFlexMessage(flexRequest: FlexRequest, receiver) =>
-      log.warn(s"$receiver <- $flexRequest")
+      log.debug(s"$receiver <- $flexRequest")
 
       receiver match {
         case ref: ActorRef[FlexRequest] =>
@@ -126,7 +136,7 @@ trait EmServiceCore {
       }
 
     case EmFlexMessage(flexResponse: FlexResponse, receiver) =>
-      log.warn(s"$receiver <- $flexResponse")
+      log.debug(s"$receiver <- $flexResponse")
 
       receiver match {
         case uuid: UUID =>
@@ -145,43 +155,40 @@ trait EmServiceCore {
   /** Method to handle the set points provided by the external simulation.
     * @param tick
     *   Current tick of the service.
-    * @param provideEmSetPoints
+    * @param setPoints
     *   The set points to handle.
     * @param log
     *   Logger for logging messages.
     */
   final def handleSetPoint(
       tick: Long,
-      provideEmSetPoints: ProvideEmSetPointData,
+      setPoints: Map[UUID, EmSetPoint],
       log: Logger,
   ): Unit = {
-    log.info(s"Handling of: $provideEmSetPoints")
+    setPoints.foreach { case (agent, setPoint) =>
+      uuidToAgent.get(agent) match {
+        case Some(receiver) =>
+          val (pOption, qOption) = setPoint.power.toScala match {
+            case Some(sValue: SValue) =>
+              (sValue.getP.toScala, sValue.getQ.toScala)
+            case Some(pValue: PValue) =>
+              (pValue.getP.toScala, None)
+            case None =>
+              (None, None)
+          }
 
-    provideEmSetPoints.emSetPoints.asScala
-      .foreach { case (agent, setPoint) =>
-        uuidToAgent.get(agent) match {
-          case Some(receiver) =>
-            val (pOption, qOption) = setPoint.power.toScala match {
-              case Some(sValue: SValue) =>
-                (sValue.getP.toScala, sValue.getQ.toScala)
-              case Some(pValue: PValue) =>
-                (pValue.getP.toScala, None)
-              case None =>
-                (None, None)
-            }
+          (pOption, qOption) match {
+            case (Some(activePower), _) =>
+              receiver ! IssuePowerControl(tick, activePower.toSquants)
 
-            (pOption, qOption) match {
-              case (Some(activePower), _) =>
-                receiver ! IssuePowerControl(tick, activePower.toSquants)
+            case (None, _) =>
+              receiver ! IssueNoControl(tick)
+          }
 
-              case (None, _) =>
-                receiver ! IssueNoControl(tick)
-            }
-
-          case None =>
-            log.warn(s"No em agent with uuid '$agent' registered!")
-        }
+        case None =>
+          log.warn(s"No em agent with uuid '$agent' registered!")
       }
+    }
   }
 
   /** Method to handle flex responses from the em agents.
@@ -191,8 +198,6 @@ trait EmServiceCore {
     *   From the agent to handle.
     * @param receiver
     *   The receiver of the agent.
-    * @param startTime
-    *   The start time of the simulation.
     * @param log
     *   Logger for logging messages.
     * @return
@@ -203,18 +208,13 @@ trait EmServiceCore {
       tick: Long,
       flexResponse: FlexResponse,
       receiver: Either[UUID, ActorRef[FlexResponse]],
-  )(using
-      startTime: ZonedDateTime,
-      log: Logger,
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt])
+  )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
   /** Method to handle flex requests to the em agents.
     * @param flexRequest
     *   That is sent to an agents.
     * @param receiver
     *   Of the flex request.
-    * @param startTime
-    *   The start time of the simulation.
     * @param log
     *   Logger for logging messages.
     * @return
@@ -224,10 +224,7 @@ trait EmServiceCore {
   def handleFlexRequest(
       flexRequest: FlexRequest,
       receiver: ActorRef[FlexRequest],
-  )(using
-      startTime: ZonedDateTime,
-      log: Logger,
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt])
+  )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt])
 
   /** Method to add disaggregated flex options to given data.
     * @param flexOption
@@ -236,7 +233,7 @@ trait EmServiceCore {
     *   To derive the needed disaggregated data.
     */
   final def addDisaggregatingFlexOptions(
-      flexOption: ExtendedFlexOptionsResult,
+      flexOption: FlexOptions,
       inferiorAgents: Set[UUID],
   ): Unit = {
     inferiorAgents.foreach { inferior =>
@@ -257,34 +254,31 @@ trait EmServiceCore {
   final def handleCompletion(tick: Long, completion: FlexCompletion): (
       ReceiveDataMap[UUID, FlexCompletion],
       Option[EmDataResponseMessageToExt],
+      Option[Long],
       Boolean,
   ) = {
     val updated = completions.addData(completion.modelUuid, completion)
 
     if updated.isComplete then {
-      val allKeys = updated.receivedData.keySet
-
-      val extMsgOption = if tick != INIT_SIM_TICK then {
+      val (extMsgOption, nextTickOption) = if tick != INIT_SIM_TICK then {
         // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
-        Some(new EmCompletion(getMaybeNextTick))
-      } else None
+        val option = getMaybeNextTick
+
+        (Some(new EmCompletion(option)), option)
+      } else (None, None)
 
       // every em agent has sent a completion message
-      (ReceiveDataMap(allKeys), extMsgOption, true)
+      (updated, extMsgOption, nextTickOption, true)
 
-    } else (updated, None, false)
+    } else (updated, None, None, false)
   }
 
   /** Method to calculate the next tick option.
     * @return
     *   An option for the next activation tick.
     */
-  private final def getMaybeNextTick: java.util.Optional[java.lang.Long] =
-    completions.receivedData
-      .flatMap { case (_, completion) =>
-        completion.requestAtTick
-      }
-      .minOption
-      .map(long2Long)
-      .toJava
+  final def getMaybeNextTick: Option[Long] =
+    completions.receivedData.flatMap { case (_, completion) =>
+      completion.requestAtTick
+    }.minOption
 }

@@ -48,7 +48,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.ActorRef
@@ -154,8 +154,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // first request
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -169,8 +169,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // second request with same voltage
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -184,7 +184,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
           Each(0.98),
-          Each(0),
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -226,8 +226,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -311,8 +311,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -370,8 +370,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -511,8 +511,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -630,8 +630,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -758,8 +758,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -844,8 +844,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -967,8 +967,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -1031,8 +1031,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -1150,8 +1150,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -1262,8 +1262,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -1471,8 +1471,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -1659,8 +1659,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -1851,8 +1851,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 
@@ -2029,8 +2029,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(
           24 * 3600,
-          Each(1),
-          Each(0),
+          onePU,
+          zeroPU,
           gridAgent.ref,
         )
 

@@ -10,8 +10,21 @@ import squants.Quantity
 
 import scala.annotation.tailrec
 import scala.collection.immutable.HashSet
+import scala.math.Ordering.Double
+import scala.jdk.CollectionConverters.{SeqHasAsJava, MapHasAsJava}
 
 object CollectionUtils {
+
+  /** Extension to convert a map with nested collection to java. The nested
+    * collection will be converted to lists.
+    */
+  extension [K, V](scalaMap: Map[K, Iterable[V]]) {
+    def asJava: java.util.Map[K, java.util.List[V]] = {
+      scalaMap.map { case (key, value) =>
+        key -> value.toList.asJava
+      }.asJava
+    }
+  }
 
   /** fast implementation to test if a list contains duplicates. See
     * https://stackoverflow.com/questions/3871491/functional-programming-does-a-list-only-contain-unique-items

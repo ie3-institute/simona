@@ -69,8 +69,8 @@ object ServiceMessage {
   final case class EmServiceRegistration(
       requestingActor: ActorRef[EmAgent.Message],
       inputUuid: UUID,
-      parentEm: Option[ActorRef[FlexResponse]],
-      parentUuid: Option[UUID],
+      parentEm: Option[ActorRef[FlexResponse]] = None,
+      parentUuid: Option[UUID] = None,
   ) extends ServiceRegistrationMessage
 
   /** Message to register with a primary data service.
