@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions.flexSum
+import edu.ie3.simona.service.Data.SecondaryData
 import squants.Power
 
 import java.util.UUID
@@ -30,6 +31,8 @@ object ProportionalFlexStrat extends EmModelStrat[PowerLimitFlexOptions] {
     *   The target power to aim for when utilizing flexibility.
     * @param currentTick
     *   The current tick.
+    * @param receivedData
+    *   The secondary data received by the EM agent.
     * @return
     *   Power set points for devices, if applicable.
     */
@@ -39,6 +42,7 @@ object ProportionalFlexStrat extends EmModelStrat[PowerLimitFlexOptions] {
       ],
       target: Power,
       currentTick: Long,
+      receivedData: Seq[SecondaryData],
   ): Iterable[(UUID, Power)] = {
 
     // Input models are not needed here

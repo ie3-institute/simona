@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introducing `onePU` as default quantity [#1607](https://github.com/ie3-institute/simona/issues/1607)
 - Introducing energy demand for warm water heating [#856](https://github.com/ie3-institute/simona/issues/856)
 - Added external result provider [#1530](https://github.com/ie3-institute/simona/issues/1530)
+- Allow for multiple optimization model implementations [#1627](https://github.com/ie3-institute/simona/issues/1627)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
