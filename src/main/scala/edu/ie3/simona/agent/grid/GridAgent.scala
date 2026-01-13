@@ -13,10 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentConstantData,
   GridAgentInitData,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  CreateGridAgent,
-  WrappedFailure,
-}
+import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.agent.grid.congestion.{
   CongestionManagementParams,
   DCMAlgorithm,

@@ -26,6 +26,7 @@ import edu.ie3.simona.util.ConfigUtil.{
   ParticipantConfigUtil,
 }
 import org.apache.pekko.actor.typed.ActorRef
+import org.checkerframework.checker.units.qual.N
 import org.slf4j.Logger
 
 import java.time.ZonedDateTime
@@ -400,35 +401,29 @@ object GridAgentData {
         receivedPowerValue: PowerResponse,
         replace: Boolean = false,
     )(using log: Logger): GridAgentBaseData = {
-      val updatedNodeToReceivedPowersMap =
-        (receivedValueStore.nodeToReceivedPower, receivedPowerValue) match {
-          case (
-                nodeToReceivedPowerValuesMapWithAddedPowerResponse,
-                provideGridPowerMessage: GridPowerResponse,
-              ) =>
-            /* Go over all includes messages and add them. */
-            provideGridPowerMessage.nodalResidualPower.foldLeft(
-              nodeToReceivedPowerValuesMapWithAddedPowerResponse
-            ) {
-              case (
-                    nodeToReceivedPowerValuesMapWithAddedExchangedPower,
-                    exchangedPower,
-                  ) =>
-                updateNodalReceivedPower(
-                  exchangedPower,
-                  nodeToReceivedPowerValuesMapWithAddedExchangedPower,
-                  replace,
-                )
-            }
+      val nodeToReceivedPower = receivedValueStore.nodeToReceivedPower
 
-          case (nodeToReceivedPowerValuesMapWithAddedPowerResponse, _) =>
-            // some other singular power response message
+      val updatedNodeToReceivedPowersMap = receivedPowerValue match {
+        case provideGridPowerMessage: GridPowerResponse =>
+          /* Go over all includes messages and add them. */
+          provideGridPowerMessage.nodalResidualPower.foldLeft(
+            nodeToReceivedPower
+          ) { case (currentReceivedPowerMap, exchangedPower) =>
             updateNodalReceivedPower(
-              receivedPowerValue,
-              nodeToReceivedPowerValuesMapWithAddedPowerResponse,
+              exchangedPower,
+              currentReceivedPowerMap,
               replace,
             )
-        }
+          }
+
+        case _ =>
+          // some other singular power response message
+          updateNodalReceivedPower(
+            receivedPowerValue,
+            nodeToReceivedPower,
+            replace,
+          )
+      }
 
       this.copy(
         receivedValueStore = receivedValueStore
@@ -455,46 +450,45 @@ object GridAgentData {
     )(using log: Logger): NodeToReceivedPower = {
       val senderRef = powerResponse.sender
 
-      // extract the nodeUuid that corresponds to the sender's actorRef and check if we expect a message from the sender
-      val nodeUuid = powerResponse match {
-        case powerValuesMessage: ProvidedPowerResponse =>
-          getNodeUuidForSender(nodeToReceived, senderRef, replace)
-            .getOrElse(
-              s"$actorName Received asset power values msg $powerValuesMessage " +
-                s"from $senderRef which is not in my power values nodes map or which cannot be replaced!"
-            )
-        case FailedPowerFlow(_) =>
-          getNodeUuidForSender(nodeToReceived, senderRef, replace)
-            .getOrElse(
-              s"$actorName Received failed power flow message " +
-                s"from $senderRef which is not in my power values nodes map or which cannot be replaced!"
-            )
-        case unknownMsg =>
-          throw new RuntimeException(
-            s"$actorName Unknown message received. Can't process message $unknownMsg."
-          )
-      }
+      // extract the nodeUuid that corresponds to the sender's actorRef
+      val nodeUuidOption =
+        getNodeUuidForSender(nodeToReceived, senderRef, replace)
 
-      nodeUuid match {
-        case uuid: UUID =>
-          // update the values in the received map
-          val nodeReceived = nodeToReceived
-            .getOrElse(
-              uuid,
-              throw new RuntimeException(
-                s"NodeId $uuid is not part of nodeToReceivedPowerValuesMap!"
-              ),
-            ) +
-            // add or update entry in map of node entries
-            (senderRef -> Some(powerResponse))
+      // check if we expect a message from the sender
+      (powerResponse, nodeUuidOption) match {
+        case (_: (ProvidedPowerResponse | FailedPowerFlow), Some(uuid)) =>
+          val nodeReceived = nodeToReceived.getOrElse(
+            uuid,
+            throw new RuntimeException(
+              s"NodeId $uuid is not part of nodeToReceivedPowerValuesMap!"
+            ),
+          )
+          // add or update entry in map of node entries
+            + (senderRef -> Some(powerResponse))
 
           /* Actually update the map and hand it back */
           nodeToReceived.updated(uuid, nodeReceived)
 
-        case str: String =>
-          log.warn(str)
+        case (powerValuesMessage: ProvidedPowerResponse, _) =>
+          log.warn(
+            s"$actorName Received asset power values msg $powerValuesMessage " +
+              s"from $senderRef which is not in my power values nodes map or which cannot be replaced!"
+          )
 
           nodeToReceived
+
+        case (_: FailedPowerFlow, _) =>
+          log.warn(
+            s"$actorName Received failed power flow message " +
+              s"from $senderRef which is not in my power values nodes map or which cannot be replaced!"
+          )
+
+          nodeToReceived
+
+        case (unknownMsg, _) =>
+          throw new RuntimeException(
+            s"$actorName Unknown message received. Can't process message $unknownMsg."
+          )
       }
     }
 
@@ -575,45 +569,6 @@ object GridAgentData {
             }
         }.toMap
 
-      this.copy(
-        receivedValueStore = receivedValueStore.copy(
-          nodeToReceivedSlackVoltage =
-            updatedNodeToReceivedSlackVoltageValuesMap
-        )
-      )
-    }
-
-    /** Update this [[GridAgentBaseData]] with [[ReceivedSlackVoltageValues]]
-      * and return a copy of this [[GridAgentBaseData]] for further processing.
-      *
-      * @param receivedSlackValues
-      *   The slack voltage values that should be used for the update.
-      * @return
-      *   An updated version of this [[GridAgentBaseData]] containing the
-      *   receivedSlackValues.
-      */
-    def updateWithReceivedSlackVoltages(
-        receivedSlackValues: ReceivedSlackVoltageValues
-    ): GridAgentBaseData = {
-      val updatedNodeToReceivedSlackVoltageValuesMap =
-        receivedSlackValues.values.flatMap { case (senderRef, slackValues) =>
-          slackValues.nodalSlackVoltages.map { exchangeVoltage =>
-            receivedValueStore.nodeToReceivedSlackVoltage
-              .get(exchangeVoltage.nodeUuid) match {
-              case Some(None) =>
-                /* Slack voltage is expected and not yet received */
-                exchangeVoltage.nodeUuid -> Some(exchangeVoltage)
-              case Some(Some(_)) =>
-                throw new RuntimeException(
-                  s"Already received slack value for node ${exchangeVoltage.nodeUuid}!"
-                )
-              case None =>
-                throw new RuntimeException(
-                  s"Received slack value for node ${exchangeVoltage.nodeUuid} from $senderRef which is not in my slack values nodes list!"
-                )
-            }
-          }
-        }.toMap
       this.copy(
         receivedValueStore = receivedValueStore.copy(
           nodeToReceivedSlackVoltage =

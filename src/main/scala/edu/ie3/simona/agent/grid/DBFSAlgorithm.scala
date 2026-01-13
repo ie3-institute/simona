@@ -107,28 +107,24 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
         // if we receive power values as response on our request, we process them here
         case (
-              received: (ReceivedValue | ReceivedValues),
+              receivedValue: ReceivedValue,
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           // we just received either all provided slack voltage values or all provided power values
-          val updatedGridAgentBaseData: GridAgentBaseData = received match {
-            case powerResponse: PowerResponse =>
-              /* Can be a message from an asset or a message from an inferior grid */
-              gridAgentBaseData.updateWithPowerResponse(powerResponse)
+          val updatedGridAgentBaseData: GridAgentBaseData =
+            receivedValue match {
+              case powerResponse: PowerResponse =>
+                /* Can be a message from an asset or a message from an inferior grid */
+                gridAgentBaseData.updateWithPowerResponse(powerResponse)
 
-            case receivedSlacks: ReceivedSlackVoltageValues =>
-              gridAgentBaseData.updateWithReceivedSlackVoltages(
-                receivedSlacks
-              )
+              case receivedSlack: SlackVoltageResponse =>
+                gridAgentBaseData.updateWithSlackVoltageResponse(receivedSlack)
 
-            case receivedSlack: SlackVoltageResponse =>
-              gridAgentBaseData.updateWithSlackVoltageResponse(receivedSlack)
-
-            case unknownReceivedValues =>
-              throw new DBFSAlgorithmException(
-                s"Received unknown values: $unknownReceivedValues"
-              )
-          }
+              case unknownReceivedValues =>
+                throw new DBFSAlgorithmException(
+                  s"Received unknown values: $unknownReceivedValues"
+                )
+            }
 
           // check if we have enough data for a power flow calculation or a
           // power differences check (if the grid agent is a superior agent)
