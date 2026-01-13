@@ -156,7 +156,7 @@ abstract class CommonLossObjectiveFactory
     createAbsoluteVariable(difference, s"differenceAbs_$stepStartTick")
   }
 
-  private def createPowerSum(
+  protected def createPowerSum(
       assetVars: Iterable[SplitLossAssetStepVars]
   ): Expression =
     assetVars
