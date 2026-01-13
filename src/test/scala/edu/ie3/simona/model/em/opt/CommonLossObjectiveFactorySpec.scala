@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.model.em.opt
 
-import edu.ie3.simona.model.em.opt.OptimizedFlexStratSpec.*
-import edu.ie3.simona.model.em.opt.PowerObjectiveFactory.{
+import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
   LinearizedQuadraticPowerObjectiveFactory,
   MinAbsPowerObjectiveFactory,
 }
+import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactorySpec.*
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
@@ -19,16 +19,12 @@ import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import org.scalatest.OptionValues
 import squants.energy.{Energy, KilowattHours, Kilowatts, WattHours}
-import squants.time.Hours
 import squants.{Dimensionless, Each, Power, Time}
 
-import java.util.UUID
-
-class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
-
-  private val pvUUID = UUID.fromString("0-0-0-0-1")
-  private val loadUUID = UUID.fromString("0-0-0-0-2")
-  private val batUUID = UUID.fromString("0-0-0-0-3")
+class CommonLossObjectiveFactorySpec
+    extends UnitSpec
+    with OptimizingTestLike
+    with PowerObjectiveTestScenario {
 
   // Testing tolerances
   given Double = 1e-6
@@ -58,26 +54,16 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
               etaDischarging = Each(etaDischarging),
             )
 
-            // using the implementation to derive an adapted model
-            val adaptedFlexOptions = OptimizedFlexStrat.adaptEnergyBoundaries(
-              AssetEnergyBoundaries(
-                eStorage = eStorage,
-                currentEnergy = currentEnergy,
-                pMax = pMax,
-                etaCharge = Each(etaCharging),
-                etaDischarge = Each(etaDischarging),
-                0L,
-              )
-            )
-            val adaptedLimits = adaptedFlexOptions.energyLimits(0)
+            val etaAvg = CommonLossObjectiveFactory
+              .calculateCommonEta(Each(etaCharging), Each(etaDischarging))
+            val conversionFactor = CommonLossObjectiveFactory
+              .calculateConversionFactor(Each(etaCharging), etaAvg)
 
             val adapted = AdaptedModel(
-              // currently stored energy is the difference of 0 to the lower energy boundary
-              currentEnergy = -adaptedLimits.getLower,
-              // the total storage capacity is the difference between upper and lower boundary
-              eStorage = adaptedLimits.getUpper - adaptedLimits.getLower,
-              pMax = adaptedFlexOptions.powerLimits.getUpper,
-              etaAvg = adaptedFlexOptions.etaCharge,
+              currentEnergy = currentEnergy * conversionFactor,
+              eStorage = eStorage * conversionFactor,
+              pMax = pMax,
+              etaAvg = etaAvg,
             )
 
             // charging until full, with maximum power
@@ -114,11 +100,8 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
     "provided with simple battery flex options with losses" should {
 
-      val sampleTime = Hours(0.5)
-      val sampleTicks = sampleTime.toSeconds.toLong
-
       given ticks: Seq[Long] =
-        Range.Long.inclusive(0, 4 * sampleTicks, sampleTicks)
+        Range.Long.inclusive(0, 4 * halfHourTicks, halfHourTicks)
 
       // low efficiency for simplicity of the test
       val batFlex = EnergyBoundariesFlexOptions(
@@ -131,16 +114,6 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           currentTick = 0L,
         )
       )
-
-      // since energy values have been adapted, we need this
-      // factor to convert back to "real" values
-      given EnergyConversionFactor =
-        EnergyConversionFactor(
-          batFlex.energyBoundaries.headOption.value.etaCharge,
-          OptimizedFlexStrat
-            .adaptEnergyBoundaries(batFlex.energyBoundaries.headOption.value)
-            .etaCharge,
-        )
 
       "balance out additional power within maximum battery power" in {
 
@@ -159,18 +132,18 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           batUUID -> batFlex,
         )
 
-        val assetVars =
-          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
-
-        assetVars.toSeq should have length 2
-        assetVars.foreach(_.results should have length 1)
-        assetVars.foreach(_.results.foreach(_ should have length 4))
-
-        val objectiveContainer = OptimizedFlexStrat.buildObjective(
-          assetVars,
-          zeroKW,
-          MinAbsPowerObjectiveFactory,
+        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptions,
+          sampleTime = halfHour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq.empty,
+          objectiveFactory = MinAbsPowerObjectiveFactory,
         )
+
+        assetVars.toSeq should have size 2
+        assetVars.foreach(_.results should have size 1)
+        assetVars.foreach(_.results.foreach(_ should have size 4))
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
@@ -182,12 +155,8 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           Battery should be able to fully cover the additional power
          */
 
-        val batVars = assetVars
-          .find(_.assetUuid == batUUID)
-          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
-
-        val batRes = batVars.results.headOption
-          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+        val batVars = assetVars.vars(batUUID)
+        val batRes = assetVars.res(batUUID)
 
         {
           objectiveContainer.softConstraints.foreach { constraint =>
@@ -234,18 +203,18 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           batUUID -> batFlex,
         )
 
-        val assetVars =
-          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
-
-        assetVars.toSeq should have length 2
-        assetVars.foreach(_.results should have length 1)
-        assetVars.foreach(_.results.foreach(_ should have length 4))
-
-        val objectiveContainer = OptimizedFlexStrat.buildObjective(
-          assetVars,
-          zeroKW,
-          MinAbsPowerObjectiveFactory,
+        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptions,
+          sampleTime = halfHour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq.empty,
+          objectiveFactory = MinAbsPowerObjectiveFactory,
         )
+
+        assetVars.toSeq should have size 2
+        assetVars.foreach(_.results should have size 1)
+        assetVars.foreach(_.results.foreach(_ should have size 4))
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
@@ -258,12 +227,8 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           up to its maximum power
          */
 
-        val batVars = assetVars
-          .find(_.assetUuid == batUUID)
-          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
-
-        val batRes = batVars.results.headOption
-          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+        val batVars = assetVars.vars(batUUID)
+        val batRes = assetVars.res(batUUID)
 
         {
           objectiveContainer.softConstraints.foreach { constraint =>
@@ -310,18 +275,18 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           batUUID -> batFlex,
         )
 
-        val assetVars =
-          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
-
-        assetVars.toSeq should have length 2
-        assetVars.foreach(_.results should have length 1)
-        assetVars.foreach(_.results.foreach(_ should have length 4))
-
-        val objectiveContainer = OptimizedFlexStrat.buildObjective(
-          assetVars,
-          zeroKW,
-          MinAbsPowerObjectiveFactory,
+        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptions,
+          sampleTime = halfHour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq.empty,
+          objectiveFactory = MinAbsPowerObjectiveFactory,
         )
+
+        assetVars.toSeq should have size 2
+        assetVars.foreach(_.results should have size 1)
+        assetVars.foreach(_.results.foreach(_ should have size 4))
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
@@ -341,12 +306,8 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           in order to achieve total power closer to zero.
          */
 
-        val batVars = assetVars
-          .find(_.assetUuid == batUUID)
-          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
-
-        val batRes = batVars.results.headOption
-          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+        val batVars = assetVars.vars(batUUID)
+        val batRes = assetVars.res(batUUID)
 
         {
           objectiveContainer.softConstraints.foreach { constraint =>
@@ -402,18 +363,18 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           batUUID -> batFlex,
         )
 
-        val assetVars =
-          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
-
-        assetVars.toSeq should have length 2
-        assetVars.foreach(_.results should have length 1)
-        assetVars.foreach(_.results.foreach(_ should have length 4))
-
-        val objectiveContainer = OptimizedFlexStrat.buildObjective(
-          assetVars,
-          zeroKW,
-          MinAbsPowerObjectiveFactory,
+        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptions,
+          sampleTime = halfHour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq.empty,
+          objectiveFactory = MinAbsPowerObjectiveFactory,
         )
+
+        assetVars.toSeq should have size 2
+        assetVars.foreach(_.results should have size 1)
+        assetVars.foreach(_.results.foreach(_ should have size 4))
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
@@ -433,12 +394,8 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           in order to achieve total power closer to zero.
          */
 
-        val batVars = assetVars
-          .find(_.assetUuid == batUUID)
-          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
-
-        val batRes = batVars.results.headOption
-          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+        val batVars = assetVars.vars(batUUID)
+        val batRes = assetVars.res(batUUID)
 
         {
           objectiveContainer.softConstraints.foreach { constraint =>
@@ -494,18 +451,18 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           batUUID -> batFlex,
         )
 
-        val assetVars =
-          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
-
-        assetVars.toSeq should have length 2
-        assetVars.foreach(_.results should have length 1)
-        assetVars.foreach(_.results.foreach(_ should have length 4))
-
-        val objectiveContainer = OptimizedFlexStrat.buildObjective(
-          assetVars,
-          zeroKW,
-          MinAbsPowerObjectiveFactory,
+        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptions,
+          sampleTime = halfHour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq.empty,
+          objectiveFactory = MinAbsPowerObjectiveFactory,
         )
+
+        assetVars.toSeq should have size 2
+        assetVars.foreach(_.results should have size 1)
+        assetVars.foreach(_.results.foreach(_ should have size 4))
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
@@ -520,12 +477,8 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           second half.
          */
 
-        val batVars = assetVars
-          .find(_.assetUuid == batUUID)
-          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
-
-        val batRes = batVars.results.headOption
-          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+        val batVars = assetVars.vars(batUUID)
+        val batRes = assetVars.res(batUUID)
 
         {
           objectiveContainer.softConstraints.foreach { constraint =>
@@ -564,11 +517,8 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
     "provided with battery flex options without losses" should {
 
-      val sampleTime = Hours(1)
-      val sampleTicks = sampleTime.toSeconds.toLong
-
       given ticks: Seq[Long] =
-        Range.Long.inclusive(0, 4 * sampleTicks, sampleTicks)
+        Range.Long.inclusive(0, 4 * hourTicks, hourTicks)
 
       // no losses, thus efficiency = 1
       val batFlex = EnergyBoundariesFlexOptions(
@@ -581,13 +531,6 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           currentTick = 0L,
         )
       )
-
-      // dummy energy conversion factor
-      given EnergyConversionFactor =
-        EnergyConversionFactor(
-          batFlex.energyBoundaries.headOption.value.etaCharge,
-          onePU,
-        )
 
       "balance out additional power within maximum battery power" in {
 
@@ -606,13 +549,13 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           batUUID -> batFlex,
         )
 
-        val assetVars =
-          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
-
-        val objectiveContainer = OptimizedFlexStrat.buildObjective(
-          assetVars,
-          zeroKW,
-          MinAbsPowerObjectiveFactory,
+        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptions,
+          sampleTime = hour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq.empty,
+          objectiveFactory = MinAbsPowerObjectiveFactory,
         )
 
         model.minimize(objectiveContainer.objective)
@@ -626,12 +569,8 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           No losses should be subtracted.
          */
 
-        val batVars = assetVars
-          .find(_.assetUuid == batUUID)
-          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
-
-        val batRes = batVars.results.headOption
-          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+        val batVars = assetVars.vars(batUUID)
+        val batRes = assetVars.res(batUUID)
 
         {
           objectiveContainer.softConstraints.foreach { constraint =>
@@ -665,65 +604,19 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
     "provided with energy boundary flex options and an objective factory" should {
 
-      val sampleTime = Hours(1)
-      val sampleTicks = sampleTime.toSeconds.toLong
-
-      given ticks: Seq[Long] =
-        Range.Long.inclusive(0, 12 * sampleTicks, sampleTicks)
-
-      // 33 kWh of feed-in in total, more than battery can store
-      val pvFlex = EnergyBoundariesFlexOptions(
-        AssetEnergyBoundaries(
-          Seq(0, -6, -8, -7, -12, 0, 0, 0, 0, 0, 0, 0).toPowerMap
-        )
-      )
-
-      // 31 kWh of load in total, more than battery can provide
-      val loadFlex = EnergyBoundariesFlexOptions(
-        AssetEnergyBoundaries(
-          Seq(0, 0, 0, 0, 0, 0, 5, 10, 3, 7, 6, 0).toPowerMap
-        )
-      )
-
-      // low efficiency for simplicity of the test
-      val batFlex = EnergyBoundariesFlexOptions(
-        AssetEnergyBoundaries(
-          eStorage = KilowattHours(20),
-          currentEnergy = KilowattHours(0),
-          pMax = Kilowatts(10),
-          etaCharge = Each(0.8),
-          etaDischarge = Each(0.8),
-          currentTick = 0L,
-        )
-      )
-
-      val flexOptions = Map(
-        pvUUID -> pvFlex,
-        loadUUID -> loadFlex,
-        batUUID -> batFlex,
-      )
-
-      // since energy values have been adapted, we need this
-      // factor to convert back to "real" values
-      given EnergyConversionFactor =
-        EnergyConversionFactor(
-          batFlex.energyBoundaries.headOption.value.etaCharge,
-          OptimizedFlexStrat
-            .adaptEnergyBoundaries(batFlex.energyBoundaries.headOption.value)
-            .etaCharge,
-        )
+      given ticks: Seq[Long] = ticksScenario1
 
       "compensate fixed powers when using linear objective" in {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        val assetVars =
-          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
-
-        val objectiveContainer = OptimizedFlexStrat.buildObjective(
-          assetVars,
-          zeroKW,
-          MinAbsPowerObjectiveFactory,
+        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptionsScenario1,
+          sampleTime = halfHour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq.empty,
+          objectiveFactory = MinAbsPowerObjectiveFactory,
         )
 
         model.minimize(objectiveContainer.objective)
@@ -744,12 +637,8 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           in order to achieve total power closer to zero.
          */
 
-        val batVars = assetVars
-          .find(_.assetUuid == batUUID)
-          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
-
-        val batRes = batVars.results.headOption
-          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+        val batVars = assetVars.vars(batUUID)
+        val batRes = assetVars.res(batUUID)
 
         {
           objectiveContainer.softConstraints.foreach { constraint =>
@@ -761,15 +650,15 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           batRes should have size 12
 
           batRes.slice(0, 4).foreach {
-            _.energyVal should (be >= 0d and be < 20d)
+            _.energyVal should (be >= 0d and be < 10d)
           }
 
           batRes.slice(4, 6).foreach {
-            _.energyVal should approximate(20d)
+            _.energyVal should approximate(10d)
           }
 
           batRes.slice(6, 10).foreach {
-            _.energyVal should (be >= 0d and be < 20d)
+            _.energyVal should (be >= 0d and be < 10d)
           }
 
           batRes.slice(10, 12).foreach {
@@ -795,15 +684,16 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        val assetVars =
-          OptimizedFlexStrat.addAssetConstraints(flexOptions, sampleTime, ticks)
-
-        val objectiveContainer = OptimizedFlexStrat.buildObjective(
-          assetVars,
-          zeroKW,
-          LinearizedQuadraticPowerObjectiveFactory(
-            segmentCount = 10,
-            maximumExpectedPower = Kilowatts(10),
+        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptionsScenario1,
+          sampleTime = halfHour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq.empty,
+          objectiveFactory = LinearizedQuadraticPowerObjectiveFactory(
+            // absolute total power is 22 kW,
+            // thus pick segment count for 2 kW per segment
+            segmentCount = 11
           ),
         )
 
@@ -819,7 +709,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           solution exists: During the first phase (charging),
           battery power is utilized so that 2 kW remains at every
           time step. During the second phase (discharging), there's
-          exactly enough energy available to go down to 3 kW at
+          exactly enough energy available to go down to 4 kW at
           every time step.
 
           The soft constraints are vital here. Without them,
@@ -827,12 +717,8 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
           in order to achieve total power closer to zero.
          */
 
-        val batVars = assetVars
-          .find(_.assetUuid == batUUID)
-          .getOrElse(fail(s"No asset variables for battery ($batUUID) found."))
-
-        val batRes = batVars.results.headOption
-          .getOrElse(fail(s"Empty results for battery ($batUUID)."))
+        val batVars = assetVars.vars(batUUID)
+        val batRes = assetVars.res(batUUID)
 
         {
           objectiveContainer.softConstraints.foreach { constraint =>
@@ -847,42 +733,42 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
           // 6 kW of feed-in to compensate, 2 kW remains
           batRes(1).pVal should approximate(4d)
-          batRes(1).energyVal should approximate(3.2d)
+          batRes(1).energyVal should approximate(1.6d)
 
           // 8 kW of feed-in to compensate, 2 kW remains
           batRes(2).pVal should approximate(6d)
-          batRes(2).energyVal should approximate(8d)
+          batRes(2).energyVal should approximate(4d)
 
           // 7 kW of feed-in to compensate, 2 kW remains
           batRes(3).pVal should approximate(5d)
-          batRes(3).energyVal should approximate(12d)
+          batRes(3).energyVal should approximate(6d)
 
           // 12 kW of feed-in to compensate, 2 kW remains
           batRes(4).pVal should approximate(10d)
-          batRes(4).energyVal should approximate(20d)
+          batRes(4).energyVal should approximate(10d)
 
           // 0 kW to compensate
           batRes(5).pVal should approximate(0d)
-          batRes(5).energyVal should approximate(20d)
+          batRes(5).energyVal should approximate(10d)
 
-          // 5 kW of load to compensate, 3 kW remains
-          batRes(6).pVal should approximate(-2d)
-          batRes(6).energyVal should approximate(17.5d)
+          // 8 kW of load to compensate, 4 kW remains
+          batRes(6).pVal should approximate(-4d)
+          batRes(6).energyVal should approximate(7.5d)
 
-          // 10 kW of load to compensate, 3 kW remains
-          batRes(7).pVal should approximate(-7d)
-          batRes(7).energyVal should approximate(8.75d)
+          // 12 kW of load to compensate, 4 kW remains
+          batRes(7).pVal should approximate(-8d)
+          batRes(7).energyVal should approximate(2.5d)
 
-          // 3 kW of load to compensate, 3 kW remains
+          // 4 kW of load to compensate, 4 kW remains
           batRes(8).pVal should approximate(0d)
-          batRes(8).energyVal should approximate(8.75d)
+          batRes(8).energyVal should approximate(2.5d)
 
-          // 7 kW of load to compensate, 3 kW remains
-          batRes(9).pVal should approximate(-4d)
-          batRes(9).energyVal should approximate(3.75d)
+          // 7 kW of load to compensate, 4 kW remains
+          batRes(9).pVal should approximate(-3d)
+          batRes(9).energyVal should approximate(0.625d)
 
-          // 6 kW of load to compensate, 3 kW remains
-          batRes(10).pVal should approximate(-3d)
+          // 5 kW of load to compensate, 4 kW remains
+          batRes(10).pVal should approximate(-1d)
           batRes(10).energyVal should approximate(0d)
 
           // 0 kW to compensate
@@ -908,7 +794,7 @@ class OptimizedFlexStratSpec extends UnitSpec with OptimizingTestLike {
 
 }
 
-object OptimizedFlexStratSpec extends OptionValues {
+object CommonLossObjectiveFactorySpec extends OptionValues {
 
   trait BatteryTesting {
     val currentEnergy: Energy
