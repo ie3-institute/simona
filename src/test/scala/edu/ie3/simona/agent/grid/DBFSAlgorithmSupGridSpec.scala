@@ -23,6 +23,8 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped, UnitSpec}
@@ -55,6 +57,7 @@ class DBFSAlgorithmSupGridSpec
   private val runtimeEvents = TestProbe[RuntimeEvent]("runtimeEvents")
   private val primaryService =
     TestProbe[PrimaryServiceProxy.Message]("primaryService")
+  private val resultProxy = TestProbe[ResultServiceProxy.Message]("resultProxy")
   private val weatherService =
     TestProbe[WeatherService.Message]("weatherService")
   private val loadProfileService =
@@ -65,20 +68,18 @@ class DBFSAlgorithmSupGridSpec
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
+    resultProxy = resultProxy.ref,
     weather = weatherService.ref,
     loadProfiles = loadProfileService.ref,
     emDataService = None,
     evDataService = None,
   )
 
-  val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
-
   "A GridAgent actor in superior position with async test" should {
     val superiorGridAgentFSM: ActorRef[GridAgent.Message] = testKit.spawn(
       GridAgent(
         environmentRefs,
         simonaConfig,
-        listener = Iterable(resultListener.ref),
       )
     )
 
@@ -161,8 +162,9 @@ class DBFSAlgorithmSupGridSpec
             case Completion(_, Some(3600)) =>
             // we expect another completion message when the agent is in SimulateGrid again
             case Completion(_, Some(7200)) =>
+              resultProxy.expectMessageType[ExpectResult]
               // agent should be in Idle again and listener should contain power flow result data
-              val resultMessage = resultListener.expectMessageType[ResultEvent]
+              val resultMessage = resultProxy.expectMessageType[ResultEvent]
 
               resultMessage match {
                 case powerFlowResultEvent: PowerFlowResultEvent =>
@@ -280,9 +282,9 @@ class DBFSAlgorithmSupGridSpec
             // when we received a FinishGridSimulationTrigger (as inferior grid agent)
             // we expect another completion message then as well (scheduler view)
             case Completion(_, Some(7200)) =>
+              resultProxy.expectMessageType[ExpectResult]
               // after doing cleanup stuff, our agent should go back to idle again and listener should contain power flow result data
-              val resultMessage =
-                resultListener.expectMessageType[ResultEvent]
+              val resultMessage = resultProxy.expectMessageType[ResultEvent]
 
               resultMessage match {
                 case powerFlowResultEvent: PowerFlowResultEvent =>

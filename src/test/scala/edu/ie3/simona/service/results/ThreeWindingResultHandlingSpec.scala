@@ -4,9 +4,11 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.event.listener
+package edu.ie3.simona.service.results
 
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
+import edu.ie3.simona.service.results.Transformer3wResultSupport
+import edu.ie3.simona.service.results.Transformer3wResultSupport.AggregatedTransformer3wResult
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -19,8 +21,7 @@ import scala.util.{Failure, Success}
 class ThreeWindingResultHandlingSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
-    with ThreeWindingResultTestData
-    with Transformer3wResultSupport {
+    with ThreeWindingResultTestData {
   "Handling three winding results" when {
     "assembling joint values" should {
       val mockAResult = PartialTransformer3wResult.PortA(

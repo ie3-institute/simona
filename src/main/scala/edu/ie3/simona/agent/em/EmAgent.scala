@@ -63,7 +63,7 @@ object EmAgent {
     *   agent is em-controlled, or a [[Left]] with a reference to the scheduler
     *   that is activating this agent.
     * @param listener
-    *   A collection of result event listeners.
+    *   A listener for result events.
     * @param emDataService
     *   An energy management service.
     */
@@ -74,7 +74,7 @@ object EmAgent {
       modelStrategy: String,
       simulationStartDate: ZonedDateTime,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
-      listener: Iterable[ActorRef[ResultEvent]],
+      listener: ActorRef[ResultEvent],
       emDataService: Option[ActorRef[ExtEmDataService.Message]] = None,
   ): Behavior[Message] = Behaviors.setup[Message] { ctx =>
 
@@ -265,9 +265,7 @@ object EmAgent {
             )
           )
 
-          emData.listener.foreach {
-            _ ! FlexOptionsResultEvent(flexResult)
-          }
+          emData.listener ! FlexOptionsResultEvent(flexResult)
         }
 
         emData.parent match {
@@ -422,17 +420,15 @@ object EmAgent {
       }
 
     maybeResult.foreach { result =>
-      emData.listener.foreach {
-        _ ! ParticipantResultEvent(
-          new EmResult(
-            lastActiveTick
-              .toDateTime(using emData.simulationStartDate),
-            modelShell.uuid,
-            result.p.toMegawatts.asMegaWatt,
-            result.q.toMegavars.asMegaVar,
-          )
+      emData.listener ! ParticipantResultEvent(
+        new EmResult(
+          lastActiveTick
+            .toDateTime(using emData.simulationStartDate),
+          modelShell.uuid,
+          result.p.toMegawatts.asMegaWatt,
+          result.q.toMegavars.asMegaVar,
         )
-      }
+      )
 
       emData.parent.foreach {
         _ ! FlexResult(modelShell.uuid, result)
@@ -463,13 +459,13 @@ object EmAgent {
     *   agent is em-controlled, or a [[Left]] with a reference to the scheduler
     *   that is activating this agent.
     * @param listener
-    *   A collection of result event listeners.
+    *   A listener for result events.
     */
   private final case class EmData(
       outputConfig: NotifierConfig,
       simulationStartDate: ZonedDateTime,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
-      listener: Iterable[ActorRef[ResultEvent]],
+      listener: ActorRef[ResultEvent],
   )
 
   /** The existence of this data object indicates that the corresponding agent
