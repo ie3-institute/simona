@@ -50,7 +50,8 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.primaryDataServices shouldBe Seq((connection, primaryRef))
       updated.emDataService shouldBe None
       updated.evDataService shouldBe None
-      updated.extResultListeners shouldBe empty
+      updated.resultListeners shouldBe empty
+      updated.resultProviders shouldBe empty
     }
 
     "be updated with multiple ExtPrimaryDataConnection correctly" in {
@@ -75,7 +76,8 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       )
       updated.emDataService shouldBe None
       updated.evDataService shouldBe None
-      updated.extResultListeners shouldBe empty
+      updated.resultListeners shouldBe empty
+      updated.resultProviders shouldBe empty
     }
 
     "be updated with an ExtInputDataConnection correctly" in {
@@ -119,7 +121,8 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
         updated.primaryDataServices shouldBe expected.primaryDataServices
         updated.emDataService shouldBe expected.emDataService
         updated.evDataService shouldBe expected.evDataService
-        updated.extResultListeners shouldBe empty
+        updated.resultListeners shouldBe empty
+        updated.resultProviders shouldBe empty
       }
     }
 
@@ -127,15 +130,18 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val extSimSetupData = ExtSimSetupData.apply
 
       val resultConnection = new ExtResultDataConnection(emptyUuidList)
-      val resultRef = TestProbe[ServiceMessage]("result_service").ref
+      val resultServiceProxyRef =
+        TestProbe[ServiceMessage]("resultServiceProxy").ref
 
-      val updated = extSimSetupData.update(resultConnection, resultRef)
+      val updated =
+        extSimSetupData.update(resultConnection, resultServiceProxyRef)
 
       updated.extSimAdapters shouldBe empty
       updated.primaryDataServices shouldBe empty
       updated.emDataService shouldBe None
       updated.evDataService shouldBe None
-      updated.extResultListeners shouldBe Seq(resultRef)
+      updated.resultListeners shouldBe empty
+      updated.resultProviders shouldBe Seq(resultServiceProxyRef)
     }
 
     "be updated with multiple different connections correctly" in {
@@ -152,13 +158,14 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val emRef = TestProbe[ExtEmDataService.Message]("em_service").ref
 
       val resultConnection = new ExtResultDataConnection(emptyUuidList)
-      val resultRef = TestProbe[ServiceMessage]("result_service").ref
+      val resultServiceProxyRef =
+        TestProbe[ServiceMessage]("resultServiceProxy").ref
 
       val updated = extSimSetupData
         .update(primaryConnection, primaryRef)
         .update(emConnection, emRef)
         .update(evConnection, evRef)
-        .update(resultConnection, resultRef)
+        .update(resultConnection, resultServiceProxyRef)
 
       updated.extSimAdapters shouldBe empty
       updated.primaryDataServices shouldBe Seq(
@@ -169,7 +176,8 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       )
       updated.emDataService shouldBe Some(emRef)
       updated.evDataService shouldBe Some(evRef)
-      updated.extResultListeners shouldBe Seq(resultRef)
+      updated.resultListeners shouldBe empty
+      updated.resultProviders shouldBe Seq(resultServiceProxyRef)
     }
 
     "return evDataService correctly" in {

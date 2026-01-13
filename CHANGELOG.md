@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement energy limit flex options and adapt optimization [#1572](https://github.com/ie3-institute/simona/issues/1572)
 - Introducing `onePU` as default quantity [#1607](https://github.com/ie3-institute/simona/issues/1607)
 - Introducing energy demand for warm water heating [#856](https://github.com/ie3-institute/simona/issues/856)
+- Added external result provider [#1530](https://github.com/ie3-institute/simona/issues/1530)
 - Added external primary service worker [#1545](https://github.com/ie3-institute/simona/issues/1545)
 
 ### Changed

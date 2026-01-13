@@ -46,9 +46,6 @@ object GridAgentData {
     *   the grid agent.
     * @param simonaConfig
     *   Configuration of SIMONA, that is used for.
-    * @param listener
-    *   A sequence of listeners, that will receive the results from the grid
-    *   agent.
     * @param resolution
     *   That is used for the power flow. If no power flow should be carried out,
     *   this value is set to [[Long.MaxValue]].
@@ -60,14 +57,12 @@ object GridAgentData {
   final case class GridAgentConstantData(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
-      listener: Iterable[ActorRef[ResultEvent]],
       resolution: Long,
       simStartTime: ZonedDateTime,
       simEndTime: ZonedDateTime,
   ) {
-    def notifyListeners(event: ResultEvent): Unit = {
-      listener.foreach(_ ! event)
-    }
+    def notifyListeners(event: ResultEvent): Unit =
+      environmentRefs.resultProxy ! event
 
     val participantConfigUtil: ParticipantConfigUtil =
       ConfigUtil.ParticipantConfigUtil(simonaConfig.simona.runtime.participant)
@@ -322,6 +317,16 @@ object GridAgentData {
       superiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] = Map.empty,
   ) extends GridAgentData
       with GridAgentDataHelper {
+
+    val assets: Seq[UUID] = {
+      val components = gridEnv.gridModel.gridComponents
+
+      components.nodes.map(_.uuid)
+        ++ components.lines.map(_.uuid)
+        ++ components.switches.map(_.uuid)
+        ++ components.transformers.map(_.uuid)
+        ++ components.transformers3w.map(_.uuid)
+    }
 
     override protected val subgridGates: Vector[SubGridGate] =
       gridEnv.subgridGateToActorRef.keys.toVector

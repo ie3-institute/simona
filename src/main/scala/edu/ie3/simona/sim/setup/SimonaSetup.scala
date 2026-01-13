@@ -16,18 +16,24 @@ import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
+import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ResultMessage.{
+  RequestResult,
+  ResultResponse,
+}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
+import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.sim.SimonaSim
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 import java.nio.file.Path
+import java.time.ZonedDateTime
 
 /** Trait that can be used to set up a customized simona simulation by providing
   * implementations for all setup information required by a
@@ -86,7 +92,7 @@ trait SimonaSetup {
     */
   def resultEventListener(
       context: ActorContext[?]
-  ): Seq[ActorRef[ResultEventListener.Request]]
+  ): Seq[ActorRef[ResultListener.Message]]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
     * for primary data. If necessary, it delegates the registration request to
@@ -107,6 +113,27 @@ trait SimonaSetup {
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
   ): ActorRef[ServiceMessage]
+
+  /** Creates a result service proxy. The proxy will receive information about
+    * the result that should be expected for the current tick and all result
+    * events that are send by the agents. The proxy is responsible for
+    * processing the result events and passing the processed data to the
+    * different result listeners and providers.
+    *
+    * @param context
+    *   Actor context to use.
+    * @param listeners
+    *   The internal result event listeners.
+    * @param simStartTime
+    *   The start time of the simulation.
+    * @return
+    *   An actor reference to the service.
+    */
+  def resultServiceProxy(
+      context: ActorContext[?],
+      listeners: Seq[ActorRef[ResultResponse]],
+      simStartTime: ZonedDateTime,
+  ): ActorRef[ResultServiceProxy.Message]
 
   /** Creates a weather service.
     *
@@ -145,6 +172,8 @@ trait SimonaSetup {
     *   Actor context to use.
     * @param scheduler
     *   Actor reference to the scheduler to use.
+    * @param resultProxy
+    *   Actor reference to the result provider.
     * @param extSimPath
     *   Option for a directory with external simulations.
     * @return
@@ -153,6 +182,7 @@ trait SimonaSetup {
   def extSimulations(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
+      resultProxy: ActorRef[ResultServiceProxy.Message],
       extSimPath: Option[Path],
   ): ExtSimSetupData
 
@@ -197,8 +227,6 @@ trait SimonaSetup {
     *   Actor context to use.
     * @param environmentRefs
     *   EnvironmentRefs to use.
-    * @param resultEventListeners
-    *   Listeners that await events from system participants.
     * @return
     *   A mapping from actor reference to it's according initialization data to
     *   be used when setting up the agents.
@@ -206,7 +234,6 @@ trait SimonaSetup {
   def gridAgents(
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
-      resultEventListeners: Seq[ActorRef[ResultEvent]],
   ): Iterable[ActorRef[GridAgent.Message]]
 
   /** SIMONA links sub grids connected by a three winding transformer a bit

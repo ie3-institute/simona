@@ -8,9 +8,11 @@ package edu.ie3.simona.sim.setup
 
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.connection.*
+import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
+import edu.ie3.simona.service.results.ExtResultProvider
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Case class that holds information regarding the external data connections as
@@ -24,8 +26,10 @@ import org.apache.pekko.actor.typed.ActorRef
   *   Option for an external em data service.
   * @param evDataService
   *   Option for an external ev data service.
-  * @param extResultListeners
-  *   Seq: external result data connections to result data providers.
+  * @param resultListeners
+  *   Seq: external result listeners.
+  * @param resultProviders
+  *   Seq: external result providers.
   */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
@@ -34,7 +38,8 @@ final case class ExtSimSetupData(
     ],
     emDataService: Option[ActorRef[ExtEmDataService.Message]],
     evDataService: Option[ActorRef[ExtEvDataService.Message]],
-    extResultListeners: Seq[ActorRef[ServiceMessage]],
+    resultListeners: Seq[ActorRef[ResultListener.Message]],
+    resultProviders: Seq[ActorRef[ExtResultProvider.Message]],
 ) {
 
   private[setup] def update(
@@ -62,8 +67,13 @@ final case class ExtSimSetupData(
           serviceRef: ActorRef[ExtEvDataService.Message],
         ) =>
       copy(evDataService = Some(serviceRef))
-    case (_: ExtResultDataConnection, serviceRef: ActorRef[ServiceMessage]) =>
-      copy(extResultListeners = extResultListeners ++ Seq(serviceRef))
+    case (_: ExtResultListener, serviceRef: ActorRef[ResultListener.Message]) =>
+      copy(resultListeners = resultListeners ++ Seq(serviceRef))
+    case (
+          _: ExtResultDataConnection,
+          serviceRef: ActorRef[ExtResultProvider.Message],
+        ) =>
+      copy(resultProviders = resultProviders ++ Seq(serviceRef))
     case (_, _) =>
       this
   }
@@ -82,7 +92,8 @@ final case class ExtSimSetupData(
     Seq(
       emDataService,
       evDataService,
-    ).flatten ++ extResultListeners ++ primaryDataServices.map(_._2)
+    ).flatten ++ resultListeners ++ resultProviders ++ primaryDataServices
+      .map(_._2)
 }
 
 object ExtSimSetupData {
@@ -94,6 +105,7 @@ object ExtSimSetupData {
     Seq.empty,
     None,
     None,
+    Seq.empty,
     Seq.empty,
   )
 }
