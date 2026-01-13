@@ -28,8 +28,9 @@ object ResultMessage {
       replyTo: ActorRef[ResultResponse],
   )
 
-  /** Response message that is sent to a listener or [[ExtResultProvider]] as an
-    * answer to a [[RequestResult]].
+  /** Response message that is sent to a listener or
+    * [[edu.ie3.simona.service.results.ExtResultProvider]] as an answer to a
+    * [[RequestResult]].
     * @param results
     *   Map: uuid to results.
     */

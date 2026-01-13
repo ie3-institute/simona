@@ -24,11 +24,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.ScheduleServiceActivation
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  ResultMessage,
-  SchedulerMessage,
-}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.util.CollectionUtils.asJava
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}

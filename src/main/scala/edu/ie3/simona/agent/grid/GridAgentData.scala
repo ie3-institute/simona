@@ -18,7 +18,6 @@ import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil.{
