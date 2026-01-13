@@ -308,9 +308,9 @@ object GridAgentBuilder {
 
     given ParticipantRefs = ParticipantRefs(
       gridAgentContext.self,
-      constantData.environmentRefs.primaryServiceProxy,
+      environmentRefs.primaryServiceProxy,
+      environmentRefs.resultProxy,
       serviceMap,
-      constantData.listener,
     )
 
     given SimulationParameters = SimulationParameters(
@@ -488,7 +488,7 @@ object GridAgentBuilder {
         maybeControllingEm.toRight(
           constantData.environmentRefs.scheduler
         ),
-        constantData.listener,
+        constantData.environmentRefs.resultProxy,
         emDataService,
       ),
       actorName(classOf[EmAgent.type], emInput.getId),

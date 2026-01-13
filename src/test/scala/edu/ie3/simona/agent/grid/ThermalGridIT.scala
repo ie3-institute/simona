@@ -39,6 +39,7 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.service.weather.{WeatherDataType, WeatherService}
 import edu.ie3.simona.test.common.TestSpawnerTyped
@@ -58,7 +59,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -118,7 +118,8 @@ class ThermalGridIT
       )
 
       val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
-      val resultListener = TestProbe[ResultEvent]("ResultListener")
+      val resultServiceProxy =
+        TestProbe[ResultEvent | ExpectResult]("ResultProxy")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =
         TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
@@ -127,8 +128,8 @@ class ThermalGridIT
       given ParticipantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
         primaryServiceProxy = primaryServiceProxy.ref,
+        resultServiceProxy = resultServiceProxy.ref,
         services = Map(ServiceType.WeatherService -> weatherService.ref),
-        resultListener = Iterable(resultListener.ref),
       )
 
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -161,14 +162,18 @@ class ThermalGridIT
         tickPairs.foreach { case (currentTick, nextTick) =>
           activationActor ! Activation(currentTick)
 
+          resultServiceProxy.expectMessage(
+            ExpectResult(typicalHpInputModel.getUuid, currentTick)
+          )
+
           Range(0, 2)
-            .map { _ => resultListener.expectMessageType[ResultEvent] }
+            .map { _ => resultServiceProxy.expectMessageType[ResultEvent] }
             .foreach {
               case ParticipantResultEvent(_) =>
               case ThermalResultEvent(_)     =>
             }
 
-          resultListener.expectNoMessage()
+          resultServiceProxy.expectNoMessage()
           scheduler.expectMessage(Completion(activationActor, Some(nextTick)))
         }
       }
@@ -207,7 +212,7 @@ class ThermalGridIT
       val weatherDependentAgents = Seq(hpAgent)
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(0)))
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
 
       /* TICK 0
       Start of Simulation
@@ -218,6 +223,9 @@ class ThermalGridIT
       Heat pump: turned on - to serve the heat storage demand
        */
       heatPumpAgent ! Activation(0)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -233,9 +241,13 @@ class ThermalGridIT
         )
       }
 
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 0)
+      )
+
       Range(0, 4)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -279,7 +291,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.000522.asMegaWattHour)
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(45)))
 
       /* TICK 45
@@ -292,9 +304,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(45)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 45)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(hpResult) =>
@@ -317,7 +334,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(3416)))
 
       /* TICK 3416
@@ -330,9 +347,13 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(3416)
 
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 3416)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -367,7 +388,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(3600)))
 
       /* TICK 3600
@@ -379,6 +400,9 @@ class ThermalGridIT
       Heat pump: stays on, we got triggered by incoming weather data. So we continue with same behaviour as before
        */
       heatPumpAgent ! Activation(3600)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -394,9 +418,13 @@ class ThermalGridIT
         )
       }
 
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 3600)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(hpResult) =>
@@ -423,7 +451,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(3625)))
 
       /* TICK 3625
@@ -436,9 +464,13 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(3625)
 
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 3625)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(hpResult) =>
@@ -463,7 +495,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(4412)))
 
       /* TICK 4412
@@ -476,9 +508,13 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(4412)
 
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 4412)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -503,7 +539,7 @@ class ThermalGridIT
                 indoorTemp should equalWithTolerance(19.99.asDegreeCelsius)
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(7200)))
 
       /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
@@ -533,6 +569,9 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(21600)
 
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
+
       weatherDependentAgents.foreach {
         _ ! DataProvision(
           21600,
@@ -547,9 +586,13 @@ class ThermalGridIT
         )
       }
 
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 21600)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(hpResult) =>
@@ -572,7 +615,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(21659)))
 
       /* TICK 21659
@@ -585,9 +628,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(21659)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 21659)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(hpResult) =>
@@ -612,7 +660,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(23288)))
 
       /* TICK 23288
@@ -625,9 +673,13 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(23288)
 
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 23288)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -662,7 +714,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(25000)))
 
       /* TICK 25000
@@ -674,6 +726,9 @@ class ThermalGridIT
       Heat pump: stays off, demand should be covered by storage
        */
       heatPumpAgent ! Activation(25000)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -688,14 +743,19 @@ class ThermalGridIT
           Some(28000),
         )
       }
-      resultListener.expectMessageType[ResultEvent] match {
+
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 25000)
+      )
+
+      resultServiceProxy.expectMessageType[ResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 25000.toDateTime
           hpResult.getP should equalWithTolerance(0.asMegaWatt)
           hpResult.getQ should equalWithTolerance(0.asMegaVar)
       }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(25200)))
 
       /* TICK 25200
@@ -708,9 +768,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(25200)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 25200)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -736,7 +801,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(25316)))
 
       /* TICK 25316
@@ -749,9 +814,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(25316)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 25316)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -777,7 +847,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(26704)))
 
       /* TICK 26704
@@ -790,9 +860,13 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(26704)
 
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 26704)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -817,7 +891,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(28000)))
 
       /* TICK 28000
@@ -829,6 +903,9 @@ class ThermalGridIT
         Heat pump: stays on
        */
       heatPumpAgent ! Activation(28000)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -843,7 +920,12 @@ class ThermalGridIT
           Some(151200),
         )
       }
-      resultListener.expectMessageType[ParticipantResultEvent] match {
+
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 28000)
+      )
+
+      resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 28000.toDateTime
@@ -854,7 +936,7 @@ class ThermalGridIT
       // Since this activation is caused by new weather data, we don't expect any
       // message for house or storage since there is no change of their operating
       // point nor one of it reached any boundary.
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(28800)))
 
       /* TICK 28800
@@ -867,9 +949,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(28800)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 28800)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -897,7 +984,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(28852)))
 
       /* TICK 28852
@@ -910,9 +997,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(28852)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 28852)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -948,7 +1040,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(29193)))
 
       /* TICK 29193
@@ -961,9 +1053,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(29193)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 29193)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -999,7 +1096,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(32032)))
 
       /* TICK 32032
@@ -1012,9 +1109,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(32032)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 32032)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1049,7 +1151,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(32400)))
 
       /* TICK 32400
@@ -1062,9 +1164,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(32400)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 32400)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1090,7 +1197,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(32541)))
 
       /* TICK 32541
@@ -1103,9 +1210,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(32541)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 32541)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1131,7 +1243,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(35448)))
 
       /* TICK 35448
@@ -1144,9 +1256,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(35448)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 35448)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1181,7 +1298,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(35983)))
 
       /* TICK 35983
@@ -1194,9 +1311,14 @@ class ThermalGridIT
        */
       heatPumpAgent ! Activation(35983)
 
+      // we receive update messages, since a new set point was provided
+      resultServiceProxy.expectMessage(
+        ExpectResult(typicalHpInputModel.getUuid, 35983)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1222,7 +1344,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(36000)))
     }
   }
@@ -1242,7 +1364,8 @@ class ThermalGridIT
       )
 
       val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
-      val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
+      val resultServiceProxy: TestProbe[ResultEvent | ExpectResult] =
+        TestProbe("resultServiceProxy")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =
         TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
@@ -1251,8 +1374,8 @@ class ThermalGridIT
       given ParticipantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
         primaryServiceProxy = primaryServiceProxy.ref,
+        resultServiceProxy = resultServiceProxy.ref,
         services = Map(ServiceType.WeatherService -> weatherService.ref),
-        resultListener = Iterable(resultListener.ref),
       )
 
       val keys = ScheduleLock
@@ -1270,7 +1393,7 @@ class ThermalGridIT
           "PRIORITIZED",
           simulationStartWithPv,
           parent = Left(scheduler.ref),
-          listener = Iterable(resultListener.ref),
+          listener = resultServiceProxy.ref,
         ),
         "EmAgent",
       )
@@ -1312,14 +1435,21 @@ class ThermalGridIT
         tickPairs.foreach { case (currentTick, nextTick) =>
           activationActor ! Activation(currentTick)
 
+          resultServiceProxy.receiveMessages(2) should contain allOf (
+            // we receive a message, since new data arrived
+            ExpectResult(typicalHpInputModel.getUuid, currentTick, true),
+            // we receive update messages, since a new set point was provided
+            ExpectResult(typicalHpInputModel.getUuid, currentTick)
+          )
+
           Range(0, 3)
-            .map { _ => resultListener.expectMessageType[ResultEvent] }
+            .map { _ => resultServiceProxy.expectMessageType[ResultEvent] }
             .foreach {
               case ParticipantResultEvent(_) =>
               case ThermalResultEvent(_)     =>
             }
 
-          resultListener.expectNoMessage()
+          resultServiceProxy.expectNoMessage()
           scheduler.expectMessage(Completion(activationActor, Some(nextTick)))
         }
       }
@@ -1387,10 +1517,10 @@ class ThermalGridIT
         weatherService.ref,
         0L,
       )
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(0)))
 
-      val weatherDependentAgents = Seq(hpAgent.toClassic, pvAgent.toClassic)
+      val weatherDependentAgents = Seq(hpAgent, pvAgent)
 
       /* TICK 0
         Start of Simulation, No sun at the moment.
@@ -1402,6 +1532,9 @@ class ThermalGridIT
         Heat pump: stays out - since requiredDemand of HeatStorage not necessarily demand hp operation.
        */
       emAgentActivation ! Activation(0)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -1417,9 +1550,18 @@ class ThermalGridIT
         )
       }
 
+      resultServiceProxy.receiveMessages(4) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 0, true),
+        ExpectResult(pvInput.getUuid, 0, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 0),
+        ExpectResult(pvInput.getUuid, 0)
+      )
+
       Range(0, 5)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1468,7 +1610,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.00149814.asMegaWattHour)
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(150)))
 
       /* TICK 150
@@ -1482,9 +1624,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(150)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 150, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 150)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1516,7 +1665,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(1800)))
 
       /* TICK 1800
@@ -1530,6 +1679,9 @@ class ThermalGridIT
         used by hp to serve the reqDemand of ThermalStorage
        */
       emAgentActivation ! Activation(1800)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -1545,9 +1697,16 @@ class ThermalGridIT
         )
       }
 
+      resultServiceProxy.receiveMessages(4) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 1800, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 1800)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1582,7 +1741,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
 
       /* TICK 3600
@@ -1595,9 +1754,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(3600)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 3600, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 3600)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1635,7 +1801,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(3750)))
 
       /* TICK 3750
@@ -1649,9 +1815,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(3750)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 3750, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 3750)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1683,7 +1856,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(5216)))
 
       /* TICK 5216
@@ -1697,9 +1870,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(5216)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 5216, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 5216)
+      )
+
       Range(0, 4)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1749,7 +1929,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.001269575507.asMegaWattHour)
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(5400)))
 
       /* TICK 5400
@@ -1762,6 +1942,9 @@ class ThermalGridIT
       Heat pump: turns off
        */
       emAgentActivation ! Activation(5400)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -1777,9 +1960,21 @@ class ThermalGridIT
         )
       }
 
+      // expect messages due to flex activation
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        ExpectResult(typicalHpInputModel.getUuid, 5400, true),
+        ExpectResult(pvInput.getUuid, 5400, true)
+      )
+
+      // expect messages due to new set point
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        ExpectResult(typicalHpInputModel.getUuid, 5400),
+        ExpectResult(pvInput.getUuid, 5400)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1809,7 +2004,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(6731)))
 
       /* TICK 6731
@@ -1823,9 +2018,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(6731)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 6731, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 6731)
+      )
+
       Range(0, 4)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1865,7 +2067,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
       /* TICK 7200
@@ -1878,9 +2080,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(7200)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 7200, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 7200)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1911,7 +2120,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(7355)))
 
       /* TICK 7355
@@ -1924,9 +2133,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(7355)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 7355, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 7355)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -1957,7 +2173,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(9200)))
 
       /* TICK 9200
@@ -1970,6 +2186,9 @@ class ThermalGridIT
       Heat pump: turned on
        */
       emAgentActivation ! Activation(9200)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -1985,9 +2204,18 @@ class ThermalGridIT
         )
       }
 
+      resultServiceProxy.receiveMessages(4) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 9200, true),
+        ExpectResult(pvInput.getUuid, 9200, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 9200),
+        ExpectResult(pvInput.getUuid, 9200)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2017,7 +2245,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(10531)))
 
       /* TICK 10531
@@ -2031,9 +2259,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(10531)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 10531, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 10531)
+      )
+
       Range(0, 4)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2073,7 +2308,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
       /* TICK 10800
@@ -2086,9 +2321,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(10800)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 10800, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 10800)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2123,7 +2365,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(10958)))
 
       /* TICK 10958
@@ -2136,9 +2378,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(10958)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 10958, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 10958)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2173,7 +2422,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(11638)))
 
       /* TICK 11638
@@ -2187,9 +2436,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(11638)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 11638, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 11638)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2219,7 +2475,7 @@ class ThermalGridIT
                 indoorTemp should equalWithTolerance(19.99.asDegreeCelsius)
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(12000)))
 
       /* TICK 12000
@@ -2233,6 +2489,9 @@ class ThermalGridIT
       Heat pump: turned on, since there is possibleDemand and setPower is 3800 W which is > 0.5 sRated of Hp
        */
       emAgentActivation ! Activation(12000)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -2248,9 +2507,18 @@ class ThermalGridIT
         )
       }
 
+      resultServiceProxy.receiveMessages(4) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 12000, true),
+        ExpectResult(pvInput.getUuid, 12000, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 12000),
+        ExpectResult(pvInput.getUuid, 12000)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2280,7 +2548,7 @@ class ThermalGridIT
                 indoorTemp should equalWithTolerance(19.96.asDegreeCelsius)
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(12139)))
 
       /* TICK 12139
@@ -2294,9 +2562,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(12139)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 12139, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 12139)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2326,7 +2601,7 @@ class ThermalGridIT
                 indoorTemp should equalWithTolerance(20.asDegreeCelsius)
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(12500)))
 
       /* TICK 12500
@@ -2340,6 +2615,9 @@ class ThermalGridIT
        Heat pump: stays off
        */
       emAgentActivation ! Activation(12500)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -2355,9 +2633,18 @@ class ThermalGridIT
         )
       }
 
+      resultServiceProxy.receiveMessages(4) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 12500, true),
+        ExpectResult(pvInput.getUuid, 12500, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 12500),
+        ExpectResult(pvInput.getUuid, 12500)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach { case ParticipantResultEvent(participantResult) =>
           participantResult match {
@@ -2373,7 +2660,7 @@ class ThermalGridIT
               emResult._4 should equalWithTolerance(0.asMegaVar)
           }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
       /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
@@ -2403,9 +2690,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(24412)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 24412, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 24412)
+      )
+
       Range(0, 4)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2445,7 +2739,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(25200)))
 
       /* TICK 25200
@@ -2458,6 +2752,9 @@ class ThermalGridIT
         Heat pump: will be turned on and will continue heating the house
        */
       emAgentActivation ! Activation(25200)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -2473,9 +2770,21 @@ class ThermalGridIT
         )
       }
 
+      // expect messages due to flex activation
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        ExpectResult(typicalHpInputModel.getUuid, 25200, true),
+        ExpectResult(pvInput.getUuid, 25200, true)
+      )
+
+      // expect messages due to new set point
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        ExpectResult(typicalHpInputModel.getUuid, 25200),
+        ExpectResult(pvInput.getUuid, 25200)
+      )
+
       Range(0, 4)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2514,7 +2823,7 @@ class ThermalGridIT
                 energy should equalWithTolerance(0.000045288986.asMegaWattHour)
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(25230)))
 
       /* TICK 25230
@@ -2527,9 +2836,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(25230)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 25230, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 25230)
+      )
+
       Range(0, 4)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2570,7 +2886,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(26210)))
 
       /* TICK 26210
@@ -2583,9 +2899,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(26210)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // we receive a message, since new data arrived
+        ExpectResult(typicalHpInputModel.getUuid, 26210, true),
+        // we receive update messages, since a new set point was provided
+        ExpectResult(typicalHpInputModel.getUuid, 26210)
+      )
+
       Range(0, 4)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2626,7 +2949,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(27500)))
 
       /* TICK 27500
@@ -2639,6 +2962,9 @@ class ThermalGridIT
         Heat pump: stays on
        */
       emAgentActivation ! Activation(27500)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -2654,9 +2980,21 @@ class ThermalGridIT
         )
       }
 
+      // expect messages due to flex activation
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        ExpectResult(typicalHpInputModel.getUuid, 27500, true),
+        ExpectResult(pvInput.getUuid, 27500, true)
+      )
+
+      // expect messages due to new set point
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        ExpectResult(typicalHpInputModel.getUuid, 27500),
+        ExpectResult(pvInput.getUuid, 27500)
+      )
+
       Range(0, 2)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach { case ParticipantResultEvent(participantResult) =>
           participantResult match {
@@ -2672,7 +3010,7 @@ class ThermalGridIT
               emResult._4 should equalWithTolerance(-0.00002100176.asMegaVar)
           }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
 
       /* TICK 28800
@@ -2685,9 +3023,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(28800)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 28800, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 28800)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2718,7 +3063,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(28941)))
 
       /* TICK 28941
@@ -2731,9 +3076,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(28941)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 28941, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 28941)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2764,7 +3116,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(31000)))
 
       /* TICK 31000
@@ -2778,6 +3130,9 @@ class ThermalGridIT
          the heating of the house can be continued from storage.
        */
       emAgentActivation ! Activation(31000)
+
+      // no message, since we are still waiting for secondary data
+      resultServiceProxy.expectNoMessage()
 
       weatherDependentAgents.foreach {
         _ ! DataProvision(
@@ -2793,9 +3148,21 @@ class ThermalGridIT
         )
       }
 
+      // expect messages due to flex activation
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        ExpectResult(typicalHpInputModel.getUuid, 31000, true),
+        ExpectResult(pvInput.getUuid, 31000, true)
+      )
+
+      // expect messages due to new set point
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        ExpectResult(typicalHpInputModel.getUuid, 31000),
+        ExpectResult(pvInput.getUuid, 31000)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2825,7 +3192,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(31762)))
 
       /* TICK 31762
@@ -2839,9 +3206,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(31762)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 31762, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 31762)
+      )
+
       Range(0, 4)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2882,7 +3256,7 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(32400)))
 
       /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
@@ -2913,9 +3287,16 @@ class ThermalGridIT
        */
       emAgentActivation ! Activation(41762)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 41762, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 41762)
+      )
+
       Range(0, 4)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -2955,11 +3336,11 @@ class ThermalGridIT
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(43200)))
 
       /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
-The results are checked implicitly through the state of stored energy at the next result check.
+         The results are checked implicitly through the state of stored energy at the next result check.
        */
       val thirdActivationTicksBlock =
         Seq(43200L, 43311L)
@@ -2984,9 +3365,16 @@ The results are checked implicitly through the state of stored energy at the nex
        */
       emAgentActivation ! Activation(43311)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 43311, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 43311)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -3017,7 +3405,7 @@ The results are checked implicitly through the state of stored energy at the nex
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(43628)))
 
       /* TICK 43628
@@ -3033,9 +3421,16 @@ The results are checked implicitly through the state of stored energy at the nex
        */
       emAgentActivation ! Activation(43628)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 43628, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 43628)
+      )
+
       Range(0, 4)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -3075,7 +3470,7 @@ The results are checked implicitly through the state of stored energy at the nex
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(45620)))
 
       /* TICK 45620
@@ -3089,9 +3484,16 @@ The results are checked implicitly through the state of stored energy at the nex
        */
       emAgentActivation ! Activation(45620)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 45620, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 45620)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -3121,7 +3523,7 @@ The results are checked implicitly through the state of stored energy at the nex
                 indoorTemp should equalWithTolerance(18.asDegreeCelsius)
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(46800)))
 
       /* TICK 46800
@@ -3149,9 +3551,18 @@ The results are checked implicitly through the state of stored energy at the nex
         )
       }
 
+      resultServiceProxy.receiveMessages(4) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 46800, true),
+        ExpectResult(pvInput.getUuid, 46800, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 46800),
+        ExpectResult(pvInput.getUuid, 46800)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -3182,7 +3593,7 @@ The results are checked implicitly through the state of stored energy at the nex
               case _ => fail("Unexpected thermal unit result")
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(46879)))
 
       /* We'll jump through a bunch of activations caused from DomesticHotWaterStorage being active.
@@ -3212,9 +3623,16 @@ The results are checked implicitly through the state of stored energy at the nex
 
       emAgentActivation ! Activation(55263)
 
+      resultServiceProxy.receiveMessages(2) should contain allOf (
+        // expect messages due to flex activation
+        ExpectResult(typicalHpInputModel.getUuid, 55263, true),
+        // expect messages due to new set point
+        ExpectResult(typicalHpInputModel.getUuid, 55263)
+      )
+
       Range(0, 3)
         .map { _ =>
-          resultListener.expectMessageType[ResultEvent]
+          resultServiceProxy.expectMessageType[ResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(participantResult) =>
@@ -3244,7 +3662,7 @@ The results are checked implicitly through the state of stored energy at the nex
                 indoorTemp should equalWithTolerance(20.asDegreeCelsius)
             }
         }
-      resultListener.expectNoMessage()
+      resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(57600)))
     }
   }

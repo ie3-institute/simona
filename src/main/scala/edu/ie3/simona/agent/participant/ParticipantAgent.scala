@@ -344,6 +344,20 @@ object ParticipantAgent {
         )
       )
 
+      // determines, if we need to wait for a set point
+      // we only wait if we received a flex activation
+      val waitForSetPoint = activation match {
+        case _: FlexActivation => true
+        case _                 => false
+      }
+
+      // inform the result proxy that this participant agent will send new results
+      resultHandler.informProxy(
+        modelShell.uuid,
+        activation.tick,
+        waitForSetPoint,
+      )
+
       val (updatedShell, updatedGridAdapter) = Scope(modelShell)
         .map(
           _.updateInputData(
