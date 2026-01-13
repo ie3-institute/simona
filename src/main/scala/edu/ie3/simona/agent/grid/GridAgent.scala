@@ -32,6 +32,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
 import org.apache.pekko.actor.typed.scaladsl.{
@@ -68,7 +69,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   def apply(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
-      listener: Iterable[ActorRef[ResultEvent]],
   ): Behavior[Message] = Behaviors.withStash(100) { buffer =>
     val cfg = simonaConfig.simona
 
@@ -83,7 +83,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     val agentValues = GridAgentConstantData(
       environmentRefs,
       simonaConfig,
-      listener,
       resolution,
       simStartTime,
       simEndTime,
@@ -229,6 +228,13 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         ctx.self,
         Some(activation.tick),
       )
+
+      // inform the result proxy that this grid agent will send new results
+      constantData.environmentRefs.resultProxy ! ExpectResult(
+        gridAgentBaseData.assets,
+        activation.tick,
+      )
+
       buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
 
     case (_, msg: Message) =>

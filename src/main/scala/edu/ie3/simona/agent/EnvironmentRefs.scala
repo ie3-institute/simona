@@ -10,6 +10,7 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
+import edu.ie3.simona.service.results.ResultServiceProxy
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Container class, that gather together reference to relevant entities, that
@@ -21,6 +22,8 @@ import org.apache.pekko.actor.typed.ActorRef
   *   Reference to the runtime event listener.
   * @param primaryServiceProxy
   *   Reference to the primary service proxy.
+  * @param resultProxy
+  *   Reference to the result service proxy.
   * @param weather
   *   Reference to the service, that provides weather information.
   * @param loadProfiles
@@ -34,6 +37,7 @@ final case class EnvironmentRefs(
     scheduler: ActorRef[SchedulerMessage],
     runtimeEventListener: ActorRef[RuntimeEvent],
     primaryServiceProxy: ActorRef[ServiceMessage],
+    resultProxy: ActorRef[ResultServiceProxy.Message],
     weather: ActorRef[ServiceMessage],
     loadProfiles: ActorRef[ServiceMessage],
     emDataService: Option[ActorRef[ExtEmDataService.Message]],
