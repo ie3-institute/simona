@@ -16,18 +16,18 @@ import edu.ie3.simona.api.simulation.ExtSimulation
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.service.results.{ExtResultProvider, ResultServiceProxy}
-import edu.ie3.simona.service.results.ResultServiceProxy.AddListener
 import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker
 import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
+import edu.ie3.simona.service.results.ResultServiceProxy.AddListener
+import edu.ie3.simona.service.results.{ExtResultProvider, ResultServiceProxy}
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext

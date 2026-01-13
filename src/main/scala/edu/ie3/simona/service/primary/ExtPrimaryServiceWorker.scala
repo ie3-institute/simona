@@ -44,8 +44,17 @@ object ExtPrimaryServiceWorker extends SimonaService with ExtDataSupport {
 
   override type S = ExtPrimaryDataStateData
 
+  /** State data of the external worker.
+    * @param extPrimaryDataConnection
+    *   The connection to the external simulation that will provide primary
+    *   data.
+    * @param uuidToActorRef
+    *   Map: uuid to participant agent ref. This is used to forward the data.
+    * @param extPrimaryDataMessage
+    *   An option for the last received external data message.
+    */
   final case class ExtPrimaryDataStateData(
-      extPrimaryData: ExtPrimaryDataConnection,
+      extPrimaryDataConnection: ExtPrimaryDataConnection,
       uuidToActorRef: Map[UUID, ActorRef[ParticipantAgent.Request]] =
         Map.empty, // subscribers in SIMONA
       extPrimaryDataMessage: Option[PrimaryDataMessageFromExt] = None,
@@ -95,6 +104,18 @@ object ExtPrimaryServiceWorker extends SimonaService with ExtDataSupport {
       )
   }
 
+  /** Handles the registration of a participant agent.
+    * @param agentToBeRegistered
+    *   Actor ref of the participant that should be registered.
+    * @param agentUUID
+    *   UUID of the participant.
+    * @param serviceStateData
+    *   The current state data of the worker.
+    * @param ctx
+    *   Actor context of the worker.
+    * @return
+    *   The updated state data.
+    */
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ParticipantAgent.Request],
       agentUUID: UUID,
@@ -105,7 +126,7 @@ object ExtPrimaryServiceWorker extends SimonaService with ExtDataSupport {
     serviceStateData.uuidToActorRef.get(agentUUID) match {
       case None =>
         // checks if a value class was specified for the agent
-        val valueClass = serviceStateData.extPrimaryData
+        val valueClass = serviceStateData.extPrimaryDataConnection
           .getValueClass(agentUUID)
           .toScala
           .getOrElse(
@@ -151,6 +172,19 @@ object ExtPrimaryServiceWorker extends SimonaService with ExtDataSupport {
     }
   }
 
+  /** Method for processing the received data message and sending it to the
+    * corresponding participant agents.
+    * @param tick
+    *   The current tick of the simulation.
+    * @param primaryDataMessage
+    *   The external data message.
+    * @param serviceStateData
+    *   The current state data of the worker.
+    * @param ctx
+    *   Actor context of the worker.
+    * @return
+    *   The updated state data and an option for the next activation tick.
+    */
   private def processDataAndAnnounce(
       tick: Long,
       primaryDataMessage: ProvidePrimaryData,
@@ -216,9 +250,10 @@ object ExtPrimaryServiceWorker extends SimonaService with ExtDataSupport {
     }
   }
 
-  // unused by this service
+  // unused by this service, because no responses to the external simulation are possible
   override protected def handleDataResponseMessage(
-      extResponseMsg: ServiceResponseMessage
+      extResponseMsg: ServiceResponseMessage,
+      ctx: ActorContext[Message],
   )(implicit
       serviceStateData: ExtPrimaryDataStateData
   ): ExtPrimaryDataStateData = serviceStateData
