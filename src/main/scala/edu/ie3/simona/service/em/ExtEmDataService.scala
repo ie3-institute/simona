@@ -189,29 +189,36 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   ): (ExtEmDataStateData, Option[Long]) = {
     given Logger = ctx.log
 
-    log.warn(
-      s"Tick ($tick): ServiceCore -> ${serviceStateData.serviceCore.getClass}, msg -> ${serviceStateData.extEmDataMessage}"
-    )
+    val completion = serviceStateData.serviceCore.completions
 
-    val extMsg = serviceStateData.extEmDataMessage.getOrElse(
-      throw ServiceException(
-        "ExtEmDataService was triggered without ExtEmDataMessage available"
+    if tick != serviceStateData.tick && completion.nonComplete then {
+      // we request a new activation for the same tick
+      (serviceStateData, Some(tick))
+    } else {
+      log.warn(
+        s"Tick ($tick): ServiceCore -> ${serviceStateData.serviceCore.getClass}, msg -> ${serviceStateData.extEmDataMessage}"
       )
-    )
 
-    val (updatedCore, msgToExt) =
-      serviceStateData.serviceCore.handleExtMessage(tick, extMsg)
+      val extMsg = serviceStateData.extEmDataMessage.getOrElse(
+        throw ServiceException(
+          "ExtEmDataService was triggered without ExtEmDataMessage available"
+        )
+      )
 
-    msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+      val (updatedCore, msgToExt) =
+        serviceStateData.serviceCore.handleExtMessage(tick, extMsg)
 
-    (
-      serviceStateData.copy(
-        tick = tick,
-        serviceCore = updatedCore,
-        extEmDataMessage = None,
-      ),
-      None,
-    )
+      msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+
+      (
+        serviceStateData.copy(
+          tick = tick,
+          serviceCore = updatedCore,
+          extEmDataMessage = None,
+        ),
+        None,
+      )
+    }
   }
 
   override protected def handleDataMessage(

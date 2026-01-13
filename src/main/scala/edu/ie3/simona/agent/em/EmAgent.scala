@@ -395,6 +395,15 @@ object EmAgent {
             lastActiveTick = updatedCore.activeTick,
           )(using ctx.self)
 
+          /*
+          if modelShell.id.contains("EVCS") || !modelShell.id.contains("_dummy")
+          then {
+            ctx.log.info(
+              s"${modelShell.uuid} -> inactive, next tick ${completion.requestAtTick}"
+            )
+          }
+           */
+
           // ctx.log.info(s"${modelShell.uuid} -> inactive, next tick ${completion.requestAtTick}")
 
           inactive(emData, modelShell, inactiveCore)

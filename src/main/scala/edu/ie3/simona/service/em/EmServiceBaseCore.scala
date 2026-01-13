@@ -104,10 +104,10 @@ final case class EmServiceBaseCore(
             uncontrolled,
             uuidToInferior.updated(parent, inferior),
             uuidToParent.updated(uuid, parent),
-            completions.addExpectedKey(uuid),
+            completions,
           )
         case None =>
-          (uncontrolled + uuid, uuidToInferior, uuidToParent, completions)
+          (uncontrolled + uuid, uuidToInferior, uuidToParent, completions.addExpectedKey(uuid))
       }
 
     copy(
@@ -324,6 +324,7 @@ final case class EmServiceBaseCore(
               msg.requestAtTick.map(uuid -> _)
             }
 
+          /*
           val expectedCompletions = nextTick match {
             case Some(t) =>
               val keys = updatedNextActivation.filter { case (_, activation) =>
@@ -333,14 +334,17 @@ final case class EmServiceBaseCore(
             case None =>
               updated
           }
+           */
 
           val msgToExt = if internal.nonEmpty then {
             Some(new EmCompletion(updatedNextActivation.values.minOption))
           } else extMsgOption
 
+          log.info(s"Em service completed for tick: $tick")
+
           (
             copy(
-              completions = expectedCompletions,
+              completions = ReceiveDataMap.empty,
               disaggregated = Map.empty,
               sendOptionsToExt = false,
               canHandleSetPoints = false,
