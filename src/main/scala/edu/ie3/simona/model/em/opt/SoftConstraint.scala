@@ -9,7 +9,7 @@ package edu.ie3.simona.model.em.opt
 import edu.ie3.simona.exceptions.CriticalFailureException
 import optimus.algebra.{Double2Const, Expression}
 import optimus.optimization.model.MPFloatVar
-import squants.{Dimensionless, Time}
+import squants.Dimensionless
 
 /** Trait to be extended by classes detailing a soft constraint as part of the
   * optimization objective, including possible error handling.
@@ -46,6 +46,11 @@ trait SoftConstraint {
 }
 
 object SoftConstraint {
+
+  /** Small number to add to the constraint penalty, in order for the penalty to
+    * be slightly larger than the absolute value.
+    */
+  val epsilon: Double = 1e-6
 
   /** Soft constraint for an absolute value of a free variable.
     *
@@ -111,8 +116,6 @@ object SoftConstraint {
       // Total penalty is slightly larger than the model losses.
       // Thus, the value of pAbs should be pushed down to the
       // absolute of p.
-      val epsilon = 1e-6
-
       val penalty = 1 - eta.toEach + epsilon
 
       AbsValueSoftConstraint(p, pAbs, penalty)

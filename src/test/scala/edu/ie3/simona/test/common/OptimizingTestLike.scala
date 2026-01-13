@@ -7,46 +7,32 @@
 package edu.ie3.simona.test.common
 
 import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
+  AssetStepVars,
   AssetVarContainer,
-  StepResults,
 }
-import optimus.algebra.Const
-import optimus.optimization.model.MPVar
-import org.scalatest.Assertions.fail
-import org.scalatest.OptionValues.convertOptionToValuable
-import squants.{Dimensionless, Power}
+import org.scalatest.Assertions
+import squants.Power
 import squants.energy.{KilowattHours, Kilowatts}
 
+import java.util.UUID
 import scala.collection.immutable.SortedMap
 
-trait OptimizingTestLike {
+trait OptimizingTestLike extends Assertions {
 
-  extension (seq: Seq[Int])
-    def toPowerMap(using ticks: Seq[Long]): SortedMap[Long, Power] =
+  extension [A](seq: Seq[A])(using num: Numeric[A], ticks: Seq[Long])
+    def toPowerMap: SortedMap[Long, Power] =
       SortedMap.from(ticks.zip(seq.map(Kilowatts.apply)))
 
-  extension (res: StepResults)
+  extension (vars: AssetStepVars) {
 
     /** Energy value related to the start of the optimization, which is always
-      * set to 0 kWh. The value is converted back to the physical model from the
-      * adapted model that was used for optimization.
+      * set to 0 kWh.
       *
-      * @param conversion
-      *   The conversion factor.
       * @return
       *   The energy value in kWh.
       */
-    def energyVal(using conversion: EnergyConversionFactor): Double = {
-      val solution = res.state
-        .getOrElse(fail("No state provided in StepResults!")) match {
-        case variable: MPVar =>
-          variable.value.value
-        case const: Const =>
-          const.value
-      }
-
-      solution * conversion.factor
-    }
+    def energyVal: Double =
+      vars.getStateResult.toKilowattHours
 
     /** Power value in kW.
       *
@@ -54,30 +40,40 @@ trait OptimizingTestLike {
       *   The power value in kW.
       */
     def pVal: Double =
-      res.getOperationResult.toKilowatts
+      vars.getOperationResult.toKilowatts
 
-  final case class EnergyConversionFactor(factor: Double)
+  }
 
-  object EnergyConversionFactor {
-    def apply(
-        regularChargingEta: Dimensionless,
-        adaptedEta: Dimensionless,
-    ): EnergyConversionFactor =
-      new EnergyConversionFactor(regularChargingEta / adaptedEta)
+  extension [AV <: AssetStepVars](containers: Iterable[AssetVarContainer[AV]]) {
+
+    def vars(uuid: UUID): AssetVarContainer[AV] = containers
+      .find(_.assetUuid == uuid)
+      .getOrElse(fail(s"No asset variables for battery ($uuid) found."))
+
+    def res(uuid: UUID): IndexedSeq[AV] = vars(uuid).results.headOption
+      .getOrElse(fail(s"Empty results for battery ($uuid)."))
+      .values
+      .toIndexedSeq
+
   }
 
   def buildDebugString(
-      assetVars: AssetVarContainer
-  )(using EnergyConversionFactor): String =
-    s"\n\tDEBUGGING asset ${assetVars.assetUuid}:" +
-      assetVars.results
-        .map { res =>
-          s"\n\t\tTrajectory: ${res
-              .map(step =>
-                step.getOperationResult.toString +
-                  step.state.map(_ => s" ( -> ${KilowattHours(step.energyVal).toString})").getOrElse("")
-              )
-              .mkString(", ")}"
+      containers: AssetVarContainer[? <: AssetStepVars]*
+  ): String =
+    s"\n\tDEBUGGING asset variables:" +
+      containers
+        .map { container =>
+          s"\n\t\t ${container.assetUuid}:" +
+            container.results
+              .map { sortedVars =>
+                s"\n\t\t\tTrajectory: ${sortedVars
+                    .map { case (_, vars) =>
+                      vars.getOperationResult.in(Kilowatts).rounded(6).toString +
+                        vars.stateVar.map(_ => s" ( -> ${vars.getStateResult.in(KilowattHours).rounded(6).toString})").getOrElse("")
+                    }
+                    .mkString(", ")}"
+              }
+              .mkString("")
         }
         .mkString("")
 

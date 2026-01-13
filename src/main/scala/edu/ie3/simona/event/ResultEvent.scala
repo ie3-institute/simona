@@ -24,14 +24,13 @@ import edu.ie3.datamodel.models.result.thermal.{
 }
 import edu.ie3.datamodel.models.result.{CongestionResult, NodeResult}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.listener.ResultEventListener
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Energy, Power, Temperature}
 
-sealed trait ResultEvent extends Event with ResultEventListener.Request
+sealed trait ResultEvent extends Event
 
 /** Calculation result events
   */

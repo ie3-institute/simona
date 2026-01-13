@@ -6,10 +6,11 @@
 
 package edu.ie3.simona.io.result
 
-import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import edu.ie3.datamodel.models.result.NodeResult
+import edu.ie3.simona.api.ontology.results.ProvideResultEntities
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import edu.ie3.simona.event.listener.ResultEventListener
+import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
+import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.simona.io.result.plain.PlainWriter
 import edu.ie3.simona.logging.LogbackConfiguration
@@ -23,6 +24,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{Deserializer, Serdes}
 import org.apache.kafka.common.utils.Bytes
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.scalatest.GivenWhenThen
 import org.scalatest.concurrent.Eventually
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -91,7 +93,7 @@ class ResultEntityKafkaSpec
 
       // build the listener
       val listenerRef = spawn(
-        ResultEventListener(
+        ResultListener(
           ResultFileHierarchy(
             "out",
             "simName",
@@ -132,12 +134,12 @@ class ResultEntityKafkaSpec
       )
 
       When("receiving the NodeResults")
-      listenerRef ! PowerFlowResultEvent(
-        Iterable(nodeRes1, nodeRes2, nodeRes3),
-        Iterable.empty,
-        Iterable.empty,
-        Iterable.empty,
-        Iterable.empty,
+      listenerRef ! ResultResponse(
+        Map(
+          nodeRes1.getInputModel -> Iterable(nodeRes1),
+          nodeRes2.getInputModel -> Iterable(nodeRes2),
+          nodeRes3.getInputModel -> Iterable(nodeRes3),
+        )
       )
 
       Then("records can be fetched from Kafka")

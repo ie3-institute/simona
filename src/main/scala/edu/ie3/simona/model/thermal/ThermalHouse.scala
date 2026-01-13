@@ -435,11 +435,8 @@ final case class ThermalHouse(
         None
       }
 
-    // If next threshold is negative or zero (e.g. due to overheating beyond target temperature) there should be no next threshold
-    maybeNextThreshold match {
-      case Some(threshold) if threshold.tick <= 0 => None
-      case _                                      => maybeNextThreshold
-    }
+    // If the time to next threshold is negative or zero (e.g. due to overheating beyond target temperature) there should be no next threshold
+    maybeNextThreshold.filter(_.tick > thermalHouseState.tick)
   }
 
   private def nextActivation(
