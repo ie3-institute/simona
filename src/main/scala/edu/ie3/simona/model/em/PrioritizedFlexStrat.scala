@@ -18,6 +18,7 @@ import edu.ie3.datamodel.models.input.system.{
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
+import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import squants.Power
 
@@ -52,6 +53,8 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
     *   The target power to aim for when utilizing flexibility.
     * @param currentTick
     *   The current tick.
+    * @param receivedData
+    *   The secondary data received by the EM agent.
     * @return
     *   Power set points for devices, if applicable.
     */
@@ -61,6 +64,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       ],
       target: Power,
       currentTick: Long,
+      receivedData: Seq[SecondaryData],
   ): Seq[(UUID, Power)] = {
 
     val totalRefPower =
