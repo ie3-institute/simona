@@ -39,7 +39,7 @@ import scala.collection.immutable.SortedMap
   *   The amount of time that is predicted into the future, i.e. the last step
   *   is this amount of time away from the current point in simulation time.
   *   Should be a multiple of [[sampleTime]].
-  * @param powerObjectiveFactory
+  * @param objectiveFactory
   *   The factory creating asset variables and the optimization objective to
   *   use.
   * @param logger
@@ -48,7 +48,7 @@ import scala.collection.immutable.SortedMap
 final case class OptimizedFlexStrat(
     sampleTime: Time,
     predictionHorizon: Time,
-    powerObjectiveFactory: ObjectiveFactory[? <: AssetStepVars],
+    objectiveFactory: ObjectiveFactory[? <: AssetStepVars],
     logger: Logger,
 ) extends EmModelStrat[EnergyBoundariesFlexOptions] {
 
@@ -79,7 +79,7 @@ final case class OptimizedFlexStrat(
         ticks,
         target,
         receivedData,
-        powerObjectiveFactory,
+        objectiveFactory,
       )
 
     model.minimize(objectiveContainer.objective)

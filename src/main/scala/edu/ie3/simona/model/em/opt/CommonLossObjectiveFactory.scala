@@ -131,7 +131,32 @@ abstract class CommonLossObjectiveFactory
         )
     }
 
-  protected def createPowerSum(
+  /** Creates an absolute variable of the difference between power sum and
+    * target power.
+    *
+    * @param assetVars
+    *   The asset vars to optimize for.
+    * @param target
+    *   The target power for each time step.
+    * @param stepStartTick
+    *   The tick at the start of the interval.
+    * @param model
+    *   The optimization model to add variables and constraints to.
+    * @return
+    *   The absolute difference variable.
+    */
+  protected def createAbsDifference(
+      assetVars: Iterable[SplitLossAssetStepVars],
+      target: Power,
+      stepStartTick: Long,
+  )(using model: MPModel): Expression = {
+    val difference =
+      createPowerSum(assetVars) - Const(target.toKilowatts)
+
+    createAbsoluteVariable(difference, s"differenceAbs_$stepStartTick")
+  }
+
+  private def createPowerSum(
       assetVars: Iterable[SplitLossAssetStepVars]
   ): Expression =
     assetVars
@@ -157,10 +182,7 @@ object CommonLossObjectiveFactory {
       sortVarsByTick(assetVars)
         // create objective expression for every time step
         .map { case (stepStartTick, tickAssetVars) =>
-          val difference =
-            createPowerSum(tickAssetVars) - Const(target.toKilowatts)
-
-          createAbsoluteVariable(difference, s"differenceAbs_$stepStartTick")
+          createAbsDifference(tickAssetVars, target, stepStartTick)
         }
         // combine expressions of all time steps
         .reduceOption[Expression](_ + _)
@@ -217,15 +239,13 @@ object CommonLossObjectiveFactory {
 
       val absTotalPowerKW = maxTotalPower.max(-minTotalPower).toKilowatts
       val segmentSize = absTotalPowerKW / segmentCount
-      val adaptFactor = (1d - lowerLimit) * (1d / absTotalPowerKW)
+      val adaptFactor = (1d - lowerLimit) / absTotalPowerKW
 
       sortVarsByTick(assetVars)
         // create objective expression for every time step
         .map { case (stepStartTick, tickAssetVars) =>
-          val difference =
-            createPowerSum(tickAssetVars) - Const(target.toKilowatts)
           val differenceAbs =
-            createAbsoluteVariable(difference, s"differenceAbs_$stepStartTick")
+            createAbsDifference(tickAssetVars, target, stepStartTick)
 
           val epigraph = MPFloatVar.positive(s"epigraph_$stepStartTick")
 
