@@ -173,7 +173,7 @@ final case class EmModelShell[FO <: FlexOptions](
         uuidToFlexOptions,
         target,
         currentTick,
-        Seq.empty, // todo
+        Seq.empty, // todo -> issue #1628
       )
 
     setPoints.map { case (model, power) =>
