@@ -16,8 +16,8 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
 }
 import edu.ie3.simona.api.data.connection.ExtEvDataConnection
 import edu.ie3.simona.api.data.model.ev.EvModel
-import edu.ie3.simona.api.ontology.ev.*
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
+import edu.ie3.simona.api.ontology.ev.*
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
@@ -31,11 +31,13 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -88,7 +90,8 @@ class EvcsModelIT
     "handle a few requests and arrivals as expected" in {
 
       val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
-      val resultListener = TestProbe[ResultEvent]("ResultListener")
+      val resultProxy =
+        TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
       val primaryServiceProxy =
         TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
@@ -124,8 +127,8 @@ class EvcsModelIT
       given ParticipantRefs = ParticipantRefs(
         gridAgent = gridAgent.ref,
         primaryServiceProxy = primaryServiceProxy.ref,
+        resultServiceProxy = resultProxy.ref,
         services = Map(ServiceType.EvMovementService -> evService),
-        resultListener = Iterable(resultListener.ref),
       )
 
       val evcsKey =
@@ -207,7 +210,7 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      resultListener.expectNoMessage()
+      resultProxy.expectNoMessage()
 
       // Send arrivals
       extEvData.provideArrivingEvs(
@@ -227,7 +230,10 @@ class EvcsModelIT
 
       evcsActivation ! Activation(0)
 
-      resultListener
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 0))
+
+      resultProxy
         .receiveMessages(3)
         .map { case ParticipantResultEvent(result) =>
           result
@@ -271,12 +277,15 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      resultListener.expectNoMessage()
+      resultProxy.expectNoMessage()
 
       // EVCS activation without arrivals
       evcsActivation ! Activation(1800)
 
-      resultListener
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 1800))
+
+      resultProxy
         .receiveMessages(2)
         .map { case ParticipantResultEvent(result) =>
           result
@@ -303,7 +312,10 @@ class EvcsModelIT
 
       evcsActivation ! Activation(3600)
 
-      resultListener
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 3600))
+
+      resultProxy
         .receiveMessages(2)
         .map { case ParticipantResultEvent(result) =>
           result
@@ -374,7 +386,8 @@ class EvcsModelIT
 
       evcsActivation ! Activation(9000)
 
-      resultListener.expectNoMessage()
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 9000))
 
       // Next data at 10800
       scheduler.expectMessage(Completion(evcsActivation, Some(10800)))
@@ -394,8 +407,6 @@ class EvcsModelIT
 
       scheduler.expectMessage(Completion(evService, None))
 
-      resultListener.expectNoMessage()
-
       // Send arrivals
       extEvData.provideArrivingEvs(
         Map(
@@ -414,7 +425,10 @@ class EvcsModelIT
 
       evcsActivation ! Activation(10800)
 
-      resultListener
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 10800))
+
+      resultProxy
         .receiveMessages(2)
         .map { case ParticipantResultEvent(result) =>
           result
@@ -456,7 +470,10 @@ class EvcsModelIT
       // EVCS activation
       evcsActivation ! Activation(12600)
 
-      resultListener
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 12600))
+
+      resultProxy
         .receiveMessages(2)
         .map { case ParticipantResultEvent(result) =>
           result
@@ -527,7 +544,8 @@ class EvcsModelIT
 
       evcsActivation ! Activation(14400)
 
-      resultListener.expectNoMessage()
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 14400))
 
       // evB is departing at 18000
       scheduler.expectMessage(Completion(evcsActivation, Some(18000)))
@@ -580,7 +598,8 @@ class EvcsModelIT
 
       evcsActivation ! Activation(18000)
 
-      resultListener.expectNoMessage()
+      // the result proxy is informed that a result will be provided
+      resultProxy.expectMessage(ExpectResult(evcsInputModel.getUuid, 18000))
 
       // No future arrivals planned, next activation: end of simulation
       scheduler.expectMessage(Completion(evcsActivation, Some(48 * 3600)))

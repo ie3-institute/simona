@@ -88,7 +88,7 @@ class DCMAlgorithmSpec
       )
 
       // we should receive an empty result event
-      resultListener.expectMessageType[PowerFlowResultEvent] match {
+      resultProxy.expectMessageType[PowerFlowResultEvent] match {
         case PowerFlowResultEvent(
               nodeResults,
               _,

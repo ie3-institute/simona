@@ -23,6 +23,10 @@ import edu.ie3.simona.event.ResultEvent.{
 import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
 import edu.ie3.simona.logging.LogbackConfiguration
+import edu.ie3.simona.service.results.{
+  ThreeWindingResultTestData,
+  Transformer3wResultSupport,
+}
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -34,6 +38,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
 }
 import org.apache.pekko.testkit.TestKit.awaitCond
+import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 
 import java.io.{File, FileInputStream}
 import java.util.UUID
@@ -44,7 +49,7 @@ import scala.concurrent.{Await, Future}
 import scala.io.Source
 import scala.language.postfixOps
 
-class ResultEventListenerSpec
+class ResultListenerSpec
     extends ScalaTestWithActorTestKit(
       ActorTestKit.ApplicationTestConfig.withValue(
         "org.apache.pekko.actor.testkit.typed.filter-leeway",
@@ -54,8 +59,7 @@ class ResultEventListenerSpec
     with UnitSpec
     with IOTestCommons
     with PowerFlowResultData
-    with ThreeWindingResultTestData
-    with Transformer3wResultSupport {
+    with ThreeWindingResultTestData {
   val simulationName = "testSim"
   val resultEntitiesToBeWritten: Set[Class[? <: ResultEntity]] = Set(
     classOf[PvResult],
@@ -97,7 +101,7 @@ class ResultEventListenerSpec
         Symbol("initializeSinks")
       )
 
-    ResultEventListener invokePrivate initializeSinks(resultFileHierarchy)
+    ResultListener invokePrivate initializeSinks(resultFileHierarchy)
   }
 
   private def getFileLinesLength(file: File) = {
@@ -141,7 +145,7 @@ class ResultEventListenerSpec
           resultFileHierarchy(2, ".ttt", Set(classOf[Transformer3WResult]))
         val deathWatch = createTestProbe("deathWatch")
         val listener = spawn(
-          ResultEventListener(
+          ResultListener(
             fileHierarchy
           )
         )
@@ -152,16 +156,16 @@ class ResultEventListenerSpec
     }
 
     "handling ordinary results" should {
-      "process a valid participants result correctly" in {
+      "process participants results correctly" in {
         val specificOutputFileHierarchy = resultFileHierarchy(3, ".csv")
 
         val listenerRef = spawn(
-          ResultEventListener(
+          ResultListener(
             specificOutputFileHierarchy
           )
         )
 
-        listenerRef ! ParticipantResultEvent(dummyPvResult)
+        listenerRef ! ResultResponse(dummyPvResult)
 
         val outputFile = specificOutputFileHierarchy.rawOutputDataFilePaths
           .getOrElse(
@@ -203,20 +207,18 @@ class ResultEventListenerSpec
         resultFileSource.close()
       }
 
-      "process a valid power flow result correctly" in {
+      "process grid results correctly" in {
         val specificOutputFileHierarchy = resultFileHierarchy(4, ".csv")
-        val listenerRef = spawn(
-          ResultEventListener(
-            specificOutputFileHierarchy
-          )
-        )
+        val listenerRef =
+          spawn(ResultListener(specificOutputFileHierarchy))
 
-        listenerRef ! PowerFlowResultEvent(
-          Iterable(dummyNodeResult),
-          Iterable(dummySwitchResult),
-          Iterable(dummyLineResult),
-          Iterable(dummyTrafo2wResult),
-          Iterable.empty[PartialTransformer3wResult],
+        listenerRef ! ResultResponse(
+          Iterable(
+            dummyNodeResult,
+            dummySwitchResult,
+            dummyLineResult,
+            dummyTrafo2wResult,
+          )
         )
 
         val outputFiles = Map(
@@ -286,103 +288,18 @@ class ResultEventListenerSpec
       }
     }
 
-    "handling three winding transformer results" should {
-      def powerflow3wResult(
-          partialResult: PartialTransformer3wResult
-      ): PowerFlowResultEvent =
-        PowerFlowResultEvent(
-          Iterable.empty[NodeResult],
-          Iterable.empty[SwitchResult],
-          Iterable.empty[LineResult],
-          Iterable.empty[Transformer2WResult],
-          Iterable(partialResult),
-        )
-
-      "correctly reacts on received results" in {
-        val fileHierarchy =
-          resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
-        val listener = spawn(
-          ResultEventListener(
-            fileHierarchy
-          )
-        )
-
-        val outputFile = fileHierarchy.rawOutputDataFilePaths
-          .getOrElse(
-            classOf[Transformer3WResult],
-            fail(
-              s"Cannot get filepath for raw result file of class '${classOf[Transformer3WResult].getSimpleName}' from outputFileHierarchy!'"
-            ),
-          )
-          .toFile
-
-        /* The result file is created at start up and only contains a headline. */
-        awaitCond(
-          outputFile.exists(),
-          interval = 500.millis,
-          max = timeoutDuration,
-        )
-        getFileLinesLength(outputFile) shouldBe 1
-
-        /* Face the listener with data, as long as they are not comprehensive */
-        listener ! powerflow3wResult(resultA)
-
-        listener ! powerflow3wResult(resultC)
-
-        /* Also add unrelated result for different input model */
-        val otherResultA = resultA.copy(input = UUID.randomUUID())
-        listener ! powerflow3wResult(otherResultA)
-
-        /* Add result A again, which should lead to a failure internally,
-        but everything should still continue normally
-         */
-        listener ! powerflow3wResult(resultA)
-
-        /* Make sure, that there still is no content in file */
-        getFileLinesLength(outputFile) shouldBe 1
-
-        /* Complete awaited result */
-        listener ! powerflow3wResult(resultB)
-
-        // stop listener so that result is flushed out
-        listener ! DelayedStopHelper.FlushAndStop
-
-        /* Await that the result is written */
-        awaitCond(
-          getFileLinesLength(outputFile) == 2,
-          interval = 500.millis,
-          max = timeoutDuration,
-        )
-        /* Check the result */
-        val resultFileSource = Source.fromFile(outputFile)
-        val resultFileLines = resultFileSource.getLines().toSeq
-
-        resultFileLines.size shouldBe 2
-        val resultLine = resultFileLines.lastOption.getOrElse(
-          fail(
-            "Cannot get csv row that should have been written out by the listener!"
-          )
-        )
-
-        resultLine shouldBe "2.0,1.0,4.0,3.0,6.0,5.0,40d02538-d8dd-421c-8e68-400f1da170c7,-5," + TimeUtil.withDefaults
-          .toString(time)
-
-        resultFileSource.close()
-      }
-    }
-
     "shutting down" should {
       "shutdown and compress the data when requested to do so without any errors" in {
         val specificOutputFileHierarchy =
           resultFileHierarchy(6, ".csv.gz", compressResults = true)
         val listenerRef = spawn(
-          ResultEventListener(
+          ResultListener(
             specificOutputFileHierarchy
           )
         )
         ResultSinkType.Csv(fileFormat = ".csv.gz", delimiter = ",")
 
-        listenerRef ! ParticipantResultEvent(dummyPvResult)
+        listenerRef ! ResultResponse(dummyPvResult)
 
         val outputFile = new File(
           ".gz$".r.replaceAllIn(

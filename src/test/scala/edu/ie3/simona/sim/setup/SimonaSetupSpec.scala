@@ -14,12 +14,17 @@ import edu.ie3.datamodel.models.input.connector.{
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
+import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ResultMessage.{
+  RequestResult,
+  ResultResponse,
+}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
+import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
@@ -27,6 +32,7 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 import java.nio.file.Path
+import java.time.ZonedDateTime
 import java.util.UUID
 
 class SimonaSetupSpec
@@ -49,7 +55,7 @@ class SimonaSetupSpec
 
   override def resultEventListener(
       context: ActorContext[?]
-  ): Seq[ActorRef[ResultEventListener.Request]] =
+  ): Seq[ActorRef[ResultListener.Message]] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def primaryServiceProxy(
@@ -57,6 +63,14 @@ class SimonaSetupSpec
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
   ): ActorRef[ServiceMessage] = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
+
+  override def resultServiceProxy(
+      context: ActorContext[?],
+      listeners: Seq[ActorRef[ResultResponse]],
+      simStartTime: ZonedDateTime,
+  ): ActorRef[ResultServiceProxy.Message] = throw new NotImplementedException(
     "This is a dummy setup"
   )
 
@@ -77,6 +91,7 @@ class SimonaSetupSpec
   override def extSimulations(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
+      resultProxy: ActorRef[ResultServiceProxy.Message],
       extSimPath: Option[Path],
   ): ExtSimSetupData = throw new NotImplementedException(
     "This is a dummy setup"
@@ -101,7 +116,6 @@ class SimonaSetupSpec
   override def gridAgents(
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
-      resultEventListeners: Seq[ActorRef[ResultEvent]],
   ): Iterable[ActorRef[GridAgent.Message]] =
     throw new NotImplementedException("This is a dummy setup")
 
