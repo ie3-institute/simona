@@ -13,7 +13,8 @@ import java.util.UUID
 
 object ResultMessage {
 
-  /** Message send to the [[ResultServiceProxy]] to request results.
+  /** Message send to the [[edu.ie3.simona.service.results.ResultServiceProxy]]
+    * to request results.
     *
     * @param requestedResults
     *   The uuids of the input models.
