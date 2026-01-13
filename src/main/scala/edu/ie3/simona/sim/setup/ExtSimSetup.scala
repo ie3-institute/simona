@@ -8,6 +8,8 @@ package edu.ie3.simona.sim.setup
 
 import com.typesafe.config.Config
 import edu.ie3.datamodel.models.input.container.JointGridContainer
+import edu.ie3.simona.api.data.ExtSimAdapterData
+import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.data.SetupData
 import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.ontology.DataMessageFromExt
@@ -18,12 +20,15 @@ import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
+import edu.ie3.simona.service.results.{ExtResultProvider, ResultServiceProxy}
+import edu.ie3.simona.service.results.ResultServiceProxy.AddListener
 import edu.ie3.simona.service.primary.ExtPrimaryDataService
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
 import edu.ie3.simona.service.results.ExtResultProvider
@@ -72,7 +77,7 @@ object ExtSimSetup {
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      resultProxy: ActorRef[RequestResult],
+      resultProxy: ActorRef[ResultServiceProxy.Message],
       startTime: ZonedDateTime,
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
@@ -147,7 +152,7 @@ object ExtSimSetup {
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapter: ActorRef[ControlResponseMessageFromExt],
-      resultProxy: ActorRef[RequestResult],
+      resultProxy: ActorRef[ResultServiceProxy.Message],
       startTime: ZonedDateTime,
   ): ExtSimSetupData = {
     // the data connections this external simulation provides
@@ -245,6 +250,34 @@ object ExtSimSetup {
             )
 
             setupData.update(extResultListener, extResultEventListener)
+
+          case extResultDataConnection: ExtResultDataConnection =>
+            val extResultProvider = context.spawn(
+              ExtResultProvider(
+                extResultDataConnection,
+                scheduler,
+                resultProxy,
+              ),
+              s"ExtResultProvider",
+            )
+
+            extResultDataConnection.setActorRefs(
+              extResultProvider,
+              extSimAdapter,
+            )
+
+            extSimSetupData.update(extResultDataConnection, extResultProvider)
+
+          case extResultListener: ExtResultListener =>
+            val extResultEventListener = context.spawn(
+              ResultListener.external(extResultListener),
+              s"ExtResultListener_$index",
+            )
+
+            // add the external listener to the proxy
+            resultProxy ! AddListener(extResultEventListener)
+
+            extSimSetupData.update(extResultListener, extResultEventListener)
 
           case otherConnection =>
             log.warn(

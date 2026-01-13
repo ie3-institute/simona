@@ -15,28 +15,29 @@ import edu.ie3.simona.api.ontology.results.{
 }
 import edu.ie3.simona.event.listener.DelayedStopHelper
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.ontology.messages.ResultMessage.{
+  RequestResult,
+  ResultResponse,
+}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.ontology.messages.ResultMessage
-import edu.ie3.simona.ontology.messages.ResultMessage.{
-  RequestResult,
-  ResultResponse,
-}
+import edu.ie3.simona.util.CollectionUtils.asJava
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.util
-import edu.ie3.simona.util.CollectionUtils.asJava
-
 import scala.jdk.CollectionConverters.*
 
+/** In contrast to the listener, the result provider will only provide those
+  * result that were requested.
+  */
 object ExtResultProvider {
 
-  type Message = ResultMessage.Response | DelayedStopHelper.StoppingMsg
+  type Message = ResultResponse | DelayedStopHelper.StoppingMsg
 
   /** State data for a result [[provider]].
     *

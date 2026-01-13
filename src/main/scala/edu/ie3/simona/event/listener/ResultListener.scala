@@ -33,7 +33,7 @@ object ResultListener {
 
   trait Request
 
-  type Message = Request | ResultMessage.Response
+  type Message = Request | ResultResponse
 
   private final case class SinkResponse(
       response: Map[Class[?], ResultEntitySink]

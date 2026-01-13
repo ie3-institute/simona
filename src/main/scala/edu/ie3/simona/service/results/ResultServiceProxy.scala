@@ -33,15 +33,56 @@ import scala.util.{Failure, Success}
 
 object ResultServiceProxy {
 
-  type Message = ResultEvent | RequestResult | ExpectResult |
+  type Message = ResultEvent | RequestResult | ExpectResult | AddListener |
     DelayedStopHelper.StoppingMsg
 
+  /** Message send to the [[ResultServiceProxy]]. This message will inform the
+    * proxy which assets will provide results for the specified tick.
+    * @param assets
+    *   One or more assets that will send results.
+    * @param tick
+    *   For which the results will be sent.
+    * @param waitForSetPoint
+    *   True, if we need to wait for an em set point.
+    */
   final case class ExpectResult(
       assets: UUID | Seq[UUID],
       tick: Long,
       waitForSetPoint: Boolean = false,
   )
 
+  /** Method for adding an additional listener to the proxy.
+    * @param listener
+    *   That should be added.
+    */
+  final case class AddListener(listener: ActorRef[ResultResponse])
+
+  /** State data of the [[ResultServiceProxy]].
+    * @param listeners
+    *   A sequence of listeners. The proxy will forward all results to these
+    *   listeners.
+    * @param simStartTime
+    *   The start time of the simulation. This is used to convert the tick into
+    *   a [[ZonedDateTime]].
+    * @param currentTick
+    *   The current tick of the result proxy.
+    * @param threeWindingResults
+    *   A map that contains partial three-winding transformer results.
+    * @param gridResults
+    *   A map: uuid to grid results.
+    * @param results
+    *   A map: uuid to other results. This is for participant and em results.
+    * @param waitingForResults
+    *   A map: uuid to tick. For each result uuid a tick, for which the next
+    *   result will be provided, is saved.
+    * @param requiresSetPoint
+    *   A set of participant uuid. The proxy will not wait for those results
+    *   before answering a result request. (Note: This is necessary, if an
+    *   external simulation is using an
+    *   [[edu.ie3.simona.api.data.connection.ExtEmDataConnection]] and an
+    *   [[edu.ie3.simona.api.data.connection.ExtResultDataConnection]]
+    *   simultaneously.)
+    */
   private final case class ResultServiceStateData(
       listeners: Seq[ActorRef[ResultResponse]],
       simStartTime: ZonedDateTime,
@@ -55,14 +96,33 @@ object ResultServiceProxy {
       waitingForResults: Map[UUID, Long] = Map.empty,
       requiresSetPoint: Set[UUID] = Set.empty,
   ) extends ServiceBaseStateData {
+
+    /** This method is used to forward results to all known listeners.
+      * @param results
+      *   That should be sent.
+      */
     def notifyListener(results: Map[UUID, Iterable[ResultEntity]]): Unit =
       if results.nonEmpty then listeners.foreach(_ ! ResultResponse(results))
 
+    /** This method is used to forward one result to all known listeners.
+      * @param result
+      *   That should be sent.
+      */
     def notifyListener(result: ResultEntity): Unit =
       listeners.foreach(
         _ ! ResultResponse(Map(result.getInputModel -> List(result)))
       )
 
+    /** Checks if the proxy is waiting for the given uuids at the specified
+      * tick.
+      * @param uuids
+      *   That should be checked.
+      * @param tick
+      *   That is used.
+      * @return
+      *   True, if the proxy is waiting for at least one of the uuid for the
+      *   given tick.
+      */
     def isWaiting(uuids: Iterable[UUID], tick: Long): Boolean = {
       uuids.exists { uuid =>
         waitingForResults.get(uuid) match {
@@ -73,9 +133,21 @@ object ResultServiceProxy {
       }
     }
 
+    /** Method for updating the tick of the state data.
+      * @param tick
+      *   The updated tick.
+      * @return
+      *   A copy of the state data with update information.
+      */
     def updateTick(tick: Long): ResultServiceStateData =
       copy(currentTick = tick)
 
+    /** Method for adding a [[ExpectResult]] information.
+      * @param expectResult
+      *   That should be considered.
+      * @return
+      *   A copy of the state data with update information.
+      */
     def waitForResult(expectResult: ExpectResult): ResultServiceStateData = {
       expectResult.assets match {
         case uuid: UUID =>
@@ -100,6 +172,12 @@ object ResultServiceProxy {
       }
     }
 
+    /** Method for adding a result to the state data.
+      * @param result
+      *   That should be added.
+      * @return
+      *   A copy of the state data with update information.
+      */
     def addResult(result: ResultEntity): ResultServiceStateData = {
       val uuid = result.getInputModel
       val tick = result.getTime.toTick(using simStartTime)
@@ -130,6 +208,12 @@ object ResultServiceProxy {
       )
     }
 
+    /** Method for extracting results.
+      * @param uuids
+      *   For which results should be returned.
+      * @return
+      *   A map: uuid to results.
+      */
     def getResults(uuids: Seq[UUID]): Map[UUID, Iterable[ResultEntity]] = {
       uuids.flatMap { uuid =>
         gridResults.get(uuid) match {
@@ -143,6 +227,18 @@ object ResultServiceProxy {
 
   }
 
+  /** Used to create a [[ResultServiceProxy]].
+    *
+    * @param listeners
+    *   A list of all known listeners.
+    * @param simStartTime
+    *   The start time of the simulation. This is used to convert the tick into
+    *   a [[ZonedDateTime]].
+    * @param bufferSize
+    *   The size of the used message buffer. (Default: 10000)
+    * @return
+    *   A new behavior.
+    */
   def apply(
       listeners: Seq[ActorRef[ResultResponse]],
       simStartTime: ZonedDateTime,
@@ -151,18 +247,27 @@ object ResultServiceProxy {
     idle(ResultServiceStateData(listeners, simStartTime))(using buffer)
   }
 
+  /** The idle behavior of the [[ResultServiceProxy]].
+    * @param stateData
+    *   The current state data.
+    * @param buffer
+    *   A buffer for messages.
+    * @return
+    *   A new behavior.
+    */
   private def idle(
       stateData: ResultServiceStateData
   )(using
       buffer: StashBuffer[Message]
   ): Behavior[Message] = Behaviors
     .receivePartial[Message] {
+      case (_, AddListener(listener)) =>
+        idle(stateData.copy(listeners = stateData.listeners.appended(listener)))
+
       case (_, expectResult: ExpectResult) =>
         idle(stateData.waitForResult(expectResult))
 
       case (ctx, resultEvent: ResultEvent) =>
-        // ctx.log.warn(s"Received results: $resultEvent")
-
         // handles the event and updates the state data
         val updatedStateData =
           handleResultEvent(resultEvent, stateData)(using ctx.log)
@@ -174,7 +279,6 @@ object ResultServiceProxy {
         val tick = requestResultMessage.tick
 
         if stateData.isWaiting(requestedResults, tick) then {
-          // ctx.log.warn(s"Cannot answer request: $requestedResults")
 
           buffer.stash(requestResultMessage)
         } else {
@@ -203,6 +307,17 @@ object ResultServiceProxy {
       Behaviors.same
     }
 
+  /** Method for handling and updating the state data after a result event was
+    * received.
+    * @param resultEvent
+    *   The event to process.
+    * @param stateData
+    *   The current state data.
+    * @param log
+    *   A logger for logging.
+    * @return
+    *   The updated state data.
+    */
   private def handleResultEvent(
       resultEvent: ResultEvent,
       stateData: ResultServiceStateData,
@@ -255,6 +370,18 @@ object ResultServiceProxy {
       stateData.addResult(flexOptionsResult)
   }
 
+  /** Method for handling three-winding results. This is necessary, since a
+    * [[PowerFlowResultEvent]] only contains partial results.
+    * @param transformer3wResults
+    *   An iterable of partial results.
+    * @param threeWindingResults
+    *   A map: [[Transformer3wKey]] to [[AggregatedTransformer3wResult]].
+    * @param log
+    *   A logger for logging.
+    * @return
+    *   An updated map as well as a sequence of completed three-winding
+    *   transformer results.
+    */
   private def handleThreeWindingTransformers(
       transformer3wResults: Iterable[PartialTransformer3wResult],
       threeWindingResults: Map[Transformer3wKey, AggregatedTransformer3wResult],

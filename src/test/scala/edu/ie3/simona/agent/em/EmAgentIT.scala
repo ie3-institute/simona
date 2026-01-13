@@ -137,7 +137,6 @@ class EmAgentIT
             simulationStartDate,
             parent = Left(scheduler.ref),
             listener = resultServiceProxy.ref,
-            None,
           ),
           "EmAgent",
         )
@@ -236,6 +235,12 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(0)
 
+        // we receive a message for each agent that is not waiting for secondary data
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(storageInput.getUuid, 0, true),
+          ExpectResult(loadInput.getUuid, 0, true)
+        )
+
         pvAgent ! DataProvision(
           0,
           weatherService.ref,
@@ -246,6 +251,16 @@ class EmAgentIT
             MetersPerSecond(0d),
           ),
           Some(7200),
+        )
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(ExpectResult(pvInput.getUuid, 0, true))
+
+        // we receive update messages, since new set points were provided
+        resultServiceProxy.receiveMessages(3) should contain allOf (
+          ExpectResult(pvInput.getUuid, 0),
+          ExpectResult(storageInput.getUuid, 0),
+          ExpectResult(loadInput.getUuid, 0)
         )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
@@ -267,6 +282,11 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(7200)
 
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(storageInput.getUuid, 7200, true)
+        )
+
         pvAgent ! DataProvision(
           7200,
           weatherService.ref,
@@ -277,6 +297,17 @@ class EmAgentIT
             MetersPerSecond(0d),
           ),
           Some(14400),
+        )
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInput.getUuid, 7200, true)
+        )
+
+        // we receive update messages, since new set points were provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 7200),
+          ExpectResult(storageInput.getUuid, 7200)
         )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
@@ -297,6 +328,16 @@ class EmAgentIT
          -> remaining -3.447 kW
          */
         emAgentActivation ! Activation(13246)
+
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(storageInput.getUuid, 13246, true)
+        )
+
+        // we receive an update message, since a new set point were provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(storageInput.getUuid, 13246)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -331,6 +372,13 @@ class EmAgentIT
         )
 
         emAgentActivation ! Activation(14400)
+
+        // we receive update messages, since we received an activation and a new set point was provided
+        resultServiceProxy.receiveMessages(3) should contain allOf (
+          ExpectResult(pvInput.getUuid, 14400, true),
+          ExpectResult(pvInput.getUuid, 14400),
+          ExpectResult(storageInput.getUuid, 14400)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -377,7 +425,6 @@ class EmAgentIT
             simulationStartDate,
             parent = Left(scheduler.ref),
             listener = resultServiceProxy.ref,
-            None,
           ),
           "EmAgent1",
         )
@@ -494,6 +541,11 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(0)
 
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInput.getUuid, 0, true)
+        )
+
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             0,
@@ -508,6 +560,19 @@ class EmAgentIT
           )
         }
 
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 0, true),
+          ExpectResult(hpInputModel.getUuid, 0, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(3) should contain allOf (
+          ExpectResult(pvInput.getUuid, 0),
+          ExpectResult(hpInputModel.getUuid, 0),
+          ExpectResult(loadInput.getUuid, 0)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -515,7 +580,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(-0.0055734002706.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0018318880807.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(75)))
 
         /* TICK 75
@@ -528,14 +593,21 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(75)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 75, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 75)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 75.toDateTime
             emResult.getP should equalWithTolerance(-0.0055734002706.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00183188808074.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
 
         /* TICK 3600
@@ -548,14 +620,20 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(3600)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 3600, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 3600)
+        )
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 3600.toDateTime
             emResult.getP should equalWithTolerance(-0.00072340027.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00084705357667.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(3675)))
 
         /* TICK 3675
@@ -568,7 +646,14 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(3675)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 3675, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 3675)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 3675.toDateTime
@@ -579,7 +664,7 @@ class EmAgentIT
               -0.00084705357666777.asMegaVar
             )
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(6056)))
 
         /* TICK 6056
@@ -592,14 +677,21 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(6056)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 6056, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 6056)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 6056.toDateTime
             emResult.getP should equalWithTolerance(-0.00557340027.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00183188808074.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -625,6 +717,18 @@ class EmAgentIT
           )
         }
 
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 7200, true),
+          ExpectResult(hpInputModel.getUuid, 7200, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 7200),
+          ExpectResult(hpInputModel.getUuid, 7200)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -645,7 +749,14 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(7278)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 7278, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 7278)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7278.toDateTime
@@ -665,14 +776,21 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(7981)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 7981, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 7981)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7981.toDateTime
             emResult.getP should equalWithTolerance(-0.003446856729.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00113292702.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
         /* TICK 10800
@@ -698,6 +816,18 @@ class EmAgentIT
           )
         }
 
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 10800, true),
+          ExpectResult(hpInputModel.getUuid, 10800, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 10800),
+          ExpectResult(hpInputModel.getUuid, 10800)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -705,7 +835,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.0011098586291.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.000244490516.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10879)))
 
         /* TICK 10879
@@ -718,14 +848,21 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(10879)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 10879, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 10879)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 10879.toDateTime
             emResult.getP should equalWithTolerance(0.0011098586291.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.000244490516.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11000)))
 
         /* TICK 11000
@@ -752,6 +889,18 @@ class EmAgentIT
             Some(11500),
           )
         }
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11000, true),
+          ExpectResult(hpInputModel.getUuid, 11000, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11000),
+          ExpectResult(hpInputModel.getUuid, 11000)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -788,6 +937,18 @@ class EmAgentIT
           )
         }
 
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11500, true),
+          ExpectResult(hpInputModel.getUuid, 11500, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11500),
+          ExpectResult(hpInputModel.getUuid, 11500)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -795,7 +956,7 @@ class EmAgentIT
             emResult.getP should equalWithTolerance(0.0049850525.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0010292241.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(12725)))
       }
     }
@@ -833,7 +994,6 @@ class EmAgentIT
             simulationStartDate,
             parent = Left(scheduler.ref),
             listener = resultServiceProxy.ref,
-            None,
           ),
           "EmAgentReactivePower",
         )
@@ -921,6 +1081,11 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(0)
 
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 0, true)
+        )
+
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             0,
@@ -934,6 +1099,11 @@ class EmAgentIT
             Some(3600),
           )
         }
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 0)
+        )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
@@ -966,6 +1136,16 @@ class EmAgentIT
           )
         }
 
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 3600, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 3600)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -997,6 +1177,16 @@ class EmAgentIT
 
         emAgentActivation ! Activation(7200)
 
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 7200, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 7200)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -1013,6 +1203,17 @@ class EmAgentIT
         -> expect P and Q values of PV
          */
         emAgentActivation ! Activation(10800)
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 10800, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 10800)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
@@ -1029,6 +1230,17 @@ class EmAgentIT
         -> expect P: 0 W Q: 0 var
          */
         emAgentActivation ! Activation(14400)
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 14400, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 14400)
+        )
+
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid

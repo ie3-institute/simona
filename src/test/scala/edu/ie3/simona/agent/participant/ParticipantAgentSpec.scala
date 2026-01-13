@@ -132,6 +132,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! Activation(8 * 3600)
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600)
+        )
+
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
@@ -206,6 +211,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         responseReceiver.expectMessage(MockResponseMessage(KilowattHours(72)))
 
         participantAgent ! Activation(20 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -285,6 +295,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! Activation(8 * 3600)
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600)
+        )
+
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
@@ -318,10 +333,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(0.968644209676))
         }
 
-        resultProxy.expectNoMessage()
         scheduler.expectNoMessage()
 
         participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 12 * 3600)
+        )
 
         // calculation should start now
         resultProxy.expectMessageType[ParticipantResultEvent] match {
@@ -347,6 +366,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         responseReceiver.expectMessage(MockResponseMessage(KilowattHours(72)))
 
         participantAgent ! Activation(20 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -441,6 +465,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(6 * 3600),
         )
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(ExpectResult(MockParticipantModel.uuid, 0))
+
         // outside of operation interval, 0 MW
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -481,6 +508,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! Activation(8 * 3600)
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600)
+        )
+
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
@@ -518,7 +550,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
 
         // nothing should happen, still waiting for secondary data...
-        resultProxy.expectNoMessage()
         scheduler.expectNoMessage()
 
         participantAgent ! DataProvision(
@@ -526,6 +557,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           service.ref,
           MockSecondaryData(Kilowatts(6)),
           Some(15 * 3600),
+        )
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 12 * 3600)
         )
 
         // calculation should start now
@@ -558,8 +594,10 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(18 * 3600),
         )
 
-        // no-op activation, thus no result expected
-        resultProxy.expectNoMessage()
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 15 * 3600)
+        )
 
         // new data is expected at 18 hours
         scheduler.expectMessage(
@@ -584,6 +622,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(24 * 3600),
         )
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 18 * 3600)
+        )
+
         // calculation should start now
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -603,6 +646,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         responseReceiver.expectMessage(MockResponseMessage(KilowattHours(138)))
 
         participantAgent ! Activation(20 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -698,6 +746,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(6 * 3600),
         )
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(ExpectResult(MockParticipantModel.uuid, 0))
+
         // outside of operation interval, 0 MW
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -722,12 +773,19 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(12 * 3600),
         )
 
-        resultProxy.expectNoMessage()
         scheduler.expectNoMessage()
+
+        // no message, since we received no activation
+        resultProxy.expectNoMessage()
 
         // TICK 8 * 3600: Start of operation interval
 
         participantAgent ! Activation(8 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -773,6 +831,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(18 * 3600),
         )
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 12 * 3600)
+        )
+
         // calculation should start now
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -802,6 +865,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(24 * 3600),
         )
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 18 * 3600)
+        )
+
         // calculation should start now
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -818,6 +886,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // TICK 20 * 3600: Outside of operation interval (last tick)
 
         participantAgent ! Activation(20 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -903,6 +976,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! FlexActivation(8 * 3600)
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600, true)
+        )
+
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
@@ -924,6 +1002,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssuePowerControl(8 * 3600, Kilowatts(3))
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -975,6 +1058,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! FlexActivation(20 * 3600)
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600, true)
+        )
+
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
@@ -996,6 +1084,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssueNoControl(20 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -1081,6 +1174,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! FlexActivation(8 * 3600)
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600, true)
+        )
+
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
@@ -1102,6 +1200,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssuePowerControl(8 * 3600, Kilowatts(3))
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -1132,6 +1235,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! FlexActivation(12 * 3600)
 
+        // no message, since we are still waiting for the grid
+        resultProxy.expectNoMessage()
+
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
           onePU,
@@ -1149,6 +1255,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectNoMessage()
 
         participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 12 * 3600, true)
+        )
 
         // calculation should start now
         em.expectMessageType[ProvideFlexOptions] match {
@@ -1172,6 +1283,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssueNoControl(12 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 12 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -1200,6 +1316,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! FlexActivation(20 * 3600)
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600, true)
+        )
+
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
@@ -1221,6 +1342,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssueNoControl(20 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -1326,6 +1452,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(6 * 3600),
         )
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 0, true)
+        )
+
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
@@ -1347,6 +1478,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssueNoControl(0)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(ExpectResult(MockParticipantModel.uuid, 0))
 
         // outside of operation interval, 0 MW
         resultProxy.expectMessageType[ParticipantResultEvent] match {
@@ -1385,6 +1519,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(12 * 3600),
         )
 
+        // no message, since we are still waiting for an activation
         resultProxy.expectNoMessage()
         em.expectNoMessage()
 
@@ -1397,6 +1532,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         responseReceiver.expectMessage(MockResponseMessage(zeroKWh))
 
         participantAgent ! FlexActivation(8 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600, true)
+        )
 
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
@@ -1419,6 +1559,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssuePowerControl(8 * 3600, Kilowatts(3))
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -1450,6 +1595,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! FlexActivation(12 * 3600)
 
+        // no message, since we are still waiting for the grid agent
+        resultProxy.expectNoMessage()
+
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
           onePU,
@@ -1477,6 +1625,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(18 * 3600),
         )
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 12 * 3600, true)
+        )
+
         // calculation should start now
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
@@ -1499,6 +1652,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssueNoControl(12 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 12 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -1540,6 +1698,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(24 * 3600),
         )
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 18 * 3600, true)
+        )
+
         // calculation should start now
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
@@ -1562,6 +1725,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssueNoControl(18 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 18 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -1593,6 +1761,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! FlexActivation(20 * 3600)
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600, true)
+        )
+
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
@@ -1614,6 +1787,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssueNoControl(20 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -1716,6 +1894,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(6 * 3600),
         )
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 0, true)
+        )
+
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
@@ -1737,6 +1920,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssueNoControl(0)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(ExpectResult(MockParticipantModel.uuid, 0))
 
         // outside of operation interval, 0 MW
         resultProxy.expectMessageType[ParticipantResultEvent] match {
@@ -1772,12 +1958,18 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(12 * 3600),
         )
 
+        // no message, since we are still waiting for an activation
         resultProxy.expectNoMessage()
         em.expectNoMessage()
 
         // TICK 8 * 3600: Start of operation interval
 
         participantAgent ! FlexActivation(8 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600, true)
+        )
 
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
@@ -1800,6 +1992,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssuePowerControl(8 * 3600, Kilowatts(3))
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 8 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -1828,6 +2025,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! FlexActivation(12 * 3600)
 
+        // no message, since we are still waiting for the grid agent
+        resultProxy.expectNoMessage()
+
         participantAgent ! RequestAssetPowerMessage(
           12 * 3600,
           onePU,
@@ -1855,6 +2055,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(18 * 3600),
         )
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 12 * 3600, true)
+        )
+
         // calculation should start now
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
@@ -1877,6 +2082,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssueNoControl(12 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 12 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -1915,6 +2125,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Some(24 * 3600),
         )
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 18 * 3600, true)
+        )
+
         // calculation should start now
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
@@ -1937,6 +2152,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssueNoControl(18 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 18 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>
@@ -1964,6 +2184,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! FlexActivation(20 * 3600)
 
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600, true)
+        )
+
         em.expectMessageType[ProvideFlexOptions] match {
           case ProvideFlexOptions(
                 modelUuid,
@@ -1985,6 +2210,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         participantAgent ! IssueNoControl(20 * 3600)
+
+        // the result proxy is informed that a result will be provided
+        resultProxy.expectMessage(
+          ExpectResult(MockParticipantModel.uuid, 20 * 3600)
+        )
 
         resultProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(result: MockResult) =>

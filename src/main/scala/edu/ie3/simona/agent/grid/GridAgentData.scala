@@ -320,11 +320,12 @@ object GridAgentData {
 
     val assets: Seq[UUID] = {
       val components = gridEnv.gridModel.gridComponents
-      components.nodes.map(_.uuid) ++ components.lines.map(
-        _.uuid
-      ) ++ components.switches.map(_.uuid) ++ components.transformers.map(
-        _.uuid
-      ) ++ components.transformers3w.map(_.uuid)
+
+      components.nodes.map(_.uuid)
+        ++ components.lines.map(_.uuid)
+        ++ components.switches.map(_.uuid)
+        ++ components.transformers.map(_.uuid)
+        ++ components.transformers3w.map(_.uuid)
     }
 
     override protected val subgridGates: Vector[SubGridGate] =

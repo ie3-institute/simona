@@ -33,7 +33,7 @@ class ResultServiceProxySpec
   "The ResultServiceProxy" should {
 
     "answer request for results correctly without waiting for results" in {
-      val resultProvider = TestProbe[ResultMessage.Response]("listener")
+      val resultProvider = TestProbe[ResultResponse]("listener")
 
       val resultProxy = spawn(ResultServiceProxy(Seq.empty, startTime, 10))
 
@@ -50,7 +50,7 @@ class ResultServiceProxySpec
     }
 
     "answer request for results correctly with waiting for some results" in {
-      val resultProvider = TestProbe[ResultMessage.Response]("listener")
+      val resultProvider = TestProbe[ResultResponse]("listener")
 
       val resultProxy = spawn(ResultServiceProxy(Seq.empty, startTime, 10))
 
@@ -86,7 +86,7 @@ class ResultServiceProxySpec
     }
 
     "answer request for results correctly with waiting for some results with different receive order" in {
-      val resultProvider = TestProbe[ResultMessage.Response]("listener")
+      val resultProvider = TestProbe[ResultResponse]("listener")
 
       val resultProxy = spawn(ResultServiceProxy(Seq.empty, startTime, 10))
 
@@ -132,7 +132,7 @@ class ResultServiceProxySpec
     }
 
     "answer request for results correctly with waiting for all results" in {
-      val resultProvider = TestProbe[ResultMessage.Response]("listener")
+      val resultProvider = TestProbe[ResultResponse]("listener")
 
       val resultProxy = spawn(ResultServiceProxy(Seq.empty, startTime, 10))
 

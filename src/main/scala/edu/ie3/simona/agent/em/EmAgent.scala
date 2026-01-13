@@ -75,7 +75,7 @@ object EmAgent {
       simulationStartDate: ZonedDateTime,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
       listener: ActorRef[ResultEvent],
-      emDataService: Option[ActorRef[ExtEmDataService.Message]],
+      emDataService: Option[ActorRef[ExtEmDataService.Message]] = None,
   ): Behavior[Message] = Behaviors.setup[Message] { ctx =>
 
     val parentData = emDataService match {

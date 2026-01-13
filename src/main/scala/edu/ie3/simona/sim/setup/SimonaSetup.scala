@@ -182,7 +182,7 @@ trait SimonaSetup {
   def extSimulations(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      resultProxy: ActorRef[RequestResult],
+      resultProxy: ActorRef[ResultServiceProxy.Message],
       extSimPath: Option[Path],
   ): ExtSimSetupData
 

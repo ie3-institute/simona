@@ -167,7 +167,7 @@ class SimonaStandaloneSetup(
   ): ActorRef[ResultServiceProxy.Message] =
     context.spawn(
       ResultServiceProxy(listeners, simStartTime),
-      "resultEventProxyAgent",
+      "resultServiceProxyAgent",
     )
 
   override def weatherService(
@@ -217,7 +217,7 @@ class SimonaStandaloneSetup(
   override def extSimulations(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      resultProxy: ActorRef[RequestResult],
+      resultProxy: ActorRef[ResultServiceProxy.Message],
       extSimPath: Option[Path],
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder(extSimPath)
@@ -277,7 +277,7 @@ class SimonaStandaloneSetup(
   override def resultEventListener(
       context: ActorContext[?]
   ): Seq[ActorRef[ResultListener.Message]] = {
-    // append ResultEventListener as well to write raw output files
+    // creates a sequence of ResultEventListener to write raw output files
     Seq(
       context
         .spawn(
