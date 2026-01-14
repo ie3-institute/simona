@@ -7,7 +7,7 @@ plugins {
   id "com.github.ben-manes.versions" version '0.53.0'
   id "de.undercouch.download" version "5.6.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
-  id 'com.gradleup.shadow' version '9.3.0' // fat jar
+  id 'com.gradleup.shadow' version '9.3.1' // fat jar
   id "org.sonarqube" version "7.2.2.6593" // sonarqube
   id "org.scoverage" version "8.1" // scala code coverage scoverage
   id 'org.hidetake.ssh' version '2.12.0'
@@ -24,7 +24,7 @@ ext {
   pekkoVersion = '1.4.0'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.9.0'
-  scapegoatVersion = '3.2.3'
+  scapegoatVersion = '3.2.4'
 
   junitVersion = '6.0.2'
   testContainerVersion = '0.44.1'
@@ -207,7 +207,7 @@ tasks.withType(ScalaCompile).configureEach {
   scalaCompileOptions.additionalParameters = scala3compilerOptions + [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
     "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/src/",
-    "-P:scapegoat:disabledInspections:TryGet"
+    "-P:scapegoat:disabledInspections:TryGet:ComparingFloatingPointTypes"
   ]
   scalaCompileOptions.forkOptions.jvmArgs = [
     '-Xss2m',
@@ -220,7 +220,7 @@ compileTestScala {
   scalaCompileOptions.additionalParameters = scala3compilerOptions + [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
     "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/",
-    "-P:scapegoat:disabledInspections:TryGet"
+    "-P:scapegoat:disabledInspections:TryGet:ComparingFloatingPointTypes"
   ]
 }
 

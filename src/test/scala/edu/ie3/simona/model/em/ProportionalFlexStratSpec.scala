@@ -132,6 +132,7 @@ class ProportionalFlexStratSpec
               ),
               Kilowatts(target),
               currentTick = 0L,
+              Seq.empty,
             )
             .toMap
 

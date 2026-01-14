@@ -12,6 +12,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   PowerLimitFlexOptions,
 }
+import edu.ie3.simona.service.Data.SecondaryData
 import squants.Power
 import squants.energy.Kilowatts
 
@@ -33,6 +34,8 @@ trait EmModelStrat[FO <: FlexOptions] {
     *   The target power to aim for when utilizing flexibility.
     * @param currentTick
     *   The current tick.
+    * @param receivedData
+    *   The secondary data received by the EM agent.
     * @return
     *   Power set points for connected agents, if applicable.
     */
@@ -42,6 +45,7 @@ trait EmModelStrat[FO <: FlexOptions] {
       ],
       target: Power,
       currentTick: Long,
+      receivedData: Seq[SecondaryData],
   ): Iterable[(UUID, Power)]
 
   /** Depending on the model strategy used, not all flex options provided by
