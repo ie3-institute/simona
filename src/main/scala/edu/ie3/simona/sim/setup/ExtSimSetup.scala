@@ -8,8 +8,6 @@ package edu.ie3.simona.sim.setup
 
 import com.typesafe.config.Config
 import edu.ie3.datamodel.models.input.container.JointGridContainer
-import edu.ie3.simona.api.data.ExtSimAdapterData
-import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.data.SetupData
 import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.ontology.DataMessageFromExt
@@ -20,23 +18,22 @@ import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
-import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.service.results.{ExtResultProvider, ResultServiceProxy}
-import edu.ie3.simona.service.results.ResultServiceProxy.AddListener
 import edu.ie3.simona.service.primary.ExtPrimaryDataService
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
-import edu.ie3.simona.service.results.ExtResultProvider
+import edu.ie3.simona.service.results.ResultServiceProxy.AddListener
+import edu.ie3.simona.service.results.{ExtResultProvider, ResultServiceProxy}
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.nio.file.Path
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
@@ -56,6 +53,8 @@ object ExtSimSetup {
     *   The simona config.
     * @param grid
     *   The electrical grid.
+    * @param outputBaseDirectory
+    *   The base directory of the simulation output.
     * @param context
     *   The actor context of this actor system.
     * @param scheduler
@@ -74,6 +73,7 @@ object ExtSimSetup {
       args: Array[String],
       config: Config,
       grid: JointGridContainer,
+      outputBaseDirectory: Path,
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
@@ -91,7 +91,7 @@ object ExtSimSetup {
       // creating the data connection
       val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
 
-      val setUpData = new SetupData(args, config, grid)
+      val setUpData = new SetupData(args, config, grid, outputBaseDirectory)
 
       Try {
         // sets up the external simulation

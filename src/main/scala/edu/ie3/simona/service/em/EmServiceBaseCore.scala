@@ -107,7 +107,12 @@ final case class EmServiceBaseCore(
             completions,
           )
         case None =>
-          (uncontrolled + uuid, uuidToInferior, uuidToParent, completions.addExpectedKey(uuid))
+          (
+            uncontrolled + uuid,
+            uuidToInferior,
+            uuidToParent,
+            completions.addExpectedKey(uuid),
+          )
       }
 
     copy(

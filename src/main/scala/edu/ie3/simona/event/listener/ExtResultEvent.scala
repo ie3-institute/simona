@@ -37,7 +37,7 @@ import scala.jdk.CollectionConverters.*
 
 object ExtResultEvent {
 
-  type Message = ResultMessage.Response | DelayedStopHelper.StoppingMsg
+  type Message = ResultMessage.ResultResponse | DelayedStopHelper.StoppingMsg
 
   private final case class ProviderState(
       scheduler: ActorRef[SchedulerMessage],
