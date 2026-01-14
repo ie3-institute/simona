@@ -13,20 +13,13 @@ import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
-import edu.ie3.simona.util.SimonaConstants.{
-  FIRST_TICK_IN_SIMULATION,
-  INIT_SIM_TICK,
-}
+import edu.ie3.simona.util.SimonaConstants.{FIRST_TICK_IN_SIMULATION, INIT_SIM_TICK}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.slf4j.{Logger, LoggerFactory}
@@ -34,7 +27,6 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
-import scala.jdk.OptionConverters.RichOptional
 
 object ExtEmDataService extends SimonaService with ExtDataSupport {
 
@@ -189,36 +181,41 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   ): (ExtEmDataStateData, Option[Long]) = {
     given Logger = ctx.log
 
-    val completion = serviceStateData.serviceCore.completions
-
-    if tick != serviceStateData.tick && completion.nonComplete then {
-      // we request a new activation for the same tick
-      (serviceStateData, Some(tick))
-    } else {
-      log.warn(
-        s"Tick ($tick): ServiceCore -> ${serviceStateData.serviceCore.getClass}, msg -> ${serviceStateData.extEmDataMessage}"
+    val extMsg = serviceStateData.extEmDataMessage.getOrElse(
+      throw ServiceException(
+        "ExtEmDataService was triggered without ExtEmDataMessage available"
       )
+    )
 
-      val extMsg = serviceStateData.extEmDataMessage.getOrElse(
-        throw ServiceException(
-          "ExtEmDataService was triggered without ExtEmDataMessage available"
+    val nonCompleted =
+      tick != serviceStateData.tick && serviceStateData.serviceCore.completions.nonComplete
+
+    serviceStateData.serviceCore match {
+      case _: EmServiceBaseCore if nonCompleted =>
+        // we request a new activation for the same tick
+        (serviceStateData, Some(tick))
+
+      case core =>
+        log.warn(
+          s"Tick ($tick): ServiceCore -> ${core.getClass}, msg -> ${serviceStateData.extEmDataMessage}"
         )
-      )
 
-      val (updatedCore, msgToExt) =
-        serviceStateData.serviceCore.handleExtMessage(tick, extMsg)
+        val (updatedCore, msgToExt) = core.handleExtMessage(tick, extMsg)
 
-      msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+        msgToExt.foreach(
+          serviceStateData.extEmDataConnection.queueExtResponseMsg
+        )
 
-      (
-        serviceStateData.copy(
-          tick = tick,
-          serviceCore = updatedCore,
-          extEmDataMessage = None,
-        ),
-        None,
-      )
+        (
+          serviceStateData.copy(
+            tick = tick,
+            serviceCore = updatedCore,
+            extEmDataMessage = None,
+          ),
+          None,
+        )
     }
+
   }
 
   override protected def handleDataMessage(
