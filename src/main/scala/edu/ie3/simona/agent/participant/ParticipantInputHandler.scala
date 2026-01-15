@@ -8,13 +8,15 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   ActivationRequest,
-  DataInputMessage,
-  DataProvision,
-  NoDataProvision,
   tick,
 }
 import edu.ie3.simona.agent.participant.ParticipantInputHandler.ReceivedData
 import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  DataMessage,
+  DataProvision,
+  NoDataProvision,
+}
 import edu.ie3.simona.service.Data
 import org.apache.pekko.actor.typed.ActorRef
 
@@ -57,16 +59,16 @@ final case class ParticipantInputHandler(
   def completeActivation(): ParticipantInputHandler =
     copy(activation = None, receivedData = Map.empty)
 
-  /** Handles a received [[DataInputMessage]] by storing the message and
-    * updating the expected data that remains to be received.
+  /** Handles a received [[DataMessage]] by storing the message and updating the
+    * expected data that remains to be received.
     *
     * @param msg
     *   The received data message.
     * @return
     *   An updated input handler.
     */
-  def handleDataInputMessage(
-      msg: DataInputMessage
+  def handleDataMessage(
+      msg: DataMessage
   ): ParticipantInputHandler = {
 
     val updatedReceivedData =

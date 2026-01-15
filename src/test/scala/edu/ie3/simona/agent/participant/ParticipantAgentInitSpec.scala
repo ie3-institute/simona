@@ -8,11 +8,7 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  PrimaryRegistrationSuccessfulMessage,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
+
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
@@ -25,10 +21,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  SecondaryServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}

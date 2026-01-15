@@ -6,16 +6,14 @@
 
 package edu.ie3.simona.service.weather
 
-import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
   SecondaryServiceRegistrationMessage,
   ServiceRegistrationMessage,
 }
@@ -69,7 +67,7 @@ object WeatherService extends SimonaService {
     */
   final case class CoordinateData(
       registeredActors: Map[WeatherDataType, Set[
-        ActorRef[ParticipantAgent.Request]
+        ActorRef[ServiceMessage.Response]
       ]],
       coordinateWeights: WeightedCoordinates,
   )
@@ -196,7 +194,7 @@ object WeatherService extends SimonaService {
     *   information if the registration has been carried out successfully.
     */
   private def handleRegistrationRequest(
-      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
+      agentToBeRegistered: ActorRef[ServiceMessage.Response],
       coordinate: Coordinate,
       dataType: WeatherDataType,
   )(using

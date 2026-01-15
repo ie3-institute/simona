@@ -9,11 +9,6 @@ package edu.ie3.simona.service.weather
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -21,13 +16,16 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
   SecondaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.{
-  WeatherData,
   SecondarySeriesData,
+  WeatherData,
 }
 import edu.ie3.simona.service.weather.WeatherService.{
   InitWeatherServiceStateData,
@@ -87,8 +85,8 @@ class WeatherServiceSpec
 
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
 
-  private val agent1 = TestProbe[ParticipantAgent.Request]("agent1")
-  private val agent2 = TestProbe[ParticipantAgent.Request]("agent2")
+  private val agent1 = TestProbe[ParticipantAgent.Message]("agent1")
+  private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
 
   // build the weather service
   private val weatherService = testKit.spawn(
