@@ -392,7 +392,7 @@ object Data {
     final case class WholesalePrice(price: EnergyPrice) extends SecondaryData
 
     /** Data class containing both selling (feed-in) and buying (load) price for
-      * a consumer. This means that taxes and fees are already included.
+      * a prosumer. This means that taxes and fees are already included.
       *
       * @param priceSell
       *   The selling price.
