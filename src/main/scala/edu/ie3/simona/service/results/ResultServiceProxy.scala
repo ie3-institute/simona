@@ -57,6 +57,10 @@ object ResultServiceProxy {
     */
   final case class AddListener(listener: ActorRef[ResultResponse])
 
+  given Conversion[Map[UUID, ResultEntity], Map[UUID, Iterable[ResultEntity]]] =
+    (inputMap: Map[UUID, ResultEntity]) =>
+      inputMap.map { case (key, value) => key -> Iterable(value) }
+
   /** State data of the [[ResultServiceProxy]].
     * @param listeners
     *   A sequence of listeners. The proxy will forward all results to these
@@ -91,7 +95,7 @@ object ResultServiceProxy {
         Transformer3wKey,
         AggregatedTransformer3wResult,
       ] = Map.empty,
-      gridResults: Map[UUID, Iterable[ResultEntity]] = Map.empty,
+      gridResults: Map[UUID, ResultEntity] = Map.empty,
       results: Map[UUID, Iterable[ResultEntity]] = Map.empty,
       waitingForResults: Map[UUID, Long] = Map.empty,
       requiresSetPoint: Set[UUID] = Set.empty,
@@ -218,7 +222,7 @@ object ResultServiceProxy {
       uuids.flatMap { uuid =>
         gridResults.get(uuid) match {
           case Some(values) =>
-            Some(uuid -> values)
+            Some(uuid -> Iterable(values))
           case None =>
             results.get(uuid).map { res => uuid -> res }
         }
@@ -337,9 +341,30 @@ object ResultServiceProxy {
           stateData.threeWindingResults,
         )
 
+      val oldResults = stateData.gridResults
+
       val gridResults =
-        (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults)
-          .groupBy(_.getInputModel)
+        (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults).flatMap {
+          res =>
+            val model = res.getInputModel
+
+            oldResults.get(model) match {
+              case Some(oldResult) =>
+                // save the old time
+                val oldTime = oldResult.getTime
+                oldResult.setTime(res.getTime)
+
+                if oldResults.equals(res) then {
+                  // switch back to the old time
+                  oldResult.setTime(oldTime)
+                  None
+                } else Some(model -> res)
+
+              case None =>
+                // no old result found
+                Some(model -> res)
+            }
+        }.toMap
 
       // notify listener
       stateData.notifyListener(gridResults)
