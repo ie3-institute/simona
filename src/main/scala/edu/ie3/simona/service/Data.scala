@@ -10,12 +10,15 @@ import edu.ie3.datamodel.models.value.*
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.{Irradiance, Kilovars, ReactivePower}
+import edu.ie3.util.scala.quantities.{
+  EnergyPrice,
+  Irradiance,
+  Kilovars,
+  ReactivePower,
+}
 import squants.energy.{Kilowatts, Power}
 import squants.{Temperature, Velocity}
-import tech.units.indriya.ComparableQuantity
 
 import scala.collection.immutable.SortedMap
 import scala.jdk.OptionConverters.RichOptional
@@ -381,8 +384,25 @@ object Data {
         windVel: Velocity,
     ) extends SecondaryData
 
-    final case class WholesalePrice(price: ComparableQuantity[EnergyPrice])
-        extends SecondaryData
+    /** Data class containing only the wholesale price.
+      *
+      * @param price
+      *   The wholesale price.
+      */
+    final case class WholesalePrice(price: EnergyPrice) extends SecondaryData
+
+    /** Data class containing both selling (feed-in) and buying (load) price for
+      * a prosumer. This means that taxes and fees are already included.
+      *
+      * @param priceSell
+      *   The selling price.
+      * @param priceBuy
+      *   The buying price.
+      */
+    final case class ProsumerPrice(
+        priceSell: EnergyPrice,
+        priceBuy: EnergyPrice,
+    ) extends SecondaryData
 
     /** Container class for secondary data series over some time interval.
       *
@@ -394,4 +414,5 @@ object Data {
     ) extends SecondaryData
 
   }
+
 }
