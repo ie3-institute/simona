@@ -384,8 +384,21 @@ object Data {
         windVel: Velocity,
     ) extends SecondaryData
 
+    /** Data class containing only the wholesale price.
+      *
+      * @param price
+      *   The wholesale price.
+      */
     final case class WholesalePrice(price: EnergyPrice) extends SecondaryData
 
+    /** Data class containing both selling (feed-in) and buying (load) price for
+      * a consumer. This means that taxes and fees are already included.
+      *
+      * @param priceSell
+      *   The selling price.
+      * @param priceBuy
+      *   The buying price.
+      */
     final case class ProsumerPrice(
         priceSell: EnergyPrice,
         priceBuy: EnergyPrice,
