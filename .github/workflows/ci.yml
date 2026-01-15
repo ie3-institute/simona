@@ -70,7 +70,7 @@ jobs:
         run: ./gradlew --refresh-dependencies clean assemble spotlessCheck
 
       - name: Run Tests
-        run: ./gradlew test reportScoverage checkScoverage
+        run: ./gradlew test jacocoTestReport jacocoTestCoverageVerification
 
       - name: Build Scala-Docs
         run: ./gradlew scaladoc

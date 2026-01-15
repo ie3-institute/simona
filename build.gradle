@@ -9,7 +9,8 @@ plugins {
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '9.3.1' // fat jar
   id "org.sonarqube" version "7.2.2.6593" // sonarqube
-  id "org.scoverage" version "8.1" // scala code coverage scoverage
+  //id "org.scoverage" version "8.1" // scala code coverage scoverage
+  id 'jacoco' // scala code coverage
   id 'org.hidetake.ssh' version '2.12.0'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
   id "application"
@@ -24,7 +25,7 @@ ext {
   pekkoVersion = '1.4.0'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.9.0'
-  scapegoatVersion = '3.2.4'
+  scapegoatVersion = '3.3.0'
 
   junitVersion = '6.0.2'
   testContainerVersion = '0.44.1'
@@ -32,6 +33,8 @@ ext {
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 
   scala3compilerOptions = [
+    "-Xunchecked-java-output-version:21",
+    // fix for failing compilation
     "-print-tasty",
     "-feature",
     "-language:implicitConversions",
@@ -54,7 +57,7 @@ apply from: scriptsLocation + 'checkJavaVersion.gradle'
 apply from: scriptsLocation + 'documentation.gradle' // documentation tasks + configuration
 apply from: scriptsLocation + 'tests.gradle' // tasks for tests
 apply from: scriptsLocation + 'sonarqube.gradle' // sonarqube config
-apply from: scriptsLocation + 'scoverage.gradle' // scoverage scala code coverage
+apply from: scriptsLocation + 'jacoco.gradle' // jacoco scala code coverage
 apply from: scriptsLocation + 'deploy.gradle'
 apply from: scriptsLocation + 'semVer.gradle'
 apply from: scriptsLocation + 'mavenCentralPublish.gradle'

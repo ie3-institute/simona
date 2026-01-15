@@ -1,0 +1,57 @@
+// see https://docs.gradle.org/current/userguide/jacoco_plugin.html for details
+// and http://vgaidarji.me/blog/2017/12/20/how-to-configure-jacoco-for-kotlin-and-java-project/ for exclude explanation
+
+// general configuration
+jacoco {
+  toolVersion = "0.8.10"
+  reportsDirectory = layout.projectDirectory.dir("$rootDir/build/reports/jacoco")
+}
+
+jacocoTestReport {
+  reports {
+    xml.required = true
+    csv.required = false
+    html.required = true
+    html.outputLocation = file("${rootDir}/build/reports/jacoco")
+  }
+
+  // what to exclude from coverage report (files that should not be analyzed!)
+  // UI, "noise", generated classes, platform classes, etc.
+  def excludes = [
+    'groovy/**/*.*',
+    // exclude groovy source files
+    '**/**Test**.**',
+    // exclude unit tests files
+    '**/**IT**.**' // exclude integration tests files
+  ]
+
+  getClassDirectories().setFrom(fileTree(
+      dir: "$rootDir/build/classes/",
+      excludes: excludes
+      ))
+
+  sourceSets sourceSets.main
+  executionData check // include integration tests in jacoco reports
+}
+
+jacocoTestCoverageVerification {
+  violationRules {
+    rule {
+      limit {
+        minimum = 0.68
+      }
+    }
+
+    rule {
+      enabled = false
+      element = 'CLASS'
+      includes = ['org.gradle.*']
+
+      limit {
+        counter = 'LINE'
+        value = 'TOTALCOUNT'
+        maximum = 0.3
+      }
+    }
+  }
+}
