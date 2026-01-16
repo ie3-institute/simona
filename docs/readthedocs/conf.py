@@ -18,7 +18,6 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinxcontrib.plantuml',
     'sphinx.ext.intersphinx',
-    'hoverxref.extension',
     'sphinxcontrib.bibtex'
 ]
 
@@ -49,10 +48,6 @@ plantuml = 'plantuml'
 intersphinx_mapping = {
     'psdm': ('https://powersystemdatamodel.readthedocs.io/en/latest/', None),
 }
-
-hoverxref_intersphinx = [
-    "psdm",
-]
 
 # BibTex options
 bibtex_bibfiles = ['_static/bibliography/bibAboutSimona.bib',

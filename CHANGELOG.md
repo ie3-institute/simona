@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generalize `WeatherSeriesData` to `SecondarySeriesData` [#1584](https://github.com/ie3-institute/simona/issues/1584)
 - Enhance `EnergyPrice` squants [#1583](https://github.com/ie3-institute/simona/issues/1583)
 - Updated Ubuntu version to 24.04 and python version to 3.13 in readthedocs.yml [#1597](https://github.com/ie3-institute/simona/issues/1597)
+- Create abstract `DataInputHandler` from `ParticipantInputHandler` [#1631](https://github.com/ie3-institute/simona/issues/1631)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -87,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed dedicated `random` load model behaviour [#1436](https://github.com/ie3-institute/simona/issues/1436)
 - Removed some units from scalaDoc within `ThermalHouse` [#1495](https://github.com/ie3-institute/simona/issues/1495)
 - Removed unused code in test directory [#1533](https://github.com/ie3-institute/simona/issues/1533)
+- Removed `sphinx-hoverxref` of `rtd` [#1641](https://github.com/ie3-institute/simona/issues/1641)
 - Removed message retrieval timeout from DBFS [#1422](https://github.com/ie3-institute/simona/issues/1422) 
 
 ### Updates

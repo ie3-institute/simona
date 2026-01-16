@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant
 
 import breeze.numerics.{pow, sqrt}
+import edu.ie3.simona.agent.DataInputHandler
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -84,7 +85,7 @@ object ParticipantAgent {
 
   /** Data provision messages sent by data services.
     */
-  sealed trait DataInputMessage extends Request {
+  sealed trait DataMessage extends Request {
 
     /** The current tick.
       */
@@ -110,7 +111,7 @@ object ParticipantAgent {
       override val serviceRef: ActorRef[ServiceMessage],
       data: Data,
       override val nextDataTick: Option[Long],
-  ) extends DataInputMessage
+  ) extends DataMessage
 
   /** Providing the information that no data will be provided by the sending
     * service for the current tick. The participant could thus potentially skip
@@ -121,7 +122,7 @@ object ParticipantAgent {
       override val tick: Long,
       override val serviceRef: ActorRef[ServiceMessage],
       override val nextDataTick: Option[Long],
-  ) extends DataInputMessage
+  ) extends DataMessage
 
   /** This message, sent by the [[edu.ie3.simona.agent.grid.GridAgent]],
     * requests the power values for the requested tick from this
@@ -168,11 +169,47 @@ object ParticipantAgent {
     val tick: Long
   }
 
-  def apply(
+  /** Container that conveniently holds various data for the
+    * [[ParticipantAgent]].
+    *
+    * @param modelShell
+    *   The [[ParticipantModelShell]], holding the model.
+    * @param inputHandler
+    *   The [[DataInputHandler]], dealing with primary and secondary input data.
+    * @param gridAdapter
+    *   The [[ParticipantGridAdapter]], handling interactions with the
+    *   [[edu.ie3.simona.agent.grid.GridAgent]].
+    * @param resultHandler
+    *   The [[ParticipantResultHandler]], handling model results.
+    * @param activation
+    *   The current activation, if the participant agent is in active state.
+    */
+  final case class ParticipantAgentData(
       modelShell: ParticipantModelShell[?, ?],
-      inputHandler: ParticipantInputHandler,
+      inputHandler: DataInputHandler,
       gridAdapter: ParticipantGridAdapter,
       resultHandler: ParticipantResultHandler,
+      activation: Option[ActivationRequest],
+  )
+  def apply(
+      modelShell: ParticipantModelShell[?, ?],
+      inputHandler: DataInputHandler,
+      gridAdapter: ParticipantGridAdapter,
+      resultHandler: ParticipantResultHandler,
+  )(using
+      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]]
+  ): Behavior[Message] = ParticipantAgent(
+    ParticipantAgentData(
+      modelShell = modelShell,
+      inputHandler = inputHandler,
+      gridAdapter = gridAdapter,
+      resultHandler = resultHandler,
+      activation = None,
+    )
+  )
+
+  def apply(
+      data: ParticipantAgentData
   )(using
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]]
   ): Behavior[Message] =
@@ -180,54 +217,29 @@ object ParticipantAgent {
       case (ctx, request: ParticipantRequest) =>
         // ParticipantRequests are always directly answered
         // without taking into account possible new input data
-        val updatedShell = modelShell.handleRequest(ctx, request)
+        val updatedShell = data.modelShell.handleRequest(ctx, request)
 
         ParticipantAgent(
-          updatedShell,
-          inputHandler,
-          gridAdapter,
-          resultHandler,
+          data.copy(modelShell = updatedShell)
         )
 
       case (ctx, activation: ActivationRequest) =>
         given ActorRef[Message] = ctx.self
 
-        val coreWithActivation = inputHandler.handleActivation(activation)
-
-        val (updatedShell, updatedInputHandler, updatedGridAdapter) =
-          maybeCalculate(
-            modelShell,
-            coreWithActivation,
-            gridAdapter,
-            resultHandler,
-          )
-
-        ParticipantAgent(
-          updatedShell,
-          updatedInputHandler,
-          updatedGridAdapter,
-          resultHandler,
+        val updatedData = maybeCalculate(
+          data.copy(activation = Some(activation))
         )
 
-      case (ctx, msg: DataInputMessage) =>
+        ParticipantAgent(updatedData)
+
+      case (ctx, msg: DataMessage) =>
         given ActorRef[Message] = ctx.self
 
-        val inputHandlerWithData = inputHandler.handleDataInputMessage(msg)
-
-        val (updatedShell, updatedInputHandler, updatedGridAdapter) =
-          maybeCalculate(
-            modelShell,
-            inputHandlerWithData,
-            gridAdapter,
-            resultHandler,
-          )
-
-        ParticipantAgent(
-          updatedShell,
-          updatedInputHandler,
-          updatedGridAdapter,
-          resultHandler,
+        val updatedData = maybeCalculate(
+          data.copy(inputHandler = data.inputHandler.handleDataMessage(msg))
         )
+
+        ParticipantAgent(updatedData)
 
       case (
             ctx,
@@ -236,7 +248,7 @@ object ParticipantAgent {
         // we do not have to wait for the resulting power of the current tick,
         // since the current power is irrelevant for the average power up until now
 
-        val reactivePowerFunc = modelShell.reactivePowerFunc
+        val reactivePowerFunc = data.modelShell.reactivePowerFunc
 
         val nodalVoltage = Each(
           sqrt(
@@ -245,7 +257,7 @@ object ParticipantAgent {
           )
         )
 
-        val updatedGridAdapter = gridAdapter
+        val updatedGridAdapter = data.gridAdapter
           .handlePowerRequest(
             nodalVoltage,
             currentTick,
@@ -274,33 +286,21 @@ object ParticipantAgent {
            })
 
         ParticipantAgent(
-          modelShell,
-          inputHandler,
-          updatedGridAdapter,
-          resultHandler,
+          data.copy(gridAdapter = updatedGridAdapter)
         )
 
       case (ctx, GridSimulationFinished(_, nextRequestTick)) =>
         given ActorRef[Message] = ctx.self
 
         val gridAdapterFinished =
-          gridAdapter.updateNextRequestTick(nextRequestTick)
+          data.gridAdapter.updateNextRequestTick(nextRequestTick)
 
         // Possibly start simulation if we've been activated
-        val (updatedShell, updatedInputHandler, updatedGridAdapter) =
-          maybeCalculate(
-            modelShell,
-            inputHandler,
-            gridAdapterFinished,
-            resultHandler,
-          )
-
-        ParticipantAgent(
-          updatedShell,
-          updatedInputHandler,
-          updatedGridAdapter,
-          resultHandler,
+        val updatedData = maybeCalculate(
+          data.copy(gridAdapter = gridAdapterFinished)
         )
+
+        ParticipantAgent(updatedData)
     }
 
   /** Starts a model calculation if all requirements have been met. A model
@@ -309,38 +309,24 @@ object ParticipantAgent {
     * Requirements include all necessary data having been received and power
     * flow calculation having finished, if applicable.
     *
-    * @param modelShell
-    *   The [[ParticipantModelShell]].
-    * @param inputHandler
-    *   The [[ParticipantInputHandler]].
-    * @param gridAdapter
-    *   The [[ParticipantGridAdapter]].
-    * @param resultHandler
-    *   The [[ParticipantResultHandler]].
+    * @param data
+    *   The current participant data.
     * @param parent
     *   The parent of this [[ParticipantAgent]].
     * @param self
     *   An [[ActorRef]] of this agent.
     * @return
-    *   An updated [[ParticipantModelShell]], [[ParticipantInputHandler]] and
-    *   [[ParticipantGridAdapter]].
+    *   The updated [[ParticipantAgentData]].
     */
   private def maybeCalculate(
-      modelShell: ParticipantModelShell[?, ?],
-      inputHandler: ParticipantInputHandler,
-      gridAdapter: ParticipantGridAdapter,
-      resultHandler: ParticipantResultHandler,
+      data: ParticipantAgentData
   )(using
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
       self: ActorRef[Message],
-  ): (
-      ParticipantModelShell[?, ?],
-      ParticipantInputHandler,
-      ParticipantGridAdapter,
-  ) = {
-    if expectedMessagesReceived(inputHandler, gridAdapter) then {
+  ): ParticipantAgentData = {
+    if expectedMessagesReceived(data) then {
 
-      val activation = inputHandler.activation.getOrElse(
+      val activation = data.activation.getOrElse(
         throw new CriticalFailureException(
           "Activation should be present when data collection is complete"
         )
@@ -354,17 +340,17 @@ object ParticipantAgent {
       }
 
       // inform the result proxy that this participant agent will send new results
-      resultHandler.informProxy(
-        modelShell.uuid,
+      data.resultHandler.informProxy(
+        data.modelShell.uuid,
         activation.tick,
         waitForSetPoint,
       )
 
-      val (updatedShell, updatedGridAdapter) = Scope(modelShell)
+      val (updatedShell, updatedGridAdapter) = Scope(data.modelShell)
         .map(
           _.updateInputData(
-            inputHandler.getData,
-            gridAdapter.nodalVoltage,
+            data.inputHandler.getData,
+            data.gridAdapter.nodalVoltage,
             activation.tick,
           )
         )
@@ -372,23 +358,27 @@ object ParticipantAgent {
           activation match {
             case Activation(tick) =>
               val (shellWithOP, gridAdapterWithResult) =
-                if isCalculationRequired(shell, inputHandler) then {
+                if isCalculationRequired(shell, data.inputHandler, activation)
+                then {
                   val newShell = shell.updateOperatingPoint(tick)
 
                   val results =
-                    newShell.determineResults(tick, gridAdapter.nodalVoltage)
+                    newShell.determineResults(
+                      tick,
+                      data.gridAdapter.nodalVoltage,
+                    )
 
-                  results.modelResults.foreach(resultHandler.maybeSend)
+                  results.modelResults.foreach(data.resultHandler.maybeSend)
 
                   val newGridAdapter =
-                    gridAdapter.storePowerValue(results.totalPower, tick)
+                    data.gridAdapter.storePowerValue(results.totalPower, tick)
 
                   (newShell, newGridAdapter)
-                } else (shell, gridAdapter)
+                } else (shell, data.gridAdapter)
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 tick,
-                inputHandler.getNextDataTick,
+                data.inputHandler.getNextDataTick,
               )
 
               parent.fold(
@@ -405,9 +395,10 @@ object ParticipantAgent {
 
             case FlexActivation(tick, flexType) =>
               val shellWithFlex =
-                if isCalculationRequired(shell, inputHandler) then {
+                if isCalculationRequired(shell, data.inputHandler, activation)
+                then {
                   val newShell = shell.updateFlexOptions(tick, flexType)
-                  resultHandler.maybeSend(
+                  data.resultHandler.maybeSend(
                     newShell.determineFlexOptionsResult(tick, flexType)
                   )
                   newShell
@@ -424,7 +415,7 @@ object ParticipantAgent {
                 ),
               )
 
-              (shellWithFlex, gridAdapter)
+              (shellWithFlex, data.gridAdapter)
 
             case flexControl: IssueFlexControl =>
               val shellWithOP = shell.updateOperatingPoint(flexControl)
@@ -432,20 +423,20 @@ object ParticipantAgent {
               // todo we determine results even if no new data arrived, and EM is also activated...
               val results = shellWithOP.determineResults(
                 flexControl.tick,
-                gridAdapter.nodalVoltage,
+                data.gridAdapter.nodalVoltage,
               )
 
-              results.modelResults.foreach(resultHandler.maybeSend)
+              results.modelResults.foreach(data.resultHandler.maybeSend)
 
               val gridAdapterWithResult =
-                gridAdapter.storePowerValue(
+                data.gridAdapter.storePowerValue(
                   results.totalPower,
                   flexControl.tick,
                 )
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 flexControl.tick,
-                inputHandler.getNextDataTick,
+                data.inputHandler.getNextDataTick,
               )
 
               parent.fold(
@@ -471,8 +462,14 @@ object ParticipantAgent {
         }
         .get
 
-      (updatedShell, inputHandler.completeActivation(), updatedGridAdapter)
-    } else (modelShell, inputHandler, gridAdapter)
+      data.copy(
+        modelShell = updatedShell,
+        inputHandler = data.inputHandler.clear(),
+        gridAdapter = updatedGridAdapter,
+        // clear activation, as it has been dealt with
+        activation = None,
+      )
+    } else data
   }
 
   /** Checks if all required messages needed for calculation have been received.
@@ -484,20 +481,17 @@ object ParticipantAgent {
     *     needs to be received before starting calculations for the current
     *     tick).
     *
-    * @param inputHandler
-    *   The participant input handler.
-    * @param gridAdapter
-    *   The participant grid adapter.
+    * @param data
+    *   The current participant data.
     * @return
     *   Whether power can be calculated or not.
     */
   private def expectedMessagesReceived(
-      inputHandler: ParticipantInputHandler,
-      gridAdapter: ParticipantGridAdapter,
+      data: ParticipantAgentData
   ): Boolean = {
-    inputHandler.allMessagesReceived &&
-    inputHandler.activation.exists(activation =>
-      !gridAdapter.isPowerRequestAwaited(activation.tick)
+    data.activation.exists(activation =>
+      !data.gridAdapter.isPowerRequestAwaited(activation.tick) &&
+        data.inputHandler.allMessagesReceived(activation.tick)
     )
   }
 
@@ -510,18 +504,19 @@ object ParticipantAgent {
     *   The model shell.
     * @param inputHandler
     *   The participant input handler.
+    * @param activation
+    *   The current activation request.
     * @return
     */
   private def isCalculationRequired(
       modelShell: ParticipantModelShell[?, ?],
-      inputHandler: ParticipantInputHandler,
+      inputHandler: DataInputHandler,
+      activation: ActivationRequest,
   ): Boolean =
-    inputHandler.hasNewData ||
-      inputHandler.activation.exists(activation =>
-        modelShell
-          .getChangeIndicator(activation.tick - 1, None)
-          .changesAtTick
-          .contains(activation.tick)
-      )
+    inputHandler.hasNewData(activation.tick) ||
+      modelShell
+        .getChangeIndicator(activation.tick - 1, None)
+        .changesAtTick
+        .contains(activation.tick)
 
 }
