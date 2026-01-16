@@ -10,6 +10,11 @@ import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
   AssetStepVars,
   AssetVarContainer,
 }
+import edu.ie3.simona.service.Data.SecondaryData.{
+  ProsumerPrice,
+  SecondarySeriesData,
+}
+import edu.ie3.util.scala.quantities.EuroPerKilowattHour
 import org.scalatest.Assertions
 import squants.Power
 import squants.energy.{KilowattHours, Kilowatts}
@@ -22,6 +27,12 @@ trait OptimizingTestLike extends Assertions {
   extension [A](seq: Seq[A])(using num: Numeric[A], ticks: Seq[Long])
     def toPowerMap: SortedMap[Long, Power] =
       SortedMap.from(ticks.zip(seq.map(Kilowatts.apply)))
+
+  extension (seq: Seq[(Double, Double)])
+    def toPriceData(using ticks: Seq[Long]): SecondarySeriesData =
+      SecondarySeriesData(SortedMap.from(ticks.zip(seq.map { case (sell, buy) =>
+        ProsumerPrice(EuroPerKilowattHour(sell), EuroPerKilowattHour(buy))
+      })))
 
   extension (vars: AssetStepVars) {
 
