@@ -249,8 +249,7 @@ class ResultServiceProxySpec
       )
 
       // no unchanged or new results received
-      listener.expectMessageType[ResultResponse].results shouldBe Map.empty
-
+      listener.expectNoMessage()
     }
 
     "correctly handle three winding transformer result events" in {

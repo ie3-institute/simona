@@ -354,7 +354,7 @@ object ResultServiceProxy {
                 val oldTime = oldResult.getTime
                 oldResult.setTime(res.getTime)
 
-                if oldResults.equals(res) then {
+                if oldResult == res then {
                   // switch back to the old time
                   oldResult.setTime(oldTime)
                   None
