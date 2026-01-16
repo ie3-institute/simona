@@ -19,6 +19,7 @@ import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.result.CongestedComponentsTestData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
@@ -66,6 +67,9 @@ trait CongestionTestBaseData
     TestProbe(
       "primaryService"
     )
+  protected val resultProxy: TestProbe[ResultServiceProxy.Message] = TestProbe(
+    "resultServiceProxy"
+  )
   protected val weatherService: TestProbe[WeatherService.Message] = TestProbe(
     "weatherService"
   )
@@ -78,20 +82,17 @@ trait CongestionTestBaseData
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
+    resultProxy = resultProxy.ref,
     weather = weatherService.ref,
     loadProfiles = loadProfileService.ref,
+    emDataService = None,
     evDataService = None,
-  )
-
-  protected val resultListener: TestProbe[ResultEvent] = TestProbe(
-    "resultListener"
   )
 
   protected implicit val constantData: GridAgentConstantData =
     GridAgentConstantData(
       environmentRefs,
       simonaConfig,
-      Iterable(resultListener.ref),
       3600,
       startTime,
       endTime,

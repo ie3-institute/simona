@@ -17,7 +17,6 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.datamodel.models.input.{OperatorInput, container}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.model.InputModelContainer.WithHeatInputContainer
 import edu.ie3.simona.model.thermal.*
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
@@ -87,7 +86,9 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     thermalBusInput,
     Seq(thermalHouseInput(18, 22)).asJava,
     Seq.empty[ThermalStorageInput].asJava,
-    Seq.empty[ThermalStorageInput].asJava,
+    Seq(
+      defaultDomesticHotWaterStorageInput.asInstanceOf[ThermalStorageInput]
+    ).asJava,
   )
 
   protected val typicalThermalHouse = new ThermalHouseInput(
@@ -112,14 +113,14 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(30.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
-      Quantities.getQuantity(10.44, StandardUnits.ACTIVE_POWER_IN),
+      Quantities.getQuantity(11.0, StandardUnits.ACTIVE_POWER_IN),
     )
 
   protected val typicalThermalGrid = new container.ThermalGrid(
     thermalBusInput,
     Seq(typicalThermalHouse).asJava,
     Set[ThermalStorageInput](typicalHeatStorage).asJava,
-    Set.empty[ThermalStorageInput].asJava,
+    Seq[ThermalStorageInput](defaultDomesticHotWaterStorageInput).asJava,
   )
 
   protected val typicalHpTypeInput = new HpTypeInput(
@@ -144,16 +145,15 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     typicalHpTypeInput,
   )
 
-  protected val typicalHpInputContainer =
-    WithHeatInputContainer(typicalHpInputModel, typicalThermalGrid)
-
   protected def thermalGrid(
       thermalHouse: ThermalHouse,
-      thermalStorage: Option[ThermalStorage] = None,
+      thermalStorage: Option[CylindricalThermalStorage] = None,
+      domesticWaterStorage: Option[DomesticHotWaterStorage] = None,
   ): ThermalGrid =
     ThermalGrid(
       Some(thermalHouse),
       thermalStorage,
+      domesticWaterStorage,
     )
 
   protected def thermalHouse(
@@ -217,6 +217,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
         innerHouseTemperature,
       )
     ),
+    None,
     None,
   )
 }

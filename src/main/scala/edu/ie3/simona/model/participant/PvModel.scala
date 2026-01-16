@@ -19,10 +19,13 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   OperationChangeIndicator,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.PvModel.{PvState, RadiationData}
+import edu.ie3.simona.model.participant.PvModel.*
 import edu.ie3.simona.model.participant.SolarIrradiationCalculation.*
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.flex.PowerSeriesMathFlexModel
+import edu.ie3.simona.model.participant.flex.{
+  ParticipantInflexiblePowerLimitFlexModel,
+  ParticipantInflexibleEnergyLimitFlexModel,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
@@ -30,7 +33,7 @@ import edu.ie3.simona.service.Data.PrimaryData.{
 }
 import edu.ie3.simona.service.Data.SecondaryData.{
   WeatherData,
-  WeatherSeriesData,
+  SecondarySeriesData,
 }
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
@@ -82,7 +85,7 @@ class PvModel private (
   override val flexModels: Map[FlexType, ParticipantFlexModel[PvState]] =
     Map(
       FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
-      FlexType.MathProgramming -> PowerSeriesMathFlexModel(
+      FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyLimitFlexModel(
         this,
         _.toStateSeries,
       ),
@@ -105,9 +108,14 @@ class PvModel private (
       .collectFirst {
         case weatherData: WeatherData =>
           SortedMap(state.tick -> RadiationData(weatherData))
-        case WeatherSeriesData(series) =>
-          series.map { case (tick, weatherData) =>
-            tick -> RadiationData(weatherData)
+        case SecondarySeriesData(series) =>
+          series.map {
+            case (tick, weatherData: WeatherData) =>
+              tick -> RadiationData(weatherData)
+            case (_, unexpectedData) =>
+              throw new CriticalFailureException(
+                s"Unexpected secondary data $unexpectedData"
+              )
           }
       }
       .map(newData => state.copy(radiationData = newData))

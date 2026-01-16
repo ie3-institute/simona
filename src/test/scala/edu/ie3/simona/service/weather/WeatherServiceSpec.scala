@@ -27,7 +27,7 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.{
   WeatherData,
-  WeatherSeriesData,
+  SecondarySeriesData,
 }
 import edu.ie3.simona.service.weather.WeatherService.{
   InitWeatherServiceStateData,
@@ -48,7 +48,6 @@ import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 import squants.time.Hours
 
-import java.time.ZonedDateTime
 import scala.collection.immutable.SortedMap
 import scala.language.implicitConversions
 
@@ -210,7 +209,7 @@ class WeatherServiceSpec
           tick shouldBe 0
           serviceRef shouldBe weatherService
           data match {
-            case WeatherSeriesData(series) =>
+            case SecondarySeriesData(series) =>
               series.size shouldBe 7
             case unexpected =>
               fail(s"Received unexpected data $unexpected")

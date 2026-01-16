@@ -25,6 +25,8 @@ final case class ReceiveDataMap[K, V](
 
   def nonComplete: Boolean = expectedKeys.nonEmpty
 
+  def expects(key: K): Boolean = expectedKeys.contains(key)
+
   def addData(
       key: K,
       value: V,
@@ -40,6 +42,14 @@ final case class ReceiveDataMap[K, V](
       receivedData.updated(key, value),
     )
   }
+
+  def addExpectedKeys(keys: Set[K]): ReceiveDataMap[K, V] =
+    copy(expectedKeys = expectedKeys ++ keys)
+
+  def addExpectedKey(key: K): ReceiveDataMap[K, V] =
+    copy(expectedKeys = expectedKeys + key)
+
+  def getExpectedKeys: Set[K] = expectedKeys
 
 }
 

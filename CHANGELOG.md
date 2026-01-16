@@ -22,6 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhance `ThermalConductance` by method to calculate for thermal power qDot [#1479](https://github.com/ie3-institute/simona/issues/1479)
 - Enhancing `QuantityConversionUtilsSpec` with more tests [#1400](https://github.com/ie3-institute/simona/issues/1400)
 - Prepare ThermalHouse for changes by including tap water [#1547](https://github.com/ie3-institute/simona/issues/1547)
+- Updated docker documentation [#488](https://github.com/ie3-institute/simona/issues/488)
+- Added support classes for transformer tap position calculation [#1543](https://github.com/ie3-institute/simona/issues/1543)
+- Added basic external em service [#1566](https://github.com/ie3-institute/simona/issues/1566)
+- Implement energy limit flex options and adapt optimization [#1572](https://github.com/ie3-institute/simona/issues/1572)
+- Introducing `onePU` as default quantity [#1607](https://github.com/ie3-institute/simona/issues/1607)
+- Introducing energy demand for warm water heating [#856](https://github.com/ie3-institute/simona/issues/856)
+- Added external result provider [#1530](https://github.com/ie3-institute/simona/issues/1530)
+- Allow for multiple optimization model implementations [#1627](https://github.com/ie3-institute/simona/issues/1627)
+- Implement price based optimization objective factory [#1585](https://github.com/ie3-institute/simona/issues/1585)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
@@ -49,6 +58,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unify coordinate class [#1516](https://github.com/ie3-institute/simona/issues/1516)
 - Remove type parameters from data and message classes [#1524](https://github.com/ie3-institute/simona/issues/1524)
 - Adapt ThermalHouse and HP flexibility behaviour [#1391](https://github.com/ie3-institute/simona/issues/1391)
+- Use ThermalStorageTypes for type safety [#1556](https://github.com/ie3-institute/simona/issues/1556)
+- Refactored method to handle feed in within `ThermalGrid` [#1554](https://github.com/ie3-institute/simona/issues/1554)
+- Generalize `WeatherSeriesData` to `SecondarySeriesData` [#1584](https://github.com/ie3-institute/simona/issues/1584)
+- Enhance `EnergyPrice` squants [#1583](https://github.com/ie3-institute/simona/issues/1583)
+- Updated Ubuntu version to 24.04 and python version to 3.13 in readthedocs.yml [#1597](https://github.com/ie3-institute/simona/issues/1597)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -63,6 +77,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed handleInput of `ProfileLoadModel` [#1441](https://github.com/ie3-institute/simona/issues/1441)
 - Fixed compiler warnings related to import and scala3 syntax [#1383](https://github.com/ie3-institute/simona/issues/1383)
 - Cleaned up dependencies [#1539](https://github.com/ie3-institute/simona/issues/1539)
+- Fixed consideration of `ThermalStorage` maximum thermal power [#1562](https://github.com/ie3-institute/simona/issues/1562)
+- Fixed shadowJar reference.conf not being merged [#1575](https://github.com/ie3-institute/simona/issues/1575)
+- Fixed `CHANGELOG` entry for #1607 [#1609](https://github.com/ie3-institute/simona/issues/1609)
+- Fixed HP model returning current tick as the next activation [#1622](https://github.com/ie3-institute/simona/issues/1622)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
@@ -72,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Updates
 - Updated gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)
+- Update simonaAPI to version 0.11.0 [#1573](https://github.com/ie3-institute/simona/issues/1573)
 
 ## [4.0.0] - 2025-05-09
 

@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -24,6 +24,8 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
@@ -38,6 +40,7 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
+import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
@@ -54,6 +57,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
   )
   private val primaryService =
     TestProbe[PrimaryServiceProxy.Message]("primaryService")
+  private val resultProxy = TestProbe[ResultServiceProxy.Message]("resultProxy")
   private val weatherService =
     TestProbe[WeatherService.Message]("weatherService")
   private val loadProfileService =
@@ -71,12 +75,12 @@ class DBFSAlgorithmFailedPowerFlowSpec
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
+    resultProxy = resultProxy.ref,
     weather = weatherService.ref,
     loadProfiles = loadProfileService.ref,
+    emDataService = None,
     evDataService = None,
   )
-
-  val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
 
   "A GridAgent actor in center position with async test" should {
 
@@ -84,13 +88,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
     // we need to initialize the agent for each test
     def initAndGoToSimulateGrid: ActorRef[GridAgent.Message] = {
       val centerGridAgent =
-        testKit.spawn(
-          GridAgent(
-            environmentRefs,
-            simonaConfig,
-            listener = Iterable(resultListener.ref),
-          )
-        )
+        testKit.spawn(GridAgent(environmentRefs, simonaConfig))
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef = hvSubGridGatesPF.map {
@@ -143,6 +141,19 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       // send the start grid simulation trigger
       centerGridAgent ! Activation(3600)
+
+      resultProxy.expectMessageType[ExpectResult] match {
+        case ExpectResult(assets, tick, waitForSetPoint) =>
+          assets match {
+            case uuids: Seq[UUID] =>
+              uuids.toSet shouldBe assetsHvPF.toSet
+              waitForSetPoint shouldBe false
+            case uuid: UUID =>
+              fail(s"Received uuid $uuid, but expected grid asset uuids.")
+          }
+          tick shouldBe 3600
+      }
+
       // we expect a request for grid power values here for sweepNo $sweepNo
       val powerRequestSender = inferiorGridAgent.expectGridPowerRequest()
 
@@ -213,7 +224,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a Completion
       scheduler.expectMessageType[Completion].newTick shouldBe Some(7200)
 
-      resultListener.expectNoMessage()
+      resultProxy.expectNoMessage()
 
       // PowerFlowFailed events are only sent by the slack subgrid
       runtimeEvents.expectNoMessage()
@@ -226,6 +237,18 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       // send the start grid simulation trigger
       centerGridAgent ! Activation(3600)
+
+      resultProxy.expectMessageType[ExpectResult] match {
+        case ExpectResult(assets, tick, waitForSetPoint) =>
+          assets match {
+            case uuids: Seq[UUID] =>
+              uuids.toSet shouldBe assetsHvPF.toSet
+              waitForSetPoint shouldBe false
+            case uuid: UUID =>
+              fail(s"Received uuid $uuid, but expected grid asset uuids.")
+          }
+          tick shouldBe 3600
+      }
 
       // we expect a request for grid power values here for sweepNo 0
       val powerRequestSender = inferiorGridAgent.expectGridPowerRequest()
@@ -285,7 +308,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a Completion
       scheduler.expectMessageType[Completion].newTick shouldBe Some(7200)
 
-      resultListener.expectNoMessage()
+      resultProxy.expectNoMessage()
 
       // PowerFlowFailed events are only sent by the slack subgrid
       runtimeEvents.expectNoMessage()
@@ -302,7 +325,6 @@ class DBFSAlgorithmFailedPowerFlowSpec
         GridAgent(
           environmentRefs,
           simonaConfig, // stopOnFailure is enabled
-          listener = Iterable(resultListener.ref),
         )
       )
 
@@ -341,6 +363,18 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // send the start grid simulation trigger
       slackGridAgent ! Activation(3600)
 
+      resultProxy.expectMessageType[ExpectResult] match {
+        case ExpectResult(assets, tick, waitForSetPoint) =>
+          assets match {
+            case uuids: Seq[UUID] =>
+              uuids.toSet shouldBe assetsEhv.toSet
+              waitForSetPoint shouldBe false
+            case uuid: UUID =>
+              fail(s"Received uuid $uuid, but expected grid asset uuids.")
+          }
+          tick shouldBe 3600
+      }
+
       val powerRequestSender = hvGridAgent.expectGridPowerRequest()
 
       // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculation
@@ -376,7 +410,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       hvGridAgent.gaProbe.expectNoMessage()
       scheduler.expectNoMessage()
 
-      resultListener.expectNoMessage()
+      resultProxy.expectNoMessage()
     }
   }
 

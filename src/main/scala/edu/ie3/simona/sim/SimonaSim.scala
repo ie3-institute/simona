@@ -26,8 +26,8 @@ import java.nio.file.Path
   * overall simulation has been successful or not. For specific status
   * information, the user needs to pass in and subscribe to the corresponding
   * listener e.g. [[edu.ie3.simona.event.listener.RuntimeEventListener]] for
-  * simulation status or [[edu.ie3.simona.event.listener.ResultEventListener]]
-  * for result events
+  * simulation status or [[edu.ie3.simona.event.listener.ResultListener]] for
+  * result events
   *
   * @since 01.07.20
   */
@@ -70,8 +70,15 @@ object SimonaSim {
   ): Behavior[Request] =
     Behaviors
       .receivePartial[Request] { case (ctx, Start(_)) =>
-        val resultEventListeners = simonaSetup.resultEventListener(ctx)
         val runtimeEventListener = simonaSetup.runtimeEventListener(ctx)
+        val resultEventListeners = simonaSetup.resultEventListener(ctx)
+
+        // result proxy
+        val resultProxy = simonaSetup.resultServiceProxy(
+          ctx,
+          resultEventListeners,
+          simonaSetup.simonaConfig.simona.time.simStartTime,
+        )
 
         val timeAdvancer =
           simonaSetup.timeAdvancer(ctx, ctx.self, runtimeEventListener)
@@ -86,7 +93,11 @@ object SimonaSim {
           simonaSetup.simonaConfig.simona.input.extSimDir.map(Path.of(_))
 
         val extSimulationData =
-          simonaSetup.extSimulations(ctx, scheduler, extSimDir)
+          simonaSetup.extSimulations(ctx, scheduler, resultProxy, extSimDir)
+
+        val allResultEventListeners =
+          resultEventListeners ++ extSimulationData.resultListeners
+        val resultProviders = extSimulationData.resultProviders
 
         /* start services */
         // primary service proxy
@@ -104,17 +115,15 @@ object SimonaSim {
           scheduler,
           runtimeEventListener,
           primaryServiceProxy,
+          resultProxy,
           weatherService,
           loadProfileService,
+          extSimulationData.emDataService,
           extSimulationData.evDataService,
         )
 
         /* start grid agents  */
-        val gridAgents = simonaSetup.gridAgents(
-          ctx,
-          environmentRefs,
-          resultEventListeners,
-        )
+        val gridAgents = simonaSetup.gridAgents(ctx, environmentRefs)
 
         val otherActors = Iterable[ActorRef[?]](
           timeAdvancer,
@@ -122,17 +131,15 @@ object SimonaSim {
           primaryServiceProxy,
           weatherService,
         ) ++
-          gridAgents ++
-          extSimulationData.extDataServices.map(_._2)
+          gridAgents ++ extSimulationData.allServiceRefs
 
         /* watch all actors */
-        resultEventListeners.foreach(ctx.watch)
+        allResultEventListeners.foreach(ctx.watch)
+        resultProviders.foreach(ctx.watch)
         ctx.watch(runtimeEventListener)
-        extSimulationData.extResultListeners.foreach { case (_, ref) =>
-          ctx.watch(ref)
-        }
-        extSimulationData.extSimAdapters.foreach(ctx.watch)
+        ctx.watch(resultProxy)
         otherActors.foreach(ctx.watch)
+        extSimulationData.extSimAdapters.foreach(ctx.watch)
 
         // End pre-initialization phase
         preInitKey.unlock()
@@ -140,11 +147,11 @@ object SimonaSim {
         // Start simulation
         timeAdvancer ! TimeAdvancer.Start
 
-        val delayedActors = resultEventListeners.appended(runtimeEventListener)
-
-        extSimulationData.extResultListeners.foreach(ref =>
-          delayedActors.appended(ref)
-        )
+        val delayedActors =
+          allResultEventListeners
+            .appendedAll(resultProviders)
+            .appended(runtimeEventListener)
+            .appended(resultProxy)
 
         idle(
           ActorData(

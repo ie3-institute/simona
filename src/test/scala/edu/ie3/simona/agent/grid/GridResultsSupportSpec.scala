@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.grid
 
 import breeze.math.Complex
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.datamodel.models.result.connector.{
@@ -41,15 +40,16 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits.{DEGREE_GEOM, PU}
 import edu.ie3.util.quantities.QuantityUtil
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import edu.ie3.util.scala.quantities.{
   Voltamperes,
   QuantityUtil as ScalaQuantityUtil,
 }
 import org.scalatest.prop.TableDrivenPropertyChecks
-import squants.Each
 import squants.electro.{Amperes, Volts}
 import squants.energy.Kilowatts
 import squants.space.Degrees
+import squants.{Each, Percent}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 import tech.units.indriya.unit.Units.AMPERE
@@ -437,7 +437,7 @@ class GridResultsSupportSpec
         nodeInternal,
         BigDecimal("1"),
         TransformerTappingModel(
-          Quantities.getQuantity(1.5, StandardUnits.DV_TAP),
+          Percent(1.5),
           5,
           10,
           -10,
@@ -455,13 +455,13 @@ class GridResultsSupportSpec
       transformerA.initTapping()
       val transformerB = transformerA.copy(
         powerFlowCase = PowerFlowCaseB,
-        g = Each(0d),
-        b = Each(0d),
+        g = zeroPU,
+        b = zeroPU,
       )
       val transformerC = transformerA.copy(
         powerFlowCase = PowerFlowCaseC,
-        g = Each(0d),
-        b = Each(0d),
+        g = zeroPU,
+        b = zeroPU,
       )
       val iNominal = Amperes(100d)
 

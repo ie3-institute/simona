@@ -10,13 +10,15 @@ import edu.ie3.datamodel.models.value.*
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
-import edu.ie3.util.scala.quantities.Irradiance
-import squants.{Temperature, Velocity}
+import edu.ie3.util.scala.quantities.{
+  EnergyPrice,
+  Irradiance,
+  Kilovars,
+  ReactivePower,
+}
 import squants.energy.{Kilowatts, Power}
-import tech.units.indriya.ComparableQuantity
+import squants.{Temperature, Velocity}
 
 import scala.collection.immutable.SortedMap
 import scala.jdk.OptionConverters.RichOptional
@@ -382,18 +384,35 @@ object Data {
         windVel: Velocity,
     ) extends SecondaryData
 
-    /** Container class for weather data series over some time interval for
-      * certain coordinate.
+    /** Data class containing only the wholesale price.
       *
-      * @param series
-      *   The weather time series consisting of [[WeatherData]].
+      * @param price
+      *   The wholesale price.
       */
-    final case class WeatherSeriesData(
-        series: SortedMap[Long, WeatherData]
+    final case class WholesalePrice(price: EnergyPrice) extends SecondaryData
+
+    /** Data class containing both selling (feed-in) and buying (load) price for
+      * a prosumer. This means that taxes and fees are already included.
+      *
+      * @param priceSell
+      *   The selling price.
+      * @param priceBuy
+      *   The buying price.
+      */
+    final case class ProsumerPrice(
+        priceSell: EnergyPrice,
+        priceBuy: EnergyPrice,
     ) extends SecondaryData
 
-    final case class WholesalePrice(price: ComparableQuantity[EnergyPrice])
-        extends SecondaryData
+    /** Container class for secondary data series over some time interval.
+      *
+      * @param series
+      *   The time series consisting of [[SecondaryData]].
+      */
+    final case class SecondarySeriesData(
+        series: SortedMap[Long, SecondaryData]
+    ) extends SecondaryData
 
   }
+
 }

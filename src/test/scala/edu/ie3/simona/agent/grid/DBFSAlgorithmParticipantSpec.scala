@@ -26,6 +26,7 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
@@ -53,6 +54,7 @@ class DBFSAlgorithmParticipantSpec
     TestProbe("runtimeEvents")
   private val primaryService =
     TestProbe[PrimaryServiceProxy.Message]("primaryService")
+  private val resultProxy = TestProbe[ResultServiceProxy.Message]("resultProxy")
   private val weatherService =
     TestProbe[WeatherService.Message]("weatherService")
   private val loadProfileService =
@@ -62,13 +64,12 @@ class DBFSAlgorithmParticipantSpec
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
+    resultProxy = resultProxy.ref,
     weather = weatherService.ref,
     loadProfiles = loadProfileService.ref,
+    emDataService = None,
     evDataService = None,
   )
-
-  protected val resultListener: TestProbe[ResultEvent] =
-    TestProbe("resultListener")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
@@ -80,7 +81,6 @@ class DBFSAlgorithmParticipantSpec
       GridAgent(
         environmentRefs,
         simonaConfig,
-        Iterable(resultListener.ref),
       )
     )
 

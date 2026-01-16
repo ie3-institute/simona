@@ -12,17 +12,14 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
 }
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.{
-  ParticipantFlexModel,
-  ParticipantModel,
-  ParticipantInflexiblePowerLimitFlexModel,
-}
+import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
   OperationChangeIndicator,
   ParticipantModelFactory,
 }
+import edu.ie3.simona.model.participant.flex.ParticipantInflexiblePowerLimitFlexModel
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,

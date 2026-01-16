@@ -4,19 +4,19 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.event.listener
+package edu.ie3.simona.service.results
 
 import edu.ie3.datamodel.models.result.connector.Transformer3WResult
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import tech.units.indriya.quantity.Quantities
 import edu.ie3.util.quantities.PowerSystemUnits
+import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
-private[listener] trait Transformer3wResultSupport {
+private[results] object Transformer3wResultSupport {
 
   /** Case class to serve as a map key for unfulfilled three winding results
     *

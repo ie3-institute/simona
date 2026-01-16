@@ -35,6 +35,7 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.service.weather.{WeatherDataType, WeatherService}
 import edu.ie3.simona.test.common.TestSpawnerTyped
@@ -105,7 +106,8 @@ class EmAgentIT
     "having load, pv and storage agents connected" should {
       "be initialized correctly and run through some activations" in {
         val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
-        val resultListener = TestProbe[ResultEvent]("ResultListener")
+        val resultServiceProxy =
+          TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
         val primaryServiceProxy =
           TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
         val weatherService = TestProbe[WeatherService.Message]("WeatherService")
@@ -114,8 +116,8 @@ class EmAgentIT
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val keys = ScheduleLock
@@ -133,7 +135,7 @@ class EmAgentIT
             "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
-            listener = Iterable(resultListener.ref),
+            listener = resultServiceProxy.ref,
           ),
           "EmAgent",
         )
@@ -232,6 +234,12 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(0)
 
+        // we receive a message for each agent that is not waiting for secondary data
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(storageInput.getUuid, 0, true),
+          ExpectResult(loadInput.getUuid, 0, true)
+        )
+
         pvAgent ! DataProvision(
           0,
           weatherService.ref,
@@ -244,14 +252,24 @@ class EmAgentIT
           Some(7200),
         )
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(ExpectResult(pvInput.getUuid, 0, true))
+
+        // we receive update messages, since new set points were provided
+        resultServiceProxy.receiveMessages(3) should contain allOf (
+          ExpectResult(pvInput.getUuid, 0),
+          ExpectResult(storageInput.getUuid, 0),
+          ExpectResult(loadInput.getUuid, 0)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0L.toDateTime
             emResult.getP should equalWithTolerance(-0.00057340027.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0018318880807.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -262,6 +280,11 @@ class EmAgentIT
          -> remaining 0 kW
          */
         emAgentActivation ! Activation(7200)
+
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(storageInput.getUuid, 7200, true)
+        )
 
         pvAgent ! DataProvision(
           7200,
@@ -275,14 +298,25 @@ class EmAgentIT
           Some(14400),
         )
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInput.getUuid, 7200, true)
+        )
+
+        // we receive update messages, since new set points were provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 7200),
+          ExpectResult(storageInput.getUuid, 7200)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
             emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00113292701968.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(13246)))
 
         /* TICK 13246
@@ -294,14 +328,24 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(13246)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(storageInput.getUuid, 13246, true)
+        )
+
+        // we receive an update message, since a new set point were provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(storageInput.getUuid, 13246)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 13246.toDateTime
             emResult.getP should equalWithTolerance(-0.00344685673.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.001132927.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
@@ -328,14 +372,21 @@ class EmAgentIT
 
         emAgentActivation ! Activation(14400)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // we receive update messages, since we received an activation and a new set point was provided
+        resultServiceProxy.receiveMessages(3) should contain allOf (
+          ExpectResult(pvInput.getUuid, 14400, true),
+          ExpectResult(pvInput.getUuid, 14400),
+          ExpectResult(storageInput.getUuid, 14400)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 14400.toDateTime
             emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.000065375.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
       }
     }
@@ -343,7 +394,8 @@ class EmAgentIT
     "having load, pv and heat pump agents connected" should {
       "be initialized correctly and run through some activations" in {
         val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
-        val resultListener = TestProbe[ResultEvent]("ResultListener")
+        val resultServiceProxy =
+          TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
         val primaryServiceProxy =
           TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
         val weatherService = TestProbe[WeatherService.Message]("WeatherService")
@@ -352,8 +404,8 @@ class EmAgentIT
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val keys = ScheduleLock
@@ -371,7 +423,7 @@ class EmAgentIT
             "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
-            listener = Iterable(resultListener.ref),
+            listener = resultServiceProxy.ref,
           ),
           "EmAgent1",
         )
@@ -488,6 +540,11 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(0)
 
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInput.getUuid, 0, true)
+        )
+
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             0,
@@ -502,14 +559,138 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 0, true),
+          ExpectResult(hpInputModel.getUuid, 0, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(3) should contain allOf (
+          ExpectResult(pvInput.getUuid, 0),
+          ExpectResult(hpInputModel.getUuid, 0),
+          ExpectResult(loadInput.getUuid, 0)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0.toDateTime
             emResult.getP should equalWithTolerance(-0.0055734002706.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0018318880807.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(75)))
+
+        /* TICK 75
+         DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+         LOAD: 0.269 kW (unchanged)
+         PV:  -5.842 kW
+         Heat pump: running (turned on from last request), can also be turned off
+         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining -0.723 kW
+         */
+        emAgentActivation ! Activation(75)
+
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 75, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 75)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 75.toDateTime
+            emResult.getP should equalWithTolerance(-0.0055734002706.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.00183188808074.asMegaVar)
+        }
+        resultServiceProxy.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
+
+        /* TICK 3600
+        DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+        LOAD: 0.269 kW (unchanged)
+        PV:  -3.715 kW
+        Heat pump: running (turned on from last request), can also be turned off
+        -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+        -> remaining ~0.0 kW
+         */
+        emAgentActivation ! Activation(3600)
+
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 3600, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 3600)
+        )
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 3600.toDateTime
+            emResult.getP should equalWithTolerance(-0.00072340027.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.00084705357667.asMegaVar)
+        }
+        resultServiceProxy.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(3675)))
+
+        /* TICK 3675
+        DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+        LOAD: 0.269 kW (unchanged)
+        PV:  -5.842 kW
+        Heat pump: running (turned on from last request), can also be turned off
+        -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+        -> remaining -0.723 kW
+         */
+        emAgentActivation ! Activation(3675)
+
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 3675, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 3675)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 3675.toDateTime
+            emResult.getP should equalWithTolerance(
+              -0.00072340027059.asMegaWatt
+            )
+            emResult.getQ should equalWithTolerance(
+              -0.00084705357666777.asMegaVar
+            )
+        }
+        resultServiceProxy.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(6056)))
+
+        /* TICK 6056
+        DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+        LOAD: 0.269 kW (unchanged)
+        PV:  -5.842 kW
+        Heat pump: running (turned on from last request), can also be turned off
+        -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+        -> remaining -0.723 kW
+         */
+        emAgentActivation ! Activation(6056)
+
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 6056, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 6056)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 6056.toDateTime
+            emResult.getP should equalWithTolerance(-0.00557340027.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.00183188808074.asMegaVar)
+        }
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -535,14 +716,80 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 7200, true),
+          ExpectResult(hpInputModel.getUuid, 7200, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 7200),
+          ExpectResult(hpInputModel.getUuid, 7200)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
             emResult.getP should equalWithTolerance(0.001403143271.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.0001480925156.asMegaVar)
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(7278)))
+
+        /* TICK 7278
+         DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+         LOAD: 0.269 kW (unchanged)
+         PV:  -3.791 kW
+         Heat pump: running (turned on from last request), can also be turned off
+         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining 0 MW
+         */
+        emAgentActivation ! Activation(7278)
+
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 7278, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 7278)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 7278.toDateTime
+            emResult.getP should equalWithTolerance(0.00140314327091.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00014809252.asMegaVar)
         }
-        resultListener.expectNoMessage()
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(7981)))
+
+        /* TICK 7981
+         DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+         LOAD: 0.269 kW (unchanged)
+         PV:  -3.791 kW
+         Heat pump: running (turned on from last request), can also be turned off
+         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining 0 MW
+         */
+        emAgentActivation ! Activation(7981)
+
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 7981, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 7981)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 7981.toDateTime
+            emResult.getP should equalWithTolerance(-0.003446856729.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.00113292702.asMegaVar)
+        }
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
         /* TICK 10800
@@ -568,14 +815,53 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 10800, true),
+          ExpectResult(hpInputModel.getUuid, 10800, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 10800),
+          ExpectResult(hpInputModel.getUuid, 10800)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 10800.toDateTime
             emResult.getP should equalWithTolerance(0.0011098586291.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.000244490516.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(10879)))
+
+        /* TICK 10879
+        DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
+         LOAD: 0.269 kW (unchanged)
+         PV:  -4.008 kW
+         Heat pump: running (turned on from last request), can also be turned off
+         -> set point ~3.7 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining 1.111 kW
+         */
+        emAgentActivation ! Activation(10879)
+
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(hpInputModel.getUuid, 10879, true),
+          // we receive update messages, since a new set point was provided
+          ExpectResult(hpInputModel.getUuid, 10879)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 10879.toDateTime
+            emResult.getP should equalWithTolerance(0.0011098586291.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.000244490516.asMegaVar)
+        }
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11000)))
 
         /* TICK 11000
@@ -603,14 +889,26 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11000, true),
+          ExpectResult(hpInputModel.getUuid, 11000, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11000),
+          ExpectResult(hpInputModel.getUuid, 11000)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 11000.toDateTime
             emResult.getP should equalWithTolerance(0.0050603789402.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0010539827178.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(11500)))
 
         /* TICK 11500
@@ -638,22 +936,35 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // we receive a message, since new data arrived
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11500, true),
+          ExpectResult(hpInputModel.getUuid, 11500, true)
+        )
+
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(pvInput.getUuid, 11500),
+          ExpectResult(hpInputModel.getUuid, 11500)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 11500.toDateTime
-            emResult.getP should equalWithTolerance(0.00013505248.asMegaWatt)
-            emResult.getQ should equalWithTolerance(0.000044389603878.asMegaVar)
+            emResult.getP should equalWithTolerance(0.0049850525.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.0010292241.asMegaVar)
         }
-        resultListener.expectNoMessage()
-        scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
+        resultServiceProxy.expectNoMessage()
+        scheduler.expectMessage(Completion(emAgentActivation, Some(12725)))
       }
     }
 
     "having a pv and a load agent connected" should {
       "have correct values also for agents with limited operation time" in {
         val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
-        val resultListener = TestProbe[ResultEvent]("ResultListener")
+        val resultServiceProxy =
+          TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
         val primaryServiceProxy =
           TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
         val weatherService = TestProbe[WeatherService.Message]("WeatherService")
@@ -662,8 +973,8 @@ class EmAgentIT
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryServiceProxy.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> weatherService.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val keys = ScheduleLock
@@ -681,7 +992,7 @@ class EmAgentIT
             "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
-            listener = Iterable(resultListener.ref),
+            listener = resultServiceProxy.ref,
           ),
           "EmAgentReactivePower",
         )
@@ -769,6 +1080,11 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(0)
 
+        // the result proxy will receive ExpectResult messages
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 0, true)
+        )
+
         weatherDependentAgents.foreach {
           _ ! DataProvision(
             0,
@@ -783,14 +1099,19 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // we receive update messages, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 0)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0.toDateTime
             emResult.getP should equalWithTolerance(0.000268603.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
 
         /* TICK 3600
@@ -814,14 +1135,24 @@ class EmAgentIT
           )
         }
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 3600, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 3600)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 3600.toDateTime
             emResult.getP should equalWithTolerance(0.000268603.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
@@ -845,14 +1176,24 @@ class EmAgentIT
 
         emAgentActivation ! Activation(7200)
 
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 7200, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 7200)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
             emResult.getP should equalWithTolerance(-0.008423564.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.0027686916118.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(10800)))
 
         /* TICK 10800
@@ -861,14 +1202,25 @@ class EmAgentIT
         -> expect P and Q values of PV
          */
         emAgentActivation ! Activation(10800)
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 10800, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(loadInputWithLimitedOperationTime.getUuid, 10800)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 10800.toDateTime
             emResult.getP should equalWithTolerance(-0.008692167.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.00285697715.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
@@ -877,14 +1229,25 @@ class EmAgentIT
         -> expect P: 0 W Q: 0 var
          */
         emAgentActivation ! Activation(14400)
-        resultListener.expectMessageType[ParticipantResultEvent] match {
+
+        // we receive a message, since new data arrived
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 14400, true)
+        )
+
+        // we receive an update message, since a new set point was provided
+        resultServiceProxy.expectMessage(
+          ExpectResult(pvInputLimitedOperationTime.getUuid, 14400)
+        )
+
+        resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 14400.toDateTime
             emResult.getP should equalWithTolerance(0.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.asMegaVar)
         }
-        resultListener.expectNoMessage()
+        resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, None))
       }
     }

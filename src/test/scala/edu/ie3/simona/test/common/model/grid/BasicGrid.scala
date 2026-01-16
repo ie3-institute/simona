@@ -13,11 +13,11 @@ import edu.ie3.simona.model.grid.{
 }
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.*
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import edu.ie3.util.scala.quantities.{ApparentPower, Megavoltamperes}
-import squants.{Amperes, Each}
+import squants.{Amperes, Dimensionless, Each, ElectricCurrent, Percent}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.*
 
 import java.util.UUID
 import javax.measure.quantity.ElectricPotential
@@ -104,7 +104,7 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
   // / transformer tapping model
   protected val transformerTappingModel: TransformerTappingModel =
     TransformerTappingModel(
-      Quantities.getQuantity(1.5, PERCENT),
+      Percent(1.5),
       0,
       13,
       -13,
@@ -113,20 +113,14 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
     )
 
   // / electric params in pu
-  protected val transformerRInPu: squants.Dimensionless =
-    Each(0.001d)
-  protected val transformerXInPu: squants.Dimensionless =
-    Each(0.00015d)
-  protected val transformerGInPu: squants.Dimensionless =
-    Each(0d)
-  protected val transformerBInPu: squants.Dimensionless =
-    Each(-0.000033275d)
+  protected val transformerRInPu: Dimensionless = Each(0.001d)
+  protected val transformerXInPu: Dimensionless = Each(0.00015d)
+  protected val transformerGInPu: Dimensionless = zeroPU
+  protected val transformerBInPu: Dimensionless = Each(-0.000033275d)
 
   // / iNomHv, iNomLv
-  protected val iNomHv: squants.electro.ElectricCurrent =
-    Amperes(209.9455524325912d)
-  protected val iNomLv: squants.electro.ElectricCurrent =
-    Amperes(2309.401076758503d)
+  protected val iNomHv: ElectricCurrent = Amperes(209.9455524325912d)
+  protected val iNomLv: ElectricCurrent = Amperes(2309.401076758503d)
 
   protected val sRated: ApparentPower = Megavoltamperes(40)
 
