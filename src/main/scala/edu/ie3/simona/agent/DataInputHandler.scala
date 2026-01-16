@@ -4,13 +4,9 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant
+package edu.ie3.simona.agent
 
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  ActivationRequest,
-  tick,
-}
-import edu.ie3.simona.agent.participant.ParticipantInputHandler.ReceivedData
+import edu.ie3.simona.agent.DataInputHandler.ReceivedData
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   DataMessage,
@@ -29,35 +25,19 @@ import org.apache.pekko.actor.typed.ActorRef
   * @param receivedData
   *   Map of service actor reference to received data. Only data received at the
   *   current tick is stored here.
-  * @param activation
-  *   The activation message with which the participant agent was activated, if
-  *   applicable. This is emptied after each tick is completed.
   */
-final case class ParticipantInputHandler(
+final case class DataInputHandler(
     expectedData: Map[ActorRef[ServiceMessage], Long],
     receivedData: Map[ActorRef[ServiceMessage], ReceivedData],
-    activation: Option[ActivationRequest],
 ) {
 
-  /** Handles a received activation by storing the message.
-    *
-    * @param activation
-    *   The activation message.
-    * @return
-    *   An updated input handler.
-    */
-  def handleActivation(
-      activation: ActivationRequest
-  ): ParticipantInputHandler =
-    copy(activation = Some(activation))
-
-  /** Completes an activation by clearing out the stored activation message.
+  /** Clears out the received data.
     *
     * @return
     *   An updated input handler.
     */
-  def completeActivation(): ParticipantInputHandler =
-    copy(activation = None, receivedData = Map.empty)
+  def clear(): DataInputHandler =
+    copy(receivedData = Map.empty)
 
   /** Handles a received [[DataMessage]] by storing the message and updating the
     * expected data that remains to be received.
@@ -69,7 +49,7 @@ final case class ParticipantInputHandler(
     */
   def handleDataMessage(
       msg: DataMessage
-  ): ParticipantInputHandler = {
+  ): DataInputHandler = {
 
     val updatedReceivedData =
       msg match {
@@ -94,31 +74,27 @@ final case class ParticipantInputHandler(
     )
   }
 
-  /** Determines whether all expected messages for the current tick (activation
-    * and data input messages) have been received.
+  /** Determines whether all expected data for the current tick have been
+    * received.
     *
     * @return
-    *   Whether all expected messages were received for the current tick.
+    *   Whether all expected data was received for the current tick.
     */
-  def allMessagesReceived: Boolean = activation.exists { activationMsg =>
+  def allMessagesReceived(currentTick: Long): Boolean =
     expectedData.forall { case (_, nextTick) =>
-      nextTick > activationMsg.tick
+      nextTick > currentTick
     }
-  }
 
-  /** Determines whether there has been new data received for the current
-    * activation, which would mean that re-determination of model parameters
-    * should happen.
+  /** Determines whether there has been new data received for the current tick,
+    * which would mean that re-determination of model parameters should happen.
     *
     * @return
     *   Whether there's new data for the current tick or not.
     */
-  def hasNewData: Boolean =
-    activation.exists { activationMsg =>
-      receivedData.values.exists(
-        _.tick == activationMsg.tick
-      )
-    }
+  def hasNewData(currentTick: Long): Boolean =
+    receivedData.values.exists(
+      _.tick == currentTick
+    )
 
   /** Returns the next tick at which input data is expected.
     *
@@ -135,7 +111,7 @@ final case class ParticipantInputHandler(
     * @return
     *   The tick at which all data has been updated once.
     */
-  def getDataCompletedTick: Option[Long] =
+  def getDataUpdatedTick: Option[Long] =
     expectedData.values.maxOption
 
   /** Returns all received input data.
@@ -148,27 +124,26 @@ final case class ParticipantInputHandler(
 
 }
 
-object ParticipantInputHandler {
+object DataInputHandler {
 
   /** Holds received data in combination with the tick at which it was received.
     */
   final case class ReceivedData(data: Data, tick: Long)
 
-  /** Creates a new [[ParticipantInputHandler]] with the given expected data and
-    * empty received data and activation fields.
+  /** Creates a new [[DataInputHandler]] with the given expected data and empty
+    * received data field.
     *
     * @param expectedData
     *   Map of service actor reference to the tick at which data is expected
     *   next.
     * @return
-    *   A new [[ParticipantInputHandler]].
+    *   A new [[DataInputHandler]].
     */
   def apply(
       expectedData: Map[ActorRef[ServiceMessage], Long]
-  ): ParticipantInputHandler =
-    new ParticipantInputHandler(
+  ): DataInputHandler =
+    new DataInputHandler(
       expectedData = expectedData,
       receivedData = Map.empty,
-      activation = None,
     )
 }

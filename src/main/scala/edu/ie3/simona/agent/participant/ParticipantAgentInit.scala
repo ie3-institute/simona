@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.{LoadInput, SystemParticipantInput}
+import edu.ie3.simona.agent.DataInputHandler
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.*
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
@@ -385,10 +386,10 @@ object ParticipantAgentInit {
       simulationParams.simulationEnd,
     )
 
-    val inputHandler = ParticipantInputHandler(expectedData)
+    val inputHandler = DataInputHandler(expectedData)
 
     val firstTick = modelShell.operationStart
-    val dataCompletedTick = inputHandler.getDataCompletedTick
+    val dataCompletedTick = inputHandler.getDataUpdatedTick
 
     dataCompletedTick.foreach { dataCompleted =>
       if dataCompleted > firstTick then
@@ -400,13 +401,12 @@ object ParticipantAgentInit {
 
     parent.fold(
       _ ! Completion(
-        self,
-        Some(firstTick),
+        actor = self,
+        newTick = Some(firstTick),
       ),
       _ ! FlexCompletion(
-        modelShell.uuid,
-        requestAtNextActivation = false,
-        Some(firstTick),
+        modelUuid = modelShell.uuid,
+        requestAtTick = Some(firstTick),
       ),
     )
 

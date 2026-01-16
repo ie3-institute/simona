@@ -8,6 +8,7 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
+import edu.ie3.simona.agent.DataInputHandler
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
@@ -111,7 +112,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
               simulationEndDate,
             ),
-            ParticipantInputHandler(
+            DataInputHandler(
               Map.empty
             ),
             ParticipantGridAdapter(
@@ -274,7 +275,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
               simulationEndDate,
             ),
-            ParticipantInputHandler(
+            DataInputHandler(
               Map.empty
             ),
             ParticipantGridAdapter(
@@ -434,7 +435,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
               simulationEndDate,
             ),
-            ParticipantInputHandler(
+            DataInputHandler(
               Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
@@ -717,7 +718,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
               simulationEndDate,
             ),
-            ParticipantInputHandler(
+            DataInputHandler(
               Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
@@ -952,7 +953,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
               simulationEndDate,
             ),
-            ParticipantInputHandler(
+            DataInputHandler(
               Map.empty
             ),
             ParticipantGridAdapter(
@@ -1156,7 +1157,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
               simulationEndDate,
             ),
-            ParticipantInputHandler(
+            DataInputHandler(
               Map.empty
             ),
             ParticipantGridAdapter(
@@ -1422,7 +1423,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
               simulationEndDate,
             ),
-            ParticipantInputHandler(
+            DataInputHandler(
               Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
@@ -1864,7 +1865,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               simulationStartDate,
               simulationEndDate,
             ),
-            ParticipantInputHandler(
+            DataInputHandler(
               Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
