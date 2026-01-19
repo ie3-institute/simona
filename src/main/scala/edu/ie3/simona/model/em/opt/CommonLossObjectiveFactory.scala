@@ -351,7 +351,7 @@ object CommonLossObjectiveFactory {
     *   The state variable, describing the amount of energy in kWh at the end of
     *   the interval. Generally, the state energy signifies the upwards and
     *   downwards change of energy, compared to the energy potential (zero kWh)
-    *   at the start of the prediction horizon (the current tick).
+    *   at the start of the prediction horizon (the current simulation tick).
     * @param stepStartTick
     *   The tick at the start of the interval, i.e. the tick at which the
     *   operation of the step starts.

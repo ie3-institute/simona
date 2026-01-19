@@ -795,17 +795,12 @@ class CommonLossObjectiveFactorySpec
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        val priceData =
-          (Seq.fill(2)((0.1d, 0.3d)) ++
-            Seq.fill(6)((-0.02d, 0.2d)) ++
-            Seq.fill(4)((0.1d, 0.3d))).toPriceData
-
         val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
           flexOptions = flexOptionsScenario1,
           sampleTime = halfHour,
           ticks = ticks,
           target = zeroKW,
-          receivedData = Seq(priceData),
+          receivedData = Seq(priceDataScenario1),
           objectiveFactory = PriceObjectiveFactory(),
         )
 
