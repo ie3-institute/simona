@@ -7,11 +7,6 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.agent.participant.ParticipantAgentInit
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
@@ -30,10 +25,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  SecondaryServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData

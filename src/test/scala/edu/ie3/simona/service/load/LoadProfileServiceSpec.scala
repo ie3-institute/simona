@@ -9,21 +9,13 @@ package edu.ie3.simona.service.load
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.profile.{BdewStandardLoadProfile, LoadProfile}
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  Create,
-  SecondaryServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.LoadData
@@ -56,7 +48,7 @@ class LoadProfileServiceSpec
   }
 
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
-  private val agent = TestProbe[ParticipantAgent.Request]("agent")
+  private val agent = TestProbe[ParticipantAgent.Message]("agent")
 
   // build the load profile service
   private val loadProfileService = testKit.spawn(

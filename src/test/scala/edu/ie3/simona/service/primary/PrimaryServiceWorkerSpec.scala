@@ -12,10 +12,6 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.{HeatDemandValue, PValue, SValue}
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  PrimaryRegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,

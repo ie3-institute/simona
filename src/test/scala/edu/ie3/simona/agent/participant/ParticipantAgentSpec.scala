@@ -21,9 +21,7 @@ import edu.ie3.simona.agent.participant.MockParticipantModel.{
   MockSecondaryData,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
   GridSimulationFinished,
-  NoDataProvision,
   RequestAssetPowerMessage,
 }
 import edu.ie3.simona.event.ResultEvent
@@ -37,6 +35,10 @@ import edu.ie3.simona.model.participant.{
   PrimaryDataParticipantModel,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  DataProvision,
+  NoDataProvision,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
 import edu.ie3.simona.ontology.messages.{

@@ -14,14 +14,18 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   ProvidedPowerResponse,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.model.participant.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  DataMessage,
+  DirectAgentRequest,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.ServiceMessage
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.service.Data
-import edu.ie3.simona.service.Data.PrimaryDataExtra
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -33,7 +37,7 @@ import squants.{Dimensionless, Each}
   */
 object ParticipantAgent {
 
-  type Message = Request | ActivationRequest
+  type Message = Request | ActivationRequest | ServiceMessage.Response
 
   type ActivationRequest = Activation | FlexRequest
 
@@ -49,80 +53,6 @@ object ParticipantAgent {
   }
 
   sealed trait Request
-
-  /** Messages that are sent by services as responses to registration requests.
-    */
-  sealed trait RegistrationResponseMessage extends Request {
-    val serviceRef: ActorRef[ServiceMessage]
-  }
-
-  /** Message confirming a successful registration with a secondary service.
-    */
-  final case class RegistrationSuccessfulMessage(
-      override val serviceRef: ActorRef[ServiceMessage],
-      firstDataTick: Long,
-      additionalData: Option[AdditionalFactoryData] = None,
-  ) extends RegistrationResponseMessage
-
-  /** Message confirming a successful registration with the primary service.
-    *
-    * @param firstDataTick
-    *   The first tick at which data will be sent.
-    * @param primaryDataExtra
-    *   Extra functionality specific to the primary data class.
-    */
-  final case class PrimaryRegistrationSuccessfulMessage(
-      override val serviceRef: ActorRef[ServiceMessage],
-      firstDataTick: Long,
-      primaryDataExtra: PrimaryDataExtra[?],
-  ) extends RegistrationResponseMessage
-
-  /** Message announcing a failed registration.
-    */
-  final case class RegistrationFailedMessage(
-      override val serviceRef: ActorRef[ServiceMessage]
-  ) extends RegistrationResponseMessage
-
-  /** Data provision messages sent by data services.
-    */
-  sealed trait DataMessage extends Request {
-
-    /** The current tick.
-      */
-    val tick: Long
-
-    /** The sending service actor ref.
-      */
-    val serviceRef: ActorRef[ServiceMessage]
-
-    /** Next tick at which data could arrive. If None, no data is expected for
-      * the rest of the simulation.
-      */
-    val nextDataTick: Option[Long]
-  }
-
-  /** Providing primary or secondary data to the [[ParticipantAgent]].
-    *
-    * @param data
-    *   The data.
-    */
-  final case class DataProvision(
-      override val tick: Long,
-      override val serviceRef: ActorRef[ServiceMessage],
-      data: Data,
-      override val nextDataTick: Option[Long],
-  ) extends DataMessage
-
-  /** Providing the information that no data will be provided by the sending
-    * service for the current tick. The participant could thus potentially skip
-    * calculations for the current tick and reschedule calculation for the next
-    * data tick.
-    */
-  final case class NoDataProvision(
-      override val tick: Long,
-      override val serviceRef: ActorRef[ServiceMessage],
-      override val nextDataTick: Option[Long],
-  ) extends DataMessage
 
   /** This message, sent by the [[edu.ie3.simona.agent.grid.GridAgent]],
     * requests the power values for the requested tick from this
@@ -159,16 +89,6 @@ object ParticipantAgent {
       nextRequestTick: Long,
   ) extends Request
 
-  /** A request to the [[edu.ie3.simona.model.participant.ParticipantModel]]
-    * outside of regular requests related to participant operation.
-    */
-  trait ParticipantRequest extends Request {
-
-    /** The tick for which the request is valid, which is the current tick.
-      */
-    val tick: Long
-  }
-
   /** Container that conveniently holds various data for the
     * [[ParticipantAgent]].
     *
@@ -191,6 +111,7 @@ object ParticipantAgent {
       resultHandler: ParticipantResultHandler,
       activation: Option[ActivationRequest],
   )
+
   def apply(
       modelShell: ParticipantModelShell[?, ?],
       inputHandler: DataInputHandler,
@@ -214,8 +135,8 @@ object ParticipantAgent {
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]]
   ): Behavior[Message] =
     Behaviors.receivePartial {
-      case (ctx, request: ParticipantRequest) =>
-        // ParticipantRequests are always directly answered
+      case (ctx, request: DirectAgentRequest) =>
+        // DirectRequests are always directly answered
         // without taking into account possible new input data
         val updatedShell = data.modelShell.handleRequest(ctx, request)
 
@@ -497,8 +418,10 @@ object ParticipantAgent {
 
   /** Checks if conditions for recalculation (i.e. determination of operating
     * point, flex options etc.) are present. This is not the case if all
-    * registered services have delivered [[NoDataProvision]] messages only, but
-    * can still be the case if the model itself requested recalculation.
+    * registered services have delivered
+    * [[edu.ie3.simona.ontology.messages.ServiceMessage.NoDataProvision]]
+    * messages only, but can still be the case if the model itself requested
+    * recalculation.
     *
     * @param modelShell
     *   The model shell.

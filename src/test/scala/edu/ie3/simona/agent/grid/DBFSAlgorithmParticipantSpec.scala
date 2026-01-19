@@ -14,14 +14,16 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangeVoltage,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
-import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  RegistrationFailedMessage,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.load.LoadProfileService
