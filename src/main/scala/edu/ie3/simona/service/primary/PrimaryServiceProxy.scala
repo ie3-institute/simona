@@ -30,12 +30,10 @@ import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
 import edu.ie3.simona.config.ConfigParams.{SqlParams, TimeStampedCsvParams}
 import edu.ie3.simona.config.InputConfig.Primary as PrimaryConfig
-import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -336,7 +334,7 @@ object PrimaryServiceProxy {
           PrimaryServiceRegistrationMessage(requestingActor, modelUuid),
         ) =>
       /* Try to register for this model */
-      stateData.extSubscribersToService.get(modelUuid) match {
+      stateData.modelToExtWorker.get(modelUuid) match {
         case Some(_) =>
           /* There is external data apparent for this model */
           handleExternalModel(modelUuid, stateData, requestingActor)
@@ -441,9 +439,9 @@ object PrimaryServiceProxy {
   protected def handleExternalModel(
       modelUuid: UUID,
       stateData: PrimaryServiceStateData,
-      requestingActor: ActorRef[ParticipantAgent.Request],
+      requestingActor: ActorRef[ServiceMessage.Response],
   ): Unit = {
-    stateData.extSubscribersToService.foreach { case (_, ref) =>
+    stateData.modelToExtWorker.foreach { case (_, ref) =>
       ref ! PrimaryServiceRegistrationMessage(
         requestingActor,
         modelUuid,

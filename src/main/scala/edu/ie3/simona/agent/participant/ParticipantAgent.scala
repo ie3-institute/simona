@@ -314,7 +314,11 @@ object ParticipantAgent {
 
             case FlexActivation(tick, flexType, force) =>
               val shellWithFlex =
-                if force || isCalculationRequired(shell, data.inputHandler, activation)  || !modelShell.hasFlexOptions
+                if force || isCalculationRequired(
+                    shell,
+                    data.inputHandler,
+                    activation,
+                  ) || !data.modelShell.hasFlexOptions
                 then {
                   val newShell = shell.updateFlexOptions(tick, flexType)
                   data.resultHandler.maybeSend(
@@ -348,10 +352,7 @@ object ParticipantAgent {
               results.modelResults.foreach(data.resultHandler.maybeSend)
 
               val gridAdapterWithResult =
-                data.gridAdapter.storeResults(
-                  results.totalPower,
-                  flexControl.tick,
-                )
+                data.gridAdapter.storeResults(results, flexControl.tick)
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 flexControl.tick,
@@ -388,7 +389,7 @@ object ParticipantAgent {
         // clear activation, as it has been dealt with
         activation = None,
       )
-    } else data.copy(gridAdapter = gridAdapter.clearLastResults)
+    } else data.copy(gridAdapter = data.gridAdapter.clearLastResults)
   }
 
   /** Checks if all required messages needed for calculation have been received.
