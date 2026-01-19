@@ -14,11 +14,6 @@ import edu.ie3.datamodel.io.source.TimeSeriesSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
 import edu.ie3.datamodel.io.source.sql.SqlTimeSeriesSource
 import edu.ie3.datamodel.models.value.Value
-import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  PrimaryRegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
@@ -28,6 +23,8 @@ import edu.ie3.simona.exceptions.{
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  DataProvision,
+  PrimaryRegistrationSuccessfulMessage,
   ServiceRegistrationMessage,
   WorkerRegistrationMessage,
 }
@@ -150,7 +147,7 @@ object PrimaryServiceWorker extends SimonaService {
       startDateTime: ZonedDateTime,
       valueClass: Class[V],
       source: TimeSeriesSource[V],
-      subscribers: Vector[ActorRef[ParticipantAgent.Request]] = Vector.empty,
+      subscribers: Vector[ActorRef[ServiceMessage.Response]] = Vector.empty,
   ) extends ServiceBaseStateData
 
   override type S = PrimaryServiceInitializedStateData[Value]

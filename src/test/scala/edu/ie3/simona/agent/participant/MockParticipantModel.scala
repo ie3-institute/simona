@@ -8,11 +8,11 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.MockParticipantModel.*
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.model.participant.ParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.ServiceMessage.DirectAgentRequest
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   FlexType,
@@ -148,7 +148,7 @@ class MockParticipantModel(
   override def handleRequest(
       state: MockState,
       ctx: ActorContext[ParticipantAgent.Message],
-      msg: ParticipantRequest,
+      msg: DirectAgentRequest,
   ): MockState = {
     msg match {
       case MockRequestMessage(_, replyTo) =>
@@ -206,7 +206,7 @@ object MockParticipantModel {
   final case class MockRequestMessage(
       override val tick: Long,
       replyTo: ActorRef[MockResponseMessage],
-  ) extends ParticipantRequest
+  ) extends DirectAgentRequest
 
   /** Mock response message that also enables testing of state handling
     *

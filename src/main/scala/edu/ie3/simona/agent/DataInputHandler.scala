@@ -7,12 +7,12 @@
 package edu.ie3.simona.agent
 
 import edu.ie3.simona.agent.DataInputHandler.ReceivedData
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
   DataMessage,
   DataProvision,
   NoDataProvision,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.Data
 import org.apache.pekko.actor.typed.ActorRef
 
