@@ -332,19 +332,12 @@ object PrimaryServiceProxy {
         ) =>
       /* Try to register for this model */
       stateData.modelToExtWorker.get(modelUuid) match {
-        case Some(_) =>
+        case Some(ref) =>
           /* There is external data apparent for this model */
-          stateData.modelToExtWorker.get(modelUuid) match {
-            case Some(ref) =>
-              ref ! PrimaryServiceRegistrationMessage(
-                requestingActor,
-                modelUuid,
-              )
-            case None =>
-              ctx.log.warn(
-                s"Could not forward the registration message for model with uuid `$modelUuid`"
-              )
-          }
+          ref ! PrimaryServiceRegistrationMessage(
+            requestingActor,
+            modelUuid,
+          )
 
           Behaviors.same
 
