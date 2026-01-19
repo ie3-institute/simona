@@ -8,11 +8,6 @@ package edu.ie3.simona.service.primary
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.value.{PValue, Value}
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  PrimaryRegistrationSuccessfulMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.ontology.primary.ProvidePrimaryData
@@ -21,12 +16,12 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  Create,
-  PrimaryServiceRegistrationMessage,
-  SecondaryServiceRegistrationMessage,
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
 import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
@@ -58,7 +53,8 @@ class ExtPrimaryServiceWorkerSpec
   private val extSimAdapter =
     TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
-  private val systemParticipant = TestProbe[Any]("dummySystemParticipant")
+  private val systemParticipant =
+    TestProbe[ServiceMessage.Response]("dummySystemParticipant")
 
   private val validUuid =
     UUID.fromString("b73a7e3f-9045-40cd-b518-c11a9a6a1025")

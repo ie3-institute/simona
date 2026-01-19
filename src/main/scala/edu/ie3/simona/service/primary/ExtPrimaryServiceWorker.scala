@@ -7,10 +7,6 @@
 package edu.ie3.simona.service.primary
 
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  PrimaryRegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.primary.{
@@ -19,11 +15,8 @@ import edu.ie3.simona.api.ontology.primary.{
 }
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  ServiceRegistrationMessage,
-  ServiceResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.RichValue
 import edu.ie3.simona.service.ServiceStateData.{
@@ -55,7 +48,7 @@ object ExtPrimaryServiceWorker extends SimonaService with ExtDataSupport {
     */
   final case class ExtPrimaryDataStateData(
       extPrimaryDataConnection: ExtPrimaryDataConnection,
-      uuidToActorRef: Map[UUID, ActorRef[ParticipantAgent.Request]] =
+      uuidToActorRef: Map[UUID, ActorRef[ServiceMessage.Response]] =
         Map.empty, // subscribers in SIMONA
       extPrimaryDataMessage: Option[PrimaryDataMessageFromExt] = None,
   ) extends ServiceBaseStateData
@@ -117,7 +110,7 @@ object ExtPrimaryServiceWorker extends SimonaService with ExtDataSupport {
     *   The updated state data.
     */
   private def handleRegistrationRequest(
-      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
+      agentToBeRegistered: ActorRef[ServiceMessage.Response],
       agentUUID: UUID,
   )(using
       serviceStateData: ExtPrimaryDataStateData,
