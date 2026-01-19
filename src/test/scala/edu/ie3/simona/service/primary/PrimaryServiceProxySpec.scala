@@ -15,7 +15,6 @@ import edu.ie3.datamodel.models.value.{PValue, SValue, Value}
 import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
 import edu.ie3.datamodel.models.value.SValue
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.config.ConfigParams.{
   CouchbaseParams,
   TimeStampedCsvParams,
@@ -30,6 +29,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
   PrimaryServiceRegistrationMessage,
+  RegistrationFailedMessage,
   WorkerRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{
@@ -639,9 +639,9 @@ class PrimaryServiceProxySpec
 
       val testKit = BehaviorTestKit(PrimaryServiceProxy.onMessage(stateData))
 
-      val participant1 = TestProbe[ParticipantAgent.Request]("participant1")
-      val participant2 = TestProbe[ParticipantAgent.Request]("participant2")
-      val participant3 = TestProbe[ParticipantAgent.Request]("participant3")
+      val participant1 = TestProbe[ParticipantAgent.Message]("participant1")
+      val participant2 = TestProbe[ParticipantAgent.Message]("participant2")
+      val participant3 = TestProbe[ParticipantAgent.Message]("participant3")
 
       testKit.run(PrimaryServiceRegistrationMessage(participant1.ref, uuid1))
 

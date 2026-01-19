@@ -8,17 +8,17 @@ package edu.ie3.simona.service.primary
 
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  PrimaryRegistrationSuccessfulMessage,
-  RegistrationFailedMessage,
-}
 import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.config.InputConfig.Primary
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  PrimaryRegistrationSuccessfulMessage,
+  PrimaryServiceRegistrationMessage,
+  RegistrationFailedMessage,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.test.common.TestSpawnerTyped
@@ -118,7 +118,7 @@ class PrimaryServiceProxySqlIT
 
     "handle participant request correctly if participant has primary data" in {
       val systemParticipantProbe =
-        TestProbe[ParticipantAgent.Request]("SystemParticipant")
+        TestProbe[ParticipantAgent.Message]("SystemParticipant")
 
       val proxyRef = createProxy()
 

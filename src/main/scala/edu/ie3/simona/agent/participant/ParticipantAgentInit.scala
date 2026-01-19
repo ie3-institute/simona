@@ -28,10 +28,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  SecondaryServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
@@ -259,7 +256,7 @@ object ParticipantAgentInit {
 
   private def registerForService(
       participantInput: SystemParticipantInput,
-      participantRef: ActorRef[Request],
+      participantRef: ActorRef[Message],
       serviceType: ServiceType,
       serviceRef: ActorRef[ServiceMessage],
   ): Unit =

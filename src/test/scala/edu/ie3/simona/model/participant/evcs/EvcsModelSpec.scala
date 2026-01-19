@@ -8,7 +8,6 @@ package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.ParticipantModel.OperationChangeIndicator
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
@@ -472,7 +471,7 @@ class EvcsModelSpec
           model: EvcsModel,
           state: EvcsState,
       ): Behavior[ParticipantAgent.Message] = Behaviors.receivePartial {
-        case (ctx, request: ParticipantRequest) =>
+        case (ctx, request: DirectAgentRequest) =>
           val newState = model.handleRequest(
             state,
             ctx,
