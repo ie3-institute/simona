@@ -9,10 +9,6 @@ package edu.ie3.simona.service.primary
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
 import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  PrimaryRegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -20,12 +16,13 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   Create,
+  DataProvision,
+  PrimaryRegistrationSuccessfulMessage,
   WorkerRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.{
   ActivePower,
   ActivePowerExtra,

@@ -7,16 +7,14 @@
 package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.models.profile.LoadProfile
-import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  DataProvision,
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
   SecondaryServiceRegistrationMessage,
   ServiceRegistrationMessage,
 }
@@ -56,7 +54,7 @@ object LoadProfileService extends SimonaService {
     */
   final case class LoadProfileInitializedStateData(
       loadProfileStore: LoadProfileStore,
-      profileToRefs: Map[LoadProfile, Seq[ActorRef[ParticipantAgent.Request]]] =
+      profileToRefs: Map[LoadProfile, Seq[ActorRef[ServiceMessage.Response]]] =
         Map.empty,
       profileResolutions: Map[LoadProfile, Long],
       profileToNextActivationTick: Map[LoadProfile, Long],
@@ -147,7 +145,7 @@ object LoadProfileService extends SimonaService {
     *   information if the registration has been carried out successfully
     */
   private def handleRegistrationRequest(
-      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
+      agentToBeRegistered: ActorRef[ServiceMessage.Response],
       loadProfile: LoadProfile,
   )(using
       serviceStateData: LoadProfileInitializedStateData,
