@@ -82,12 +82,14 @@ object PrimaryServiceProxy {
   type Message = ServiceMessage | Activation
 
   /** State data with needed information to initialize this primary service
-    * provider proxy
+    * provider proxy.
     *
     * @param primaryConfig
-    *   Configuration for the primary source
+    *   Configuration for the primary source.
     * @param simulationStart
-    *   Simulation time of the first instant in simulation
+    *   Simulation time of the first instant in simulation.
+    * @param extSimulationData
+    *   Seq: external primary data connections to service references.
     */
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
@@ -100,29 +102,31 @@ object PrimaryServiceProxy {
   /** Holding the state of an initialized proxy.
     *
     * @param modelToTimeSeries
-    *   Mapping from models' to time series unique identifiers
+    *   Mapping from models' to time series unique identifiers.
     * @param timeSeriesToSourceRef
-    *   Mapping from time series identifier to [[SourceRef]]
+    *   Mapping from time series identifier to [[SourceRef]].
     * @param simulationStart
-    *   Simulation time of the first instant in simulation
+    *   Simulation time of the first instant in simulation.
     * @param primaryConfig
-    *   The configuration for the sources
+    *   The configuration for the sources.
+    * @param modelToExtWorker
+    *   Map: participant uuid to external primary service worker.
     */
   final case class PrimaryServiceStateData(
       modelToTimeSeries: Map[UUID, UUID],
       timeSeriesToSourceRef: Map[UUID, SourceRef],
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
-      extSubscribersToService: Map[UUID, ActorRef[ServiceMessage]] = Map.empty,
+      modelToExtWorker: Map[UUID, ActorRef[ServiceMessage]] = Map.empty,
   ) extends ServiceStateData
 
   /** Giving reference to the target time series and source worker.
     *
     * @param metaInformation
-    *   Meta information (including column scheme) of the time series
+    *   Meta information (including column scheme) of the time series.
     * @param worker
     *   Optional reference to an already existing worker providing information
-    *   on that time series
+    *   on that time series.
     */
   final case class SourceRef(
       metaInformation: IndividualTimeSeriesMetaInformation,
@@ -147,7 +151,7 @@ object PrimaryServiceProxy {
   /** Handle all messages, when the actor isn't initialized, yet.
     *
     * @return
-    *   How receiving should be handled with gained insight of myself
+    *   How receiving should be handled with gained insight of myself.
     */
   private def uninitialized(
       initStateData: InitPrimaryServiceProxyStateData
@@ -182,14 +186,14 @@ object PrimaryServiceProxy {
 
   /** Prepare the needed state data by building a
     * [[edu.ie3.datamodel.io.source.TimeSeriesMappingSource]], obtain its
-    * information and compile them to state data
+    * information and compile them to state data.
     *
     * @param primaryConfig
-    *   Configuration for the primary source
+    *   Configuration for the primary source.
     * @param simulationStart
-    *   Simulation time of first instant in simulation
+    *   Simulation time of first instant in simulation.
     * @return
-    *   State data, containing the known model and time series identifiers
+    *   State data, containing the known model and time series identifiers.
     */
   private[service] def prepareStateData(
       primaryConfig: PrimaryConfig,
@@ -244,28 +248,20 @@ object PrimaryServiceProxy {
               }
             }
             .toMap
-          if extSimulationData.nonEmpty then {
-            val extSubscribersToService = extSimulationData.flatMap {
-              case (connection, ref) =>
-                connection.getPrimaryDataAssets.asScala.map(id => id -> ref)
-            }
 
-            // Ask ExtPrimaryDataService which UUIDs should be substituted
-            PrimaryServiceStateData(
-              modelToTimeSeries,
-              timeSeriesToSourceRef,
-              simulationStart,
-              primaryConfig,
-              extSubscribersToService.toMap,
-            )
-          } else {
-            PrimaryServiceStateData(
-              modelToTimeSeries,
-              timeSeriesToSourceRef,
-              simulationStart,
-              primaryConfig,
-            )
-          }
+          // create the model to ref map
+          val modelToExtWorker = extSimulationData.flatMap {
+            case (connection, ref) =>
+              connection.getPrimaryDataAssets.asScala.map(id => id -> ref)
+          }.toMap
+
+          PrimaryServiceStateData(
+            modelToTimeSeries,
+            timeSeriesToSourceRef,
+            simulationStart,
+            primaryConfig,
+            modelToExtWorker,
+          )
       }
     }
 
@@ -328,9 +324,9 @@ object PrimaryServiceProxy {
     * needed, new workers are spun off.
     *
     * @param stateData
-    *   Representing the current state of the agent
+    *   Representing the current state of the agent.
     * @return
-    *   Message handling routine
+    *   Message handling routine.
     */
   private[service] def onMessage(stateData: PrimaryServiceStateData)(using
       scheduler: ActorRef[SchedulerMessage]
@@ -384,14 +380,14 @@ object PrimaryServiceProxy {
 
   /** Handle the registration request for a covered model. First, try to get an
     * already existing worker for this time series, otherwise spin-off a new
-    * one, remember it and forward the request
+    * one, remember it and forward the request.
     *
     * @param modelUuid
-    *   Unique identifier of the model
+    *   Unique identifier of the model.
     * @param timeSeriesUuid
-    *   Unique identifier of the equivalent time series
+    *   Unique identifier of the equivalent time series.
     * @param stateData
-    *   Current state data of the actor
+    *   Current state data of the actor.
     */
   protected[service] def handleCoveredModel(
       modelUuid: UUID,
@@ -456,16 +452,16 @@ object PrimaryServiceProxy {
   }
 
   /** Instantiate a new [[PrimaryServiceWorker]] and send initialization
-    * information
+    * information.
     *
     * @param metaInformation
-    *   Meta information (including column scheme) of the time series
+    *   Meta information (including column scheme) of the time series.
     * @param simulationStart
-    *   The time of the simulation start
+    *   The time of the simulation start.
     * @param primaryConfig
-    *   Configuration for the primary config
+    *   Configuration for the primary config.
     * @return
-    *   The [[ActorRef]] to the worker
+    *   The [[ActorRef]] to the worker.
     */
   protected[service] def initializeWorker(
       metaInformation: IndividualTimeSeriesMetaInformation,
@@ -502,12 +498,12 @@ object PrimaryServiceProxy {
   }
 
   /** Build a primary source worker and type it to the foreseen value class to
-    * come
+    * come.
     *
     * @param timeSeriesUuid
-    *   Uuid of the time series the actor processes
+    *   Uuid of the time series the actor processes.
     * @return
-    *   The [[ActorRef]] to the spun off actor
+    *   The [[ActorRef]] to the spun off actor.
     */
   private[service] def classToWorkerRef(
       timeSeriesUuid: String
@@ -520,15 +516,16 @@ object PrimaryServiceProxy {
       timeSeriesUuid,
     )
 
-  /** Building proper init data for the worker
+  /** Building proper init data for the worker.
     *
     * @param metaInformation
-    *   Meta information (including column scheme) of the time series
+    *   Meta information (including column scheme) of the time series.
     * @param simulationStart
-    *   The time of the simulation start
+    *   The time of the simulation start.
     * @param primaryConfig
-    *   Configuration for the primary config
+    *   Configuration for the primary config.
     * @return
+    *   A try for the init state data.
     */
   private[service] def toInitData[V <: Value](
       metaInformation: IndividualTimeSeriesMetaInformation,
@@ -593,13 +590,13 @@ object PrimaryServiceProxy {
   /** Register the worker within the state data.
     *
     * @param stateData
-    *   Current state information
+    *   Current state information.
     * @param timeSeriesUuid
-    *   Unique identifier of the time series, the worker takes care of
+    *   Unique identifier of the time series, the worker takes care of.
     * @param workerRef
-    *   [[ActorRef]] to the new worker actor
+    *   [[ActorRef]] to the new worker actor.
     * @return
-    *   The updated state data, that holds reference to the worker
+    *   The updated state data, that holds reference to the worker.
     */
   private def updateStateData(
       stateData: PrimaryServiceStateData,

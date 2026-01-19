@@ -24,8 +24,8 @@ import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.service.primary.ExtPrimaryDataService
-import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
 import edu.ie3.simona.service.results.ResultServiceProxy.AddListener
 import edu.ie3.simona.service.results.{ExtResultProvider, ResultServiceProxy}
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
@@ -167,8 +167,8 @@ object ExtSimSetup {
         connection match {
           case extPrimaryDataConnection: ExtPrimaryDataConnection =>
             val serviceRef = context.spawn(
-              ExtPrimaryDataService(scheduler),
-              "ExtPrimaryDataService",
+              ExtPrimaryServiceWorker(scheduler),
+              "ExtPrimaryDataService_$index",
             )
 
             setupService(
@@ -177,7 +177,7 @@ object ExtSimSetup {
               InitExtPrimaryData.apply,
             )
 
-            setupData.update(extPrimaryDataConnection, serviceRef)
+            extSimSetupData.update(extPrimaryDataConnection, serviceRef)
 
           case extEmDataConnection: ExtEmDataConnection =>
             if setupData.emDataService.nonEmpty then {
