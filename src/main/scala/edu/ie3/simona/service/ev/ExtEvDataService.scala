@@ -6,11 +6,6 @@
 
 package edu.ie3.simona.service.ev
 
-import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.api.data.connection.ExtEvDataConnection
 import edu.ie3.simona.api.data.model.ev.EvModel
 import edu.ie3.simona.api.ontology.ev.*
@@ -48,7 +43,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
 
   final case class ExtEvStateData(
       extEvData: ExtEvDataConnection,
-      uuidToActorRef: Map[UUID, ActorRef[ParticipantAgent.Request]] = Map.empty,
+      uuidToActorRef: Map[UUID, ActorRef[ServiceMessage.Response]] = Map.empty,
       extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: ReceiveDataMap[UUID, Int] = ReceiveDataMap.empty,
       departingEvResponses: ReceiveDataMap[UUID, Seq[EvModelWrapper]] =
@@ -118,7 +113,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
     *   information if the registration has been carried out successfully
     */
   private def handleRegistrationRequest(
-      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
+      agentToBeRegistered: ActorRef[ServiceMessage.Response],
       evcs: UUID,
   )(using
       serviceStateData: ExtEvStateData,

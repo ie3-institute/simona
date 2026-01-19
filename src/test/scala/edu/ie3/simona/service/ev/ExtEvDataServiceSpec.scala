@@ -7,10 +7,6 @@
 package edu.ie3.simona.service.ev
 
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.api.data.connection.ExtEvDataConnection
 import edu.ie3.simona.api.data.model.ev.EvModel
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
@@ -88,7 +84,7 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(evService, extSimAdapter.ref)
 
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
+      val evcs1 = TestProbe[ParticipantAgent.Message]("evcs1")
 
       /* INIT */
 
@@ -124,8 +120,8 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(evService, extSimAdapter.ref)
 
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
-      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
+      val evcs1 = TestProbe[ParticipantAgent.Message]("evcs1")
+      val evcs2 = TestProbe[ParticipantAgent.Message]("evcs2")
 
       /* INIT */
 
@@ -208,8 +204,8 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(evService, extSimAdapter.ref)
 
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
-      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
+      val evcs1 = TestProbe[ParticipantAgent.Message]("evcs1")
+      val evcs2 = TestProbe[ParticipantAgent.Message]("evcs2")
 
       /* INIT */
 
@@ -299,8 +295,8 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(evService, extSimAdapter.ref)
 
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
-      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
+      val evcs1 = TestProbe[ParticipantAgent.Message]("evcs1")
+      val evcs2 = TestProbe[ParticipantAgent.Message]("evcs2")
 
       /* INIT */
 
@@ -424,8 +420,8 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(evService, extSimAdapter.ref)
 
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
-      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
+      val evcs1 = TestProbe[ParticipantAgent.Message]("evcs1")
+      val evcs2 = TestProbe[ParticipantAgent.Message]("evcs2")
 
       /* INIT */
 
@@ -581,8 +577,8 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(evService, extSimAdapter.ref)
 
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
-      val evcs2 = TestProbe[ParticipantAgent.Request]("evcs2")
+      val evcs1 = TestProbe[ParticipantAgent.Message]("evcs1")
+      val evcs2 = TestProbe[ParticipantAgent.Message]("evcs2")
 
       /* INIT */
 
@@ -662,7 +658,7 @@ class ExtEvDataServiceSpec
       val extEvData = new ExtEvDataConnection()
       extEvData.setActorRefs(evService, extSimAdapter.ref)
 
-      val evcs1 = TestProbe[ParticipantAgent.Request]("evcs1")
+      val evcs1 = TestProbe[ParticipantAgent.Message]("evcs1")
 
       /* INIT */
 

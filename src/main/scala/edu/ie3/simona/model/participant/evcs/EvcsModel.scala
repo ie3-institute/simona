@@ -14,7 +14,6 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
@@ -398,7 +397,7 @@ class EvcsModel private (
   override def handleRequest(
       state: EvcsState,
       ctx: ActorContext[ParticipantAgent.Message],
-      msg: ParticipantRequest,
+      msg: DirectAgentRequest,
   ): EvcsState = msg match {
     case freeLotsRequest: EvFreeLotsRequest =>
       val stayingEvsCount =

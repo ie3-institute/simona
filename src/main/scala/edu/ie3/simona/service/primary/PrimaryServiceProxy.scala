@@ -28,8 +28,6 @@ import edu.ie3.datamodel.io.source.{
 }
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
-import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
 import edu.ie3.simona.config.ConfigParams.{SqlParams, TimeStampedCsvParams}
 import edu.ie3.simona.config.InputConfig.Primary as PrimaryConfig
 import edu.ie3.simona.exceptions.InitializationException
@@ -399,7 +397,7 @@ object PrimaryServiceProxy {
       modelUuid: UUID,
       timeSeriesUuid: UUID,
       stateData: PrimaryServiceStateData,
-      requestingActor: ActorRef[ParticipantAgent.Request],
+      requestingActor: ActorRef[ServiceMessage.Response],
   )(using
       scheduler: ActorRef[SchedulerMessage],
       ctx: ActorContext[Message],

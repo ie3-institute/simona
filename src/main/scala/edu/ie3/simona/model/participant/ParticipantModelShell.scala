@@ -10,7 +10,6 @@ import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ParticipantModel.{
@@ -20,6 +19,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.ParticipantModelShell.ResultsContainer
+import edu.ie3.simona.ontology.messages.ServiceMessage.DirectAgentRequest
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
@@ -424,7 +424,7 @@ final case class ParticipantModelShell[
     */
   def handleRequest(
       ctx: ActorContext[ParticipantAgent.Message],
-      request: ParticipantRequest,
+      request: DirectAgentRequest,
   ): ParticipantModelShell[OP, S] = {
     val currentState = determineCurrentState(request.tick)
     val updatedState = model.handleRequest(currentState, ctx, request)

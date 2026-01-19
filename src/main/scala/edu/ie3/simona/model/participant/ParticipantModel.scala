@@ -9,7 +9,6 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
@@ -17,6 +16,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   OperationChangeIndicator,
 }
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.ServiceMessage.DirectAgentRequest
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
@@ -239,7 +239,7 @@ abstract class ParticipantModel[
   def handleRequest(
       state: S,
       ctx: ActorContext[ParticipantAgent.Message],
-      msg: ParticipantRequest,
+      msg: DirectAgentRequest,
   ): S =
     throw new NotImplementedError(s"Method not implemented by $getClass")
 
@@ -249,7 +249,7 @@ object ParticipantModel {
 
   /** Additional data for factories. This data is optionally supplied by the
     * secondary data service via a
-    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationSuccessfulMessage]].
+    * [[edu.ie3.simona.ontology.messages.ServiceMessage.RegistrationSuccessfulMessage]].
     */
   trait AdditionalFactoryData
 
