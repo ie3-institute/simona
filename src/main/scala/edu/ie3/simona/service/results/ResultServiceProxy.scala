@@ -51,12 +51,15 @@ object ResultServiceProxy {
       waitForSetPoint: Boolean = false,
   )
 
-  /** Method for adding an additional listener to the proxy.
+  /** Method for adding a listener to the proxy.
     * @param listener
     *   That should be added.
     */
   final case class AddListener(listener: ActorRef[ResultResponse])
 
+  /** Conversion for the grid results. Since all other uuids are mapped to a
+    * collection of results.
+    */
   given Conversion[Map[UUID, ResultEntity], Map[UUID, Iterable[ResultEntity]]] =
     (inputMap: Map[UUID, ResultEntity]) =>
       inputMap.map { case (key, value) => key -> Iterable(value) }
@@ -350,15 +353,13 @@ object ResultServiceProxy {
 
             oldResults.get(model) match {
               case Some(oldResult) =>
-                // save the old time
+                // Temporarily change time for comparison, then revert
                 val oldTime = oldResult.getTime
                 oldResult.setTime(res.getTime)
+                val equal = oldResult == res
+                oldResult.setTime(oldTime)
 
-                if oldResult == res then {
-                  // switch back to the old time
-                  oldResult.setTime(oldTime)
-                  None
-                } else Some(model -> res)
+                if equal then None else Some(model -> res)
 
               case None =>
                 // no old result found

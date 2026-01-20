@@ -32,6 +32,14 @@ class ResultServiceProxySpec
 
   "The ResultServiceProxy" should {
 
+    val allExpected = Seq(
+      dummyNodeResultModel,
+      dummySwitchResultModel,
+      dummyLineResultModel,
+      dummyTrafo2WResultModel,
+      inputModel,
+    )
+
     "answer request for results correctly without waiting for results" in {
       val resultProvider = TestProbe[ResultResponse]("listener")
 
@@ -57,17 +65,7 @@ class ResultServiceProxySpec
       // tells the proxy to wait for the results of dummyInputModel for tick 3600L
       resultProxy ! ExpectResult(Seq(dummyNodeResultModel), 3600L)
 
-      resultProxy ! RequestResult(
-        Seq(
-          dummyNodeResultModel,
-          dummySwitchResultModel,
-          dummyLineResultModel,
-          dummyTrafo2WResultModel,
-          inputModel,
-        ),
-        3600L,
-        resultProvider.ref,
-      )
+      resultProxy ! RequestResult(allExpected, 3600L, resultProvider.ref)
 
       // still waiting for results
       resultProvider.expectNoMessage()
@@ -97,17 +95,7 @@ class ResultServiceProxySpec
       // tells the proxy to wait for the results with dumyInputModel for tick 3600L
       resultProxy ! ExpectResult(Seq(dummyNodeResultModel), 3600L)
 
-      resultProxy ! RequestResult(
-        Seq(
-          dummyNodeResultModel,
-          dummySwitchResultModel,
-          dummyLineResultModel,
-          dummyTrafo2WResultModel,
-          inputModel,
-        ),
-        3600L,
-        resultProvider.ref,
-      )
+      resultProxy ! RequestResult(allExpected, 3600L, resultProvider.ref)
 
       // receiving three winding results for port B and C beforehand
       resultProxy ! PowerFlowResultEvent(
@@ -209,7 +197,7 @@ class ResultServiceProxySpec
         Seq.empty,
       )
 
-      // all results have the same uuid, therefore, all result a grouped to this uuid
+      // all results are mapped to their uuid
       listener.expectMessageType[ResultResponse].results shouldBe Map(
         dummyNodeResultModel -> List(dummyNodeResult),
         dummySwitchResultModel -> List(dummySwitchResult),
@@ -232,7 +220,7 @@ class ResultServiceProxySpec
         Seq.empty,
       )
 
-      // all results have the same uuid, therefore, all result a grouped to this uuid
+      // all results are mapped to their uuid
       listener.expectMessageType[ResultResponse].results shouldBe Map(
         dummyNodeResultModel -> List(dummyNodeResult),
         dummySwitchResultModel -> List(dummySwitchResult),
