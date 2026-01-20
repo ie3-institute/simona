@@ -8,7 +8,6 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.agent.grid.GridAgent
-
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
@@ -27,10 +26,9 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.{SecondaryDataType, ServiceType}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
-import edu.ie3.simona.service.weather.WeatherDataType
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
@@ -393,7 +391,7 @@ class ParticipantAgentInitSpec
                 mockInput.electricalInputModel.getNode.getGeoPosition.getY,
                 mockInput.electricalInputModel.getNode.getGeoPosition.getX,
               ),
-              WeatherDataType.Current,
+              SecondaryDataType.Current,
             ),
           )
         )
@@ -532,7 +530,7 @@ class ParticipantAgentInitSpec
                 mockInput.electricalInputModel.getNode.getGeoPosition.getY,
                 mockInput.electricalInputModel.getNode.getGeoPosition.getX,
               ),
-              WeatherDataType.Current,
+              SecondaryDataType.Current,
             ),
           )
         )

@@ -10,30 +10,22 @@ import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.ServiceMessage
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-  SecondaryServiceRegistrationMessage,
-  ServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.SecondaryData.SecondarySeriesData
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
+import edu.ie3.simona.service.{SecondaryDataType, SimonaService}
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.simona.util.{Coordinate, SimonaConstants}
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
-import squants.Time
 
 import java.time.ZonedDateTime
-import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success, Try}
 
 /** Weather Service is responsible to register other actors that require weather
@@ -55,7 +47,7 @@ object WeatherService extends SimonaService {
     */
   final case class WeatherRegistrationData(
       coordinate: Coordinate,
-      dataType: WeatherDataType,
+      dataType: SecondaryDataType,
   )
 
   /** Container storing registered actors for a coordinate.
@@ -66,7 +58,7 @@ object WeatherService extends SimonaService {
     *   Weights mapping surrounding coordinates onto the registered coordinate.
     */
   final case class CoordinateData(
-      registeredActors: Map[WeatherDataType, Set[
+      registeredActors: Map[SecondaryDataType, Set[
         ActorRef[ServiceMessage.Response]
       ]],
       coordinateWeights: WeightedCoordinates,
@@ -88,7 +80,7 @@ object WeatherService extends SimonaService {
   final case class WeatherBaseStateData(
       weatherSource: WeatherSource,
       coordinateData: Map[Coordinate, CoordinateData] = Map.empty,
-      activationTicks: ActivationTickQueue = ActivationTickQueue.empty,
+      activationTicks: ActivationTickQueue,
       startDateTime: ZonedDateTime,
       amountOfInterpolationCoords: Int = 4,
   ) extends ServiceBaseStateData
@@ -168,7 +160,7 @@ object WeatherService extends SimonaService {
         Failure(
           InvalidRegistrationRequestException(
             "Cannot register an agent for weather service with registration " +
-              s"request message '${invalidMessage.getClass.getSimpleName}'!"
+              s"request message '$invalidMessage'!"
           )
         )
     }
@@ -181,9 +173,11 @@ object WeatherService extends SimonaService {
     * @param coordinate
     *   The coordinate of the agent to be registered.
     * @param dataType
-    *   The weather data type that the agent wants to receive.
+    *   The data type that the agent wants to receive.
     * @param serviceStateData
     *   The current service state data of this service.
+    * @param ctx
+    *   The actor context.
     * @return
     *   An updated state data of this service that contains registration
     *   information if the registration has been carried out successfully.
@@ -191,7 +185,7 @@ object WeatherService extends SimonaService {
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ServiceMessage.Response],
       coordinate: Coordinate,
-      dataType: WeatherDataType,
+      dataType: SecondaryDataType,
   )(using
       serviceStateData: WeatherBaseStateData,
       ctx: ActorContext[Message],
@@ -283,11 +277,11 @@ object WeatherService extends SimonaService {
 
       coordinateData.registeredActors.foreach { case (dataType, actors) =>
         val weatherData = dataType match {
-          case WeatherDataType.Current =>
+          case SecondaryDataType.Current =>
             updatedStateData.weatherSource.getWeather(tick, coordinateWeights)
-          case WeatherDataType.CurrentAndForecast(length, interval) =>
+          case SecondaryDataType.CurrentAndForecast(length, resolution) =>
             val endTick = tick + length.toSeconds.toLong
-            // weather time series is forwarded without adding error
+            // price time series is forwarded as forecast without adding noise
             val series = updatedStateData.weatherSource
               .getWeather(
                 tick,
@@ -297,7 +291,7 @@ object WeatherService extends SimonaService {
               .map { case (time, data) =>
                 time.toTick -> data
               }
-            SecondarySeriesData(reduceTimeSeriesResolution(series, interval))
+            SecondarySeriesData(reduceTimeSeriesResolution(series, resolution))
         }
 
         actors.foreach {
@@ -315,38 +309,6 @@ object WeatherService extends SimonaService {
       updatedStateData,
       maybeNextTick,
     )
-  }
-
-  /** Reduces the resolution of given time series to at least given resolution
-    * by removing elements from the time series.
-    *
-    * @param timeSeries
-    *   The time series to adapt.
-    * @param resolution
-    *   The time resolution to aim for.
-    * @tparam T
-    *   The type of time series data.
-    * @return
-    *   The adapted time series.
-    */
-  def reduceTimeSeriesResolution[T](
-      timeSeries: SortedMap[Long, T],
-      resolution: Time,
-  ): SortedMap[Long, T] = {
-    val resolutionSeconds = resolution.toSeconds.toLong
-
-    timeSeries.foldLeft(timeSeries) { case (result, (it, _)) =>
-      result.maxBefore(it) match {
-        case Some((last, _)) =>
-          if last + resolutionSeconds > it then
-            // interval from last to current key is too short
-            result.removed(it)
-          else result
-        case None =>
-          // no data before the current key, keep it
-          result
-      }
-    }
   }
 
 }

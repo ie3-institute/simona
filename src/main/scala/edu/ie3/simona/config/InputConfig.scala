@@ -6,7 +6,13 @@
 
 package edu.ie3.simona.config
 
-import edu.ie3.simona.config.InputConfig.{Grid, LoadProfile, Primary, Weather}
+import edu.ie3.simona.config.InputConfig.{
+  Grid,
+  LoadProfile,
+  Prices,
+  Primary,
+  Weather,
+}
 import edu.ie3.simona.config.ConfigParams.*
 import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto.deriveConvert
@@ -32,6 +38,7 @@ final case class InputConfig(
     loadProfile: LoadProfile = LoadProfile(),
     primary: Primary = Primary(),
     weather: Weather = Weather(),
+    prices: Prices = Prices(),
 ) derives ConfigConvert
 
 object InputConfig {
@@ -175,6 +182,47 @@ object InputConfig {
       gridModel: String = "icon",
       sampleParams: Option[SampleParams] = None,
       sqlParams: Option[BaseSqlParams] = None,
+  ) derives ConfigConvert
+
+  /** Case class that holds all information for prices.
+    *
+    * @param datasource
+    *   That hold the price data (default: empty).
+    */
+  final case class Prices(
+      datasource: PriceDatasource = PriceDatasource()
+  ) derives ConfigConvert
+
+  /** Class with parameters for a price source.
+    *
+    * @param buyingPrice
+    *   Price adjustments for buying prices given wholesale prices.
+    * @param sellingPrice
+    *   Price adjustments for selling prices given wholesale prices.
+    * @param csvParams
+    *   Used for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]] (default:
+    *   None).
+    * @param timestampPattern
+    *   Option for overriding the time pattern used for the source (default:
+    *   None).
+    */
+  final case class PriceDatasource(
+      buyingPrice: PriceAdjustments = PriceAdjustments(),
+      sellingPrice: PriceAdjustments = PriceAdjustments(),
+      csvParams: Option[BaseCsvParams] = None,
+      timestampPattern: Option[String] = None,
+  ) derives ConfigConvert
+
+  /** Class with parameters for price adjustments given a wholesale price.
+    *
+    * @param fees
+    *   (in EUR/MWh) are added on top of gross price
+    * @param tax
+    *   is added relative to the net price (gross price + fees)
+    */
+  final case class PriceAdjustments(
+      fees: Double = 0d,
+      tax: Double = 0d,
   ) derives ConfigConvert
 
 }

@@ -15,8 +15,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   RegistrationSuccessfulMessage,
   SecondaryServiceRegistrationMessage,
 }
-import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.service.weather.WeatherDataType
+import edu.ie3.simona.service.{SecondaryDataType, ServiceType}
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.InputUtils.identifier
@@ -193,7 +192,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
               registrantRef,
               WeatherRegistrationData(
                 Coordinate(lat, lon),
-                WeatherDataType.Current,
+                SecondaryDataType.Current,
               ),
             )
           case _ =>

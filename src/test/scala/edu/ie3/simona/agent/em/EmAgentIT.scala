@@ -25,11 +25,11 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.{SecondaryDataType, ServiceType}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
-import edu.ie3.simona.service.weather.{WeatherDataType, WeatherService}
+import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.QuantityMatchers
@@ -205,7 +205,7 @@ class EmAgentIT
                 pvInput.getNode.getGeoPosition.getY,
                 pvInput.getNode.getGeoPosition.getX,
               ),
-              WeatherDataType.Current,
+              SecondaryDataType.Current,
             ),
           )
         )
@@ -493,7 +493,7 @@ class EmAgentIT
                 pvInput.getNode.getGeoPosition.getY,
                 pvInput.getNode.getGeoPosition.getX,
               ),
-              WeatherDataType.Current,
+              SecondaryDataType.Current,
             ),
           )
         )
@@ -512,7 +512,7 @@ class EmAgentIT
                 adaptedHpInputModel.getNode.getGeoPosition.getY,
                 adaptedHpInputModel.getNode.getGeoPosition.getX,
               ),
-              WeatherDataType.Current,
+              SecondaryDataType.Current,
             ),
           )
         )
@@ -1054,7 +1054,7 @@ class EmAgentIT
                 pvInputLimitedOperationTime.getNode.getGeoPosition.getY,
                 pvInputLimitedOperationTime.getNode.getGeoPosition.getX,
               ),
-              WeatherDataType.Current,
+              SecondaryDataType.Current,
             ),
           )
         )
