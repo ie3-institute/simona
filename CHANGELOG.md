@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added external result provider [#1530](https://github.com/ie3-institute/simona/issues/1530)
 - Allow for multiple optimization model implementations [#1627](https://github.com/ie3-institute/simona/issues/1627)
 - Implement price based optimization objective factory [#1585](https://github.com/ie3-institute/simona/issues/1585)
+- Added filter function for unchanged grid results [#487](https://github.com/ie3-institute/simona/issues/487)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
