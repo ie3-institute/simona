@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.agent.participant
 
-import edu.ie3.datamodel.models.input.system.{LoadInput, SystemParticipantInput}
-import edu.ie3.simona.agent.DataInputHandler
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.*
+import edu.ie3.simona.agent.{DataInputHandler, SecondaryServiceRegistration}
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -28,15 +28,16 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.*
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  PrimaryRegistrationSuccessfulMessage,
+  PrimaryServiceRegistrationMessage,
+  RegistrationFailedMessage,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
-import edu.ie3.simona.service.weather.WeatherDataType
-import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
-import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -50,7 +51,10 @@ import java.time.ZonedDateTime
   * scheduled with the corresponding [[edu.ie3.simona.scheduler.Scheduler]] or
   * [[edu.ie3.simona.agent.em.EmAgent]].
   */
-object ParticipantAgentInit {
+object ParticipantAgentInit
+    extends SecondaryServiceRegistration[Message, ParticipantModelFactory[
+      ? <: ModelState
+    ]] {
 
   /** Container class that gathers references to relevant actors.
     *
@@ -213,156 +217,34 @@ object ParticipantAgentInit {
         inputContainer,
         runtimeConfig,
       )
-      val requiredServiceTypes = modelFactory.getRequiredSecondaryServices
+      val factoryUpdater: AdditionalDataConsumer =
+        new AdditionalDataConsumer {
 
-      if requiredServiceTypes.isEmpty then {
-        // not requiring any secondary services, thus we're ready to go
+          override def update(
+              data: AdditionalFactoryData
+          ): ParticipantModelFactory[? <: ModelState] =
+            modelFactory.update(data)
+
+          override def unchanged: ParticipantModelFactory[? <: ModelState] =
+            modelFactory
+        }
+
+      val completionBehavior = (mf, expectedServices) =>
         completeInitialization(
-          modelFactory,
+          mf,
           inputContainer.electricalInputModel,
-          Map.empty,
+          expectedServices,
           ctx.self,
         )
-      } else {
-        // requiring at least one secondary service, thus send out registrations and wait for replies
-        val requiredServices = requiredServiceTypes
-          .map(serviceType =>
-            serviceType -> participantRefs.services
-              .getOrElse(
-                serviceType,
-                throw new CriticalFailureException(
-                  s"${inputContainer.electricalInputModel.identifier}: Service of type $serviceType is not available."
-                ),
-              )
-          )
-          .toMap
 
-        requiredServices.foreach { case (serviceType, serviceRef) =>
-          registerForService(
-            inputContainer.electricalInputModel,
-            ctx.self,
-            serviceType,
-            serviceRef,
-          )
-        }
-
-        waitingForServices(
-          modelFactory,
-          inputContainer.electricalInputModel,
-          requiredServices.values.toSet,
-        )
-      }
+      startRegistration(
+        inputContainer.electricalInputModel,
+        factoryUpdater,
+        completionBehavior,
+        modelFactory.getRequiredSecondaryServices,
+        participantRefs.services,
+      )
   }
-
-  private def registerForService(
-      participantInput: SystemParticipantInput,
-      participantRef: ActorRef[Message],
-      serviceType: ServiceType,
-      serviceRef: ActorRef[ServiceMessage],
-  ): Unit =
-    serviceType match {
-      case ServiceType.WeatherService =>
-        val geoPosition = participantInput.getNode.getGeoPosition
-
-        Option(geoPosition.getY).zip(Option(geoPosition.getX)) match {
-          case Some((lat, lon)) =>
-            serviceRef ! SecondaryServiceRegistrationMessage(
-              participantRef,
-              WeatherRegistrationData(
-                Coordinate(lat, lon),
-                WeatherDataType.Current,
-              ),
-            )
-          case _ =>
-            throw new CriticalFailureException(
-              s"${participantInput.identifier} cannot register for weather information at " +
-                s"node ${participantInput.getNode.getId} (${participantInput.getNode.getUuid}), " +
-                s"because the geo position (${geoPosition.getY}, ${geoPosition.getX}) is invalid."
-            )
-        }
-
-      case ServiceType.PriceService =>
-        throw new CriticalFailureException(
-          s"${participantInput.identifier} is trying to register for a ${ServiceType.PriceService}, " +
-            s"which is currently not supported."
-        )
-
-      case ServiceType.EvMovementService =>
-        serviceRef ! SecondaryServiceRegistrationMessage(
-          participantRef,
-          participantInput.getUuid,
-        )
-
-      case ServiceType.LoadProfileService =>
-        participantInput match {
-          case load: LoadInput =>
-            serviceRef ! SecondaryServiceRegistrationMessage(
-              participantRef,
-              load.getLoadProfile,
-            )
-
-          case _ =>
-            throw new CriticalFailureException(
-              s"${participantInput.identifier} cannot register for load profile service!"
-            )
-        }
-    }
-
-  /** Waiting for replies from secondary services. If all replies have been
-    * received, we complete the initialization.
-    */
-  private def waitingForServices(
-      modelFactory: ParticipantModelFactory[? <: ModelState],
-      participantInput: SystemParticipantInput,
-      expectedRegistrations: Set[ActorRef[ServiceMessage]],
-      expectedFirstData: Map[ActorRef[ServiceMessage], Long] = Map.empty,
-  )(using
-      participantRefs: ParticipantRefs,
-      simulationParams: SimulationParameters,
-      notifierConfig: NotifierConfig,
-      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
-  ): Behavior[Message] =
-    Behaviors.receivePartial {
-      case (
-            ctx,
-            RegistrationSuccessfulMessage(
-              serviceRef,
-              nextDataTick,
-              additionalData,
-            ),
-          ) =>
-        // received registration success message from secondary service
-        if !expectedRegistrations.contains(serviceRef) then
-          throw new CriticalFailureException(
-            s"${participantInput.identifier}: Registration response from $serviceRef was not expected!"
-          )
-
-        val newExpectedRegistrations = expectedRegistrations.excl(serviceRef)
-        val newExpectedFirstData =
-          expectedFirstData.updated(serviceRef, nextDataTick)
-
-        val updatedFactory = additionalData match {
-          case Some(data: AdditionalFactoryData) => modelFactory.update(data)
-          case None                              => modelFactory
-        }
-
-        if newExpectedRegistrations.isEmpty then
-          // all secondary services set up, ready to go
-          completeInitialization(
-            updatedFactory,
-            participantInput,
-            newExpectedFirstData,
-            ctx.self,
-          )
-        else
-          // there's at least one more service to go, let's wait for confirmation
-          waitingForServices(
-            updatedFactory,
-            participantInput,
-            newExpectedRegistrations,
-            newExpectedFirstData,
-          )
-    }
 
   /** Completes initialization, sends a completion message and creates actual
     * [[ParticipantAgent]]
@@ -425,9 +307,4 @@ object ParticipantAgentInit {
     )
   }
 
-  implicit class RichSystemParticipantInput(spi: SystemParticipantInput) {
-
-    def identifier: String =
-      s"${spi.getClass.getSimpleName}[${spi.getId}/${spi.getUuid}]"
-  }
 }
