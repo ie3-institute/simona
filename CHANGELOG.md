@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated Ubuntu version to 24.04 and python version to 3.13 in readthedocs.yml [#1597](https://github.com/ie3-institute/simona/issues/1597)
 - Create abstract `DataInputHandler` from `ParticipantInputHandler` [#1631](https://github.com/ie3-institute/simona/issues/1631)
 - Move service responses from participant messages to `ServiceMessage` [#1636](https://github.com/ie3-institute/simona/issues/1636)
+- Improve tick handling data structure for services [#1647](https://github.com/ie3-institute/simona/issues/1647)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

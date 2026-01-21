@@ -33,7 +33,7 @@ import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -191,18 +191,14 @@ class PrimaryServiceWorkerSpec
           /* Initialisation was successful. Check state data and triggers, that will be sent to scheduler */
           stateData match {
             case PrimaryServiceInitializedStateData(
-                  nextActivationTick,
                   activationTicks,
                   simulationStart,
                   valueClass,
                   source,
                   subscribers,
                 ) =>
-              nextActivationTick shouldBe Some(0L)
-              activationTicks.toVector shouldBe Vector(
-                900L,
-                1800L,
-              ) // The first tick should already been popped
+              activationTicks.nextTick shouldBe Some(0L)
+              activationTicks.length shouldBe 3 // tick 0 still included
               simulationStart shouldBe validInitData.simulationStart
               valueClass shouldBe classOf[PValue]
               source.getClass shouldBe classOf[CsvTimeSeriesSource[PValue]]
@@ -274,8 +270,7 @@ class PrimaryServiceWorkerSpec
     /* At this point, the test (self) is registered with the service */
 
     val validStateData = PrimaryServiceInitializedStateData(
-      Some(0L),
-      SortedDistinctSeq(Seq(900L)),
+      ActivationTickQueue(Seq(0L, 900L)),
       validInitData.simulationStart,
       classOf[PValue],
       new CsvTimeSeriesSource[PValue](
@@ -304,15 +299,14 @@ class PrimaryServiceWorkerSpec
           /* Check updated state data */
           inside(updatedStateData) {
             case PrimaryServiceInitializedStateData(
-                  nextActivationTick,
                   activationTicks,
                   _,
                   _,
                   _,
                   _,
                 ) =>
-              nextActivationTick shouldBe Some(900L)
-              activationTicks.size shouldBe 0
+              activationTicks.nextTick shouldBe Some(900L)
+              activationTicks.length shouldBe 1
           }
           /* Check trigger messages */
           maybeNextTick shouldBe Some(900L)
@@ -337,9 +331,7 @@ class PrimaryServiceWorkerSpec
       val maliciousValue = new HeatDemandValue(
         Quantities.getQuantity(50d, StandardUnits.HEAT_DEMAND)
       )
-      val stateData = validStateData.copy(
-        activationTicks = SortedDistinctSeq(Seq(900L))
-      )
+      val stateData = validStateData.copy()
 
       PrimaryServiceWorker.processDataAndAnnounce(
         tick,
@@ -348,8 +340,7 @@ class PrimaryServiceWorkerSpec
       ) match {
         case (
               PrimaryServiceInitializedStateData(
-                nextActivationTick,
-                _,
+                activationTicks,
                 _,
                 _,
                 _,
@@ -357,7 +348,7 @@ class PrimaryServiceWorkerSpec
               ),
               maybeNextTick,
             ) =>
-          nextActivationTick shouldBe Some(900L)
+          activationTicks.nextTick shouldBe Some(900L)
           maybeNextTick shouldBe Some(900L)
       }
       systemParticipant.expectNoMessage()
@@ -367,9 +358,7 @@ class PrimaryServiceWorkerSpec
       val tick = 0L
       val value =
         new PValue(Quantities.getQuantity(50d, PowerSystemUnits.KILOWATT))
-      val serviceStateData = validStateData.copy(
-        activationTicks = SortedDistinctSeq(Seq(900L))
-      )
+      val serviceStateData = validStateData.copy()
 
       PrimaryServiceWorker.processDataAndAnnounce(
         tick,
@@ -379,15 +368,14 @@ class PrimaryServiceWorkerSpec
         case (updatedStateData, _) =>
           inside(updatedStateData) {
             case PrimaryServiceInitializedStateData(
-                  nextActivationTick,
                   activationTicks,
                   _,
                   _,
                   _,
                   _,
                 ) =>
-              nextActivationTick shouldBe Some(900L)
-              activationTicks.size shouldBe 0
+              activationTicks.nextTick shouldBe Some(900L)
+              activationTicks.length shouldBe 1
           }
         /* Rest has already been tested */
       }
