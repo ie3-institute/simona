@@ -4,10 +4,9 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.util.collection.immutable
+package edu.ie3.util.scala.collection.immutable
 
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 
 class ActivationTickQueueSpec extends UnitSpec {
 
