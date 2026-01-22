@@ -368,7 +368,7 @@ class ResultListenerSpec
           fail(
             "Cannot get line that should have been written out by the listener!"
           )
-        ) shouldBe "e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z"
+        ) shouldBe dummyPvResultDataString
 
         resultFileSource.close()
       }
