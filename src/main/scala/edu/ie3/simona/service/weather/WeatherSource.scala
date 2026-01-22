@@ -277,7 +277,7 @@ object WeatherSource {
     implicit val coordinateSourceFunction: IdCoordinateSource =
       buildCoordinateSource(weatherDataSourceCfg.coordinateSource)
 
-    val definedWeatherSources = Vector(
+    val definedWeatherSources = Seq(
       weatherDataSourceCfg.sampleParams,
       weatherDataSourceCfg.csvParams,
       weatherDataSourceCfg.influxDb1xParams,
