@@ -16,7 +16,6 @@ import edu.ie3.datamodel.io.source.sql.SqlTimeSeriesSource
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
 import edu.ie3.simona.exceptions.{
   CriticalFailureException,
   InitializationException,
@@ -34,8 +33,8 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
+import edu.ie3.simona.service.{SimonaService, TimeSeriesUtil}
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -45,7 +44,6 @@ import java.nio.file.Path
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -228,26 +226,12 @@ object PrimaryServiceWorker extends SimonaService {
             simulationStart,
             valueClass: Class[Value],
           ) =>
-        given startDateTime: ZonedDateTime = simulationStart
-
-        // Note: because we want data for the start tick as well, we need to use any tick before the start tick
-        val intervalStart = simulationStart.minusSeconds(1)
-
-        val activationTicks = ActivationTickQueue(
-          source
-            .getTimeKeysAfter(intervalStart)
-            .asScala
-            .toSeq
-            .map(_.toTick)
-        )
-        val maybeNextTick = activationTicks.nextTick
-
-        val previousOption =
-          source.getLastTimeKeyBefore(simulationStart).toScala
-
-        (maybeNextTick, previousOption) match {
-          case (Some(tick), _) if tick == 0L =>
-            /* Set up the state data and determine the next activation tick. */
+        TimeSeriesUtil
+          .getTicksAdaptedToSimulation(
+            source,
+            simulationStart,
+          )
+          .map { activationTicks =>
             val initializedStateData =
               PrimaryServiceInitializedStateData(
                 activationTicks,
@@ -256,62 +240,8 @@ object PrimaryServiceWorker extends SimonaService {
                 source,
               )
 
-            Success(initializedStateData, maybeNextTick)
-
-          case (Some(tick), None) if tick > 0L =>
-            /* No data for the first tick or before, but the start of the data needs to be at the first tick of the simulation. */
-            Failure(
-              new ServiceRegistrationException(
-                s"The data for the timeseries '${source.getTimeSeries.getUuid}' starts after the start of this simulation (tick: $tick)! This is not allowed!"
-              )
-            )
-
-          case (Some(_), Some(value)) =>
-            /* We have data before and after the start of the simulation, but not at tick 0 */
-            log.debug(
-              s"No data at the start of the simulation. Use last know data for tick: ${value.toTick}"
-            )
-
-            val startTick = Some(0L)
-
-            /* Set up the state data. */
-            val initializedStateData =
-              PrimaryServiceInitializedStateData(
-                activationTicks,
-                simulationStart,
-                valueClass,
-                source,
-              )
-
-            Success(initializedStateData, startTick)
-
-          case (_, Some(value)) =>
-            /* We have data before, but not after the start of the simulation */
-            log.warn(
-              s"Only found data before the start of the simulation. Tick: ${value.toTick}"
-            )
-
-            val nextTick = Some(0L)
-
-            /* Set up the state data. */
-            val initializedStateData =
-              PrimaryServiceInitializedStateData(
-                activationTicks,
-                simulationStart,
-                valueClass,
-                source,
-              )
-
-            Success(initializedStateData, nextTick)
-
-          case _ =>
-            /* No data for the simulation. */
-            Failure(
-              new ServiceRegistrationException(
-                s"No appropriate data found within simulation time range in timeseries '${source.getTimeSeries.getUuid}'!"
-              )
-            )
-        }
+            (initializedStateData, activationTicks.nextTick)
+          }
     }
   }
 

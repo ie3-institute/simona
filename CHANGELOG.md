@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create abstract `DataInputHandler` from `ParticipantInputHandler` [#1631](https://github.com/ie3-institute/simona/issues/1631)
 - Move service responses from participant messages to `ServiceMessage` [#1636](https://github.com/ie3-institute/simona/issues/1636)
 - Improve tick handling data structure for services [#1647](https://github.com/ie3-institute/simona/issues/1647)
+- Generalize time series simulation time check from `PrimaryServiceWorker` [#1648](https://github.com/ie3-institute/simona/issues/1648)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
