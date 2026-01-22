@@ -15,20 +15,36 @@ import java.nio.file.{Path, Paths}
 
 trait TestResourceHelper {
 
+  /** Retrieves test resource with the class' resource loader and returns it as
+    * a [[Path]].
+    * @param resource
+    *   The resource directory or file path.
+    * @return
+    *   A [[Path]] to the resource to be used in tests.
+    */
   protected def getResourcePath(resource: String): Path =
     Paths.get(getResource(resource).toURI)
 
+  /** Retrieves test resource with the class' resource loader and returns it as
+    * a [[File]].
+    *
+    * @param resource
+    *   The resource directory or file path.
+    * @return
+    *   A [[File]] of the resource to be used in tests.
+    */
   protected def getResourceFile(resource: String): File =
     new File(getResource(resource).getPath)
 
-  /** Retrieve resource with the class' resource loader. In contrast to
+  /** Retrieve test resource with the class' resource loader. In contrast to
     * [[org.testcontainers.utility.MountableFile#forClasspathResource(java.lang.String, java.lang.Integer)]],
     * this also works with paths relative to the current class (i.e. without
     * leading '/').
+    *
     * @param resource
-    *   the resource directory or file path
+    *   The resource directory or file path.
     * @return
-    *   a MountableFile to use with test containers
+    *   A [[MountableFile]] to use with test containers.
     */
   protected def getMountableFile(resource: String): MountableFile =
     MountableFile.forHostPath(Paths.get(getResource(resource).toURI))
