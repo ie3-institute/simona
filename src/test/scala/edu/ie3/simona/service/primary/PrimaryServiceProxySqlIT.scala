@@ -22,7 +22,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.test.common.TestSpawnerTyped
-import edu.ie3.simona.test.helper.TestContainerHelper
+import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -42,7 +42,7 @@ class PrimaryServiceProxySqlIT
     with AnyWordSpecLike
     with ForAllTestContainer
     with BeforeAndAfterAll
-    with TestContainerHelper
+    with TestResourceHelper
     with TestSpawnerTyped {
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(

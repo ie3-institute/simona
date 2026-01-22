@@ -8,7 +8,6 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.agent.grid.GridAgent
-
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
