@@ -92,7 +92,6 @@ trait CongestionTestBaseData
   protected implicit val constantData: GridAgentConstantData =
     GridAgentConstantData(
       environmentRefs,
-      environmentRefs.serviceMap,
       simonaConfig,
       3600,
       startTime,

@@ -31,7 +31,7 @@ import scala.jdk.OptionConverters.RichOptional
 /** This class helps collect all information required for the setup of an
   * [[EmAgent]]. When this succeeds, an [[EmAgent]] behavior is returned,
   * waiting for the activation message starting initialization of connected
-  * asset agents..
+  * asset agents.
   */
 object EmAgentInit extends SecondaryServiceRegistration[Message, Unit] {
 
@@ -52,7 +52,7 @@ object EmAgentInit extends SecondaryServiceRegistration[Message, Unit] {
     * @param services
     *   References to services by service type.
     * @param listener
-    *   A collection of result event listeners.
+    *   A listener for result events.
     * @param emDataService
     *   An energy management service.
     */

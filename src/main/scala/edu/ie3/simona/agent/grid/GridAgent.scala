@@ -81,8 +81,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
     val agentValues = GridAgentConstantData(
       environmentRefs,
-      // caching the map so that it doesn't have to be re-created
-      environmentRefs.serviceMap,
       simonaConfig,
       resolution,
       simStartTime,

@@ -46,8 +46,6 @@ object GridAgentData {
     * @param environmentRefs
     *   Containing actor references, that are relevant for the environment of
     *   the grid agent.
-    * @param serviceMap
-    *   References to services by service type.
     * @param simonaConfig
     *   Configuration of SIMONA, that is used for.
     * @param resolution
@@ -60,7 +58,6 @@ object GridAgentData {
     */
   final case class GridAgentConstantData(
       environmentRefs: EnvironmentRefs,
-      serviceMap: Map[ServiceType, ActorRef[ServiceMessage]],
       simonaConfig: SimonaConfig,
       resolution: Long,
       simStartTime: ZonedDateTime,

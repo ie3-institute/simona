@@ -47,7 +47,7 @@ final case class EnvironmentRefs(
 
   /** Returns references to services by service type.
     */
-  def serviceMap: Map[ServiceType, ActorRef[ServiceMessage]] =
+  lazy val serviceMap: Map[ServiceType, ActorRef[ServiceMessage]] =
     Seq(
       Some(ServiceType.WeatherService -> weather),
       Some(ServiceType.LoadProfileService -> loadProfiles),

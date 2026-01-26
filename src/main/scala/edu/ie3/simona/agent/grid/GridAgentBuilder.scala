@@ -290,7 +290,7 @@ object GridAgentBuilder {
       gridAgentContext.self,
       environmentRefs.primaryServiceProxy,
       environmentRefs.resultProxy,
-      constantData.serviceMap,
+      environmentRefs.serviceMap,
     )
 
     given SimulationParameters = SimulationParameters(
@@ -464,7 +464,7 @@ object GridAgentBuilder {
         maybeControllingEm.toRight(
           constantData.environmentRefs.scheduler
         ),
-        constantData.serviceMap,
+        constantData.environmentRefs.serviceMap,
         constantData.environmentRefs.resultProxy,
         constantData.environmentRefs.emDataService,
       ),
