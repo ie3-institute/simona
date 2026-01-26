@@ -43,7 +43,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   *   Map: uuid to flex options. This map stores all flex options received for
   *   the current tick.
   * @param flexOptions
-  *   ReceiveDataMap: uuid to flex option.
+  *   ReceiveDataMap: sender to flex option.
   * @param disaggregated
   *   A map: uuid of em agent to boolean. It defines for which em agent we
   *   should return disaggregated flex options.
