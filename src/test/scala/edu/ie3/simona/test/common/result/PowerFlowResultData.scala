@@ -26,6 +26,16 @@ trait PowerFlowResultData {
     TimeUtil.withDefaults.toZonedDateTime("2020-01-30T17:26:44Z")
   protected val dummyInputModel: UUID =
     UUID.fromString("e5ac84d3-c7a5-4870-a42d-837920aec9bb")
+  protected val dummyPvResultModel: UUID =
+    UUID.fromString("ade2fb2a-eac2-4a01-9012-02d58dfda212")
+  protected val dummyNodeResultModel: UUID =
+    UUID.fromString("b9006ed8-60bb-4b58-beeb-f3efd9086f16")
+  protected val dummySwitchResultModel: UUID =
+    UUID.fromString("52ea0504-a5fc-455b-88a3-47afcbf68610")
+  protected val dummyTrafo2WResultModel: UUID =
+    UUID.fromString("d562e2aa-6eb7-4af4-ab6c-287b49fe3595")
+  protected val dummyLineResultModel: UUID =
+    UUID.fromString("7919f27b-3fef-485a-b732-7d461b2aae1a")
 
   given Conversion[ResultEntity, Map[UUID, Iterable[ResultEntity]]] =
     (res: ResultEntity) => Map(res.getInputModel -> Iterable(res))
@@ -35,36 +45,43 @@ trait PowerFlowResultData {
 
   val dummyPvResult = new PvResult(
     dummyTime,
-    dummyInputModel,
+    dummyPvResultModel,
     Quantities.getQuantity(10, StandardUnits.ACTIVE_POWER_IN),
     Quantities.getQuantity(10, StandardUnits.REACTIVE_POWER_IN),
   )
 
   val dummyPvResultDataString =
-    "e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z"
+    "ade2fb2a-eac2-4a01-9012-02d58dfda212,0.01,0.01,2020-01-30T17:26:44Z"
 
   val dummyNodeResult = new NodeResult(
     dummyTime,
-    dummyInputModel,
+    dummyNodeResultModel,
+    Quantities.getQuantity(1.0, PowerSystemUnits.PU),
+    Quantities.getQuantity(10, PowerSystemUnits.DEGREE_GEOM),
+  )
+
+  val dummyNodeResult2 = new NodeResult(
+    dummyTime.plusHours(1),
+    dummyNodeResultModel,
     Quantities.getQuantity(1.0, PowerSystemUnits.PU),
     Quantities.getQuantity(10, PowerSystemUnits.DEGREE_GEOM),
   )
 
   val dummyNodeResultString =
-    "e5ac84d3-c7a5-4870-a42d-837920aec9bb,2020-01-30T17:26:44Z,10.0,1.0"
+    "b9006ed8-60bb-4b58-beeb-f3efd9086f16,2020-01-30T17:26:44Z,10.0,1.0"
 
   val dummySwitchResult = new SwitchResult(
     dummyTime,
-    dummyInputModel,
+    dummySwitchResultModel,
     true,
   )
 
   val dummySwitchResultString =
-    "true,e5ac84d3-c7a5-4870-a42d-837920aec9bb,2020-01-30T17:26:44Z"
+    "true,52ea0504-a5fc-455b-88a3-47afcbf68610,2020-01-30T17:26:44Z"
 
   val dummyTrafo2wResult = new Transformer2WResult(
     dummyTime,
-    dummyInputModel,
+    dummyTrafo2WResultModel,
     Quantities.getQuantity(100, Units.AMPERE),
     Quantities.getQuantity(100, PowerSystemUnits.DEGREE_GEOM),
     Quantities.getQuantity(100, Units.AMPERE),
@@ -73,11 +90,11 @@ trait PowerFlowResultData {
   )
 
   val dummyTrafo2wResultDataString =
-    "100.0,100.0,100.0,100.0,e5ac84d3-c7a5-4870-a42d-837920aec9bb,0,2020-01-30T17:26:44Z"
+    "100.0,100.0,100.0,100.0,d562e2aa-6eb7-4af4-ab6c-287b49fe3595,0,2020-01-30T17:26:44Z"
 
   val dummyLineResult = new LineResult(
     dummyTime,
-    dummyInputModel,
+    dummyLineResultModel,
     Quantities.getQuantity(100, Units.AMPERE),
     Quantities.getQuantity(100, PowerSystemUnits.DEGREE_GEOM),
     Quantities.getQuantity(100, Units.AMPERE),
@@ -85,6 +102,6 @@ trait PowerFlowResultData {
   )
 
   val dummyLineResultDataString =
-    "100.0,100.0,100.0,100.0,e5ac84d3-c7a5-4870-a42d-837920aec9bb,2020-01-30T17:26:44Z"
+    "100.0,100.0,100.0,100.0,7919f27b-3fef-485a-b732-7d461b2aae1a,2020-01-30T17:26:44Z"
 
 }

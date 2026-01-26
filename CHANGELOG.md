@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added external result provider [#1530](https://github.com/ie3-institute/simona/issues/1530)
 - Allow for multiple optimization model implementations [#1627](https://github.com/ie3-institute/simona/issues/1627)
 - Implement price based optimization objective factory [#1585](https://github.com/ie3-institute/simona/issues/1585)
+- Added filter function for unchanged grid results [#487](https://github.com/ie3-institute/simona/issues/487)
+- Create trait for secondary service registration, to be used by EmAgent as well [#1635](https://github.com/ie3-institute/simona/issues/1635)
 - Added external primary service worker [#1545](https://github.com/ie3-institute/simona/issues/1545)
 
 ### Changed
@@ -66,6 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated Ubuntu version to 24.04 and python version to 3.13 in readthedocs.yml [#1597](https://github.com/ie3-institute/simona/issues/1597)
 - Create abstract `DataInputHandler` from `ParticipantInputHandler` [#1631](https://github.com/ie3-institute/simona/issues/1631)
 - Move service responses from participant messages to `ServiceMessage` [#1636](https://github.com/ie3-institute/simona/issues/1636)
+- Improve tick handling data structure for services [#1647](https://github.com/ie3-institute/simona/issues/1647)
+- Generalize time series simulation time check from `PrimaryServiceWorker` [#1648](https://github.com/ie3-institute/simona/issues/1648)
+- Harmonize test resource retrieval [#1654](https://github.com/ie3-institute/simona/issues/1654)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

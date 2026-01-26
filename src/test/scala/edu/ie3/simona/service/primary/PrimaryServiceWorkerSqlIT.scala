@@ -32,7 +32,7 @@ import edu.ie3.simona.service.Data.PrimaryData.{
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.SqlInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
-import edu.ie3.simona.test.helper.TestContainerHelper
+import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Kilovars
@@ -56,7 +56,7 @@ class PrimaryServiceWorkerSqlIT
     with BeforeAndAfterAll
     with TableDrivenPropertyChecks
     with TimeSeriesTestData
-    with TestContainerHelper
+    with TestResourceHelper
     with TestSpawnerTyped {
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(

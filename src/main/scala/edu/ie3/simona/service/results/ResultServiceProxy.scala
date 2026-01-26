@@ -51,11 +51,18 @@ object ResultServiceProxy {
       waitForSetPoint: Boolean = false,
   )
 
-  /** Method for adding an additional listener to the proxy.
+  /** Method for adding a listener to the proxy.
     * @param listener
     *   That should be added.
     */
   final case class AddListener(listener: ActorRef[ResultResponse])
+
+  /** Conversion for the grid results. Since all other uuids are mapped to a
+    * collection of results.
+    */
+  given Conversion[Map[UUID, ResultEntity], Map[UUID, Iterable[ResultEntity]]] =
+    (inputMap: Map[UUID, ResultEntity]) =>
+      inputMap.map { case (key, value) => key -> Iterable(value) }
 
   /** State data of the [[ResultServiceProxy]].
     * @param listeners
@@ -91,7 +98,7 @@ object ResultServiceProxy {
         Transformer3wKey,
         AggregatedTransformer3wResult,
       ] = Map.empty,
-      gridResults: Map[UUID, Iterable[ResultEntity]] = Map.empty,
+      gridResults: Map[UUID, ResultEntity] = Map.empty,
       results: Map[UUID, Iterable[ResultEntity]] = Map.empty,
       waitingForResults: Map[UUID, Long] = Map.empty,
       requiresSetPoint: Set[UUID] = Set.empty,
@@ -218,7 +225,7 @@ object ResultServiceProxy {
       uuids.flatMap { uuid =>
         gridResults.get(uuid) match {
           case Some(values) =>
-            Some(uuid -> values)
+            Some(uuid -> Iterable(values))
           case None =>
             results.get(uuid).map { res => uuid -> res }
         }
@@ -337,9 +344,28 @@ object ResultServiceProxy {
           stateData.threeWindingResults,
         )
 
+      val oldResults = stateData.gridResults
+
       val gridResults =
-        (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults)
-          .groupBy(_.getInputModel)
+        (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults).flatMap {
+          res =>
+            val model = res.getInputModel
+
+            oldResults.get(model) match {
+              case Some(oldResult) =>
+                // Temporarily change time for comparison, then revert
+                val oldTime = oldResult.getTime
+                oldResult.setTime(res.getTime)
+                val equal = oldResult == res
+                oldResult.setTime(oldTime)
+
+                if equal then None else Some(model -> res)
+
+              case None =>
+                // no old result found
+                Some(model -> res)
+            }
+        }.toMap
 
       // notify listener
       stateData.notifyListener(gridResults)
