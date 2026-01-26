@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move service responses from participant messages to `ServiceMessage` [#1636](https://github.com/ie3-institute/simona/issues/1636)
 - Improve tick handling data structure for services [#1647](https://github.com/ie3-institute/simona/issues/1647)
 - Generalize time series simulation time check from `PrimaryServiceWorker` [#1648](https://github.com/ie3-institute/simona/issues/1648)
+- Harmonize test resource retrieval [#1654](https://github.com/ie3-institute/simona/issues/1654)
 - Secondary service registration for EmAgent [#1651](https://github.com/ie3-institute/simona/issues/1651)
 
 ### Fixed
