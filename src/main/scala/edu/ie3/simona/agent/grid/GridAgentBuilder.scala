@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.system.*
 import edu.ie3.simona.actor.SimonaActorNaming.*
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.agent.em.{EmAgent, EmAgentInit}
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentConstantData
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
@@ -27,11 +27,9 @@ import edu.ie3.simona.model.InputModelContainer.{
   SimpleInputContainer,
   WithHeatInputContainer,
 }
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -79,10 +77,7 @@ object GridAgentBuilder {
       _.getControllingEm.toScala.map(em => em.getUuid -> em)
     }.toMap
 
-    val allEms = buildEmsRecursively(
-      firstLevelEms,
-      emDataService = constantData.environmentRefs.emDataService,
-    )
+    val allEms = buildEmsRecursively(firstLevelEms)
 
     /* Browse through all system participants, build actors and map their node's UUID to the actor references */
     buildParticipantToActorRef(
@@ -208,15 +203,12 @@ object GridAgentBuilder {
     *   higher levels.
     * @param previousLevelEms
     *   EMs that have been built by the previous recursion level.
-    * @param emDataService
-    *   An energy management service.
     * @return
     *   Map from model UUID to EmAgent ActorRef.
     */
   private def buildEmsRecursively(
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
-      emDataService: Option[ActorRef[ExtEmDataService.Message]],
   )(using
       constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Message],
@@ -232,7 +224,6 @@ object GridAgentBuilder {
         val actor = buildEm(
           emInput,
           maybeControllingEm = None,
-          emDataService,
         )
         Some(uuid -> actor)
       case (uuid, _) =>
@@ -254,7 +245,6 @@ object GridAgentBuilder {
       val recursiveEms = buildEmsRecursively(
         controllingEms,
         previousLevelAndUncontrolledEms,
-        emDataService,
       )
 
       val controlledEms = controlledEmInputs.flatMap {
@@ -274,7 +264,6 @@ object GridAgentBuilder {
             uuid -> buildEm(
               emInput,
               maybeControllingEm = controllingEm,
-              emDataService,
             )
           )
         case _ => None
@@ -297,20 +286,11 @@ object GridAgentBuilder {
 
     val environmentRefs = constantData.environmentRefs
 
-    val serviceMap: Map[ServiceType, ActorRef[ServiceMessage]] =
-      Seq(
-        Some(ServiceType.WeatherService -> environmentRefs.weather),
-        Some(ServiceType.LoadProfileService -> environmentRefs.loadProfiles),
-        environmentRefs.evDataService.map(ref =>
-          ServiceType.EvMovementService -> ref
-        ),
-      ).flatten.toMap
-
     given ParticipantRefs = ParticipantRefs(
       gridAgentContext.self,
       environmentRefs.primaryServiceProxy,
       environmentRefs.resultProxy,
-      serviceMap,
+      environmentRefs.serviceMap,
     )
 
     given SimulationParameters = SimulationParameters(
@@ -465,31 +445,28 @@ object GridAgentBuilder {
     *   The input model
     * @param maybeControllingEm
     *   The parent EmAgent, if applicable
-    * @param emDataService
-    *   An energy management service.
     * @return
     *   The [[EmAgent]] 's [[ActorRef]]
     */
   private def buildEm(
       emInput: EmInput,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-      emDataService: Option[ActorRef[ExtEmDataService.Message]],
   )(using
       constantData: GridAgentConstantData,
       gridAgentContext: ActorContext[GridAgent.Message],
   ): ActorRef[FlexResponse] =
     gridAgentContext.spawn(
-      EmAgent(
+      EmAgentInit(
         emInput,
         constantData.emConfigUtil.getOrDefault(emInput.getUuid),
         constantData.outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
-        emInput.getControlStrategy,
         constantData.simStartTime,
         maybeControllingEm.toRight(
           constantData.environmentRefs.scheduler
         ),
+        constantData.environmentRefs.serviceMap,
         constantData.environmentRefs.resultProxy,
-        emDataService,
+        constantData.environmentRefs.emDataService,
       ),
       actorName(classOf[EmAgent.type], emInput.getId),
     )

@@ -806,7 +806,7 @@ class CommonLossObjectiveFactorySpec
           ticks = ticks,
           target = zeroKW,
           receivedData = Seq(priceData),
-          objectiveFactory = PriceObjectiveFactory(),
+          objectiveFactory = PriceObjectiveFactory,
         )
 
         model.minimize(objectiveContainer.objective)
@@ -937,7 +937,7 @@ class CommonLossObjectiveFactorySpec
           ticks = ticks,
           target = zeroKW,
           receivedData = Seq(priceData),
-          objectiveFactory = PriceObjectiveFactory(),
+          objectiveFactory = PriceObjectiveFactory,
         )
 
         model.minimize(objectiveContainer.objective)
@@ -1031,7 +1031,7 @@ class CommonLossObjectiveFactorySpec
           ticks = ticks,
           target = zeroKW,
           receivedData = Seq(priceData),
-          objectiveFactory = PriceObjectiveFactory(),
+          objectiveFactory = PriceObjectiveFactory,
         )
 
       model.minimize(objectiveContainer.objective)

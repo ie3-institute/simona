@@ -11,6 +11,7 @@ import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions.flexSum
 import edu.ie3.simona.service.Data.SecondaryData
+import edu.ie3.simona.service.ServiceType
 import squants.Power
 
 import java.util.UUID
@@ -19,6 +20,9 @@ import java.util.UUID
   * agents contribute the same share of their offered flex options
   */
 object ProportionalFlexStrat extends EmModelStrat[PowerLimitFlexOptions] {
+
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
+    Iterable.empty
 
   /** Determine the power of controllable devices by proportionally distributing
     * flexibility usage to connected devices. This means that all devices are

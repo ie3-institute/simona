@@ -71,11 +71,10 @@ class EmAgentSpec
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           EmRuntimeConfig(),
           outputConfig,
-          "PRIORITIZED",
           simulationStart,
           parent = Left(scheduler.ref),
           listener = resultProxy.ref,
@@ -259,11 +258,10 @@ class EmAgentSpec
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           EmRuntimeConfig(),
           outputConfig,
-          "PRIORITIZED",
           simulationStart,
           parent = Left(scheduler.ref),
           listener = resultProxy.ref,
@@ -442,11 +440,10 @@ class EmAgentSpec
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           EmRuntimeConfig(),
           outputConfig,
-          "PRIORITIZED",
           simulationStart,
           parent = Left(scheduler.ref),
           listener = resultProxy.ref,
@@ -636,11 +633,10 @@ class EmAgentSpec
       val parentEmAgent = TestProbe[FlexResponse]("ParentEmAgent")
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           EmRuntimeConfig(),
           outputConfig,
-          "PRIORITIZED",
           simulationStart,
           parent = Right(parentEmAgent.ref),
           listener = resultProxy.ref,
