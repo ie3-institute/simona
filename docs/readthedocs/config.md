@@ -80,6 +80,48 @@ simona.input.weather.datasource = {
 Further model classes which can be used to parse a data set as input to power system simulations are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#time-series). 
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM. 
 
+### Price data
+
+For the buying price, fees are added to the wholesale price and the tax is added on the total cost.
+Conversely, for the selling price, feeds are subtracted from the wholesale price, and the tax is subtracted from the remaining amount.
+
+```
+simona.input.prices.datasource = {
+  buyingPrice = {
+    fees: 18.711
+    tax: 0.19
+  }
+  sellingPrice = {
+    fees: 0
+    tax: 0.19 
+  }
+  csvParams = {
+    directoryPath: "input/samples/vn_simona/fullGrid"
+    csvSep: ","
+    isHierarchic: false
+  }
+}
+```
+
+Exemplary fees and taxes for households in Dortmund, 2025:
+- Buying price
+    - Fees
+        - Grid fees (Netzentgelte): 7.17 ct/kWh
+        - Electricity tax (Stromsteuer): 2.05 ct/kWh
+        - EEG-Umlage: 0 ct/kWh
+        - Offshore-Umlage: 0.816 ct/kWh
+        - NEV-Umlage/Aufschlag für besondere Netznutzung: 1.558 ct/kWh
+        - KWKG-Umlage: 0.277 ct/kWh
+        - Concession levy (Konzessionsabgabe): 2.39 ct/kWh
+        - Supplier margin (Lieferantenmarge): 4.45 ct/kWh
+    - Tax
+        - Sales tax (Umsatzsteuer): 19%
+- Selling price
+    - Fees
+        - ?
+    - Tax
+        - Sales tax (Umsatzsteuer): 19%
+
 ## Output parameters
 
 Specify the output directory
