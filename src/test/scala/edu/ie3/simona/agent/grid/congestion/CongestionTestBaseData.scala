@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.service.load.LoadProfileService
