@@ -82,13 +82,13 @@ Data sources and data sinks are explained in the [I/O-capabilities](https://powe
 
 ### Price data
 
-For the buying price, fees are added to the wholesale price and the tax is added on the total cost.
-Conversely, for the selling price, feeds are subtracted from the wholesale price, and the tax is subtracted from the remaining amount.
+For the buying price, fees (in EUR/MWh) are added to the wholesale price and the tax is added on the total cost.
+Conversely, for the selling price, fees (in EUR/MWh) are subtracted from the wholesale price, and the tax is subtracted from the remaining amount.
 
 ```
 simona.input.prices.datasource = {
   buyingPrice = {
-    fees: 18.711
+    fees: 187.11
     tax: 0.19
   }
   sellingPrice = {
