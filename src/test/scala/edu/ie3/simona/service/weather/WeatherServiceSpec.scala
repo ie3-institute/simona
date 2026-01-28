@@ -150,8 +150,7 @@ class WeatherServiceSpec
       agent1.expectNoMessage()
     }
 
-    "recognize, that a valid coordinate is already registered" in {
-      /* The successful registration stems from the test above */
+    "recognize that agent is already registered" in {
       weatherService ! SecondaryServiceRegistrationMessage(
         agent1.ref,
         WeatherRegistrationData(
@@ -161,6 +160,7 @@ class WeatherServiceSpec
       )
 
       agent1.expectNoMessage()
+      agent2.expectNoMessage()
     }
 
     "send out correct weather information upon activity start trigger and request the triggering for the next tick" in {
