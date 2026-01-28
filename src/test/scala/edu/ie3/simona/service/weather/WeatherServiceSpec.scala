@@ -116,7 +116,6 @@ class WeatherServiceSpec
     }
 
     "announce that a valid coordinate is registered for current weather data" in {
-      /* The successful registration stems from the test above */
       weatherService ! SecondaryServiceRegistrationMessage(
         agent1.ref,
         WeatherRegistrationData(
@@ -131,7 +130,6 @@ class WeatherServiceSpec
     }
 
     "announce, that a valid coordinate is registered for forecast data" in {
-      /* The successful registration stems from the test above */
       weatherService ! SecondaryServiceRegistrationMessage(
         agent2.ref,
         WeatherRegistrationData(

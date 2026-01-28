@@ -122,7 +122,6 @@ class EnergyPriceServiceSpec
     }
 
     "announce that agent is registered for forecast data" in {
-      /* The successful registration stems from the test above */
       priceService ! SecondaryServiceRegistrationMessage(
         agent2.ref,
         SecondaryDataType.CurrentAndForecast(
