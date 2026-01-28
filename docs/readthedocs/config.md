@@ -92,7 +92,7 @@ simona.input.prices.datasource = {
     tax: 0.19
   }
   sellingPrice = {
-    fees: 0
+    fees: 5.0
     tax: 0.19 
   }
   csvParams = {
@@ -103,7 +103,9 @@ simona.input.prices.datasource = {
 }
 ```
 
-Exemplary fees and taxes for households in Dortmund, 2025:
+Below the fees and taxes for households in Dortmund, 2025 as an example.
+Recurring fixed costs, such as metering point operation (Messstellenbetrieb) and the basic charge of grid fees (Grundpreis der Netzentgelte) are not considered. 
+This is because we are interested in optimizing the use of flexibility, not the cost of the installation setup.
 - Buying price
     - Fees
         - Grid fees (Netzentgelte): 7.17 ct/kWh
@@ -118,7 +120,7 @@ Exemplary fees and taxes for households in Dortmund, 2025:
         - Sales tax (Umsatzsteuer): 19%
 - Selling price
     - Fees
-        - ?
+        - Not standardized, thus we assume 0.5 ct/kWh
     - Tax
         - Sales tax (Umsatzsteuer): 19%
 
