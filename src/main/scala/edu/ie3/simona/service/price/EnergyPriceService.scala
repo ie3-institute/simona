@@ -55,14 +55,19 @@ import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
+/** The energy price service provides registered agents with current or
+  * forecasted energy prices.
+  */
 object EnergyPriceService extends SimonaService {
 
   override type S = PriceBaseStateData
 
-  /** Price service state data used for initialization of the price service
+  /** The price service state data used for initialization of the price service.
     *
     * @param sourceDefinition
-    *   the definition of the source to use
+    *   The definition of the source to use.
+    * @param startDateTime
+    *   Date and time of the very first tick in the simulation.
     */
   final case class InitPriceServiceStateData(
       sourceDefinition: InputConfig.PriceDatasource,
@@ -75,8 +80,11 @@ object EnergyPriceService extends SimonaService {
     *   A queue of future ticks that the service will be activated at.
     * @param priceSource
     *   The source to retrieve price information from.
-    *
-    * todo
+    * @param config
+    *   The configuration data for the service.
+    * @param subscribers
+    *   A map of data type to agent references, which registered to receive
+    *   price data throughout the simulation.
     */
   final case class PriceBaseStateData(
       activationTicks: ActivationTickQueue,
@@ -87,6 +95,15 @@ object EnergyPriceService extends SimonaService {
       ]] = Map.empty,
   ) extends ServiceBaseStateData
 
+  /** Configuration data for the service.
+    *
+    * @param buyingPrice
+    *   Price adjustments for deriving buying prices.
+    * @param sellingPrice
+    *   Price adjustments for deriving selling prices.
+    * @param startDateTime
+    *   Date and time of the very first tick in the simulation.
+    */
   final case class PriceConfig(
       buyingPrice: PriceAdjustments,
       sellingPrice: PriceAdjustments,

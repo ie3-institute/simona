@@ -216,9 +216,10 @@ object InputConfig {
   /** Class with parameters for price adjustments given a wholesale price.
     *
     * @param fees
-    *   (in EUR/MWh) are added on top of gross price
+    *   The fees (in EUR/MWh) to be paid by the consumer or producer.
     * @param tax
-    *   is added relative to the net price (gross price + fees)
+    *   The tax to be paid by the consumer or producer, relative to the net
+    *   price (market price + fees).
     */
   final case class PriceAdjustments(
       fees: Double = 0d,

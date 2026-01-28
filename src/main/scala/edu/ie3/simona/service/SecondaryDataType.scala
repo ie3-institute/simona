@@ -9,6 +9,8 @@ package edu.ie3.simona.service
 import squants.Time
 import squants.time.Hours
 
+/** Type of secondary data to be received by a [[SimonaService]].
+  */
 trait SecondaryDataType
 
 object SecondaryDataType {
