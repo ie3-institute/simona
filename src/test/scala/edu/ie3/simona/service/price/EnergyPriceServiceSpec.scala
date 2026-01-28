@@ -111,6 +111,16 @@ class EnergyPriceServiceSpec
       )
     }
 
+    "recognize that agent is already registered" in {
+      priceService ! SecondaryServiceRegistrationMessage(
+        agent1.ref,
+        SecondaryDataType.Current,
+      )
+
+      agent1.expectNoMessage()
+      agent2.expectNoMessage()
+    }
+
     "announce that agent is registered for forecast data" in {
       /* The successful registration stems from the test above */
       priceService ! SecondaryServiceRegistrationMessage(
