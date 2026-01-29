@@ -19,6 +19,8 @@ import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil.{
   EmConfigUtil,

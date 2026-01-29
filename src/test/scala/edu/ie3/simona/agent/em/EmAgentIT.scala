@@ -120,11 +120,10 @@ class EmAgentIT
         lockActivation ! Activation(PRE_INIT_TICK)
 
         val emAgent = spawn(
-          EmAgent(
+          EmAgentInit(
             emInput,
             modelConfig,
             outputConfigOn,
-            "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
             listener = resultServiceProxy.ref,
@@ -408,11 +407,10 @@ class EmAgentIT
         lockActivation ! Activation(PRE_INIT_TICK)
 
         val emAgent = spawn(
-          EmAgent(
+          EmAgentInit(
             emInput,
             modelConfig,
             outputConfigOn,
-            "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
             listener = resultServiceProxy.ref,
@@ -977,11 +975,10 @@ class EmAgentIT
         lockActivation ! Activation(PRE_INIT_TICK)
 
         val emAgent = spawn(
-          EmAgent(
+          EmAgentInit(
             emInput,
             modelConfig,
             outputConfigOn,
-            "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
             listener = resultServiceProxy.ref,

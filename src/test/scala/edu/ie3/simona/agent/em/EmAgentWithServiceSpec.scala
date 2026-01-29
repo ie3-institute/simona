@@ -81,15 +81,14 @@ class EmAgentWithServiceSpec
       val serviceRef = service.ref
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           modelConfig,
           outputConfig,
-          "PRIORITIZED",
           simulationStartDate,
           parent = Right(parentEmAgent.ref),
           listener = resultServiceProxy.ref,
-          Some(serviceRef),
+          emDataService = Some(serviceRef),
         )
       )
 
@@ -355,20 +354,20 @@ class EmAgentWithServiceSpec
         .copy()
         .uuid(UUID.randomUUID())
         .id("parent")
+        .controlStrategy("PROPORTIONAL")
         .build()
 
       val updatedEmInput = emInput.copy().parentEm(parentEmInput).build()
 
       val parentEmAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           parentEmInput,
           modelConfig,
           outputConfig,
-          "PROPORTIONAL",
           simulationStartDate,
           parent = Left(scheduler.ref),
           listener = resultServiceProxy.ref,
-          Some(serviceRef),
+          emDataService = Some(serviceRef),
         )
       )
 
@@ -386,15 +385,14 @@ class EmAgentWithServiceSpec
       }
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           updatedEmInput,
           modelConfig,
           outputConfig,
-          "PRIORITIZED",
           simulationStartDate,
           parent = Right(parentEmAgent),
           listener = resultServiceProxy.ref,
-          Some(serviceRef),
+          emDataService = Some(serviceRef),
         )
       )
 

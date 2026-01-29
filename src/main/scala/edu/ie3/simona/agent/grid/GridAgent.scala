@@ -20,7 +20,6 @@ import edu.ie3.simona.agent.grid.congestion.{
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel

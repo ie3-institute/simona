@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.agent.em.{EmAgent, EmAgentInit}
 import edu.ie3.simona.agent.participant.ParticipantAgentInit
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
@@ -1378,11 +1378,10 @@ class ThermalGridIT
       lockActivation ! Activation(PRE_INIT_TICK)
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           EmRuntimeConfig(),
           outputConfigOn,
-          "PRIORITIZED",
           simulationStartWithPv,
           parent = Left(scheduler.ref),
           listener = resultServiceProxy.ref,
