@@ -20,6 +20,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.ServiceMessage.DataMessage
 import edu.ie3.simona.ontology.messages.flex.FlexOptions
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{
@@ -112,6 +113,9 @@ object EmAgent {
 
       awaitingFlexCtrl(emData, modelShell, inputHandler, flexOptionsCore)
 
+    case (ctx, msg: DataMessage) =>
+      inactive(emData, modelShell, inputHandler.handleDataMessage(msg), core)
+
   }
 
   private def activate(
@@ -149,7 +153,12 @@ object EmAgent {
         provideFlex.flexOptions,
       )
 
-      if updatedCore.isComplete then {
+      // we need the expected secondary data to be received here
+      // even if we're em-controlled in order to make things not too complicated
+      if updatedCore.isComplete && inputHandler.allMessagesReceived(
+          flexOptionsCore.activeTick
+        )
+      then {
 
         val allFlexOptions = updatedCore.getFlexOptions
 
@@ -191,6 +200,7 @@ object EmAgent {
                 allFlexOptions,
                 setPower,
                 flexOptionsCore.activeTick,
+                inputHandler.getSecondaryData,
               )
 
             val (allFlexMsgs, newCore) = updatedCore
@@ -219,6 +229,14 @@ object EmAgent {
           updatedCore,
         )
       }
+
+    case msg: DataMessage =>
+      awaitingFlexOptions(
+        emData,
+        modelShell,
+        inputHandler.handleDataMessage(msg),
+        flexOptionsCore,
+      )
 
     /* We do not need to handle ScheduleFlexRequests here, since active agents
        can schedule themselves with their completions and inactive agents should
@@ -257,6 +275,7 @@ object EmAgent {
           receivedFlexOptions,
           setPointActivePower,
           flexCtrl.tick,
+          inputHandler.getSecondaryData,
         )
 
       val (allFlexMsgs, newCore) = flexOptionsCore
@@ -348,6 +367,8 @@ object EmAgent {
       }
     }
 
+    // we do not take possible next data ticks into consideration,
+    // as we don't need to be activated only for secondary data
     emData.parent.fold(
       _ ! Completion(
         self,

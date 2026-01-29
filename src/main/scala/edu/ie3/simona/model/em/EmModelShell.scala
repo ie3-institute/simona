@@ -12,11 +12,13 @@ import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
 import edu.ie3.simona.ontology.messages.flex.{
+  EnergyBoundariesFlexOptions,
   FlexOptions,
   FlexOptionsExtra,
   FlexType,
   PowerLimitFlexOptions,
 }
+import edu.ie3.simona.service.Data.SecondaryData
 import squants.Power
 
 import java.time.ZonedDateTime
@@ -142,6 +144,8 @@ final case class EmModelShell[FO <: FlexOptions](
     *   The target power value.
     * @param currentTick
     *   The current tick.
+    * @param receivedData
+    *   The secondary data received by the EM agent.
     * @return
     *   The flexibility control for controlled assets as a map from asset uuid
     *   to its target power.
@@ -150,6 +154,7 @@ final case class EmModelShell[FO <: FlexOptions](
       allFlexOptions: Iterable[(UUID, FlexOptions)],
       target: Power,
       currentTick: Long,
+      receivedData: Seq[SecondaryData],
   ): Iterable[(UUID, Power)] = {
 
     val typedFlexOptions =
@@ -172,7 +177,7 @@ final case class EmModelShell[FO <: FlexOptions](
         uuidToFlexOptions,
         target,
         currentTick,
-        Seq.empty, // todo -> issue #1628
+        receivedData,
       )
 
     setPoints.map { case (model, power) =>
@@ -235,7 +240,12 @@ object EmModelShell {
         EmModelStrat.parsePowerLimitModel(modelConfig),
         EmAggregateFlex.parsePowerLimitModel,
         PowerLimitFlexOptions,
-      )
+      ),
+      StratFactoryWrapper(
+        EmModelStrat.parseOptimizingModel,
+        EmAggregateFlex.parseOptimizingModel,
+        EnergyBoundariesFlexOptions,
+      ),
     )
 
     val aggregateFlexName = modelConfig.aggregateFlex

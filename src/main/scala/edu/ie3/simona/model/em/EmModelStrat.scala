@@ -8,7 +8,16 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
+import edu.ie3.simona.model.em.opt.{
+  CommonLossObjectiveFactory,
+  OptimizedFlexStrat,
+}
+import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
+  AssetStepVars,
+  ObjectiveFactory,
+}
 import edu.ie3.simona.ontology.messages.flex.{
+  EnergyBoundariesFlexOptions,
   FlexOptions,
   PowerLimitFlexOptions,
 }
@@ -16,6 +25,7 @@ import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.ServiceType
 import squants.Power
 import squants.energy.Kilowatts
+import squants.time.Hours
 
 import java.util.UUID
 
@@ -82,4 +92,28 @@ object EmModelStrat {
     case "PRIORITIZED" =>
       PrioritizedFlexStrat(modelConfig.curtailRegenerative)
   }
+
+  def parseOptimizingModel
+      : PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] = {
+    // todo a lot of these parameters should be configurable
+
+    val objectiveFunction
+        : PartialFunction[String, ObjectiveFactory[? <: AssetStepVars]] = {
+      case "OPT_MIN_ABS_POWER" =>
+        CommonLossObjectiveFactory.MinAbsPowerObjectiveFactory
+      case "OPT_LIN_QUAD_POWER" =>
+        CommonLossObjectiveFactory
+          .LinearizedQuadraticPowerObjectiveFactory(segmentCount = 10)
+      case "OPT_PRICE" => CommonLossObjectiveFactory.PriceObjectiveFactory
+    }
+
+    objectiveFunction.andThen(objectiveFactory =>
+      new OptimizedFlexStrat(
+        sampleTime = Hours(1),
+        predictionHorizon = Hours(12),
+        objectiveFactory,
+      )
+    )
+  }
+
 }

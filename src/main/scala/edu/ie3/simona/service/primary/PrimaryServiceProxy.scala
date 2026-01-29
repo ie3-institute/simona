@@ -189,7 +189,7 @@ object PrimaryServiceProxy {
       primaryConfig.influxDb1xParams,
       primaryConfig.csvParams,
       primaryConfig.couchbaseParams,
-    ).filter(_.isDefined).flatten.headOption
+    ).flatten.headOption
 
     if sourceOption.isEmpty then {
       log.warn("No primary data source configured!")
