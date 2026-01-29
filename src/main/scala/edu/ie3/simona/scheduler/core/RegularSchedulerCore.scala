@@ -83,7 +83,11 @@ object RegularSchedulerCore extends CoreFactory {
       copy(activeActors = activeActors.excl(actor))
     }
 
-    override def maybeComplete(): Option[(Option[Long], InactiveCore)] =
+    override def maybeComplete(): Option[(Option[Long], InactiveCore)] = {
+      if activeActors.isEmpty && !activationQueue.headKeyOption.contains(activeTick) then {
+        println(s"Go to next tick...")
+      }
+
       Option.when(
         activeActors.isEmpty &&
           !activationQueue.headKeyOption.contains(activeTick)
@@ -93,6 +97,7 @@ object RegularSchedulerCore extends CoreFactory {
           SchedulerInactive(activationQueue, Some(activeTick)),
         )
       }
+    }
 
     override def handleSchedule(
         actor: Actor,
