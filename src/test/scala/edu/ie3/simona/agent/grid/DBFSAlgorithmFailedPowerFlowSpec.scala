@@ -181,13 +181,16 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       // we now answer the request of our centerGridAgent
       // with a fake grid power message and one fake slack voltage message
-      inferiorGridAgent.nodeUuids.foreach(nodeUuid =>
-        powerRequestSender ! ExchangePower(
-          nodeUuid,
-          inferiorGridAgent.ref,
-          Megawatts(1000.0),
-          Megavars(0.0),
-        )
+      powerRequestSender ! GridPowerResponse(
+        inferiorGridAgent.ref,
+        inferiorGridAgent.nodeUuids.map(
+          ExchangePower(
+            _,
+            inferiorGridAgent.ref,
+            Megawatts(1000.0),
+            Megavars(0.0),
+          )
+        ),
       )
 
       slackVoltageRequestSender ! SlackVoltageResponse(
@@ -298,10 +301,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
       superiorGridAgent.requestGridPower(centerGridAgent, sweepNo)
 
       // the center grid should forward the failed power flow message to the superior grid
-      superiorGridAgent.gaProbe.expectMessage(
-        10 seconds,
-        FailedPowerFlow(centerGridAgent),
-      )
+      val response =
+        superiorGridAgent.gaProbe.expectMessageType[FailedPowerFlow](10.seconds)
+      response.sender shouldBe centerGridAgent
 
       // normally the slack node would send a FinishGridSimulationTrigger to all
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior

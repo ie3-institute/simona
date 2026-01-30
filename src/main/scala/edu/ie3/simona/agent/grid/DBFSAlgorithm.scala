@@ -14,14 +14,17 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.GridAgent.{afterPowerFlow, askInferior}
+import edu.ie3.simona.agent.grid.GridAgent.{afterPowerFlow, unsupported}
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
   PowerFlowDoneData,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
-import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
+  ExchangePower,
+  ExchangeVoltage,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   GridSimulationFinished,
@@ -359,7 +362,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                         }
                     }
                     .map { case (nodeUuid, (p, q)) =>
-                      Responses.ExchangePower(
+                      ExchangePower(
                         nodeUuid,
                         ctx.self,
                         p,
@@ -547,15 +550,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   gridModel.mainRefSystem,
                 )
               then {
-                val awaitingData = nodeToAssetAgents.values
-                  .flatMap(_.map { ref => ref -> None })
-                  .toMap
-
                 // will return a new behavior after we received all data
                 waitForAssetAnswers(
-                  powerFlowDoneData,
+                  powerFlowDoneData.clearAssetPower,
                   currentTick,
-                  awaitingData,
                 )
               } else {
                 // when we don't have assets we can skip another request for different asset behaviour due to changed
@@ -1106,8 +1104,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     *   Current state data.
     * @param currentTick
     *   The current tick a data request is send for.
-    * @param awaitingData
-    *   Map: asset actor reference to power response option.
     * @param ctx
     *   The actor context.
     * @param constantData
@@ -1120,9 +1116,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   private def waitForAssetAnswers(
       powerFlowDoneData: PowerFlowDoneData,
       currentTick: Long,
-      awaitingData: Map[ActorRef[ParticipantAgent.Request], Option[
-        PowerResponse
-      ]],
   )(using
       ctx: ActorContext[GridAgent.Message],
       constantData: GridAgentConstantData,
@@ -1131,78 +1124,47 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     // handler for the messages provided by `askForAssetPowers` to check if there are any changes in generation/load
     // of assets based on updated nodal voltages
     case (ctx, powerResponse: PowerResponse) =>
-      val updated = powerResponse match {
-        case assetChanged: AssetPowerChangedMessage =>
-          awaitingData.updated(assetChanged.sender, Some(assetChanged))
-
-        case assetUnchanged: AssetPowerUnchangedMessage =>
-          awaitingData.updated(assetUnchanged.sender, Some(assetUnchanged))
-
-        case msg =>
-          throw new RuntimeException(
-            s"Received unexpected power message '$msg' while waiting for asset responses."
-          )
+      // only replace power responses from the grid, since asset responses have been cleared out
+      val replace = powerResponse match {
+        case _: (GridPowerResponse | FailedPowerFlow) => true
+        case _                                        => false
       }
 
-      if updated.exists(_._2.isEmpty) then {
+      val updatedGridAgentBaseData = powerFlowDoneData.gridAgentBaseData
+        .updateWithPowerResponse(powerResponse, replace)(using ctx.log)
 
-        // we are still waiting for responses
-        waitForAssetAnswers(powerFlowDoneData, currentTick, updated)
+      val updatedPowerFlowDoneData =
+        powerFlowDoneData.copy(gridAgentBaseData = updatedGridAgentBaseData)
 
+      // check if we have enough data for a power flow calculation
+      // if yes, go to the powerflow
+      // if no, stay and wait
+      val readyForPowerFlow = updatedGridAgentBaseData.allRequestedDataReceived
+
+      if !readyForPowerFlow then {
+        // we are still waiting for data
+        waitForAssetAnswers(updatedPowerFlowDoneData, currentTick)
+      } else if updatedGridAgentBaseData.receivedValueStore.hasAssetPowerChanged
+      then {
+        goToPowerFlowCalculationOrStay(
+          readyForPowerFlow,
+          updatedGridAgentBaseData,
+          currentTick,
+          handlePowerFlowCalculations,
+        )
       } else {
-        val gridAgentBaseData = powerFlowDoneData.gridAgentBaseData
-        val responses = updated.values.flatten
+        // no changes from assets, we want to go back to SimulateGrid and report the LF results to our parent grids if any requests
+        ctx.log.debug(
+          s"Assets have not changed their exchanged power or no voltage dependent behaviour. Going back to SimulateGrid."
+        )
 
-        // check if we have changed values from our assets
-        // if yes, we do another PF with adapted values
-        // if no, we are done with the pf and ready to report to our parent grid
-        val changed = responses.exists {
-          case _: AssetPowerChangedMessage => true
-          case _                           => false
-        }
-
-        if changed then {
-          ctx.log.debug(
-            "Assets have changed their exchanged power with the grid. Update nodal powers and prepare new power flow."
-          )
-
-          val updatedGridAgentBaseData: GridAgentBaseData =
-            responses.foldLeft(gridAgentBaseData) { case (data, response) =>
-              data.updateWithPowerResponse(response, replace = true)(using
-                ctx.log
-              )
-            }
-
-          // check if we have enough data for a power flow calculation
-          // if yes, go to the powerflow
-          // if no, stay and wait
-          val readyForPowerFlow =
-            updatedGridAgentBaseData.allRequestedDataReceived
-          ctx.log.debug(
-            "{}",
-            if readyForPowerFlow then
-              "Got answers for all my requests for Slack Voltages and Power Values."
-            else
-              "Still waiting for answers my requests for Slack Voltages and Power Values.",
-          )
-
-          goToPowerFlowCalculationOrStay(
-            readyForPowerFlow,
-            updatedGridAgentBaseData,
-            currentTick,
-            handlePowerFlowCalculations,
-          )
-
-        } else {
-          // no changes from assets, we want to go back to SimulateGrid and report the LF results to our parent grids if any requests
-          ctx.log.debug(
-            s"Assets have not changed their exchanged power or no voltage dependent behaviour. Going back to SimulateGrid."
-          )
-
-          // we can answer the stashed grid power requests now
-          buffer.unstashAll(simulateGrid(powerFlowDoneData, currentTick))
-        }
+        // we can answer the stashed grid power requests now
+        buffer.unstashAll(simulateGrid(updatedPowerFlowDoneData, currentTick))
       }
+
+    case (ctx, msg) =>
+      unsupported(msg, ctx.log)
+      Behaviors.same
   }
 
   /** Triggers an execution of the pekko `ask` pattern for all power values @

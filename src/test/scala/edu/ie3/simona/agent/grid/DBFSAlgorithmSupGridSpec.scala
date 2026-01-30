@@ -146,14 +146,12 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          requestedConnectionNodeUuids.foreach { uuid =>
-            lastSender ! ExchangePower(
-              uuid,
-              hvGrid.ref,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
-          }
+          lastSender ! GridPowerResponse(
+            hvGrid.ref,
+            requestedConnectionNodeUuids.map(
+              ExchangePower(_, hvGrid.ref, Megawatts(0.0), Megavars(0.0))
+            ),
+          )
 
           // we expect a completion message here and that the agent goes back to simulate grid
           // and waits until the newly scheduled StartGridSimulationTrigger is sent
@@ -263,14 +261,17 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          requestedConnectionNodeUuids.foreach { uuid =>
-            lastSender ! ExchangePower(
-              uuid,
-              hvGrid.ref,
-              deviations(sweepNo)._1,
-              deviations(sweepNo)._2,
-            )
-          }
+          lastSender ! GridPowerResponse(
+            hvGrid.ref,
+            requestedConnectionNodeUuids.map(
+              ExchangePower(
+                _,
+                hvGrid.ref,
+                deviations(sweepNo)._1,
+                deviations(sweepNo)._2,
+              )
+            ),
+          )
 
           // we expect a completion message here and that the agent goes back to simulate grid
           // and waits until the newly scheduled StartGridSimulationTrigger is sent

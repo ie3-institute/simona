@@ -84,7 +84,7 @@ class PowerFlowSupportSpec
           )
         )
       ),
-      nodeToReceivedPower = Map(
+      nodeToReceivedGridPower = Map(
         node1.uuid -> Map(
           actorRef -> Some(
             ExchangePower(

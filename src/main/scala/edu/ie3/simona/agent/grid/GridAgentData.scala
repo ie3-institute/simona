@@ -19,8 +19,6 @@ import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
-import edu.ie3.simona.ontology.messages.ServiceMessage
-import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil.{
   EmConfigUtil,
@@ -28,7 +26,6 @@ import edu.ie3.simona.util.ConfigUtil.{
   ParticipantConfigUtil,
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.checkerframework.checker.units.qual.N
 import org.slf4j.Logger
 
 import java.time.ZonedDateTime
@@ -126,7 +123,11 @@ object GridAgentData {
       gridAgentBaseData: GridAgentBaseData,
       powerFlowResult: PowerFlowResult,
       pendingRequestAnswers: Set[Int],
-  ) extends GridAgentData
+  ) extends GridAgentData {
+    def clearAssetPower: PowerFlowDoneData = copy(
+      gridAgentBaseData = gridAgentBaseData.clearAssetPower
+    )
+  }
 
   object PowerFlowDoneData {
     def apply(
@@ -345,9 +346,7 @@ object GridAgentData {
           }
         }
       // we expect slack voltages only from our superior grids (if any)
-      val slackVoltageValuesReady = allSlackVoltagesReceived
-
-      assetAndGridPowerValuesReady & slackVoltageValuesReady
+      assetAndGridPowerValuesReady & allSlackVoltagesReceived
     }
 
     /** Checks if all slack voltage have been received.
@@ -363,15 +362,9 @@ object GridAgentData {
       *   True, if a [[FailedPowerFlow]] message is found.
       */
     def hasFailedPowerFlow: Boolean =
-      receivedValueStore.nodeToReceivedPower.values
-        .exists { v =>
-          v.exists { case (_, k) =>
-            k match {
-              case Some(_: FailedPowerFlow) => true
-              case _                        => false
-            }
-          }
-        }
+      receivedValueStore.nodeToReceivedGridPower.values.exists(
+        _.values.exists(_.exists(_.isInstanceOf[FailedPowerFlow]))
+      )
 
     /** Updates the [[inferiorGridRefs]] and the [[superiorGridRefs]]. This can
       * be necessary, if a transformer is switched on or off.
@@ -388,6 +381,9 @@ object GridAgentData {
         ),
       )
 
+    def clearAssetPower: GridAgentBaseData =
+      copy(receivedValueStore = receivedValueStore.clearAssetPower)
+
     /** Update this [[GridAgentBaseData]] with [[PowerResponse]] and return a
       * copy of this [[GridAgentBaseData]] for further processing.
       *
@@ -403,13 +399,11 @@ object GridAgentData {
         receivedPowerValue: PowerResponse,
         replace: Boolean = false,
     )(using log: Logger): GridAgentBaseData = {
-      val nodeToReceivedPower = receivedValueStore.nodeToReceivedPower
-
-      val updatedNodeToReceivedPowersMap = receivedPowerValue match {
+      receivedPowerValue match {
         case provideGridPowerMessage: GridPowerResponse =>
           /* Go over all includes messages and add them. */
-          provideGridPowerMessage.nodalResidualPower.foldLeft(
-            nodeToReceivedPower
+          val updated = provideGridPowerMessage.nodalResidualPower.foldLeft(
+            receivedValueStore.nodeToReceivedGridPower
           ) { case (currentReceivedPowerMap, exchangedPower) =>
             updateNodalReceivedPower(
               exchangedPower,
@@ -418,19 +412,34 @@ object GridAgentData {
             )
           }
 
-        case _ =>
+          copy(receivedValueStore =
+            receivedValueStore.copy(nodeToReceivedGridPower = updated)
+          )
+
+        case _: FailedPowerFlow =>
           // some other singular power response message
-          updateNodalReceivedPower(
+          val updated = updateNodalReceivedPower(
             receivedPowerValue,
-            nodeToReceivedPower,
+            receivedValueStore.nodeToReceivedGridPower,
             replace,
           )
-      }
 
-      this.copy(
-        receivedValueStore = receivedValueStore
-          .copy(nodeToReceivedPower = updatedNodeToReceivedPowersMap)
-      )
+          copy(receivedValueStore =
+            receivedValueStore.copy(nodeToReceivedGridPower = updated)
+          )
+
+        case _ =>
+          // some other singular power response message
+          val updated = updateNodalReceivedPower(
+            receivedPowerValue,
+            receivedValueStore.nodeToReceivedAssetPower,
+            replace,
+          )
+
+          copy(receivedValueStore =
+            receivedValueStore.copy(nodeToReceivedAssetPower = updated)
+          )
+      }
     }
 
     /** Identify and update the vector of already received information.

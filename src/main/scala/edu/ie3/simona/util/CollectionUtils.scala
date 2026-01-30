@@ -26,6 +26,15 @@ object CollectionUtils {
     }
   }
 
+  def emptyOptionMap[K1, K2, V](
+      keys: Map[K1, Iterable[K2]]
+  ): Map[K1, Map[K2, Option[V]]] = keys.map { case (key, infKeys) =>
+    key -> emptyOptionMap(infKeys.toSet)
+  }
+
+  def emptyOptionMap[K, V](keys: Set[K]): Map[K, Option[V]] =
+    keys.map(key => key -> None).toMap
+
   /** fast implementation to test if a list contains duplicates. See
     * https://stackoverflow.com/questions/3871491/functional-programming-does-a-list-only-contain-unique-items
     * for details

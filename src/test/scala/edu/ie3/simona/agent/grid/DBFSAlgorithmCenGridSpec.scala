@@ -36,6 +36,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
+import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
@@ -230,31 +231,25 @@ class DBFSAlgorithmCenGridSpec
 
       // we now answer the request of our centerGridAgent
       // with three fake grid power messages and one fake slack voltage message
-      inferiorGrid11.nodeUuids.foreach(nodeUuid =>
-        firstPowerRequestSender11 ! ExchangePower(
-          nodeUuid,
-          inferiorGrid11.ref,
-          Megawatts(0.0),
-          Megavars(0.0),
-        )
+      firstPowerRequestSender11 ! GridPowerResponse(
+        inferiorGrid11.ref,
+        inferiorGrid11.nodeUuids.map(
+          ExchangePower(_, inferiorGrid11.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
-      inferiorGrid12.nodeUuids.foreach(nodeUuid =>
-        firstPowerRequestSender12 ! ExchangePower(
-          nodeUuid,
-          inferiorGrid12.ref,
-          Megawatts(0.0),
-          Megavars(0.0),
-        )
+      firstPowerRequestSender12 ! GridPowerResponse(
+        inferiorGrid12.ref,
+        inferiorGrid12.nodeUuids.map(
+          ExchangePower(_, inferiorGrid12.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
-      inferiorGrid13.nodeUuids.foreach(nodeUuid =>
-        firstPowerRequestSender13 ! ExchangePower(
-          nodeUuid,
-          inferiorGrid13.ref,
-          Megawatts(0.0),
-          Megavars(0.0),
-        )
+      firstPowerRequestSender13 ! GridPowerResponse(
+        inferiorGrid13.ref,
+        inferiorGrid13.nodeUuids.map(
+          ExchangePower(_, inferiorGrid13.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
       firstSlackVoltageRequestSender ! SlackVoltageResponse(
@@ -389,31 +384,25 @@ class DBFSAlgorithmCenGridSpec
       // we now answer the requests of our centerGridAgent
       // with three fake grid power message
 
-      inferiorGrid11.nodeUuids.foreach(nodeUuid =>
-        secondPowerRequestSender11 ! ExchangePower(
-          nodeUuid,
-          inferiorGrid11.ref,
-          Megawatts(0.0),
-          Megavars(0.0),
-        )
+      secondPowerRequestSender11 ! GridPowerResponse(
+        inferiorGrid11.ref,
+        inferiorGrid11.nodeUuids.map(
+          ExchangePower(_, inferiorGrid11.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
-      inferiorGrid12.nodeUuids.foreach(nodeUuid =>
-        secondPowerRequestSender12 ! ExchangePower(
-          nodeUuid,
-          inferiorGrid12.ref,
-          Megawatts(0.0),
-          Megavars(0.0),
-        )
+      secondPowerRequestSender12 ! GridPowerResponse(
+        inferiorGrid12.ref,
+        inferiorGrid12.nodeUuids.map(
+          ExchangePower(_, inferiorGrid12.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
-      inferiorGrid13.nodeUuids.foreach(nodeUuid =>
-        secondPowerRequestSender13 ! ExchangePower(
-          nodeUuid,
-          inferiorGrid13.ref,
-          Megawatts(0.0),
-          Megavars(0.0),
-        )
+      secondPowerRequestSender13 ! GridPowerResponse(
+        inferiorGrid13.ref,
+        inferiorGrid13.nodeUuids.map(
+          ExchangePower(_, inferiorGrid13.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
       // we expect that the GridAgent unstashes the messages and return a value for our power request
