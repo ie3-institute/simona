@@ -152,7 +152,7 @@ dependencies {
   /* Kafka */
   implementation "org.apache.kafka:kafka-clients:${confluentKafkaVersion}-ccs"
   implementation "io.confluent:kafka-streams-avro-serde:${confluentKafkaVersion}"
-  implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:5.0.14"
+  implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:5.0.15"
 
   implementation 'commons-io:commons-io:2.21.0' // used for FilenameUtils
   implementation 'javax.measure:unit-api:2.2'
