@@ -18,6 +18,7 @@ import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto.deriveConvert
 import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
 
+import java.util.UUID
 import scala.deriving.Mirror
 
 /** Input configuration for simona.
@@ -187,10 +188,10 @@ object InputConfig {
   /** Case class that holds all information for prices.
     *
     * @param datasource
-    *   That hold the price data (default: empty).
+    *   That hold the price data (default: None).
     */
   final case class Prices(
-      datasource: PriceDatasource = PriceDatasource()
+      datasource: Option[PriceDatasource] = None
   ) derives ConfigConvert
 
   /** Class with parameters for a price source.
@@ -202,6 +203,8 @@ object InputConfig {
     * @param csvParams
     *   Used for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]] (default:
     *   None).
+    * @param timeseriesUuid
+    *   UUID of the price timeseries to use.
     * @param timestampPattern
     *   Option for overriding the time pattern used for the source (default:
     *   None).
@@ -209,6 +212,7 @@ object InputConfig {
   final case class PriceDatasource(
       buyingPrice: PriceAdjustments = PriceAdjustments(),
       sellingPrice: PriceAdjustments = PriceAdjustments(),
+      timeseriesUuid: UUID,
       csvParams: Option[BaseCsvParams] = None,
       timestampPattern: Option[String] = None,
   ) derives ConfigConvert
@@ -216,10 +220,11 @@ object InputConfig {
   /** Class with parameters for price adjustments given a wholesale price.
     *
     * @param fees
-    *   The fees (in EUR/MWh) to be paid by the consumer or producer.
+    *   The fees (in EUR/MWh) to be paid by the consumer or producer (default:
+    *   0).
     * @param tax
     *   The tax to be paid by the consumer or producer, relative to the net
-    *   price (market price + fees).
+    *   price (market price + fees, default: 0).
     */
   final case class PriceAdjustments(
       fees: Double = 0d,

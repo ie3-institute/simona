@@ -201,8 +201,8 @@ class WeatherServiceSpec
       /* Send out an activity start trigger as the scheduler */
       weatherService ! Activation(3600)
 
-      val activationMsg = scheduler.expectMessageType[Completion]
-      activationMsg.newTick shouldBe None
+      val completionMsg = scheduler.expectMessageType[Completion]
+      completionMsg.newTick shouldBe None
 
       agent1.expectMessage(
         DataProvision(

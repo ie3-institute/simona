@@ -6,16 +6,11 @@
 
 package edu.ie3.simona.service.price
 
-import edu.ie3.datamodel.exceptions.SourceException
-import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.source.TimeSeriesSource
-import edu.ie3.datamodel.io.source.csv.{
-  CsvTimeSeriesMetaInformationSource,
-  CsvTimeSeriesSource,
-}
+import edu.ie3.datamodel.io.source.csv.{CsvDataSource, CsvTimeSeriesSource}
 import edu.ie3.datamodel.models.value.EnergyPriceValue
 import edu.ie3.simona.config.ConfigParams.BaseCsvParams
 import edu.ie3.simona.config.InputConfig
@@ -74,7 +69,7 @@ object EnergyPriceService extends SimonaService {
       startDateTime: ZonedDateTime,
   ) extends InitializeServiceStateData
 
-  /** State data of an initialized weather service.
+  /** State data of an initialized price service.
     *
     * @param activationTicks
     *   A queue of future ticks that the service will be activated at.
@@ -144,53 +139,40 @@ object EnergyPriceService extends SimonaService {
           case BaseCsvParams(csvSep, directoryPath, _) =>
             val fileNamingStrategy = new FileNamingStrategy()
 
-            val metaSource = new CsvTimeSeriesMetaInformationSource(
+            val dataSource = new CsvDataSource(
               csvSep,
               Paths.get(directoryPath),
               fileNamingStrategy,
             )
 
-            val allMetaData =
-              metaSource.getTimeSeriesMetaInformation.values.asScala
-                .filter(_.getColumnScheme == ColumnScheme.ENERGY_PRICE)
-
-            allMetaData
-              // taking the first one
-              .headOption
-              .map { metaData =>
-                if allMetaData.size > 1 then
-                  log.warn(
-                    s"There are ${allMetaData.size}, picking the first one arbitrarily."
+            dataSource
+              .getCsvIndividualTimeSeriesMetaInformation(
+                ColumnScheme.ENERGY_PRICE
+              )
+              .asScala
+              .get(sourceDefinition.timeseriesUuid)
+              .map(Success.apply)
+              .getOrElse(
+                Failure(
+                  new InitializationException(
+                    s"CSV timeseries with UUID ${sourceDefinition.timeseriesUuid} not found."
                   )
-
-                (metaData match {
-                  case csvMetaData: CsvIndividualTimeSeriesMetaInformation =>
-                    Success(csvMetaData)
-                  case invalidMetaData =>
-                    Failure(
-                      new InitializationException(
-                        s"Expected '${classOf[CsvIndividualTimeSeriesMetaInformation]}', but got '$invalidMetaData'."
-                      )
-                    )
-                }).map { csvMetaData =>
+                )
+              )
+              .flatMap { metaData =>
+                Try {
                   new CsvTimeSeriesSource(
                     csvSep,
                     Paths.get(directoryPath),
                     fileNamingStrategy,
-                    csvMetaData.getUuid,
-                    csvMetaData.getFullFilePath,
+                    metaData.getUuid,
+                    metaData.getFullFilePath,
                     valueClass,
                     factory,
                   )
                 }
               }
-              .getOrElse(
-                Failure(
-                  SourceException(
-                    s"No price time series recognized in $directoryPath"
-                  )
-                )
-              )
+
         }).flatMap { source =>
           TimeSeriesUtil
             .getTicksAdaptedToSimulation(
@@ -244,8 +226,8 @@ object EnergyPriceService extends SimonaService {
         )
     }
 
-  /** Try to register the sending agent with its coordinate and weather data
-    * type for weather provision.
+  /** Try to register the sending agent for price data provision according to
+    * its data type.
     *
     * @param agentToBeRegistered
     *   The agent that wants to be registered.
@@ -366,7 +348,7 @@ object EnergyPriceService extends SimonaService {
       value: EnergyPriceValue
   )(using stateData: PriceBaseStateData): ProsumerPrice = {
 
-    val wholesalePrice = priceConv(value).getOrElse(
+    val wholesalePrice = convert(value).getOrElse(
       throw ServiceException(s"Empty price data!")
     )
 
@@ -377,10 +359,8 @@ object EnergyPriceService extends SimonaService {
     ProsumerPrice(sellingPrice, buyingPrice)
   }
 
-  private given priceConv: Conversion[EnergyPriceValue, Option[EnergyPrice]]
-  with
-    def apply(value: EnergyPriceValue): Option[EnergyPrice] =
-      value.getPrice.toScala.map(_.toSquants)
+  private def convert(value: EnergyPriceValue): Option[EnergyPrice] =
+    value.getPrice.toScala.map(_.toSquants)
 
   private def calculateBuyingPrice(
       wholesalePrice: EnergyPrice,

@@ -85,6 +85,8 @@ Data sources and data sinks are explained in the [I/O-capabilities](https://powe
 For the buying price, fees (in EUR/MWh) are added to the wholesale price and the tax is added on the total cost.
 Conversely, for the selling price, fees (in EUR/MWh) are subtracted from the wholesale price, and the tax is subtracted from the remaining amount.
 
+Find below an exemplary configuration for households in Dortmund, 2025. 
+
 ```
 simona.input.prices.datasource = {
   buyingPrice = {
@@ -103,7 +105,7 @@ simona.input.prices.datasource = {
 }
 ```
 
-Below the fees and taxes for households in Dortmund, 2025 as an example.
+The exemplary price adjustments above can be explained as follows.
 Recurring fixed costs, such as metering point operation (Messstellenbetrieb) and the basic charge of grid fees (Grundpreis der Netzentgelte) are not considered. 
 This is because we are interested in optimizing the use of flexibility, not the cost of the installation setup.
 - Buying price
@@ -471,7 +473,7 @@ simona.input = {
           sqlParams = None
         }
         couchbaseParams = None
-        csvParams: = None
+        csvParams = None
         influxDb1xParams = None
         maxCoordinateDistance = 50000
         resolution = 3600
@@ -479,6 +481,18 @@ simona.input = {
         scheme = "icon"
         sqlParams = None
         timestampPattern = None
+    }
+
+    prices.datasource = {
+        buyingPrice = {
+            fees: 0
+            tax: 0
+        }
+        sellingPrice = {
+            fees: 0
+            tax: 0
+        }
+        csvParams = None
     }
 }
 ```

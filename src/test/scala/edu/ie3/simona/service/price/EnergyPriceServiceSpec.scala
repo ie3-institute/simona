@@ -39,6 +39,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import squants.time.Hours
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 class EnergyPriceServiceSpec
     extends ScalaTestWithActorTestKit
@@ -57,6 +58,7 @@ class EnergyPriceServiceSpec
     sellingPrice = PriceAdjustments(
       tax = 0.2d
     ),
+    timeseriesUuid = UUID.fromString("2511ad45-655d-4b3c-9eea-da03281fa288"),
     csvParams = Some(
       BaseCsvParams(
         csvSep = ",",
@@ -141,8 +143,8 @@ class EnergyPriceServiceSpec
       /* Send out an activity start trigger as the scheduler */
       priceService ! Activation(0)
 
-      val activationMsg = scheduler.expectMessageType[Completion]
-      activationMsg.newTick shouldBe Some(3600)
+      val completionMsg = scheduler.expectMessageType[Completion]
+      completionMsg.newTick shouldBe Some(3600)
 
       agent1.expectMessageType[DataProvision] match {
         case DataProvision(tick, serviceRef, data, nextTick) =>

@@ -281,7 +281,7 @@ object WeatherService extends SimonaService {
             updatedStateData.weatherSource.getWeather(tick, coordinateWeights)
           case SecondaryDataType.CurrentAndForecast(length, resolution) =>
             val endTick = tick + length.toSeconds.toLong
-            // price time series is forwarded as forecast without adding noise
+            // weather time series is forwarded as forecast without adding noise
             val series = updatedStateData.weatherSource
               .getWeather(
                 tick,
