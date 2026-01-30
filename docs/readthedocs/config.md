@@ -85,7 +85,8 @@ Data sources and data sinks are explained in the [I/O-capabilities](https://powe
 For the buying price, fees (in EUR/MWh) are added to the wholesale price and the tax is added on the total cost.
 Conversely, for the selling price, fees (in EUR/MWh) are subtracted from the wholesale price, and the tax is subtracted from the remaining amount.
 
-Find below an exemplary configuration for households in Dortmund, 2025. 
+Find below an exemplary configuration for households in Dortmund, 2025.
+The UUID of the price time series to use as data source. An individual time series with given UUID and column scheme ENERGY_PRICE needs to be provided.
 
 ```
 simona.input.prices.datasource = {
@@ -97,6 +98,7 @@ simona.input.prices.datasource = {
     fees: 5.0
     tax: 0.19 
   }
+  timeseriesUuid = <UUID>
   csvParams = {
     directoryPath: "input/samples/vn_simona/fullGrid"
     csvSep: ","

@@ -197,14 +197,18 @@ object InputConfig {
   /** Class with parameters for a price source.
     *
     * @param buyingPrice
-    *   Price adjustments for buying prices given wholesale prices.
+    *   Price adjustments for buying prices given wholesale prices (default: no
+    *   adjustment).
     * @param sellingPrice
-    *   Price adjustments for selling prices given wholesale prices.
+    *   Price adjustments for selling prices given wholesale prices (default: no
+    *   adjustment).
     * @param csvParams
     *   Used for [[edu.ie3.datamodel.io.source.csv.CsvDataSource]] (default:
     *   None).
     * @param timeseriesUuid
-    *   UUID of the price timeseries to use.
+    *   UUID of the price timeseries to use as data source. The individual time
+    *   series with given UUID and column scheme ENERGY_PRICE is providing the
+    *   price data.
     * @param timestampPattern
     *   Option for overriding the time pattern used for the source (default:
     *   None).
