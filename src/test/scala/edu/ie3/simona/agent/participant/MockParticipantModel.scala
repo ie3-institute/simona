@@ -166,6 +166,8 @@ object MockParticipantModel {
 
   object MockPowerLimitFlexModel extends ParticipantFlexModel[MockState] {
 
+    override val flexType: FlexType = FlexType.PowerLimit
+
     override def determineFlexOptions(
         state: MockState
     ): FlexOptions = {

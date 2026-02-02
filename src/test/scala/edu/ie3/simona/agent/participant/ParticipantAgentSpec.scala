@@ -108,6 +108,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
+              flexType = None,
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -271,6 +272,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
+              flexType = None,
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -431,6 +433,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
+              flexType = None,
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -714,6 +717,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
+              flexType = None,
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -949,6 +953,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
+              flexType = Some(FlexType.PowerLimit),
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -1153,6 +1158,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
+              flexType = Some(FlexType.PowerLimit),
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -1419,6 +1425,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
+              flexType = Some(FlexType.PowerLimit),
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -1861,6 +1868,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
+              flexType = Some(FlexType.PowerLimit),
               operationTime,
               simulationStartDate,
               simulationEndDate,

@@ -79,12 +79,13 @@ final case class ParticipantModelShell[
     S <: ModelState,
 ](
     private val model: ParticipantModel[OP, S],
+    private val flexModel: Option[ParticipantFlexModel[S]],
     private val operationInterval: OperationInterval,
     private val simulationStart: ZonedDateTime,
     private val state: S,
     private val operatingPoint: OP,
     private val lastOperatingPoint: Option[OP] = None,
-    private val flexOptions: Option[(FlexOptions, FlexType)] = None,
+    private val flexOptions: Option[FlexOptions] = None,
     private val operationChange: OperationChangeIndicator =
       OperationChangeIndicator(),
 ) {
@@ -113,6 +114,21 @@ final case class ParticipantModelShell[
     */
   def operationStart: Long = operationInterval.start
 
+  /** Returns the configured flex model, if present, or throws a
+    * [[CriticalFailureException]]. Only call this if you are certain the flex
+    * model has been set.
+    *
+    * @return
+    *   The flex model.
+    */
+  private def getFlexModel: ParticipantFlexModel[S] =
+    flexModel
+      .getOrElse(
+        throw new CriticalFailureException(
+          s"$identifier: Flex model has not been provided!"
+        )
+      )
+
   /** Returns the current flex options, if present, or throws a
     * [[CriticalFailureException]]. Only call this if you are certain the flex
     * options have been set.
@@ -122,9 +138,6 @@ final case class ParticipantModelShell[
     */
   def getFlexOptions: FlexOptions =
     flexOptions
-      .map { case (fo, _) =>
-        fo
-      }
       .getOrElse(
         throw new CriticalFailureException(
           s"$identifier: Flex options have not been calculated!"
@@ -210,10 +223,9 @@ final case class ParticipantModelShell[
     *   The flex options results.
     */
   def determineFlexOptionsResult(
-      tick: Long,
-      flexType: FlexType,
+      tick: Long
   ): FlexOptionsResult = {
-    val extra = FlexOptionsExtra(flexType)
+    val extra = FlexOptionsExtra(getFlexModel.flexType)
     extra.createResult(
       extra.castFlexOptions(getFlexOptions),
       uuid,
@@ -263,27 +275,19 @@ final case class ParticipantModelShell[
     *   An updated [[ParticipantModelShell]].
     */
   def updateFlexOptions(
-      tick: Long,
-      flexType: FlexType,
+      tick: Long
   ): ParticipantModelShell[OP, S] = {
     val currentState = determineCurrentState(tick)
 
-    val flexModel = model.flexModels.getOrElse(
-      flexType,
-      throw new CriticalFailureException(
-        s"$identifier: Flex model $flexType not available."
-      ),
-    )
-
     val updatedFlexOptions =
       if operationInterval.includes(tick) then {
-        flexModel.determineFlexOptions(currentState)
+        getFlexModel.determineFlexOptions(currentState)
       } else {
         // Out of operation, there's no way to operate besides 0 kW
-        FlexOptionsExtra(flexType).zero(tick)
+        FlexOptionsExtra(getFlexModel.flexType).zero(tick)
       }
 
-    copy(state = currentState, flexOptions = Some(updatedFlexOptions, flexType))
+    copy(state = currentState, flexOptions = Some(updatedFlexOptions))
   }
 
   /** Update operating point on receiving [[IssueFlexControl]], i.e. when the
@@ -302,15 +306,15 @@ final case class ParticipantModelShell[
     val currentState = determineCurrentState(currentTick)
 
     def modelOperatingPoint(): (OP, OperationChangeIndicator) = {
-      val (fo, flexType) = flexOptions.getOrElse {
-        throw new CriticalFailureException(
-          s"$identifier: Flex options have not been calculated!"
-        )
-      }
-      val extra = FlexOptionsExtra(flexType)
+      val extra = FlexOptionsExtra(getFlexModel.flexType)
 
       val setPointActivePower =
-        Try(extra.determineFlexPower(extra.castFlexOptions(fo), flexControl))
+        Try(
+          extra.determineFlexPower(
+            extra.castFlexOptions(getFlexOptions),
+            flexControl,
+          )
+        )
           .recoverWith(exception =>
             Failure(
               new CriticalFailureException(
@@ -491,12 +495,22 @@ object ParticipantModelShell {
     */
   def create[S <: ModelState](
       modelFactory: ParticipantModelFactory[S],
+      flexType: Option[FlexType],
       operationTime: OperationTime,
       simulationStart: ZonedDateTime,
       simulationEnd: ZonedDateTime,
   ): ParticipantModelShell[? <: OperatingPoint, S] = {
 
     val model = modelFactory.create()
+
+    val flexModel = flexType.map { fType =>
+      model.flexModels.getOrElse(
+        fType,
+        throw new CriticalFailureException(
+          s"Model ${model.getClass.getSimpleName} does not provide flex type $flexType."
+        ),
+      )
+    }
 
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStart,
@@ -511,6 +525,7 @@ object ParticipantModelShell {
 
     ParticipantModelShell(
       model = model,
+      flexModel = flexModel,
       operationInterval = operationInterval,
       simulationStart = simulationStart,
       state = initialState,
@@ -521,12 +536,14 @@ object ParticipantModelShell {
     */
   private def apply[OP <: OperatingPoint, S <: ModelState](
       model: ParticipantModel[OP, S],
+      flexModel: Option[ParticipantFlexModel[S]],
       operationInterval: OperationInterval,
       simulationStart: ZonedDateTime,
       state: S,
   ): ParticipantModelShell[OP, S] =
     new ParticipantModelShell(
       model = model,
+      flexModel = flexModel,
       operationInterval = operationInterval,
       simulationStart = simulationStart,
       state = state,
