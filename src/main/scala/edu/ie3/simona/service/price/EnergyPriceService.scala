@@ -28,7 +28,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   ServiceBaseStateData,
 }
 import edu.ie3.simona.service.{
-  SecondaryDataType,
+  DataTimeType,
   ServiceStateData,
   SimonaService,
   TimeSeriesUtil,
@@ -85,7 +85,7 @@ object EnergyPriceService extends SimonaService {
       activationTicks: ActivationTickQueue,
       priceSource: TimeSeriesSource[EnergyPriceValue],
       config: PriceConfig,
-      subscribers: Map[SecondaryDataType, Set[
+      subscribers: Map[DataTimeType, Set[
         ActorRef[ServiceMessage.Response]
       ]] = Map.empty,
   ) extends ServiceBaseStateData
@@ -209,7 +209,8 @@ object EnergyPriceService extends SimonaService {
     registrationMessage match {
       case SecondaryServiceRegistrationMessage(
             agentToBeRegistered,
-            dataType: SecondaryDataType,
+            dataType,
+            _,
           ) =>
         Success(
           handleRegistrationRequest(
@@ -243,7 +244,7 @@ object EnergyPriceService extends SimonaService {
     */
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ServiceMessage.Response],
-      dataType: SecondaryDataType,
+      dataType: DataTimeType,
   )(using
       serviceStateData: PriceBaseStateData,
       ctx: ActorContext[Message],
@@ -290,7 +291,7 @@ object EnergyPriceService extends SimonaService {
     // get the price data and send it to the subscribed agents
     updatedStateData.subscribers.foreach { case (dataType, actors) =>
       val priceData = dataType match {
-        case SecondaryDataType.Current =>
+        case DataTimeType.Current =>
           val value =
             updatedStateData.priceSource
               .getValueOrLast(tick.toDateTime)
@@ -301,7 +302,7 @@ object EnergyPriceService extends SimonaService {
 
           createProsumerPrice(value)
 
-        case SecondaryDataType.CurrentAndForecast(length, resolution) =>
+        case DataTimeType.CurrentAndForecast(length, resolution) =>
           val endTick = tick + length.toSeconds.toLong
           val interval = ClosedInterval(tick.toDateTime, endTick.toDateTime)
 

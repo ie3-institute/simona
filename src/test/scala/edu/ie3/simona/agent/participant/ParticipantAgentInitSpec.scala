@@ -26,7 +26,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
-import edu.ie3.simona.service.{SecondaryDataType, ServiceType}
+import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
@@ -386,12 +386,12 @@ class ParticipantAgentInitSpec
         service.expectMessage(
           SecondaryServiceRegistrationMessage(
             participantAgent,
+            DataTimeType.Current,
             WeatherRegistrationData(
               Coordinate(
                 mockInput.electricalInputModel.getNode.getGeoPosition.getY,
                 mockInput.electricalInputModel.getNode.getGeoPosition.getX,
-              ),
-              SecondaryDataType.Current,
+              )
             ),
           )
         )
@@ -525,12 +525,12 @@ class ParticipantAgentInitSpec
         service.expectMessage(
           SecondaryServiceRegistrationMessage(
             participantAgent,
+            DataTimeType.Current,
             WeatherRegistrationData(
               Coordinate(
                 mockInput.electricalInputModel.getNode.getGeoPosition.getY,
                 mockInput.electricalInputModel.getNode.getGeoPosition.getX,
-              ),
-              SecondaryDataType.Current,
+              )
             ),
           )
         )

@@ -18,7 +18,6 @@ import edu.ie3.simona.agent.grid.congestion.data.{
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.{
   CongestionCheckRequest,
   CongestionResponse,
-  ReceivedCongestions,
 }
 import edu.ie3.simona.agent.grid.congestion.{
   CongestedComponents,
@@ -161,17 +160,13 @@ class CongestionDetectionSpec
       behavior ! CongestionCheckRequest(superiorAgent.ref)
 
       // the request will be stashed and answered after inferior data was received
-      behavior ! ReceivedCongestions(
-        Vector(
-          (
-            inferiorAgent.ref,
-            Congestions(
-              voltageCongestions = false,
-              lineCongestions = true,
-              transformerCongestions = false,
-            ),
-          )
-        )
+      behavior ! CongestionResponse(
+        inferiorAgent.ref,
+        Congestions(
+          voltageCongestions = false,
+          lineCongestions = true,
+          transformerCongestions = false,
+        ),
       )
 
       val congestions =

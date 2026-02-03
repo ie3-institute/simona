@@ -25,7 +25,7 @@ import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
   SecondarySeriesData,
 }
-import edu.ie3.simona.service.SecondaryDataType
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.price.EnergyPriceService.InitPriceServiceStateData
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.test.helper.TestResourceHelper
@@ -105,7 +105,8 @@ class EnergyPriceServiceSpec
     "announce that agent is registered for current price data" in {
       priceService ! SecondaryServiceRegistrationMessage(
         agent1.ref,
-        SecondaryDataType.Current,
+        DataTimeType.Current,
+        (),
       )
 
       agent1.expectMessage(
@@ -116,7 +117,8 @@ class EnergyPriceServiceSpec
     "recognize that agent is already registered" in {
       priceService ! SecondaryServiceRegistrationMessage(
         agent1.ref,
-        SecondaryDataType.Current,
+        DataTimeType.Current,
+        (),
       )
 
       agent1.expectNoMessage()
@@ -126,10 +128,11 @@ class EnergyPriceServiceSpec
     "announce that agent is registered for forecast data" in {
       priceService ! SecondaryServiceRegistrationMessage(
         agent2.ref,
-        SecondaryDataType.CurrentAndForecast(
+        DataTimeType.CurrentAndForecast(
           forecastLength = Hours(6),
           forecastResolution = Hours(1),
         ),
+        (),
       )
 
       agent2.expectMessage(

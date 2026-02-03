@@ -9,18 +9,19 @@ package edu.ie3.simona.service
 import squants.Time
 import squants.time.Hours
 
-/** Type of secondary data to be received by a [[SimonaService]].
+/** Specifies the temporal dimension of [[Data]], e.g. if data for the current
+  * tick or beyond that is requested.
   */
-trait SecondaryDataType
+trait DataTimeType
 
-object SecondaryDataType {
+object DataTimeType {
 
-  /** Secondary data for the current point in simulation time.
+  /** Data at the current point in simulation time.
     */
-  case object Current extends SecondaryDataType
+  case object Current extends DataTimeType
 
-  /** Secondary data at the current point in simulation time and a forecast for
-    * a specific length of time into the future.
+  /** Data at the current point in simulation time and a forecast for a specific
+    * length of time into the future.
     *
     * @param forecastLength
     *   The length of the forecast, i.e. the amount of time into future to
@@ -31,6 +32,6 @@ object SecondaryDataType {
   final case class CurrentAndForecast(
       forecastLength: Time,
       forecastResolution: Time = Hours(1),
-  ) extends SecondaryDataType
+  ) extends DataTimeType
 
 }

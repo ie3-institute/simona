@@ -129,10 +129,7 @@ trait CongestionTestBaseData
     val data = mock[GridAgentBaseData]
     val map = inferiorRefs.map(ref => ref -> Seq.empty).toMap
 
-    val cmParams = CongestionManagementParams(
-      detectionEnabled = true,
-      30.seconds,
-    )
+    val cmParams = CongestionManagementParams(detectionEnabled = true)
 
     when(data.isSuperior).thenReturn(isSuperior)
     when(data.congestionManagementParams).thenReturn(cmParams)

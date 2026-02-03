@@ -15,8 +15,8 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   RegistrationSuccessfulMessage,
   SecondaryServiceRegistrationMessage,
 }
-import edu.ie3.simona.service.{SecondaryDataType, ServiceType}
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
+import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.InputUtils.identifier
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
@@ -117,14 +117,11 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
       expectedFirstData: Map[ActorRef[ServiceMessage], Long] = Map.empty,
   ): Behavior[Msg] =
     Behaviors.withStash(100) { buffer =>
-      Behaviors.receivePartial {
-        case (
-              ctx,
-              RegistrationSuccessfulMessage(
-                serviceRef,
-                nextDataTick,
-                additionalData,
-              ),
+      Behaviors.receiveMessagePartial {
+        case RegistrationSuccessfulMessage(
+              serviceRef,
+              nextDataTick,
+              additionalData,
             ) =>
           // received registration success message from secondary service
           if !expectedRegistrations.contains(serviceRef) then
@@ -160,7 +157,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
               newExpectedFirstData,
             )
 
-        case (ctx, msg) =>
+        case msg =>
           // stash away other messages until service registration has completed
           buffer.stash(msg)
           Behaviors.same
@@ -178,7 +175,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
         val participantInput = assetInput match {
           case spInput: SystemParticipantInput =>
             spInput
-          case other =>
+          case _ =>
             throw new CriticalFailureException(
               s"${assetInput.identifier}: Only SystemParticipantInputs can register for weather data, since we need a geolocation for weather registration."
             )
@@ -190,9 +187,9 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
           case Some((lat, lon)) =>
             serviceRef ! SecondaryServiceRegistrationMessage(
               registrantRef,
+              DataTimeType.Current,
               WeatherRegistrationData(
-                Coordinate(lat, lon),
-                SecondaryDataType.Current,
+                Coordinate(lat, lon)
               ),
             )
           case _ =>
@@ -212,6 +209,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
       case ServiceType.EvMovementService =>
         serviceRef ! SecondaryServiceRegistrationMessage(
           registrantRef,
+          DataTimeType.Current,
           assetInput.getUuid,
         )
 
@@ -220,6 +218,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
           case load: LoadInput =>
             serviceRef ! SecondaryServiceRegistrationMessage(
               registrantRef,
+              DataTimeType.Current,
               load.getLoadProfile,
             )
 

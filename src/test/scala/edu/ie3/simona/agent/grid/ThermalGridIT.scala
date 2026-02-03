@@ -29,11 +29,11 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
-import edu.ie3.simona.service.{SecondaryDataType, ServiceType}
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.{
   EmInputTestData,
@@ -187,12 +187,12 @@ class ThermalGridIT
       weatherService.expectMessage(
         SecondaryServiceRegistrationMessage(
           hpAgent,
+          DataTimeType.Current,
           WeatherRegistrationData(
             Coordinate(
               typicalHpInputModel.getNode.getGeoPosition.getY,
               typicalHpInputModel.getNode.getGeoPosition.getX,
-            ),
-            SecondaryDataType.Current,
+            )
           ),
         )
       )
@@ -1472,12 +1472,12 @@ class ThermalGridIT
       weatherService.expectMessage(
         SecondaryServiceRegistrationMessage(
           pvAgent,
+          DataTimeType.Current,
           WeatherRegistrationData(
             Coordinate(
               pvInput.getNode.getGeoPosition.getY,
               pvInput.getNode.getGeoPosition.getX,
-            ),
-            SecondaryDataType.Current,
+            )
           ),
         )
       )
@@ -1494,12 +1494,12 @@ class ThermalGridIT
       weatherService.expectMessage(
         SecondaryServiceRegistrationMessage(
           hpAgent,
+          DataTimeType.Current,
           WeatherRegistrationData(
             Coordinate(
               typicalHpInputModel.getNode.getGeoPosition.getY,
               typicalHpInputModel.getNode.getGeoPosition.getX,
-            ),
-            SecondaryDataType.Current,
+            )
           ),
         )
       )

@@ -148,13 +148,10 @@ class DBFSAlgorithmSupGridSpec
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
           lastSender ! GridPowerResponse(
-            requestedConnectionNodeUuids.map { uuid =>
-              ExchangePower(
-                uuid,
-                Megawatts(0.0),
-                Megavars(0.0),
-              )
-            }
+            hvGrid.ref,
+            requestedConnectionNodeUuids.map(
+              ExchangePower(_, hvGrid.ref, Megawatts(0.0), Megavars(0.0))
+            ),
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
@@ -266,13 +263,15 @@ class DBFSAlgorithmSupGridSpec
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
           lastSender ! GridPowerResponse(
-            requestedConnectionNodeUuids.map { uuid =>
+            hvGrid.ref,
+            requestedConnectionNodeUuids.map(
               ExchangePower(
-                uuid,
+                _,
+                hvGrid.ref,
                 deviations(sweepNo)._1,
                 deviations(sweepNo)._2,
               )
-            }
+            ),
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid

@@ -21,7 +21,7 @@ import edu.ie3.simona.service.Data.SecondaryData.{
   SecondarySeriesData,
   WeatherData,
 }
-import edu.ie3.simona.service.SecondaryDataType
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.weather.WeatherService.{
   InitWeatherServiceStateData,
   WeatherRegistrationData,
@@ -106,9 +106,9 @@ class WeatherServiceSpec
     "announce failed weather registration on invalid coordinate" in {
       weatherService ! SecondaryServiceRegistrationMessage(
         agent1.ref,
+        DataTimeType.Current,
         WeatherRegistrationData(
-          Coordinate(invalidCoordinate.latitude, invalidCoordinate.longitude),
-          SecondaryDataType.Current,
+          Coordinate(invalidCoordinate.latitude, invalidCoordinate.longitude)
         ),
       )
 
@@ -118,9 +118,9 @@ class WeatherServiceSpec
     "announce that a valid coordinate is registered for current weather data" in {
       weatherService ! SecondaryServiceRegistrationMessage(
         agent1.ref,
+        DataTimeType.Current,
         WeatherRegistrationData(
-          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
-          SecondaryDataType.Current,
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude)
         ),
       )
 
@@ -132,12 +132,12 @@ class WeatherServiceSpec
     "announce, that a valid coordinate is registered for forecast data" in {
       weatherService ! SecondaryServiceRegistrationMessage(
         agent2.ref,
+        DataTimeType.CurrentAndForecast(
+          forecastLength = Hours(6),
+          forecastResolution = Hours(1),
+        ),
         WeatherRegistrationData(
-          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
-          SecondaryDataType.CurrentAndForecast(
-            forecastLength = Hours(6),
-            forecastResolution = Hours(1),
-          ),
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude)
         ),
       )
 
@@ -151,9 +151,9 @@ class WeatherServiceSpec
     "recognize that agent is already registered" in {
       weatherService ! SecondaryServiceRegistrationMessage(
         agent1.ref,
+        DataTimeType.Current,
         WeatherRegistrationData(
-          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
-          SecondaryDataType.Current,
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude)
         ),
       )
 
