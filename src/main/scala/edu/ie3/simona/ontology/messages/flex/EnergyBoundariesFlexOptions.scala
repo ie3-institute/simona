@@ -34,9 +34,10 @@ import scala.collection.immutable.SortedMap
 final case class EnergyBoundariesFlexOptions(
     energyBoundaries: Seq[AssetEnergyBoundaries]
 ) extends FlexOptions {
-  /**
-   * The sum of all power limits (lower and upper each) of the enclosed [[AssetEnergyBoundaries]].
-   */
+
+  /** The sum of all power limits (lower and upper each) of the enclosed
+    * [[AssetEnergyBoundaries]].
+    */
   lazy val powerLimits: ClosedInterval[Power] =
     new ClosedInterval(
       energyBoundaries
@@ -44,7 +45,7 @@ final case class EnergyBoundariesFlexOptions(
         .sum,
       energyBoundaries
         .map(_.powerLimits.getUpper)
-        .sum
+        .sum,
     )
 }
 
