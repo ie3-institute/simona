@@ -21,6 +21,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.ArrivingEvs
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.test.common.{EvTestData, TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -89,7 +90,11 @@ class ExtEvDataServiceSpec
       /* INIT */
 
       // this one should be stashed
-      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs1.ref,
+        DataTimeType.Current,
+        evcs1UUID,
+      )
 
       evcs1.expectNoMessage()
       scheduler.expectNoMessage()
@@ -135,14 +140,26 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(evService))
 
-      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs1.ref,
+        DataTimeType.Current,
+        evcs1UUID,
+      )
       evcs1.expectNoMessage()
 
-      evService ! SecondaryServiceRegistrationMessage(evcs2.ref, evcs2UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs2.ref,
+        DataTimeType.Current,
+        evcs2UUID,
+      )
       evcs2.expectNoMessage()
 
       // register first one again
-      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs1.ref,
+        DataTimeType.Current,
+        evcs1UUID,
+      )
       evcs1.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -221,10 +238,18 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(evService))
 
-      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs1.ref,
+        DataTimeType.Current,
+        evcs1UUID,
+      )
       evcs1.expectNoMessage()
 
-      evService ! SecondaryServiceRegistrationMessage(evcs2.ref, evcs2UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs2.ref,
+        DataTimeType.Current,
+        evcs2UUID,
+      )
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -312,10 +337,18 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(evService))
 
-      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs1.ref,
+        DataTimeType.Current,
+        evcs1UUID,
+      )
       evcs1.expectNoMessage()
 
-      evService ! SecondaryServiceRegistrationMessage(evcs2.ref, evcs2UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs2.ref,
+        DataTimeType.Current,
+        evcs2UUID,
+      )
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -437,10 +470,18 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(evService))
 
-      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs1.ref,
+        DataTimeType.Current,
+        evcs1UUID,
+      )
       evcs1.expectNoMessage()
 
-      evService ! SecondaryServiceRegistrationMessage(evcs2.ref, evcs2UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs2.ref,
+        DataTimeType.Current,
+        evcs2UUID,
+      )
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -594,10 +635,18 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessageType[Completion]
 
-      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs1.ref,
+        DataTimeType.Current,
+        evcs1UUID,
+      )
       evcs1.expectNoMessage()
 
-      evService ! SecondaryServiceRegistrationMessage(evcs2.ref, evcs2UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs2.ref,
+        DataTimeType.Current,
+        evcs2UUID,
+      )
       evcs2.expectNoMessage()
 
       extEvData.sendExtMsg(
@@ -674,7 +723,11 @@ class ExtEvDataServiceSpec
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessageType[Completion]
 
-      evService ! SecondaryServiceRegistrationMessage(evcs1.ref, evcs1UUID)
+      evService ! SecondaryServiceRegistrationMessage(
+        evcs1.ref,
+        DataTimeType.Current,
+        evcs1UUID,
+      )
       evcs1.expectNoMessage()
 
       extEvData.sendExtMsg(

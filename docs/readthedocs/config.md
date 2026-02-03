@@ -592,7 +592,6 @@ simona.powerflow = {
     newtonraphson.iterations = 50
     resolution = 3600s
     stopOnFailure = false
-    sweepTimeout = 30s
 }
 ```
 
@@ -601,7 +600,6 @@ simona.powerflow = {
 ```
 simona.congestionManagement = {
     enableDetection = false
-    timeout = 30s
 }
 ```
 

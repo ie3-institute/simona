@@ -115,10 +115,7 @@ object SimonaConfig {
       time: Simona.Time,
   ) derives ConfigConvert
   object Simona {
-    final case class CongestionManagement(
-        enableDetection: Boolean = false,
-        timeout: FiniteDuration = 30.seconds,
-    )
+    final case class CongestionManagement(enableDetection: Boolean = false)
 
     final case class Control(
         transformer: List[TransformerControlGroup] = List.empty
@@ -134,7 +131,6 @@ object SimonaConfig {
         newtonraphson: Powerflow.Newtonraphson,
         resolution: FiniteDuration = 1.hours,
         stopOnFailure: Boolean = false,
-        sweepTimeout: FiniteDuration = 30.seconds,
     ) derives ConfigConvert
     object Powerflow {
       final case class Newtonraphson(

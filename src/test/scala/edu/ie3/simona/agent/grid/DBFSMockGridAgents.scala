@@ -129,7 +129,7 @@ trait DBFSMockGridAgents extends UnitSpec {
             msg.nodalResidualPower.find(
               _.nodeUuid == expectedPower.nodeUuid
             ) match {
-              case Some(ExchangePower(_, actualP, actualQ)) =>
+              case Some(ExchangePower(_, _, actualP, actualQ)) =>
                 actualP should approximate(expectedPower.p)
                 actualQ should approximate(expectedPower.q)
               case None =>
