@@ -66,8 +66,7 @@ class SimonaConfigSpec extends UnitSpec {
 
       // congestion management config
       simonaConfig.congestionManagement shouldBe CongestionManagement(
-        enableDetection = false,
-        timeout = 30.seconds,
+        enableDetection = false
       )
 
       // control config
@@ -160,7 +159,6 @@ class SimonaConfigSpec extends UnitSpec {
           newtonraphson = Newtonraphson(epsilon = List(1e-12), iterations = 50),
           resolution = 1.hours,
           stopOnFailure = false,
-          sweepTimeout = 30.seconds,
         )
       )
 

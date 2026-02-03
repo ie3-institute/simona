@@ -6,19 +6,14 @@
 
 package edu.ie3.simona.agent.grid.congestion
 
-import scala.concurrent.duration.FiniteDuration
-
 /** Holds all congestion management configuration parameters used in
   * [[edu.ie3.simona.agent.grid]]. If the parameter [[detectionEnabled]] is set
   * to false, no congestion management is run and all the other parameters are
-  * ignored
+  * ignored.
   *
   * @param detectionEnabled
-  *   defines if the congestion management is active and can be run
-  * @param timeout
-  *   used for asking other actors
+  *   Defines if the congestion management is active and can be run.
   */
 final case class CongestionManagementParams(
-    detectionEnabled: Boolean,
-    timeout: FiniteDuration,
+    detectionEnabled: Boolean
 )

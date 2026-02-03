@@ -47,23 +47,7 @@ final case class AwaitingData[T](
     *   An updated object.
     */
   def update(sender: ActorRef[GridAgent.Message], data: T): AwaitingData[T] =
-    handleReceivingData(Vector((sender, data)))
-
-  /** Method for updating the data with the received data.
-    *
-    * @param receivedData
-    *   Data that was received.
-    * @return
-    *   A updated copy of this data.
-    */
-  def handleReceivingData(
-      receivedData: Vector[(ActorRef[GridAgent.Message], T)]
-  ): AwaitingData[T] = {
-    val mappedData = receivedData.map { case (ref, value) =>
-      ref -> Some(value)
-    }.toMap
-    copy(inferiorGridMap = inferiorGridMap ++ mappedData)
-  }
+    copy(inferiorGridMap = inferiorGridMap.updated(sender, Some(data)))
 }
 
 object AwaitingData {
