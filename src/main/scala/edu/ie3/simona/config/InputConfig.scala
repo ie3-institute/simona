@@ -32,6 +32,8 @@ import scala.deriving.Mirror
   *   Source for primary data (default: empty).
   * @param weather
   *   Source for weather data (default: empty).
+  * @param prices
+  *   Source for price data (default: empty).
   */
 final case class InputConfig(
     extSimDir: Option[String] = None,

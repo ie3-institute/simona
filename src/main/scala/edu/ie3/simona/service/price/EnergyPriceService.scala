@@ -324,9 +324,7 @@ object EnergyPriceService extends SimonaService {
                 tick -> createProsumerPrice(value)
             }
 
-          SecondarySeriesData(
-            reduceTimeSeriesResolution(priceSeries, resolution)
-          )
+          SecondarySeriesData(priceSeries)
       }
 
       actors.foreach {
