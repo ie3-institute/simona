@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generalize time series simulation time check from `PrimaryServiceWorker` [#1648](https://github.com/ie3-institute/simona/issues/1648)
 - Harmonize test resource retrieval [#1654](https://github.com/ie3-institute/simona/issues/1654)
 - Secondary service registration for EmAgent [#1651](https://github.com/ie3-institute/simona/issues/1651)
+- Generalize data time types for service registration [#1668](https://github.com/ie3-institute/simona/issues/1668)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -98,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed unused code in test directory [#1533](https://github.com/ie3-institute/simona/issues/1533)
 - Removed `sphinx-hoverxref` of `rtd` [#1641](https://github.com/ie3-institute/simona/issues/1641)
 - Removed snapshot repository [#1672](https://github.com/ie3-institute/simona/issues/1672)
+- Removed message retrieval timeout from DBFS [#1422](https://github.com/ie3-institute/simona/issues/1422) 
 
 ### Updates
 - Updated gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)
