@@ -6,13 +6,23 @@
 
 package edu.ie3.simona.ontology.messages.flex
 
-import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
+import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  IssueNoControl,
+  IssuePowerControl,
+}
 import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
+import org.slf4j.{Logger, LoggerFactory}
+import squants.energy.PowerConversions.PowerNumeric
 import squants.time.Seconds
 import squants.{Dimensionless, Energy, Power}
 
+import java.time.ZonedDateTime
+import java.util.UUID
 import scala.collection.immutable.SortedMap
 
 /** Energy boundaries for one or several assets. See [[AssetEnergyBoundaries]]
@@ -23,9 +33,91 @@ import scala.collection.immutable.SortedMap
   */
 final case class EnergyBoundariesFlexOptions(
     energyBoundaries: Seq[AssetEnergyBoundaries]
-) extends FlexOptions
+) extends FlexOptions {
+  /**
+   * The sum of all power limits (lower and upper each) of the enclosed [[AssetEnergyBoundaries]].
+   */
+  lazy val powerLimits: ClosedInterval[Power] =
+    new ClosedInterval(
+      energyBoundaries
+        .map(_.powerLimits.getLower)
+        .sum,
+      energyBoundaries
+        .map(_.powerLimits.getUpper)
+        .sum
+    )
+}
 
-object EnergyBoundariesFlexOptions {
+object EnergyBoundariesFlexOptions
+    extends FlexOptionsExtra[EnergyBoundariesFlexOptions] {
+
+  private val log: Logger =
+    LoggerFactory.getLogger(classOf[EnergyBoundariesFlexOptions])
+
+  override val flexType: FlexType = FlexType.EnergyBoundaries
+
+  override def determineFlexPower(
+      flexOptions: EnergyBoundariesFlexOptions,
+      flexCtrl: FlexibilityMessage.IssueFlexControl,
+  ): Power =
+    flexCtrl match {
+      case IssuePowerControl(_, setPower) =>
+        // sanity check: setPower is in range of latest flex options
+        checkSetPower(flexOptions, setPower)
+
+        setPower
+
+      case IssueNoControl(_) =>
+        log.warn(
+          s"${classOf[EnergyBoundariesFlexOptions].getSimpleName} currently have no reference power, " +
+            s"thus a set point of zero kW is chosen because we received $IssueNoControl."
+        )
+        zeroKW
+    }
+
+  override def checkSetPower(
+      flexOptions: EnergyBoundariesFlexOptions,
+      setPower: Power,
+  ): Unit = {
+    if setPower < flexOptions.powerLimits.getLower then
+      throw new FlexException(
+        s"The set power $setPower must not be lower than the minimum power ${flexOptions.powerLimits.getLower}!"
+      )
+    else if setPower > flexOptions.powerLimits.getUpper then
+      throw new FlexException(
+        s"The set power $setPower must not be greater than the maximum power ${flexOptions.powerLimits.getLower}!"
+      )
+  }
+
+  override def createResult(
+      flexOptions: EnergyBoundariesFlexOptions,
+      modelUuid: UUID,
+      dateTime: ZonedDateTime,
+  ): FlexOptionsResult =
+    new FlexOptionsResult(
+      dateTime,
+      modelUuid,
+      // there is no reference power, thus pick power closest to zero
+      zeroKW
+        .max(flexOptions.powerLimits.getLower)
+        .min(flexOptions.powerLimits.getUpper)
+        .toMegawatts
+        .asMegaWatt,
+      flexOptions.powerLimits.getLower.toMegawatts.asMegaWatt,
+      flexOptions.powerLimits.getUpper.toMegawatts.asMegaWatt,
+    )
+
+  override def zero(tick: Long): EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        eStorage = zeroKWh,
+        currentEnergy = zeroKWh,
+        pMax = zeroKW,
+        etaCharge = onePU,
+        etaDischarge = onePU,
+        currentTick = tick,
+      )
+    )
 
   /** Creates energy boundaries with a single [[AssetEnergyBoundaries]].
     *
