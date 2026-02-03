@@ -23,6 +23,7 @@ object ResultSinkType {
       filePrefix: String = "",
       fileSuffix: String = "",
       compressOutputs: Boolean = false,
+      bufferOutputs: Boolean = true,
       delimiter: String,
   ) extends ResultSinkType
 
@@ -56,6 +57,7 @@ object ResultSinkType {
           params.filePrefix,
           params.fileSuffix,
           params.compressOutputs,
+          params.bufferOutputs,
           params.csvSep,
         )
       case Some(params: InfluxDb1xParams) =>
