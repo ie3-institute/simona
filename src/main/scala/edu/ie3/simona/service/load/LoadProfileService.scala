@@ -23,7 +23,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.service.{DataTimeType, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.typed.ActorRef
@@ -119,8 +119,14 @@ object LoadProfileService extends SimonaService {
   ): Try[LoadProfileInitializedStateData] = registrationMessage match {
     case SecondaryServiceRegistrationMessage(
           requestingActor,
+          dataTimeType,
           loadProfile: LoadProfile,
         ) =>
+      if dataTimeType != DataTimeType.Current then
+        ctx.log.warn(
+          s"Data time type $dataTimeType is currently not supported."
+        )
+
       Success(handleRegistrationRequest(requestingActor, loadProfile))
     case invalidMessage =>
       Failure(

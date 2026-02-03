@@ -20,6 +20,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   InitPrimaryServiceStateData,
@@ -241,6 +242,7 @@ class PrimaryServiceWorkerSpec
 
       service ! SecondaryServiceRegistrationMessage(
         systemParticipant.ref,
+        DataTimeType.Current,
         Coordinate(51.4843281, 7.4116482),
       )
 

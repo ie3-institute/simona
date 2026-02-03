@@ -15,7 +15,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
 }
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import edu.ie3.simona.service.Data
+import edu.ie3.simona.service.{Data, DataTimeType}
 import edu.ie3.simona.service.Data.PrimaryDataExtra
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import org.apache.pekko.actor.typed.ActorRef
@@ -53,11 +53,14 @@ object ServiceMessage {
     *
     * @param requestingActor
     *   The actor requesting registration for the data service.
+    * @param dataTimeType
+    *   The data type specifying the temporal dimension of the requested data.
     * @param data
     *   The data, that is used during the registration.
     */
   final case class SecondaryServiceRegistrationMessage(
       requestingActor: ActorRef[Response],
+      dataTimeType: DataTimeType,
       data: Any,
   ) extends ServiceRegistrationMessage
 

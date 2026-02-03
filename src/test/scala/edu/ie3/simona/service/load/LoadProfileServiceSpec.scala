@@ -19,6 +19,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.LoadData
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -83,6 +84,7 @@ class LoadProfileServiceSpec
     "announce failed load profile registration on invalid load profile" in {
       loadProfileService ! SecondaryServiceRegistrationMessage(
         agent.ref,
+        DataTimeType.Current,
         invalidLoadProfile,
       )
 
@@ -93,6 +95,7 @@ class LoadProfileServiceSpec
       /* The successful registration stems from the test above */
       loadProfileService ! SecondaryServiceRegistrationMessage(
         agent.ref,
+        DataTimeType.Current,
         BdewStandardLoadProfile.G0,
       )
 
@@ -114,6 +117,7 @@ class LoadProfileServiceSpec
       /* The successful registration stems from the test above */
       loadProfileService ! SecondaryServiceRegistrationMessage(
         agent.ref,
+        DataTimeType.Current,
         BdewStandardLoadProfile.G0,
       )
 

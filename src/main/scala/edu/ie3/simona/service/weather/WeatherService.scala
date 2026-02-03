@@ -22,7 +22,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.service.{DataTimeType, SimonaService}
 import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.simona.util.{Coordinate, SimonaConstants}
@@ -50,12 +50,9 @@ object WeatherService extends SimonaService {
     *
     * @param coordinate
     *   The coordinate to register weather data for.
-    * @param dataType
-    *   The type of weather data to register for.
     */
   final case class WeatherRegistrationData(
-      coordinate: Coordinate,
-      dataType: WeatherDataType,
+      coordinate: Coordinate
   )
 
   /** Container storing registered actors for a coordinate.
@@ -66,7 +63,7 @@ object WeatherService extends SimonaService {
     *   Weights mapping surrounding coordinates onto the registered coordinate.
     */
   final case class CoordinateData(
-      registeredActors: Map[WeatherDataType, Set[
+      registeredActors: Map[DataTimeType, Set[
         ActorRef[ServiceMessage.Response]
       ]],
       coordinateWeights: WeightedCoordinates,
@@ -155,13 +152,14 @@ object WeatherService extends SimonaService {
     registrationMessage match {
       case SecondaryServiceRegistrationMessage(
             agentToBeRegistered,
-            WeatherRegistrationData(coordinate, dataType),
+            dataTimeType,
+            WeatherRegistrationData(coordinate),
           ) =>
         Success(
           handleRegistrationRequest(
             agentToBeRegistered,
             coordinate,
-            dataType,
+            dataTimeType,
           )
         )
       case invalidMessage =>
@@ -180,7 +178,7 @@ object WeatherService extends SimonaService {
     *   The agent that wants to be registered.
     * @param coordinate
     *   The coordinate of the agent to be registered.
-    * @param dataType
+    * @param dataTimeType
     *   The weather data type that the agent wants to receive.
     * @param serviceStateData
     *   The current service state data of this service.
@@ -191,7 +189,7 @@ object WeatherService extends SimonaService {
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ServiceMessage.Response],
       coordinate: Coordinate,
-      dataType: WeatherDataType,
+      dataTimeType: DataTimeType,
   )(using
       serviceStateData: WeatherBaseStateData,
       ctx: ActorContext[Message],
@@ -219,7 +217,7 @@ object WeatherService extends SimonaService {
             agentToBeRegistered ! registrationResponse
 
             val coordinateData = CoordinateData(
-              registeredActors = Map(dataType -> Set(agentToBeRegistered)),
+              registeredActors = Map(dataTimeType -> Set(agentToBeRegistered)),
               coordinateWeights = weightedCoordinates,
             )
 
@@ -240,7 +238,7 @@ object WeatherService extends SimonaService {
 
       case Some(coordinateData) =>
         val registeredActors =
-          coordinateData.registeredActors.getOrElse(dataType, Set.empty)
+          coordinateData.registeredActors.getOrElse(dataTimeType, Set.empty)
 
         if registeredActors.contains(agentToBeRegistered) then
           ctx.log.warn(
@@ -251,7 +249,7 @@ object WeatherService extends SimonaService {
 
         val adaptedCoordinateData = coordinateData.copy(registeredActors =
           coordinateData.registeredActors +
-            (dataType -> registeredActors.incl(agentToBeRegistered))
+            (dataTimeType -> registeredActors.incl(agentToBeRegistered))
         )
 
         serviceStateData.copy(
@@ -281,11 +279,11 @@ object WeatherService extends SimonaService {
     updatedStateData.coordinateData.foreach { case (_, coordinateData) =>
       val coordinateWeights = coordinateData.coordinateWeights
 
-      coordinateData.registeredActors.foreach { case (dataType, actors) =>
-        val weatherData = dataType match {
-          case WeatherDataType.Current =>
+      coordinateData.registeredActors.foreach { case (dataTimeType, actors) =>
+        val weatherData = dataTimeType match {
+          case DataTimeType.Current =>
             updatedStateData.weatherSource.getWeather(tick, coordinateWeights)
-          case WeatherDataType.CurrentAndForecast(length, interval) =>
+          case DataTimeType.CurrentAndForecast(length, interval) =>
             val endTick = tick + length.toSeconds.toLong
             // weather time series is forwarded without adding error
             val series = updatedStateData.weatherSource

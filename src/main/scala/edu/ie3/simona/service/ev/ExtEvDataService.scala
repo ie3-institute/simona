@@ -24,7 +24,12 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
+import edu.ie3.simona.service.{
+  DataTimeType,
+  ExtDataSupport,
+  ServiceStateData,
+  SimonaService,
+}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -87,7 +92,11 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       ctx: ActorContext[Message],
   ): Try[S] =
     registrationMessage match {
-      case SecondaryServiceRegistrationMessage(requestingActor, evcs: UUID) =>
+      case SecondaryServiceRegistrationMessage(
+            requestingActor,
+            DataTimeType.Current,
+            evcs: UUID,
+          ) =>
         Success(handleRegistrationRequest(requestingActor, evcs))
       case invalidMessage =>
         Failure(
