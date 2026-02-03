@@ -66,7 +66,6 @@ configurations {
 
 repositories {
   mavenCentral() // searches in Sonatype's central repository
-  maven { url = 'https://s01.oss.sonatype.org/content/repositories/snapshots' } // sonatype snapshot repo
   maven { url = 'https://packages.confluent.io/maven' } // confluent repo (kafka)
 }
 
