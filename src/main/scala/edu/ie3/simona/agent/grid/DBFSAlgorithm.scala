@@ -540,13 +540,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 )
               )
 
-              val nodeToAssetAgents =
-                gridAgentBaseData.gridEnv.nodeToAssetAgents
-
               if askForAssetPowers(
                   currentTick,
                   sweepValueStoreOpt,
-                  nodeToAssetAgents,
+                  gridAgentBaseData.gridEnv.nodeToAssetAgents,
                   gridModel.mainRefSystem,
                 )
               then {
@@ -1212,7 +1209,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   private def askSuperiorGridsForSlackVoltages(
       currentSweepNo: Int,
       superiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]],
-  )(using ctx: ActorContext[GridAgent.Message]): Boolean = {
+  )(using ctx: ActorContext[GridAgent.Message]): Unit = {
     ctx.log.debug(
       s"Asking superior grids for slack voltage values: {}",
       superiorGridRefs,
@@ -1226,8 +1223,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           ctx.self,
         )
       }
-
-      true
-    } else false
+    }
   }
 }

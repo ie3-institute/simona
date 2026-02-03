@@ -26,12 +26,35 @@ object CollectionUtils {
     }
   }
 
+  /** Method to create an empty option map for the specified keys.
+    * @param keys
+    *   For which the map should be created.
+    * @tparam K1
+    *   Type of the primary key.
+    * @tparam K2
+    *   Type of the secondary key.
+    * @tparam V
+    *   Type of the values.
+    * @return
+    *   The created map.
+    */
   def emptyOptionMap[K1, K2, V](
       keys: Map[K1, Iterable[K2]]
   ): Map[K1, Map[K2, Option[V]]] = keys.map { case (key, infKeys) =>
     key -> emptyOptionMap(infKeys.toSet)
   }
 
+  /** Method to create a map for the given keys. Each value is set to [[None]].
+    *
+    * @param keys
+    *   For which the map should be created.
+    * @tparam K
+    *   Type of the keys.
+    * @tparam V
+    *   Type of the values.
+    * @return
+    *   The created map.
+    */
   def emptyOptionMap[K, V](keys: Set[K]): Map[K, Option[V]] =
     keys.map(key => key -> None).toMap
 

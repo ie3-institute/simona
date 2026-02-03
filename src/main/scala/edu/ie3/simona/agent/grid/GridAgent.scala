@@ -346,15 +346,13 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       inferiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]],
       askMsgBuilder: ActorRef[GridAgent.Message] => Message,
       ctx: ActorContext[GridAgent.Message],
-  ): Boolean = {
+  ): Unit = {
     if inferiorGridRefs.nonEmpty then {
       inferiorGridRefs.foreach {
         case (inferiorGridAgentRef, inferiorGridGateNodes) =>
           inferiorGridAgentRef ! askMsgBuilder(ctx.self)
       }
-
-      true
-    } else false
+    }
   }
 
   private def failFast(
