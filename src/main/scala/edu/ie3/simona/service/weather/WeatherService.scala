@@ -152,14 +152,14 @@ object WeatherService extends SimonaService {
     registrationMessage match {
       case SecondaryServiceRegistrationMessage(
             agentToBeRegistered,
-            dataType,
+            dataTimeType,
             WeatherRegistrationData(coordinate),
           ) =>
         Success(
           handleRegistrationRequest(
             agentToBeRegistered,
             coordinate,
-            dataType,
+            dataTimeType,
           )
         )
       case invalidMessage =>
@@ -178,7 +178,7 @@ object WeatherService extends SimonaService {
     *   The agent that wants to be registered.
     * @param coordinate
     *   The coordinate of the agent to be registered.
-    * @param dataType
+    * @param dataTimeType
     *   The weather data type that the agent wants to receive.
     * @param serviceStateData
     *   The current service state data of this service.
@@ -189,7 +189,7 @@ object WeatherService extends SimonaService {
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ServiceMessage.Response],
       coordinate: Coordinate,
-      dataType: DataTimeType,
+      dataTimeType: DataTimeType,
   )(using
       serviceStateData: WeatherBaseStateData,
       ctx: ActorContext[Message],
@@ -217,7 +217,7 @@ object WeatherService extends SimonaService {
             agentToBeRegistered ! registrationResponse
 
             val coordinateData = CoordinateData(
-              registeredActors = Map(dataType -> Set(agentToBeRegistered)),
+              registeredActors = Map(dataTimeType -> Set(agentToBeRegistered)),
               coordinateWeights = weightedCoordinates,
             )
 
@@ -238,7 +238,7 @@ object WeatherService extends SimonaService {
 
       case Some(coordinateData) =>
         val registeredActors =
-          coordinateData.registeredActors.getOrElse(dataType, Set.empty)
+          coordinateData.registeredActors.getOrElse(dataTimeType, Set.empty)
 
         if registeredActors.contains(agentToBeRegistered) then
           ctx.log.warn(
@@ -249,7 +249,7 @@ object WeatherService extends SimonaService {
 
         val adaptedCoordinateData = coordinateData.copy(registeredActors =
           coordinateData.registeredActors +
-            (dataType -> registeredActors.incl(agentToBeRegistered))
+            (dataTimeType -> registeredActors.incl(agentToBeRegistered))
         )
 
         serviceStateData.copy(
@@ -279,8 +279,8 @@ object WeatherService extends SimonaService {
     updatedStateData.coordinateData.foreach { case (_, coordinateData) =>
       val coordinateWeights = coordinateData.coordinateWeights
 
-      coordinateData.registeredActors.foreach { case (dataType, actors) =>
-        val weatherData = dataType match {
+      coordinateData.registeredActors.foreach { case (dataTimeType, actors) =>
+        val weatherData = dataTimeType match {
           case DataTimeType.Current =>
             updatedStateData.weatherSource.getWeather(tick, coordinateWeights)
           case DataTimeType.CurrentAndForecast(length, interval) =>

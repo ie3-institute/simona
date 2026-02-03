@@ -53,14 +53,14 @@ object ServiceMessage {
     *
     * @param requestingActor
     *   The actor requesting registration for the data service.
-    * @param dataType
+    * @param dataTimeType
     *   The data type specifying the temporal dimension of the requested data.
     * @param data
     *   The data, that is used during the registration.
     */
   final case class SecondaryServiceRegistrationMessage(
       requestingActor: ActorRef[Response],
-      dataType: DataTimeType,
+      dataTimeType: DataTimeType,
       data: Any,
   ) extends ServiceRegistrationMessage
 

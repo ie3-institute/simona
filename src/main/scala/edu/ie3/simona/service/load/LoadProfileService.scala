@@ -119,11 +119,13 @@ object LoadProfileService extends SimonaService {
   ): Try[LoadProfileInitializedStateData] = registrationMessage match {
     case SecondaryServiceRegistrationMessage(
           requestingActor,
-          dataType,
+          dataTimeType,
           loadProfile: LoadProfile,
         ) =>
-      if dataType != DataTimeType.Current then
-        ctx.log.warn(s"Data time type $dataType is currently not supported.")
+      if dataTimeType != DataTimeType.Current then
+        ctx.log.warn(
+          s"Data time type $dataTimeType is currently not supported."
+        )
 
       Success(handleRegistrationRequest(requestingActor, loadProfile))
     case invalidMessage =>
