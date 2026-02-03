@@ -12,14 +12,11 @@ import edu.ie3.simona.agent.grid.GridAgent.{
   finishCongestionManagement,
   unsupported,
 }
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentConstantData
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentConstantData
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.*
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.*
-import edu.ie3.simona.agent.grid.congestion.data.{
-  AwaitingData,
-  CongestionManagementData,
-}
 import edu.ie3.simona.agent.grid.congestion.Congestions
+import edu.ie3.simona.agent.grid.data.{AwaitingData, CongestionManagementData}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,

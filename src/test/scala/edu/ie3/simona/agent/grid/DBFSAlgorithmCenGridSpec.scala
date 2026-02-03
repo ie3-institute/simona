@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
@@ -105,23 +105,21 @@ class DBFSAlgorithmCenGridSpec
     s"initialize itself when it receives an init activation" in {
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val subGridGateToActorRef = hvSubGridGates.map {
-        case gate if gate.getInferiorSubGrid == hvGridContainer.getSubnet =>
-          gate -> superiorGridAgent.ref
-        case gate =>
-          val actor = gate.getInferiorSubGrid match {
-            case 11 => inferiorGrid11
-            case 12 => inferiorGrid12
-            case 13 => inferiorGrid13
-          }
-          gate -> actor.ref
-      }.toMap
+      val inferiorConnections =
+        Set(inferiorGrid11, inferiorGrid12, inferiorGrid13)
+          .map(agent => agent.ref -> agent.nodeUuids.toSet)
+          .toMap
+      val superiorConnections =
+        Map(superiorGridAgent.ref -> superiorGridAgent.nodeUuids.toSet)
 
       val gridAgentInitData =
         GridAgentInitData(
           hvGridContainer,
           Seq.empty[ThermalGrid],
-          subGridGateToActorRef,
+          Set(11, 12, 13),
+          inferiorConnections,
+          Set(1000),
+          superiorConnections,
           RefSystem("2000 MVA", "110 kV"),
           VoltageLimits(0.9, 1.1),
         )

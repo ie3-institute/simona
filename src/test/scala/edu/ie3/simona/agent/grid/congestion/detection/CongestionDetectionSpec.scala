@@ -11,10 +11,6 @@ import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
   FinishStep,
   StartStep,
 }
-import edu.ie3.simona.agent.grid.congestion.data.{
-  AwaitingData,
-  CongestionManagementData,
-}
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.{
   CongestionCheckRequest,
   CongestionResponse,
@@ -24,6 +20,7 @@ import edu.ie3.simona.agent.grid.congestion.{
   CongestionTestBaseData,
   Congestions,
 }
+import edu.ie3.simona.agent.grid.data.{AwaitingData, CongestionManagementData}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.test.common.UnitSpec
 import org.apache.pekko.actor.testkit.typed.scaladsl.{

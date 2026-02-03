@@ -4,9 +4,10 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid.congestion.data
+package edu.ie3.simona.agent.grid.data
 
 import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.data.AwaitingData
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Case class that holds all received data.

@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
@@ -88,16 +88,13 @@ class DBFSAlgorithmParticipantSpec
 
     s"initialize itself when it receives an init activation" in {
 
-      // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]] =
-        hvSubGridGates.map { gate =>
-          gate -> superiorGridAgent.ref
-        }.toMap
-
       val gridAgentInitData = GridAgentInitData(
         hvGridContainer,
         Seq.empty,
-        subGridGateToActorRef,
+        Set.empty,
+        Map.empty,
+        Set(1000),
+        Map(superiorGridAgent.ref -> superiorGridAgent.nodeUuids.toSet),
         RefSystem("2000 MVA", "110 kV"),
         VoltageLimits(0.9, 1.1),
       )

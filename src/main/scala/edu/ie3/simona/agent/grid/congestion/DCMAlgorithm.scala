@@ -8,16 +8,13 @@ package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgent.Message
-import edu.ie3.simona.agent.grid.GridAgentData.{
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
 }
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.StartStep
-import edu.ie3.simona.agent.grid.congestion.data.{
-  AwaitingData,
-  CongestionManagementData,
-}
 import edu.ie3.simona.agent.grid.congestion.detection.CongestionDetection
+import edu.ie3.simona.agent.grid.data.{AwaitingData, CongestionManagementData}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}

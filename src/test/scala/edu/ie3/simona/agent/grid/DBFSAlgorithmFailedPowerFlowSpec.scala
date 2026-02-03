@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
@@ -90,22 +90,14 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val centerGridAgent =
         testKit.spawn(GridAgent(environmentRefs, simonaConfig))
 
-      // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val subGridGateToActorRef = hvSubGridGatesPF.map {
-        case gate if gate.getInferiorSubGrid == hvGridContainerPF.getSubnet =>
-          gate -> superiorGridAgent.ref
-        case gate =>
-          val actor = gate.getInferiorSubGrid match {
-            case 11 => inferiorGridAgent
-          }
-          gate -> actor.ref
-      }.toMap
-
       val gridAgentInitData =
         GridAgentInitData(
           hvGridContainerPF,
           Seq.empty[ThermalGrid],
-          subGridGateToActorRef,
+          Set(11),
+          Map(inferiorGridAgent.ref -> inferiorGridAgent.nodeUuids.toSet),
+          Set(1000),
+          Map(superiorGridAgent.ref -> superiorGridAgent.nodeUuids.toSet),
           RefSystem("2000 MVA", "110 kV"),
           VoltageLimits(0.9, 1.1),
         )
@@ -346,7 +338,10 @@ class DBFSAlgorithmFailedPowerFlowSpec
         GridAgentInitData(
           ehvGridContainer,
           Seq.empty[ThermalGrid],
-          subnetGatesToActorRef,
+          Set(1),
+          Map(hvGridAgent.ref -> hvGridAgent.nodeUuids.toSet),
+          Set.empty,
+          Map.empty,
           RefSystem("5000 MVA", "380 kV"),
           VoltageLimits(0.9, 1.1),
         )
