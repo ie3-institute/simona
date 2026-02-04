@@ -21,7 +21,7 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec {
   "Determining flex power" should {
 
     val flexOptions = EnergyBoundariesFlexOptions(
-      AssetEnergyBoundaries.apply(
+      AssetEnergyBoundaries(
         eStorage = KilowattHours(10),
         currentEnergy = KilowattHours(5),
         pMax = Kilowatts(5),
