@@ -193,7 +193,9 @@ object ResultServiceProxy {
       * @return
       *   A copy of the state data with update information.
       */
-    def addResult(result: ResultEntity)(using log: Logger): ResultServiceStateData = {
+    def addResult(
+        result: ResultEntity
+    )(using log: Logger): ResultServiceStateData = {
       val uuid = result.getInputModel
       val tick = result.getTime.toTick(using simStartTime)
 
@@ -382,7 +384,7 @@ object ResultServiceProxy {
                   None,
                 )
               } else {
-                (model -> (oldResults ++ changedResults), None, Some(model))
+                (model -> oldResults, None, Some(model))
               }
 
             case (model, results) =>
@@ -406,7 +408,7 @@ object ResultServiceProxy {
         threeWindingResults = updatedThreeWindingResults,
         waitingForResults =
           stateData.waitingForResults.removedAll(results.keys),
-        noUpdate = stateData.noUpdate -- changed.keys ++ notUpdated.flatten,
+        noUpdate = stateData.noUpdate -- results.keys ++ notUpdated.flatten,
       )
 
     case ParticipantResultEvent(systemParticipantResult) =>
@@ -500,13 +502,13 @@ object ResultServiceProxy {
   private def getUpdatedResults(
       results: Iterable[ResultEntity],
       oldResults: Map[Class[? <: ResultEntity], ResultEntity],
-  )(using log: Logger): Map[Class[? <: ResultEntity], ResultEntity] =
-    results.flatMap(getUpdatedResults(_, oldResults)).toMap
+  ): Map[Class[? <: ResultEntity], ResultEntity] =
+    results.flatMap(res => getUpdatedResults(res, oldResults)).toMap
 
   private def getUpdatedResults(
       result: ResultEntity,
       oldResults: Map[Class[? <: ResultEntity], ResultEntity],
-  )(using log: Logger): Map[Class[? <: ResultEntity], ResultEntity] = {
+  ): Map[Class[? <: ResultEntity], ResultEntity] = {
     val resultClass = result.getClass
 
     oldResults.get(resultClass) match {
@@ -518,15 +520,7 @@ object ResultServiceProxy {
         oldResult.setTime(oldTime)
 
         // if equal save old result else save new result
-        if equal then {
-          log.warn(s"Equal: $oldResult -> $result")
-
-          Map.empty
-        } else {
-          log.warn(s"Not equal: $oldResult -> $result")
-
-          Map(resultClass -> result)
-        }
+        if equal then Map.empty else Map(resultClass -> result)
       case None =>
         Map(resultClass -> result)
     }
