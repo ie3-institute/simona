@@ -84,7 +84,10 @@ object RegularSchedulerCore extends CoreFactory {
     }
 
     override def maybeComplete(): Option[(Option[Long], InactiveCore)] = {
-      if activeActors.isEmpty && !activationQueue.headKeyOption.contains(activeTick) then {
+      if activeActors.isEmpty && !activationQueue.headKeyOption.contains(
+          activeTick
+        )
+      then {
         println(s"Go to next tick...")
       }
 

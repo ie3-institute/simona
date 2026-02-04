@@ -74,6 +74,8 @@ object ExtResultEvent {
   ): Behavior[Message | DataMessageFromExt | Activation] =
     Behaviors.receivePartial[Message | DataMessageFromExt | Activation] {
       case (ctx, ResultResponse(results)) =>
+        println(s"Sending results to ext. Results: $results")
+
         ctx.log.warn(s"Sending results to ext. Results: $results")
 
         // send result to external simulation
@@ -110,12 +112,9 @@ object ExtResultEvent {
 
         extMsg match {
           case requestResultEntities: RequestResultEntities =>
-            val requestedResults =
-              new util.ArrayList(requestResultEntities.requestedResults)
-
             // request results from result proxy
             stateData.resultProxy ! RequestResult(
-              requestedResults.asScala.toSeq,
+              requestResultEntities.requestedResults.asScala.toSeq,
               tick,
               ctx.self,
             )

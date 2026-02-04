@@ -133,6 +133,7 @@ object ExtResultProvider {
               requestedResults.asScala.toSeq,
               tick,
               ctx.self,
+              requestResultEntities.sendUnchangedResults,
             )
 
             Behaviors.same
