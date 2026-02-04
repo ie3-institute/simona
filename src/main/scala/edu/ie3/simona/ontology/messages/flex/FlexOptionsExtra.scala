@@ -94,6 +94,10 @@ trait FlexOptionsExtra[FO <: FlexOptions: ClassTag] {
       dateTime: ZonedDateTime,
   ): FlexOptionsResult
 
+  /** Creates flex options for zero KW of power and no available flexibility.
+    */
+  def zero(tick: Long): FO
+
 }
 
 object FlexOptionsExtra {
@@ -102,6 +106,8 @@ object FlexOptionsExtra {
     flexType match {
       case FlexType.PowerLimit =>
         PowerLimitFlexOptions
+      case FlexType.EnergyBoundaries =>
+        EnergyBoundariesFlexOptions
     }
 
 }

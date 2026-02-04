@@ -104,6 +104,8 @@ object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
       flexOptions.max.toMegawatts.asMegaWatt,
     )
 
+  override def zero(tick: Long): PowerLimitFlexOptions = noFlexOption(zeroKW)
+
   extension (flexOptions: Iterable[PowerLimitFlexOptions]) {
     def flexSum: PowerLimitFlexOptions =
       flexOptions.foldLeft(PowerLimitFlexOptions(zeroKW, zeroKW, zeroKW)) {
