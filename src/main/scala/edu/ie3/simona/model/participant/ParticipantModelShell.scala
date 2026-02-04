@@ -25,14 +25,12 @@ import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   FlexOptionsExtra,
   FlexType,
-  PowerLimitFlexOptions,
 }
 import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
@@ -277,15 +275,13 @@ final case class ParticipantModelShell[
       ),
     )
 
-    val updatedFlexOptions = flexType match {
-      case FlexType.PowerLimit =>
-        if operationInterval.includes(tick) then {
-          flexModel.determineFlexOptions(currentState)
-        } else {
-          // Out of operation, there's no way to operate besides 0 kW
-          PowerLimitFlexOptions.noFlexOption(zeroKW)
-        }
-    }
+    val updatedFlexOptions =
+      if operationInterval.includes(tick) then {
+        flexModel.determineFlexOptions(currentState)
+      } else {
+        // Out of operation, there's no way to operate besides 0 kW
+        FlexOptionsExtra(flexType).zero(tick)
+      }
 
     copy(state = currentState, flexOptions = Some(updatedFlexOptions, flexType))
   }
