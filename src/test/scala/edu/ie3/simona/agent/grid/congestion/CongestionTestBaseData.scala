@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.service.load.LoadProfileService
@@ -128,10 +128,7 @@ trait CongestionTestBaseData
     val data = mock[GridAgentBaseData]
     val map = inferiorRefs.map(ref => ref -> Seq.empty).toMap
 
-    val cmParams = CongestionManagementParams(
-      detectionEnabled = true,
-      30.seconds,
-    )
+    val cmParams = CongestionManagementParams(detectionEnabled = true)
 
     when(data.isSuperior).thenReturn(isSuperior)
     when(data.congestionManagementParams).thenReturn(cmParams)

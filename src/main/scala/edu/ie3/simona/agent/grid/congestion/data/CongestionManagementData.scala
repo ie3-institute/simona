@@ -50,7 +50,7 @@ final case class CongestionManagementData(
     * @param startTime
     *   Of the simulation.
     * @return
-    *   AS new [[CongestionResult]].
+    *   An iterable of [[CongestionResult]].
     */
   private def getCongestionResults(
       startTime: ZonedDateTime
@@ -126,9 +126,6 @@ final case class CongestionManagementData(
 
   def superiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] =
     gridAgentBaseData.superiorGridRefs
-
-  def timeout: FiniteDuration =
-    gridAgentBaseData.congestionManagementParams.timeout
 }
 
 object CongestionManagementData {

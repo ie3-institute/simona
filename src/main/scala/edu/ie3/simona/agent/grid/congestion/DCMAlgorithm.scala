@@ -31,19 +31,19 @@ trait DCMAlgorithm extends CongestionDetection {
   /** Method for starting the congestion management.
     *
     * @param gridAgentBaseData
-    *   state data of the actor
+    *   State data of the actor.
     * @param currentTick
-    *   the current tick in the simulation
+    *   The current tick in the simulation.
     * @param results
-    *   option for the last power flow results
+    *   Option for the last power flow results.
     * @param ctx
-    *   actor context
+    *   Actor context.
     * @param constantData
-    *   immutable [[GridAgent]] values
+    *   Immutable [[GridAgent]] values.
     * @param buffer
-    *   for [[GridAgent.Message]]s
+    *   For [[GridAgent.Message]]s.
     * @return
-    *   a [[Behavior]]
+    *   A [[Behavior]].
     */
   private[grid] def startCongestionManagement(
       gridAgentBaseData: GridAgentBaseData,
@@ -74,15 +74,15 @@ trait DCMAlgorithm extends CongestionDetection {
     * the [[GridAgent.idle()]] state afterward.
     *
     * @param stateData
-    *   congestion management state data
+    *   Congestion management state data.
     * @param ctx
-    *   actor context
+    *   Actor context.
     * @param constantData
-    *   immutable [[GridAgent]] values
+    *   Immutable [[GridAgent]] values.
     * @param buffer
-    *   for [[GridAgent.Message]]s
+    *   For [[GridAgent.Message]]s.
     * @return
-    *   a [[Behavior]]
+    *   A [[Behavior]].
     */
   private[grid] def finishCongestionManagement(
       stateData: CongestionManagementData,

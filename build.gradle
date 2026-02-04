@@ -3,9 +3,9 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.1.0' // code format
+  id 'com.diffplug.spotless' version '8.2.1' // code format
   id "com.github.ben-manes.versions" version '0.53.0'
-  id "de.undercouch.download" version "5.6.0" // downloads plugin
+  id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '9.3.1' // fat jar
   id "org.sonarqube" version "7.2.2.6593" // sonarqube
@@ -66,7 +66,6 @@ configurations {
 
 repositories {
   mavenCentral() // searches in Sonatype's central repository
-  maven { url = 'https://s01.oss.sonatype.org/content/repositories/snapshots' } // sonatype snapshot repo
   maven { url = 'https://packages.confluent.io/maven' } // confluent repo (kafka)
 }
 
@@ -101,7 +100,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.25"
+  implementation "ch.qos.logback:logback-classic:1.5.27"
 
   /* testing */
   // scalatest & junit
@@ -137,8 +136,8 @@ dependencies {
   /* config */
   implementation 'com.typesafe:config:1.4.5'
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
-  implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.9"
-  implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.9"
+  implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.10"
+  implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.10"
 
   // JTS
   implementation ("org.locationtech.jts:jts-core:${jtsVersion}") {
@@ -152,7 +151,7 @@ dependencies {
   /* Kafka */
   implementation "org.apache.kafka:kafka-clients:${confluentKafkaVersion}-ccs"
   implementation "io.confluent:kafka-streams-avro-serde:${confluentKafkaVersion}"
-  implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:5.0.14"
+  implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:5.0.15"
 
   implementation 'commons-io:commons-io:2.21.0' // used for FilenameUtils
   implementation 'javax.measure:unit-api:2.2'

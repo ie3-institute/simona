@@ -194,11 +194,13 @@ object ParticipantAgent {
         replyTo !
           (if result.newResult then {
              AssetPowerChangedMessage(
+               ctx.self,
                result.avgPower.p,
                result.avgPower.q,
              )
            } else {
              AssetPowerUnchangedMessage(
+               ctx.self,
                result.avgPower.p,
                result.avgPower.q,
              )
