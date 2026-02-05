@@ -3,7 +3,7 @@
 # Price service
 
 The price parses a price time series containing wholesale price data (e.g. day-ahead or intra-day).
-Please refer to {doc}`PowerSystemDataModel - Time Series <psdm:models/input/additionaldata/timeseries>` for the used attributes and units and to the [configuration page](config#price-service) for hints how to configure the service.
+Please refer to {doc}`PowerSystemDataModel - Time Series <psdm:models/input/additionaldata/timeseries>` for the used attributes and units and to the [configuration page](../config.md#price-data) for hints how to configure the service.
 
 Generally, in order to derive prosumer prices, the fees are added/subtracted to the wholesale price, after which the tax is added/subtracted.
 

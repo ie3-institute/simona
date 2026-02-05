@@ -86,7 +86,7 @@ For the buying price, fees (in EUR/MWh) are added to the wholesale price and the
 Conversely, for the selling price, fees (in EUR/MWh) are subtracted from the wholesale price, and the tax is subtracted from the remaining amount.
 
 Find below an exemplary configuration for households in Dortmund, 2025.
-An explanation of the exemplary price configuration below can be found [here](models/price_service#example-scenario).
+An explanation of the exemplary price configuration below can be found [here](models/price_service.md#example-scenario).
 The UUID of the price time series to use as data source. 
 An individual time series with given UUID and column scheme ENERGY_PRICE needs to be provided.
 
