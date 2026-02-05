@@ -195,7 +195,7 @@ object ResultServiceProxy {
       */
     def addResult(
         result: ResultEntity
-    )(using log: Logger): ResultServiceStateData = {
+    ): ResultServiceStateData = {
       val uuid = result.getInputModel
       val tick = result.getTime.toTick(using simStartTime)
 
@@ -206,13 +206,13 @@ object ResultServiceProxy {
 
       val (updatedResults, changedResults) = results.get(uuid) match {
         case Some(oldResults) =>
-          val changed = getUpdatedResults(result, oldResults)
-
-          if changed.nonEmpty then {
-            (results.updated(uuid, oldResults ++ changed), true)
-          } else {
-            (results, false)
+          filterUnchangedResults(result, oldResults) match {
+            case Some((resultClass, res)) =>
+              (results.updated(uuid, oldResults.updated(resultClass, res)), true)
+            case None =>
+              (results, false)
           }
+
         case None =>
           (results.updated(uuid, Map(result.getClass -> result)), true)
       }
@@ -241,11 +241,11 @@ object ResultServiceProxy {
     def getResults(
         uuids: Seq[UUID],
         sendUnchangedResults: Boolean,
-    ): Map[UUID, Iterable[ResultEntity]] = {
+    ): Map[UUID, List[ResultEntity]] = {
       uuids.flatMap { uuid =>
         if !noUpdate.contains(uuid) || sendUnchangedResults then {
           // we only sent result, if either there was an update or we explicitly requested to send unchanged results
-          results.get(uuid).map(res => uuid -> res.values)
+          results.get(uuid).map(res => uuid -> res.values.toList)
         } else None
       }.toMap
     }
@@ -367,48 +367,44 @@ object ResultServiceProxy {
           stateData.threeWindingResults,
         )
 
-      val allOldResults = stateData.results
-
       val (updatedResults, changedResults, notUpdated) =
         (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults)
           .groupBy(_.getInputModel)
-          .map {
-            case (model, results) if allOldResults.contains(model) =>
-              val oldResults = allOldResults(model)
-              val changedResults = getUpdatedResults(results, oldResults)
+          .foldLeft(stateData.results, Map.empty[UUID, Seq[ResultEntity]], Seq.empty[UUID]) {
+            case ((allResults, changed, notChanged), (model, results)) =>
 
-              if changedResults.nonEmpty then {
-                (
-                  model -> (oldResults ++ changedResults),
-                  Some(model -> changedResults.values),
-                  None,
-                )
-              } else {
-                (model -> oldResults, None, Some(model))
+              allResults.get(model) match {
+                case Some(oldResults) =>
+                  val changedResults = filterUnchangedResults(results, oldResults)
+
+                  if changedResults.nonEmpty then {
+                    (
+                      allResults.updated(model, oldResults ++ changedResults),
+                      changed.updated(model, results),
+                      notChanged
+                    )
+                  } else {
+                    (allResults, changed, notChanged.appended(model))
+                  }
+
+                case None =>
+                  (
+                    allResults.updated(model, results.map(res => res.getClass -> res).toMap),
+                    changed.updated(model, results),
+                    notChanged
+                  )
               }
-
-            case (model, results) =>
-              (
-                model -> results.map(res => res.getClass -> res).toMap,
-                Some(model -> results),
-                None,
-              )
-
           }
-          .unzip3
-
-      val results = updatedResults.toMap
-      val changed = changedResults.flatten.toMap
 
       // notify listener
-      stateData.notifyListener(changed)
+      stateData.notifyListener(changedResults)
 
       stateData.copy(
-        results = results,
+        results = updatedResults,
         threeWindingResults = updatedThreeWindingResults,
         waitingForResults =
-          stateData.waitingForResults.removedAll(results.keys),
-        noUpdate = stateData.noUpdate -- results.keys ++ notUpdated.flatten,
+          stateData.waitingForResults.removedAll(updatedResults.keys),
+        noUpdate = stateData.noUpdate -- updatedResults.keys ++ notUpdated,
       )
 
     case ParticipantResultEvent(systemParticipantResult) =>
@@ -489,26 +485,33 @@ object ResultServiceProxy {
     }
   }
 
-  /** Compares the new results to the old results. If a new result matched any
-    * old result, the new result is returned and the old result is replaced.
-    *
-    * @param results
-    *   To compare.
-    * @param oldResults
-    *   For comparison.
-    * @return
-    *   The updated result.
-    */
-  private def getUpdatedResults(
-      results: Iterable[ResultEntity],
-      oldResults: Map[Class[? <: ResultEntity], ResultEntity],
-  ): Map[Class[? <: ResultEntity], ResultEntity] =
-    results.flatMap(res => getUpdatedResults(res, oldResults)).toMap
+  /** Compares the new results to the old results. If a new result does not match any
+   * old result, the new result is returned.
+   *
+   * @param results
+   *   To compare.
+   * @param oldResults
+   *   For comparison.
+   * @return
+   *   The updated results.
+   */
+  private[results] def filterUnchangedResults(
+                                      results: Iterable[ResultEntity],
+                                      oldResults: Map[Class[? <: ResultEntity], ResultEntity],
+                                    ): Map[Class[? <: ResultEntity], ResultEntity] =
+    results.flatMap(filterUnchangedResults(_, oldResults)).toMap
 
-  private def getUpdatedResults(
-      result: ResultEntity,
-      oldResults: Map[Class[? <: ResultEntity], ResultEntity],
-  ): Map[Class[? <: ResultEntity], ResultEntity] = {
+  /** Compares the new result to the old results. If a new result matched any
+   * old result, the new result is returned.
+   *
+   * @param result To compare.
+   * @param oldResults For comparison
+   * @return An option for the updated result or None.
+   */
+  private[results] def filterUnchangedResults(
+                                               result: ResultEntity,
+                                               oldResults: Map[Class[? <: ResultEntity], ResultEntity],
+                                             ): Option[(Class[? <: ResultEntity], ResultEntity)] = {
     val resultClass = result.getClass
 
     oldResults.get(resultClass) match {
@@ -520,9 +523,9 @@ object ResultServiceProxy {
         oldResult.setTime(oldTime)
 
         // if equal save old result else save new result
-        if equal then Map.empty else Map(resultClass -> result)
+        if equal then None else Some(resultClass -> result)
       case None =>
-        Map(resultClass -> result)
+        Some(resultClass -> result)
     }
 
   }
