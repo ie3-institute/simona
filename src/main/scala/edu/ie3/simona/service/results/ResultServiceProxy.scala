@@ -208,7 +208,10 @@ object ResultServiceProxy {
         case Some(oldResults) =>
           filterUnchangedResults(result, oldResults) match {
             case Some((resultClass, res)) =>
-              (results.updated(uuid, oldResults.updated(resultClass, res)), true)
+              (
+                results.updated(uuid, oldResults.updated(resultClass, res)),
+                true,
+              )
             case None =>
               (results, false)
           }
@@ -370,30 +373,35 @@ object ResultServiceProxy {
       val (updatedResults, changedResults, notUpdated) =
         (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults)
           .groupBy(_.getInputModel)
-          .foldLeft(stateData.results, Map.empty[UUID, Seq[ResultEntity]], Seq.empty[UUID]) {
-            case ((allResults, changed, notChanged), (model, results)) =>
+          .foldLeft(
+            stateData.results,
+            Map.empty[UUID, Seq[ResultEntity]],
+            Seq.empty[UUID],
+          ) { case ((allResults, changed, notChanged), (model, results)) =>
+            allResults.get(model) match {
+              case Some(oldResults) =>
+                val changedResults = filterUnchangedResults(results, oldResults)
 
-              allResults.get(model) match {
-                case Some(oldResults) =>
-                  val changedResults = filterUnchangedResults(results, oldResults)
-
-                  if changedResults.nonEmpty then {
-                    (
-                      allResults.updated(model, oldResults ++ changedResults),
-                      changed.updated(model, results),
-                      notChanged
-                    )
-                  } else {
-                    (allResults, changed, notChanged.appended(model))
-                  }
-
-                case None =>
+                if changedResults.nonEmpty then {
                   (
-                    allResults.updated(model, results.map(res => res.getClass -> res).toMap),
+                    allResults.updated(model, oldResults ++ changedResults),
                     changed.updated(model, results),
-                    notChanged
+                    notChanged,
                   )
-              }
+                } else {
+                  (allResults, changed, notChanged.appended(model))
+                }
+
+              case None =>
+                (
+                  allResults.updated(
+                    model,
+                    results.map(res => res.getClass -> res).toMap,
+                  ),
+                  changed.updated(model, results),
+                  notChanged,
+                )
+            }
           }
 
       // notify listener
@@ -485,33 +493,36 @@ object ResultServiceProxy {
     }
   }
 
-  /** Compares the new results to the old results. If a new result does not match any
-   * old result, the new result is returned.
-   *
-   * @param results
-   *   To compare.
-   * @param oldResults
-   *   For comparison.
-   * @return
-   *   The updated results.
-   */
+  /** Compares the new results to the old results. If a new result does not
+    * match any old result, the new result is returned.
+    *
+    * @param results
+    *   To compare.
+    * @param oldResults
+    *   For comparison.
+    * @return
+    *   The updated results.
+    */
   private[results] def filterUnchangedResults(
-                                      results: Iterable[ResultEntity],
-                                      oldResults: Map[Class[? <: ResultEntity], ResultEntity],
-                                    ): Map[Class[? <: ResultEntity], ResultEntity] =
+      results: Iterable[ResultEntity],
+      oldResults: Map[Class[? <: ResultEntity], ResultEntity],
+  ): Map[Class[? <: ResultEntity], ResultEntity] =
     results.flatMap(filterUnchangedResults(_, oldResults)).toMap
 
   /** Compares the new result to the old results. If a new result matched any
-   * old result, the new result is returned.
-   *
-   * @param result To compare.
-   * @param oldResults For comparison
-   * @return An option for the updated result or None.
-   */
+    * old result, the new result is returned.
+    *
+    * @param result
+    *   To compare.
+    * @param oldResults
+    *   For comparison
+    * @return
+    *   An option for the updated result or None.
+    */
   private[results] def filterUnchangedResults(
-                                               result: ResultEntity,
-                                               oldResults: Map[Class[? <: ResultEntity], ResultEntity],
-                                             ): Option[(Class[? <: ResultEntity], ResultEntity)] = {
+      result: ResultEntity,
+      oldResults: Map[Class[? <: ResultEntity], ResultEntity],
+  ): Option[(Class[? <: ResultEntity], ResultEntity)] = {
     val resultClass = result.getClass
 
     oldResults.get(resultClass) match {
