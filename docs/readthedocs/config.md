@@ -86,7 +86,9 @@ For the buying price, fees (in EUR/MWh) are added to the wholesale price and the
 Conversely, for the selling price, fees (in EUR/MWh) are subtracted from the wholesale price, and the tax is subtracted from the remaining amount.
 
 Find below an exemplary configuration for households in Dortmund, 2025.
-The UUID of the price time series to use as data source. An individual time series with given UUID and column scheme ENERGY_PRICE needs to be provided.
+An explanation of the exemplary price configuration below can be found [here](models/price_service#example-scenario).
+The UUID of the price time series to use as data source. 
+An individual time series with given UUID and column scheme ENERGY_PRICE needs to be provided.
 
 ```
 simona.input.prices.datasource = {
@@ -96,7 +98,7 @@ simona.input.prices.datasource = {
   }
   sellingPrice = {
     fees: 5.0
-    tax: 0.19 
+    tax: 0.0
   }
   timeseriesUuid = <UUID>
   csvParams = {
@@ -106,27 +108,6 @@ simona.input.prices.datasource = {
   }
 }
 ```
-
-The exemplary price adjustments above can be explained as follows.
-Recurring fixed costs, such as metering point operation (Messstellenbetrieb) and the basic charge of grid fees (Grundpreis der Netzentgelte) are not considered. 
-This is because we are interested in optimizing the use of flexibility, not the cost of the installation setup.
-- Buying price
-    - Fees
-        - Grid fees (Netzentgelte): 7.17 ct/kWh
-        - Electricity tax (Stromsteuer): 2.05 ct/kWh
-        - EEG-Umlage: 0 ct/kWh
-        - Offshore-Umlage: 0.816 ct/kWh
-        - NEV-Umlage/Aufschlag für besondere Netznutzung: 1.558 ct/kWh
-        - KWKG-Umlage: 0.277 ct/kWh
-        - Concession levy (Konzessionsabgabe): 2.39 ct/kWh
-        - Supplier margin (Lieferantenmarge): 4.45 ct/kWh
-    - Tax
-        - Sales tax (Umsatzsteuer): 19%
-- Selling price
-    - Fees
-        - Not standardized, thus we assume 0.5 ct/kWh
-    - Tax
-        - Sales tax (Umsatzsteuer): 19%
 
 ## Output parameters
 
