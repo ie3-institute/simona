@@ -27,6 +27,7 @@ object ResultMessage {
       requestedResults: Seq[UUID],
       tick: Long,
       replyTo: ActorRef[ResultResponse],
+      sendUnchangedResults: Boolean = false,
   )
 
   /** Response message that is sent to a listener or
