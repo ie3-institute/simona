@@ -208,9 +208,10 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
         }
 
       case ServiceType.PriceService =>
-        throw new CriticalFailureException(
-          s"${assetInput.identifier} is trying to register for a ${ServiceType.PriceService}, " +
-            s"which is currently not supported."
+        serviceRef ! SecondaryServiceRegistrationMessage(
+          registrantRef,
+          dataTimeType,
+          (),
         )
 
       case ServiceType.EvMovementService =>
