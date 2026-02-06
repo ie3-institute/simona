@@ -18,6 +18,11 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  DataProvision,
+  RegistrationSuccessfulMessage,
+  SecondaryServiceRegistrationMessage,
+}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.{
@@ -31,36 +36,40 @@ import edu.ie3.simona.ontology.messages.{
   ServiceMessage,
 }
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.Data.SecondaryData.{
+  ProsumerPrice,
+  SecondarySeriesData,
+}
 import edu.ie3.simona.service.{DataTimeType, ServiceType}
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EmInputTestData
-import edu.ie3.simona.test.matchers.{QuantityMatchers, SquantsMatchers}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.onePU
-import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
+import edu.ie3.util.scala.quantities.{
+  EuroPerKilowattHour,
+  Kilovars,
+  ReactivePower,
+}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.scalatest.matchers.should
-import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
 import squants.Power
 import squants.energy.{KilowattHours, Kilowatts}
+import squants.time.Hours
 
 import java.time.ZonedDateTime
 import scala.collection.immutable.SortedMap
 
 class EmAgentSpec
     extends ScalaTestWithActorTestKit
-    with AnyWordSpecLike
-    with should.Matchers
-    with EmInputTestData
+    with UnitSpec
     with MockitoSugar
-    with QuantityMatchers
-    with SquantsMatchers {
+    with EmInputTestData {
 
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
@@ -644,6 +653,11 @@ class EmAgentSpec
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
       val service = TestProbe[ServiceMessage]("PriceService")
 
+      val dataTimeType = DataTimeType.CurrentAndForecast(
+        forecastLength = Hours(12),
+        forecastResolution = Hours(1),
+      )
+
       val emAgent = spawn(
         EmAgentInit(
           emInput.copy().controlStrategy("OPT_PRICE").build(),
@@ -656,7 +670,18 @@ class EmAgentSpec
         )
       )
 
-      // service.expectMessage()
+      service.expectMessage(
+        SecondaryServiceRegistrationMessage(
+          emAgent.ref,
+          dataTimeType,
+          (),
+        )
+      )
+
+      emAgent ! RegistrationSuccessfulMessage(
+        service.ref,
+        0L,
+      )
 
       val pvAgent = TestProbe[FlexRequest]("PvAgent")
       emAgent ! RegisterControlledAsset(pvAgent.ref, pvInput)
@@ -675,8 +700,10 @@ class EmAgentSpec
       emAgent ! Activation(INIT_SIM_TICK)
 
       // expect flex activations
-      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
-      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
+      pvAgent.expectMessage(FlexInit(FlexType.EnergyBoundaries, dataTimeType))
+      evcsAgent.expectMessage(
+        FlexInit(FlexType.EnergyBoundaries, dataTimeType)
+      )
 
       // receive flex completions
       emAgent ! FlexCompletion(
@@ -709,16 +736,22 @@ class EmAgentSpec
       emAgent ! ProvideFlexOptions(
         pvInput.getUuid,
         EnergyBoundariesFlexOptions(
-          AssetEnergyBoundaries(SortedMap(0L -> Kilowatts(-5)))
+          AssetEnergyBoundaries(
+            SortedMap(
+              0L -> Kilowatts(-5),
+              3600L -> Kilowatts(-10),
+              7200L -> Kilowatts(-1),
+            )
+          )
         ),
       )
-
-      pvAgent.expectNoMessage()
-      evcsAgent.expectNoMessage()
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
         EnergyBoundariesFlexOptions(
+          // not proper EVCS boundaries, but rather just a battery
+          // in order to test basic functionality
+          // todo adapt
           AssetEnergyBoundaries(
             eStorage = KilowattHours(50),
             currentEnergy = KilowattHours(20),
@@ -728,6 +761,30 @@ class EmAgentSpec
             currentTick = 0,
           )
         ),
+      )
+
+      // price data provision is still missing
+      pvAgent.expectNoMessage()
+      evcsAgent.expectNoMessage()
+
+      emAgent ! DataProvision(
+        0L,
+        service.ref,
+        SecondarySeriesData(
+          0L -> ProsumerPrice(
+            EuroPerKilowattHour(0.1),
+            EuroPerKilowattHour(0.2),
+          ),
+          3600L -> ProsumerPrice(
+            EuroPerKilowattHour(0.05),
+            EuroPerKilowattHour(0.1),
+          ),
+          7200L -> ProsumerPrice(
+            EuroPerKilowattHour(0.1),
+            EuroPerKilowattHour(0.2),
+          ),
+        ),
+        Some(3600L),
       )
 
       // receive flex control messages
@@ -741,7 +798,7 @@ class EmAgentSpec
       )
       emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid,
-        requestAtTick = Some(600),
+        requestAtTick = Some(3600),
       )
 
       scheduler.expectNoMessage()
@@ -756,7 +813,7 @@ class EmAgentSpec
       )
       emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
-        requestAtTick = Some(300),
+        requestAtTick = Some(7200),
       )
 
       // expect correct results
@@ -779,18 +836,18 @@ class EmAgentSpec
 
       // expect completion from EmAgent
       scheduler.expectMessage(
-        Completion(emAgent, Some(300))
+        Completion(emAgent, Some(3600))
       )
 
-      /* TICK 300 */
-      emAgent ! Activation(300)
+      /* TICK 3600 */
+      emAgent ! Activation(3600)
 
       // expect activations and flex requests.
       // only participant 2 has been scheduled for this tick,
       // thus 1 does not get activated
       pvAgent.expectNoMessage()
 
-      evcsAgent.expectMessage(FlexActivation(300))
+      evcsAgent.expectMessage(FlexActivation(3600))
 
       // send flex options again, ev is fully charged
       emAgent ! ProvideFlexOptions(
