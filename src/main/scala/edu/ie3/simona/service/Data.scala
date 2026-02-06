@@ -413,6 +413,19 @@ object Data {
         series: SortedMap[Long, SecondaryData]
     ) extends SecondaryData
 
+    object SecondarySeriesData {
+
+      /** Convenience method that does not require providing a [[SortedMap]].
+        *
+        * @param elems
+        *   The series elements.
+        * @return
+        *   The [[SecondarySeriesData]]
+        */
+      def apply(elems: (Long, SecondaryData)*): SecondarySeriesData =
+        SecondarySeriesData(SortedMap.from(elems))
+    }
+
   }
 
 }
