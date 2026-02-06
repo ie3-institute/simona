@@ -10,12 +10,15 @@ import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
+  FlexType,
   PowerLimitFlexOptions,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 
 class EvcsPowerLimitFlexModel(private val model: EvcsModel)
     extends ParticipantFlexModel[EvcsState] {
+
+  override val flexType: FlexType = FlexType.PowerLimit
 
   override def determineFlexOptions(
       state: EvcsState

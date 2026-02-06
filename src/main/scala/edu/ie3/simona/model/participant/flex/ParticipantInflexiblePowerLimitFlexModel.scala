@@ -10,6 +10,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
+  FlexType,
   PowerLimitFlexOptions,
 }
 
@@ -24,6 +25,8 @@ import edu.ie3.simona.ontology.messages.flex.{
 class ParticipantInflexiblePowerLimitFlexModel[S <: ModelState](
     private val model: ParticipantModel[?, S]
 ) extends ParticipantFlexModel[S] {
+
+  override val flexType: FlexType = FlexType.PowerLimit
 
   override def determineFlexOptions(
       state: S

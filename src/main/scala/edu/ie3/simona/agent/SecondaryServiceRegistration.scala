@@ -16,7 +16,11 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   SecondaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
-import edu.ie3.simona.service.{DataTimeType, ServiceType}
+import edu.ie3.simona.service.{
+  DataTimeType,
+  ServiceRegistrationData,
+  ServiceType,
+}
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.InputUtils.identifier
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
@@ -52,8 +56,9 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
     *   A consumer for additional data received by the service.
     * @param registrationCompleteBehavior
     *   The behavior to transition to after the registration process completed.
-    * @param requiredServiceTypes
-    *   The types of services to register for.
+    * @param registrationData
+    *   The registration data to use for service registration, including types
+    *   of services and data time type.
     * @param services
     *   A map of available services by service type.
     * @return
@@ -63,11 +68,11 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
       modelAsset: AssetInput,
       additionalDataConsumer: AdditionalDataConsumer,
       registrationCompleteBehavior: CompletionBehavior,
-      requiredServiceTypes: Iterable[ServiceType],
+      registrationData: ServiceRegistrationData,
       services: Map[ServiceType, ActorRef[ServiceMessage]],
   ): Behavior[Msg] = {
     Behaviors.setup { ctx =>
-      if requiredServiceTypes.isEmpty then {
+      if registrationData.serviceTypes.isEmpty then {
         // not requiring any secondary services, thus we're ready to go
         registrationCompleteBehavior(
           additionalDataConsumer.unchanged,
@@ -75,7 +80,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
         )
       } else {
         // requiring at least one secondary service, thus send out registrations and wait for replies
-        val requiredServices = requiredServiceTypes
+        val requiredServices = registrationData.serviceTypes
           .map(serviceType =>
             serviceType -> services
               .getOrElse(
@@ -92,6 +97,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
             modelAsset,
             ctx.self,
             serviceType,
+            registrationData.dataTimeType,
             serviceRef,
           )
         }
@@ -168,6 +174,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
       assetInput: AssetInput,
       registrantRef: ActorRef[Msg],
       serviceType: ServiceType,
+      dataTimeType: DataTimeType,
       serviceRef: ActorRef[ServiceMessage],
   ): Unit =
     serviceType match {
@@ -187,7 +194,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
           case Some((lat, lon)) =>
             serviceRef ! SecondaryServiceRegistrationMessage(
               registrantRef,
-              DataTimeType.Current,
+              dataTimeType,
               WeatherRegistrationData(
                 Coordinate(lat, lon)
               ),
@@ -209,6 +216,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
       case ServiceType.EvMovementService =>
         serviceRef ! SecondaryServiceRegistrationMessage(
           registrantRef,
+          // only data for current tick possible
           DataTimeType.Current,
           assetInput.getUuid,
         )
@@ -218,7 +226,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
           case load: LoadInput =>
             serviceRef ! SecondaryServiceRegistrationMessage(
               registrantRef,
-              DataTimeType.Current,
+              dataTimeType,
               load.getLoadProfile,
             )
 

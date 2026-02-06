@@ -7,9 +7,13 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
-import edu.ie3.simona.ontology.messages.flex.FlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexOptions, FlexType}
 
 trait ParticipantFlexModel[S <: ModelState] {
+
+  /** The flex type of this flex model.
+    */
+  val flexType: FlexType
 
   /** Given the current state, this method determines the flexibility options
     * for the current tick. This usually means that the range of possible

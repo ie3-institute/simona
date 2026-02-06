@@ -16,6 +16,7 @@ import edu.ie3.simona.event.ResultEvent.{
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelShell
+import edu.ie3.simona.ontology.messages.AgentMessage.{ActivationRequest, tick}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -29,6 +30,7 @@ import edu.ie3.simona.ontology.messages.{
   ServiceMessage,
 }
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
@@ -94,12 +96,6 @@ object EmAgent {
       }
       inactive(emData, modelShell, inputHandler, newCore)
 
-    case (_, msg: Activation) =>
-      activate(emData, modelShell, inputHandler, core, msg.tick)
-
-    case (_, msg: FlexActivation) =>
-      activate(emData, modelShell, inputHandler, core, msg.tick)
-
     case (ctx, msg: IssueFlexControl) =>
       val flexOptionsCore = core.activate(msg.tick)
 
@@ -113,6 +109,10 @@ object EmAgent {
 
       awaitingFlexCtrl(emData, modelShell, inputHandler, flexOptionsCore)
 
+    // other activations besides IssueFlexControl
+    case (_, msg: ActivationRequest) =>
+      activate(emData, modelShell, inputHandler, core, msg)
+
     case (ctx, msg: DataMessage) =>
       inactive(emData, modelShell, inputHandler.handleDataMessage(msg), core)
 
@@ -123,13 +123,27 @@ object EmAgent {
       modelShell: EmModelShell[?],
       inputHandler: DataInputHandler,
       core: EmDataCore.Inactive,
-      tick: Long,
+      msg: ActivationRequest,
   ): Behavior[Message] = {
-    val flexOptionsCore = core.activate(tick)
+    val flexOptionsCore = core.activate(msg.tick)
 
     val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
+
+    msg match {
+      case flexInit: FlexInit =>
+        // validate initialization message
+        modelShell.validateInit(flexInit)
+      case _ =>
+      // no validation to do
+    }
+
+    val activationMsg = msg.tick match {
+      case INIT_SIM_TICK =>
+        FlexInit(modelShell.getFlexType, modelShell.getDataTimeType)
+      case _ => FlexActivation(msg.tick)
+    }
     toActivate.foreach {
-      _ ! FlexActivation(tick, modelShell.getFlexType)
+      _ ! activationMsg
     }
 
     newCore.fold(

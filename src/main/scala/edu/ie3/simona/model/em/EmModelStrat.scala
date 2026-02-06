@@ -22,7 +22,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   PowerLimitFlexOptions,
 }
 import edu.ie3.simona.service.Data.SecondaryData
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.ServiceRegistrationData
 import squants.Power
 import squants.energy.Kilowatts
 import squants.time.Hours
@@ -35,10 +35,15 @@ import java.util.UUID
   */
 trait EmModelStrat[FO <: FlexOptions] {
 
-  /** @return
-    *   All secondary services required by the model.
+  /** Returns the service registration data specifying the data provision
+    * required for running for this model strategy. To be overridden by
+    * implementing class. Per default returns data that specifies no services.
+    *
+    * @return
+    *   The data specifying a service registration.
     */
-  def getRequiredSecondaryServices: Iterable[ServiceType]
+  def getServiceRegistrationData: ServiceRegistrationData =
+    ServiceRegistrationData.noServices
 
   /** Determine the target power (set points) of connected agents that provided
     * flex options before. Connected agents that have no result assigned in

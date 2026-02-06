@@ -196,6 +196,8 @@ object PrimaryDataParticipantModel {
       model: PrimaryDataParticipantModel[PD]
   ) extends ParticipantFlexModel[PrimaryDataState[PD]] {
 
+    override val flexType: FlexType = FlexType.PowerLimit
+
     override def determineFlexOptions(
         state: PrimaryDataState[PD]
     ): FlexOptions = {

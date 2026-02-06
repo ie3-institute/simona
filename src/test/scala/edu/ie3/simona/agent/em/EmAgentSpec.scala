@@ -31,7 +31,7 @@ import edu.ie3.simona.ontology.messages.{
   ServiceMessage,
 }
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.{QuantityMatchers, SquantsMatchers}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -110,8 +110,10 @@ class EmAgentSpec
       emAgent ! Activation(INIT_SIM_TICK)
 
       // expect flex activations
-      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
-      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
+      pvAgent.expectMessage(FlexInit(FlexType.PowerLimit, DataTimeType.Current))
+      evcsAgent.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
 
       // receive flex completions
       emAgent ! FlexCompletion(
@@ -869,11 +871,13 @@ class EmAgentSpec
       parentEmAgent.expectNoMessage()
 
       /* TICK -1 */
-      emAgent ! FlexActivation(INIT_SIM_TICK)
+      emAgent ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
       // expect flex activations
-      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
-      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
+      pvAgent.expectMessage(FlexInit(FlexType.PowerLimit, DataTimeType.Current))
+      evcsAgent.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
 
       // receive flex completions
       emAgent ! FlexCompletion(

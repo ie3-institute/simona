@@ -15,6 +15,7 @@ import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEn
 import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
   FlexOptions,
+  FlexType,
 }
 
 import scala.collection.immutable.SortedMap
@@ -34,6 +35,8 @@ class ParticipantInflexibleEnergyLimitFlexModel[S <: ModelState](
     model: ParticipantModel[?, S],
     determineStates: S => SortedMap[Long, S],
 ) extends ParticipantFlexModel[S] {
+
+  override val flexType: FlexType = FlexType.EnergyBoundaries
 
   override def determineFlexOptions(state: S): FlexOptions = {
 

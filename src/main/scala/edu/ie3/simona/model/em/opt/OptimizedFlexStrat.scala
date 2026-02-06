@@ -17,7 +17,11 @@ import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
   SecondarySeriesData,
 }
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.{
+  DataTimeType,
+  ServiceRegistrationData,
+  ServiceType,
+}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKWh}
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
@@ -55,8 +59,15 @@ final case class OptimizedFlexStrat(
     s"${classOf[OptimizedFlexStrat].getSimpleName}(${objectiveFactory.getClass.getSimpleName})"
   )
 
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    objectiveFactory.getRequiredSecondaryServices
+  override def getServiceRegistrationData: ServiceRegistrationData = {
+    ServiceRegistrationData(
+      objectiveFactory.getRequiredSecondaryServices,
+      DataTimeType.CurrentAndForecast(
+        forecastLength = predictionHorizon,
+        forecastResolution = sampleTime,
+      ),
+    )
+  }
 
   /** The power target might not be considered by all types of objectives.
     */

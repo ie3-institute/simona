@@ -10,12 +10,15 @@ import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
+  FlexType,
   PowerLimitFlexOptions,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 
 class StoragePowerLimitFlexModel(private val model: StorageModel)
     extends ParticipantFlexModel[StorageState] {
+
+  override val flexType: FlexType = FlexType.PowerLimit
 
   override def determineFlexOptions(
       state: StorageState

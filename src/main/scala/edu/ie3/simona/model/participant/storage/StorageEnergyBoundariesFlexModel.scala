@@ -12,12 +12,15 @@ import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEn
 import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
   FlexOptions,
+  FlexType,
 }
 
 class StorageEnergyBoundariesFlexModel(private val model: StorageModel)
     extends ParticipantFlexModel[
       StorageState
     ] {
+
+  override val flexType: FlexType = FlexType.EnergyBoundaries
 
   override def determineFlexOptions(state: StorageState): FlexOptions =
     EnergyBoundariesFlexOptions(
