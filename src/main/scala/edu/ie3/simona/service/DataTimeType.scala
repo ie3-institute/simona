@@ -4,21 +4,24 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.service.weather
+package edu.ie3.simona.service
 
 import squants.Time
 import squants.time.Hours
 
-trait WeatherDataType
+/** Specifies the temporal dimension of [[Data]], e.g. if data for the current
+  * tick or beyond that is requested.
+  */
+trait DataTimeType
 
-object WeatherDataType {
+object DataTimeType {
 
-  /** Weather data at the current point in simulation time.
+  /** Data at the current point in simulation time.
     */
-  case object Current extends WeatherDataType
+  case object Current extends DataTimeType
 
-  /** Weather data at the current point in simulation time and a weather
-    * forecast for a specific length of time into the future.
+  /** Data at the current point in simulation time and a forecast for a specific
+    * length of time into the future.
     *
     * @param forecastLength
     *   The length of the forecast, i.e. the amount of time into future to
@@ -29,6 +32,6 @@ object WeatherDataType {
   final case class CurrentAndForecast(
       forecastLength: Time,
       forecastResolution: Time = Hours(1),
-  ) extends WeatherDataType
+  ) extends DataTimeType
 
 }

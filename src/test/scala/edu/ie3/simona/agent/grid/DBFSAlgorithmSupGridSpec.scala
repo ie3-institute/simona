@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangePower
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
@@ -70,6 +70,7 @@ class DBFSAlgorithmSupGridSpec
     primaryServiceProxy = primaryService.ref,
     resultProxy = resultProxy.ref,
     weather = weatherService.ref,
+    price = None,
     loadProfiles = loadProfileService.ref,
     emDataService = None,
     evDataService = None,
@@ -91,7 +92,10 @@ class DBFSAlgorithmSupGridSpec
         GridAgentInitData(
           ehvGridContainer,
           Seq.empty[ThermalGrid],
-          subnetGatesToActorRef,
+          Set(1),
+          Map(hvGrid.ref -> Set(supNodeA.getUuid)),
+          Map.empty,
+          Map.empty,
           RefSystem("5000 MVA", "380 kV"),
           VoltageLimits(0.9, 1.1),
         )
@@ -123,7 +127,7 @@ class DBFSAlgorithmSupGridSpec
         for sweepNo <- 0 to 1 do {
 
           val requestedConnectionNodeUuids =
-            Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
+            Seq(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
           superiorGridAgentFSM ! Activation(3600)
@@ -147,13 +151,10 @@ class DBFSAlgorithmSupGridSpec
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
           lastSender ! GridPowerResponse(
-            requestedConnectionNodeUuids.map { uuid =>
-              ExchangePower(
-                uuid,
-                Megawatts(0.0),
-                Megavars(0.0),
-              )
-            }
+            hvGrid.ref,
+            requestedConnectionNodeUuids.map(
+              ExchangePower(_, hvGrid.ref, Megawatts(0.0), Megavars(0.0))
+            ),
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
@@ -241,7 +242,7 @@ class DBFSAlgorithmSupGridSpec
         for sweepNo <- 0 to maxNumberOfTestSweeps do {
 
           val requestedConnectionNodeUuids =
-            Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
+            Seq(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
           superiorGridAgentFSM ! Activation(3600)
@@ -265,13 +266,15 @@ class DBFSAlgorithmSupGridSpec
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
           lastSender ! GridPowerResponse(
-            requestedConnectionNodeUuids.map { uuid =>
+            hvGrid.ref,
+            requestedConnectionNodeUuids.map(
               ExchangePower(
-                uuid,
+                _,
+                hvGrid.ref,
                 deviations(sweepNo)._1,
                 deviations(sweepNo)._2,
               )
-            }
+            ),
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid

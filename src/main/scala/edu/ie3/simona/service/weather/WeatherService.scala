@@ -10,30 +10,22 @@ import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.ServiceMessage
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-  SecondaryServiceRegistrationMessage,
-  ServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.SecondaryData.SecondarySeriesData
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.service.{DataTimeType, SimonaService}
 import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.simona.util.{Coordinate, SimonaConstants}
-import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
-import squants.Time
 
 import java.time.ZonedDateTime
-import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success, Try}
 
 /** Weather Service is responsible to register other actors that require weather
@@ -50,12 +42,9 @@ object WeatherService extends SimonaService {
     *
     * @param coordinate
     *   The coordinate to register weather data for.
-    * @param dataType
-    *   The type of weather data to register for.
     */
   final case class WeatherRegistrationData(
-      coordinate: Coordinate,
-      dataType: WeatherDataType,
+      coordinate: Coordinate
   )
 
   /** Container storing registered actors for a coordinate.
@@ -66,7 +55,7 @@ object WeatherService extends SimonaService {
     *   Weights mapping surrounding coordinates onto the registered coordinate.
     */
   final case class CoordinateData(
-      registeredActors: Map[WeatherDataType, Set[
+      registeredActors: Map[DataTimeType, Set[
         ActorRef[ServiceMessage.Response]
       ]],
       coordinateWeights: WeightedCoordinates,
@@ -78,11 +67,8 @@ object WeatherService extends SimonaService {
     *   The weather source to retrieve information from.
     * @param coordinateData
     *   A map of the requested coords to their receiving actor references.
-    * @param maybeNextActivationTick
-    *   The next tick at which the service wants to be activated.
     * @param activationTicks
-    *   A sorted set of ticks, that yet have been sent to the scheduler (w\o
-    *   next tick).
+    *   A queue of future ticks that the service will be activated at.
     * @param startDateTime
     *   The simulation time at which simulation started.
     * @param amountOfInterpolationCoords
@@ -91,8 +77,7 @@ object WeatherService extends SimonaService {
   final case class WeatherBaseStateData(
       weatherSource: WeatherSource,
       coordinateData: Map[Coordinate, CoordinateData] = Map.empty,
-      maybeNextActivationTick: Option[Long],
-      activationTicks: SortedDistinctSeq[Long] = SortedDistinctSeq.empty,
+      activationTicks: ActivationTickQueue,
       startDateTime: ZonedDateTime,
       amountOfInterpolationCoords: Int = 4,
   ) extends ServiceBaseStateData
@@ -122,25 +107,24 @@ object WeatherService extends SimonaService {
         val weatherSource = WeatherSource(sourceDefinition)
 
         /* What is the first tick to be triggered for? And what are further activation ticks */
-        val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
+        val activationTicks = ActivationTickQueue(
           weatherSource
             .getDataTicks(
               SimonaConstants.FIRST_TICK_IN_SIMULATION,
               simulationEnd.toTick,
             )
             .toSeq
-        ).pop
+        )
 
         val weatherInitializedStateData = WeatherBaseStateData(
           weatherSource,
-          activationTicks = furtherActivationTicks,
-          maybeNextActivationTick = maybeNextTick,
+          activationTicks = activationTicks,
           startDateTime = startDateTime,
         )
 
         Success(
           weatherInitializedStateData,
-          maybeNextTick,
+          activationTicks.nextTick,
         )
 
       case invalidData =>
@@ -160,20 +144,21 @@ object WeatherService extends SimonaService {
     registrationMessage match {
       case SecondaryServiceRegistrationMessage(
             agentToBeRegistered,
-            WeatherRegistrationData(coordinate, dataType),
+            dataTimeType,
+            WeatherRegistrationData(coordinate),
           ) =>
         Success(
           handleRegistrationRequest(
             agentToBeRegistered,
             coordinate,
-            dataType,
+            dataTimeType,
           )
         )
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
             "Cannot register an agent for weather service with registration " +
-              s"request message '${invalidMessage.getClass.getSimpleName}'!"
+              s"request message '$invalidMessage'!"
           )
         )
     }
@@ -185,10 +170,12 @@ object WeatherService extends SimonaService {
     *   The agent that wants to be registered.
     * @param coordinate
     *   The coordinate of the agent to be registered.
-    * @param dataType
+    * @param dataTimeType
     *   The weather data type that the agent wants to receive.
     * @param serviceStateData
     *   The current service state data of this service.
+    * @param ctx
+    *   The actor context.
     * @return
     *   An updated state data of this service that contains registration
     *   information if the registration has been carried out successfully.
@@ -196,7 +183,7 @@ object WeatherService extends SimonaService {
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ServiceMessage.Response],
       coordinate: Coordinate,
-      dataType: WeatherDataType,
+      dataTimeType: DataTimeType,
   )(using
       serviceStateData: WeatherBaseStateData,
       ctx: ActorContext[Message],
@@ -209,7 +196,7 @@ object WeatherService extends SimonaService {
     )
 
     // collate the provided coordinates into a single entity
-    val registrationResponse = serviceStateData.maybeNextActivationTick
+    val registrationResponse = serviceStateData.activationTicks.nextTick
       .map(RegistrationSuccessfulMessage(ctx.self, _))
       .getOrElse(RegistrationFailedMessage(ctx.self))
 
@@ -224,7 +211,7 @@ object WeatherService extends SimonaService {
             agentToBeRegistered ! registrationResponse
 
             val coordinateData = CoordinateData(
-              registeredActors = Map(dataType -> Set(agentToBeRegistered)),
+              registeredActors = Map(dataTimeType -> Set(agentToBeRegistered)),
               coordinateWeights = weightedCoordinates,
             )
 
@@ -245,7 +232,7 @@ object WeatherService extends SimonaService {
 
       case Some(coordinateData) =>
         val registeredActors =
-          coordinateData.registeredActors.getOrElse(dataType, Set.empty)
+          coordinateData.registeredActors.getOrElse(dataTimeType, Set.empty)
 
         if registeredActors.contains(agentToBeRegistered) then
           ctx.log.warn(
@@ -256,7 +243,7 @@ object WeatherService extends SimonaService {
 
         val adaptedCoordinateData = coordinateData.copy(registeredActors =
           coordinateData.registeredActors +
-            (dataType -> registeredActors.incl(agentToBeRegistered))
+            (dataTimeType -> registeredActors.incl(agentToBeRegistered))
         )
 
         serviceStateData.copy(
@@ -275,13 +262,10 @@ object WeatherService extends SimonaService {
     given simulationStart: ZonedDateTime = serviceStateData.startDateTime
 
     /* Pop the next activation tick and update the state data */
-    val (
-      maybeNextTick: Option[Long],
-      updatedStateData: WeatherBaseStateData,
-    ) = {
-      val (nextTick, remainderTicks) = serviceStateData.activationTicks.pop
-      (nextTick, serviceStateData.copy(activationTicks = remainderTicks))
-    }
+    val remainingTicks = serviceStateData.activationTicks.dropFirst
+    val maybeNextTick = remainingTicks.nextTick
+    val updatedStateData =
+      serviceStateData.copy(activationTicks = remainingTicks)
 
     // get the weather and send it to the subscribed agents
     // no sanity check needed here as we can assume that we always have weather available
@@ -289,13 +273,13 @@ object WeatherService extends SimonaService {
     updatedStateData.coordinateData.foreach { case (_, coordinateData) =>
       val coordinateWeights = coordinateData.coordinateWeights
 
-      coordinateData.registeredActors.foreach { case (dataType, actors) =>
-        val weatherData = dataType match {
-          case WeatherDataType.Current =>
+      coordinateData.registeredActors.foreach { case (dataTimeType, actors) =>
+        val weatherData = dataTimeType match {
+          case DataTimeType.Current =>
             updatedStateData.weatherSource.getWeather(tick, coordinateWeights)
-          case WeatherDataType.CurrentAndForecast(length, interval) =>
+          case DataTimeType.CurrentAndForecast(length, resolution) =>
             val endTick = tick + length.toSeconds.toLong
-            // weather time series is forwarded without adding error
+            // weather time series is forwarded as forecast without adding noise
             val series = updatedStateData.weatherSource
               .getWeather(
                 tick,
@@ -305,7 +289,7 @@ object WeatherService extends SimonaService {
               .map { case (time, data) =>
                 time.toTick -> data
               }
-            SecondarySeriesData(reduceTimeSeriesResolution(series, interval))
+            SecondarySeriesData(reduceTimeSeriesResolution(series, resolution))
         }
 
         actors.foreach {
@@ -323,38 +307,6 @@ object WeatherService extends SimonaService {
       updatedStateData,
       maybeNextTick,
     )
-  }
-
-  /** Reduces the resolution of given time series to at least given resolution
-    * by removing elements from the time series.
-    *
-    * @param timeSeries
-    *   The time series to adapt.
-    * @param resolution
-    *   The time resolution to aim for.
-    * @tparam T
-    *   The type of time series data.
-    * @return
-    *   The adapted time series.
-    */
-  def reduceTimeSeriesResolution[T](
-      timeSeries: SortedMap[Long, T],
-      resolution: Time,
-  ): SortedMap[Long, T] = {
-    val resolutionSeconds = resolution.toSeconds.toLong
-
-    timeSeries.foldLeft(timeSeries) { case (result, (it, _)) =>
-      result.maxBefore(it) match {
-        case Some((last, _)) =>
-          if last + resolutionSeconds > it then
-            // interval from last to current key is too short
-            result.removed(it)
-          else result
-        case None =>
-          // no data before the current key, keep it
-          result
-      }
-    }
   }
 
 }

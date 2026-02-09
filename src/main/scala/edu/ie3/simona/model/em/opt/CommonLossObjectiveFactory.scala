@@ -15,7 +15,7 @@ import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
   calculateConversionFactor,
 }
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
-import edu.ie3.simona.service.Data
+import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities.EnergyPrice
 import optimus.algebra.{Const, Expression, Zero}
@@ -173,6 +173,9 @@ object CommonLossObjectiveFactory {
     */
   object MinAbsPowerObjectiveFactory extends CommonLossObjectiveFactory {
 
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
         assetVars: Iterable[AssetVarContainer[SplitLossAssetStepVars]],
@@ -206,6 +209,9 @@ object CommonLossObjectiveFactory {
   class LinearizedQuadraticPowerObjectiveFactory(
       segmentCount: Int
   ) extends CommonLossObjectiveFactory {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
@@ -276,7 +282,10 @@ object CommonLossObjectiveFactory {
     * Since we assume that the buying price is always higher than the selling
     * price, we can use an epigraph to derive a linear objective.
     */
-  class PriceObjectiveFactory extends CommonLossObjectiveFactory {
+  object PriceObjectiveFactory extends CommonLossObjectiveFactory {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.PriceService)
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
@@ -299,8 +308,6 @@ object CommonLossObjectiveFactory {
             s"No prices were given with secondary data $receivedData"
           )
         )
-
-      val upperLimit = 1d
 
       val transformFunc = (price: EnergyPrice) =>
         price.toEuroPerKilowattHour / maxPrice

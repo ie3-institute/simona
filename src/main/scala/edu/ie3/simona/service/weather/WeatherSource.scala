@@ -277,7 +277,7 @@ object WeatherSource {
     implicit val coordinateSourceFunction: IdCoordinateSource =
       buildCoordinateSource(weatherDataSourceCfg.coordinateSource)
 
-    val definedWeatherSources = Vector(
+    val definedWeatherSources = Seq(
       weatherDataSourceCfg.sampleParams,
       weatherDataSourceCfg.csvParams,
       weatherDataSourceCfg.influxDb1xParams,
@@ -288,7 +288,7 @@ object WeatherSource {
     if definedWeatherSources.isEmpty then {
       // should not happen, due to the config fail fast check
       throw new SourceException(
-        s"Expected a WeatherSource, but no source where defined in $weatherDataSourceCfg."
+        s"Expected a weather source, but no source was defined in $weatherDataSourceCfg."
       )
     }
 

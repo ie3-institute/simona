@@ -8,22 +8,18 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.actor.SimonaActorNaming
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.{
-  GridAgentBaseData,
-  GridAgentConstantData,
-  GridAgentInitData,
-}
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  CreateGridAgent,
-  WrappedFailure,
-}
+import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.agent.grid.congestion.{
   CongestionManagementParams,
   DCMAlgorithm,
 }
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  GridAgentBaseData,
+  GridAgentConstantData,
+  GridAgentInitData,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
@@ -34,22 +30,16 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.util.TickUtil.TickLong
-import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
   StashBuffer,
 }
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
-import org.apache.pekko.util.Timeout
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future}
-import scala.language.{implicitConversions, postfixOps}
-import scala.util.{Failure, Success}
 
 object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
@@ -69,7 +59,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   def apply(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
-  ): Behavior[Message] = Behaviors.withStash(100) { buffer =>
+      bufferSize: Int = 1000,
+  ): Behavior[Message] = Behaviors.withStash(bufferSize) { buffer =>
     val cfg = simonaConfig.simona
 
     given simStartTime: ZonedDateTime = cfg.time.simStartTime
@@ -167,28 +158,23 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
             value.maxSweepPowerDeviation,
             value.newtonraphson.epsilon.toVector.sorted,
             value.newtonraphson.iterations,
-            value.sweepTimeout,
             value.stopOnFailure,
           )
         case None =>
           // empty powerflow params, since we need an object
-          PowerFlowParams(0, Vector.empty, 0, 0.seconds, false)
+          PowerFlowParams(0, Vector.empty, 0, false)
       }
 
       // create the GridAgentBaseData
       val gridAgentBaseData = GridAgentBaseData(
         gridModel,
-        gridAgentInitData.subGridGateToActorRef,
-        nodeToAssetAgentsMap,
-        gridAgentInitData.superiorGridNodeUuids,
-        gridAgentInitData.inferiorGridGates,
-        gridAgentInitData.superiorGridGates,
         pfParams,
-        CongestionManagementParams(
-          cfg.congestionManagement.enableDetection,
-          cfg.congestionManagement.timeout,
-        ),
+        CongestionManagementParams(cfg.congestionManagement.enableDetection),
         SimonaActorNaming.actorName(ctx.self),
+        nodeToAssetAgentsMap,
+        gridAgentInitData.inferiorConnections,
+        gridAgentInitData.superiorConnections,
+        gridAgentInitData.superiorGridIds,
       )
 
       val resolution = constantData.resolution
@@ -209,13 +195,13 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   /** Method that defines the idle [[Behavior]] of the agent.
     *
     * @param gridAgentBaseData
-    *   state data of the actor
+    *   State data of the actor.
     * @param constantData
-    *   immutable [[GridAgent]] values
+    *   Immutable [[GridAgent]] values.
     * @param buffer
-    *   for [[GridAgent.Message]]s
+    *   For [[GridAgent.Message]]s.
     * @return
-    *   a [[Behavior]]
+    *   A [[Behavior]].
     */
   private[grid] def idle(
       gridAgentBaseData: GridAgentBaseData
@@ -247,17 +233,17 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   /** Behavior of the [[GridAgent]] after the powerflow is finished.
     *
     * @param gridAgentBaseData
-    *   state data of the actor
+    *   State data of the actor.
     * @param currentTick
-    *   the current tick in the simulation
+    *   The current tick in the simulation.
     * @param ctx
-    *   actor context
+    *   Actor context.
     * @param constantData
-    *   immutable [[GridAgent]] values
+    *   Immutable [[GridAgent]] values.
     * @param buffer
-    *   for [[GridAgent.Message]]s
+    *   For [[GridAgent.Message]]s.
     * @return
-    *   a [[Behavior]]
+    *   A [[Behavior]].
     */
   private[grid] def afterPowerFlow(
       gridAgentBaseData: GridAgentBaseData,
@@ -296,19 +282,19 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     * [[idle()]] state.
     *
     * @param gridAgentBaseData
-    *   state data of the actor
+    *   State data of the actor.
     * @param nextTick
-    *   the next tick in the simulation
+    *   The next tick in the simulation.
     * @param results
-    *   option for the last power flow, that should be written
+    *   Option for the last power flow, that should be written.
     * @param ctx
-    *   actor context
+    *   Actor context.
     * @param constantData
-    *   immutable [[GridAgent]] values
+    *   Immutable [[GridAgent]] values.
     * @param buffer
-    *   for [[GridAgent.Message]]s
+    *   For [[GridAgent.Message]]s.
     * @return
-    *   a [[Behavior]]
+    *   A [[Behavior]].
     */
   private[grid] def gotoIdle(
       gridAgentBaseData: GridAgentBaseData,
@@ -327,11 +313,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     ctx.log.debug("Doing my cleanup stuff")
 
     // / clean copy of the gridAgentBaseData
-    val cleanedGridAgentBaseData = GridAgentBaseData.clean(
-      gridAgentBaseData,
-      gridAgentBaseData.superiorGridNodeUuids,
-      gridAgentBaseData.inferiorGridGates,
-    )
+    val cleanedGridAgentBaseData = gridAgentBaseData.clean
 
     // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
     constantData.environmentRefs.scheduler ! Completion(
@@ -346,61 +328,24 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   /** Method to ask all inferior grids.
     *
     * @param inferiorGridRefs
-    *   a map containing a mapping from [[ActorRef]]s to corresponding [[UUID]]s
-    *   of inferior nodes
+    *   A map containing a mapping from [[ActorRef]]s to corresponding [[UUID]]s
+    *   of inferior nodes.
     * @param askMsgBuilder
-    *   function to build the asked message
-    * @param resMsgBuilder
-    *   function to build the returned message
+    *   Function to build the asked message.
     * @param ctx
-    *   actor context to use
+    *   Actor context to use.
     * @tparam T
-    *   type of data
+    *   Type of data.
     */
   private[grid] def askInferior[T](
-      inferiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]],
+      inferiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]],
       askMsgBuilder: ActorRef[GridAgent.Message] => Message,
-      resMsgBuilder: Vector[(ActorRef[GridAgent.Message], T)] => InternalReply,
-      ctx: ActorContext[GridAgent.Message],
-  )(using timeout: FiniteDuration): Unit = {
-    if inferiorGridRefs.nonEmpty then {
-      // creating implicit vals
-      given ec: ExecutionContext = ctx.executionContext
-      given scheduler: Scheduler = ctx.system.scheduler
-      given askTimeout: Timeout = Timeout(timeout)
-
-      // asking process
-      val future = Future
-        .sequence(
-          inferiorGridRefs.map { case (inferiorGridAgentRef, _) =>
-            inferiorGridAgentRef
-              .ask(askMsgBuilder)
-              .map { case response: InternalReplyWithSender[T] =>
-                (response.sender, response.value)
-              }
-          }.toVector
-        )
-        .map(resMsgBuilder)
-      pipeToSelf(future, ctx)
-    }
-  }
-
-  /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
-    * itself. If the future is a [[Success]] the message is sent, else a
-    * [[WrappedFailure]] with the thrown error is sent.
-    *
-    * @param future
-    *   future message that should be sent to the agent after it was processed
-    * @param ctx
-    *   [[ActorContext]] of the receiving actor
-    */
-  private[grid] def pipeToSelf(
-      future: Future[GridAgent.Message],
       ctx: ActorContext[GridAgent.Message],
   ): Unit = {
-    ctx.pipeToSelf[GridAgent.Message](future) {
-      case Success(value)     => value
-      case Failure(exception) => WrappedFailure(exception)
+    if inferiorGridRefs.nonEmpty then {
+      inferiorGridRefs.foreach { case (inferiorGridAgentRef, _) =>
+        inferiorGridAgentRef ! askMsgBuilder(ctx.self)
+      }
     }
   }
 
@@ -409,7 +354,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       actorName: String,
       onlyOneSubGrid: Boolean,
   ): Unit = {
-    if gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty && !onlyOneSubGrid
+    if gridAgentInitData.superiorConnections.isEmpty && gridAgentInitData.inferiorConnections.isEmpty && !onlyOneSubGrid
     then
       throw new GridAgentInitializationException(
         s"$actorName has neither superior nor inferior grids! This can either " +

@@ -8,11 +8,11 @@ package edu.ie3.simona.sim.setup
 
 import edu.ie3.simona.api.ExtLinkInterface
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.helper.TestResourceHelper
 
-import java.io.File
 import java.util.ServiceConfigurationError
 
-class ExtSimLoaderSpec extends UnitSpec {
+class ExtSimLoaderSpec extends UnitSpec with TestResourceHelper {
 
   private val resourceDir = "ext-sim-loader"
 
@@ -32,12 +32,12 @@ class ExtSimLoaderSpec extends UnitSpec {
   // testing whether this test is complete
   "An ExtSimLoaderSpec " should {
     "have a test directory available" in {
-      val dir = getResource(resourceDir)
+      val dir = getResourceFile(resourceDir)
       assert(dir.isDirectory, "Testing resource directory does not exist")
     }
 
     "have a directory with an irrelevant file" in {
-      val dir = getResource(noJarsDir)
+      val dir = getResourceFile(noJarsDir)
       assert(dir.isDirectory, "Directory with irrelevant file does not exist")
 
       val files = dir.listFiles().toVector
@@ -49,7 +49,7 @@ class ExtSimLoaderSpec extends UnitSpec {
     }
 
     "have a directory with all relevant jars" in {
-      val dir = getResource(jarsDir)
+      val dir = getResourceFile(jarsDir)
       assert(dir.isDirectory, "Directory with jars does not exist")
 
       val files = dir.listFiles().toVector
@@ -64,14 +64,14 @@ class ExtSimLoaderSpec extends UnitSpec {
   // testing the actual class
   "An ExtSimLoader" should {
     "ignore irrelevant files" in {
-      val dir = getResource(noJarsDir)
+      val dir = getResourceFile(noJarsDir)
       val jars = ExtSimLoader.scanInputFolder(Some(dir.toPath))
 
       jars shouldBe empty
     }
 
     "find all jars in directory" in {
-      val dir = getResource(jarsDir)
+      val dir = getResourceFile(jarsDir)
       val jars = ExtSimLoader.scanInputFolder(Some(dir.toPath))
 
       jars.size shouldBe 6
@@ -82,28 +82,28 @@ class ExtSimLoaderSpec extends UnitSpec {
     }
 
     "load no service if the META-INF/service file is missing" in {
-      val jar = getResource(missingServiceFileJar)
+      val jar = getResourceFile(missingServiceFileJar)
       val extLink = ExtSimLoader.loadExtLink(jar)
 
       extLink.isEmpty shouldBe true
     }
 
     "load no service if service file is empty" in {
-      val jar = getResource(emptyFileJar)
+      val jar = getResourceFile(emptyFileJar)
       val extLink = ExtSimLoader.loadExtLink(jar)
 
       extLink.isEmpty shouldBe true
     }
 
     "throw an exception when ExtLinkInterface is not implemented" in {
-      val jar = getResource(wrongImplementationJar)
+      val jar = getResourceFile(wrongImplementationJar)
       assertThrows[ServiceConfigurationError] {
         ExtSimLoader.loadExtLink(jar)
       }
     }
 
     "load a proper jar correctly" in {
-      val jar = getResource(workingJar)
+      val jar = getResourceFile(workingJar)
       val jars = Iterable(jar)
       val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
 
@@ -114,8 +114,8 @@ class ExtSimLoaderSpec extends UnitSpec {
     }
 
     "load multiple proper jars correctly" in {
-      val jarOne = getResource(workingJar)
-      val jarTwo = getResource(workingJar2)
+      val jarOne = getResourceFile(workingJar)
+      val jarTwo = getResourceFile(workingJar2)
       val jars = Iterable(jarOne, jarTwo)
       val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
 
@@ -128,18 +128,12 @@ class ExtSimLoaderSpec extends UnitSpec {
     }
 
     "load a jar with multiple ExtLinks" in {
-      val jarOne = getResource(twoImplementationJar)
+      val jarOne = getResourceFile(twoImplementationJar)
       val jars = Iterable(jarOne)
       val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
 
       extLinks.size shouldBe 1
     }
-  }
-
-  private def getResource(name: String): File = {
-    val path = getClass.getResource(name)
-    path should not be null
-    new File(path.getPath)
   }
 
   private def fileSuffix(fileName: String): String =

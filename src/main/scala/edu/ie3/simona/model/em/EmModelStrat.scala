@@ -13,6 +13,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   PowerLimitFlexOptions,
 }
 import edu.ie3.simona.service.Data.SecondaryData
+import edu.ie3.simona.service.ServiceType
 import squants.Power
 import squants.energy.Kilowatts
 
@@ -23,6 +24,11 @@ import java.util.UUID
   * connected agents
   */
 trait EmModelStrat[FO <: FlexOptions] {
+
+  /** @return
+    *   All secondary services required by the model.
+    */
+  def getRequiredSecondaryServices: Iterable[ServiceType]
 
   /** Determine the target power (set points) of connected agents that provided
     * flex options before. Connected agents that have no result assigned in

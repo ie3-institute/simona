@@ -14,11 +14,8 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
+import edu.ie3.simona.agent.grid.GridAgentMessages.ProvidedPowerResponse
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  ProvidedPowerResponse,
-  ReceivedSlackVoltageValues,
-}
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
@@ -220,7 +217,7 @@ trait PowerFlowSupport {
     *   slack node target voltages
     */
   protected def composeOperatingPointWithUpdatedSlackVoltages(
-      receivedSlackValues: ReceivedSlackVoltageValues,
+      receivedSlackValues: Seq[ExchangeVoltage],
       sweepDataValues: Vector[SweepValueStore.SweepValueStoreData],
       transformers2w: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
@@ -229,9 +226,7 @@ trait PowerFlowSupport {
     sweepDataValues.map { sweepValueStoreData =>
       val nodeStateData = sweepValueStoreData.stateData
       val targetVoltage = if nodeStateData.nodeType == NodeType.SL then {
-        val receivedSlackVoltage = receivedSlackValues.values
-          .map { case (_, slackVoltageMsg) => slackVoltageMsg }
-          .flatMap(_.nodalSlackVoltages)
+        val receivedSlackVoltage = receivedSlackValues
           .find(_.nodeUuid == sweepValueStoreData.nodeUuid)
           .getOrElse(
             throw new RuntimeException(

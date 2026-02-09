@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
@@ -68,6 +68,7 @@ class DBFSAlgorithmParticipantSpec
     primaryServiceProxy = primaryService.ref,
     resultProxy = resultProxy.ref,
     weather = weatherService.ref,
+    price = None,
     loadProfiles = loadProfileService.ref,
     emDataService = None,
     evDataService = None,
@@ -88,16 +89,13 @@ class DBFSAlgorithmParticipantSpec
 
     s"initialize itself when it receives an init activation" in {
 
-      // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]] =
-        hvSubGridGates.map { gate =>
-          gate -> superiorGridAgent.ref
-        }.toMap
-
       val gridAgentInitData = GridAgentInitData(
         hvGridContainer,
         Seq.empty,
-        subGridGateToActorRef,
+        Set.empty,
+        Map.empty,
+        Map(supNodeA.getUuid -> 1000),
+        Map(superiorGridAgent.ref -> superiorGridAgent.nodeUuids.toSet),
         RefSystem("2000 MVA", "110 kV"),
         VoltageLimits(0.9, 1.1),
       )
@@ -172,6 +170,7 @@ class DBFSAlgorithmParticipantSpec
       // we now answer the request of our gridAgentsWithParticipants
       // with a fake slack voltage message
       firstSlackVoltageRequestSender ! SlackVoltageResponse(
+        superiorGridAgent.ref,
         firstSweepNo,
         Seq(
           ExchangeVoltage(
@@ -196,6 +195,7 @@ class DBFSAlgorithmParticipantSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
+            gridAgentWithParticipants,
             Megawatts(135.90837346741768),
             Megavars(60.98643348675892),
           )
@@ -217,6 +217,7 @@ class DBFSAlgorithmParticipantSpec
 
       // the superior grid would answer with updated slack voltage values
       secondSlackAskSender ! SlackVoltageResponse(
+        superiorGridAgent.ref,
         secondSweepNo,
         Seq(
           ExchangeVoltage(
@@ -233,6 +234,7 @@ class DBFSAlgorithmParticipantSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
+            gridAgentWithParticipants,
             Megawatts(135.90837346741768),
             Megavars(60.98643348675892),
           )

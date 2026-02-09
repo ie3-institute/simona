@@ -73,7 +73,7 @@ class PowerFlowSupportSpec
     * node 1
     */
   private val receivedValuesStore = ReceivedValuesStore
-    .empty(Map.empty, Map.empty, Vector.empty)
+    .empty(Map.empty, Map.empty, Set.empty)
     .copy(
       nodeToReceivedSlackVoltage = Map(
         node6.uuid -> Some(
@@ -84,11 +84,12 @@ class PowerFlowSupportSpec
           )
         )
       ),
-      nodeToReceivedPower = Map(
+      nodeToReceivedGridPower = Map(
         node1.uuid -> Map(
           actorRef -> Some(
             ExchangePower(
               node1.uuid,
+              actorRef,
               Megawatts(1d),
               Megavars(0d),
             )
@@ -348,7 +349,6 @@ class PowerFlowSupportSpec
       1e-5,
       Vector(1e-12),
       50,
-      30.minutes,
       stopOnFailure = true,
     )
 
@@ -448,7 +448,7 @@ class PowerFlowSupportSpec
       val receivedValueStore = ReceivedValuesStore.empty(
         Map.empty,
         Map.empty,
-        Vector(supNodeA.getUuid),
+        Set(supNodeA.getUuid),
       )
 
       (gridModel, receivedValueStore)
@@ -477,7 +477,7 @@ class PowerFlowSupportSpec
       val receivedValueStore = ReceivedValuesStore.empty(
         Map.empty,
         Map.empty,
-        Vector.empty,
+        Set.empty,
       )
 
       (gridModel, receivedValueStore)

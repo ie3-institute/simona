@@ -113,7 +113,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 ),
                 3600.seconds,
                 stopOnFailure = false,
-                3600.seconds,
               )
             )
           }
@@ -130,7 +129,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 ),
                 resolution = 3600.nanos,
                 stopOnFailure = false,
-                sweepTimeout = 3600.seconds,
               )
             )
           }.getMessage shouldBe "Invalid time resolution. Please ensure, that the time resolution for power flow calculation is at least rounded to a full second!"

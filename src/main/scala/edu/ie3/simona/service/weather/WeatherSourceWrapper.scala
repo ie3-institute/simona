@@ -224,7 +224,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
 
   private[weather] def buildPSDMSource(
       cfgParams: InputConfig.WeatherDatasource,
-      definedWeatherSources: Option[Serializable],
+      definedWeatherSource: Option[Any],
   )(implicit
       idCoordinateSource: IdCoordinateSource
   ): Option[PsdmWeatherSource] = {
@@ -234,7 +234,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
 
     val factory = buildFactory(scheme, timestampPattern)
 
-    val source = definedWeatherSources.flatMap {
+    val source = definedWeatherSource.flatMap {
       case BaseCsvParams(csvSep, directoryPath, _) =>
         // initializing a csv weather source
         Some(

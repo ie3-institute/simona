@@ -17,6 +17,7 @@ import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
   SecondarySeriesData,
 }
+import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKWh}
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
@@ -51,6 +52,9 @@ final case class OptimizedFlexStrat(
     objectiveFactory: ObjectiveFactory[? <: AssetStepVars],
     logger: Logger,
 ) extends EmModelStrat[EnergyBoundariesFlexOptions] {
+
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
+    objectiveFactory.getRequiredSecondaryServices
 
   /** The power target might not be considered by all types of objectives.
     */
@@ -474,6 +478,11 @@ object OptimizedFlexStrat {
     *   uses.
     */
   trait ObjectiveFactory[AV <: AssetStepVars] {
+
+    /** @return
+      *   All secondary services required by the optimization model.
+      */
+    def getRequiredSecondaryServices: Iterable[ServiceType]
 
     /** Creates asset variables of type [[AV]] from given
       * [[AssetStepParameters]] according to the requirements of the objective

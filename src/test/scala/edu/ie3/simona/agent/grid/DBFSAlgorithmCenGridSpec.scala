@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
@@ -36,6 +36,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
+import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
@@ -91,6 +92,7 @@ class DBFSAlgorithmCenGridSpec
     primaryServiceProxy = primaryService.ref,
     resultProxy = resultProxy.ref,
     weather = weatherService.ref,
+    price = None,
     loadProfiles = loadProfileService.ref,
     emDataService = None,
     evDataService = None,
@@ -104,23 +106,21 @@ class DBFSAlgorithmCenGridSpec
     s"initialize itself when it receives an init activation" in {
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val subGridGateToActorRef = hvSubGridGates.map {
-        case gate if gate.getInferiorSubGrid == hvGridContainer.getSubnet =>
-          gate -> superiorGridAgent.ref
-        case gate =>
-          val actor = gate.getInferiorSubGrid match {
-            case 11 => inferiorGrid11
-            case 12 => inferiorGrid12
-            case 13 => inferiorGrid13
-          }
-          gate -> actor.ref
-      }.toMap
+      val inferiorConnections =
+        Set(inferiorGrid11, inferiorGrid12, inferiorGrid13)
+          .map(agent => agent.ref -> agent.nodeUuids.toSet)
+          .toMap
+      val superiorConnections =
+        Map(superiorGridAgent.ref -> superiorGridAgent.nodeUuids.toSet)
 
       val gridAgentInitData =
         GridAgentInitData(
           hvGridContainer,
           Seq.empty[ThermalGrid],
-          subGridGateToActorRef,
+          Set(11, 12, 13),
+          inferiorConnections,
+          Map(supNodeA.getUuid -> 1000, supNodeB.getUuid -> 1000),
+          superiorConnections,
           RefSystem("2000 MVA", "110 kV"),
           VoltageLimits(0.9, 1.1),
         )
@@ -230,38 +230,29 @@ class DBFSAlgorithmCenGridSpec
 
       // we now answer the request of our centerGridAgent
       // with three fake grid power messages and one fake slack voltage message
-
       firstPowerRequestSender11 ! GridPowerResponse(
-        inferiorGrid11.nodeUuids.map(nodeUuid =>
-          ExchangePower(
-            nodeUuid,
-            Megawatts(0.0),
-            Megavars(0.0),
-          )
-        )
+        inferiorGrid11.ref,
+        inferiorGrid11.nodeUuids.map(
+          ExchangePower(_, inferiorGrid11.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
       firstPowerRequestSender12 ! GridPowerResponse(
-        inferiorGrid12.nodeUuids.map(nodeUuid =>
-          ExchangePower(
-            nodeUuid,
-            Megawatts(0.0),
-            Megavars(0.0),
-          )
-        )
+        inferiorGrid12.ref,
+        inferiorGrid12.nodeUuids.map(
+          ExchangePower(_, inferiorGrid12.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
       firstPowerRequestSender13 ! GridPowerResponse(
-        inferiorGrid13.nodeUuids.map(nodeUuid =>
-          ExchangePower(
-            nodeUuid,
-            Megawatts(0.0),
-            Megavars(0.0),
-          )
-        )
+        inferiorGrid13.ref,
+        inferiorGrid13.nodeUuids.map(
+          ExchangePower(_, inferiorGrid13.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
       firstSlackVoltageRequestSender ! SlackVoltageResponse(
+        centerGridAgent,
         firstSweepNo,
         Seq(
           ExchangeVoltage(
@@ -286,11 +277,13 @@ class DBFSAlgorithmCenGridSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
+            superiorGridAgent.ref,
             Megawatts(0.0),
             Megavars(0.0),
           ),
           ExchangePower(
             supNodeB.getUuid,
+            superiorGridAgent.ref,
             Megawatts(0.160905770717798),
             Megavars(-1.4535602349123878),
           ),
@@ -308,6 +301,7 @@ class DBFSAlgorithmCenGridSpec
 
       // the superior grid would answer with updated slack voltage values
       secondSlackAskSender ! SlackVoltageResponse(
+        superiorGridAgent.ref,
         secondSweepNo,
         Seq(
           ExchangeVoltage(
@@ -390,33 +384,24 @@ class DBFSAlgorithmCenGridSpec
       // with three fake grid power message
 
       secondPowerRequestSender11 ! GridPowerResponse(
-        inferiorGrid11.nodeUuids.map(nodeUuid =>
-          ExchangePower(
-            nodeUuid,
-            Megawatts(0.0),
-            Megavars(0.0),
-          )
-        )
+        inferiorGrid11.ref,
+        inferiorGrid11.nodeUuids.map(
+          ExchangePower(_, inferiorGrid11.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
       secondPowerRequestSender12 ! GridPowerResponse(
-        inferiorGrid12.nodeUuids.map(nodeUuid =>
-          ExchangePower(
-            nodeUuid,
-            Megawatts(0.0),
-            Megavars(0.0),
-          )
-        )
+        inferiorGrid12.ref,
+        inferiorGrid12.nodeUuids.map(
+          ExchangePower(_, inferiorGrid12.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
       secondPowerRequestSender13 ! GridPowerResponse(
-        inferiorGrid13.nodeUuids.map(nodeUuid =>
-          ExchangePower(
-            nodeUuid,
-            Megawatts(0.0),
-            Megavars(0.0),
-          )
-        )
+        inferiorGrid13.ref,
+        inferiorGrid13.nodeUuids.map(
+          ExchangePower(_, inferiorGrid13.ref, Megawatts(0.0), Megavars(0.0))
+        ),
       )
 
       // we expect that the GridAgent unstashes the messages and return a value for our power request
@@ -424,11 +409,13 @@ class DBFSAlgorithmCenGridSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
+            centerGridAgent,
             Megawatts(0.0),
             Megavars(0.0),
           ),
           ExchangePower(
             supNodeB.getUuid,
+            centerGridAgent,
             Megawatts(0.16090577067051856),
             Megavars(-1.4535602358772026),
           ),

@@ -10,7 +10,12 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages.*
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  GridPowerResponse,
+  RequestGridPower,
+  SlackVoltageRequest,
+  SlackVoltageResponse,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
@@ -92,7 +97,7 @@ trait DBFSMockGridAgents extends UnitSpec {
         receiver: ActorRef[GridAgent.Message],
         sweepNo: Int,
     ): Unit =
-      receiver ! SlackVoltageRequest(sweepNo, nodeUuids, gaProbe.ref)
+      receiver ! SlackVoltageRequest(sweepNo, nodeUuids.toSet, gaProbe.ref)
   }
 
   final case class SuperiorGA(
@@ -129,7 +134,7 @@ trait DBFSMockGridAgents extends UnitSpec {
             msg.nodalResidualPower.find(
               _.nodeUuid == expectedPower.nodeUuid
             ) match {
-              case Some(ExchangePower(_, actualP, actualQ)) =>
+              case Some(ExchangePower(_, _, actualP, actualQ)) =>
                 actualP should approximate(expectedPower.p)
                 actualQ should approximate(expectedPower.q)
               case None =>
@@ -149,7 +154,7 @@ trait DBFSMockGridAgents extends UnitSpec {
         receiver: ActorRef[GridAgent.Message],
         sweepNo: Int,
     ): Unit = {
-      receiver ! RequestGridPower(sweepNo, nodeUuids, gaProbe.ref)
+      receiver ! RequestGridPower(sweepNo, nodeUuids.toSet, gaProbe.ref)
     }
   }
 }

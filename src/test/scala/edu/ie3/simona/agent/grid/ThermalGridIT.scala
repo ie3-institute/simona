@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.agent.em.{EmAgent, EmAgentInit}
 import edu.ie3.simona.agent.participant.ParticipantAgentInit
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
@@ -29,11 +29,11 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
-import edu.ie3.simona.service.weather.{WeatherDataType, WeatherService}
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.{
   EmInputTestData,
@@ -187,12 +187,12 @@ class ThermalGridIT
       weatherService.expectMessage(
         SecondaryServiceRegistrationMessage(
           hpAgent,
+          DataTimeType.Current,
           WeatherRegistrationData(
             Coordinate(
               typicalHpInputModel.getNode.getGeoPosition.getY,
               typicalHpInputModel.getNode.getGeoPosition.getX,
-            ),
-            WeatherDataType.Current,
+            )
           ),
         )
       )
@@ -1378,11 +1378,10 @@ class ThermalGridIT
       lockActivation ! Activation(PRE_INIT_TICK)
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           EmRuntimeConfig(),
           outputConfigOn,
-          "PRIORITIZED",
           simulationStartWithPv,
           parent = Left(scheduler.ref),
           listener = resultServiceProxy.ref,
@@ -1473,12 +1472,12 @@ class ThermalGridIT
       weatherService.expectMessage(
         SecondaryServiceRegistrationMessage(
           pvAgent,
+          DataTimeType.Current,
           WeatherRegistrationData(
             Coordinate(
               pvInput.getNode.getGeoPosition.getY,
               pvInput.getNode.getGeoPosition.getX,
-            ),
-            WeatherDataType.Current,
+            )
           ),
         )
       )
@@ -1495,12 +1494,12 @@ class ThermalGridIT
       weatherService.expectMessage(
         SecondaryServiceRegistrationMessage(
           hpAgent,
+          DataTimeType.Current,
           WeatherRegistrationData(
             Coordinate(
               typicalHpInputModel.getNode.getGeoPosition.getY,
               typicalHpInputModel.getNode.getGeoPosition.getX,
-            ),
-            WeatherDataType.Current,
+            )
           ),
         )
       )

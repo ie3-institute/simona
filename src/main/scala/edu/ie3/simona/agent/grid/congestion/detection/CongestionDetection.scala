@@ -12,33 +12,33 @@ import edu.ie3.simona.agent.grid.GridAgent.{
   finishCongestionManagement,
   unsupported,
 }
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentConstantData
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.*
-import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.*
-import edu.ie3.simona.agent.grid.congestion.data.{
-  AwaitingData,
-  CongestionManagementData,
-}
 import edu.ie3.simona.agent.grid.congestion.Congestions
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.*
+import edu.ie3.simona.agent.grid.data.CongestionManagementData
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  AwaitingData,
+  GridAgentConstantData,
+}
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
   StashBuffer,
 }
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 trait CongestionDetection {
 
   /** Method that defines the [[Behavior]] for checking if there are any
     * congestion in the grid.
     * @param stateData
-    *   of the actor
+    *   Of the actor.
     * @param constantData
-    *   constant data of the [[GridAgent]]
+    *   Constant data of the [[GridAgent]].
     * @param buffer
-    *   for stashed messages
+    *   For stashed messages.
     * @return
-    *   a [[Behavior]]
+    *   A [[Behavior]]
     */
   private[grid] def checkForCongestion(
       stateData: CongestionManagementData,
@@ -52,9 +52,8 @@ trait CongestionDetection {
       askInferior(
         stateData.inferiorGridRefs,
         CongestionCheckRequest.apply,
-        ReceivedCongestions.apply,
         ctx,
-      )(using stateData.timeout)
+      )
 
       Behaviors.same
 
@@ -66,13 +65,8 @@ trait CongestionDetection {
         ctx,
       )
 
-    case (ctx, ReceivedCongestions(congestions)) =>
-      processReceivedData(
-        stateData,
-        awaitingData,
-        congestions,
-        ctx,
-      )
+    case (ctx, response: CongestionResponse) =>
+      processReceivedData(stateData, awaitingData, response, ctx)
 
     case (ctx, FinishStep) =>
       // inform my inferior grids about the end of the congestion management
@@ -98,7 +92,7 @@ trait CongestionDetection {
       buffer: StashBuffer[GridAgent.Message],
   ): Behavior[GridAgent.Message] = {
     // check if waiting for inferior data is needed
-    if awaitingData.notDone then {
+    if awaitingData.nonComplete then {
       ctx.log.debug(
         s"Received request for congestions before all data from inferior grids were received. Stashing away."
       )
@@ -128,14 +122,14 @@ trait CongestionDetection {
   private def processReceivedData(
       stateData: CongestionManagementData,
       awaitingData: AwaitingData[Congestions],
-      congestions: Vector[(ActorRef[GridAgent.Message], Congestions)],
+      response: CongestionResponse,
       ctx: ActorContext[GridAgent.Message],
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Message],
   ): Behavior[GridAgent.Message] = {
     // updating the state data with received data from inferior grids
-    val updatedData = awaitingData.handleReceivingData(congestions)
+    val updatedData = awaitingData.addData(response.sender, response.value)
 
     if stateData.gridAgentBaseData.isSuperior then {
       // if we are the superior grid, we find the next behavior

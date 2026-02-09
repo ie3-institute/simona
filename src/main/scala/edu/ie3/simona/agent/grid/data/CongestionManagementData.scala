@@ -4,15 +4,12 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid.congestion.data
+package edu.ie3.simona.agent.grid.data
 
 import edu.ie3.datamodel.models.result.CongestionResult
 import edu.ie3.datamodel.models.result.CongestionResult.InputModelType
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.grid.GridAgentData.{
-  GridAgentBaseData,
-  GridAgentDataInternal,
-}
+import GridAgentData.{GridAgentBaseData, GridAgentDataInternal}
 import edu.ie3.simona.agent.grid.congestion.{CongestedComponents, Congestions}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.util.quantities.QuantityUtils.asPercent
@@ -50,7 +47,7 @@ final case class CongestionManagementData(
     * @param startTime
     *   Of the simulation.
     * @return
-    *   AS new [[CongestionResult]].
+    *   An iterable of [[CongestionResult]].
     */
   private def getCongestionResults(
       startTime: ZonedDateTime
@@ -121,14 +118,11 @@ final case class CongestionManagementData(
   def getAllResults(startTime: ZonedDateTime): PowerFlowResultEvent =
     powerFlowResults + getCongestionResults(startTime)
 
-  def inferiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] =
+  def inferiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]] =
     gridAgentBaseData.inferiorGridRefs
 
-  def superiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] =
+  def superiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]] =
     gridAgentBaseData.superiorGridRefs
-
-  def timeout: FiniteDuration =
-    gridAgentBaseData.congestionManagementParams.timeout
 }
 
 object CongestionManagementData {
