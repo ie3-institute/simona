@@ -15,19 +15,18 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
+import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
-import edu.ie3.simona.ontology.messages.ResultMessage.{
-  RequestResult,
-  ResultResponse,
-}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
+import edu.ie3.simona.service.price.EnergyPriceService
+import edu.ie3.simona.service.price.EnergyPriceService.InitPriceServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.results.ResultServiceProxy
@@ -190,6 +189,27 @@ class SimonaStandaloneSetup(
 
     weatherService
   }
+
+  override def priceService(
+      context: ActorContext[?],
+      scheduler: ActorRef[SchedulerMessage],
+  ): Option[ActorRef[ServiceMessage]] =
+    simonaConfig.simona.input.prices.datasource.map { dataSource =>
+      val priceService = context.spawn(
+        EnergyPriceService(scheduler),
+        "priceAgent",
+      )
+      priceService ! ServiceMessage.Create(
+        InitPriceServiceStateData(
+          dataSource,
+          TimeUtil.withDefaults
+            .toZonedDateTime(simonaConfig.simona.time.startDateTime),
+        ),
+        ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
+      )
+
+      priceService
+    }
 
   override def loadProfileService(
       context: ActorContext[?],

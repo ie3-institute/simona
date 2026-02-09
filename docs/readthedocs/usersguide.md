@@ -139,7 +139,7 @@ Within SIMONA, we use the [PowerSystemDataModel (PSDM)](https://github.com/ie3-i
 Before the data can be utilized for a simulation run, make sure to convert them to the PSDM.
 For more information on the PSDM visit the [docs](https://powersystemdatamodel.readthedocs.io/en/latest/index.html) and for an example of how the converted data looks like you can take a look at an example grid at ``./input/samples/vn_simona/fullGrid``.
 The example grids are provided as csv files. You can choose to use a different data source for your own grid.
-For more information on supported sources, check out the {ref}`config:input parameters`.
+For more information on supported sources, check out the [](config.md#input-parameters).
 Include your grid and its specification by referencing the folder path, where all the converted grid data is located, within your custom configuration file.
 
 
@@ -221,7 +221,7 @@ These steps have to be performed each time updates to the external simulation ne
 - Execute ``gradlew shadowJar`` inside the external simulation project.
 - Copy the resulting *jar* (usually placed inside ``<external project>/build/libs``) into the external simulation folder. This folder is set via the given config.
 
-Now, when a simulation with SIMONA is started (see {ref}`usersguide:running a standalone simulation`), the external simulation is triggered at each tick that it requested.
+Now, when a simulation with SIMONA is started (see [](#running-a-standalone-simulation)), the external simulation is triggered at each tick that it requested.
 
 ## Troubleshooting
 

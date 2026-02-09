@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added filter function for unchanged grid results [#487](https://github.com/ie3-institute/simona/issues/487)
 - Create trait for secondary service registration, to be used by EmAgent as well [#1635](https://github.com/ie3-institute/simona/issues/1635)
 - Provide extra functionality for `EnergyBoundariesFlexOptions` [#1670](https://github.com/ie3-institute/simona/issues/1670)
+- Implemented EnergyPriceService [#1586](https://github.com/ie3-institute/simona/issues/1586)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
@@ -73,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Harmonize test resource retrieval [#1654](https://github.com/ie3-institute/simona/issues/1654)
 - Secondary service registration for EmAgent [#1651](https://github.com/ie3-institute/simona/issues/1651)
 - Generalize data time types for service registration [#1668](https://github.com/ie3-institute/simona/issues/1668)
+- Refactored `GridAgentData` [#1665](https://github.com/ie3-institute/simona/issues/1665)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
