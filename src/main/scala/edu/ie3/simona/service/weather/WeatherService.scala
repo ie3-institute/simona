@@ -10,13 +10,7 @@ import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.ServiceMessage
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-  SecondaryServiceRegistrationMessage,
-  ServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.SecondaryData.SecondarySeriesData
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -30,10 +24,8 @@ import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
-import squants.Time
 
 import java.time.ZonedDateTime
-import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success, Try}
 
 /** Weather Service is responsible to register other actors that require weather
@@ -85,7 +77,7 @@ object WeatherService extends SimonaService {
   final case class WeatherBaseStateData(
       weatherSource: WeatherSource,
       coordinateData: Map[Coordinate, CoordinateData] = Map.empty,
-      activationTicks: ActivationTickQueue = ActivationTickQueue.empty,
+      activationTicks: ActivationTickQueue,
       startDateTime: ZonedDateTime,
       amountOfInterpolationCoords: Int = 4,
   ) extends ServiceBaseStateData
@@ -166,7 +158,7 @@ object WeatherService extends SimonaService {
         Failure(
           InvalidRegistrationRequestException(
             "Cannot register an agent for weather service with registration " +
-              s"request message '${invalidMessage.getClass.getSimpleName}'!"
+              s"request message '$invalidMessage'!"
           )
         )
     }
@@ -182,6 +174,8 @@ object WeatherService extends SimonaService {
     *   The weather data type that the agent wants to receive.
     * @param serviceStateData
     *   The current service state data of this service.
+    * @param ctx
+    *   The actor context.
     * @return
     *   An updated state data of this service that contains registration
     *   information if the registration has been carried out successfully.
@@ -283,9 +277,9 @@ object WeatherService extends SimonaService {
         val weatherData = dataTimeType match {
           case DataTimeType.Current =>
             updatedStateData.weatherSource.getWeather(tick, coordinateWeights)
-          case DataTimeType.CurrentAndForecast(length, interval) =>
+          case DataTimeType.CurrentAndForecast(length, resolution) =>
             val endTick = tick + length.toSeconds.toLong
-            // weather time series is forwarded without adding error
+            // weather time series is forwarded as forecast without adding noise
             val series = updatedStateData.weatherSource
               .getWeather(
                 tick,
@@ -295,7 +289,7 @@ object WeatherService extends SimonaService {
               .map { case (time, data) =>
                 time.toTick -> data
               }
-            SecondarySeriesData(reduceTimeSeriesResolution(series, interval))
+            SecondarySeriesData(reduceTimeSeriesResolution(series, resolution))
         }
 
         actors.foreach {
@@ -313,38 +307,6 @@ object WeatherService extends SimonaService {
       updatedStateData,
       maybeNextTick,
     )
-  }
-
-  /** Reduces the resolution of given time series to at least given resolution
-    * by removing elements from the time series.
-    *
-    * @param timeSeries
-    *   The time series to adapt.
-    * @param resolution
-    *   The time resolution to aim for.
-    * @tparam T
-    *   The type of time series data.
-    * @return
-    *   The adapted time series.
-    */
-  def reduceTimeSeriesResolution[T](
-      timeSeries: SortedMap[Long, T],
-      resolution: Time,
-  ): SortedMap[Long, T] = {
-    val resolutionSeconds = resolution.toSeconds.toLong
-
-    timeSeries.foldLeft(timeSeries) { case (result, (it, _)) =>
-      result.maxBefore(it) match {
-        case Some((last, _)) =>
-          if last + resolutionSeconds > it then
-            // interval from last to current key is too short
-            result.removed(it)
-          else result
-        case None =>
-          // no data before the current key, keep it
-          result
-      }
-    }
   }
 
 }
