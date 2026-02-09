@@ -12,6 +12,7 @@ import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.Data.SecondaryData.ProsumerPrice
+import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.DefaultQuantities.{
   onePU,
   zeroEurPerKWh,
@@ -35,6 +36,9 @@ import scala.collection.SortedSet
   */
 object ConvexEpigraphObjectiveFactory
     extends ObjectiveFactory[EpigraphAssetStepVars] {
+
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
+    Iterable(ServiceType.PriceService)
 
   private val log: Logger =
     LoggerFactory.getLogger(ConvexEpigraphObjectiveFactory.getClass)
