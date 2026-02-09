@@ -159,7 +159,6 @@ class CommonLossObjectiveFactorySpec
           Battery should be able to fully cover the additional power
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -185,7 +184,7 @@ class CommonLossObjectiveFactorySpec
           batRes(3).pVal should approximate(2)
           batRes(3).energyVal should approximate(-4.575)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
       }
@@ -231,7 +230,6 @@ class CommonLossObjectiveFactorySpec
           up to its maximum power
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -257,7 +255,7 @@ class CommonLossObjectiveFactorySpec
           batRes(3).pVal should approximate(2)
           batRes(3).energyVal should approximate(-4.575)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
       }
@@ -310,7 +308,6 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -344,7 +341,7 @@ class CommonLossObjectiveFactorySpec
           // we should've discharged with 24 kW minus 4.8 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(-19.2d)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
 
@@ -398,7 +395,6 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -432,7 +428,7 @@ class CommonLossObjectiveFactorySpec
           // we should've discharged with 24 kW minus 4.8 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(-19.2d)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
 
@@ -481,7 +477,6 @@ class CommonLossObjectiveFactorySpec
           second half.
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -511,7 +506,7 @@ class CommonLossObjectiveFactorySpec
           // we should've charged with 14.5 kW plus 3.625 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(18.125d)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
 
@@ -573,7 +568,6 @@ class CommonLossObjectiveFactorySpec
           No losses should be subtracted.
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -599,7 +593,7 @@ class CommonLossObjectiveFactorySpec
           batRes(3).pVal should approximate(2)
           batRes(3).energyVal should approximate(-3)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
       }
@@ -760,7 +754,6 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -797,7 +790,7 @@ class CommonLossObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
 
@@ -840,7 +833,6 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -907,7 +899,7 @@ class CommonLossObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
 
@@ -948,7 +940,6 @@ class CommonLossObjectiveFactorySpec
           prices are high, the battery is used instead.
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -1015,7 +1006,7 @@ class CommonLossObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
 
@@ -1074,7 +1065,6 @@ class CommonLossObjectiveFactorySpec
           loss factor.
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -1088,7 +1078,7 @@ class CommonLossObjectiveFactorySpec
           batRes(0).pVal should approximate(0d)
           batRes(0).energyVal should approximate(0d)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
 
@@ -1169,10 +1159,7 @@ class CommonLossObjectiveFactorySpec
         explanations below.
        */
 
-      val bat1Vars = assetVars.vars(batUUID)
       val bat1Res = assetVars.res(batUUID)
-
-      val bat2Vars = assetVars.vars(bat2UUID)
       val bat2Res = assetVars.res(bat2UUID)
 
       {
@@ -1267,7 +1254,7 @@ class CommonLossObjectiveFactorySpec
         bat2Res(11).pVal should approximate(0d)
         bat2Res(11).energyVal should approximate(-6.25d)
 
-      } withClue buildDebugString(bat1Vars, bat2Vars)
+      } withClue buildDebugString(assetVars)
 
       model.release()
 
