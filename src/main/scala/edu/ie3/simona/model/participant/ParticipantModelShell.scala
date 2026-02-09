@@ -92,23 +92,11 @@ final case class ParticipantModelShell[
       OperationChangeIndicator(),
 ) {
 
-  private def this(
-      model: ParticipantModel[OP, S],
-      flexParams: Option[(FlexType, DataTimeType)],
-      operationInterval: OperationInterval,
-      simulationStart: ZonedDateTime,
-      state: S,
-  ) = {
-    this(
-      model = model,
-      flexModelShell = None,
-      operationInterval = operationInterval,
-      simulationStart = simulationStart,
-      state = state,
-      operatingPoint = model.zeroPowerOperatingPoint,
-    )
-
-    // required because FlexModelShellImpl cannot be created before calling this()
+  /** Required because FlexModelShellImpl cannot be created within constructor.
+    */
+  private def withModelShell(
+      flexParams: Option[(FlexType, DataTimeType)]
+  ) =
     copy(flexModelShell = flexParams.map { case (flexType, dataTimeType) =>
       val flexModel = model.flexModels.getOrElse(
         flexType,
@@ -119,7 +107,6 @@ final case class ParticipantModelShell[
 
       FlexModelShellImpl(flexModel, flexType, dataTimeType)
     })
-  }
 
   /** Returns a unique identifier for the model held by this model shell,
     * including the type, UUID and id of the model, for the purpose of log or
@@ -562,14 +549,32 @@ object ParticipantModelShell {
       simulationStart,
     )
 
-    new ParticipantModelShell(
-      model,
-      flexParams,
-      operationInterval,
-      simulationStart,
-      initialState,
-    )
+    ParticipantModelShell(
+      model = model,
+      operationInterval = operationInterval,
+      simulationStart = simulationStart,
+      state = initialState,
+    ).withModelShell(flexParams)
   }
+
+  /** Additional method that is required for compliant operating point type.
+    */
+  private def apply[OP <: OperatingPoint, S <: ModelState](
+      model: ParticipantModel[OP, S],
+      operationInterval: OperationInterval,
+      simulationStart: ZonedDateTime,
+      state: S,
+  ): ParticipantModelShell[OP, S] =
+    new ParticipantModelShell(
+      model = model,
+      // required because FlexModelShellImpl cannot be created within constructor.
+      // has to be provided by withModelShell.
+      flexModelShell = None,
+      operationInterval = operationInterval,
+      simulationStart = simulationStart,
+      state = state,
+      operatingPoint = model.zeroPowerOperatingPoint,
+    )
 
   /** Container holding the resulting total complex power as well as
     * [[ResultEntity]] specific to the [[ParticipantModel]].
