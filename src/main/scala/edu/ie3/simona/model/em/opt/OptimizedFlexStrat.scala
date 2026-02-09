@@ -245,8 +245,8 @@ object OptimizedFlexStrat {
         .map { assetBoundaries =>
           assetBoundaries.tickDisconnect
             .map { tickDisconnect =>
-              // we only determine energy until tickDisconnect,
-              // but after that, the asset is unavailable
+              // we only determine energy until tickDisconnect
+              // (after that, the asset is unavailable)
               ticks.takeWhile(_ <= tickDisconnect)
             }
             .getOrElse(ticks)
