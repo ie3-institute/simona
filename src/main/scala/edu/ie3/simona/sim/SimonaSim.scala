@@ -108,6 +108,9 @@ object SimonaSim {
         val weatherService =
           simonaSetup.weatherService(ctx, scheduler)
 
+        // optionally, a price service
+        val priceService = simonaSetup.priceService(ctx, scheduler)
+
         // load profile service
         val loadProfileService = simonaSetup.loadProfileService(ctx, scheduler)
 
@@ -117,6 +120,7 @@ object SimonaSim {
           primaryServiceProxy,
           resultProxy,
           weatherService,
+          priceService,
           loadProfileService,
           extSimulationData.emDataService,
           extSimulationData.evDataService,
@@ -131,7 +135,7 @@ object SimonaSim {
           primaryServiceProxy,
           weatherService,
         ) ++
-          gridAgents ++ extSimulationData.allServiceRefs
+          gridAgents ++ extSimulationData.allServiceRefs ++ priceService.toSeq
 
         /* watch all actors */
         allResultEventListeners.foreach(ctx.watch)

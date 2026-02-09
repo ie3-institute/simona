@@ -16,14 +16,11 @@ import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.io.grid.GridProvider
+import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
-import edu.ie3.simona.ontology.messages.ResultMessage.{
-  RequestResult,
-  ResultResponse,
-}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
@@ -142,13 +139,26 @@ trait SimonaSetup {
     * @param scheduler
     *   Actor reference to it's according scheduler to use.
     * @return
-    *   An actor reference to the service as well as matching data to initialize
-    *   the service.
+    *   An actor reference to the service.
     */
   def weatherService(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[ServiceMessage]
+
+  /** Creates an energy price service, if such service is configured.
+    *
+    * @param context
+    *   Actor context to use.
+    * @param scheduler
+    *   Actor reference to it's according scheduler to use.
+    * @return
+    *   An actor reference to the service.
+    */
+  def priceService(
+      context: ActorContext[?],
+      scheduler: ActorRef[SchedulerMessage],
+  ): Option[ActorRef[ServiceMessage]]
 
   /** Creates a load profile service.
     *
@@ -228,8 +238,7 @@ trait SimonaSetup {
     * @param environmentRefs
     *   EnvironmentRefs to use.
     * @return
-    *   A mapping from actor reference to it's according initialization data to
-    *   be used when setting up the agents.
+    *   The actor references of all GridAgents.
     */
   def gridAgents(
       context: ActorContext[?],
