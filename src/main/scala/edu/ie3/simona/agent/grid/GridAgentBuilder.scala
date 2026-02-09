@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.system.*
 import edu.ie3.simona.actor.SimonaActorNaming.*
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.{EmAgent, EmAgentInit}
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentConstantData
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentConstantData
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
