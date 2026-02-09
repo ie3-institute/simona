@@ -7,8 +7,8 @@
 package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.grid.congestion.data.CongestionManagementData
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.CongestionCheckRequest
+import edu.ie3.simona.agent.grid.data.CongestionManagementData
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.test.common.UnitSpec
