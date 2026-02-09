@@ -69,7 +69,8 @@ class EvcsModel private (
 
   override val flexModels: Map[FlexType, ParticipantFlexModel[EvcsState]] =
     Map(
-      FlexType.PowerLimit -> EvcsPowerLimitFlexModel(this)
+      FlexType.PowerLimit -> EvcsPowerLimitFlexModel(this),
+      FlexType.EnergyBoundaries -> EvcsEnergyBoundariesFlexModel(this),
     )
 
   override def determineState(
