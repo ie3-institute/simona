@@ -81,6 +81,13 @@ class SimonaSetupSpec
     "This is a dummy setup"
   )
 
+  override def priceService(
+      context: ActorContext[?],
+      scheduler: ActorRef[SchedulerMessage],
+  ): Option[ActorRef[ServiceMessage]] = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
+
   override def loadProfileService(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],

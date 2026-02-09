@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
@@ -86,7 +86,7 @@ object GridAgentMessages {
     */
   final case class RequestGridPower(
       currentSweepNo: Int,
-      nodeUuids: Seq[UUID],
+      nodeUuids: Set[UUID],
       sender: ActorRef[GridAgent.Message],
   ) extends GridAgent.InternalRequest
 
@@ -161,7 +161,7 @@ object GridAgentMessages {
     */
   final case class SlackVoltageRequest(
       currentSweepNo: Int,
-      nodeUuids: Seq[UUID],
+      nodeUuids: Set[UUID],
       sender: ActorRef[GridAgent.Message],
   ) extends GridAgent.InternalRequest
 
