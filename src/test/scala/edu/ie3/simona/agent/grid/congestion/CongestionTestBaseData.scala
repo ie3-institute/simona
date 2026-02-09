@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid.congestion
 
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.{
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
 }
@@ -84,6 +84,7 @@ trait CongestionTestBaseData
     primaryServiceProxy = primaryService.ref,
     resultProxy = resultProxy.ref,
     weather = weatherService.ref,
+    price = None,
     loadProfiles = loadProfileService.ref,
     emDataService = None,
     evDataService = None,
@@ -133,13 +134,12 @@ trait CongestionTestBaseData
     when(data.isSuperior).thenReturn(isSuperior)
     when(data.congestionManagementParams).thenReturn(cmParams)
     when(data.inferiorGridRefs).thenReturn(map)
-    when(data.superiorGridNodeUuids).thenReturn(Vector.empty)
+    when(data.superiorGridNodeUuids).thenReturn(Set.empty)
 
     val gridEnv = mock[GridEnvironment]
     when(data.gridEnv).thenReturn(gridEnv)
 
     when(gridEnv.gridModel).thenReturn(gridModel)
-    when(gridEnv.subgridGateToActorRef).thenReturn(Map.empty)
     when(gridEnv.nodeToAssetAgents).thenReturn(Map.empty)
 
     data

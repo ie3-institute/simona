@@ -9,12 +9,13 @@ package edu.ie3.simona.sim.setup
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.GridConfigParser.{
   ConfigRefSystems,
   ConfigVoltageLimits,
@@ -31,6 +32,8 @@ import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.Kilovolts
+
+import java.util.UUID
 
 /** Methods to support the setup of a simona simulation.
   *
@@ -84,11 +87,44 @@ trait SetupHelper extends LazyLogging {
     val updatedSubGridContainer =
       ContainerUtils.withTrafoNodeAsSlack(subGridContainer)
 
+    /* Filter the relevant sub grid gates */
+    val subgridId = updatedSubGridContainer.getSubnet
+    val empty = Set.empty[SubGridGate]
+
+    val (inferiorGates, superiorGates) =
+      subGridGateToActorRef.keys.foldLeft(empty, empty) {
+        case ((inferior, superior), gate) =>
+          if gate.getSuperiorSubGrid == subgridId then {
+            (inferior.incl(gate), superior)
+          } else if gate.getInferiorSubGrid == subgridId then {
+            (inferior, superior.incl(gate))
+          } else (inferior, superior)
+      }
+
+    val (inferiorGridIds, inferiorGridNodes) = inferiorGates.map { gate =>
+      (
+        gate.inferiorNode.getSubnet,
+        subGridGateToActorRef(gate) -> gate.superiorNode.getUuid,
+      )
+    }.unzip
+
+    val (superiorGridIds, superiorGridNodes) = superiorGates.map { gate =>
+      val uuid = gate.superiorNode.getUuid
+
+      (
+        uuid -> gate.superiorNode.getSubnet,
+        subGridGateToActorRef(gate) -> uuid,
+      )
+    }.unzip
+
     // build the grid agent data and check for its validity
     GridAgentInitData(
       updatedSubGridContainer,
       thermalGrids,
-      subGridGateToActorRef,
+      inferiorGridIds,
+      inferiorGridNodes.groupMap(_._1)(_._2),
+      superiorGridIds.toMap,
+      superiorGridNodes.groupMap(_._1)(_._2),
       refSystem,
       voltageLimits,
     )

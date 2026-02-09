@@ -56,8 +56,8 @@ class ReceivedValuesStoreSpec
     ) -> gridAgent.ref
   )
 
-  // / superior grid nodeUuid vector
-  val defaultSuperiorGridNodeUuids: Vector[UUID] = Vector(
+  // / superior grid nodeUuid set
+  val defaultSuperiorGridNodeUuids: Set[UUID] = Set(
     UUID.fromString("baded8c4-b703-4316-b62f-75ffe09c9843")
   )
 
@@ -69,7 +69,7 @@ class ReceivedValuesStoreSpec
         Map.empty[UUID, Set[ActorRef[ParticipantAgent.Request]]]
       val emptyInferiorSubGridGateToActorRefMap =
         Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
-      val emptySuperiorGridNodeUuids = Vector.empty[UUID]
+      val emptySuperiorGridNodeUuids = Set.empty[UUID]
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(
@@ -125,7 +125,7 @@ class ReceivedValuesStoreSpec
 
       val inferiorSubGridGateToActorRefMap =
         Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
-      val superiorGridNodeUuids = Vector.empty[UUID]
+      val superiorGridNodeUuids = Set.empty[UUID]
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(
@@ -151,7 +151,7 @@ class ReceivedValuesStoreSpec
 
     "initialize an empty store correctly when only a valid mapping for asset agents and inferior grid agents is provided" in {
 
-      val superiorGridNodeUuids = Vector.empty[UUID]
+      val superiorGridNodeUuids = Set.empty[UUID]
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(
@@ -182,7 +182,7 @@ class ReceivedValuesStoreSpec
       val inferiorSubGridGateToActorRefMap =
         Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
 
-      val superiorGridNodeUuids = Vector(
+      val superiorGridNodeUuids = Set(
         UUID.fromString("baded8c4-b703-4316-b62f-75ffe09c9843"),
         UUID.fromString("d5040bf7-56c1-4d6a-908a-47c05b0c5c54"),
       )
@@ -210,7 +210,7 @@ class ReceivedValuesStoreSpec
 
       val inferiorSubGridGateToActorRefMap =
         Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
-      val superiorGridNodeUuids = Vector.empty[UUID]
+      val superiorGridNodeUuids = Set.empty[UUID]
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(

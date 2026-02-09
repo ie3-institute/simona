@@ -11,6 +11,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.*
 import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.simona.util.CollectionUtils.emptyOptionMap
 import org.apache.pekko.actor.typed.ActorRef
 
@@ -69,6 +70,20 @@ object ReceivedValuesStore {
   type NodeToReceivedSlackVoltage =
     Map[UUID, Option[ExchangeVoltage]]
 
+  def empty(gridEnv: GridEnvironment): ReceivedValuesStore = {
+    val nodeToGridRef = gridEnv.inferiorConnections
+      .flatMap { case (ref, nodes) =>
+        nodes.map(node => (node, ref))
+      }
+      .groupMap(_._1)(_._2)
+
+    ReceivedValuesStore(
+      emptyOptionMap(gridEnv.nodeToAssetAgents),
+      emptyOptionMap(nodeToGridRef),
+      emptyOptionMap(gridEnv.superiorNodeUuids),
+    )
+  }
+
   /** Get an empty, ready to be used instance of [[ReceivedValuesStore]]
     * containing an `empty` mapping of [[NodeToReceivedPower]] and
     * [[NodeToReceivedSlackVoltage]] with all options set to `None` (see
@@ -90,47 +105,9 @@ object ReceivedValuesStore {
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgent.Message
       ]],
-      superiorGridNodeUuids: Vector[UUID],
+      superiorGridNodeUuids: Set[UUID],
   ): ReceivedValuesStore = {
-    val (
-      nodeToReceivedAssetPower,
-      nodeToReceivedGridPower,
-      nodeToReceivedSlackVoltage,
-    ) =
-      buildEmptyReceiveMaps(
-        nodeToAssetAgents,
-        inferiorSubGridGateToActorRef,
-        superiorGridNodeUuids,
-      )
-    ReceivedValuesStore(
-      nodeToReceivedAssetPower,
-      nodeToReceivedGridPower,
-      nodeToReceivedSlackVoltage,
-    )
-  }
-
-  /** Composing method that combines [[buildEmptyNodeToReceivedPowerMap()]] and
-    * [[buildEmptyNodeToReceivedSlackVoltageValuesMap()]]
-    *
-    * @param nodeToAssetAgents
-    *   mapping of node uuids to [[ActorRef]] s of the asset agents that are
-    *   located at the specific node
-    * @param inferiorSubGridGateToActorRef
-    *   mapping of all inferior [[SubGridGate]] s to the [[ActorRef]] of the
-    *   grid agent that is located there
-    * @param superiorGridNodeUuids
-    *   node uuids of the superior [[GridAgent]] s
-    * @return
-    *   `empty` [[NodeToReceivedSlackVoltage]] and [[NodeToReceivedPower]]
-    */
-  private def buildEmptyReceiveMaps(
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
-      inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
-        GridAgent.Message
-      ]],
-      superiorGridNodeUuids: Vector[UUID],
-  ): (NodeToReceivedPower, NodeToReceivedPower, NodeToReceivedSlackVoltage) = {
-    val assetsToReceivedPower: NodeToReceivedPower = emptyOptionMap(
+    val nodeToReceivedAssetPower: NodeToReceivedPower = emptyOptionMap(
       nodeToAssetAgents
     )
 
@@ -141,12 +118,14 @@ object ReceivedValuesStore {
       }
       .groupMap(_._1)(_._2)
 
-    val gridToReceivedPower: NodeToReceivedPower = emptyOptionMap(nodeToGridRef)
+    val nodeToReceivedGridPower: NodeToReceivedPower = emptyOptionMap(
+      nodeToGridRef
+    )
 
-    (
-      assetsToReceivedPower,
-      gridToReceivedPower,
-      superiorGridNodeUuids.map(nodeId => nodeId -> None).toMap,
+    ReceivedValuesStore(
+      nodeToReceivedAssetPower,
+      nodeToReceivedGridPower,
+      emptyOptionMap(superiorGridNodeUuids),
     )
   }
 

@@ -288,7 +288,7 @@ object WeatherSource {
     if definedWeatherSources.isEmpty then {
       // should not happen, due to the config fail fast check
       throw new SourceException(
-        s"Expected a WeatherSource, but no source where defined in $weatherDataSourceCfg."
+        s"Expected a weather source, but no source was defined in $weatherDataSourceCfg."
       )
     }
 
