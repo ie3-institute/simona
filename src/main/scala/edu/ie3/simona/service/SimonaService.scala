@@ -34,7 +34,9 @@ import org.apache.pekko.actor.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
+import squants.Time
 
+import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success, Try}
 
 /** Abstract description of a service agent, that is able to announce new
@@ -296,5 +298,37 @@ abstract class SimonaService {
       serviceStateData: S,
       ctx: ActorContext[Message],
   ): (S, Option[Long])
+
+  /** Reduces the resolution of given time series to at least given resolution
+    * by removing elements from the time series.
+    *
+    * @param timeSeries
+    *   The time series to adapt.
+    * @param resolution
+    *   The time resolution to aim for.
+    * @tparam T
+    *   The type of time series data.
+    * @return
+    *   The adapted time series.
+    */
+  def reduceTimeSeriesResolution[T](
+      timeSeries: SortedMap[Long, T],
+      resolution: Time,
+  ): SortedMap[Long, T] = {
+    val resolutionSeconds = resolution.toSeconds.toLong
+
+    timeSeries.foldLeft(timeSeries) { case (result, (tick, _)) =>
+      result.maxBefore(tick) match {
+        case Some((last, _)) =>
+          if last + resolutionSeconds > tick then
+            // interval from last to current key is too short
+            result.removed(tick)
+          else result
+        case None =>
+          // no data before the current key, keep it
+          result
+      }
+    }
+  }
 
 }

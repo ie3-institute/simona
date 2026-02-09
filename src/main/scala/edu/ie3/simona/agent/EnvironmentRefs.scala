@@ -27,6 +27,8 @@ import org.apache.pekko.actor.typed.ActorRef
   *   Reference to the result service proxy.
   * @param weather
   *   Reference to the service, that provides weather information.
+  * @param price
+  *   Reference to the price service, if configured.
   * @param loadProfiles
   *   Reference to the service, that provides load profile information.
   * @param emDataService
@@ -40,6 +42,7 @@ final case class EnvironmentRefs(
     primaryServiceProxy: ActorRef[ServiceMessage],
     resultProxy: ActorRef[ResultServiceProxy.Message],
     weather: ActorRef[ServiceMessage],
+    price: Option[ActorRef[ServiceMessage]],
     loadProfiles: ActorRef[ServiceMessage],
     emDataService: Option[ActorRef[ExtEmDataService.Message]],
     evDataService: Option[ActorRef[ExtEvDataService.Message]],
@@ -50,6 +53,7 @@ final case class EnvironmentRefs(
   lazy val serviceMap: Map[ServiceType, ActorRef[ServiceMessage]] =
     Seq(
       Some(ServiceType.WeatherService -> weather),
+      price.map(ServiceType.PriceService -> _),
       Some(ServiceType.LoadProfileService -> loadProfiles),
       evDataService.map(ref => ServiceType.EvMovementService -> ref),
     ).flatten.toMap

@@ -309,8 +309,6 @@ object CommonLossObjectiveFactory {
           )
         )
 
-      val upperLimit = 1d
-
       val transformFunc = (price: EnergyPrice) =>
         price.toEuroPerKilowattHour / maxPrice
 
