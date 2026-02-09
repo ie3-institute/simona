@@ -15,12 +15,15 @@ import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactorySpec.*
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
+import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import org.scalatest.OptionValues
 import squants.energy.{Energy, KilowattHours, Kilowatts, WattHours}
 import squants.{Dimensionless, Each, Power, Time}
+
+import scala.collection.immutable.SortedMap
 
 class CommonLossObjectiveFactorySpec
     extends UnitSpec
@@ -599,6 +602,125 @@ class CommonLossObjectiveFactorySpec
         } withClue buildDebugString(batVars)
 
         model.release()
+      }
+
+    }
+
+    "provided with energy boundary flex options that partly disconnect early" should {
+
+      given ticks: Seq[Long] =
+        Range.Long.inclusive(0, 4 * halfHourTicks, halfHourTicks)
+
+      // low efficiency for simplicity of the test
+      val batFlex = EnergyBoundariesFlexOptions(
+        AssetEnergyBoundaries(
+          eStorage = KilowattHours(12),
+          currentEnergy = KilowattHours(6),
+          pMax = Kilowatts(10),
+          etaCharge = Each(0.8),
+          etaDischarge = Each(0.8),
+          currentTick = 0L,
+        )
+      )
+      val evcsFlex = EnergyBoundariesFlexOptions(
+        AssetEnergyBoundaries(
+          energyLimits = SortedMap(
+            // half full in the beginning
+            0L -> new ClosedInterval(
+              KilowattHours(-5d),
+              KilowattHours(5d),
+            ),
+            // we need to be 90% full when disconnecting
+            3600L -> new ClosedInterval(
+              KilowattHours(4d),
+              KilowattHours(5d),
+            ),
+          ),
+          powerLimits = ClosedInterval(Kilowatts(-11d), Kilowatts(11)),
+          tickDisconnect = Some(3600L),
+        )
+      )
+
+      "consider the restrictions of disconnecting the asset" in {
+
+        given model: MPModel = MPModel(SolverLib.oJSolver)
+
+        // power sequence to be balanced out by battery
+        // positive values are loads, negative values are feed-ins
+        val constFlex = EnergyBoundariesFlexOptions(
+          AssetEnergyBoundaries(
+            Seq(-4, -4, 8, -8).toPowerMap
+          )
+        )
+
+        val flexOptions = Map(
+          loadUUID -> constFlex,
+          batUUID -> batFlex,
+          bat2UUID -> evcsFlex,
+        )
+
+        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+          flexOptions = flexOptions,
+          sampleTime = halfHour,
+          ticks = ticks,
+          target = zeroKW,
+          receivedData = Seq.empty,
+          objectiveFactory = MinAbsPowerObjectiveFactory,
+        )
+
+        model.minimize(objectiveContainer.objective)
+        model.start(timeLimit = 10000)
+
+        model.getStatus shouldBe SolutionStatus.OPTIMAL
+
+        /*
+          EXPECTED RESULTS
+          EV should be charged with the power of the first two steps.
+          After that, the EV is disconnected and the battery needs to
+          balance out the additional power.
+         */
+
+        val batRes = assetVars.res(batUUID)
+        batRes.size shouldBe 4
+
+        val evcsRes = assetVars.res(bat2UUID)
+        evcsRes.size shouldBe 2
+
+        {
+          objectiveContainer.softConstraints.foreach { constraint =>
+            withClue(constraint.getWarningMessage) {
+              constraint.getError should be < constraintTolerance
+            }
+          }
+
+          // EV needs to take the 4 kW to reach its target
+          evcsRes(0).pVal should approximate(4)
+          evcsRes(0).energyVal should approximate(2)
+          // battery is left with 0
+          batRes(0).pVal should approximate(0)
+          batRes(0).energyVal should approximate(0)
+
+          // EV needs to take the 4 kW to reach its target
+          evcsRes(1).pVal should approximate(4)
+          evcsRes(1).energyVal should approximate(4)
+          // battery is left with 0
+          batRes(1).pVal should approximate(0)
+          batRes(1).energyVal should approximate(0)
+
+          // EV is not available from here on
+
+          // discharging 5 kWh
+          batRes(2).pVal should approximate(-8)
+          batRes(2).energyVal should approximate(-5)
+
+          // charging 3.2 kWh
+          batRes(3).pVal should approximate(8)
+          batRes(3).energyVal should approximate(-1.8)
+
+        } withClue buildDebugString(assetVars)
+
+        model.release()
+
       }
 
     }
