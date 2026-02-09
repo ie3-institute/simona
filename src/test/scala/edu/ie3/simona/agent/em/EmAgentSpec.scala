@@ -60,8 +60,6 @@ class EmAgentSpec
   given simulationStart: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
 
-  given FlexType = FlexType.PowerLimit
-
   // Testing tolerances
   given Power = Kilowatts(1e-10)
   given ReactivePower = Kilovars(1e-10)

@@ -27,7 +27,7 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
-import edu.ie3.simona.service.{Data, ServiceType}
+import edu.ie3.simona.service.{Data, DataTimeType, ServiceType}
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import squants.{Dimensionless, Power}
 
@@ -196,10 +196,9 @@ object PrimaryDataParticipantModel {
       model: PrimaryDataParticipantModel[PD]
   ) extends ParticipantFlexModel[PrimaryDataState[PD]] {
 
-    override val flexType: FlexType = FlexType.PowerLimit
-
     override def determineFlexOptions(
-        state: PrimaryDataState[PD]
+        state: PrimaryDataState[PD],
+        dateTimeType: DataTimeType,
     ): FlexOptions = {
       val (operatingPoint, _) = model.determineOperatingPoint(state)
 

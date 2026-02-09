@@ -10,18 +10,17 @@ import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.hp.HpModel.HpState
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
-  FlexType,
   PowerLimitFlexOptions,
 }
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 
 class HpPowerLimitFlexModel(private val model: HpModel)
     extends ParticipantFlexModel[HpState] {
 
-  override val flexType: FlexType = FlexType.PowerLimit
-
   override def determineFlexOptions(
-      state: HpState
+      state: HpState,
+      dateTimeType: DataTimeType,
   ): FlexOptions = {
     val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
     // Determining the operation point and limitations at this tick
