@@ -93,7 +93,7 @@ class DBFSAlgorithmSupGridSpec
           Seq.empty[ThermalGrid],
           Set(1),
           Map(hvGrid.ref -> Set(supNodeA.getUuid)),
-          Set.empty,
+          Map.empty,
           Map.empty,
           RefSystem("5000 MVA", "380 kV"),
           VoltageLimits(0.9, 1.1),

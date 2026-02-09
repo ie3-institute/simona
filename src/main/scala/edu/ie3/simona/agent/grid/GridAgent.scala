@@ -98,8 +98,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         onlyOneSubGrid,
       )
 
-      val subgridId = gridAgentInitData.subGridContainer.getSubnet
-
       ctx.log.debug(
         s"Inferior sub grids: {}; Inferior sub grid nodes: {}",
         gridAgentInitData.inferiorGridIds,

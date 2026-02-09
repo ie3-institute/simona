@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid.data
 
-import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
@@ -20,12 +19,12 @@ import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
-import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil.{
   EmConfigUtil,
   OutputConfigUtil,
   ParticipantConfigUtil,
 }
+import edu.ie3.simona.util.{ConfigUtil, ReceiveDataMap}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
@@ -37,6 +36,8 @@ sealed trait GridAgentData
 /** Contains all state data of [[GridAgent]]
   */
 object GridAgentData {
+
+  final type AwaitingData[T] = ReceiveDataMap[ActorRef[Message], T]
 
   private[grid] trait GridAgentDataInternal extends GridAgentData
 
@@ -97,7 +98,7 @@ object GridAgentData {
     *   A map of actor refs to all superior grids with the corresponding
     *   superior nodes.
     * @param superiorGridIds
-    *   A set of all superior grid ids.
+    *   A map of all superior grid uuids to their grid ids.
     * @param refSystem
     *   Of the grid.
     * @param voltageLimits
@@ -108,7 +109,7 @@ object GridAgentData {
       thermalIslandGrids: Seq[ThermalGrid],
       inferiorGridIds: Set[Int],
       inferiorConnections: Map[ActorRef[GridAgent.Message], Set[UUID]],
-      superiorGridIds: Set[Int],
+      superiorGridIds: Map[UUID, Int] = Map.empty,
       superiorConnections: Map[ActorRef[GridAgent.Message], Set[UUID]],
       refSystem: RefSystem,
       voltageLimits: VoltageLimits,
@@ -151,7 +152,7 @@ object GridAgentData {
       PowerFlowDoneData(
         gridAgentBaseData,
         powerFlowResult,
-        gridAgentBaseData.gridEnv.superiorGridIds,
+        gridAgentBaseData.gridEnv.superiorGridIds.values.toSet,
       )
     }
   }
@@ -160,7 +161,7 @@ object GridAgentData {
     * be copied several times at several places for each state transition with
     * updated data. So be careful in adding more data on it!
     */
-  case object GridAgentBaseData extends GridAgentData {
+  object GridAgentBaseData extends GridAgentData {
 
     def apply(
         gridModel: GridModel,
@@ -172,7 +173,7 @@ object GridAgentData {
           Map.empty,
         superiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]] =
           Map.empty,
-        superiorGridIds: Set[Int] = Set.empty,
+        superiorGridIds: Map[UUID, Int] = Map.empty,
     ): GridAgentBaseData = {
       val gridEnv =
         GridEnvironment(
@@ -265,7 +266,7 @@ object GridAgentData {
     lazy val superiorGridNodeUuids: Set[UUID] = gridEnv.superiorNodeUuids
 
     def getSuperiorSubgridNumber(node: UUID): Option[Int] =
-      gridEnv.gridModel.gridComponents.nodes.find(_.uuid == node).map(_.subnet)
+      gridEnv.superiorGridIds.get(node)
 
     /** Checks if all slack voltage have been received.
       * @return

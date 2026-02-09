@@ -109,9 +109,11 @@ trait SetupHelper extends LazyLogging {
     }.unzip
 
     val (superiorGridIds, superiorGridNodes) = superiorGates.map { gate =>
+      val uuid = gate.superiorNode.getUuid
+
       (
-        gate.superiorNode.getSubnet,
-        subGridGateToActorRef(gate) -> gate.superiorNode.getUuid,
+        uuid -> gate.superiorNode.getSubnet,
+        subGridGateToActorRef(gate) -> uuid,
       )
     }.unzip
 
@@ -121,7 +123,7 @@ trait SetupHelper extends LazyLogging {
       thermalGrids,
       inferiorGridIds,
       inferiorGridNodes.groupMap(_._1)(_._2),
-      superiorGridIds,
+      superiorGridIds.toMap,
       superiorGridNodes.groupMap(_._1)(_._2),
       refSystem,
       voltageLimits,

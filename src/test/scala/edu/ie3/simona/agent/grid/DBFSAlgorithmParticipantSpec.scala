@@ -93,7 +93,7 @@ class DBFSAlgorithmParticipantSpec
         Seq.empty,
         Set.empty,
         Map.empty,
-        Set(1000),
+        Map(supNodeA.getUuid -> 1000),
         Map(superiorGridAgent.ref -> superiorGridAgent.nodeUuids.toSet),
         RefSystem("2000 MVA", "110 kV"),
         VoltageLimits(0.9, 1.1),

@@ -27,6 +27,21 @@ final case class ReceiveDataMap[K, V](
 
   def expects(key: K): Boolean = expectedKeys.contains(key)
 
+  def addData(map: Map[K, V]): ReceiveDataMap[K, V] = {
+    val keys = map.keys.filterNot(expectedKeys.contains)
+
+    if keys.nonEmpty then {
+      throw new RuntimeException(
+        s"Received values for keys $keys, but no data has been expected for these keys."
+      )
+    }
+
+    copy(
+      expectedKeys = expectedKeys -- map.keys,
+      receivedData = receivedData ++ map,
+    )
+  }
+
   def addData(
       key: K,
       value: V,
@@ -51,6 +66,7 @@ final case class ReceiveDataMap[K, V](
 
   def getExpectedKeys: Set[K] = expectedKeys
 
+  def values: Iterable[V] = receivedData.values
 }
 
 object ReceiveDataMap {

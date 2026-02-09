@@ -26,7 +26,7 @@ import java.util.UUID
   *   A map of actor refs to all superior grids with the corresponding superior
   *   nodes.
   * @param superiorGridIds
-  *   A set of all superior grid ids.
+  *   A map of all superior grid uuids to their grid ids.
   */
 final case class GridEnvironment(
     gridModel: GridModel,
@@ -35,7 +35,7 @@ final case class GridEnvironment(
       Map.empty,
     superiorConnections: Map[ActorRef[GridAgent.Message], Set[UUID]] =
       Map.empty,
-    superiorGridIds: Set[Int] = Set.empty,
+    superiorGridIds: Map[UUID, Int] = Map.empty,
 ) {
 
   def inferiorNodeUuids: Set[UUID] = inferiorConnections.values.flatten.toSet

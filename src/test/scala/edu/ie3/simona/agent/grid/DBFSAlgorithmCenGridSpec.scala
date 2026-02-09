@@ -118,7 +118,7 @@ class DBFSAlgorithmCenGridSpec
           Seq.empty[ThermalGrid],
           Set(11, 12, 13),
           inferiorConnections,
-          Set(1000),
+          Map(supNodeA.getUuid -> 1000, supNodeB.getUuid -> 1000),
           superiorConnections,
           RefSystem("2000 MVA", "110 kV"),
           VoltageLimits(0.9, 1.1),
