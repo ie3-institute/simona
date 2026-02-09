@@ -4,14 +4,14 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.data
 
-import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.buildSuperiorGridRefs
+import edu.ie3.simona.agent.grid.*
+import edu.ie3.simona.agent.grid.GridAgent.Message
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
@@ -19,12 +19,12 @@ import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
-import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil.{
   EmConfigUtil,
   OutputConfigUtil,
   ParticipantConfigUtil,
 }
+import edu.ie3.simona.util.{ConfigUtil, ReceiveDataMap}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
@@ -36,6 +36,8 @@ sealed trait GridAgentData
 /** Contains all state data of [[GridAgent]]
   */
 object GridAgentData {
+
+  final type AwaitingData[T] = ReceiveDataMap[ActorRef[Message], T]
 
   private[grid] trait GridAgentDataInternal extends GridAgentData
 
@@ -88,9 +90,15 @@ object GridAgentData {
     * @param thermalIslandGrids
     *   Collection of thermal island grids (mostly one per household / building)
     *   that are of relevance to the given sub grid container.
-    * @param subGridGateToActorRef
-    *   Information on inferior and superior grid connections [[SubGridGate]] s
-    *   and [[ActorRef]] s of the corresponding [[GridAgent]]s.
+    * @param inferiorConnections
+    *   A map of actor refs to all inferior grids.
+    * @param inferiorGridIds
+    *   A set of all inferior grid ids.
+    * @param superiorConnections
+    *   A map of actor refs to all superior grids with the corresponding
+    *   superior nodes.
+    * @param superiorGridIds
+    *   A map of all superior grid uuids to their grid ids.
     * @param refSystem
     *   Of the grid.
     * @param voltageLimits
@@ -99,14 +107,20 @@ object GridAgentData {
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,
       thermalIslandGrids: Seq[ThermalGrid],
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
+      inferiorGridIds: Set[Int],
+      inferiorConnections: Map[ActorRef[GridAgent.Message], Set[UUID]],
+      superiorGridIds: Map[UUID, Int] = Map.empty,
+      superiorConnections: Map[ActorRef[GridAgent.Message], Set[UUID]],
       refSystem: RefSystem,
       voltageLimits: VoltageLimits,
-  ) extends GridAgentData
-      with GridAgentDataHelper {
-    override protected val subgridGates: Vector[SubGridGate] =
-      subGridGateToActorRef.keys.toVector
-    override protected val subgridId: Int = subGridContainer.getSubnet
+  ) extends GridAgentData {
+    val subgridId: Int = subGridContainer.getSubnet
+
+    lazy val inferiorGridNodeUuids: Set[UUID] =
+      inferiorConnections.values.flatten.toSet
+
+    lazy val superiorGridNodeUuids: Set[UUID] =
+      superiorConnections.values.flatten.toSet
   }
 
   /** State data indicating that a power flow has been executed.
@@ -135,11 +149,11 @@ object GridAgentData {
         powerFlowResult: PowerFlowResult,
     ): PowerFlowDoneData = {
       /* Determine the subgrid numbers of all superior grids */
-      val superiorSubGrids = gridAgentBaseData.gridEnv.subgridGateToActorRef
-        .map { case (subGridGate, _) => subGridGate.superiorNode.getSubnet }
-        .filterNot(_ == gridAgentBaseData.gridEnv.gridModel.subnetNo)
-        .toSet
-      PowerFlowDoneData(gridAgentBaseData, powerFlowResult, superiorSubGrids)
+      PowerFlowDoneData(
+        gridAgentBaseData,
+        powerFlowResult,
+        gridAgentBaseData.gridEnv.superiorGridIds.values.toSet,
+      )
     }
   }
 
@@ -147,21 +161,28 @@ object GridAgentData {
     * be copied several times at several places for each state transition with
     * updated data. So be careful in adding more data on it!
     */
-  case object GridAgentBaseData extends GridAgentData {
+  object GridAgentBaseData extends GridAgentData {
 
     def apply(
         gridModel: GridModel,
-        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
-        nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
-        superiorGridNodeUuids: Vector[UUID],
-        inferiorGridGates: Vector[SubGridGate],
-        superiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,
         congestionManagementParams: CongestionManagementParams,
         actorName: String,
+        nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
+        inferiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]] =
+          Map.empty,
+        superiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]] =
+          Map.empty,
+        superiorGridIds: Map[UUID, Int] = Map.empty,
     ): GridAgentBaseData = {
       val gridEnv =
-        GridEnvironment(gridModel, subgridGateToActorRef, nodeToAssetAgents)
+        GridEnvironment(
+          gridModel,
+          nodeToAssetAgents,
+          inferiorGridRefs,
+          superiorGridRefs,
+          superiorGridIds,
+        )
 
       val currentSweepNo = 0 // initialization is assumed to be always @ sweep 0
       val sweepValueStores: Map[Int, SweepValueStore] = Map
@@ -169,119 +190,15 @@ object GridAgentData {
           Int,
           SweepValueStore,
         ] // initialization is assumed to be always with no sweep data
-      val inferiorGridGateToActorRef = subgridGateToActorRef.filter {
-        case (gate, _) => inferiorGridGates.contains(gate)
-      }
-
-      val superiorGridGateToActorRef = subgridGateToActorRef.filter {
-        case (gate, _) => superiorGridGates.contains(gate)
-      }
 
       GridAgentBaseData(
         gridEnv,
         powerFlowParams,
         congestionManagementParams,
         currentSweepNo,
-        ReceivedValuesStore.empty(
-          nodeToAssetAgents,
-          inferiorGridGateToActorRef,
-          superiorGridNodeUuids,
-        ),
+        ReceivedValuesStore.empty(gridEnv),
         sweepValueStores,
         actorName,
-        buildInferiorGridRefs(
-          inferiorGridGateToActorRef.keySet.toVector,
-          subgridGateToActorRef,
-        ),
-        buildSuperiorGridRefs(
-          superiorGridGateToActorRef.keySet.toVector,
-          subgridGateToActorRef,
-        ),
-      )
-    }
-
-    /** This method build a map for the inferior grid agent refs. The value
-      * consists of the uuids of the nodes in our own grid, that are connected
-      * to the inferior grid via a transformer.
-      * @param inferiorGridGates
-      *   All [[SubGridGate]]s to inferior grids we know.
-      * @param subgridGateToActorRef
-      *   A map [[SubGridGate]] to grid agent ref.
-      * @return
-      *   A map: grid agent ref to node uuids.
-      */
-    def buildInferiorGridRefs(
-        inferiorGridGates: Vector[SubGridGate],
-        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
-    ): Map[ActorRef[GridAgent.Message], Seq[UUID]] =
-      inferiorGridGates
-        .map { inferiorGridGate =>
-          subgridGateToActorRef(
-            inferiorGridGate
-          ) -> inferiorGridGate.superiorNode.getUuid
-        }
-        .groupMap {
-          // Group the gates by target actor, so that only one request is sent per grid agent
-          case (inferiorGridAgentRef, _) =>
-            inferiorGridAgentRef
-        } { case (_, inferiorGridGates) =>
-          inferiorGridGates
-        }
-        .map { case (inferiorGridAgentRef, inferiorGridGateNodes) =>
-          (inferiorGridAgentRef, inferiorGridGateNodes)
-        }
-
-    /** This method build a map for the superior grid agent refs. The value
-      * consists of the uuids of the nodes in our own grid, that are connected
-      * to the superior grid via a transformer.
-      * @param superiorGridGates
-      *   All [[SubGridGate]]s to superior grids we know.
-      * @param subGridGateToActorRef
-      *   A map [[SubGridGate]] to grid agent ref.
-      * @return
-      *   A map: grid agent ref to node uuids.
-      */
-    def buildSuperiorGridRefs(
-        superiorGridGates: Vector[SubGridGate],
-        subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
-    ): Map[ActorRef[GridAgent.Message], Seq[UUID]] =
-      superiorGridGates
-        .groupBy(subGridGateToActorRef(_))
-        .map { case (superiorGridAgent, gridGates) =>
-          (superiorGridAgent, gridGates.map(_.superiorNode.getUuid))
-        }
-
-    /** Constructs a new object of type [[GridAgentBaseData]] with the same data
-      * as the provided one but with an empty [[ReceivedValuesStore]], an empty
-      * [[SweepValueStore]] map and zero current sweep number.
-      *
-      * Normally used when a result in the [[DBFSAlgorithm]] has been found
-      *
-      * @param gridAgentBaseData
-      *   the [[GridAgentBaseData]] that should be cleaned
-      * @param superiorGridNodeUuids
-      *   the unique node ids of the superior grid nodes of this [[GridAgent]]
-      * @param inferiorGridGates
-      *   the gates with connections to the inferior grids of this [[GridAgent]]
-      * @return
-      *   a cleaned [[GridAgentBaseData]] object
-      */
-    def clean(
-        gridAgentBaseData: GridAgentBaseData,
-        superiorGridNodeUuids: Vector[UUID],
-        inferiorGridGates: Vector[SubGridGate],
-    ): GridAgentBaseData = {
-
-      gridAgentBaseData.copy(
-        receivedValueStore = ReceivedValuesStore.empty(
-          gridAgentBaseData.gridEnv.nodeToAssetAgents,
-          gridAgentBaseData.gridEnv.subgridGateToActorRef.filter {
-            case (gate, _) => inferiorGridGates.contains(gate)
-          },
-          superiorGridNodeUuids,
-        ),
-        currentSweepNo = 0,
-        sweepValueStores = Map.empty[Int, SweepValueStore],
       )
     }
   }
@@ -304,11 +221,6 @@ object GridAgentData {
     *   A value store for received values.
     * @param sweepValueStores
     *   A value store for sweep results.
-    * @param inferiorGridRefs
-    *   A map of actor refs to all inferior grids.
-    * @param superiorGridRefs
-    *   A map of actor refs to all superior grids with the corresponding
-    *   superior nodes.
     */
   final case class GridAgentBaseData(
       gridEnv: GridEnvironment,
@@ -318,10 +230,7 @@ object GridAgentData {
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
       actorName: String,
-      inferiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] = Map.empty,
-      superiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]] = Map.empty,
-  ) extends GridAgentData
-      with GridAgentDataHelper {
+  ) extends GridAgentData {
 
     val assets: Seq[UUID] = {
       val components = gridEnv.gridModel.gridComponents
@@ -332,10 +241,6 @@ object GridAgentData {
         ++ components.transformers.map(_.uuid)
         ++ components.transformers3w.map(_.uuid)
     }
-
-    override protected val subgridGates: Vector[SubGridGate] =
-      gridEnv.subgridGateToActorRef.keys.toVector
-    override protected val subgridId: Int = gridEnv.gridModel.subnetNo
 
     val allRequestedDataReceived: Boolean = {
       // we expect power values from inferior grids and assets
@@ -348,6 +253,20 @@ object GridAgentData {
       // we expect slack voltages only from our superior grids (if any)
       assetAndGridPowerValuesReady & allSlackVoltagesReceived
     }
+
+    def isSuperior: Boolean = gridEnv.superiorConnections.isEmpty
+
+    def inferiorGridRefs: Map[ActorRef[Message], Set[UUID]] =
+      gridEnv.inferiorConnections
+
+    def superiorGridRefs: Map[ActorRef[Message], Set[UUID]] =
+      gridEnv.superiorConnections
+
+    lazy val inferiorGridNodeUuids: Set[UUID] = gridEnv.inferiorNodeUuids
+    lazy val superiorGridNodeUuids: Set[UUID] = gridEnv.superiorNodeUuids
+
+    def getSuperiorSubgridNumber(node: UUID): Option[Int] =
+      gridEnv.superiorGridIds.get(node)
 
     /** Checks if all slack voltage have been received.
       * @return
@@ -364,21 +283,6 @@ object GridAgentData {
     def hasFailedPowerFlow: Boolean =
       receivedValueStore.nodeToReceivedGridPower.values.exists(
         _.values.exists(_.exists(_.isInstanceOf[FailedPowerFlow]))
-      )
-
-    /** Updates the [[inferiorGridRefs]] and the [[superiorGridRefs]]. This can
-      * be necessary, if a transformer is switched on or off.
-      */
-    def updated(): GridAgentBaseData =
-      copy(
-        inferiorGridRefs = buildSuperiorGridRefs(
-          inferiorGridGates,
-          gridEnv.subgridGateToActorRef,
-        ),
-        superiorGridRefs = buildSuperiorGridRefs(
-          superiorGridGates,
-          gridEnv.subgridGateToActorRef,
-        ),
       )
 
     def clearAssetPower: GridAgentBaseData =
@@ -595,19 +499,12 @@ object GridAgentData {
       *
       * @param validPowerFlowResult
       *   The valid power flow result to be stored.
-      * @param superiorGridNodeUuids
-      *   The unique node ids of the superior grid nodes of this [[GridAgent]].
-      * @param inferiorGridGates
-      *   The gates with connections to the inferior grids of this
-      *   [[GridAgent]].
       * @return
       *   An updated version of this [[GridAgentBaseData]] containing the
       *   updated sweep value store and a clean received values store.
       */
     def storeSweepDataAndClearReceiveMaps(
-        validPowerFlowResult: ValidNewtonRaphsonPFResult,
-        superiorGridNodeUuids: Vector[UUID],
-        inferiorGridGates: Vector[SubGridGate],
+        validPowerFlowResult: ValidNewtonRaphsonPFResult
     ): GridAgentBaseData = {
       val sweepValueStore =
         SweepValueStore(
@@ -618,15 +515,26 @@ object GridAgentData {
       val updatedSweepValueStore =
         sweepValueStores + (currentSweepNo -> sweepValueStore)
 
-      this.copy(
+      copy(
         sweepValueStores = updatedSweepValueStore,
-        receivedValueStore = ReceivedValuesStore.empty(
-          gridEnv.nodeToAssetAgents,
-          gridEnv.subgridGateToActorRef.filter { case (gate, _) =>
-            inferiorGridGates.contains(gate)
-          },
-          superiorGridNodeUuids,
-        ),
+        receivedValueStore = ReceivedValuesStore.empty(gridEnv),
+      )
+    }
+
+    /** Constructs a new object of type [[GridAgentBaseData]] with the same data
+      * as the provided one but with an empty [[ReceivedValuesStore]], an empty
+      * [[SweepValueStore]] map and zero current sweep number.
+      *
+      * Normally used when a result in the [[DBFSAlgorithm]] has been found.
+      *
+      * @return
+      *   A cleaned [[GridAgentBaseData]] object.
+      */
+    def clean: GridAgentBaseData = {
+      copy(
+        receivedValueStore = ReceivedValuesStore.empty(gridEnv),
+        currentSweepNo = 0,
+        sweepValueStores = Map.empty[Int, SweepValueStore],
       )
     }
   }
