@@ -454,14 +454,15 @@ final case class ParticipantModelShell[
     *   The most recent flex options plus flex type, if they have been
     *   calculated already.
     */
-  final case class FlexModelShellImpl(
+  private final case class FlexModelShellImpl(
       flexModel: ParticipantFlexModel[S],
       flexType: FlexType,
       dataTimeType: DataTimeType,
       flexOptions: Option[FlexOptions] = None,
   ) extends FlexModelShell[S] {
 
-    lazy val flexOptionsExtra: FlexOptionsExtra[?] = FlexOptionsExtra(flexType)
+    private lazy val flexOptionsExtra: FlexOptionsExtra[?] =
+      FlexOptionsExtra(flexType)
 
     override def getFlexOptions: FlexOptions =
       flexOptions
