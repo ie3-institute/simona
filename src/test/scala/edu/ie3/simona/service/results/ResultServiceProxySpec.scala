@@ -6,11 +6,12 @@
 
 package edu.ie3.simona.service.results
 
+import edu.ie3.datamodel.models.result.connector.LineResult
+import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent,
 }
-import edu.ie3.simona.ontology.messages.ResultMessage
 import edu.ie3.simona.ontology.messages.ResultMessage.{
   RequestResult,
   ResultResponse,
@@ -76,14 +77,18 @@ class ResultServiceProxySpec
         Seq(dummyLineResult),
         Seq(dummyTrafo2wResult),
         Seq(resultA),
+        Seq(dummyNodeCongestionResult),
       )
 
       // no results for three winding transformers, because the proxy is not told to wait and the results was not received beforehand
       resultProvider.expectMessageType[ResultResponse].results shouldBe Map(
-        dummyNodeResultModel -> List(dummyNodeResult),
-        dummySwitchResultModel -> List(dummySwitchResult),
-        dummyLineResultModel -> List(dummyLineResult),
-        dummyTrafo2WResultModel -> List(dummyTrafo2wResult),
+        dummyNodeResultModel -> Iterable(
+          dummyNodeResult,
+          dummyNodeCongestionResult,
+        ),
+        dummySwitchResultModel -> Iterable(dummySwitchResult),
+        dummyLineResultModel -> Iterable(dummyLineResult),
+        dummyTrafo2WResultModel -> Iterable(dummyTrafo2wResult),
       )
     }
 
@@ -115,15 +120,16 @@ class ResultServiceProxySpec
         Seq(dummyLineResult),
         Seq(dummyTrafo2wResult),
         Seq(resultA),
+        Seq(dummyNodeCongestionResult),
       )
 
       // receives three winding result, because all partial results are present
       resultProvider.expectMessageType[ResultResponse].results shouldBe Map(
-        dummyNodeResultModel -> List(dummyNodeResult),
-        dummySwitchResultModel -> List(dummySwitchResult),
-        dummyLineResultModel -> List(dummyLineResult),
-        dummyTrafo2WResultModel -> List(dummyTrafo2wResult),
-        inputModel -> List(expected),
+        dummyNodeResultModel -> Seq(dummyNodeResult, dummyNodeCongestionResult),
+        dummySwitchResultModel -> Seq(dummySwitchResult),
+        dummyLineResultModel -> Seq(dummyLineResult),
+        dummyTrafo2WResultModel -> Seq(dummyTrafo2wResult),
+        inputModel -> Seq(expected),
       )
     }
 
@@ -159,6 +165,7 @@ class ResultServiceProxySpec
         Seq(dummyLineResult),
         Seq(dummyTrafo2wResult),
         Seq(resultA),
+        Seq(dummyNodeCongestionResult),
       )
 
       // still waiting for results
@@ -175,7 +182,10 @@ class ResultServiceProxySpec
 
       // no results for three winding transformers, because the proxy is not told to wait and the results was not received beforehand
       resultProvider.expectMessageType[ResultResponse].results shouldBe Map(
-        dummyNodeResultModel -> List(dummyNodeResult),
+        dummyNodeResultModel -> List(
+          dummyNodeResult,
+          dummyNodeCongestionResult,
+        ),
         dummySwitchResultModel -> List(dummySwitchResult),
         dummyLineResultModel -> List(dummyLineResult),
         dummyTrafo2WResultModel -> List(dummyTrafo2wResult),
@@ -208,6 +218,7 @@ class ResultServiceProxySpec
 
     "correctly handle unchanged grid result" in {
       val listener = TestProbe[ResultResponse]("listener")
+      val resultProvider = TestProbe[ResultResponse]("listener")
 
       val resultProxy =
         spawn(ResultServiceProxy(Seq(listener.ref), startTime, 10))
@@ -218,26 +229,55 @@ class ResultServiceProxySpec
         Seq(dummyLineResult),
         Seq(dummyTrafo2wResult),
         Seq.empty,
+        Seq(dummyNodeCongestionResult),
       )
 
       // all results are mapped to their uuid
       listener.expectMessageType[ResultResponse].results shouldBe Map(
-        dummyNodeResultModel -> List(dummyNodeResult),
+        dummyNodeResultModel -> List(
+          dummyNodeResult,
+          dummyNodeCongestionResult,
+        ),
         dummySwitchResultModel -> List(dummySwitchResult),
         dummyLineResultModel -> List(dummyLineResult),
         dummyTrafo2WResultModel -> List(dummyTrafo2wResult),
       )
 
       resultProxy ! PowerFlowResultEvent(
-        Seq(dummyNodeResult2),
+        Seq(dummyNodeResultPlusHour),
         Seq.empty,
         Seq.empty,
         Seq.empty,
         Seq.empty,
+        Seq(dummyNodeCongestionResultPlusHour),
       )
 
       // no unchanged or new results received
       listener.expectNoMessage()
+
+      // request only updated results
+      resultProxy ! RequestResult(
+        Seq(dummyNodeResultModel),
+        3600L,
+        resultProvider.ref,
+        false,
+      )
+
+      // also request unchanged results
+      resultProvider
+        .expectMessageType[ResultResponse]
+        .results shouldBe Map.empty
+
+      resultProxy ! RequestResult(
+        Seq(dummyNodeResultModel),
+        3600L,
+        resultProvider.ref,
+        true,
+      )
+
+      resultProvider.expectMessageType[ResultResponse].results shouldBe Map(
+        dummyNodeResultModel -> List(dummyNodeResult, dummyNodeCongestionResult)
+      )
     }
 
     "correctly handle three winding transformer result events" in {
@@ -295,6 +335,50 @@ class ResultServiceProxySpec
       listener.expectMessageType[ResultResponse].results shouldBe Map(
         dummyPvResult.getInputModel -> List(dummyPvResult)
       )
+    }
+
+    "correctly filter unchanged results" in {
+      val oldResults: Map[Class[? <: ResultEntity], ResultEntity] = Seq(
+        dummyNodeResult,
+        dummyNodeCongestionResult,
+      ).map(res => res.getClass -> res).toMap
+
+      val results = Seq(
+        dummyNodeResultPlusHour,
+        dummyNodeResult2,
+        dummyNodeCongestionResultPlusHour,
+        dummyLineResult,
+      )
+
+      val changedResults =
+        ResultServiceProxy.filterUnchangedResults(results, oldResults)
+
+      changedResults shouldBe Map(
+        classOf[NodeResult] -> dummyNodeResult2,
+        classOf[LineResult] -> dummyLineResult,
+      )
+    }
+
+    "correctly filter unchanged result" in {
+      val oldResults: Map[Class[? <: ResultEntity], ResultEntity] = Seq(
+        dummyNodeResult,
+        dummyNodeCongestionResult,
+      ).map(res => res.getClass -> res).toMap
+
+      val cases = Table(
+        ("result", "expected"),
+        (dummyNodeResultPlusHour, None),
+        (dummyNodeResult2, Some(classOf[NodeResult] -> dummyNodeResult2)),
+        (dummyLineResult, Some(classOf[LineResult] -> dummyLineResult)),
+        (dummyNodeCongestionResultPlusHour, None),
+      )
+
+      forAll(cases) { (result, expected) =>
+        val changedResults =
+          ResultServiceProxy.filterUnchangedResults(result, oldResults)
+
+        changedResults shouldBe expected
+      }
     }
 
   }

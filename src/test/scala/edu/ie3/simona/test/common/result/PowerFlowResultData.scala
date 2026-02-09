@@ -8,7 +8,11 @@ package edu.ie3.simona.test.common.result
 
 import java.util.UUID
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
+import edu.ie3.datamodel.models.result.{
+  CongestionResult,
+  NodeResult,
+  ResultEntity,
+}
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
@@ -61,10 +65,37 @@ trait PowerFlowResultData {
   )
 
   val dummyNodeResult2 = new NodeResult(
+    dummyTime,
+    dummyNodeResultModel,
+    Quantities.getQuantity(1.01, PowerSystemUnits.PU),
+    Quantities.getQuantity(10, PowerSystemUnits.DEGREE_GEOM),
+  )
+
+  val dummyNodeResultPlusHour = new NodeResult(
     dummyTime.plusHours(1),
     dummyNodeResultModel,
     Quantities.getQuantity(1.0, PowerSystemUnits.PU),
     Quantities.getQuantity(10, PowerSystemUnits.DEGREE_GEOM),
+  )
+
+  val dummyNodeCongestionResult = new CongestionResult(
+    dummyTime,
+    dummyNodeResultModel,
+    CongestionResult.InputModelType.NODE,
+    -1,
+    Quantities.getQuantity(1.11, PowerSystemUnits.PU),
+    Quantities.getQuantity(0.9, PowerSystemUnits.PU),
+    Quantities.getQuantity(1.1, PowerSystemUnits.PU),
+  )
+
+  val dummyNodeCongestionResultPlusHour = new CongestionResult(
+    dummyTime.plusHours(1),
+    dummyNodeResultModel,
+    CongestionResult.InputModelType.NODE,
+    -1,
+    Quantities.getQuantity(1.11, PowerSystemUnits.PU),
+    Quantities.getQuantity(0.9, PowerSystemUnits.PU),
+    Quantities.getQuantity(1.1, PowerSystemUnits.PU),
   )
 
   val dummyNodeResultString =
