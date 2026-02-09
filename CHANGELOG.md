@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added filter function for unchanged grid results [#487](https://github.com/ie3-institute/simona/issues/487)
 - Create trait for secondary service registration, to be used by EmAgent as well [#1635](https://github.com/ie3-institute/simona/issues/1635)
 - Provide extra functionality for `EnergyBoundariesFlexOptions` [#1670](https://github.com/ie3-institute/simona/issues/1670)
+- Implemented EnergyPriceService [#1586](https://github.com/ie3-institute/simona/issues/1586)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
