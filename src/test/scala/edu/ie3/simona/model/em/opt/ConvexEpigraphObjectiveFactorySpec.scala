@@ -63,7 +63,6 @@ class ConvexEpigraphObjectiveFactorySpec
           prices are high, the battery is used instead.
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -126,7 +125,7 @@ class ConvexEpigraphObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
 
@@ -186,7 +185,6 @@ class ConvexEpigraphObjectiveFactorySpec
           The price-based objective works as expected with low prices.
          */
 
-        val batVars = assetVars.vars(batUUID)
         val batRes = assetVars.res(batUUID)
 
         {
@@ -194,7 +192,7 @@ class ConvexEpigraphObjectiveFactorySpec
           batRes(0).pVal should approximate(-10d)
           batRes(0).energyVal should approximate(-6.25d)
 
-        } withClue buildDebugString(batVars)
+        } withClue buildDebugString(assetVars)
 
         model.release()
 
