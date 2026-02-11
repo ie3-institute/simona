@@ -1,0 +1,43 @@
+/*
+ * Additional tasks, that are defined by default:
+ *   - sphinx -> Generate HTML output of *.rst files in <projectDir>/docs/readthedocs
+ */
+
+/**
+ * Configuring the sphinx plugin
+ */
+sphinx {
+    description = "Generate high level HTML documentation output."
+    group = "Documentation"
+
+    sourceDirectory = "${project.projectDir}/docs/readthedocs"
+    outputDirectory = if (project.hasProperty("sphinxOutput")) project.getProperty("sphinxOutput") as String else "${project.rootDir}/build/docs/readthedocs"
+}
+
+/**
+ * Task to generate the JavaDoc
+ */
+tasks.javadoc {
+    description = "Generates java API doc at the correct place."
+    group = "Documentation"
+
+    source = sourceSets["main"].allJava
+    destinationDir = file("${project.projectDir}/docs/javadoc")
+    classpath = project.sourceSets["main"].compileClasspath
+}
+
+/**
+ * Task to generate the ScalaDoc
+ */
+tasks.scaladoc {
+    description = "Generates scala API doc at the correct place."
+    group = "Documentation"
+
+    source = sourceSets["main"].allSource
+    destinationDir = file("${project.projectDir}/docs/scaladoc")
+    classpath = project.sourceSets["main"].compileClasspath
+
+    // Exclude SimonaConfig because implicits used by pureconfig's
+    // ConfigSource.load and ConfigWriter.apply lead to failure of scaladoc
+    exclude("edu/ie3/simona/config/SimonaConfig.scala")
+}

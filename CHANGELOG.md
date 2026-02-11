@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored `GridAgentData` [#1665](https://github.com/ie3-institute/simona/issues/1665)
 - Considering `tickDisconnect` in EM optimization [#1681](https://github.com/ie3-institute/simona/issues/1681)
 - Cleaned up EVCS test data [#1690](https://github.com/ie3-institute/simona/issues/1690)
+- Migrate `Gradle` from Groovy to Kotlin [#1030](https://github.com/ie3-institute/simona/issues/1030)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

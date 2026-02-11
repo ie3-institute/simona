@@ -1,0 +1,36 @@
+sonarqube {
+    properties {
+        // general stuff
+        property("sonar.projectName", "simona") // project name
+        property("sonar.projectKey", "edu.ie3:simona")
+        property("sonar.verbose", "true") // verbose mode
+        property("sonar.sourceEncoding", "UTF-8") // encoding
+        property("sonar.sources", listOf(
+            "src/main/resources",
+            "src/main/scala"
+        )) // src dirs
+        property("sonar.tests", listOf(
+            "src/test/resources",
+            "src/test/scala"
+        )) // test src dirs
+        // reports stuff (for all languages)
+        property("sonar.junit.reportPaths", listOf(
+            "build/test-results/test"
+        )) // Comma-delimited list of paths to Surefire XML-format reports.
+        // unit tests reports dirs
+        // scapegoat report dir
+        property("sonar.scala.scapegoat.reportPaths", listOf(
+            "build/reports/scapegoat/src/scapegoat-scalastyle.xml",
+            "build/reports/scapegoat/testsrc/scapegoat-scalastyle.xml"
+        )) // Comma-delimited list of paths to Scapegoat reports in the Scalastyle format
+        // scala specific stuff
+        property("sonar.scala.coverage.reportPaths", "build/reports/scoverageTest/scoverage.xml")
+    }
+}
+
+// sonarqube task dependencies
+tasks.named("sonarqube") {
+    dependsOn(tasks.named("test"))
+    dependsOn(tasks.named("reportScoverage"))
+    dependsOn(tasks.named("checkScoverage"))
+}
