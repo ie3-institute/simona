@@ -35,11 +35,11 @@ In short, mergeable PRs have to meet our standards in several areas:
   - [SonarQube](https://simona.ie3.e-technik.tu-dortmund.de/sonar/dashboard?id=edu.ie3%3Asimona) run succeeds, i.e. 
     - No new code smells are found 
     - Code coverage is sufficient
-  - If the project uses readthedocs documentation, the sphinx compilation needs to succeed
-  - Other code checks such as Codacy and sonatype (exceptions can be made for some types of warnings)
+  - If the project uses ReadTheDocs documentation, the sphinx compilation needs to succeed
+  - Other code checks such as Codacy and Sonatype (exceptions can be made for some types of warnings)
 - Manual audits
   - Changes made to the code have to be reflected within all types of documentation, i.e.
-    - Readthedocs for long form documentation
+    - ReadTheDocs for long form documentation
     - ScalaDoc/JavaDoc for interface documentation
     - Code commentary on crucial parts of the code
   - All vital parts of the new code need to be covered by tests (see [](#tests))
@@ -74,6 +74,37 @@ Furthermore, there are some functional programming paradigms that we like to fol
 - Use higher-order functions on data structures such as [`map`](https://en.wikipedia.org/wiki/Map_(higher-order_function)), `fold`, `flatten` etc. instead of loops.
 
 These guidelines do not intend to be exhaustive. Feel free to extend them with rules that are yet missing.
+
+## API compatibility policy
+
+We maintain a simple, strict policy for public API (interfaces) and method lifecycle to keep releases predictable for downstream users and integrations:
+
+- No interface changes in patch versions
+  - Patch releases (x.y.z -> x.y.z+1) may only contain bug fixes and non-API behavioral fixes. They must not change public type signatures, remove or rename public classes or methods, or alter method signatures in a way that would break source or binary compatibility for users.
+  - Examples of forbidden changes in patch releases: renaming a method, changing a method parameter type, removing a public class, or changing the visibility of an API member.
+
+- No method deprecations; interfaces may change in major and minor versions
+  - We avoid introducing deprecation-only transitions in patch or minor releases. Instead, if an API must be changed, the change is scheduled for a minor (x.y -> x.y+1) or major (x -> x+1) release where breaking changes are allowed. We do not mark methods as deprecated as a separate lifecycle step.
+  - This means: when you need to replace, rename, or remove an API, do it as part of a planned minor or major release and provide migration notes in the changelog and documentation.
+
+Why these rules?
+- Predictability: Consumers of SIMONA rely on stable APIs for reproducible experiments and integrations. Minimising API churn in patch releases reduces surprise breakages.
+- Simplicity: Avoiding a long deprecation period keeps the codebase cleaner and reduces maintenance overhead from supporting legacy shims over many versions.
+
+Guidance for contributors
+- If your change touches a public API, decide whether it is a bug fix (safe for patch) or a breaking change (must go into a minor/major release). If unsure, err on the side of conservative: target a minor release.
+- For breaking changes planned in a minor or major release, update:
+  - ReadTheDocs and any API docs (ScalaDoc / JavaDoc) to show the new interface and migration steps.
+- Avoid using `@deprecated` annotations as a primary method of staged migration. If you think a deprecation step is strictly necessary, present it in the PR description and get explicit approval from reviewers and maintainers.
+
+Reviewer checklist (quick)
+- Does the PR change any public types, method signatures, or class visibility? If yes: ensure the PR targets a minor/major release branch.
+- Does the PR add `@deprecated` or similar deprecation notes? If yes: ask for rationale and explicit approval; prefer scheduling the change for a minor/major release instead.
+- For patch branches: confirm the version bump is a patch, and check that only bug fixes / internal refactors are present.
+
+Exception process
+- In exceptional cases (e.g., security fixes that unavoidably require an API change in a patch), obtain an explicit sign-off from a repository admin. Document the reason, the change, and the mitigation plan in the PR and changelog entry.
+
 
 ## Protocols
 
@@ -120,10 +151,10 @@ We're following the git-flow approach to release new versions. The following ste
       - Are all necessary files there?
       - Is the deployment valid?
    3. If so, publish. Else, choose 'drop'.
-9. Final steps at Github
+9. Final steps at GitHub
    1. Create a new Tags and create the Release also there
-      1. Hint: Intellij -> Git -> Select 'Main-Branch' -> Choose commit
-      2. Push Tags to Github
+      1. Hint: IntelliJ -> Git -> Select 'Main-Branch' -> Choose commit
+      2. Push Tags to GitHub
    2. Create a new release with the new tag version and the change description (Copy from changelog and adapt accordingly if necessary)
    3. Increment MinorVersion of dev branch
       - Adapt `version.properties` by using gradle task `./gradlew incrementMinor`
