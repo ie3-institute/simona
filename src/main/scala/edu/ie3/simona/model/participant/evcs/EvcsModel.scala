@@ -534,7 +534,7 @@ class EvcsModel private (
     getMaxAvailableChargingPower(ev) * Seconds(1)
 
   private def calcPowerTolerance: Power =
-    // TODO adapt like in StorageModel: dependent tolerance
+    // TODO adapt like in StorageModel: dependent tolerance -> issue #1698
     Watts(1e-3)
 
 }
