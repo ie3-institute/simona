@@ -17,10 +17,3 @@ The following arguments need to be provided for power calculation:
 |------------------|---------|-----------------------------------------------|
 | dataFrameLength  | --      | duration in ticks until next EV movement data |
 | currentEVs       | --      | set of EVs connected to the CS at this moment |
-
-
-## Flexibility Model
-
-$$
-  b = E_{\min}
-$$
