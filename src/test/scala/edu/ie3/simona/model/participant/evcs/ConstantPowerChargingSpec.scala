@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.model.MockEvModel
+import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.util.quantities.QuantityUtils.*
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.Kilowatts
@@ -16,21 +16,14 @@ import java.util.UUID
 
 class ConstantPowerChargingSpec
     extends UnitSpec
+    with EvcsInputTestData
     with TableDrivenPropertyChecks {
 
   "Calculating constant power charging schedules" should {
 
     "not charge evs if they are fully charged" in {
       val ev = EvModelWrapper(
-        new MockEvModel(
-          UUID.randomUUID(),
-          "Test EV",
-          5.0.asKiloWatt,
-          10.0.asKiloWatt,
-          20.0.asKiloWattHour,
-          20.0.asKiloWattHour,
-          3600L,
-        )
+        ev1.copyWith(ev1.getEStorage)
       )
 
       val actualSchedule = ConstantPowerCharging.determineChargingPowers(
@@ -46,30 +39,24 @@ class ConstantPowerChargingSpec
       val offset = 1800L
 
       val cases = Table(
-        ("stayingTicks", "storedEnergy", "expectedPower"),
+        ("stayingHours", "storedEnergy", "expectedPower"),
         // empty battery
-        (3600L, 0.0, 5.0), // more than max power, limited
-        (7200L, 0.0, 5.0), // exactly max power
-        (14400L, 0.0, 2.5), // less than max power
-        (360000L, 0.0, 0.1), // long stay: 100 hours
+        (1.0, 0.0, 5.0), // more than max power, limited
+        (2.0, 0.0, 5.0), // exactly max power
+        (4.0, 0.0, 2.5), // less than max power
+        (100.0, 0.0, 0.1), // long stay: 100 hours
         // half full battery
-        (1800L, 5.0, 5.0), // more than max power, limited
-        (3600L, 5.0, 5.0), // exactly max power
-        (7200L, 5.0, 2.5), // less than max power
-        (180000L, 5.0, 0.1), // long stay: 100 hours
+        (0.5, 5.0, 5.0), // more than max power, limited
+        (1.0, 5.0, 5.0), // exactly max power
+        (2.0, 5.0, 2.5), // less than max power
+        (50.0, 5.0, 0.1), // long stay: 50 hours
       )
 
-      forAll(cases) { (stayingTicks, storedEnergy, expectedPower) =>
+      forAll(cases) { (stayingHours, storedEnergy, expectedPower) =>
         val ev = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "Test EV",
-            5.0.asKiloWatt, // using AC charging here
-            10.0.asKiloWatt,
-            10.0.asKiloWattHour,
-            storedEnergy.asKiloWattHour,
-            offset + stayingTicks,
-          )
+          ev1
+            .copyWith(storedEnergy.asKiloWattHour)
+            .copyWithDeparture(offset + (stayingHours * 3600L).toLong)
         )
 
         val chargingMap = ConstantPowerCharging.determineChargingPowers(
@@ -89,42 +76,28 @@ class ConstantPowerChargingSpec
       val offset = 3600L
 
       val cases = Table(
-        ("stayingTicks", "storedEnergy", "expectedPower"),
+        ("stayingHours", "storedEnergy", "expectedPower"),
         // empty battery
-        (3600L, 0.0, 5.0), // more than max power, limited
-        (7200L, 0.0, 5.0), // exactly max power
-        (14400L, 0.0, 2.5), // less than max power
-        (360000L, 0.0, 0.1), // long stay: 100 hours
+        (1.0, 0.0, 5.0), // more than max power, limited
+        (2.0, 0.0, 5.0), // exactly max power
+        (4.0, 0.0, 2.5), // less than max power
+        (100.0, 0.0, 0.1), // long stay: 100 hours
         // half full battery
-        (1800L, 5.0, 5.0), // more than max power, limited
-        (3600L, 5.0, 5.0), // exactly max power
-        (7200L, 5.0, 2.5), // less than max power
-        (180000L, 5.0, 0.1), // long stay: 100 hours
+        (0.5, 5.0, 5.0), // more than max power, limited
+        (1.0, 5.0, 5.0), // exactly max power
+        (2.0, 5.0, 2.5), // less than max power
+        (50.0, 5.0, 0.1), // long stay: 50 hours
       )
 
-      forAll(cases) { (stayingTicks, storedEnergy, expectedPower) =>
+      forAll(cases) { (stayingHours, storedEnergy, expectedPower) =>
         val givenEv = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "First EV",
-            5.0.asKiloWatt, // using AC charging here
-            10.0.asKiloWatt,
-            10.0.asKiloWattHour,
-            5.0.asKiloWattHour,
-            offset + 3600L,
-          )
+          ev1.copyWithDeparture(offset + 3600L)
         )
 
         val ev = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "Test EV",
-            5.0.asKiloWatt, // using AC charging here
-            10.0.asKiloWatt,
-            10.0.asKiloWattHour,
-            storedEnergy.asKiloWattHour,
-            offset + stayingTicks,
-          )
+          ev2
+            .copyWith(storedEnergy.asKiloWattHour)
+            .copyWithDeparture(offset + (stayingHours * 3600L).toLong)
         )
 
         val chargingMap = ConstantPowerCharging.determineChargingPowers(

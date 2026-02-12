@@ -7,28 +7,23 @@
 package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.model.MockEvModel
+import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.util.quantities.QuantityUtils.*
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.Kilowatts
 
 import java.util.UUID
 
-class MaximumPowerChargingSpec extends UnitSpec with TableDrivenPropertyChecks {
+class MaximumPowerChargingSpec
+    extends UnitSpec
+    with EvcsInputTestData
+    with TableDrivenPropertyChecks {
 
   "Calculating maximum power charging schedules" should {
 
     "not charge evs if they are fully charged" in {
       val ev = EvModelWrapper(
-        new MockEvModel(
-          UUID.randomUUID(),
-          "Test EV",
-          5.0.asKiloWatt,
-          10.0.asKiloWatt,
-          20.0.asKiloWattHour,
-          20.0.asKiloWattHour,
-          3600,
-        )
+        ev1.copyWith(ev1.getEStorage)
       )
 
       val actualSchedule = MaximumPowerCharging.determineChargingPowers(
@@ -57,15 +52,9 @@ class MaximumPowerChargingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
       forAll(cases) { (stayingTicks, storedEnergy) =>
         val ev = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "Test EV",
-            5.0.asKiloWatt, // using AC charging here
-            10.0.asKiloWatt,
-            10.0.asKiloWattHour,
-            storedEnergy.asKiloWattHour,
-            offset + stayingTicks,
-          )
+          ev1
+            .copyWith(storedEnergy.asKiloWattHour)
+            .copyWithDeparture(offset + stayingTicks)
         )
 
         val chargingMap = MaximumPowerCharging.determineChargingPowers(
@@ -98,27 +87,13 @@ class MaximumPowerChargingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
       forAll(cases) { (stayingTicks, storedEnergy) =>
         val givenEv = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "First EV",
-            5.0.asKiloWatt, // using AC charging here
-            10.0.asKiloWatt,
-            10.0.asKiloWattHour,
-            5.0.asKiloWattHour,
-            offset + 3600L,
-          )
+          ev1.copyWithDeparture(offset + 3600L)
         )
 
         val ev = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "Test EV",
-            5.0.asKiloWatt, // using AC charging here
-            10.0.asKiloWatt,
-            10.0.asKiloWattHour,
-            storedEnergy.asKiloWattHour,
-            offset + stayingTicks,
-          )
+          ev2
+            .copyWith(storedEnergy.asKiloWattHour)
+            .copyWithDeparture(offset + stayingTicks)
         )
 
         val chargingMap = MaximumPowerCharging.determineChargingPowers(
