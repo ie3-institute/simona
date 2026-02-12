@@ -16,6 +16,7 @@ plugins {
 }
 
 val javaVersion = JavaVersion.VERSION_21
+project.extra["javaVersion"] = javaVersion
 val scalaVersion = "3"
 val scalaBinaryVersion = "3.7.4"
 val pekkoVersion = "1.4.0"
@@ -213,10 +214,4 @@ tasks.named<ScalaCompile>("compileTestScala") {
     "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/",
     "-P:scapegoat:disabledInspections:TryGet:ComparingFloatingPointTypes"
   )
-}
-
-tasks.register("printVersion") {
-  doLast {
-    println(project.version)
-  }
 }
