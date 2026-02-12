@@ -50,7 +50,7 @@ apply(from = "$scriptsLocation/tests.gradle.kts") // tasks for tests
 apply(from = "$scriptsLocation/sonarqube.gradle") // sonarqube config
 apply(from = "$scriptsLocation/scoverage.gradle") // scoverage scala code coverage
 apply(from = "$scriptsLocation/deploy.gradle") // deploy configuration for ssh and maven central
-apply(from = "$scriptsLocation/semVer.gradle.kts") // semantic versioning
+apply(from = "$scriptsLocation/semVer.gradle") // semantic versioning
 apply(from = "$scriptsLocation/mavenCentralPublish.gradle") // maven central publishing configuration
 apply(from = "$scriptsLocation/branchName.gradle.kts") // checks naming scheme of branches
 

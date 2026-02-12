@@ -1,0 +1,13 @@
+// tasks for semantic versioning using semver-gradle https://github.com/ethauvin/semver-gradle
+
+tasks.register('currentVersion') {
+    doFirst {
+        println semver.semver
+    }
+}
+
+tasks.register('devVersion') {
+    doFirst {
+        println "${semver.major}.${semver.minor}-SNAPSHOT"
+    }
+}
