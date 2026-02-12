@@ -1,8 +1,10 @@
 // tasks for semantic versioning using semver-gradle https://github.com/ethauvin/semver-gradle
 
 tasks.register("currentVersion") {
-  doFirst {
-    println(project.extra["semver.semver"])
+  doLast {
+    val semverMap = project.extra["semver"] as Map<String, Any>
+    val version = semverMap["semver"] as String
+    println(version)
   }
 }
 

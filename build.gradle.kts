@@ -178,7 +178,7 @@ application {
 }
 
 //////////////////////////////////////////////////////////////////////
-// Build pekko'able fat jar using the gradle shadow plugin
+// Build pekko'able fat jar using the Gradle shadow plugin
 // see https://pekko.apache.org/docs/pekko/current/additional/packaging.html#gradle-the-jar-task-from-the-java-plugin
 //////////////////////////////////////////////////////////////////////
 tasks.shadowJar {
