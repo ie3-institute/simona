@@ -31,7 +31,8 @@ class EvcsPowerLimitFlexModelSpec
       .Factory(
         evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
         EvcsRuntimeConfig(
-          chargingStrategy = chargingStrategy
+          chargingStrategy = chargingStrategy,
+          departureTargetSoc = 0.8,
         ),
       )
       .create()
@@ -39,18 +40,75 @@ class EvcsPowerLimitFlexModelSpec
     EvcsPowerLimitFlexModel(model)
   }
 
+  private val currentTick: Long = 7200L
+
   // Testing tolerances
   given Energy = KilowattHours(1e-10)
   given Power = Kilowatts(1e-10)
 
   "An EVCS PowerLimitFlexModel" should {
 
-    "calculate flex options correctly" when {
+    "calculate flex options correctly with constant power and allowing v2g" when {
 
-      "charging with constant power and allowing v2g" in {
-        val flexModel = createModel("constantPower")
+      val flexModel = createModel("constantPower")
 
-        val currentTick = 7200L
+      "one EV is connected" in {
+
+        val cases = Table(
+          (
+            "stored",
+            "expectedPRef",
+            "expectedPMin",
+            "expectedPMax",
+          ),
+
+          // empty -> forced charging
+          (0.0, 5.0, 5.0, 5.0),
+          // at lower margin -> forced charging
+          (2.0, 5.0, 5.0, 5.0),
+          // just above lower margin -> no forced charging
+          (2.01, 4.995, -5.0, 5.0),
+          // mid-way full -> no forced charging
+          (7.5, 2.25, -5.0, 5.0),
+          // at target -> no charging as preference
+          (12.0, 0.0, -5.0, 5.0),
+          // almost full -> no charging as preference
+          (14.5, 0.0, -5.0, 5.0),
+          // in the margin of full (14.998611111111112 kWh) -> only discharging allowed
+          (14.999, 0.0, -5.0, 0.0),
+          // full -> only discharging allowed
+          (15.0, 0.0, -5.0, 0.0),
+        )
+
+        forAll(cases) {
+          (
+              stored,
+              expectedPRef,
+              expectedPMin,
+              expectedPMax,
+          ) =>
+            // 15 kWh capacity, 12 kWh target, 5 kW max power, stays two hours
+            val ev = EvModelWrapper(
+              ev5.copyWith(stored.asKiloWattHour)
+            )
+
+            flexModel.determineFlexOptions(
+              EvcsState(Seq(ev), currentTick)
+            ) match {
+              case PowerLimitFlexOptions(
+                    refPower,
+                    minPower,
+                    maxPower,
+                  ) =>
+                refPower should approximate(Kilowatts(expectedPRef))
+                minPower should approximate(Kilowatts(expectedPMin))
+                maxPower should approximate(Kilowatts(expectedPMax))
+            }
+        }
+
+      }
+
+      "two EVs are connected" in {
 
         val cases = Table(
           (
@@ -61,48 +119,31 @@ class EvcsPowerLimitFlexModelSpec
             "expectedPMax",
           ),
 
-          /* 1: empty */
-          // 2: empty
+          /* REMINDER: if at least one EV is forced to
+             charge, there is no discharging for both */
+
+          /* 1: empty -> forced charging */
+          // 2: empty -> forced charging
           (0.0, 0.0, 15.0, 15.0, 15.0),
-          // 2: at lower margin
-          (0.0, 3.0, 15.0, 10.0, 15.0),
-          // 2: mid-way full, forced charging
-          (0.0, 7.5, 13.75, 10.0, 15.0),
-          // 2: almost full, forced charging
-          (0.0, 12.5, 11.25, 10.0, 15.0),
-          // 2: full, forced charging
+          // 2: mid-way full -> no forced charging
+          (0.0, 7.5, 12.25, 10.0, 15.0),
+          // 2: full -> no forced charging
           (0.0, 15.0, 10.0, 10.0, 10.0),
 
-          /* 1: at lower margin (set to 2 kWh) */
-          // 2: empty
-          (2.0, 0.0, 13.0, 5.0, 15.0),
-          // 2: at lower margin
-          (2.0, 3.0, 13.0, 0.0, 15.0),
-          // 2: mid-way full (set to 7.5 kWh)
-          (2.0, 7.5, 11.75, -5.0, 15.0),
-          // 2: almost full
-          (2.0, 12.5, 9.25, -5.0, 15.0),
-          // 2: full
-          (2.0, 15.0, 8.0, -5.0, 10.0),
+          /* 1: mid-way full -> no forced charging */
+          // 2: empty -> forced charging
+          (5.0, 0.0, 11.0, 5.0, 15.0),
+          // 2: mid-way full -> no forced charging
+          (5.0, 7.5, 8.25, -15.0, 15.0),
+          // 2: full -> no forced charging
+          (5.0, 15.0, 6.0, -15.0, 10.0),
 
-          /* 1: mid-way full (set to 5 kWh) */
-          // 2: empty, forced charging
-          (5.0, 0.0, 10.0, 5.0, 15.0),
-          // 2: mid-way full (set to 7.5 kWh)
-          (5.0, 7.5, 8.75, -15.0, 15.0),
-          // 2: almost full
-          (5.0, 12.5, 6.25, -15.0, 15.0),
-          // 2: full
-          (5.0, 15.0, 5.0, -15.0, 10.0),
-
-          /* 1: full (set to 10 kWh) */
-          // 2: empty, forced charging
+          /* 1: full -> no forced charging */
+          // 2: empty -> forced charging
           (10.0, 0.0, 5.0, 5.0, 5.0),
-          // 2: mid-way full
-          (10.0, 7.5, 3.75, -15.0, 5.0),
-          // 2: almost full
-          (10.0, 12.5, 1.25, -15.0, 5.0),
-          // 2: full
+          // 2: mid-way full -> no forced charging
+          (10.0, 7.5, 2.25, -15.0, 5.0),
+          // 2: full -> no forced charging
           (10.0, 15.0, 0.0, -15.0, 0.0),
         )
 
@@ -114,21 +155,20 @@ class EvcsPowerLimitFlexModelSpec
               expectedPMin,
               expectedPMax,
           ) =>
-            // stays one more hour
+            // 10 kWh capacity, 8 kWh target, 10 kW max power, stays half an hour
             val evA = EvModelWrapper(
-              ev4.copyWith(stored1.asKiloWattHour)
+              ev4
+                .copyWith(stored1.asKiloWattHour)
+                .copyWithDeparture(currentTick + 1800L)
             )
 
-            // stays two more hours
+            // 15 kWh capacity, 12 kWh target, 5 kW max power, stays two hours
             val evB = EvModelWrapper(
               ev5.copyWith(stored2.asKiloWattHour)
             )
 
             flexModel.determineFlexOptions(
-              EvcsState(
-                Seq(evA, evB),
-                currentTick,
-              )
+              EvcsState(Seq(evA, evB), currentTick)
             ) match {
               case PowerLimitFlexOptions(
                     refPower,
@@ -143,10 +183,69 @@ class EvcsPowerLimitFlexModelSpec
 
       }
 
-      "charging with maximum power and allowing v2g" in {
-        val flexModel = createModel("maxPower")
+    }
 
-        val currentTick = 7200L
+    "calculate flex options correctly with maximum power and allowing v2g" when {
+
+      val flexModel = createModel("maxPower")
+
+      "one EV is connected" in {
+
+        val cases = Table(
+          (
+            "stored",
+            "expectedPRef",
+            "expectedPMin",
+            "expectedPMax",
+          ),
+
+          // empty -> forced charging
+          (0.0, 5.0, 5.0, 5.0),
+          // at lower margin -> forced charging
+          (2.0, 5.0, 5.0, 5.0),
+          // just above lower margin -> no forced charging
+          (2.01, 5.0, -5.0, 5.0),
+          // mid-way full -> no forced charging
+          (7.5, 5.0, -5.0, 5.0),
+          // at target -> no charging as preference
+          (12.0, 0.0, -5.0, 5.0),
+          // almost full -> no charging as preference
+          (14.5, 0.0, -5.0, 5.0),
+          // in the margin of full (14.998611111111112 kWh) -> only discharging allowed
+          (14.999, 0.0, -5.0, 0.0),
+          // full -> only discharging allowed
+          (15.0, 0.0, -5.0, 0.0),
+        )
+
+        forAll(cases) {
+          (
+              stored,
+              expectedPRef,
+              expectedPMin,
+              expectedPMax,
+          ) =>
+            // 15 kWh capacity, 12 kWh target, 5 kW max power, stays two hours
+            val ev = EvModelWrapper(
+              ev5.copyWith(stored.asKiloWattHour)
+            )
+
+            flexModel.determineFlexOptions(
+              EvcsState(Seq(ev), currentTick)
+            ) match {
+              case PowerLimitFlexOptions(
+                    refPower,
+                    minPower,
+                    maxPower,
+                  ) =>
+                refPower should approximate(Kilowatts(expectedPRef))
+                minPower should approximate(Kilowatts(expectedPMin))
+                maxPower should approximate(Kilowatts(expectedPMax))
+            }
+        }
+
+      }
+
+      "two EVs are connected" in {
 
         val cases = Table(
           (
@@ -157,48 +256,31 @@ class EvcsPowerLimitFlexModelSpec
             "expectedPMax",
           ),
 
-          /* 1: empty */
-          // 2: empty
+          /* REMINDER: if at least one EV is forced to
+             charge, there is no discharging for both */
+
+          /* 1: empty -> forced charging */
+          // 2: empty -> forced charging
           (0.0, 0.0, 15.0, 15.0, 15.0),
-          // 2: at lower margin
-          (0.0, 3.0, 15.0, 10.0, 15.0),
-          // 2: mid-way full, forced charging
+          // 2: mid-way full -> forced charging
           (0.0, 7.5, 15.0, 10.0, 15.0),
-          // 2: almost full, forced charging
-          (0.0, 12.5, 15.0, 10.0, 15.0),
-          // 2: full
+          // 2: full -> no forced charging
           (0.0, 15.0, 10.0, 10.0, 10.0),
 
-          /* 1: at lower margin (set to 2 kWh) */
-          // 2: empty
-          (2.0, 0.0, 15.0, 5.0, 15.0),
-          // 2: at lower margin
-          (2.0, 3.0, 15.0, 0.0, 15.0),
-          // 2: mid-way full
-          (2.0, 7.5, 15.0, -5.0, 15.0),
-          // 2: almost full
-          (2.0, 12.5, 15.0, -5.0, 15.0),
-          // 2: full
-          (2.0, 15.0, 10.0, -5.0, 10.0),
-
-          /* 1: mid-way full (set to 5 kWh) */
+          /* 1: mid-way full -> no forced charging */
           // 2: empty, forced charging
           (5.0, 0.0, 15.0, 5.0, 15.0),
-          // 2: mid-way full
+          // 2: mid-way full -> no forced charging
           (5.0, 7.5, 15.0, -15.0, 15.0),
-          // 2: almost full
-          (5.0, 12.5, 15.0, -15.0, 15.0),
-          // 2: full
+          // 2: full -> no forced charging
           (5.0, 15.0, 10.0, -15.0, 10.0),
 
-          /* 1: full (set to 10 kWh) */
+          /* 1: full -> no forced charging */
           // 2: empty, forced charging
           (10.0, 0.0, 5.0, 5.0, 5.0),
-          // 2: mid-way full
+          // 2: mid-way full -> no forced charging
           (10.0, 7.5, 5.0, -15.0, 5.0),
-          // 2: almost full
-          (10.0, 12.5, 5.0, -15.0, 5.0),
-          // 2: full
+          // 2: full -> no forced charging
           (10.0, 15.0, 0.0, -15.0, 0.0),
         )
 
@@ -210,19 +292,20 @@ class EvcsPowerLimitFlexModelSpec
               expectedPMin,
               expectedPMax,
           ) =>
+            // 10 kWh capacity, 8 kWh target, 10 kW max power, stays half an hour
             val evA = EvModelWrapper(
-              ev4.copyWith(stored1.asKiloWattHour)
+              ev4
+                .copyWith(stored1.asKiloWattHour)
+                .copyWithDeparture(currentTick + 1800L)
             )
 
+            // 15 kWh capacity, 12 kWh target, 5 kW max power, stays one hour
             val evB = EvModelWrapper(
               ev5.copyWith(stored2.asKiloWattHour).copyWithDeparture(10800L)
             )
 
             flexModel.determineFlexOptions(
-              EvcsState(
-                Seq(evA, evB),
-                currentTick,
-              )
+              EvcsState(Seq(evA, evB), currentTick)
             ) match {
               case PowerLimitFlexOptions(
                     refPower,
@@ -237,60 +320,32 @@ class EvcsPowerLimitFlexModelSpec
 
       }
 
-      "disallowing v2g" in {
-        val flexModel = createModel("constantPower", vehicle2Grid = false)
+    }
 
-        val currentTick = 7200L
+    "calculate flex options correctly with disallowing v2g" in {
 
-        val ev1 = EvModelWrapper(
-          ev4.copyWith(5.0.asKiloWattHour)
-        )
+      val flexModel = createModel("constantPower", vehicle2Grid = false)
 
-        flexModel.determineFlexOptions(
-          EvcsState(
-            Seq(ev1),
-            currentTick,
-          )
-        ) match {
-          case PowerLimitFlexOptions(
-                refPower,
-                minPower,
-                maxPower,
-              ) =>
-            refPower should approximate(Kilowatts(5.0)) // one hour left
-            minPower should approximate(Kilowatts(0d)) // no v2g allowed!
-            maxPower should approximate(ev1.pRatedAc)
-        }
+      // 10 kWh capacity, 8 kWh target, 10 kW max power, stays one hour
+      val ev1 = EvModelWrapper(
+        ev4.copyWith(3.0.asKiloWattHour)
+      )
 
-      }
-
-      "holding almost full EV" in {
-        val flexModel = createModel("constantPower")
-
-        val currentTick = 7200L
-
-        // 9.997222222222222 kWh is the margin including tolerance
-        val ev = EvModelWrapper(
-          ev4.copyWith(9.998.asKiloWattHour)
-        )
-
-        flexModel.determineFlexOptions(
-          EvcsState(Seq(ev), currentTick)
-        ) match {
-          case PowerLimitFlexOptions(
-                refPower,
-                minPower,
-                maxPower,
-              ) =>
-            // ev in top tolerance margin
-            refPower should approximate(Kilowatts(0))
-            minPower should approximate(Kilowatts(-10))
-            maxPower should approximate(Kilowatts(0))
-        }
-
+      flexModel.determineFlexOptions(
+        EvcsState(Seq(ev1), currentTick)
+      ) match {
+        case PowerLimitFlexOptions(
+              refPower,
+              minPower,
+              maxPower,
+            ) =>
+          refPower should approximate(Kilowatts(5.0)) // one hour left
+          minPower should approximate(Kilowatts(0d)) // no v2g allowed!
+          maxPower should approximate(ev1.pRatedAc)
       }
 
     }
+
   }
 
 }

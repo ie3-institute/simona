@@ -19,11 +19,12 @@ class ConstantPowerChargingSpec
     with EvcsInputTestData
     with TableDrivenPropertyChecks {
 
-  "Calculating constant power charging schedules" should {
+  "Calculating constant power for departure target" should {
 
-    "not charge evs if they are fully charged" in {
+    "not charge evs if they are above departure target" in {
+      // 10 kWh capacity, 8 kWh target, 5 kW max power
       val ev = EvModelWrapper(
-        ev1.copyWith(ev1.getEStorage)
+        ev1.copyWith(8.0.asKiloWattHour)
       )
 
       val actualSchedule = ConstantPowerCharging.determineChargingPowers(
@@ -42,17 +43,19 @@ class ConstantPowerChargingSpec
         ("stayingHours", "storedEnergy", "expectedPower"),
         // empty battery
         (1.0, 0.0, 5.0), // more than max power, limited
-        (2.0, 0.0, 5.0), // exactly max power
-        (4.0, 0.0, 2.5), // less than max power
-        (100.0, 0.0, 0.1), // long stay: 100 hours
+        (1.6, 0.0, 5.0), // exactly max power
+        (2.0, 0.0, 4.0), // less than max power
+        (100.0, 0.0, 0.08), // long stay: 100 hours
         // half full battery
         (0.5, 5.0, 5.0), // more than max power, limited
-        (1.0, 5.0, 5.0), // exactly max power
-        (2.0, 5.0, 2.5), // less than max power
-        (50.0, 5.0, 0.1), // long stay: 50 hours
+        (0.6, 5.0, 5.0), // exactly max power
+        (0.75, 5.0, 4.0), // less than max power
+        (50.0, 5.0, 0.06), // long stay: 50 hours
       )
 
       forAll(cases) { (stayingHours, storedEnergy, expectedPower) =>
+
+        // 10 kWh capacity, 8 kWh target, 5 kW max power
         val ev = EvModelWrapper(
           ev1
             .copyWith(storedEnergy.asKiloWattHour)
@@ -79,21 +82,24 @@ class ConstantPowerChargingSpec
         ("stayingHours", "storedEnergy", "expectedPower"),
         // empty battery
         (1.0, 0.0, 5.0), // more than max power, limited
-        (2.0, 0.0, 5.0), // exactly max power
-        (4.0, 0.0, 2.5), // less than max power
-        (100.0, 0.0, 0.1), // long stay: 100 hours
+        (1.6, 0.0, 5.0), // exactly max power
+        (2.0, 0.0, 4.0), // less than max power
+        (100.0, 0.0, 0.08), // long stay: 100 hours
         // half full battery
         (0.5, 5.0, 5.0), // more than max power, limited
-        (1.0, 5.0, 5.0), // exactly max power
-        (2.0, 5.0, 2.5), // less than max power
-        (50.0, 5.0, 0.1), // long stay: 50 hours
+        (0.6, 5.0, 5.0), // exactly max power
+        (0.75, 5.0, 4.0), // less than max power
+        (50.0, 5.0, 0.06), // long stay: 50 hours
       )
 
       forAll(cases) { (stayingHours, storedEnergy, expectedPower) =>
+
+        // 10 kWh capacity, 8 kWh target, 5 kW max power, staying one hour
         val givenEv = EvModelWrapper(
           ev1.copyWithDeparture(offset + 3600L)
         )
 
+        // 10 kWh capacity, 8 kWh target, 5 kW max power
         val ev = EvModelWrapper(
           ev2
             .copyWith(storedEnergy.asKiloWattHour)
@@ -107,7 +113,7 @@ class ConstantPowerChargingSpec
         )
 
         chargingMap shouldBe Map(
-          givenEv.uuid -> Kilowatts(5.0),
+          givenEv.uuid -> Kilowatts(3.0),
           ev.uuid -> Kilowatts(expectedPower),
         )
       }
