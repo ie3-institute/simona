@@ -76,6 +76,8 @@ object ResultServiceProxy {
     * @param waitingForResults
     *   A map: uuid to tick. For each result uuid a tick, for which the next
     *   result will be provided, is saved.
+    * @param withoutUpdate
+    *   A set containing all model uuids for which no update were received.
     * @param requiresSetPoint
     *   A set of participant uuid. The proxy will not wait for those results
     *   before answering a result request. (Note: This is necessary, if an
@@ -95,7 +97,7 @@ object ResultServiceProxy {
       results: Map[UUID, Map[Class[? <: ResultEntity], ResultEntity]] =
         Map.empty,
       waitingForResults: Map[UUID, Long] = Map.empty,
-      noUpdate: Set[UUID] = Set.empty,
+      withoutUpdate: Set[UUID] = Set.empty,
       requiresSetPoint: Set[UUID] = Set.empty,
   ) extends ServiceBaseStateData {
 
@@ -197,7 +199,7 @@ object ResultServiceProxy {
           waitingForResults.removed(uuid)
         } else waitingForResults
 
-      val (updatedResults, changedResults) = results.get(uuid) match {
+      val (updatedResults, hasResultChanged) = results.get(uuid) match {
         case Some(oldResults) =>
           filterUnchangedResults(result, oldResults) match {
             case Some((resultClass, res)) =>
@@ -213,17 +215,17 @@ object ResultServiceProxy {
           (results.updated(uuid, Map(result.getClass -> result)), true)
       }
 
-      val updated = if changedResults then {
-        noUpdate.excl(uuid)
+      val updated = if hasResultChanged then {
+        withoutUpdate.excl(uuid)
       } else {
-        noUpdate.incl(uuid)
+        withoutUpdate.incl(uuid)
       }
 
       copy(
         results = updatedResults,
         waitingForResults = updatedWaitingForResults,
         requiresSetPoint = requiresSetPoint.excl(uuid),
-        noUpdate = updated,
+        withoutUpdate = updated,
       )
     }
 
@@ -231,6 +233,8 @@ object ResultServiceProxy {
       *
       * @param uuids
       *   For which results should be returned.
+      * @param sendUnchangedResults
+      *   If [[false]] only results that have changed will be returned.
       * @return
       *   A map: uuid to results.
       */
@@ -239,7 +243,7 @@ object ResultServiceProxy {
         sendUnchangedResults: Boolean,
     ): Map[UUID, List[ResultEntity]] = {
       uuids.flatMap { uuid =>
-        if !noUpdate.contains(uuid) || sendUnchangedResults then {
+        if !withoutUpdate.contains(uuid) || sendUnchangedResults then {
           // we only sent result, if either there was an update or we explicitly requested to send unchanged results
           results.get(uuid).map(res => uuid -> res.values.toList)
         } else None
@@ -363,7 +367,7 @@ object ResultServiceProxy {
           stateData.threeWindingResults,
         )
 
-      val (updatedResults, changedResults, notUpdated) =
+      val (allResults, changedResults, notUpdated) =
         (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults)
           .groupBy(_.getInputModel)
           .foldLeft(
@@ -401,11 +405,11 @@ object ResultServiceProxy {
       stateData.notifyListener(changedResults)
 
       stateData.copy(
-        results = updatedResults,
+        results = allResults,
         threeWindingResults = updatedThreeWindingResults,
         waitingForResults =
-          stateData.waitingForResults.removedAll(updatedResults.keys),
-        noUpdate = stateData.noUpdate -- updatedResults.keys ++ notUpdated,
+          stateData.waitingForResults.removedAll(allResults.keys),
+        withoutUpdate = stateData.withoutUpdate -- allResults.keys ++ notUpdated,
       )
 
     case ParticipantResultEvent(systemParticipantResult) =>
@@ -486,15 +490,15 @@ object ResultServiceProxy {
     }
   }
 
-  /** Compares the new results to the old results. If a new result does not
-    * match any old result, the new result is returned.
+  /** Compares the new results with the old ones. If a new result does not match
+    * any of the old results, the new result is returned.
     *
     * @param results
     *   To compare.
     * @param oldResults
     *   For comparison.
     * @return
-    *   The updated results.
+    *   A map containing all results that have changed.
     */
   private[results] def filterUnchangedResults(
       results: Iterable[ResultEntity],
@@ -510,7 +514,7 @@ object ResultServiceProxy {
     * @param oldResults
     *   For comparison
     * @return
-    *   An option for the updated result or None.
+    *   An option for the changed result or None.
     */
   private[results] def filterUnchangedResults(
       result: ResultEntity,
