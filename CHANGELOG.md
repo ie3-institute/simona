@@ -77,6 +77,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generalize data time types for service registration [#1668](https://github.com/ie3-institute/simona/issues/1668)
 - Refactored `GridAgentData` [#1665](https://github.com/ie3-institute/simona/issues/1665)
 - Considering `tickDisconnect` in EM optimization [#1681](https://github.com/ie3-institute/simona/issues/1681)
+- Cleaned up EVCS test data [#1690](https://github.com/ie3-institute/simona/issues/1690)
+- Simplified Option handling in PowerFlowSupport [#1701](https://github.com/ie3-institute/simona/issues/1701)
+- Removed lowest SOC, added departure SOC target for EVs [#1096](https://github.com/ie3-institute/simona/issues/1096)
 - Adapted EM initialization protocol [#1669](https://github.com/ie3-institute/simona/issues/1669)
 
 ### Fixed
