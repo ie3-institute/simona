@@ -47,8 +47,7 @@ class EvcsPowerLimitFlexModel(private val model: EvcsModel)
             else zeroKW
 
           val forced =
-            if model.isEmpty(ev) && !model.isInLowerMargin(ev) then
-              preferredPower.getOrElse(maxPower)
+            if model.requiresMaxCharging(ev, state.tick) then maxPower
             else zeroKW
 
           val maxDischarging =

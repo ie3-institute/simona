@@ -326,25 +326,14 @@ trait PowerFlowSupport {
     val power = a.power + b.power
     val targetVoltage = a.targetVoltage
 
-    def combineOptionals(
-        pA: Option[Double],
-        pB: Option[Double],
-        f: (Double, Double) => Double,
-    ): Option[Double] = (pA, pB) match {
-      case (Some(vA), Some(vB)) => Some(f(vA, vB))
-      case (Some(vA), None)     => Some(vA)
-      case (None, Some(vB))     => Some(vB)
-      case (None, None)         => None
-    }
-
     val activePowerMin =
-      combineOptionals(a.activePowerMin, b.activePowerMin, math.max)
+      Seq(a.activePowerMin, b.activePowerMin).flatten.maxOption
     val activePowerMax =
-      combineOptionals(a.activePowerMax, b.activePowerMax, math.min)
+      Seq(a.activePowerMax, b.activePowerMax).flatten.minOption
     val reactivePowerMin =
-      combineOptionals(a.reactivePowerMin, b.reactivePowerMin, math.max)
+      Seq(a.reactivePowerMin, b.reactivePowerMin).flatten.maxOption
     val reactivePowerMax =
-      combineOptionals(a.reactivePowerMax, b.reactivePowerMax, math.min)
+      Seq(a.reactivePowerMax, b.reactivePowerMax).flatten.minOption
 
     PresetData(
       index,

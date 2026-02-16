@@ -58,7 +58,7 @@ class EvcsModel private (
     override val qControl: QControl,
     val strategy: EvcsChargingStrategy,
     override val currentType: ElectricCurrentType,
-    override val lowestEvSoc: Double,
+    override val departureTargetSoc: Double,
     val chargingPoints: Int,
     val vehicle2grid: Boolean,
 ) extends ParticipantModel[
@@ -131,7 +131,7 @@ class EvcsModel private (
         chargingPowers.get(ev.uuid).map((ev, _))
       }
       .flatMap { case (ev, power) =>
-        determineNextEvent(
+        determineChargingLimitEvent(
           ev,
           power,
           state.tick,
@@ -237,13 +237,14 @@ class EvcsModel private (
     }
 
     val (forcedChargingEvs, regularChargingEvs) =
-      if setPower > zeroKW then
-        // lower margin is excluded since charging is not required here anymore
+      if setPower > zeroKW then {
         applicableEvs.partition { ev =>
-          isEmpty(ev) && !isInLowerMargin(ev)
+          requiresMaxCharging(ev, state.tick)
         }
-      else (Seq.empty, applicableEvs)
+      } else (Seq.empty, applicableEvs)
 
+    // first, distribute power amongst EVs that
+    // require charging to hit their target SOC
     val (forcedSchedules, remainingPower) =
       distributeChargingPower(state.tick, forcedChargingEvs, setPower)
 
@@ -260,14 +261,20 @@ class EvcsModel private (
 
     val aggregateIndicator = combinedSchedules
       .map { case (ev, chargingPower) =>
-        val endTick = determineNextEvent(ev, chargingPower, state.tick)
-          .map(math.min(_, ev.departureTick))
-          .getOrElse(ev.departureTick)
+        val chargingLimitTick =
+          determineChargingLimitEvent(ev, chargingPower, state.tick)
+        val requiredChargingTick =
+          determineRequiredChargingEvent(ev, chargingPower, state.tick)
+
+        val nextTick = Seq(
+          chargingLimitTick,
+          requiredChargingTick,
+          Some(ev.departureTick),
+        ).flatten.minOption
 
         OperationChangeIndicator(
-          changesAtNextActivation =
-            isFull(ev) || isEmpty(ev) || isInLowerMargin(ev),
-          changesAtTick = Some(endTick),
+          changesAtNextActivation = isFull(ev) || isEmpty(ev),
+          changesAtTick = nextTick,
         )
       }
       .foldLeft(OperationChangeIndicator()) {
@@ -371,19 +378,16 @@ class EvcsModel private (
     * @return
     *   The tick at which the target is reached.
     */
-  private def determineNextEvent(
+  private def determineChargingLimitEvent(
       ev: EvModelWrapper,
       power: Power,
       currentTick: Long,
   ): Option[Long] = {
-    // TODO adapt like in StorageModel: dependent tolerance
-    implicit val tolerance: Power = Watts(1e-3)
+    implicit val tolerance: Power = calcPowerTolerance
 
-    val chargingEnergyTarget = () =>
-      if isEmpty(ev) && !isInLowerMargin(ev) then ev.eStorage * lowestEvSoc
-      else ev.eStorage
+    val chargingEnergyTarget = () => ev.eStorage
 
-    val dischargingEnergyTarget = () => ev.eStorage * lowestEvSoc
+    val dischargingEnergyTarget = () => zeroKWh
 
     ChargingHelper.calcNextEventTick(
       ev.storedEnergy,
@@ -392,6 +396,34 @@ class EvcsModel private (
       chargingEnergyTarget,
       dischargingEnergyTarget,
     )
+  }
+
+  private def determineRequiredChargingEvent(
+      ev: EvModelWrapper,
+      power: Power,
+      currentTick: Long,
+  ): Option[Long] = {
+    implicit val tolerance: Power = calcPowerTolerance
+
+    val maxPower = getMaxAvailableChargingPower(ev)
+
+    // we determine the last possible tick until which the EV
+    // can charge with the given power and still reach its
+    // departure SOC target when charging with full power afterward
+    Option
+      .unless(power ~= maxPower) {
+        val targetEnergy = ev.eStorage * departureTargetSoc
+
+        val timeToEvent =
+          (ev.storedEnergy - targetEnergy +
+            ev.timeToDeparture(currentTick) * maxPower) /
+            (maxPower - power)
+
+        currentTick + timeToEvent.toSeconds.toLong
+      }
+      // should not be situated in the past,
+      // which can happen if target cannot be reached anymore
+      .filter(_ > currentTick)
   }
 
   override def handleRequest(
@@ -456,7 +488,7 @@ class EvcsModel private (
     }.toMap
 
   /** @param ev
-    *   the ev whose stored energy is to be checked
+    *   the EV whose stored energy is to be checked
     * @return
     *   whether the given ev's stored energy is greater than the maximum charged
     *   energy allowed (minus a tolerance margin)
@@ -465,35 +497,45 @@ class EvcsModel private (
     ev.storedEnergy >= (ev.eStorage - calcToleranceMargin(ev))
 
   /** @param ev
-    *   The ev whose stored energy is to be checked.
+    *   The EV whose stored energy is to be checked.
     * @return
-    *   Whether the given ev's stored energy is less than the minimal charged
-    *   energy allowed (plus a tolerance margin).
+    *   Whether the given ev's energy storage is empty (plus a tolerance
+    *   margin).
     */
   def isEmpty(ev: EvModelWrapper): Boolean =
-    ev.storedEnergy <= (
-      ev.eStorage * lowestEvSoc + calcToleranceMargin(ev)
-    )
+    ev.storedEnergy <= calcToleranceMargin(ev)
 
-  /** @param ev
-    *   The ev whose stored energy is to be checked.
+  /** Determines whether given EV requires charging with maximum power to reach
+    * (or come as close as possible to) the target SOC at departure. Returns
+    * false if we can charge with anything else than maximum power and still
+    * reach the target.
+    *
+    * @param ev
+    *   The EV whose stored energy is to be checked.
+    * @param tick
+    *   The current tick.
     * @return
-    *   Whether the given ev's stored energy is within +- tolerance of the
-    *   minimal charged energy allowed.
+    *   Whether the EV is required to charge with maximum power.
     */
-  def isInLowerMargin(ev: EvModelWrapper): Boolean = {
-    val toleranceMargin = calcToleranceMargin(ev)
-    val lowestSoc = ev.eStorage * lowestEvSoc
+  def requiresMaxCharging(ev: EvModelWrapper, tick: Long): Boolean = {
+    val maxPower = getMaxAvailableChargingPower(ev)
+    val maxCharged =
+      ev.storedEnergy + maxPower * ev.timeToDeparture(tick)
 
-    ev.storedEnergy <= (
-      lowestSoc + toleranceMargin
-    ) && ev.storedEnergy >= (
-      lowestSoc - toleranceMargin
-    )
+    val targetEnergy = ev.eStorage * departureTargetSoc
+    val tolerance = calcToleranceMargin(ev)
+
+    maxCharged < (targetEnergy + tolerance)
   }
 
   private def calcToleranceMargin(ev: EvModelWrapper): Energy =
+    // since ticks are floored, there could be a difference
+    // of a second worth of charging
     getMaxAvailableChargingPower(ev) * Seconds(1)
+
+  private def calcPowerTolerance: Power =
+    // TODO adapt like in StorageModel: dependent tolerance -> issue #1698
+    Watts(1e-3)
 
 }
 
@@ -539,7 +581,7 @@ object EvcsModel {
         QControl(input.getqCharacteristics),
         EvcsChargingStrategy(modelConfig.chargingStrategy),
         input.getType.getElectricCurrentType,
-        modelConfig.lowestEvSoc,
+        modelConfig.departureTargetSoc,
         input.getChargingPoints,
         input.getV2gSupport,
       )
