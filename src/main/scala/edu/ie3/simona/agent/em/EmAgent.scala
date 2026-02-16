@@ -114,6 +114,9 @@ object EmAgent {
 
       awaitingFlexCtrl(emData, modelShell, inputHandler, flexOptionsCore)
 
+    case (ctx, unhandled) =>
+      ctx.log.warn(s"Unhandled (inactive): $unhandled")
+      Behaviors.same
   }
 
   private def activate(
@@ -147,8 +150,8 @@ object EmAgent {
       modelShell: EmModelShell[?],
       inputHandler: DataInputHandler,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
-  ): Behavior[Message] = Behaviors.receiveMessagePartial {
-    case provideFlex: ProvideFlexOptions =>
+  ): Behavior[Message] = Behaviors.receivePartial {
+    case (ctx, provideFlex: ProvideFlexOptions) =>
       val updatedCore = flexOptionsCore.handleFlexOptions(
         provideFlex.modelUuid,
         provideFlex.flexOptions,
@@ -229,6 +232,10 @@ object EmAgent {
        can schedule themselves with their completions and inactive agents should
        be sleeping right now
      */
+
+    case (ctx, unhandled) =>
+      ctx.log.warn(s"Unhandled (awaiting options): $unhandled")
+      Behaviors.same
   }
 
   /** Behavior of an [[EmAgent]] waiting for a flex control message to be
@@ -240,8 +247,8 @@ object EmAgent {
       modelShell: EmModelShell[?],
       inputHandler: DataInputHandler,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
-  ): Behavior[Message] = Behaviors.receiveMessagePartial {
-    case flexCtrl: IssueFlexControl =>
+  ): Behavior[Message] = Behaviors.receivePartial {
+    case (_, flexCtrl: IssueFlexControl) =>
       val setPointActivePower =
         Try(modelShell.determineFlexPower(flexCtrl))
           .recoverWith(exception =>
@@ -274,6 +281,10 @@ object EmAgent {
       }
 
       awaitingCompletions(emData, modelShell, inputHandler, newCore)
+
+    case (ctx, unhandled) =>
+      ctx.log.warn(s"Unhandled (awaiting control): $unhandled")
+      Behaviors.same
   }
 
   /** Behavior of an [[EmAgent]] waiting for completions messages to be received
