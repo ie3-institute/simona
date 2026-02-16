@@ -350,7 +350,7 @@ class EvcsModelSpec
             "expNextTick",
           ),
 
-          /* setPower is 0 kWh */
+          /* setPower is 0 kW */
           (0.0, 0.0, 0.0, false, N),
           (10.0, 0.0, 0.0, false, N),
 
@@ -433,7 +433,7 @@ class EvcsModelSpec
             "expNextTick",
           ),
 
-          /* setPower is 0 kWh */
+          /* setPower is 0 kW */
           (0.0, 0.0, 0.0, 0.0, 0.0, false, N),
           (10.0, 5.0, 0.0, 0.0, 0.0, false, N),
           (5.0, 15.0, 0.0, 0.0, 0.0, false, N),

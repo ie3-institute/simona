@@ -43,13 +43,13 @@ class ConstantPowerChargingSpec
         ("stayingHours", "storedEnergy", "expectedPower"),
         // empty battery
         (1.0, 0.0, 5.0), // more than max power, limited
-        (2.0, 0.0, 4.0), // exactly max power
-        (4.0, 0.0, 2.0), // less than max power
+        (1.6, 0.0, 5.0), // exactly max power
+        (2.0, 0.0, 4.0), // less than max power
         (100.0, 0.0, 0.08), // long stay: 100 hours
         // half full battery
         (0.5, 5.0, 5.0), // more than max power, limited
-        (1.0, 5.0, 3.0), // exactly max power
-        (2.0, 5.0, 1.5), // less than max power
+        (0.6, 5.0, 5.0), // exactly max power
+        (0.75, 5.0, 4.0), // less than max power
         (50.0, 5.0, 0.06), // long stay: 50 hours
       )
 
@@ -82,13 +82,13 @@ class ConstantPowerChargingSpec
         ("stayingHours", "storedEnergy", "expectedPower"),
         // empty battery
         (1.0, 0.0, 5.0), // more than max power, limited
-        (2.0, 0.0, 4.0), // exactly max power
-        (4.0, 0.0, 2.0), // less than max power
+        (1.6, 0.0, 5.0), // exactly max power
+        (2.0, 0.0, 4.0), // less than max power
         (100.0, 0.0, 0.08), // long stay: 100 hours
         // half full battery
         (0.5, 5.0, 5.0), // more than max power, limited
-        (1.0, 5.0, 3.0), // exactly max power
-        (2.0, 5.0, 1.5), // less than max power
+        (0.6, 5.0, 5.0), // exactly max power
+        (0.75, 5.0, 4.0), // less than max power
         (50.0, 5.0, 0.06), // long stay: 50 hours
       )
 
