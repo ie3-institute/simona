@@ -91,7 +91,7 @@ class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
 
         // energy to charge until departure
         val regularLowerLimit =
-          ev.eStorage * model.lowestEvSoc - ev.storedEnergy
+          ev.eStorage * model.departureTargetSoc - ev.storedEnergy
         val timeToDeparture = Seconds(disconnectTick - currentTick)
 
         // required power to reach the regular lower limit

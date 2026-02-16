@@ -34,7 +34,7 @@ class EvcsEnergyBoundariesFlexModelSpec
     val model = EvcsModel
       .Factory(
         evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
-        EvcsRuntimeConfig(lowestEvSoc = 0.8),
+        EvcsRuntimeConfig(departureTargetSoc = 0.8),
       )
       .create()
 
