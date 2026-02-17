@@ -10,9 +10,9 @@ import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
-  FlexType,
   PowerLimitFlexOptions,
 }
+import edu.ie3.simona.service.DataTimeType
 
 /** Simple flexibility model for [[ParticipantModel]]s with
   * [[edu.ie3.simona.model.participant.ParticipantModel.ActivePowerOperatingPoint]]
@@ -26,10 +26,9 @@ class ParticipantInflexiblePowerLimitFlexModel[S <: ModelState](
     private val model: ParticipantModel[?, S]
 ) extends ParticipantFlexModel[S] {
 
-  override val flexType: FlexType = FlexType.PowerLimit
-
   override def determineFlexOptions(
-      state: S
+      state: S,
+      dateTimeType: DataTimeType,
   ): FlexOptions = {
     val (operatingPoint, _) = model.determineOperatingPoint(state)
 

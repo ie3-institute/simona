@@ -320,7 +320,7 @@ object ParticipantAgent {
                   ),
                 _ ! ProvideFlexOptions(
                   shellWithFlex.uuid,
-                  shellWithFlex.getFlexOptions,
+                  shellWithFlex.getFlexModelShell.getFlexOptions,
                 ),
               )
 

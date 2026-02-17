@@ -47,6 +47,7 @@ import edu.ie3.simona.ontology.messages.{
   ServiceMessage,
 }
 import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -84,8 +85,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
     flexResult = true,
   )
 
-  given FlexType = FlexType.PowerLimit
-
   // Testing tolerances
   given Power = Kilowatts(1e-10)
   given ReactivePower = Kilovars(1e-10)
@@ -108,7 +107,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
-              flexType = None,
+              flexParams = None,
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -272,7 +271,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
-              flexType = None,
+              flexParams = None,
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -433,7 +432,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
-              flexType = None,
+              flexParams = None,
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -717,7 +716,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
-              flexType = None,
+              flexParams = None,
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -953,7 +952,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
-              flexType = Some(FlexType.PowerLimit),
+              flexParams = Some(FlexType.PowerLimit, DataTimeType.Current),
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -1158,7 +1157,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
-              flexType = Some(FlexType.PowerLimit),
+              flexParams = Some(FlexType.PowerLimit, DataTimeType.Current),
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -1425,7 +1424,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
-              flexType = Some(FlexType.PowerLimit),
+              flexParams = Some(FlexType.PowerLimit, DataTimeType.Current),
               operationTime,
               simulationStartDate,
               simulationEndDate,
@@ -1868,7 +1867,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           ParticipantAgent(
             ParticipantModelShell.create(
               modelFactory,
-              flexType = Some(FlexType.PowerLimit),
+              flexParams = Some(FlexType.PowerLimit, DataTimeType.Current),
               operationTime,
               simulationStartDate,
               simulationEndDate,

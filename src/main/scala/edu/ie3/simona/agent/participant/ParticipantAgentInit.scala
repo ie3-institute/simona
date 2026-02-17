@@ -233,7 +233,7 @@ object ParticipantAgentInit
           runtimeConfig,
           primaryDataExtra,
         ),
-        flexType,
+        flexType.map((_, dataTimeType)),
         inputContainer.electricalInputModel,
         expectedFirstData,
         ctx.self,
@@ -260,7 +260,7 @@ object ParticipantAgentInit
       val completionBehavior = (mf, expectedServices) =>
         completeInitialization(
           mf,
-          flexType,
+          flexType.map((_, dataTimeType)),
           inputContainer.electricalInputModel,
           expectedServices,
           ctx.self,
@@ -283,7 +283,7 @@ object ParticipantAgentInit
     */
   private def completeInitialization(
       modelFactory: ParticipantModelFactory[? <: ModelState],
-      flexType: Option[FlexType],
+      flexParams: Option[(FlexType, DataTimeType)],
       participantInput: SystemParticipantInput,
       expectedData: Map[ActorRef[ServiceMessage], Long],
       self: ActorRef[Message],
@@ -296,7 +296,7 @@ object ParticipantAgentInit
 
     val modelShell = ParticipantModelShell.create(
       modelFactory,
-      flexType,
+      flexParams,
       participantInput.getOperationTime,
       simulationParams.simulationStart,
       simulationParams.simulationEnd,
