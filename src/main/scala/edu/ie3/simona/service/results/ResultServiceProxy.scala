@@ -369,40 +369,41 @@ object ResultServiceProxy {
 
       val (allResults, changedResults, notUpdated) =
         (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults)
-          .groupBy(_.getInputModel)
           .foldLeft(
             stateData.results,
-            Map.empty[UUID, Seq[ResultEntity]],
+            Seq.empty[ResultEntity],
             Seq.empty[UUID],
-          ) { case ((allResults, changed, notChanged), (model, results)) =>
+          ) { case ((allResults, changed, notChanged), result) =>
+            val model = result.getInputModel
+
             allResults.get(model) match {
               case Some(oldResults) =>
-                val changedResults = filterUnchangedResults(results, oldResults)
+                filterUnchangedResults(result, oldResults) match {
+                  case Some((entityClass, _)) =>
+                    (
+                      allResults.updated(
+                        model,
+                        oldResults.updated(entityClass, result),
+                      ),
+                      changed.appended(result),
+                      notChanged,
+                    )
 
-                if changedResults.nonEmpty then {
-                  (
-                    allResults.updated(model, oldResults ++ changedResults),
-                    changed.updated(model, results),
-                    notChanged,
-                  )
-                } else {
-                  (allResults, changed, notChanged.appended(model))
+                  case None =>
+                    (allResults, changed, notChanged.appended(model))
                 }
-
               case None =>
                 (
-                  allResults.updated(
-                    model,
-                    results.map(res => res.getClass -> res).toMap,
-                  ),
-                  changed.updated(model, results),
+                  allResults.updated(model, Map(result.getClass -> result)),
+                  changed.appended(result),
                   notChanged,
                 )
             }
+
           }
 
       // notify listener
-      stateData.notifyListener(changedResults)
+      stateData.notifyListener(changedResults.groupBy(_.getInputModel))
 
       stateData.copy(
         results = allResults,
@@ -490,31 +491,15 @@ object ResultServiceProxy {
     }
   }
 
-  /** Compares the new results with the old ones. If a new result does not match
-    * any of the old results, the new result is returned.
-    *
-    * @param results
-    *   To compare.
-    * @param oldResults
-    *   For comparison.
-    * @return
-    *   A map containing all results that have changed.
-    */
-  private[results] def filterUnchangedResults(
-      results: Iterable[ResultEntity],
-      oldResults: Map[Class[? <: ResultEntity], ResultEntity],
-  ): Map[Class[? <: ResultEntity], ResultEntity] =
-    results.flatMap(filterUnchangedResults(_, oldResults)).toMap
-
   /** Compares the new result to the old results. If a new result matched any
     * old result, the new result is returned.
     *
     * @param result
-    *   To compare.
+    *   The new result that should be compared.
     * @param oldResults
-    *   For comparison
+    *   That are used to check whether the new result has some updated fields.
     * @return
-    *   An option for the changed result or None.
+    *   An option for the changed (updated) result or None.
     */
   private[results] def filterUnchangedResults(
       result: ResultEntity,

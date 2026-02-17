@@ -24,9 +24,11 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.time.ZonedDateTime
+
 trait PowerFlowResultData {
 
-  private val dummyTime =
+  protected val dummyTime: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-30T17:26:44Z")
   protected val dummyInputModel: UUID =
     UUID.fromString("e5ac84d3-c7a5-4870-a42d-837920aec9bb")

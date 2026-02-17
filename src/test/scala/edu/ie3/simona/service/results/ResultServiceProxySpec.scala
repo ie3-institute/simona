@@ -33,6 +33,8 @@ class ResultServiceProxySpec
 
   "The ResultServiceProxy" should {
 
+    val startTime = dummyTime.minusHours(1)
+
     val allExpected = Seq(
       dummyNodeResultModel,
       dummySwitchResultModel,
@@ -221,7 +223,7 @@ class ResultServiceProxySpec
       val resultProvider = TestProbe[ResultResponse]("listener")
 
       val resultProxy =
-        spawn(ResultServiceProxy(Seq(listener.ref), startTime, 10))
+        spawn(ResultServiceProxy(Seq(listener.ref), dummyTime, 10))
 
       resultProxy ! PowerFlowResultEvent(
         Seq(dummyNodeResult),
@@ -334,28 +336,6 @@ class ResultServiceProxySpec
 
       listener.expectMessageType[ResultResponse].results shouldBe Map(
         dummyPvResult.getInputModel -> List(dummyPvResult)
-      )
-    }
-
-    "correctly filter unchanged results" in {
-      val oldResults: Map[Class[? <: ResultEntity], ResultEntity] = Seq(
-        dummyNodeResult,
-        dummyNodeCongestionResult,
-      ).map(res => res.getClass -> res).toMap
-
-      val results = Seq(
-        dummyNodeResultPlusHour,
-        dummyNodeResult2,
-        dummyNodeCongestionResultPlusHour,
-        dummyLineResult,
-      )
-
-      val changedResults =
-        ResultServiceProxy.filterUnchangedResults(results, oldResults)
-
-      changedResults shouldBe Map(
-        classOf[NodeResult] -> dummyNodeResult2,
-        classOf[LineResult] -> dummyLineResult,
       )
     }
 
