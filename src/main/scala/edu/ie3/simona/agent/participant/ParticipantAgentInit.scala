@@ -317,7 +317,7 @@ object ParticipantAgentInit
     dataCompletedTick.foreach { dataCompleted =>
       if dataCompleted > firstTick then
         throw new CriticalFailureException(
-          s"${modelShell.identifier}: Input data will only be fully received at tick $dataCompleted. " +
+          s"${modelShell.getIdentifier}: Input data will only be fully received at tick $dataCompleted. " +
             s"It needs to be available with operation start $firstTick though."
         )
     }
