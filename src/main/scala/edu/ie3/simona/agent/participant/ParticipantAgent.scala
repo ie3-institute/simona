@@ -295,7 +295,12 @@ object ParticipantAgent {
                     data.gridAdapter.storePowerValue(results.totalPower, tick)
 
                   (newShell, newGridAdapter)
-                } else (shell, data.gridAdapter)
+                } else {
+                  // inform result proxy not to wait for results
+                  data.resultHandler.sendNoResult(data.modelShell.uuid, tick)
+
+                  (shell, data.gridAdapter)
+                }
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 tick,
@@ -323,7 +328,12 @@ object ParticipantAgent {
                     newShell.determineFlexOptionsResult(tick, flexType)
                   )
                   newShell
-                } else shell
+                } else {
+                  // inform result proxy not to wait for results
+                  data.resultHandler.sendNoResult(data.modelShell.uuid, tick)
+
+                  shell
+                }
 
               parent.fold(
                 _ =>

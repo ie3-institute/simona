@@ -28,7 +28,10 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
 import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.service.results.ResultServiceProxy.{
+  ExpectResult,
+  NoResult,
+}
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
@@ -86,7 +89,8 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[PrimaryServiceProxy.Message]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy =
+          createTestProbe[ResultEvent | ExpectResult | NoResult]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
@@ -135,7 +139,8 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy =
+          createTestProbe[ResultEvent | ExpectResult | NoResult]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
@@ -193,7 +198,8 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy =
+          createTestProbe[ResultEvent | ExpectResult | NoResult]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
@@ -256,7 +262,8 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy =
+          createTestProbe[ResultEvent | ExpectResult | NoResult]()
 
         given ParticipantRefs = ParticipantRefs(
           gridAgent = gridAgent.ref,
@@ -343,7 +350,8 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy =
+          createTestProbe[ResultEvent | ExpectResult | NoResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
@@ -411,7 +419,8 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy =
+          createTestProbe[ResultEvent | ExpectResult | NoResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
@@ -474,7 +483,8 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy =
+          createTestProbe[ResultEvent | ExpectResult | NoResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
@@ -555,7 +565,8 @@ class ParticipantAgentInitSpec
 
         val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy =
+          createTestProbe[ResultEvent | ExpectResult | NoResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(

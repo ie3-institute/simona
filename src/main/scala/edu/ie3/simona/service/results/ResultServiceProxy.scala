@@ -33,8 +33,8 @@ import scala.util.{Failure, Success}
 
 object ResultServiceProxy {
 
-  type Message = ResultEvent | RequestResult | ExpectResult | AddListener |
-    DelayedStopHelper.StoppingMsg
+  type Message = ResultEvent | RequestResult | ExpectResult | NoResult |
+    AddListener | DelayedStopHelper.StoppingMsg
 
   /** Message send to the [[ResultServiceProxy]]. This message will inform the
     * proxy which assets will provide results for the specified tick.
@@ -51,6 +51,16 @@ object ResultServiceProxy {
       tick: Long,
       waitForSetPoint: Boolean = false,
   )
+
+  /** Message to inform the result service not to wait for result from the
+    * specified model for the given tick.
+    *
+    * @param uuid
+    *   Of the model that will not provide results.
+    * @param tick
+    *   For which no result will be provided.
+    */
+  final case class NoResult(uuid: UUID, tick: Long)
 
   /** Method for adding a listener to the proxy.
     *
@@ -181,6 +191,17 @@ object ResultServiceProxy {
       }
     }
 
+    def stopWaitingForResult(uuid: UUID, tick: Long): ResultServiceStateData = {
+      val updated = waitingForResults.get(uuid) match {
+        case Some(value) if value <= tick =>
+          waitingForResults.removed(uuid)
+        case _ =>
+          waitingForResults
+      }
+
+      copy(waitingForResults = updated)
+    }
+
     /** Method for adding a result to the state data.
       *
       * @param result
@@ -195,7 +216,7 @@ object ResultServiceProxy {
       val tick = result.getTime.toTick(using simStartTime)
 
       val updatedWaitingForResults =
-        if waitingForResults.get(uuid).contains(tick) then {
+        if waitingForResults.get(uuid).exists(_ <= tick) then {
           waitingForResults.removed(uuid)
         } else waitingForResults
 
@@ -300,6 +321,11 @@ object ResultServiceProxy {
 
         // un-stash received requests
         buffer.unstashAll(idle(updatedStateData))
+
+      case (_, NoResult(uuid, tick)) =>
+        // un-stash received requests
+        buffer.unstashAll(idle(stateData.stopWaitingForResult(uuid, tick)))
+
       case (_, requestResultMessage: RequestResult) =>
         val requestedResults = requestResultMessage.requestedResults
         val tick = requestResultMessage.tick

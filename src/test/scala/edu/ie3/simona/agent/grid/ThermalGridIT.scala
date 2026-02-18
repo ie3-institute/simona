@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.em.{EmAgent, EmAgentInit}
+import edu.ie3.simona.agent.em.EmAgentInit
 import edu.ie3.simona.agent.participant.ParticipantAgentInit
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
@@ -31,7 +31,10 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.service.results.ResultServiceProxy.{
+  ExpectResult,
+  NoResult,
+}
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.test.common.TestSpawnerTyped
@@ -111,7 +114,7 @@ class ThermalGridIT
 
       val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
       val resultServiceProxy =
-        TestProbe[ResultEvent | ExpectResult]("ResultProxy")
+        TestProbe[ResultEvent | ExpectResult | NoResult]("ResultProxy")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =
         TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
@@ -1356,7 +1359,7 @@ class ThermalGridIT
       )
 
       val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
-      val resultServiceProxy: TestProbe[ResultEvent | ExpectResult] =
+      val resultServiceProxy: TestProbe[ResultEvent | ExpectResult | NoResult] =
         TestProbe("resultServiceProxy")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =
@@ -1951,14 +1954,11 @@ class ThermalGridIT
         )
       }
 
-      // expect messages due to flex activation
-      resultServiceProxy.receiveMessages(2) should contain allOf (
+      resultServiceProxy.receiveMessages(4) should contain allOf (
+        // expect messages due to flex activation
         ExpectResult(typicalHpInputModel.getUuid, 5400, true),
-        ExpectResult(pvInput.getUuid, 5400, true)
-      )
-
-      // expect messages due to new set point
-      resultServiceProxy.receiveMessages(2) should contain allOf (
+        ExpectResult(pvInput.getUuid, 5400, true),
+        // expect messages due to new set point
         ExpectResult(typicalHpInputModel.getUuid, 5400),
         ExpectResult(pvInput.getUuid, 5400)
       )
@@ -2977,7 +2977,8 @@ class ThermalGridIT
       )
 
       // expect messages due to new set point
-      resultServiceProxy.receiveMessages(2) should contain allOf (
+      resultServiceProxy.receiveMessages(3) should contain allOf (
+        NoResult(hpInputModel.getUuid, 27500),
         ExpectResult(typicalHpInputModel.getUuid, 27500),
         ExpectResult(pvInput.getUuid, 27500)
       )
