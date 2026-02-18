@@ -132,18 +132,18 @@ final case class ParticipantModelShell[
     */
   def operationStart: Long = operationInterval.start
 
-  /** Returns the configured flex model, if present, or throws a
+  /** Returns the configured flex model shell, if present, or throws a
     * [[CriticalFailureException]]. Only call this if you are certain the flex
-    * model has been set.
+    * model shell has been initialized.
     *
     * @return
-    *   The flex model.
+    *   The flex model shell.
     */
   def getFlexModelShell: FlexModelShell[S] =
     flexModelShell
       .getOrElse(
         throw new CriticalFailureException(
-          s"$identifier: Flex model has not been provided!"
+          s"$identifier: Flex model shell has not been provided!"
         )
       )
 
