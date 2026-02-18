@@ -515,7 +515,7 @@ case class EmCommunicationCore(
 
           // should no longer wait for internal data
           data.keys.foreach(emStates(_).setWaitingForInternal(false))
-          log.warn(s"Updated EmStates: $emStates")
+          //log.warn(s"Updated EmStates (options): $emStates")
 
           (
             copy(
@@ -665,7 +665,7 @@ case class EmCommunicationCore(
 
       // should no longer wait for internal data
       data.keys.foreach { uuid => emStates(uuid).setWaitingForInternal(false) }
-      log.warn(s"Updated EmStates: $emStates")
+      //log.warn(s"Updated EmStates (request): $emStates")
 
       (
         copy(expectDataFrom = ReceiveMultiDataMap.empty),

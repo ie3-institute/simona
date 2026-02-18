@@ -10,7 +10,6 @@ import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.event.listener.ResultListener
-import edu.ie3.simona.event.listener.ExtResultEvent
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService

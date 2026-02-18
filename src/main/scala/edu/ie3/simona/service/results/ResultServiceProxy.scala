@@ -33,8 +33,7 @@ import scala.util.{Failure, Success}
 
 object ResultServiceProxy {
 
-  type Message = ResultEvent | RequestResult | ExpectResult | AddListener |
-    DelayedStopHelper.StoppingMsg
+  type Message = ResultEvent | RequestResult | ExpectResult | NoResult | AddListener | DelayedStopHelper.StoppingMsg
 
   /** Message send to the [[ResultServiceProxy]]. This message will inform the
     * proxy which assets will provide results for the specified tick.
@@ -52,19 +51,20 @@ object ResultServiceProxy {
       waitForSetPoint: Boolean = false,
   )
 
+  /**
+   * Message to inform the result service not to wait for result from the specified model for the given tick.
+   *
+   * @param uuid Of the model that will not provide results.
+   * @param tick For which no result will be provided.
+   */
+  final case class NoResult(uuid: UUID, tick: Long)
+
   /** Method for adding a listener to the proxy.
     *
     * @param listener
     *   That should be added.
     */
   final case class AddListener(listener: ActorRef[ResultResponse])
-
-  /** Conversion for the grid results. Since all other uuids are mapped to a
-    * collection of results.
-    */
-  given Conversion[Map[UUID, ResultEntity], Map[UUID, Iterable[ResultEntity]]] =
-    (inputMap: Map[UUID, ResultEntity]) =>
-      inputMap.map { case (key, value) => key -> Iterable(value) }
 
   /** State data of the [[ResultServiceProxy]].
     *
@@ -83,6 +83,8 @@ object ResultServiceProxy {
     * @param waitingForResults
     *   A map: uuid to tick. For each result uuid a tick, for which the next
     *   result will be provided, is saved.
+    * @param withoutUpdate
+    *   A set containing all model uuids for which no update were received.
     * @param requiresSetPoint
     *   A set of participant uuid. The proxy will not wait for those results
     *   before answering a result request. (Note: This is necessary, if an
@@ -102,7 +104,7 @@ object ResultServiceProxy {
       results: Map[UUID, Map[Class[? <: ResultEntity], ResultEntity]] =
         Map.empty,
       waitingForResults: Map[UUID, Long] = Map.empty,
-      noUpdate: Set[UUID] = Set.empty,
+      withoutUpdate: Set[UUID] = Set.empty,
       requiresSetPoint: Set[UUID] = Set.empty,
   ) extends ServiceBaseStateData {
 
@@ -142,6 +144,14 @@ object ResultServiceProxy {
             nextTick <= tick && !requiresSetPoint.contains(uuid)
           case _ => false
         }
+      }
+    }
+
+    def debugWaitingFor(uuid: Iterable[UUID], tick: Long, log: Logger): Unit = uuid.foreach { uuid =>
+      if waitingForResults.get(uuid).exists(_ <= tick) then {
+        log.warn(s"$uuid waiting for tick: ${waitingForResults(uuid)}")
+      } else {
+        log.warn(s"$uuid waiting for setpoint.")
       }
     }
 
@@ -185,6 +195,17 @@ object ResultServiceProxy {
           } else updated
       }
     }
+    
+    def stopWaitingForResult(uuid: UUID, tick: Long): ResultServiceStateData = {
+      val updated =  waitingForResults.get(uuid) match {
+        case Some(value) if value <= tick =>
+          waitingForResults.removed(uuid)
+        case _ => 
+          waitingForResults
+      }
+      
+      copy(waitingForResults = updated)
+    }
 
     /** Method for adding a result to the state data.
       *
@@ -200,11 +221,11 @@ object ResultServiceProxy {
       val tick = result.getTime.toTick(using simStartTime)
 
       val updatedWaitingForResults =
-        if waitingForResults.get(uuid).contains(tick) then {
+        if waitingForResults.get(uuid).exists(_ <= tick) then {
           waitingForResults.removed(uuid)
         } else waitingForResults
 
-      val (updatedResults, changedResults) = results.get(uuid) match {
+      val (updatedResults, hasResultChanged) = results.get(uuid) match {
         case Some(oldResults) =>
           filterUnchangedResults(result, oldResults) match {
             case Some((resultClass, res)) =>
@@ -220,17 +241,17 @@ object ResultServiceProxy {
           (results.updated(uuid, Map(result.getClass -> result)), true)
       }
 
-      val updated = if changedResults then {
-        noUpdate.excl(uuid)
+      val updated = if hasResultChanged then {
+        withoutUpdate.excl(uuid)
       } else {
-        noUpdate.incl(uuid)
+        withoutUpdate.incl(uuid)
       }
 
       copy(
         results = updatedResults,
         waitingForResults = updatedWaitingForResults,
         requiresSetPoint = requiresSetPoint.excl(uuid),
-        noUpdate = updated,
+        withoutUpdate = updated,
       )
     }
 
@@ -238,6 +259,8 @@ object ResultServiceProxy {
       *
       * @param uuids
       *   For which results should be returned.
+      * @param sendUnchangedResults
+      *   If [[false]] only results that have changed will be returned.
       * @return
       *   A map: uuid to results.
       */
@@ -246,7 +269,7 @@ object ResultServiceProxy {
         sendUnchangedResults: Boolean,
     ): Map[UUID, List[ResultEntity]] = {
       uuids.flatMap { uuid =>
-        if !noUpdate.contains(uuid) || sendUnchangedResults then {
+        if !withoutUpdate.contains(uuid) || sendUnchangedResults then {
           // we only sent result, if either there was an update or we explicitly requested to send unchanged results
           results.get(uuid).map(res => uuid -> res.values.toList)
         } else None
@@ -303,6 +326,13 @@ object ResultServiceProxy {
 
         // un-stash received requests
         buffer.unstashAll(idle(updatedStateData))
+
+      case (ctx, NoResult(uuid, tick)) =>
+        ctx.log.info(s"Stop waiting for result: $uuid ($tick)")
+        
+        // un-stash received requests
+        buffer.unstashAll(idle(stateData.stopWaitingForResult(uuid, tick)))
+        
       case (_, requestResultMessage: RequestResult) =>
         val requestedResults = requestResultMessage.requestedResults
         val tick = requestResultMessage.tick
@@ -370,49 +400,50 @@ object ResultServiceProxy {
           stateData.threeWindingResults,
         )
 
-      val (updatedResults, changedResults, notUpdated) =
+      val (allResults, changedResults, notUpdated) =
         (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults)
-          .groupBy(_.getInputModel)
           .foldLeft(
             stateData.results,
-            Map.empty[UUID, Seq[ResultEntity]],
+            Seq.empty[ResultEntity],
             Seq.empty[UUID],
-          ) { case ((allResults, changed, notChanged), (model, results)) =>
+          ) { case ((allResults, changed, notChanged), result) =>
+            val model = result.getInputModel
+
             allResults.get(model) match {
               case Some(oldResults) =>
-                val changedResults = filterUnchangedResults(results, oldResults)
+                filterUnchangedResults(result, oldResults) match {
+                  case Some((entityClass, _)) =>
+                    (
+                      allResults.updated(
+                        model,
+                        oldResults.updated(entityClass, result),
+                      ),
+                      changed.appended(result),
+                      notChanged,
+                    )
 
-                if changedResults.nonEmpty then {
-                  (
-                    allResults.updated(model, oldResults ++ changedResults),
-                    changed.updated(model, results),
-                    notChanged,
-                  )
-                } else {
-                  (allResults, changed, notChanged.appended(model))
+                  case None =>
+                    (allResults, changed, notChanged.appended(model))
                 }
-
               case None =>
                 (
-                  allResults.updated(
-                    model,
-                    results.map(res => res.getClass -> res).toMap,
-                  ),
-                  changed.updated(model, results),
+                  allResults.updated(model, Map(result.getClass -> result)),
+                  changed.appended(result),
                   notChanged,
                 )
             }
+
           }
 
       // notify listener
-      stateData.notifyListener(changedResults)
+      stateData.notifyListener(changedResults.groupBy(_.getInputModel))
 
       stateData.copy(
-        results = updatedResults,
+        results = allResults,
         threeWindingResults = updatedThreeWindingResults,
         waitingForResults =
-          stateData.waitingForResults.removedAll(updatedResults.keys),
-        noUpdate = stateData.noUpdate -- updatedResults.keys ++ notUpdated,
+          stateData.waitingForResults.removedAll(allResults.keys),
+        withoutUpdate = stateData.withoutUpdate -- allResults.keys ++ notUpdated,
       )
 
     case ParticipantResultEvent(systemParticipantResult) =>
@@ -493,31 +524,15 @@ object ResultServiceProxy {
     }
   }
 
-  /** Compares the new results to the old results. If a new result does not
-    * match any old result, the new result is returned.
-    *
-    * @param results
-    *   To compare.
-    * @param oldResults
-    *   For comparison.
-    * @return
-    *   The updated results.
-    */
-  private[results] def filterUnchangedResults(
-      results: Iterable[ResultEntity],
-      oldResults: Map[Class[? <: ResultEntity], ResultEntity],
-  ): Map[Class[? <: ResultEntity], ResultEntity] =
-    results.flatMap(filterUnchangedResults(_, oldResults)).toMap
-
   /** Compares the new result to the old results. If a new result matched any
     * old result, the new result is returned.
     *
     * @param result
-    *   To compare.
+    *   The new result that should be compared.
     * @param oldResults
-    *   For comparison
+    *   That are used to check whether the new result has some updated fields.
     * @return
-    *   An option for the updated result or None.
+    *   An option for the changed (updated) result or None.
     */
   private[results] def filterUnchangedResults(
       result: ResultEntity,

@@ -125,13 +125,10 @@ object ExtResultProvider {
 
         extMsg match {
           case requestResultEntities: RequestResultEntities =>
-            val requestedResults =
-              new util.ArrayList(requestResultEntities.requestedResults)
-
             // request results from result proxy
             stateData.resultProxy ! RequestResult(
-              requestedResults.asScala.toSeq,
-              tick,
+              requestResultEntities.requestedResults.asScala.toSeq,
+              requestResultEntities.tick,
               ctx.self,
               requestResultEntities.sendUnchangedResults,
             )

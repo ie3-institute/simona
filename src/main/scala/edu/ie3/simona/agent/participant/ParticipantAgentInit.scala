@@ -15,29 +15,15 @@ import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.InputModelContainer
-import edu.ie3.simona.model.participant.ParticipantModel.{
-  AdditionalFactoryData,
-  ModelState,
-  ParticipantModelFactory,
-}
-import edu.ie3.simona.model.participant.{
-  ParticipantModelInit,
-  ParticipantModelShell,
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  PrimaryRegistrationSuccessfulMessage,
-  PrimaryServiceRegistrationMessage,
-  RegistrationFailedMessage,
-}
+import edu.ie3.simona.model.participant.ParticipantModel.{AdditionalFactoryData, ModelState, ParticipantModelFactory}
+import edu.ie3.simona.model.participant.{ParticipantModelInit, ParticipantModelShell}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{PrimaryRegistrationSuccessfulMessage, PrimaryServiceRegistrationMessage, RegistrationFailedMessage}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.service.results.ResultServiceProxy.{ExpectResult, NoResult}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -68,10 +54,10 @@ object ParticipantAgentInit
     *   References to services by service type.
     */
   final case class ParticipantRefs(
-      gridAgent: ActorRef[GridAgent.Message],
-      primaryServiceProxy: ActorRef[ServiceMessage],
-      resultServiceProxy: ActorRef[ResultEvent | ExpectResult],
-      services: Map[ServiceType, ActorRef[ServiceMessage]],
+                                    gridAgent: ActorRef[GridAgent.Message],
+                                    primaryServiceProxy: ActorRef[ServiceMessage],
+                                    resultServiceProxy: ActorRef[ResultEvent | ExpectResult | NoResult],
+                                    services: Map[ServiceType, ActorRef[ServiceMessage]],
   )
 
   /** Container class that holds parameters related to the simulation.
