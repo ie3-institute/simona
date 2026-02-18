@@ -29,11 +29,11 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
+import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.{
   EmInputTestData,
@@ -109,7 +109,6 @@ class ThermalGridIT
         simulationEnd = simulationEndDate,
       )
 
-      val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
       val resultServiceProxy =
         TestProbe[ResultEvent | ExpectResult]("ResultProxy")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
@@ -118,7 +117,6 @@ class ThermalGridIT
       val weatherService = TestProbe[WeatherService.Message]("WeatherService")
 
       given ParticipantRefs = ParticipantRefs(
-        gridAgent = gridAgent.ref,
         primaryServiceProxy = primaryServiceProxy.ref,
         resultServiceProxy = resultServiceProxy.ref,
         services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -1355,7 +1353,6 @@ class ThermalGridIT
         simulationEnd = simulationEndWithPv,
       )
 
-      val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
       val resultServiceProxy: TestProbe[ResultEvent | ExpectResult] =
         TestProbe("resultServiceProxy")
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
@@ -1364,7 +1361,6 @@ class ThermalGridIT
       val weatherService = TestProbe[WeatherService.Message]("WeatherService")
 
       given ParticipantRefs = ParticipantRefs(
-        gridAgent = gridAgent.ref,
         primaryServiceProxy = primaryServiceProxy.ref,
         resultServiceProxy = resultServiceProxy.ref,
         services = Map(ServiceType.WeatherService -> weatherService.ref),
@@ -2629,8 +2625,7 @@ class ThermalGridIT
         ExpectResult(typicalHpInputModel.getUuid, 12500, true),
         ExpectResult(pvInput.getUuid, 12500, true),
         // expect messages due to new set point
-        ExpectResult(typicalHpInputModel.getUuid, 12500),
-        ExpectResult(pvInput.getUuid, 12500)
+        ExpectResult(typicalHpInputModel.getUuid, 12500)
       )
 
       Range(0, 2)

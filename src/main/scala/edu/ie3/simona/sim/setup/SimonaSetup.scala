@@ -240,7 +240,7 @@ trait SimonaSetup {
     * @return
     *   The actor references of all GridAgents.
     */
-  def gridAgents(
+  def gridAgents(using
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
   ): Iterable[ActorRef[GridAgent.Message]]

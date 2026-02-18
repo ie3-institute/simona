@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.powerflow
 
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
@@ -16,6 +16,7 @@ import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.GridAgentMessages.ProvidedPowerResponse
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
+import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
@@ -326,14 +327,25 @@ trait PowerFlowSupport {
     val power = a.power + b.power
     val targetVoltage = a.targetVoltage
 
+    def combineOptionals(
+        pA: Option[Double],
+        pB: Option[Double],
+        f: (Double, Double) => Double,
+    ): Option[Double] = (pA, pB) match {
+      case (Some(vA), Some(vB)) => Some(f(vA, vB))
+      case (Some(vA), None)     => Some(vA)
+      case (None, Some(vB))     => Some(vB)
+      case (None, None)         => None
+    }
+
     val activePowerMin =
-      Seq(a.activePowerMin, b.activePowerMin).flatten.maxOption
+      combineOptionals(a.activePowerMin, b.activePowerMin, math.max)
     val activePowerMax =
-      Seq(a.activePowerMax, b.activePowerMax).flatten.minOption
+      combineOptionals(a.activePowerMax, b.activePowerMax, math.min)
     val reactivePowerMin =
-      Seq(a.reactivePowerMin, b.reactivePowerMin).flatten.maxOption
+      combineOptionals(a.reactivePowerMin, b.reactivePowerMin, math.max)
     val reactivePowerMax =
-      Seq(a.reactivePowerMax, b.reactivePowerMax).flatten.minOption
+      combineOptionals(a.reactivePowerMax, b.reactivePowerMax, math.min)
 
     PresetData(
       index,

@@ -4,18 +4,23 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.powerflow
 
-import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages.*
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  GridAgentConstantData,
+  GridAgentInitData,
+}
+import edu.ie3.simona.agent.grid.{GridAgent, ParticipantAgentBuilder}
+import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -25,23 +30,29 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   RegistrationFailedMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
+import edu.ie3.simona.test.helper.ActorContextMokka
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, Props}
+import org.mockito.ArgumentMatchers.{any, anyString}
+import org.mockito.Mockito.when
+import org.mockito.invocation.InvocationOnMock
+import org.mockito.stubbing.Answer
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
+import java.util.UUID
 import scala.language.postfixOps
 
 class DBFSAlgorithmParticipantSpec
@@ -49,6 +60,7 @@ class DBFSAlgorithmParticipantSpec
     with DBFSMockGridAgents
     with ConfigTestData
     with DbfsTestGridWithParticipants
+    with ActorContextMokka
     with TestSpawnerTyped {
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
@@ -62,7 +74,7 @@ class DBFSAlgorithmParticipantSpec
   private val loadProfileService =
     TestProbe[LoadProfileService.Message]("loadProfileService")
 
-  private val environmentRefs = EnvironmentRefs(
+  private given environmentRefs: EnvironmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
@@ -74,38 +86,56 @@ class DBFSAlgorithmParticipantSpec
     evDataService = None,
   )
 
+  given GridAgentConstantData = GridAgentConstantData(
+    environmentRefs,
+    simonaConfig.simona,
+    3600,
+    startTime,
+    endTime,
+    CongestionManagementParams(false),
+  )
+
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
     Seq(supNodeA.getUuid),
   )
 
   "Test participant" should {
-    val gridAgentWithParticipants = testKit.spawn(
-      GridAgent(
-        environmentRefs,
-        simonaConfig,
-      )
+    val ctx = getMock[ParticipantAgent.Request]
+
+    val nodeToAssets = ParticipantAgentBuilder.buildSystemParticipants(
+      hvGridContainer.getSystemParticipants,
+      Map.empty,
+      simonaConfig.simona,
+    )(using environmentRefs, ctx)
+
+    val gridModel = GridModel(
+      hvGridContainer,
+      RefSystem("2000 MVA", "110 kV"),
+      VoltageLimits(0.9, 1.1),
+      startTime,
+      endTime,
+      simonaConfig.simona,
     )
+
+    val gridAgentInitData = GridAgentInitData(
+      gridModel,
+      PowerFlowParams(simonaConfig.simona.powerflow.value),
+    )
+
+    val gridAgentWithParticipants = testKit.spawn(GridAgent(gridAgentInitData))
 
     s"initialize itself when it receives an init activation" in {
 
-      val gridAgentInitData = GridAgentInitData(
-        hvGridContainer,
-        Seq.empty,
-        Set.empty,
-        Map.empty,
-        Map(supNodeA.getUuid -> 1000),
-        Map(superiorGridAgent.ref -> superiorGridAgent.nodeUuids.toSet),
-        RefSystem("2000 MVA", "110 kV"),
-        VoltageLimits(0.9, 1.1),
+      gridAgentWithParticipants ! RegisterSuperiorGrid(
+        superiorGridAgent.ref,
+        superiorGridAgent.nodeUuids.toSet,
+        1000,
       )
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      gridAgentWithParticipants ! RegisterParticipants(nodeToAssets)
 
-      gridAgentWithParticipants ! CreateGridAgent(gridAgentInitData, key)
+      gridAgentWithParticipants ! CompleteInitialization(false)
 
       val loadAgent = scheduler
         .receiveMessages(3)
@@ -116,7 +146,7 @@ class DBFSAlgorithmParticipantSpec
           case ScheduleActivation(actor, INIT_SIM_TICK, Some(_)) =>
             // load agent
             Some(actor)
-          case ScheduleActivation(_, 3600, Some(_)) =>
+          case ScheduleActivation(_, 3600, _) =>
             // GridAgent
             None
           case other =>

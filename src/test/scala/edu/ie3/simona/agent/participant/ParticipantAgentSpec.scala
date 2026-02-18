@@ -116,7 +116,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Map.empty
             ),
             ParticipantGridAdapter(
-              gridAgent.ref,
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
@@ -279,7 +278,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Map.empty
             ),
             ParticipantGridAdapter(
-              gridAgent.ref,
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
@@ -439,7 +437,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
-              gridAgent.ref,
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
@@ -722,7 +719,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
-              gridAgent.ref,
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
@@ -957,7 +953,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Map.empty
             ),
             ParticipantGridAdapter(
-              gridAgent.ref,
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
@@ -1161,7 +1156,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Map.empty
             ),
             ParticipantGridAdapter(
-              gridAgent.ref,
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
@@ -1427,7 +1421,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
-              gridAgent.ref,
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),
@@ -1869,7 +1862,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Map(service.ref -> 0)
             ),
             ParticipantGridAdapter(
-              gridAgent.ref,
               expectedRequestTick = 12 * 3600,
               requestVoltageDeviationTolerance = Each(1e-14),
             ),

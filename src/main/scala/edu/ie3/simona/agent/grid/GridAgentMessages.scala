@@ -6,11 +6,15 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  GridAgentInitData,
+  GridAgentRef,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
+import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.util.scala.quantities.ReactivePower
@@ -37,8 +41,30 @@ object GridAgentMessages {
       onlyOneSubGrid: Boolean = false,
   ) extends GridAgent.InternalRequest
 
-  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
-    * execute a power flow calculation.
+  final case class RegisterInferiorGrid(
+      gridRef: GridAgentRef,
+      nodes: Set[UUID],
+      subgridNo: Int,
+  ) extends GridAgent.InternalRequest
+
+  final case class RegisterSuperiorGrid(
+      gridRef: GridAgentRef,
+      nodes: Set[UUID],
+      subgridNo: Int,
+  ) extends GridAgent.InternalRequest
+
+  final case class RegisterParticipants(
+      nodeToAssets: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]]
+  ) extends GridAgent.InternalRequest
+
+  /** @param onlyOneSubGrid
+    *   True, if we only have one subgrid.
+    */
+  final case class CompleteInitialization(onlyOneSubGrid: Boolean)
+      extends GridAgent.InternalRequest
+
+  /** Trigger used inside of [[DBFSAlgorithm]] to execute a power flow
+    * calculation.
     *
     * @param tick
     *   Current tick.
@@ -46,9 +72,9 @@ object GridAgentMessages {
   final case class DoPowerFlowTrigger(tick: Long, currentSweepNo: Int)
       extends GridAgent.InternalRequest
 
-  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
-    * activate the superior grid agent to check for deviation after two sweeps
-    * and see if the power flow converges.
+  /** Trigger used inside of [[DBFSAlgorithm]] to activate the superior grid
+    * agent to check for deviation after two sweeps and see if the power flow
+    * converges.
     *
     * @param tick
     *   Current tick.
@@ -56,9 +82,9 @@ object GridAgentMessages {
   final case class CheckPowerDifferencesTrigger(tick: Long)
       extends GridAgent.InternalRequest
 
-  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
-    * trigger the [[edu.ie3.simona.agent.grid.GridAgent]] s to prepare
-    * themselves for a new sweep.
+  /** Trigger used inside of [[DBFSAlgorithm]] to trigger the
+    * [[edu.ie3.simona.agent.grid.GridAgent]] s to prepare themselves for a new
+    * sweep.
     *
     * @param tick
     *   Current tick.
@@ -66,9 +92,9 @@ object GridAgentMessages {
   final case class PrepareNextSweepTrigger(tick: Long)
       extends GridAgent.InternalRequest
 
-  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
-    * indicate that a result has been found and each
-    * [[edu.ie3.simona.agent.grid.GridAgent]] should do it's cleanup work.
+  /** Trigger used inside of [[DBFSAlgorithm]] to indicate that a result has
+    * been found and each [[edu.ie3.simona.agent.grid.GridAgent]] should do it's
+    * cleanup work.
     *
     * @param tick
     *   Current tick.

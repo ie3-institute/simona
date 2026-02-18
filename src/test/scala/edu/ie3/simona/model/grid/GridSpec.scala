@@ -39,7 +39,7 @@ class GridSpec
     (actualMatrix, expectedMatrix) =>
       if !actualMatrix.equals(expectedMatrix) then {
         for
-          rowIdx <- 0 until expectedMatrix.rows;
+          rowIdx <- 0 until expectedMatrix.rows
           colIdx <- 0 until expectedMatrix.rows
         do {
           if abs(
@@ -651,7 +651,7 @@ class GridSpec
         defaultVoltageLimits,
         defaultSimulationStart,
         defaultSimulationEnd,
-        simonaConfig,
+        simonaConfig.simona,
       )
 
     }

@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgentInit
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
@@ -88,7 +87,6 @@ class EvcsModelIT
 
     "handle a few requests and arrivals as expected" in {
 
-      val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
       val resultProxy =
         TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
       val primaryServiceProxy =
@@ -124,7 +122,6 @@ class EvcsModelIT
 
       /* Create ParticipantAgent with EvcsModel */
       given ParticipantRefs = ParticipantRefs(
-        gridAgent = gridAgent.ref,
         primaryServiceProxy = primaryServiceProxy.ref,
         resultServiceProxy = resultProxy.ref,
         services = Map(ServiceType.EvMovementService -> evService),
