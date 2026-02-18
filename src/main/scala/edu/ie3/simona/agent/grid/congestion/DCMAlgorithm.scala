@@ -8,23 +8,21 @@ package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgent.Message
-import edu.ie3.simona.agent.grid.GridAgentData.{
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.StartStep
+import edu.ie3.simona.agent.grid.congestion.detection.CongestionDetection
+import edu.ie3.simona.agent.grid.data.CongestionManagementData
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
 }
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.StartStep
-import edu.ie3.simona.agent.grid.congestion.data.{
-  AwaitingData,
-  CongestionManagementData,
-}
-import edu.ie3.simona.agent.grid.congestion.detection.CongestionDetection
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
+import edu.ie3.simona.util.ReceiveDataMap
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
   * congestion management (DCM) algorithm execution. It is considered to be the
-  * standard behaviour of a [[GridAgent]].
+  * standard behavior of a [[GridAgent]].
   */
 trait DCMAlgorithm extends CongestionDetection {
 
@@ -66,7 +64,7 @@ trait DCMAlgorithm extends CongestionDetection {
     ctx.self ! StartStep
     GridAgent.checkForCongestion(
       congestionManagementData,
-      AwaitingData(congestionManagementData.inferiorGridRefs.keySet),
+      ReceiveDataMap(congestionManagementData.inferiorGridRefs.keySet),
     )
   }
 

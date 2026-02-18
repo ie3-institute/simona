@@ -8,15 +8,15 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.actor.SimonaActorNaming
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.{
-  GridAgentBaseData,
-  GridAgentConstantData,
-  GridAgentInitData,
-}
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.agent.grid.congestion.{
   CongestionManagementParams,
   DCMAlgorithm,
+}
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  GridAgentBaseData,
+  GridAgentConstantData,
+  GridAgentInitData,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
@@ -168,14 +168,13 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       // create the GridAgentBaseData
       val gridAgentBaseData = GridAgentBaseData(
         gridModel,
-        gridAgentInitData.subGridGateToActorRef,
-        nodeToAssetAgentsMap,
-        gridAgentInitData.superiorGridNodeUuids,
-        gridAgentInitData.inferiorGridGates,
-        gridAgentInitData.superiorGridGates,
         pfParams,
         CongestionManagementParams(cfg.congestionManagement.enableDetection),
         SimonaActorNaming.actorName(ctx.self),
+        nodeToAssetAgentsMap,
+        gridAgentInitData.inferiorConnections,
+        gridAgentInitData.superiorConnections,
+        gridAgentInitData.superiorGridIds,
       )
 
       val resolution = constantData.resolution
@@ -320,11 +319,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     ctx.log.debug("Doing my cleanup stuff")
 
     // / clean copy of the gridAgentBaseData
-    val cleanedGridAgentBaseData = GridAgentBaseData.clean(
-      gridAgentBaseData,
-      gridAgentBaseData.superiorGridNodeUuids,
-      gridAgentBaseData.inferiorGridGates,
-    )
+    val cleanedGridAgentBaseData = gridAgentBaseData.clean
 
     // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
     constantData.environmentRefs.scheduler ! Completion(
@@ -349,14 +344,13 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     *   Type of data.
     */
   private[grid] def askInferior[T](
-      inferiorGridRefs: Map[ActorRef[GridAgent.Message], Seq[UUID]],
+      inferiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]],
       askMsgBuilder: ActorRef[GridAgent.Message] => Message,
       ctx: ActorContext[GridAgent.Message],
   ): Unit = {
     if inferiorGridRefs.nonEmpty then {
-      inferiorGridRefs.foreach {
-        case (inferiorGridAgentRef, inferiorGridGateNodes) =>
-          inferiorGridAgentRef ! askMsgBuilder(ctx.self)
+      inferiorGridRefs.foreach { case (inferiorGridAgentRef, _) =>
+        inferiorGridAgentRef ! askMsgBuilder(ctx.self)
       }
     }
   }
@@ -366,7 +360,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       actorName: String,
       onlyOneSubGrid: Boolean,
   ): Unit = {
-    if gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty && !onlyOneSubGrid
+    if gridAgentInitData.superiorConnections.isEmpty && gridAgentInitData.inferiorConnections.isEmpty && !onlyOneSubGrid
     then
       throw new GridAgentInitializationException(
         s"$actorName has neither superior nor inferior grids! This can either " +

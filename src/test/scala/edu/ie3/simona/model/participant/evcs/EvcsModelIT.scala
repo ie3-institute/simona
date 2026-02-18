@@ -31,7 +31,6 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   RegistrationFailedMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.ev.ExtEvDataService
@@ -139,7 +138,9 @@ class EvcsModelIT
       val evcsAgent = spawn(
         ParticipantAgentInit(
           evcsInputContainer,
-          EvcsRuntimeConfig(),
+          EvcsRuntimeConfig(
+            departureTargetSoc = 1.0
+          ),
           notifierConfig,
           Left(scheduler.ref),
           evcsKey,

@@ -11,10 +11,6 @@ import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
   FinishStep,
   StartStep,
 }
-import edu.ie3.simona.agent.grid.congestion.data.{
-  AwaitingData,
-  CongestionManagementData,
-}
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.{
   CongestionCheckRequest,
   CongestionResponse,
@@ -24,8 +20,11 @@ import edu.ie3.simona.agent.grid.congestion.{
   CongestionTestBaseData,
   Congestions,
 }
+import edu.ie3.simona.agent.grid.data.CongestionManagementData
+import edu.ie3.simona.agent.grid.data.GridAgentData.AwaitingData
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.util.ReceiveDataMap
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -65,10 +64,13 @@ class CongestionDetectionSpec
         CongestedComponents.empty,
       )
 
+      val emptyAwaitingData: AwaitingData[Congestions] =
+        ReceiveDataMap(Set(inferiorAgent.ref))
+
       val cases = Table(
-        ("inferiorData", "expectedCongestions"),
+        ("awaitingData", "expectedCongestions"),
         (
-          Map.empty[ActorRef[GridAgent.Message], Option[Congestions]],
+          ReceiveDataMap.empty,
           Congestions(
             voltageCongestions = true,
             lineCongestions = false,
@@ -76,14 +78,13 @@ class CongestionDetectionSpec
           ),
         ),
         (
-          Map(
-            inferiorAgent.ref -> Some(
-              Congestions(
-                voltageCongestions = true,
-                lineCongestions = false,
-                transformerCongestions = false,
-              )
-            )
+          emptyAwaitingData.addData(
+            inferiorAgent.ref,
+            Congestions(
+              voltageCongestions = true,
+              lineCongestions = false,
+              transformerCongestions = false,
+            ),
           ),
           Congestions(
             voltageCongestions = true,
@@ -92,14 +93,13 @@ class CongestionDetectionSpec
           ),
         ),
         (
-          Map(
-            inferiorAgent.ref -> Some(
-              Congestions(
-                voltageCongestions = false,
-                lineCongestions = true,
-                transformerCongestions = false,
-              )
-            )
+          emptyAwaitingData.addData(
+            inferiorAgent.ref,
+            Congestions(
+              voltageCongestions = false,
+              lineCongestions = true,
+              transformerCongestions = false,
+            ),
           ),
           Congestions(
             voltageCongestions = true,
@@ -109,9 +109,7 @@ class CongestionDetectionSpec
         ),
       )
 
-      forAll(cases) { (inferiorData, expectedCongestions) =>
-        val awaitingData = AwaitingData(inferiorData)
-
+      forAll(cases) { (awaitingData, expectedCongestions) =>
         val behavior = spawnWithBuffer(
           GridAgent.checkForCongestion(
             stateData,
@@ -148,7 +146,7 @@ class CongestionDetectionSpec
       )
 
       val awaitingData: AwaitingData[Congestions] =
-        AwaitingData(Set(inferiorAgent.ref))
+        ReceiveDataMap(Set(inferiorAgent.ref))
 
       val behavior = spawnWithBuffer(
         GridAgent.checkForCongestion(
@@ -199,7 +197,7 @@ class CongestionDetectionSpec
       )
 
       val awaitingData: AwaitingData[Congestions] =
-        AwaitingData(Set(inferiorAgent.ref))
+        ReceiveDataMap(Set(inferiorAgent.ref))
 
       // init behavior
       val centerGridAgent = spawnWithBuffer(
@@ -267,7 +265,7 @@ class CongestionDetectionSpec
       )
 
       val awaitingData: AwaitingData[Congestions] =
-        AwaitingData(Set.empty[ActorRef[GridAgent.Message]])
+        ReceiveDataMap(Set(inferiorAgent.ref))
 
       // init behavior
       val superiorGridAgent = spawnWithBuffer(

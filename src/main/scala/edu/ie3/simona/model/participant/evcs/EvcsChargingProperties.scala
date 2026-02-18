@@ -21,10 +21,9 @@ trait EvcsChargingProperties {
     */
   val currentType: ElectricCurrentType
 
-  /** The lowest allowed SOC of all connected EVs. Below this threshold,
-    * charging is mandatory.
+  /** The target SOC that an EV should have at departure.
     */
-  val lowestEvSoc: Double
+  val departureTargetSoc: Double
 
   /** Returns the maximum available charging power for an EV, which depends on
     * EV and charging station limits for AC and DC current.

@@ -25,6 +25,8 @@ import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
+import edu.ie3.simona.service.price.EnergyPriceService
+import edu.ie3.simona.service.price.EnergyPriceService.InitPriceServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.results.ResultServiceProxy
@@ -188,6 +190,27 @@ class SimonaStandaloneSetup(
 
     weatherService
   }
+
+  override def priceService(
+      context: ActorContext[?],
+      scheduler: ActorRef[SchedulerMessage],
+  ): Option[ActorRef[ServiceMessage]] =
+    simonaConfig.simona.input.prices.datasource.map { dataSource =>
+      val priceService = context.spawn(
+        EnergyPriceService(scheduler),
+        "priceAgent",
+      )
+      priceService ! ServiceMessage.Create(
+        InitPriceServiceStateData(
+          dataSource,
+          TimeUtil.withDefaults
+            .toZonedDateTime(simonaConfig.simona.time.startDateTime),
+        ),
+        ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
+      )
+
+      priceService
+    }
 
   override def loadProfileService(
       context: ActorContext[?],

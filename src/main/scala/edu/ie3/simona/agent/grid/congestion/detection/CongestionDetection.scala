@@ -12,20 +12,20 @@ import edu.ie3.simona.agent.grid.GridAgent.{
   finishCongestionManagement,
   unsupported,
 }
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentConstantData
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.*
-import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.*
-import edu.ie3.simona.agent.grid.congestion.data.{
-  AwaitingData,
-  CongestionManagementData,
-}
 import edu.ie3.simona.agent.grid.congestion.Congestions
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.*
+import edu.ie3.simona.agent.grid.data.CongestionManagementData
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  AwaitingData,
+  GridAgentConstantData,
+}
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
   StashBuffer,
 }
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 trait CongestionDetection {
 
@@ -92,7 +92,7 @@ trait CongestionDetection {
       buffer: StashBuffer[GridAgent.Message],
   ): Behavior[GridAgent.Message] = {
     // check if waiting for inferior data is needed
-    if awaitingData.notDone then {
+    if awaitingData.nonComplete then {
       ctx.log.debug(
         s"Received request for congestions before all data from inferior grids were received. Stashing away."
       )
@@ -129,7 +129,7 @@ trait CongestionDetection {
       buffer: StashBuffer[GridAgent.Message],
   ): Behavior[GridAgent.Message] = {
     // updating the state data with received data from inferior grids
-    val updatedData = awaitingData.update(response.sender, response.value)
+    val updatedData = awaitingData.addData(response.sender, response.value)
 
     if stateData.gridAgentBaseData.isSuperior then {
       // if we are the superior grid, we find the next behavior

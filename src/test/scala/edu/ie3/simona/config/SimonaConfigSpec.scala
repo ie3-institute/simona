@@ -190,7 +190,7 @@ class SimonaConfigSpec extends UnitSpec {
               scaling = 1.0,
               uuids = Nil,
               chargingStrategy = "maxPower",
-              lowestEvSoc = 0.2,
+              departureTargetSoc = 0.75,
             ),
             individualConfigs = Nil,
           ),
