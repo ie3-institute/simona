@@ -14,14 +14,13 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgent.{afterPowerFlow, unsupported}
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.GridResultsSupport
+import edu.ie3.simona.agent.grid.{GridAgent, GridResultsSupport}
 import edu.ie3.simona.agent.grid.data.GridAgentData
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,

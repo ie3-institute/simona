@@ -38,8 +38,8 @@ import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
 import squants.Each
 
@@ -76,6 +76,8 @@ object ParticipantAgentBuilder {
     *   The system participants.
     * @param thermalIslandGridsByBusId
     *   Thermal islands by bus UUID.
+    * @param simonaConfig
+    *   The config of SIMONA.
     * @param environmentRefs
     *   The environmental references.
     * @param ctx
@@ -100,11 +102,11 @@ object ParticipantAgentBuilder {
       simonaConfig.time.simEndTime,
     )
 
-    val filteredSystemParticipants =
-      filterSysParts(systemParticipants, environmentRefs)
+    val validSystemParticipants =
+      filterValidSysParts(systemParticipants, environmentRefs)
 
     // ems that control at least one participant directly
-    val firstLevelEms = filteredSystemParticipants.flatMap {
+    val firstLevelEms = validSystemParticipants.flatMap {
       _.getControllingEm.toScala.map(em => em.getUuid -> em)
     }.toMap
 
@@ -116,7 +118,7 @@ object ParticipantAgentBuilder {
     /* Browse through all system participants, build actors and map their node's UUID to the actor references */
     buildParticipantToActorRef(
       allEms,
-      filteredSystemParticipants,
+      validSystemParticipants,
       thermalIslandGridsByBusId,
     )
   }
@@ -135,7 +137,7 @@ object ParticipantAgentBuilder {
     *   The filtered participants w/o assets for which no agent implementations
     *   exist atm.
     */
-  private def filterSysParts(
+  private def filterValidSysParts(
       systemParticipants: SystemParticipants,
       environmentRefs: EnvironmentRefs,
   )(using ctx: ActorContext[?]): Seq[SystemParticipantInput] = {
@@ -180,7 +182,7 @@ object ParticipantAgentBuilder {
   /** Go through all provided input models, build agents for those and group the
     * resulting actor references for each connection nodes. All participant
     * agents are also introduced to the agent environment and the scheduler is
-    * requested to send an initialisation trigger.
+    * requested to send an initialization trigger.
     *
     * @param emAgents
     *   Mapping: em uuid to agent.

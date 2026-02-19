@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.grid.powerflow
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
-import ReceivedValuesStore.*
+import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore.*
 import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.util.CollectionUtils

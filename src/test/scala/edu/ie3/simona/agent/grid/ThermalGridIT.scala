@@ -2625,7 +2625,8 @@ class ThermalGridIT
         ExpectResult(typicalHpInputModel.getUuid, 12500, true),
         ExpectResult(pvInput.getUuid, 12500, true),
         // expect messages due to new set point
-        ExpectResult(typicalHpInputModel.getUuid, 12500)
+        ExpectResult(typicalHpInputModel.getUuid, 12500),
+        ExpectResult(pvInput.getUuid, 12500)
       )
 
       Range(0, 2)

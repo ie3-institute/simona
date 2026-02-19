@@ -6,27 +6,10 @@
 
 package edu.ie3.simona.exceptions.agent
 
-import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
-
-/** Exception that should be used whenever an exception occurs in
-  * [[DBFSAlgorithm]]
+/** Exception that should be used whenever an exception occurs while building
+  * participants.
   *
   * @param message
   *   specific error message
   */
-class SystemParticipantException(message: String) extends Exception(message) {
-
-  def this(message: String, cause: Throwable) = {
-    this(message)
-    initCause(cause)
-  }
-
-  def this(cause: Throwable) = {
-    this(Option(cause).map(_.toString).orNull, cause)
-  }
-
-  def this() = {
-    this(null: String)
-  }
-
-}
+class SystemParticipantException(message: String) extends Exception(message)
