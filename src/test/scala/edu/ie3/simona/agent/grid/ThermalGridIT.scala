@@ -2970,15 +2970,11 @@ class ThermalGridIT
         )
       }
 
-      // expect messages due to flex activation
-      resultServiceProxy.receiveMessages(2) should contain allOf (
+      resultServiceProxy.receiveMessages(4) should contain allOf (
+        // expect messages due to flex activation
         ExpectResult(typicalHpInputModel.getUuid, 27500, true),
-        ExpectResult(pvInput.getUuid, 27500, true)
-      )
-
-      // expect messages due to new set point
-      resultServiceProxy.receiveMessages(3) should contain allOf (
-        NoResult(hpInputModel.getUuid, 27500),
+        ExpectResult(pvInput.getUuid, 27500, true), 
+        // expect messages due to new set point
         ExpectResult(typicalHpInputModel.getUuid, 27500),
         ExpectResult(pvInput.getUuid, 27500)
       )
