@@ -22,6 +22,7 @@ class MaximumPowerChargingSpec
   "Calculating maximum power charging schedules" should {
 
     "not charge evs if they are fully charged" in {
+      // 10 kWh capacity, 8 kWh target, 5 kW max power
       val ev = EvModelWrapper(
         ev1.copyWith(ev1.getEStorage)
       )
@@ -39,22 +40,24 @@ class MaximumPowerChargingSpec
       val offset = 1800L
 
       val cases = Table(
-        ("stayingTicks", "storedEnergy"),
+        ("stayingHours", "storedEnergy"),
         // empty battery
-        (3600L, 0.0), // stay shorter than full
-        (7200L, 0.0), // exactly full
-        (14400L, 0.0), // full before end of stay
+        (1.0, 0.0), // stay shorter than full
+        (2.0, 0.0), // exactly full
+        (4.0, 0.0), // full before end of stay
         // half full battery
-        (1800L, 5.0), // stay shorter than full
-        (3600L, 5.0), // exactly full
-        (14400L, 5.0), // full before end of stay
+        (0.5, 5.0), // stay shorter than full
+        (1.0, 5.0), // exactly full
+        (4.0, 5.0), // full before end of stay
       )
 
-      forAll(cases) { (stayingTicks, storedEnergy) =>
+      forAll(cases) { (stayingHours, storedEnergy) =>
+
+        // 10 kWh capacity, 8 kWh target, 5 kW max power
         val ev = EvModelWrapper(
           ev1
             .copyWith(storedEnergy.asKiloWattHour)
-            .copyWithDeparture(offset + stayingTicks)
+            .copyWithDeparture(offset + (stayingHours * 3600L).toLong)
         )
 
         val chargingMap = MaximumPowerCharging.determineChargingPowers(
@@ -74,26 +77,29 @@ class MaximumPowerChargingSpec
       val offset = 3600L
 
       val cases = Table(
-        ("stayingTicks", "storedEnergy"),
+        ("stayingHours", "storedEnergy"),
         // empty battery
-        (3600L, 0.0), // stay shorter than full
-        (7200L, 0.0), // exactly full
-        (14400L, 0.0), // full before end of stay
+        (1.0, 0.0), // stay shorter than full
+        (2.0, 0.0), // exactly full
+        (4.0, 0.0), // full before end of stay
         // half full battery
-        (1800L, 5.0), // stay shorter than full
-        (3600L, 5.0), // exactly full
-        (14400L, 5.0), // full before end of stay
+        (0.5, 5.0), // stay shorter than full
+        (1.0, 5.0), // exactly full
+        (4.0, 5.0), // full before end of stay
       )
 
-      forAll(cases) { (stayingTicks, storedEnergy) =>
+      forAll(cases) { (stayingHours, storedEnergy) =>
+
+        // 10 kWh capacity, 8 kWh target, 5 kW max power, staying one hour
         val givenEv = EvModelWrapper(
           ev1.copyWithDeparture(offset + 3600L)
         )
 
+        // 10 kWh capacity, 8 kWh target, 5 kW max power
         val ev = EvModelWrapper(
           ev2
             .copyWith(storedEnergy.asKiloWattHour)
-            .copyWithDeparture(offset + stayingTicks)
+            .copyWithDeparture(offset + (stayingHours * 3600L).toLong)
         )
 
         val chargingMap = MaximumPowerCharging.determineChargingPowers(

@@ -13,6 +13,6 @@ object MockEvcsChargingProperties extends EvcsChargingProperties {
 
   override protected val pRated: Power = Kilowatts(43)
   override val currentType: ElectricCurrentType = ElectricCurrentType.AC
-  override val lowestEvSoc: Double = 0.2
+  override val departureTargetSoc: Double = 0.8
 
 }
