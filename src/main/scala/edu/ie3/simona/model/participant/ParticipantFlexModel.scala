@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.ontology.messages.flex.FlexOptions
+import edu.ie3.simona.service.DataTimeType
 
 trait ParticipantFlexModel[S <: ModelState] {
 
@@ -18,9 +19,11 @@ trait ParticipantFlexModel[S <: ModelState] {
     *
     * @param state
     *   The current state.
+    * @param dateTimeType
+    *   The data time type to calculate flex options for.
     * @return
     *   The flexibility options.
     */
-  def determineFlexOptions(state: S): FlexOptions
+  def determineFlexOptions(state: S, dateTimeType: DataTimeType): FlexOptions
 
 }

@@ -12,13 +12,15 @@ import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   PowerLimitFlexOptions,
 }
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 
 class EvcsPowerLimitFlexModel(private val model: EvcsModel)
     extends ParticipantFlexModel[EvcsState] {
 
   override def determineFlexOptions(
-      state: EvcsState
+      state: EvcsState,
+      dateTimeType: DataTimeType,
   ): FlexOptions = {
 
     val preferredPowers =

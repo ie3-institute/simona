@@ -158,7 +158,7 @@ object EmAgentInit extends SecondaryServiceRegistration[Message, Unit] {
       inputModel,
       dummyFactoryUpdater,
       completionBehavior,
-      modelShell.modelStrategy.getRequiredSecondaryServices,
+      modelShell.modelStrategy.getServiceRegistrationData,
       services,
     )
 
