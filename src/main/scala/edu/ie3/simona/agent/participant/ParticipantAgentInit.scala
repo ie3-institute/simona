@@ -184,9 +184,9 @@ object ParticipantAgentInit
           (None, DataTimeType.Current)
         case FlexInit(ft, timeType) =>
           (Some(ft), timeType)
-        case unexpected =>
+        case _ =>
           throw new CriticalFailureException(
-            s"${inputContainer.electricalInputModel.identifier}: Unexpected initial activation "
+            s"${inputContainer.electricalInputModel.identifier}: Unexpected initial activation $activation"
           )
       }
 
@@ -202,6 +202,13 @@ object ParticipantAgentInit
 
   /** Waits for the primary proxy to respond, which decides whether this
     * participant uses model calculations or just replays primary data.
+    *
+    * @param flexType
+    *   The flexibility type that the controlling EM demands flex options for,
+    *   if applicable.
+    * @param dataTimeType
+    *   The data time type of flex options (if applicable) and operating points
+    *   to be calculated.
     */
   private def waitingForPrimaryProxy(
       flexType: Option[FlexType],
@@ -310,7 +317,7 @@ object ParticipantAgentInit
     dataCompletedTick.foreach { dataCompleted =>
       if dataCompleted > firstTick then
         throw new CriticalFailureException(
-          s"${modelShell.identifier}: Input data will only be fully received at tick $dataCompleted. " +
+          s"${modelShell.getIdentifier}: Input data will only be fully received at tick $dataCompleted. " +
             s"It needs to be available with operation start $firstTick though."
         )
     }
