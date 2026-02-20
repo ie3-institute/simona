@@ -38,6 +38,7 @@ In short, mergeable PRs have to meet our standards in several areas:
   - If the project uses ReadTheDocs documentation, the sphinx compilation needs to succeed
   - Other code checks such as Codacy and Sonatype (exceptions can be made for some types of warnings)
 - Manual audits
+  - The PR is linked to some issue documenting the bug, task, or enhancement.
   - Changes made to the code have to be reflected within all types of documentation, i.e.
     - ReadTheDocs for long form documentation
     - ScalaDoc/JavaDoc for interface documentation
@@ -77,33 +78,20 @@ These guidelines do not intend to be exhaustive. Feel free to extend them with r
 
 ## API compatibility policy
 
-We maintain a simple, strict policy for public API (interfaces) and method lifecycle to keep releases predictable for downstream users and integrations:
+We follow a simple, strict policy for public API (interfaces) and method lifecycle to keep releases predictable for downstream users and integrations:
 
-- No interface changes in patch versions
-  - Patch releases (x.y.z -> x.y.z+1) may only contain bug fixes and non-API behavioral fixes. They must not change public type signatures, remove or rename public classes or methods, or alter method signatures in a way that would break source or binary compatibility for users.
-  - Examples of forbidden changes in patch releases: renaming a method, changing a method parameter type, removing a public class, or changing the visibility of an API member.
+- Major releases (x -> x+1) include big changes: new architecture, redesigned APIs, etc.
+- Minor releases (x.y -> x.y+1) include additive changes: new features or extensions.
+- Patch versions (x.y.z -> x.y.z+1). These may only contain bug fixes and non-API behavioral fixes, but no breaking changes.
 
-- No method deprecations; interfaces may change in major and minor versions
-  - We avoid introducing deprecation-only transitions in patch or minor releases. Instead, if an API must be changed, the change is scheduled for a minor (x.y -> x.y+1) or major (x -> x+1) release where breaking changes are allowed. We do not mark methods as deprecated as a separate lifecycle step.
-  - This means: when you need to replace, rename, or remove an API, do it as part of a planned minor or major release and provide migration notes in the changelog and documentation.
+- No method deprecations: We avoid introducing deprecations. Instead, if an API must be changed, the change is scheduled for a minor or major release where breaking changes are allowed. This allows a simple maintainance without supporting a long deprecation period and keeps the codebase cleaner.
 
-Why these rules?
-- Predictability: Consumers of SIMONA rely on stable APIs for reproducible experiments and integrations. Minimising API churn in patch releases reduces surprise breakages.
-- Simplicity: Avoiding a long deprecation period keeps the codebase cleaner and reduces maintenance overhead from supporting legacy shims over many versions.
-
-Guidance for contributors
-- If your change touches a public API, decide whether it is a bug fix (safe for patch) or a breaking change (must go into a minor/major release). If unsure, err on the side of conservative: target a minor release.
-- For breaking changes planned in a minor or major release, update:
-  - ReadTheDocs and any API docs (ScalaDoc / JavaDoc) to show the new interface and migration steps.
-- Avoid using `@deprecated` annotations as a primary method of staged migration. If you think a deprecation step is strictly necessary, present it in the PR description and get explicit approval from reviewers and maintainers.
-
-Reviewer checklist (quick)
-- Does the PR change any public types, method signatures, or class visibility? If yes: ensure the PR targets a minor/major release branch.
+## Reviewing and merging pull requests
+Reviewers should check that the PR meets the criteria outlined in the "Finalising your pull request" section above, including automated checks and manual review. If the PR is ready to merge, reviewers can approve it and merge it into the dev branch. If there are open issues that need to be addressed, reviewers should provide clear feedback to the contributor and request changes before approval.
+ 
+### Reviewer checklist
 - Does the PR add `@deprecated` or similar deprecation notes? If yes: ask for rationale and explicit approval; prefer scheduling the change for a minor/major release instead.
-- For patch branches: confirm the version bump is a patch, and check that only bug fixes / internal refactors are present.
-
-Exception process
-- In exceptional cases (e.g., security fixes that unavoidably require an API change in a patch), obtain an explicit sign-off from a repository admin. Document the reason, the change, and the mitigation plan in the PR and changelog entry.
+- Is the new code is properly documented and / or are there any necessary follow-up tasks necessary that are excluded from the PR for reason. These should be tracked at least by creating a new issue for them.
 
 
 ## Protocols
@@ -118,6 +106,10 @@ protocols
 ## Release Process
 
 We're following the git-flow approach to release new versions. The following steps are necessary to went through for a release:
+
+### Release Checklist
+- Does the release change any public types, method signatures, or class visibility? If yes: ensure the release will be minor/major release.
+- For patch branches: confirm the version bump is a patch, and check that only bug fixes / internal refactors are present.
 
 ### Pre-Release
 1. Update gradle to latest version: `./gradlew wrapper --gradle-version=<version> --distribution-type=bin`
